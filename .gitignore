@@ -143,3 +143,6 @@ test-results/
 
 
 .playwright-mcp
+
+# Git worktrees
+.worktrees/

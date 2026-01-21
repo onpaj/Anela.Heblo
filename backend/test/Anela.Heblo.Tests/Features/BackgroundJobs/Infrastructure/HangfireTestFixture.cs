@@ -63,8 +63,12 @@ public class HangfireTestFixture : IDisposable
 /// Collection definition for Hangfire tests.
 /// All test classes that use [Collection("Hangfire")] will share the same HangfireTestFixture instance,
 /// preventing race conditions when multiple test classes configure GlobalConfiguration in parallel.
+///
+/// IMPORTANT: DisableParallelization is set to prevent race conditions in tests that share
+/// the global JobStorage.Current state. Tests in this collection must run sequentially to avoid
+/// interference when registering/removing recurring jobs.
 /// </summary>
-[CollectionDefinition("Hangfire")]
+[CollectionDefinition("Hangfire", DisableParallelization = true)]
 public class HangfireTestCollection : ICollectionFixture<HangfireTestFixture>
 {
     // This class has no code, and is never created. Its purpose is simply
