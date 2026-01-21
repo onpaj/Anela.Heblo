@@ -5280,7 +5280,7 @@ export class ApiClient {
         return Promise.resolve<GetStockTakingHistoryResponse>(null as any);
     }
 
-    stockUpOperations_GetOperations(state: StockUpOperationState | null | undefined, pageSize: number | null | undefined, page: number | null | undefined): Promise<GetStockUpOperationsResponse> {
+    stockUpOperations_GetOperations(state: string | null | undefined, pageSize: number | null | undefined, page: number | null | undefined, sourceType: StockUpSourceType | null | undefined, sourceId: number | null | undefined, productCode: string | null | undefined, documentNumber: string | null | undefined, createdFrom: Date | null | undefined, createdTo: Date | null | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetStockUpOperationsResponse> {
         let url_ = this.baseUrl + "/api/StockUpOperations?";
         if (state !== undefined && state !== null)
             url_ += "state=" + encodeURIComponent("" + state) + "&";
@@ -5288,6 +5288,24 @@ export class ApiClient {
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
         if (page !== undefined && page !== null)
             url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (sourceType !== undefined && sourceType !== null)
+            url_ += "sourceType=" + encodeURIComponent("" + sourceType) + "&";
+        if (sourceId !== undefined && sourceId !== null)
+            url_ += "sourceId=" + encodeURIComponent("" + sourceId) + "&";
+        if (productCode !== undefined && productCode !== null)
+            url_ += "productCode=" + encodeURIComponent("" + productCode) + "&";
+        if (documentNumber !== undefined && documentNumber !== null)
+            url_ += "documentNumber=" + encodeURIComponent("" + documentNumber) + "&";
+        if (createdFrom !== undefined && createdFrom !== null)
+            url_ += "createdFrom=" + encodeURIComponent(createdFrom ? "" + createdFrom.toISOString() : "") + "&";
+        if (createdTo !== undefined && createdTo !== null)
+            url_ += "createdTo=" + encodeURIComponent(createdTo ? "" + createdTo.toISOString() : "") + "&";
+        if (sortBy !== undefined && sortBy !== null)
+            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "sortDescending=" + encodeURIComponent("" + sortDescending) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
