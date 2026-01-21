@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
-import { GetTransportBoxByCodeResponse, ReceiveTransportBoxResponse, ReceiveTransportBoxRequest } from "../generated/api-client";
+import { GetTransportBoxByCodeResponse, ChangeTransportBoxStateRequest, ChangeTransportBoxStateResponse, TransportBoxState } from "../generated/api-client";
 
 export const useTransportBoxReceive = () => {
   const queryClient = useQueryClient();
@@ -11,15 +11,15 @@ export const useTransportBoxReceive = () => {
     return await apiClient.transportBox_GetTransportBoxByCode(boxCode);
   };
 
-  // Receive transport box
+  // Receive transport box (change state to Received)
   const receiveMutation = useMutation({
-    mutationFn: async (params: { boxId: number; userName: string }): Promise<ReceiveTransportBoxResponse> => {
+    mutationFn: async (params: { boxId: number; userName: string }): Promise<ChangeTransportBoxStateResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const request = new ReceiveTransportBoxRequest({
+      const request = new ChangeTransportBoxStateRequest({
         boxId: params.boxId,
-        userName: params.userName
+        newState: TransportBoxState.Received
       });
-      return await apiClient.transportBox_ReceiveTransportBox(params.boxId, request);
+      return await apiClient.transportBox_ChangeTransportBoxState(params.boxId, request);
     },
     onSuccess: (data, variables) => {
       // Invalidate relevant queries after successful receive
