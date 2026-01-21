@@ -180,6 +180,102 @@ public class GetPurchaseStockAnalysisHandlerTests
         efficiencies.Should().BeEquivalentTo(efficiencies.OrderByDescending(e => e));
     }
 
+    [Fact]
+    public async Task Handle_WithOrderedStock_PopulatesEffectiveStockCorrectly()
+    {
+        var catalogItems = new List<CatalogAggregate>
+        {
+            new CatalogAggregate
+            {
+                ProductCode = "MAT001",
+                ProductName = "Material with Ordered Stock",
+                Type = ProductType.Material,
+                Stock = new StockData
+                {
+                    Erp = 50,
+                    Eshop = 0,
+                    Transport = 0,
+                    Reserve = 0,
+                    Ordered = 100
+                },
+                Properties = new CatalogProperties { StockMinSetup = 20, OptimalStockDaysSetup = 30 },
+                SupplierName = "Supplier A",
+                MinimalOrderQuantity = "100"
+            }
+        };
+
+        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        _stockSeverityCalculatorMock.Setup(x => x.DetermineStockSeverity(
+            It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .Returns(StockSeverity.Optimal);
+
+        var request = new GetPurchaseStockAnalysisRequest
+        {
+            PageNumber = 1,
+            PageSize = 10
+        };
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.Should().NotBeNull();
+        response.Items.Should().HaveCount(1);
+
+        var item = response.Items[0];
+        item.AvailableStock.Should().Be(50);
+        item.OrderedStock.Should().Be(100);
+        item.EffectiveStock.Should().Be(150);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutOrderedStock_PopulatesEffectiveStockAsAvailable()
+    {
+        var catalogItems = new List<CatalogAggregate>
+        {
+            new CatalogAggregate
+            {
+                ProductCode = "MAT002",
+                ProductName = "Material without Ordered Stock",
+                Type = ProductType.Material,
+                Stock = new StockData
+                {
+                    Erp = 75,
+                    Eshop = 0,
+                    Transport = 0,
+                    Reserve = 0,
+                    Ordered = 0
+                },
+                Properties = new CatalogProperties { StockMinSetup = 20, OptimalStockDaysSetup = 30 },
+                SupplierName = "Supplier B",
+                MinimalOrderQuantity = "50"
+            }
+        };
+
+        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        _stockSeverityCalculatorMock.Setup(x => x.DetermineStockSeverity(
+            It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<bool>()))
+            .Returns(StockSeverity.Optimal);
+
+        var request = new GetPurchaseStockAnalysisRequest
+        {
+            PageNumber = 1,
+            PageSize = 10
+        };
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.Should().NotBeNull();
+        response.Items.Should().HaveCount(1);
+
+        var item = response.Items[0];
+        item.AvailableStock.Should().Be(75);
+        item.OrderedStock.Should().Be(0);
+        item.EffectiveStock.Should().Be(75);
+    }
+
     private List<CatalogAggregate> CreateTestCatalogItems()
     {
         return new List<CatalogAggregate>

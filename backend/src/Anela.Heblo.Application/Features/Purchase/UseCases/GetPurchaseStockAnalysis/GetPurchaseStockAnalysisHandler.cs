@@ -108,15 +108,15 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
         int? daysUntilStockout = null;
         if (dailyConsumption > 0)
         {
-            daysUntilStockout = (int)((double)item.Stock.Available / dailyConsumption);
+            daysUntilStockout = (int)((double)item.Stock.EffectiveStock / dailyConsumption);
         }
 
         var minStock = item.Properties.StockMinSetup;
         var optimalStockDays = item.Properties.OptimalStockDaysSetup;
         var optimalStock = optimalStockDays > 0 ? dailyConsumption * (double)optimalStockDays : 0;
 
-        var stockEfficiency = CalculateStockEfficiency((double)item.Stock.Available, (double)minStock, optimalStock);
-        var severity = _stockSeverityCalculator.DetermineStockSeverity((double)item.Stock.Available, (double)minStock, optimalStock, item.IsMinStockConfigured, item.IsOptimalStockConfigured);
+        var stockEfficiency = CalculateStockEfficiency((double)item.Stock.EffectiveStock, (double)minStock, optimalStock);
+        var severity = _stockSeverityCalculator.DetermineStockSeverity((double)item.Stock.EffectiveStock, (double)minStock, optimalStock, item.IsMinStockConfigured, item.IsOptimalStockConfigured);
 
         var lastPurchase = GetLastPurchaseInfo(item);
 
@@ -133,6 +133,8 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
             ProductNameNormalized = item.ProductNameNormalized,
             ProductType = item.Type.ToString(),
             AvailableStock = (double)item.Stock.Available,
+            OrderedStock = (double)item.Stock.Ordered,
+            EffectiveStock = (double)item.Stock.EffectiveStock,
             MinStockLevel = (double)minStock,
             OptimalStockLevel = optimalStock,
             ConsumptionInPeriod = consumption,
@@ -247,7 +249,7 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
             OptimalCount = items.Count(i => i.Severity == StockSeverity.Optimal),
             OverstockedCount = items.Count(i => i.Severity == StockSeverity.Overstocked),
             NotConfiguredCount = items.Count(i => i.Severity == StockSeverity.NotConfigured),
-            TotalInventoryValue = items.Sum(i => (decimal)i.AvailableStock * (i.LastPurchase?.UnitPrice ?? 0)),
+            TotalInventoryValue = items.Sum(i => (decimal)i.EffectiveStock * (i.LastPurchase?.UnitPrice ?? 0)),
             AnalysisPeriodStart = fromDate,
             AnalysisPeriodEnd = toDate
         };

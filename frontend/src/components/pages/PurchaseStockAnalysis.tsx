@@ -204,18 +204,34 @@ const PurchaseStockAnalysis: React.FC = () => {
     if (event) {
       event.stopPropagation(); // Prevent row click
     }
-    
+
     if (!item.productCode) return; // Exit if no product code
-    
+
     if (isInPurchasePlanningList(item.productCode)) {
       removeFromPurchasePlanningList(item.productCode);
     } else {
-      addToPurchasePlanningList({ 
-        code: item.productCode, 
+      addToPurchasePlanningList({
+        code: item.productCode,
         name: item.productName || "Neznámý produkt",
         supplier: item.supplier || "Neznámý dodavatel"
       });
     }
+  };
+
+  // Format stock display helper
+  const formatStockDisplay = (available: number, ordered: number, effectiveStock: number) => {
+    if (ordered > 0) {
+      return {
+        mainValue: formatNumber(effectiveStock, 0),
+        subValue: `+${formatNumber(ordered, 0)} obj.`,
+        tooltip: `Skladem ${formatNumber(available, 0)}, objednáno ${formatNumber(ordered, 0)}`
+      };
+    }
+    return {
+      mainValue: formatNumber(available, 0),
+      subValue: null,
+      tooltip: `Skladem ${formatNumber(available, 0)}`
+    };
   };
 
   // Sortable header component
@@ -890,10 +906,34 @@ const PurchaseStockAnalysis: React.FC = () => {
                     </td>
 
                     {/* Available Stock (Skladem) */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
+                    <td
+                      className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900"
+                      title={formatStockDisplay(
+                        item.availableStock ?? 0,
+                        item.orderedStock ?? 0,
+                        item.effectiveStock ?? 0
+                      ).tooltip}
+                    >
                       <div className="font-bold">
-                        {formatNumber(item.availableStock, 0)}
+                        {formatStockDisplay(
+                          item.availableStock ?? 0,
+                          item.orderedStock ?? 0,
+                          item.effectiveStock ?? 0
+                        ).mainValue}
                       </div>
+                      {formatStockDisplay(
+                        item.availableStock ?? 0,
+                        item.orderedStock ?? 0,
+                        item.effectiveStock ?? 0
+                      ).subValue && (
+                        <div className="text-xs text-gray-500">
+                          {formatStockDisplay(
+                            item.availableStock ?? 0,
+                            item.orderedStock ?? 0,
+                            item.effectiveStock ?? 0
+                          ).subValue}
+                        </div>
+                      )}
                       <div className="text-xs text-gray-500 md:hidden">
                         {formatNumber(item.minStockLevel, 0)}/
                         {formatNumber(item.optimalStockLevel, 0)}

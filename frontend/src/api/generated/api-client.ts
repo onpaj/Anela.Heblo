@@ -18237,6 +18237,8 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
     productNameNormalized?: string;
     productType?: string;
     availableStock?: number;
+    orderedStock?: number;
+    effectiveStock?: number;
     minStockLevel?: number;
     optimalStockLevel?: number;
     consumptionInPeriod?: number;
@@ -18266,6 +18268,8 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
             this.productNameNormalized = _data["productNameNormalized"];
             this.productType = _data["productType"];
             this.availableStock = _data["availableStock"];
+            this.orderedStock = _data["orderedStock"];
+            this.effectiveStock = _data["effectiveStock"];
             this.minStockLevel = _data["minStockLevel"];
             this.optimalStockLevel = _data["optimalStockLevel"];
             this.consumptionInPeriod = _data["consumptionInPeriod"];
@@ -18295,6 +18299,8 @@ export class StockAnalysisItemDto implements IStockAnalysisItemDto {
         data["productNameNormalized"] = this.productNameNormalized;
         data["productType"] = this.productType;
         data["availableStock"] = this.availableStock;
+        data["orderedStock"] = this.orderedStock;
+        data["effectiveStock"] = this.effectiveStock;
         data["minStockLevel"] = this.minStockLevel;
         data["optimalStockLevel"] = this.optimalStockLevel;
         data["consumptionInPeriod"] = this.consumptionInPeriod;
@@ -18317,6 +18323,8 @@ export interface IStockAnalysisItemDto {
     productNameNormalized?: string;
     productType?: string;
     availableStock?: number;
+    orderedStock?: number;
+    effectiveStock?: number;
     minStockLevel?: number;
     optimalStockLevel?: number;
     consumptionInPeriod?: number;
