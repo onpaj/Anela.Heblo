@@ -22,6 +22,9 @@ const stockUpOperationsKeys = {
   lists: () => [...QUERY_KEYS.stockUpOperations, "list"] as const,
   list: (filters: GetStockUpOperationsRequest) =>
     [...QUERY_KEYS.stockUpOperations, "list", filters] as const,
+  summaries: () => [...QUERY_KEYS.stockUpOperations, "summary"] as const,
+  summary: (sourceType?: StockUpSourceType) =>
+    [...QUERY_KEYS.stockUpOperations, "summary", sourceType] as const,
 };
 
 // Helper to get the correct API client instance from generated file
@@ -67,13 +70,15 @@ export const useRetryStockUpOperationMutation = () => {
  */
 export const useStockUpOperationsSummary = (sourceType?: StockUpSourceType) => {
   return useQuery({
-    queryKey: [...QUERY_KEYS.stockUpOperations, "summary", sourceType],
+    queryKey: stockUpOperationsKeys.summary(sourceType),
     queryFn: async (): Promise<GetStockUpOperationsSummaryResponse> => {
-      const client = getAuthenticatedApiClient();
-      return await (client as any).stockUpOperations_GetSummary(sourceType);
+      const client = getStockUpOperationsClient();
+      return await client.stockUpOperations_GetSummary(sourceType ?? undefined);
     },
     refetchInterval: 15000, // Poll every 15 seconds
-    staleTime: 10000, // Consider stale after 10 seconds
-    gcTime: 30000, // Keep in cache for 30 seconds
+    refetchOnWindowFocus: true,
+    staleTime: 14000, // Consider stale just before next poll
+    gcTime: 60000, // Keep in cache for 1 minute
+    retry: 1, // Limit retries during polling
   });
 };
