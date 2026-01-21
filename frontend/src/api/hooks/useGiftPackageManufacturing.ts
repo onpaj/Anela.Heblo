@@ -9,8 +9,6 @@ import {
   GetManufactureLogResponse,
   EnqueueGiftPackageManufactureRequest,
   EnqueueGiftPackageManufactureResponse,
-  GetGiftPackageManufactureJobStatusResponse,
-  GetRunningJobsForGiftPackageResponse,
 } from "../generated/api-client";
 
 
@@ -120,48 +118,6 @@ export const useManufactureLog = (count: number = 10) => {
   });
 };
 
-/**
- * Hook to get job status by job ID
- */
-export const useGiftPackageManufactureJobStatus = (jobId?: string) => {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.giftPackages, "jobs", "status", jobId || ""],
-    queryFn: async (): Promise<GetGiftPackageManufactureJobStatusResponse> => {
-      if (!jobId) {
-        throw new Error("Job ID is required");
-      }
-      
-      const client = getGiftPackageClient();
-      return await client.logistics_GetGiftPackageManufactureJobStatus(jobId);
-    },
-    enabled: !!jobId,
-    refetchInterval: 2000, // Poll every 2 seconds
-    staleTime: 0, // Always fetch fresh data for job status
-    gcTime: 30 * 1000, // Keep in cache for 30 seconds
-  });
-};
-
-/**
- * Hook to get running jobs for a specific gift package
- */
-export const useRunningJobsForGiftPackage = (giftPackageCode?: string) => {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.giftPackages, "jobs", "running", giftPackageCode || ""],
-    queryFn: async (): Promise<GetRunningJobsForGiftPackageResponse> => {
-      if (!giftPackageCode) {
-        throw new Error("Gift package code is required");
-      }
-      
-      const client = getGiftPackageClient();
-      return await client.logistics_GetRunningJobsForGiftPackage(giftPackageCode);
-    },
-    enabled: !!giftPackageCode,
-    refetchInterval: 5000, // Poll every 5 seconds to check for running jobs
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 10 * 1000, // Keep in cache for 10 seconds
-  });
-};
-
 // Export centralized query key factory for external use (e.g., manual cache invalidation)
 export const giftPackageQueryKeys = {
   all: () => QUERY_KEYS.giftPackages,
@@ -170,7 +126,4 @@ export const giftPackageQueryKeys = {
   validation: () => [...QUERY_KEYS.giftPackages, "validation"] as const,
   manufacture: () => [...QUERY_KEYS.giftPackages, "manufacture"] as const,
   log: () => [...QUERY_KEYS.giftPackages, "manufacture", "log"] as const,
-  jobs: () => [...QUERY_KEYS.giftPackages, "jobs"] as const,
-  jobStatus: (jobId: string) => [...QUERY_KEYS.giftPackages, "jobs", "status", jobId] as const,
-  runningJobs: (giftPackageCode: string) => [...QUERY_KEYS.giftPackages, "jobs", "running", giftPackageCode] as const,
 };

@@ -58,6 +58,7 @@ public static class CatalogModule
         services.AddSingleton<ICatalogMergeScheduler, CatalogMergeScheduler>();
         services.AddTransient<SafeMarginCalculator>();
         services.AddTransient<IProductWeightRecalculationService, ProductWeightRecalculationService>();
+        services.AddTransient<IStockUpProcessingService, StockUpProcessingService>();
 
         // Configure feature flags from configuration
         services.Configure<CatalogFeatureFlags>(options =>
@@ -245,6 +246,12 @@ public static class CatalogModule
         services.RegisterRefreshTask<ISalesCostProvider>(
             "RefreshCache",
             (source, ct) => source.RefreshAsync(ct)
+        );
+
+        // Stock-up processing task - processes pending stock-up operations
+        services.RegisterRefreshTask<IStockUpProcessingService>(
+            nameof(IStockUpProcessingService.ProcessPendingOperationsAsync),
+            (service, ct) => service.ProcessPendingOperationsAsync(ct)
         );
 
         // Margin calculation task

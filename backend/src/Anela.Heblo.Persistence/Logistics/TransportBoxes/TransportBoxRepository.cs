@@ -158,7 +158,7 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
             .Include(x => x.Items)
             .Include(x => x.StateLog)
             .Where(x => x.State == TransportBoxState.Received)
-            .OrderBy(x => x.LastStateChanged)
+            .OrderBy(x => x.LastStateChanged ?? x.CreationTime) // Oldest first
             .ToListAsync(cancellationToken);
 
         _logger.LogDebug("Found {Count} transport boxes in Received state", receivedBoxes.Count);

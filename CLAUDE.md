@@ -181,9 +181,12 @@ Features/{Feature}/
 ## Core Modules
 
 1. **Catalog Module**: Unifies product/material data from Shoptet (products) and ABRA (materials)
-2. **Manufacture Module**: 2-step production workflow (Materials → Semi-products → Products)  
+2. **Manufacture Module**: 2-step production workflow (Materials → Semi-products → Products)
 3. **Purchase Module**: Material shortage detection with supplier/pricing history
 4. **Transport Module**: Box-level packaging tracking with EAN codes
+   - **Stock-Up Integration**: When boxes are marked as "Received", creates StockUpOperations in Pending state
+   - **Asynchronous Completion**: CompleteReceivedBoxesJob background job transitions boxes to "Stocked" after all stock-up operations complete
+   - **4-Layer Protection**: Database constraints, Shoptet pre-check, transactional submit, post-verify
 5. **Invoice Automation**: Automated Shoptet invoice scraping → ABRA Flexi integration
 
 ## Development Commands (When Implemented)

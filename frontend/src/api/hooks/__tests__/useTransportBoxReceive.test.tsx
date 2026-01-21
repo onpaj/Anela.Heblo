@@ -14,7 +14,7 @@ jest.mock('../../client', () => ({
 
 const createMockApiClient = () => ({
   transportBox_GetTransportBoxByCode: jest.fn(),
-  transportBox_ReceiveTransportBox: jest.fn()
+  transportBox_ChangeTransportBoxState: jest.fn()
 });
 
 const mockGetAuthenticatedApiClient = getAuthenticatedApiClient as jest.MockedFunction<typeof getAuthenticatedApiClient>;
@@ -89,7 +89,7 @@ describe('useTransportBoxReceive', () => {
         boxCode: 'B001'
       };
 
-      mockApiClient.transportBox_ReceiveTransportBox.mockResolvedValue(mockResponse);
+      mockApiClient.transportBox_ChangeTransportBoxState.mockResolvedValue(mockResponse);
 
       const { result } = renderHook(() => useTransportBoxReceive(), {
         wrapper: createWrapper()
@@ -97,11 +97,11 @@ describe('useTransportBoxReceive', () => {
 
       const response = await result.current.receive(1, 'TestUser');
 
-      expect(mockApiClient.transportBox_ReceiveTransportBox).toHaveBeenCalledWith(
+      expect(mockApiClient.transportBox_ChangeTransportBoxState).toHaveBeenCalledWith(
         1,
         expect.objectContaining({
           boxId: 1,
-          userName: 'TestUser'
+          newState: 'Received'
         })
       );
 
@@ -110,7 +110,7 @@ describe('useTransportBoxReceive', () => {
 
     it('handles errors during receive', async () => {
       const mockError = new Error('Box already received');
-      mockApiClient.transportBox_ReceiveTransportBox.mockRejectedValue(mockError);
+      mockApiClient.transportBox_ChangeTransportBoxState.mockRejectedValue(mockError);
 
       const { result } = renderHook(() => useTransportBoxReceive(), {
         wrapper: createWrapper()
@@ -120,7 +120,7 @@ describe('useTransportBoxReceive', () => {
     });
 
     it('sets isReceiving to true during mutation', async () => {
-      mockApiClient.transportBox_ReceiveTransportBox.mockImplementation(
+      mockApiClient.transportBox_ChangeTransportBoxState.mockImplementation(
         () => new Promise((resolve) =>
           setTimeout(() => resolve({ success: true, boxId: 1, boxCode: 'B001' }), 100)
         )

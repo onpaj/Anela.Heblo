@@ -1,23 +1,26 @@
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.API.Infrastructure.Hangfire;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Tests.Features.BackgroundJobs.Infrastructure;
 using Hangfire;
-using Hangfire.MemoryStorage;
 using Hangfire.Storage;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Xunit;
 
 namespace Anela.Heblo.Tests.Features.BackgroundJobs;
 
+[Collection("Hangfire")]
 public class RecurringJobDiscoveryServiceTests : IDisposable
 {
     private readonly ServiceProvider _serviceProvider;
 
-    public RecurringJobDiscoveryServiceTests()
+    public RecurringJobDiscoveryServiceTests(HangfireTestFixture fixture)
     {
+        // Hangfire is already initialized by the shared collection fixture
         var services = new ServiceCollection();
 
         // Add logging
@@ -25,12 +28,6 @@ public class RecurringJobDiscoveryServiceTests : IDisposable
 
         // Add web host environment mock
         services.AddSingleton<IWebHostEnvironment>(new TestWebHostEnvironment { EnvironmentName = "Test" });
-
-        // Configure Hangfire with in-memory storage for testing
-        GlobalConfiguration.Configuration
-            .UseSimpleAssemblyNameTypeSerializer()
-            .UseRecommendedSerializerSettings()
-            .UseMemoryStorage();
 
         // Register test recurring job
         services.AddScoped<IRecurringJob, TestAsyncRecurringJob>();

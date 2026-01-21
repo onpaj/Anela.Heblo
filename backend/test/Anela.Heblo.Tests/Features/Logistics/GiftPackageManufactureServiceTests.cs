@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -9,6 +10,7 @@ using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Xcc.Services;
 using AutoMapper;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace Anela.Heblo.Tests.Features.Logistics;
@@ -19,10 +21,10 @@ public class GiftPackageManufactureServiceTests
     private readonly Mock<IGiftPackageManufactureRepository> _giftPackageRepositoryMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
-    private readonly Mock<IEshopStockDomainService> _eshopStockServiceMock;
+    private readonly Mock<IStockUpProcessingService> _stockUpProcessingServiceMock;
     private readonly Mock<IMapper> _mapperMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
-    private readonly Mock<IBackgroundWorker> _backgroundWorkerMock;
+    private readonly Mock<ILogger<GiftPackageManufactureService>> _loggerMock;
     private readonly GiftPackageManufactureService _service;
     private readonly DateTime _testDateTime = new DateTime(2024, 6, 15);
 
@@ -32,10 +34,10 @@ public class GiftPackageManufactureServiceTests
         _giftPackageRepositoryMock = new Mock<IGiftPackageManufactureRepository>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
-        _eshopStockServiceMock = new Mock<IEshopStockDomainService>();
+        _stockUpProcessingServiceMock = new Mock<IStockUpProcessingService>();
         _mapperMock = new Mock<IMapper>();
         _timeProviderMock = new Mock<TimeProvider>();
-        _backgroundWorkerMock = new Mock<IBackgroundWorker>();
+        _loggerMock = new Mock<ILogger<GiftPackageManufactureService>>();
 
         _timeProviderMock.Setup(x => x.GetUtcNow())
             .Returns(new DateTimeOffset(_testDateTime, TimeSpan.Zero));
@@ -45,10 +47,10 @@ public class GiftPackageManufactureServiceTests
             _giftPackageRepositoryMock.Object,
             _catalogRepositoryMock.Object,
             _currentUserServiceMock.Object,
-            _eshopStockServiceMock.Object,
+            _stockUpProcessingServiceMock.Object,
             _mapperMock.Object,
             _timeProviderMock.Object,
-            _backgroundWorkerMock.Object);
+            _loggerMock.Object);
     }
 
     [Fact]
@@ -226,6 +228,17 @@ public class GiftPackageManufactureServiceTests
         // Setup current user service to return test user
         _currentUserServiceMock.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser(Id: "test-user-id", Name: userId, Email: "test@example.com", IsAuthenticated: true));
+
+        // Setup stock up processing service to create operations (no return value)
+        _stockUpProcessingServiceMock
+            .Setup(x => x.CreateOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<StockUpSourceType>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _service.CreateManufactureAsync(giftPackageCode, quantity, false, CancellationToken.None);

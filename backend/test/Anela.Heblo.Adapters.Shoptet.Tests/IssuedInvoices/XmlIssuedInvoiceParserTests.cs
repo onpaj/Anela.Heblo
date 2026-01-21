@@ -7,7 +7,6 @@ using Moq;
 
 namespace Anela.Heblo.Adapters.Shoptet.Tests.IssuedInvoices;
 
-[Trait("Category", "Unit")]
 public class XmlIssuedInvoiceParserTests
 {
     private readonly Mock<IMapper> _mockMapper;

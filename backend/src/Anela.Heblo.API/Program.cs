@@ -40,7 +40,7 @@ public partial class Program
         // Add new architecture services
         builder.Services.AddPersistenceServices(builder.Configuration, builder.Environment);
         builder.Services.AddApplicationServices(builder.Configuration, builder.Environment); // Vertical slice modules from Application layer
-        builder.Services.AddXccServices(); // Cross-cutting concerns (audit, telemetry, etc.)
+        builder.Services.AddXccServices(builder.Configuration); // Cross-cutting concerns (audit, telemetry, etc.)
         builder.Services.AddCrossCuttingServices(); // Cross-cutting services from API layer
         builder.Services.AddSpaServices();
 

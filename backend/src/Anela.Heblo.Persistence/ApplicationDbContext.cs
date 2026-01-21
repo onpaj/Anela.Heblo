@@ -33,6 +33,7 @@ public class ApplicationDbContext : DbContext
     //public DbSet<RecurringJob> Jobs { get; set; }
     public DbSet<TransportBox> TransportBoxes { get; set; }
     public DbSet<StockTakingRecord> StockTakings { get; set; }
+    public DbSet<StockUpOperation> StockUpOperations { get; set; } = null!;
     public DbSet<PurchaseOrder> PurchaseOrders { get; set; } = null!;
     public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
     public DbSet<PurchaseOrderHistory> PurchaseOrderHistory { get; set; } = null!;

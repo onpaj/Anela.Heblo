@@ -257,6 +257,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "/automation/background-tasks",
         },
         {
+          id: "stock-operations",
+          name: "Naskladnění",
+          href: "/stock-operations",
+        },
+        {
           id: "recurring-jobs",
           name: "Recurring Jobs",
           href: "/recurring-jobs",
@@ -266,12 +271,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Hangfire",
           href: "#",
           onClick: openHangfireDashboard,
-        },
-        {
-          id: "import-banky",
-          name: "Import banky",
-          href: "/finance/bank-statements",
-        },
+        }
       ],
     },
   ];

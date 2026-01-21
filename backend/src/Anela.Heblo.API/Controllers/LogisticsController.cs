@@ -2,9 +2,7 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.EnqueueGiftPackageManufacture;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetAvailableGiftPackages;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetGiftPackageDetail;
-using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetGiftPackageManufactureJobStatus;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetManufactureLog;
-using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetRunningJobsForGiftPackage;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -102,32 +100,6 @@ public class LogisticsController : BaseApiController
         [FromBody] EnqueueGiftPackageManufactureRequest request,
         CancellationToken cancellationToken)
     {
-        var response = await _mediator.Send(request, cancellationToken);
-        return HandleResponse(response);
-    }
-
-    /// <summary>
-    /// Get status of a gift package manufacturing job
-    /// </summary>
-    [HttpGet("gift-packages/manufacture/job-status/{jobId}")]
-    public async Task<ActionResult<GetGiftPackageManufactureJobStatusResponse>> GetGiftPackageManufactureJobStatus(
-        string jobId,
-        CancellationToken cancellationToken = default)
-    {
-        var request = new GetGiftPackageManufactureJobStatusRequest { JobId = jobId };
-        var response = await _mediator.Send(request, cancellationToken);
-        return HandleResponse(response);
-    }
-
-    /// <summary>
-    /// Get running manufacturing jobs for a specific gift package
-    /// </summary>
-    [HttpGet("gift-packages/{giftPackageCode}/running-jobs")]
-    public async Task<ActionResult<GetRunningJobsForGiftPackageResponse>> GetRunningJobsForGiftPackage(
-        string giftPackageCode,
-        CancellationToken cancellationToken = default)
-    {
-        var request = new GetRunningJobsForGiftPackageRequest { GiftPackageCode = giftPackageCode };
         var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }

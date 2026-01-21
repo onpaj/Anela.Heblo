@@ -1,9 +1,9 @@
-using System.Reflection;
 using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Tests.Features.BackgroundJobs.Infrastructure;
 using FluentAssertions;
 using Hangfire;
-using Hangfire.MemoryStorage;
+using Hangfire.Storage;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -13,20 +13,23 @@ namespace Anela.Heblo.Tests.Features.BackgroundJobs;
 /// <summary>
 /// Unit tests for HangfireJobEnqueuer service.
 /// Tests reflection-based job enqueueing logic.
-/// Note: These tests require Hangfire MemoryStorage to be initialized.
+/// Uses HangfireTestFixture via collection to properly manage Hangfire infrastructure and prevent
+/// ObjectDisposedException when tests run in bulk.
 /// </summary>
+[Collection("Hangfire")]
 public class HangfireJobEnqueuerTests
 {
     private readonly Mock<ILogger<HangfireJobEnqueuer>> _loggerMock;
+    private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly HangfireJobEnqueuer _enqueuer;
 
-    public HangfireJobEnqueuerTests()
+    public HangfireJobEnqueuerTests(HangfireTestFixture fixture)
     {
-        // Initialize Hangfire with in-memory storage for testing
-        GlobalConfiguration.Configuration.UseMemoryStorage();
-
+        // Hangfire is already initialized by the shared collection fixture
+        // Just create the test instance dependencies
         _loggerMock = new Mock<ILogger<HangfireJobEnqueuer>>();
-        _enqueuer = new HangfireJobEnqueuer(_loggerMock.Object);
+        _backgroundJobClient = new BackgroundJobClient(JobStorage.Current);
+        _enqueuer = new HangfireJobEnqueuer(_loggerMock.Object, _backgroundJobClient);
     }
 
     #region Constructor Tests
@@ -35,11 +38,22 @@ public class HangfireJobEnqueuerTests
     public void Constructor_WithNullLogger_ShouldThrowArgumentNullException()
     {
         // Act
-        Action act = () => new HangfireJobEnqueuer(null!);
+        Action act = () => new HangfireJobEnqueuer(null!, _backgroundJobClient);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
             .WithParameterName("logger");
+    }
+
+    [Fact]
+    public void Constructor_WithNullBackgroundJobClient_ShouldThrowArgumentNullException()
+    {
+        // Act
+        Action act = () => new HangfireJobEnqueuer(_loggerMock.Object, null!);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>()
+            .WithParameterName("backgroundJobClient");
     }
 
     #endregion
@@ -80,7 +94,7 @@ public class HangfireJobEnqueuerTests
         // This provides design-time validation of Hangfire API - if it changes, this test fails.
 
         var enqueueInternalMethod = typeof(HangfireJobEnqueuer)
-            .GetMethod("EnqueueJobInternal", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            .GetMethod("EnqueueJobInternal", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 
         // Assert method exists
         Assert.NotNull(enqueueInternalMethod);
