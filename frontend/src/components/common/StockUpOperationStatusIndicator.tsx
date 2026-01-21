@@ -1,21 +1,22 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, AlertTriangle, ChevronRight } from "lucide-react";
-import { GetStockUpOperationsSummaryResponse } from "../../../api/generated/api-client";
+import { GetStockUpOperationsSummaryResponse, StockUpSourceType } from "../../api/generated/api-client";
 
 interface StockUpOperationStatusIndicatorProps {
   summary: GetStockUpOperationsSummaryResponse;
+  sourceType: StockUpSourceType;
 }
 
 const StockUpOperationStatusIndicator: React.FC<
   StockUpOperationStatusIndicatorProps
-> = ({ summary }) => {
+> = ({ summary, sourceType }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
     // Navigate to stock-up operations page with filters
     navigate(
-      "/stock-up-operations?sourceType=GiftPackageManufacture&state=Pending,Submitted,Failed"
+      `/stock-up-operations?sourceType=${sourceType}&state=Pending,Submitted,Failed`
     );
   };
 

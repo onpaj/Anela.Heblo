@@ -6,12 +6,18 @@ import {
   useTransportBoxesQuery,
   useTransportBoxSummaryQuery,
 } from "../../../api/hooks/useTransportBoxes";
+import { useStockUpOperationsSummary } from "../../../api/hooks/useStockUpOperations";
 import { TestRouterWrapper } from "../../../test-utils/router-wrapper";
 
 // Mock the hooks
 jest.mock("../../../api/hooks/useTransportBoxes", () => ({
   useTransportBoxesQuery: jest.fn(),
   useTransportBoxSummaryQuery: jest.fn(),
+}));
+
+// Mock the StockUp operations hook
+jest.mock("../../../api/hooks/useStockUpOperations", () => ({
+  useStockUpOperationsSummary: jest.fn(),
 }));
 
 // Mock the CatalogAutocomplete component
@@ -37,6 +43,13 @@ jest.mock("../TransportBoxDetail", () => {
   };
 });
 
+// Mock the StockUpOperationStatusIndicator component
+jest.mock("../../common/StockUpOperationStatusIndicator", () => {
+  return function MockStockUpOperationStatusIndicator() {
+    return null;
+  };
+});
+
 // Mock the API client for creating new boxes
 jest.mock("../../../api/client", () => ({
   getAuthenticatedApiClient: jest.fn(),
@@ -44,6 +57,7 @@ jest.mock("../../../api/client", () => ({
     catalog: ["catalog"],
     transportBox: ["transport-boxes"],
     transportBoxTransitions: ["transportBoxTransitions"],
+    stockUpOperations: ["stock-up-operations"],
   },
 }));
 
@@ -58,11 +72,16 @@ jest.mock("../../../api/generated/api-client", () => ({
     Set: "Set",
     UNDEFINED: "UNDEFINED",
   },
+  StockUpSourceType: {
+    TransportBox: "TransportBox",
+    GiftPackageManufacture: "GiftPackageManufacture",
+  },
 }));
 
 const mockUseTransportBoxesQuery = useTransportBoxesQuery as jest.Mock;
 const mockUseTransportBoxSummaryQuery =
   useTransportBoxSummaryQuery as jest.Mock;
+const mockUseStockUpOperationsSummary = useStockUpOperationsSummary as jest.Mock;
 
 const createWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = new QueryClient({
@@ -146,6 +165,12 @@ describe("TransportBoxList", () => {
 
     mockUseTransportBoxSummaryQuery.mockReturnValue({
       data: mockSummaryData,
+      isLoading: false,
+      error: null,
+    });
+
+    mockUseStockUpOperationsSummary.mockReturnValue({
+      data: undefined,
       isLoading: false,
       error: null,
     });
