@@ -75,6 +75,12 @@ public class StockUpOperationsController : ControllerBase
         };
 
         var response = await _mediator.Send(request);
+
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+
         return Ok(response);
     }
 }
