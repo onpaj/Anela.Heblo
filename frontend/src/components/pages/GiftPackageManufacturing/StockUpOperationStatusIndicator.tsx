@@ -19,10 +19,24 @@ const StockUpOperationStatusIndicator: React.FC<
     );
   };
 
+  // Don't render if there are no operations to show
+  if ((summary.totalInQueue ?? 0) === 0 && (summary.failedCount ?? 0) === 0) {
+    return null;
+  }
+
   return (
     <div
-      className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors"
+      className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none"
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label="Zobrazit stock-up operace s filtry"
       data-testid="stockup-status-indicator"
     >
       <div className="flex items-center justify-between">
