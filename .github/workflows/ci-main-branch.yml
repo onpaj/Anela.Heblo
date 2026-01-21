@@ -298,7 +298,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            REACT_APP_API_URL=https://heblo.stg.anela.cz
+            REACT_APP_API_URL=https://heblo.anela.cz
             REACT_APP_USE_MOCK_AUTH=false
             REACT_APP_AZURE_CLIENT_ID=${{ secrets.REACT_APP_AZURE_CLIENT_ID }}
             REACT_APP_AZURE_AUTHORITY=${{ secrets.REACT_APP_AZURE_AUTHORITY }}
