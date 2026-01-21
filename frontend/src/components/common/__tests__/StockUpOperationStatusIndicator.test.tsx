@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import StockUpOperationStatusIndicator from "../StockUpOperationStatusIndicator";
-import { GetStockUpOperationsSummaryResponse } from "../../../../api/generated/api-client";
+import { GetStockUpOperationsSummaryResponse, StockUpSourceType } from "../../../api/generated/api-client";
 
 const mockNavigate = jest.fn();
 
@@ -16,10 +16,16 @@ describe("StockUpOperationStatusIndicator", () => {
     mockNavigate.mockClear();
   });
 
-  const renderComponent = (summary: GetStockUpOperationsSummaryResponse) => {
+  const renderComponent = (
+    summary: GetStockUpOperationsSummaryResponse,
+    sourceType: StockUpSourceType = StockUpSourceType.GiftPackageManufacture
+  ) => {
     return render(
       <BrowserRouter>
-        <StockUpOperationStatusIndicator summary={summary} />
+        <StockUpOperationStatusIndicator
+          summary={summary}
+          sourceType={sourceType}
+        />
       </BrowserRouter>
     );
   };
@@ -87,6 +93,25 @@ describe("StockUpOperationStatusIndicator", () => {
 
     expect(mockNavigate).toHaveBeenCalledWith(
       "/stock-up-operations?sourceType=GiftPackageManufacture&state=Pending,Submitted,Failed"
+    );
+  });
+
+  it("should navigate with correct sourceType in URL for TransportBox", () => {
+    const summary: GetStockUpOperationsSummaryResponse = {
+      success: true,
+      pendingCount: 3,
+      submittedCount: 2,
+      failedCount: 0,
+      totalInQueue: 5,
+    };
+
+    renderComponent(summary, StockUpSourceType.TransportBox);
+
+    const indicator = screen.getByTestId("stockup-status-indicator");
+    fireEvent.click(indicator);
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/stock-up-operations?sourceType=TransportBox&state=Pending,Submitted,Failed"
     );
   });
 });

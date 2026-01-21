@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import CatalogDetail from "../CatalogDetail";
 import GiftPackageManufacturingList, { GiftPackage } from "./GiftPackageManufacturingList";
 import GiftPackageManufacturingDetail from "./GiftPackageManufacturingDetail";
-import StockUpOperationStatusIndicator from './StockUpOperationStatusIndicator';
+import StockUpOperationStatusIndicator from '../../common/StockUpOperationStatusIndicator';
 import { useCreateGiftPackageManufacture, useEnqueueGiftPackageManufacture } from "../../../api/hooks/useGiftPackageManufacturing";
 import { useStockUpOperationsSummary } from '../../../api/hooks/useStockUpOperations';
 import { CreateGiftPackageManufactureRequest, EnqueueGiftPackageManufactureRequest, StockUpSourceType } from "../../../api/generated/api-client";
@@ -108,7 +108,10 @@ const GiftPackageManufacturing: React.FC = () => {
   return (
     <>
       {showIndicator && (
-        <StockUpOperationStatusIndicator summary={stockUpSummary} />
+        <StockUpOperationStatusIndicator
+          summary={stockUpSummary}
+          sourceType={StockUpSourceType.GiftPackageManufacture}
+        />
       )}
 
       <GiftPackageManufacturingList

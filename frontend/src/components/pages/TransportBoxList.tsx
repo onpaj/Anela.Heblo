@@ -28,6 +28,9 @@ import {
 } from "../common/CatalogAutocompleteAdapters";
 import TransportBoxDetail from "./TransportBoxDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useStockUpOperationsSummary } from '../../api/hooks/useStockUpOperations';
+import { StockUpSourceType } from '../../api/generated/api-client';
+import StockUpOperationStatusIndicator from '../common/StockUpOperationStatusIndicator';
 
 // State labels mapping - using string keys since DTO returns strings
 const stateLabels: Record<string, string> = {
@@ -77,6 +80,15 @@ const TransportBoxList: React.FC = () => {
 
   // State for collapsible sections
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
+
+  // Add summary hook for StockUpOperations status
+  const { data: stockUpSummary } = useStockUpOperationsSummary(
+    StockUpSourceType.TransportBox
+  );
+
+  // Conditionally show indicator
+  const showIndicator = stockUpSummary &&
+    ((stockUpSummary.totalInQueue ?? 0) > 0 || (stockUpSummary.failedCount ?? 0) > 0);
 
   // Initialize filters from URL parameters
   useEffect(() => {
@@ -263,6 +275,14 @@ const TransportBoxList: React.FC = () => {
           Transportní boxy
         </h1>
       </div>
+
+      {/* StockUp Status Indicator */}
+      {showIndicator && (
+        <StockUpOperationStatusIndicator
+          summary={stockUpSummary}
+          sourceType={StockUpSourceType.TransportBox}
+        />
+      )}
 
       {/* Controls - Single Collapsible Block */}
       <div className="flex-shrink-0 bg-white rounded-lg shadow mb-4">
