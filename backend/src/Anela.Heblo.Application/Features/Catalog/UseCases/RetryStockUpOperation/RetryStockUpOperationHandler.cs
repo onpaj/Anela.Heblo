@@ -8,16 +8,13 @@ namespace Anela.Heblo.Application.Features.Catalog.UseCases.RetryStockUpOperatio
 public class RetryStockUpOperationHandler : IRequestHandler<RetryStockUpOperationRequest, RetryStockUpOperationResponse>
 {
     private readonly IStockUpOperationRepository _repository;
-    private readonly IStockUpOrchestrationService _orchestrationService;
     private readonly ILogger<RetryStockUpOperationHandler> _logger;
 
     public RetryStockUpOperationHandler(
         IStockUpOperationRepository repository,
-        IStockUpOrchestrationService orchestrationService,
         ILogger<RetryStockUpOperationHandler> logger)
     {
         _repository = repository;
-        _orchestrationService = orchestrationService;
         _logger = logger;
     }
 
@@ -46,11 +43,11 @@ public class RetryStockUpOperationHandler : IRequestHandler<RetryStockUpOperatio
             };
         }
 
-        _logger.LogInformation("Retrying operation {OperationId} - {DocumentNumber}, current state: {State}",
+        _logger.LogInformation("Resetting operation {OperationId} - {DocumentNumber} to Pending state for retry, current state: {State}",
             operation.Id, operation.DocumentNumber, operation.State);
 
         // Reset the operation to Pending state for retry
-        // Use ForceReset for stuck operations (Submitted/Verified), normal Reset for Failed
+        // Use ForceReset for stuck operations (Submitted), normal Reset for Failed
         if (operation.State == StockUpOperationState.Failed)
         {
             operation.Reset();
@@ -64,20 +61,14 @@ public class RetryStockUpOperationHandler : IRequestHandler<RetryStockUpOperatio
 
         await _repository.SaveChangesAsync(cancellationToken);
 
-        // Retry the operation using orchestration service
-        var result = await _orchestrationService.ExecuteAsync(
-            operation.DocumentNumber,
-            operation.ProductCode,
-            operation.Amount,
-            operation.SourceType,
-            operation.SourceId,
-            cancellationToken);
+        _logger.LogInformation("Operation {OperationId} reset to Pending state. Background task will process it automatically.",
+            operation.Id);
 
         return new RetryStockUpOperationResponse
         {
-            Success = result.IsSuccess,
-            Status = result.Status,
-            ErrorMessage = result.IsSuccess ? null : result.Message
+            Success = true,
+            Status = StockUpResultStatus.InProgress,
+            ErrorMessage = null
         };
     }
 }

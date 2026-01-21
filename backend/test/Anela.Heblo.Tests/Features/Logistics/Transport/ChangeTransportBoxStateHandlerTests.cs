@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Logistics.UseCases;
 using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
@@ -19,6 +21,7 @@ public class ChangeTransportBoxStateHandlerTests
     private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<ILogger<ChangeTransportBoxStateHandler>> _loggerMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
+    private readonly Mock<IStockUpProcessingService> _stockUpProcessingServiceMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly ChangeTransportBoxStateHandler _handler;
 
@@ -28,6 +31,7 @@ public class ChangeTransportBoxStateHandlerTests
         _mediatorMock = new Mock<IMediator>();
         _loggerMock = new Mock<ILogger<ChangeTransportBoxStateHandler>>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
+        _stockUpProcessingServiceMock = new Mock<IStockUpProcessingService>();
         _timeProviderMock = new Mock<TimeProvider>();
 
         // Setup default returns for the new dependencies
@@ -39,11 +43,22 @@ public class ChangeTransportBoxStateHandlerTests
             .Setup(x => x.GetUtcNow())
             .Returns(new DateTimeOffset(2024, 1, 1, 12, 0, 0, TimeSpan.Zero));
 
+        _stockUpProcessingServiceMock
+            .Setup(x => x.CreateOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<StockUpSourceType>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         _handler = new ChangeTransportBoxStateHandler(
             _repositoryMock.Object,
             _mediatorMock.Object,
             _loggerMock.Object,
             _currentUserServiceMock.Object,
+            _stockUpProcessingServiceMock.Object,
             _timeProviderMock.Object);
     }
 

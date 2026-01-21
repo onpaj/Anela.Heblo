@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
@@ -15,7 +16,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
     private readonly IMediator _mediator;
     private readonly ILogger<ChangeTransportBoxStateHandler> _logger;
     private readonly ICurrentUserService _currentUserService;
-    private readonly IStockUpOperationRepository _stockUpOperationRepository;
+    private readonly IStockUpProcessingService _stockUpProcessingService;
     private readonly TimeProvider _timeProvider;
 
 
@@ -37,17 +38,17 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
         IMediator mediator,
         ILogger<ChangeTransportBoxStateHandler> logger,
         ICurrentUserService currentUserService,
-        IStockUpOperationRepository stockUpOperationRepository,
+        IStockUpProcessingService stockUpProcessingService,
         TimeProvider timeProvider)
     {
         _repository = repository;
         _mediator = mediator;
         _logger = logger;
         _currentUserService = currentUserService;
-        _stockUpOperationRepository = stockUpOperationRepository;
+        _stockUpProcessingService = stockUpProcessingService;
         _timeProvider = timeProvider;
-        
-        
+
+
     }
 
     public async Task<ChangeTransportBoxStateResponse> Handle(ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
@@ -212,24 +213,21 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
         {
             var documentNumber = $"BOX-{box.Id:000000}-{item.ProductCode}";
 
-            var operation = new StockUpOperation(
+            await _stockUpProcessingService.CreateOperationAsync(
                 documentNumber,
                 item.ProductCode,
                 (int)item.Amount,
                 StockUpSourceType.TransportBox,
-                box.Id);
-
-            await _stockUpOperationRepository.AddAsync(operation, cancellationToken);
+                box.Id,
+                cancellationToken);
 
             _logger.LogDebug("Created StockUpOperation {DocumentNumber} for product {ProductCode}, amount {Amount}",
                 documentNumber, item.ProductCode, item.Amount);
         }
 
-        await _stockUpOperationRepository.SaveChangesAsync(cancellationToken);
-
         _logger.LogInformation("Successfully created {Count} StockUpOperations for box {BoxId} ({BoxCode})",
             box.Items.Count, box.Id, box.Code);
-        
+
         return null;
     }
 }

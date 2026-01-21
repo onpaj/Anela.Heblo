@@ -14,7 +14,7 @@ public class EnqueueGiftPackageManufactureHandler : IRequestHandler<EnqueueGiftP
 
     public async Task<EnqueueGiftPackageManufactureResponse> Handle(EnqueueGiftPackageManufactureRequest request, CancellationToken cancellationToken)
     {
-        var jobId = await _giftPackageService.EnqueueManufactureAsync(
+        var result = await _giftPackageService.CreateManufactureAsync(
             request.GiftPackageCode,
             request.Quantity,
             request.AllowStockOverride,
@@ -22,8 +22,8 @@ public class EnqueueGiftPackageManufactureHandler : IRequestHandler<EnqueueGiftP
 
         return new EnqueueGiftPackageManufactureResponse
         {
-            JobId = jobId,
-            Message = $"Manufacturing of {request.Quantity}x {request.GiftPackageCode} has been queued. Job ID: {jobId}"
+            JobId = result.Id.ToString(),
+            Message = $"Manufacturing of {request.Quantity}x {request.GiftPackageCode} created. Log ID: {result.Id}. Stock operations will be processed asynchronously."
         };
     }
 }
