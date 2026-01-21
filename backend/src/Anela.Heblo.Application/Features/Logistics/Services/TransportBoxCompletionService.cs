@@ -1,54 +1,28 @@
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
-using Anela.Heblo.Domain.Features.BackgroundJobs;
-using Hangfire;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.Logistics.Infrastructure.Jobs;
+namespace Anela.Heblo.Application.Features.Logistics.Services;
 
-/// <summary>
-/// Background job that transitions transport boxes from "Received" to "Stocked"
-/// after all their stock-up operations complete successfully
-/// </summary>
-[DisableConcurrentExecution(timeoutInSeconds: 10 * 60)] // 10 minutes timeout
-public class CompleteReceivedBoxesJob : IRecurringJob
+public class TransportBoxCompletionService : ITransportBoxCompletionService
 {
-    private readonly ILogger<CompleteReceivedBoxesJob> _logger;
+    private readonly ILogger<TransportBoxCompletionService> _logger;
     private readonly ITransportBoxRepository _transportBoxRepository;
     private readonly IStockUpOperationRepository _stockUpOperationRepository;
-    private readonly IRecurringJobStatusChecker _statusChecker;
 
-    public RecurringJobMetadata Metadata { get; } = new()
-    {
-        JobName = "complete-received-boxes",
-        DisplayName = "Complete Received Boxes",
-        Description = "Transitions transport boxes from 'Received' to 'Stocked' after all stock-up operations complete successfully",
-        CronExpression = "*/2 * * * *", // Every 2 minutes
-        DefaultIsEnabled = true,
-        TimeZoneId = "UTC"
-    };
-
-    public CompleteReceivedBoxesJob(
-        ILogger<CompleteReceivedBoxesJob> logger,
+    public TransportBoxCompletionService(
+        ILogger<TransportBoxCompletionService> logger,
         ITransportBoxRepository transportBoxRepository,
-        IStockUpOperationRepository stockUpOperationRepository,
-        IRecurringJobStatusChecker statusChecker)
+        IStockUpOperationRepository stockUpOperationRepository)
     {
         _logger = logger;
         _transportBoxRepository = transportBoxRepository;
         _stockUpOperationRepository = stockUpOperationRepository;
-        _statusChecker = statusChecker;
     }
 
-    public async Task ExecuteAsync(CancellationToken cancellationToken = default)
+    public async Task CompleteReceivedBoxesAsync(CancellationToken cancellationToken = default)
     {
-        if (!await _statusChecker.IsJobEnabledAsync(Metadata.JobName))
-        {
-            _logger.LogInformation("Job {JobName} is disabled. Skipping execution.", Metadata.JobName);
-            return;
-        }
-
-        _logger.LogInformation("Starting CompleteReceivedBoxesJob");
+        _logger.LogInformation("Starting CompleteReceivedBoxes background task");
 
         var receivedBoxes = await _transportBoxRepository.GetReceivedBoxesAsync(cancellationToken);
 
@@ -85,17 +59,20 @@ public class CompleteReceivedBoxesJob : IRecurringJob
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error processing box {BoxId} ({BoxCode})", box.Id, box.Code);
+                _logger.LogError(ex, "Unexpected error processing box {BoxId} ({BoxCode})",
+                    box.Id, box.Code);
                 errorCount++;
             }
         }
 
         _logger.LogInformation(
-            "CompleteReceivedBoxesJob finished. Completed: {Completed}, Failed: {Failed}, Skipped: {Skipped}",
+            "CompleteReceivedBoxes finished. Completed: {Completed}, Failed: {Failed}, Skipped: {Skipped}",
             completedCount, errorCount, skippedCount);
     }
 
-    private async Task<BoxProcessingResult> ProcessBoxAsync(TransportBox box, CancellationToken cancellationToken)
+    private async Task<BoxProcessingResult> ProcessBoxAsync(
+        TransportBox box,
+        CancellationToken cancellationToken)
     {
         _logger.LogDebug("Processing box {BoxId} ({BoxCode})", box.Id, box.Code);
 
@@ -107,10 +84,12 @@ public class CompleteReceivedBoxesJob : IRecurringJob
 
         if (operations.Count == 0)
         {
-            _logger.LogWarning("Box {BoxId} ({BoxCode}) has no StockUpOperations, marking as Error",
+            _logger.LogWarning(
+                "Box {BoxId} ({BoxCode}) has no StockUpOperations, marking as Error",
                 box.Id, box.Code);
 
-            box.Error(DateTime.UtcNow, "System", "No stock-up operations found for this box");
+            box.Error(DateTime.UtcNow, "System",
+                "No stock-up operations found for this box");
             await _transportBoxRepository.UpdateAsync(box, cancellationToken);
             await _transportBoxRepository.SaveChangesAsync(cancellationToken);
 
@@ -126,7 +105,8 @@ public class CompleteReceivedBoxesJob : IRecurringJob
 
         if (allCompleted)
         {
-            _logger.LogInformation("All {Count} stock-up operations for box {BoxId} ({BoxCode}) completed, marking as Stocked",
+            _logger.LogInformation(
+                "All {Count} stock-up operations for box {BoxId} ({BoxCode}) completed, marking as Stocked",
                 operations.Count, box.Id, box.Code);
 
             box.ToPick(DateTime.UtcNow, "System");
@@ -138,11 +118,15 @@ public class CompleteReceivedBoxesJob : IRecurringJob
 
         if (anyFailed)
         {
-            var failedOps = operations.Where(op => op.State == StockUpOperationState.Failed).ToList();
+            var failedOps = operations
+                .Where(op => op.State == StockUpOperationState.Failed)
+                .ToList();
+
             var errorMessage = $"{failedOps.Count} stock-up operation(s) failed. " +
                              $"Document numbers: {string.Join(", ", failedOps.Select(op => op.DocumentNumber))}";
 
-            _logger.LogWarning("Box {BoxId} ({BoxCode}) has {FailedCount} failed stock-up operations, marking as Error",
+            _logger.LogWarning(
+                "Box {BoxId} ({BoxCode}) has {FailedCount} failed stock-up operations, marking as Error",
                 box.Id, box.Code, failedOps.Count);
 
             box.Error(DateTime.UtcNow, "System", errorMessage);
@@ -154,8 +138,10 @@ public class CompleteReceivedBoxesJob : IRecurringJob
 
         if (pendingOrSubmitted)
         {
-            _logger.LogDebug("Box {BoxId} ({BoxCode}) still has {Count} operations in progress, skipping",
-                box.Id, box.Code, operations.Count(op =>
+            _logger.LogDebug(
+                "Box {BoxId} ({BoxCode}) still has {Count} operations in progress, skipping",
+                box.Id, box.Code,
+                operations.Count(op =>
                     op.State == StockUpOperationState.Pending ||
                     op.State == StockUpOperationState.Submitted));
 
@@ -163,7 +149,8 @@ public class CompleteReceivedBoxesJob : IRecurringJob
         }
 
         // Should not reach here
-        _logger.LogWarning("Box {BoxId} ({BoxCode}) in unexpected state, skipping", box.Id, box.Code);
+        _logger.LogWarning("Box {BoxId} ({BoxCode}) in unexpected state, skipping",
+            box.Id, box.Code);
         return BoxProcessingResult.Skipped;
     }
 

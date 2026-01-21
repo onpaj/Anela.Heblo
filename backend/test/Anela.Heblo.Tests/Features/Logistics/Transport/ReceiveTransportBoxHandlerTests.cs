@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Logistics.UseCases.ReceiveTransportBox;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -12,14 +13,19 @@ namespace Anela.Heblo.Tests.Features.Logistics.Transport;
 public class ReceiveTransportBoxHandlerTests
 {
     private readonly Mock<ITransportBoxRepository> _repositoryMock;
+    private readonly Mock<IStockUpOperationRepository> _stockUpOperationRepositoryMock;
     private readonly Mock<ILogger<ReceiveTransportBoxHandler>> _loggerMock;
     private readonly ReceiveTransportBoxHandler _handler;
 
     public ReceiveTransportBoxHandlerTests()
     {
         _repositoryMock = new Mock<ITransportBoxRepository>();
+        _stockUpOperationRepositoryMock = new Mock<IStockUpOperationRepository>();
         _loggerMock = new Mock<ILogger<ReceiveTransportBoxHandler>>();
-        _handler = new ReceiveTransportBoxHandler(_loggerMock.Object, _repositoryMock.Object);
+        _handler = new ReceiveTransportBoxHandler(
+            _loggerMock.Object,
+            _repositoryMock.Object,
+            _stockUpOperationRepositoryMock.Object);
     }
 
     [Fact]
@@ -240,5 +246,82 @@ public class ReceiveTransportBoxHandlerTests
         locationProperty?.SetValue(box, location);
 
         return box;
+    }
+
+    private TransportBox CreateTestBoxWithItems(TransportBoxState state, string code, int itemCount)
+    {
+        var box = CreateTestBox(state, code);
+
+        // Add items to the box using reflection
+        var itemsField = typeof(TransportBox).GetField("_items", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var items = (List<TransportBoxItem>)itemsField!.GetValue(box)!;
+
+        for (int i = 0; i < itemCount; i++)
+        {
+            var item = new TransportBoxItem(
+                $"PROD{i:D3}",
+                $"Product {i}",
+                10.0,
+                DateTime.UtcNow,
+                "TestUser");
+            items.Add(item);
+        }
+
+        return box;
+    }
+
+    [Fact]
+    public async Task Handle_ReceiveBox_CreatesStockUpOperationsForEachItem()
+    {
+        // Arrange
+        var box = CreateTestBoxWithItems(TransportBoxState.InTransit, "B001", 3);
+        var request = new ReceiveTransportBoxRequest
+        {
+            BoxId = 1,
+            UserName = "TestUser"
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetByIdWithDetailsAsync(1))
+            .ReturnsAsync(box);
+
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _stockUpOperationRepositoryMock
+            .Setup(x => x.AddAsync(It.IsAny<StockUpOperation>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StockUpOperation op, CancellationToken ct) => op);
+
+        _stockUpOperationRepositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(3);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        box.State.Should().Be(TransportBoxState.Received);
+
+        // Verify StockUpOperations were created (3 items = 3 operations)
+        _stockUpOperationRepositoryMock.Verify(
+            x => x.AddAsync(It.IsAny<StockUpOperation>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
+
+        // Verify operations were saved
+        _stockUpOperationRepositoryMock.Verify(
+            x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // Verify each operation has correct format BOX-{boxId:000000}-{productCode}
+        _stockUpOperationRepositoryMock.Verify(
+            x => x.AddAsync(
+                It.Is<StockUpOperation>(op =>
+                    op.DocumentNumber.StartsWith("BOX-000001-PROD") &&
+                    op.SourceType == StockUpSourceType.TransportBox &&
+                    op.SourceId == 1),
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
     }
 }

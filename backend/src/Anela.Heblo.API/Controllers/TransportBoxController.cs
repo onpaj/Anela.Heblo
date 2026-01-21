@@ -12,7 +12,6 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxSummary
 using Anela.Heblo.Application.Features.Logistics.UseCases.RemoveItemFromBox;
 using Anela.Heblo.Application.Features.Logistics.UseCases.UpdateTransportBoxDescription;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxByCode;
-using Anela.Heblo.Application.Features.Logistics.UseCases.ReceiveTransportBox;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -194,25 +193,4 @@ public class TransportBoxController : ControllerBase
 
         return Ok(response);
     }
-
-    /// <summary>
-    /// Receive transport box (confirm receipt from Reserve or InTransit state)
-    /// </summary>
-    [HttpPost("{id:int}/receive")]
-    public async Task<ActionResult<ReceiveTransportBoxResponse>> ReceiveTransportBox(
-        int id,
-        [FromBody] ReceiveTransportBoxRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        request.BoxId = id; // Ensure consistency
-        var response = await _mediator.Send(request, cancellationToken);
-
-        if (!response.Success)
-        {
-            return BadRequest(response);
-        }
-
-        return Ok(response);
-    }
-
 }
