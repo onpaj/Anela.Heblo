@@ -41,7 +41,7 @@ const StockUpOperationStatusIndicator: React.FC<
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          {summary.totalInQueue > 0 && (
+          {(summary.totalInQueue ?? 0) > 0 && (
             <div className="flex items-center space-x-2" data-testid="queue-indicator">
               <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
               <span className="text-sm font-medium text-blue-900">
@@ -50,7 +50,7 @@ const StockUpOperationStatusIndicator: React.FC<
             </div>
           )}
 
-          {summary.failedCount > 0 && (
+          {(summary.failedCount ?? 0) > 0 && (
             <div className="flex items-center space-x-2" data-testid="failed-indicator">
               <AlertTriangle className="h-5 w-5 text-red-600" />
               <span className="text-sm font-medium text-red-900">
