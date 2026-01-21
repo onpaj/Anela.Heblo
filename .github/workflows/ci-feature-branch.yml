@@ -1,0 +1,532 @@
+name: 🔄 CI - Feature Branch (Auto-deploy to Staging)
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Cancel previous runs for the same PR/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  packages: read
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: heblo
+
+jobs:
+  # Claude Code Review - Runs if commit message contains @claude or @claude-review
+  claude-review:
+    name: 🤖 Claude Code Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: 🔍 Check if Claude review is requested
+        id: check-claude
+        run: |
+          # Get the actual commit message from the HEAD commit
+          COMMIT_MESSAGE=$(git log -1 --pretty=format:"%s %b")
+          echo "📝 Actual HEAD commit message: $COMMIT_MESSAGE"
+          echo "📍 HEAD SHA: $(git rev-parse HEAD)"
+
+          # Check if commit message contains the trigger keywords
+          if echo "$COMMIT_MESSAGE" | grep -qE "@claude|@claude-review"; then
+            echo "✅ Claude review requested in commit message"
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "⏭️ Claude review not requested (add @claude or @claude-review to commit message)"
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📝 Log trigger info
+        if: steps.check-claude.outputs.should_run == 'true'
+        run: |
+          echo "🔍 Claude Review triggered by commit message"
+          echo "Actual commit message: $(git log -1 --pretty=format:'%s %b')"
+          echo "PR: #${{ github.event.pull_request.number }}"
+          echo "SHA: ${{ github.event.pull_request.head.sha }}"
+
+      - name: 🤖 Run Claude Code Review
+        if: steps.check-claude.outputs.should_run == 'true'
+        id: claude-review
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          pr_number: ${{ github.event.pull_request.number }}
+
+          # Direct prompt for automated review
+          direct_prompt: |
+            Please review this pull request and provide feedback on:
+            - Code quality, best practices and common patterns (DRY, YAGNI, SOLID, KISS)
+            - Code complexity and maintainability
+            - Domain and concerns separation (should that be on backend or frontend side?)
+            - Potential bugs or issues
+            - Performance considerations
+            - Security concerns
+            - Test coverage
+
+            Be constructive and helpful in your feedback.
+
+  # Frontend Tests - Parallel execution
+  frontend-tests:
+    name: 🎯 Frontend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install dependencies
+        working-directory: ./frontend
+        run: npm install --legacy-peer-deps
+
+      - name: 🧪 Run tests with coverage
+        working-directory: ./frontend
+        run: npm test -- --coverage --watchAll=false
+        env:
+          REACT_APP_USE_MOCK_AUTH: true
+          CI: true
+
+      - name: 📊 Upload coverage reports
+        uses: codecov/codecov-action@v3
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+          verbose: true
+          override_branch: ${{ github.head_ref || github.ref_name }}
+          override_commit: ${{ github.sha }}
+          override_pr: ${{ github.event.pull_request.number }}
+          override_build: ${{ github.run_id }}
+
+  # Backend Tests - Parallel execution
+  backend-tests:
+    name: 🎯 Backend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 📦 Restore dependencies
+        run: dotnet restore Anela.Heblo.sln
+
+      - name: 🏗️ Build all test projects
+        run: |
+          dotnet build backend/test/Anela.Heblo.Tests --configuration Release --no-restore
+          dotnet build backend/test/Anela.Heblo.Adapters.Shoptet.Tests --configuration Release --no-restore
+          dotnet build backend/test/Anela.Heblo.Adapters.Flexi.Tests --configuration Release --no-restore
+
+      - name: 🎭 Install Playwright for Shoptet tests
+        run: |
+          cd backend/test/Anela.Heblo.Adapters.Shoptet.Tests
+          pwsh bin/Release/net8.0/playwright.ps1 install chromium
+
+      - name: 📊 Count total tests
+        run: |
+          echo "=== Test Discovery ==="
+          ASPNETCORE_ENVIRONMENT=Automation dotnet test Anela.Heblo.sln --list-tests --filter "Category!=Playwright&Category!=Integration" | grep -E "Test Name|^    " | wc -l
+          echo "=== Running Tests (excluding Playwright and Integration tests) ==="
+        env:
+          ASPNETCORE_ENVIRONMENT: Automation
+
+      - name: 🧪 Run tests with coverage (excluding Playwright integration tests)
+        run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage --filter "Category!=Playwright&Category!=Integration" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+        env:
+          ASPNETCORE_ENVIRONMENT: Automation
+          # Shoptet integration test configuration
+          StockClient__Url: ${{ secrets.SHOPTET_STOCK_URL }}
+          ProductPriceOptions__ProductExportUrl: ${{ secrets.SHOPTET_PRODUCT_EXPORT_URL }}
+          ShoptetPlaywright__ShopEntryUrl: ${{ secrets.SHOPTET_TEST_URL }}
+          ShoptetPlaywright__Login: ${{ secrets.SHOPTET_TEST_USERNAME }}
+          ShoptetPlaywright__Password: ${{ secrets.SHOPTET_TEST_PASSWORD }}
+          ShoptetPlaywright__Headless: true
+          # FlexiBee integration test configuration
+          FlexiBeeSettings__Server: ${{ secrets.FLEXIBEE_SERVER_URL }}
+          FlexiBeeSettings__Login: ${{ secrets.FLEXIBEE_USERNAME }}
+          FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
+          FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
+
+      - name: 📊 Process coverage files for CodeCov
+        run: |
+          # Find all coverage.cobertura.xml files and fix paths for CodeCov
+          find ./coverage -name "coverage.cobertura.xml" -type f | while read file; do
+            echo "Processing coverage file: $file"
+
+            # First show original paths for debugging
+            echo "Original paths in $file:"
+            grep -o 'filename="[^"]*"' "$file" | head -5
+
+            # Replace relative paths with paths relative to repository root for CodeCov
+            # The original paths are like: filename="Anela.Heblo.Application/ApplicationModule.cs"
+            # We need: filename="backend/src/Anela.Heblo.Application/ApplicationModule.cs"
+            sed -i 's|filename="|filename="backend/src/|g' "$file"
+
+            # Show processed paths for debugging
+            echo "Processed paths in $file:"
+            grep -o 'filename="[^"]*"' "$file" | head -5
+            echo "---"
+          done
+
+          # Verify coverage files exist
+          echo "=== Coverage files found ==="
+          find ./coverage -name "coverage.cobertura.xml" -type f -exec echo "Found: {}" \;
+
+          # Count total coverage files
+          COVERAGE_COUNT=$(find ./coverage -name "coverage.cobertura.xml" -type f | wc -l)
+          echo "Total coverage files: $COVERAGE_COUNT"
+
+          if [ "$COVERAGE_COUNT" -eq "0" ]; then
+            echo "❌ ERROR: No coverage files found!"
+            exit 1
+          fi
+        env:
+          ASPNETCORE_ENVIRONMENT: Automation
+
+      - name: 📊 Prepare coverage file list
+        id: coverage-files
+        run: |
+          # Find all coverage files and create a comma-separated list
+          COVERAGE_FILES=$(find ./coverage -name "coverage.cobertura.xml" -type f | tr '\n' ',' | sed 's/,$//')
+          echo "files=$COVERAGE_FILES" >> $GITHUB_OUTPUT
+          echo "Found coverage files: $COVERAGE_FILES"
+
+      - name: 📊 Upload coverage reports
+        uses: codecov/codecov-action@v3
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-files.outputs.files }}
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+          verbose: true
+          override_branch: ${{ github.head_ref || github.ref_name }}
+          override_commit: ${{ github.sha }}
+          override_pr: ${{ github.event.pull_request.number }}
+          override_build: ${{ github.run_id }}
+
+      - name: 🏗️ Build solution
+        run: dotnet build Anela.Heblo.sln --configuration Release --no-restore
+
+  # Build and Push Docker Image (no manual approval needed)
+  build-and-push:
+    name: 🐳 Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [frontend-tests, backend-tests]
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔖 Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3.0.0
+        with:
+          versionSpec: '6.0.x'
+
+      - name: 🔖 Determine version with GitVersion
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3.0.0
+        with:
+          useConfigFile: true
+
+      - name: 🏷️ Generate version tag
+        id: version
+        run: |
+          # Use PR-specific versioning for feature branches
+          VERSION="staging-PR${{ github.event.pull_request.number }}-${{ steps.gitversion.outputs.shortSha }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📌 Version: $VERSION"
+          echo "🔢 GitVersion SemVer: ${{ steps.gitversion.outputs.fullSemVer }}"
+          echo "🔢 GitVersion CommitsSinceVersionSource: ${{ steps.gitversion.outputs.commitsSinceVersionSource }}"
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: 📝 Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=staging-latest
+
+      - name: 🏗️ Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            REACT_APP_API_URL=https://heblo.stg.anela.cz
+            REACT_APP_USE_MOCK_AUTH=false
+            REACT_APP_AZURE_CLIENT_ID=${{ secrets.REACT_APP_AZURE_CLIENT_ID }}
+            REACT_APP_AZURE_AUTHORITY=${{ secrets.REACT_APP_AZURE_AUTHORITY }}
+            REACT_APP_AZURE_BACKEND_CLIENT_ID=${{ secrets.REACT_APP_AZURE_BACKEND_CLIENT_ID }}
+            REACT_APP_AZURE_TENANT_ID=${{ secrets.REACT_APP_AZURE_TENANT_ID }}
+
+  # Deploy to Azure Web App (automatic, no approval needed)
+  deploy-staging:
+    name: 🚀 Auto-deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    outputs:
+      webapp-hostname: ${{ steps.deploy.outputs.hostname }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔐 Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_TEST }}
+
+      - name: 🔖 Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3.0.0
+        with:
+          versionSpec: '6.0.x'
+
+      - name: 🔖 Determine version with GitVersion
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3.0.0
+        with:
+          useConfigFile: true
+
+      - name: 🏷️ Get version from build
+        id: version
+        run: |
+          # Use PR-specific versioning for feature branches
+          VERSION="staging-PR${{ github.event.pull_request.number }}-${{ steps.gitversion.outputs.shortSha }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📌 Version: $VERSION"
+          echo "🔢 GitVersion SemVer: ${{ steps.gitversion.outputs.fullSemVer }}"
+
+      - name: 🚀 Deploy to Azure Web App (Staging)
+        id: deploy
+        run: |
+          # Deploy container to heblo-test web app (staging environment)
+          WEBAPP_NAME="heblo-test"
+          echo "🎯 Deploying to web app: $WEBAPP_NAME"
+
+          # Build Docker image name with specific version
+          DOCKER_IMAGE="${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}"
+
+          # Try to use build output first, fallback to versioned image
+          BUILD_OUTPUT_IMAGE=$(echo "${{ needs.build-and-push.outputs.image-tag }}" | grep -E "${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:staging-PR[0-9]+" | head -1)
+          if [ -n "$BUILD_OUTPUT_IMAGE" ]; then
+            DOCKER_IMAGE="$BUILD_OUTPUT_IMAGE"
+            echo "📍 Using build output image: $DOCKER_IMAGE"
+          else
+            echo "⚠️ Build output empty, using versioned image: $DOCKER_IMAGE"
+          fi
+
+          # Validate Docker image is set
+          if [ -z "$DOCKER_IMAGE" ]; then
+            echo "❌ Error: Docker image is empty!"
+            echo "Build output: '${{ needs.build-and-push.outputs.image-tag }}'"
+            echo "Version: '${{ steps.version.outputs.version }}'"
+            exit 1
+          fi
+
+          echo "🐳 Docker image: $DOCKER_IMAGE"
+
+          # Configure container deployment
+          echo "🔧 Configuring Web App for Container deployment..."
+
+          # Set the container image directly via config
+          az webapp config set \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --linux-fx-version "DOCKER|$DOCKER_IMAGE" \
+            --output none
+
+          # Configure container registry settings
+          az webapp config container set \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --container-image-name "$DOCKER_IMAGE" \
+            --container-registry-url https://index.docker.io/v1/ \
+            --output none
+
+          # Restart web app to ensure container configuration is applied
+          echo "🔄 Restarting web app..."
+          az webapp restart \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --output none
+
+          # Wait for restart to complete
+          echo "⏱️ Waiting for restart to complete..."
+          sleep 15
+
+          # Verify container configuration
+          echo "🔍 Verifying container configuration..."
+          WEBAPP_CONFIG=$(az webapp config show \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --query '{linuxFxVersion: linuxFxVersion}' \
+            --output json)
+
+          LINUX_FX_VERSION=$(echo $WEBAPP_CONFIG | jq -r '.linuxFxVersion')
+          echo "📋 Container Configuration: $LINUX_FX_VERSION"
+
+          if [[ "$LINUX_FX_VERSION" == DOCKER* ]]; then
+            echo "✅ Container mode successfully configured"
+          else
+            echo "❌ Error: Container mode not properly set"
+            exit 1
+          fi
+
+          # Get hostname for output
+          WEBAPP_HOSTNAME=$(az webapp show \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --query "defaultHostName" \
+            --output tsv)
+
+          echo "hostname=$WEBAPP_HOSTNAME" >> $GITHUB_OUTPUT
+          echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_ENV
+
+      - name: 🔧 Configure App Settings
+        run: |
+          # Configure app settings for staging environment
+          echo "🔧 Configuring app settings for staging environment..."
+
+          az webapp config appsettings set \
+            --resource-group rgHeblo \
+            --name $WEBAPP_NAME \
+            --settings \
+              ASPNETCORE_ENVIRONMENT=Staging \
+              WEBSITES_PORT=8080 \
+              WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
+              DOCKER_REGISTRY_SERVER_URL=https://index.docker.io \
+              SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+              APP_VERSION="${{ needs.build-and-push.outputs.version }}" \
+              DEPLOYMENT_SOURCE="CI-PR${{ github.event.pull_request.number }}"
+
+          echo "✅ App settings configured"
+
+      - name: ⏳ Wait for deployment to be ready
+        run: |
+          echo "⏳ Waiting for deployment to be ready..."
+          sleep 30
+          for i in {1..10}; do
+            if curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health | grep -q "200"; then
+              echo "✅ Deployment is ready!"
+              break
+            fi
+            echo "⏳ Waiting for deployment... ($i/10)"
+            sleep 10
+          done
+
+      - name: 💬 Comment on PR with deployment info
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "## 🚀 Automatically Deployed to Staging!
+
+          Your feature branch has been automatically deployed to the staging environment:
+
+          - **🌐 URL**: https://${{ steps.deploy.outputs.hostname }}
+          - **📦 Version**: ${{ needs.build-and-push.outputs.version }}
+          - **🐳 Docker Image**: \`${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}\`
+          - **🌿 Branch**: \`${{ github.ref_name }}\`
+          - **📝 Commit**: \`${{ github.sha }}\`
+          - **🕐 Deployed**: $(date)
+
+          ### 🧪 Testing
+          You can now test your changes in the staging environment with real Azure authentication.
+
+          ### ⚠️ Important Notes
+          - This deployment will be **replaced** by the next PR deployment
+          - Staging environment uses **real Microsoft Entra ID authentication**
+          - E2E tests run nightly against staging (not in CI)
+
+          ---
+          _Automatically deployed after tests passed ✨_" \
+            --edit-last || \
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "## 🚀 Automatically Deployed to Staging!
+
+          Your feature branch has been automatically deployed to the staging environment:
+
+          - **🌐 URL**: https://${{ steps.deploy.outputs.hostname }}
+          - **📦 Version**: ${{ needs.build-and-push.outputs.version }}
+          - **🐳 Docker Image**: \`${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}\`
+          - **🌿 Branch**: \`${{ github.ref_name }}\`
+          - **📝 Commit**: \`${{ github.sha }}\`
+          - **🕐 Deployed**: $(date)
+
+          ### 🧪 Testing
+          You can now test your changes in the staging environment with real Azure authentication.
+
+          ### ⚠️ Important Notes
+          - This deployment will be **replaced** by the next PR deployment
+          - Staging environment uses **real Microsoft Entra ID authentication**
+          - E2E tests run nightly against staging (not in CI)
+
+          ---
+          _Automatically deployed after tests passed ✨_"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📝 Create deployment summary
+        run: |
+          echo "## 🚀 Staging Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR**: #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ needs.build-and-push.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: https://${{ steps.deploy.outputs.hostname }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Docker Image**: \`${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Staging (Real Auth)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Ready for Testing" >> $GITHUB_STEP_SUMMARY
+          echo "The staging environment is now ready for testing with your latest changes!" >> $GITHUB_STEP_SUMMARY

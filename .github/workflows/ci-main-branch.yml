@@ -1,0 +1,540 @@
+name: 🔄 CI - Main Branch (Manual Deployments)
+
+on:
+  push:
+    branches: [main]
+
+# Cancel previous runs for the same commit
+concurrency:
+  group: main-branch-ci-${{ github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: heblo
+
+jobs:
+  # Frontend Tests - Parallel execution
+  frontend-tests:
+    name: 🎯 Frontend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Install dependencies
+        working-directory: ./frontend
+        run: npm install --legacy-peer-deps
+
+      - name: 🧪 Run tests with coverage
+        working-directory: ./frontend
+        run: npm test -- --coverage --watchAll=false
+        env:
+          REACT_APP_USE_MOCK_AUTH: true
+          CI: true
+
+      - name: 📊 Upload coverage reports
+        uses: codecov/codecov-action@v3
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./frontend/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+          verbose: true
+
+  # Backend Tests - Parallel execution
+  backend-tests:
+    name: 🎯 Backend Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 📦 Restore dependencies
+        run: dotnet restore Anela.Heblo.sln
+
+      - name: 🏗️ Build all test projects
+        run: |
+          dotnet build backend/test/Anela.Heblo.Tests --configuration Release --no-restore
+          dotnet build backend/test/Anela.Heblo.Adapters.Shoptet.Tests --configuration Release --no-restore
+          dotnet build backend/test/Anela.Heblo.Adapters.Flexi.Tests --configuration Release --no-restore
+
+      - name: 🎭 Install Playwright for Shoptet tests
+        run: |
+          cd backend/test/Anela.Heblo.Adapters.Shoptet.Tests
+          pwsh bin/Release/net8.0/playwright.ps1 install chromium
+
+      - name: 🧪 Run tests with coverage (excluding Playwright integration tests)
+        run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage --filter "Category!=Playwright&Category!=Integration" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+        env:
+          ASPNETCORE_ENVIRONMENT: Automation
+          # Shoptet integration test configuration
+          StockClient__Url: ${{ secrets.SHOPTET_STOCK_URL }}
+          ProductPriceOptions__ProductExportUrl: ${{ secrets.SHOPTET_PRODUCT_EXPORT_URL }}
+          ShoptetPlaywright__ShopEntryUrl: ${{ secrets.SHOPTET_TEST_URL }}
+          ShoptetPlaywright__Login: ${{ secrets.SHOPTET_TEST_USERNAME }}
+          ShoptetPlaywright__Password: ${{ secrets.SHOPTET_TEST_PASSWORD }}
+          ShoptetPlaywright__Headless: true
+          # FlexiBee integration test configuration
+          FlexiBeeSettings__Server: ${{ secrets.FLEXIBEE_SERVER_URL }}
+          FlexiBeeSettings__Login: ${{ secrets.FLEXIBEE_USERNAME }}
+          FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
+          FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
+
+      - name: 📊 Process coverage files for CodeCov
+        run: |
+          # Find all coverage.cobertura.xml files and fix paths for CodeCov
+          find ./coverage -name "coverage.cobertura.xml" -type f | while read file; do
+            sed -i 's|filename="|filename="backend/src/|g' "$file"
+          done
+
+          # Verify coverage files exist
+          COVERAGE_COUNT=$(find ./coverage -name "coverage.cobertura.xml" -type f | wc -l)
+          if [ "$COVERAGE_COUNT" -eq "0" ]; then
+            echo "❌ ERROR: No coverage files found!"
+            exit 1
+          fi
+
+      - name: 📊 Prepare coverage file list
+        id: coverage-files
+        run: |
+          COVERAGE_FILES=$(find ./coverage -name "coverage.cobertura.xml" -type f | tr '\n' ',' | sed 's/,$//')
+          echo "files=$COVERAGE_FILES" >> $GITHUB_OUTPUT
+
+      - name: 📊 Upload coverage reports
+        uses: codecov/codecov-action@v3
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage-files.outputs.files }}
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: 🏗️ Build solution
+        run: dotnet build Anela.Heblo.sln --configuration Release --no-restore
+
+  # Build and Push Docker Image
+  build-and-push:
+    name: 🐳 Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [frontend-tests, backend-tests]
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      image-tags: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔖 Install GitVersion
+        uses: gittools/actions/gitversion/setup@v3.0.0
+        with:
+          versionSpec: '6.0.x'
+
+      - name: 🔖 Determine version with GitVersion
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3.0.0
+        with:
+          useConfigFile: true
+
+      - name: 🏷️ Generate version tag
+        id: version
+        run: |
+          # Use GitVersion generated version
+          VERSION="v${{ steps.gitversion.outputs.majorMinorPatch }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📌 Version: $VERSION"
+          echo "🔢 GitVersion Full SemVer: ${{ steps.gitversion.outputs.fullSemVer }}"
+
+      - name: 📝 Generate Changelog (EN)
+        run: |
+          chmod +x ./scripts/generate-changelog.sh
+          ./scripts/generate-changelog.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITVERSION_SEMVER: ${{ steps.version.outputs.version }}
+
+      - name: 🌐 Translate Changelog to Czech
+        run: |
+          echo "📋 Translating changelog to Czech..."
+
+          # Check if OPENAI_API_KEY is set
+          if [ -z "${{ secrets.OPENAI_API_KEY }}" ]; then
+            echo "⚠️ OPENAI_API_KEY secret is not set - skipping Czech translation"
+            cp frontend/public/changelog.json frontend/public/changelog.cs.json
+            exit 0
+          fi
+
+          # Read and prepare the source file
+          SOURCE_JSON=$(cat frontend/public/changelog.json)
+
+          # Create the request payload
+          REQUEST_PAYLOAD=$(jq -n \
+            --arg source_json "$SOURCE_JSON" \
+            '{
+              "model": "gpt-4o-mini",
+              "messages": [
+                {"role": "system", "content": "You are a professional translator specializing in technical documentation. Translate from English to Czech while preserving technical terms and JSON structure. Return only valid JSON without markdown formatting or code blocks."},
+                {"role": "user", "content": "Přelož všechny hodnoty v JSONu z angličtiny do češtiny. Zachovej strukturu JSON a technické termíny (fix, feature, commit, docs etc). Návratová hodnota musí být pouze validní JSON bez jakéhokoliv markdown formátování nebo code blocků."},
+                {"role": "user", "content": $source_json}
+              ]
+            }')
+
+          # Make the API call
+          RESPONSE=$(curl -s -w "\n%{http_code}" https://api.openai.com/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+            -d "$REQUEST_PAYLOAD")
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          RESPONSE_BODY=$(echo "$RESPONSE" | head -n -1)
+
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "❌ OpenAI API call failed - using English version as fallback"
+            cp frontend/public/changelog.json frontend/public/changelog.cs.json
+            exit 0
+          fi
+
+          # Extract the translated content
+          TRANSLATED_CONTENT=$(echo "$RESPONSE_BODY" | jq -r '.choices[0].message.content')
+
+          # Extract JSON from markdown code blocks if present
+          if echo "$TRANSLATED_CONTENT" | grep -q '```json'; then
+            TRANSLATED_JSON=$(echo "$TRANSLATED_CONTENT" | sed -n '/```json/,/```/p' | sed '1d;$d')
+          else
+            TRANSLATED_JSON="$TRANSLATED_CONTENT"
+          fi
+
+          # Save the translated content
+          echo "$TRANSLATED_JSON" > frontend/public/changelog.cs.json
+
+          # Validate the translated JSON
+          if ! jq empty frontend/public/changelog.cs.json; then
+            echo "❌ Translated changelog is invalid - using English version as fallback"
+            cp frontend/public/changelog.json frontend/public/changelog.cs.json
+            exit 0
+          fi
+
+          echo "✅ Czech translation generated successfully!"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+      - name: 📋 Validate Generated Changelogs
+        run: |
+          echo "📋 Validating generated changelog files..."
+
+          # Validate English changelog
+          if [ ! -f frontend/public/changelog.json ]; then
+            echo "❌ English changelog not found!"
+            exit 1
+          fi
+
+          if ! jq empty frontend/public/changelog.json; then
+            echo "❌ English changelog is not valid JSON!"
+            exit 1
+          fi
+
+          # Validate Czech changelog
+          if [ ! -f frontend/public/changelog.cs.json ]; then
+            echo "❌ Czech changelog not found!"
+            exit 1
+          fi
+
+          if ! jq empty frontend/public/changelog.cs.json; then
+            echo "❌ Czech changelog is not valid JSON!"
+            exit 1
+          fi
+
+          echo "✅ All changelog files validated successfully!"
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: 📝 Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=latest
+            type=sha,prefix=sha-
+
+      - name: 🏗️ Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            REACT_APP_API_URL=https://heblo.stg.anela.cz
+            REACT_APP_USE_MOCK_AUTH=false
+            REACT_APP_AZURE_CLIENT_ID=${{ secrets.REACT_APP_AZURE_CLIENT_ID }}
+            REACT_APP_AZURE_AUTHORITY=${{ secrets.REACT_APP_AZURE_AUTHORITY }}
+            REACT_APP_AZURE_BACKEND_CLIENT_ID=${{ secrets.REACT_APP_AZURE_BACKEND_CLIENT_ID }}
+            REACT_APP_AZURE_TENANT_ID=${{ secrets.REACT_APP_AZURE_TENANT_ID }}
+
+      - name: 📝 Build Summary
+        run: |
+          echo "## 🐳 Docker Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tags**: ${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Built at**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⏸️ Deployment Paused" >> $GITHUB_STEP_SUMMARY
+          echo "Docker image built and pushed to registry." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to the **Actions** tab" >> $GITHUB_STEP_SUMMARY
+          echo "2. Click on this workflow run" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Approve staging deployment** in the 'deploy-staging' job" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Approve production deployment** in the 'deploy-production' job" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "You can approve both at once, or approve them at different times." >> $GITHUB_STEP_SUMMARY
+
+  # Deploy to Staging - MANUAL APPROVAL REQUIRED
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    environment: staging-approval
+    outputs:
+      webapp-hostname: ${{ steps.deploy.outputs.hostname }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_TEST }}
+
+      - name: 🚀 Deploy to Azure Web App (Staging)
+        id: deploy
+        run: |
+          WEBAPP_NAME="heblo-test"
+          VERSION="${{ needs.build-and-push.outputs.version }}"
+          DOCKER_IMAGE="${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$VERSION"
+
+          echo "🎯 Deploying to staging: $WEBAPP_NAME"
+          echo "🐳 Docker image: $DOCKER_IMAGE"
+
+          # Configure container deployment
+          az webapp config set \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --linux-fx-version "DOCKER|$DOCKER_IMAGE" \
+            --output none
+
+          az webapp config container set \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --container-image-name "$DOCKER_IMAGE" \
+            --container-registry-url https://index.docker.io/v1/ \
+            --output none
+
+          # Restart and wait
+          az webapp restart --name $WEBAPP_NAME --resource-group rgHeblo --output none
+          sleep 15
+
+          # Get hostname
+          WEBAPP_HOSTNAME=$(az webapp show \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --query "defaultHostName" \
+            --output tsv)
+
+          echo "hostname=$WEBAPP_HOSTNAME" >> $GITHUB_OUTPUT
+          echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_ENV
+
+      - name: 🔧 Configure App Settings
+        run: |
+          az webapp config appsettings set \
+            --resource-group rgHeblo \
+            --name $WEBAPP_NAME \
+            --settings \
+              ASPNETCORE_ENVIRONMENT=Staging \
+              WEBSITES_PORT=8080 \
+              WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
+              DOCKER_REGISTRY_SERVER_URL=https://index.docker.io \
+              SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+              APP_VERSION="${{ needs.build-and-push.outputs.version }}" \
+              DEPLOYMENT_SOURCE="CI-Main"
+
+      - name: ⏳ Wait for deployment to be ready
+        run: |
+          echo "⏳ Waiting for deployment to be ready..."
+          sleep 30
+          for i in {1..10}; do
+            if curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health | grep -q "200"; then
+              echo "✅ Deployment is ready!"
+              break
+            fi
+            echo "⏳ Waiting for deployment... ($i/10)"
+            sleep 10
+          done
+
+      - name: 📝 Deployment Summary
+        run: |
+          echo "## 🚀 Staging Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ needs.build-and-push.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: https://${{ steps.deploy.outputs.hostname }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Staging" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed at**: $(date)" >> $GITHUB_STEP_SUMMARY
+
+  # Deploy to Production - MANUAL APPROVAL REQUIRED
+  deploy-production:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    environment: production
+    outputs:
+      webapp-hostname: ${{ steps.deploy.outputs.hostname }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: 🚀 Deploy to Azure Web App (Production)
+        id: deploy
+        run: |
+          WEBAPP_NAME="heblo"
+          VERSION="${{ needs.build-and-push.outputs.version }}"
+          DOCKER_IMAGE="${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$VERSION"
+
+          echo "🎯 Deploying to production: $WEBAPP_NAME"
+          echo "🐳 Docker image: $DOCKER_IMAGE"
+
+          # Configure container deployment
+          az webapp config set \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --linux-fx-version "DOCKER|$DOCKER_IMAGE" \
+            --output none
+
+          az webapp config container set \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --container-image-name "$DOCKER_IMAGE" \
+            --container-registry-url https://index.docker.io/v1/ \
+            --output none
+
+          # Restart and wait
+          az webapp restart --name $WEBAPP_NAME --resource-group rgHeblo --output none
+          sleep 15
+
+          # Get hostname
+          WEBAPP_HOSTNAME=$(az webapp show \
+            --name $WEBAPP_NAME \
+            --resource-group rgHeblo \
+            --query "defaultHostName" \
+            --output tsv)
+
+          echo "hostname=$WEBAPP_HOSTNAME" >> $GITHUB_OUTPUT
+          echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_ENV
+
+      - name: 🔧 Configure App Settings
+        run: |
+          az webapp config appsettings set \
+            --resource-group rgHeblo \
+            --name $WEBAPP_NAME \
+            --settings \
+              ASPNETCORE_ENVIRONMENT=Production \
+              WEBSITES_PORT=8080 \
+              WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
+              DOCKER_REGISTRY_SERVER_URL=https://index.docker.io \
+              SCM_DO_BUILD_DURING_DEPLOYMENT=false \
+              APP_VERSION="${{ needs.build-and-push.outputs.version }}" \
+              DEPLOYMENT_SOURCE="CI-Main"
+
+      - name: ⏳ Wait for deployment to be ready
+        run: |
+          echo "⏳ Waiting for deployment to be ready..."
+          sleep 30
+          for i in {1..10}; do
+            if curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health | grep -q "200"; then
+              echo "✅ Deployment is ready!"
+              break
+            fi
+            echo "⏳ Waiting for deployment... ($i/10)"
+            sleep 10
+          done
+
+      - name: 🧪 Run Smoke Tests
+        run: |
+          echo "🧪 Running smoke tests against production..."
+
+          # Health check
+          if curl -f https://${{ steps.deploy.outputs.hostname }}/health; then
+            echo "✅ Health check passed"
+          else
+            echo "❌ Health check failed"
+            exit 1
+          fi
+
+          # Liveness check
+          if curl -f https://${{ steps.deploy.outputs.hostname }}/health/live; then
+            echo "✅ Liveness check passed"
+          else
+            echo "❌ Liveness check failed"
+            exit 1
+          fi
+
+          # Readiness check
+          if curl -f https://${{ steps.deploy.outputs.hostname }}/health/ready; then
+            echo "✅ Readiness check passed"
+          else
+            echo "❌ Readiness check failed"
+            exit 1
+          fi
+
+          echo "✅ All smoke tests passed!"
+
+      - name: 📝 Deployment Summary
+        run: |
+          echo "## 🚀 Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ needs.build-and-push.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: https://${{ steps.deploy.outputs.hostname }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: Production" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed at**: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Smoke Tests Passed" >> $GITHUB_STEP_SUMMARY
+          echo "All health checks passed successfully!" >> $GITHUB_STEP_SUMMARY
