@@ -229,6 +229,158 @@ Since this is currently documentation-only, these are the expected commands base
 - **Development**: Separate React dev server (hot reload) + ASP.NET Core API server
 - **Production**: Single container serves both React static files and ASP.NET Core API
 
+## CI/CD Pipeline
+
+The project uses GitHub Actions for continuous integration and deployment with three specialized workflows:
+
+### 1. Feature Branch Pipeline (`ci-feature-branch.yml`)
+
+**Trigger:** Pull request opened, synchronized, reopened, or marked ready for review
+
+**Flow:**
+```
+PR opened/updated
+    ↓
+Frontend + Backend Tests (parallel)
+    ↓
+Build Docker Image (staging-PR{n}-{sha})
+    ↓
+Auto-deploy to Staging (no approval)
+    ↓
+Post PR Comment (deployment info)
+```
+
+**Key Features:**
+- **No E2E tests** - Faster feedback (15-20 minutes)
+- **No manual approval** - Automatic deployment after tests pass
+- **PR-specific versioning** - Each PR gets unique staging deployment
+- **Automatic PR comments** - Deployment notification with URL and version
+- **Claude Code review** - Available with `@claude` in commit message
+
+**Estimated Time:** 15-20 minutes (vs previous 30-45 minutes)
+
+### 2. Main Branch Pipeline (`ci-main-branch.yml`)
+
+**Trigger:** Push to main branch
+
+**Flow:**
+```
+Push to main
+    ↓
+Frontend + Backend Tests (parallel)
+    ↓
+Generate Version (GitVersion)
+    ↓
+Build Docker Image + Generate Changelog (EN + CS)
+    ↓
+Push to Docker Hub (v{x.y.z}, latest, sha-{commit})
+    ↓
+⏸️ STOP - Wait for manual approval
+    ↓
+    ┌───────┴───────┐
+    ↓               ↓
+Staging Deploy  Production Deploy
+(Manual)        (Manual)
+```
+
+**Key Features:**
+- **Manual deployment approvals** - Uses GitHub environments
+- **Flexible deployment** - Deploy to staging only, production only, or both
+- **Independent approvals** - Can approve at different times
+- **Version tagging** - Automatic semantic versioning with GitVersion
+- **Changelog generation** - English + Czech translations (GPT-4o-mini)
+- **Smoke tests** - Health checks after production deployment
+
+**GitHub Environments:**
+- `staging-approval` - Manual approval for staging deployment
+- `production` - Manual approval for production deployment
+
+**Deployment Options:**
+- **Option A:** Deploy to staging only, test, then approve production later
+- **Option B:** Deploy to production only (skip staging)
+- **Option C:** Approve both at once (parallel deployment)
+- **Option D:** Approve sequentially (staging first, production after validation)
+
+**Estimated Time:**
+- CI: 15-20 minutes (build + tests)
+- Deployment: 5-10 minutes per environment (when approved)
+
+### 3. E2E Nightly Regression (`e2e-nightly-regression.yml`)
+
+**Trigger:**
+- **Scheduled:** Every night at 2:00 AM CET (1:00 AM UTC)
+- **Manual:** `workflow_dispatch` with optional test pattern filter
+
+**Flow:**
+```
+Scheduled (2 AM CET) or Manual Trigger
+    ↓
+Validate Staging Health (/health/live, /health/ready)
+    ↓
+Run Full E2E Suite (Playwright)
+    ↓
+Upload Results (HTML report, screenshots, 30 day retention)
+    ↓
+Notify Results (GitHub issue if fail, Teams webhook)
+```
+
+**Key Features:**
+- **Nightly execution** - Runs every night, results ready in morning
+- **Full E2E coverage** - All Playwright tests against live staging
+- **Health pre-check** - Validates staging is healthy before running tests
+- **Automated issue creation** - Creates GitHub issue on failure (auto-closes on success)
+- **Manual trigger support** - Can run ad-hoc with optional test pattern filter
+- **Artifact retention** - 30 days for investigation
+- **Teams notification** - Optional webhook integration
+
+**Test Configuration:**
+- **Base URL:** `https://heblo.stg.anela.cz`
+- **Authentication:** Azure service principal (E2E credentials)
+- **Browser:** Chromium headless (or manual selection)
+- **Timeout:** 30 seconds per test
+- **Retries:** 2 retries on failure
+
+**Estimated Time:** 10-15 minutes
+
+### Workflow Files
+
+**Active Workflows:**
+- `.github/workflows/ci-feature-branch.yml` - Feature branch CI + auto-deploy
+- `.github/workflows/ci-main-branch.yml` - Main branch CI + manual deployments
+- `.github/workflows/e2e-nightly-regression.yml` - Nightly E2E testing
+- `.github/workflows/claude.yml` - Claude Code integration
+- `.github/workflows/cleanup.yml` - Cleanup utility
+- `.github/workflows/generate-changelog.yml` - Standalone changelog generator
+
+**Total:** 6 workflow files
+
+### CI/CD Best Practices
+
+1. **Feature branches deploy automatically to staging** - Fast feedback, no manual approval
+2. **Main branch requires manual deployment approvals** - Control over production releases
+3. **E2E tests run nightly, not in CI** - Faster CI feedback loop
+4. **Version tags are automatic** - GitVersion semantic versioning
+5. **Changelogs are generated** - English with Czech translation
+6. **Smoke tests after production** - Basic health checks validate deployment
+7. **GitHub issues for E2E failures** - Automatic tracking and closure
+
+### Testing Strategy
+
+**In CI (Fast Feedback):**
+- ✅ Frontend Jest unit tests
+- ✅ Backend .NET unit/integration tests
+- ❌ No E2E Playwright tests
+
+**Nightly Regression (Comprehensive):**
+- ✅ Full Playwright E2E test suite
+- ✅ Against live staging environment
+- ✅ Real authentication with Azure service principal
+
+### Deployment URLs
+
+- **Staging:** `https://heblo.stg.anela.cz` (feature branches + main branch manual)
+- **Production:** `https://heblo.anela.cz` (main branch manual only)
+
 ## UI Design System
 
 The frontend follows a Tailwind CSS-based design system with:
