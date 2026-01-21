@@ -8,4 +8,9 @@ public class GetStockUpOperationsSummaryResponse : BaseResponse
     public int SubmittedCount { get; set; }
     public int FailedCount { get; set; }
     public int TotalInQueue => PendingCount + SubmittedCount;
+
+    public GetStockUpOperationsSummaryResponse() : base() { }
+
+    public GetStockUpOperationsSummaryResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
+        : base(errorCode, parameters) { }
 }
