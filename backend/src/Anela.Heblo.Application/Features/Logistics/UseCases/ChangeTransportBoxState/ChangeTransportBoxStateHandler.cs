@@ -30,7 +30,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
             { new Tuple<TransportBoxState, TransportBoxState>(TransportBoxState.Reserve, TransportBoxState.Received), h => h.HandleReceived },
         };
 
-    
+
 
 
     public ChangeTransportBoxStateHandler(
@@ -65,14 +65,14 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                     Params = new Dictionary<string, string>() { { nameof(request.BoxId), request.BoxId.ToString() } },
                 };
             }
-            
+
             box.AssignBoxCodeIfAny(request.BoxCode);
             box.AssignLocationIfAny(request.Location);
 
             // Get the transition action
             var transition = box.TransitionNode.GetTransition(request.NewState);
 
-            
+
 
 
             // Check condition if exists
@@ -85,8 +85,8 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                     Params = new Dictionary<string, string> { { "state", request.NewState.ToString() } }
                 };
             }
-            
-        
+
+
 
             // Set location if provided (typically for Reserve state)
             if (!string.IsNullOrEmpty(request.Location))
@@ -100,8 +100,8 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                 box.Description = request.Description;
             }
 
-           
-            if(CallBackMap.TryGetValue(new Tuple<TransportBoxState, TransportBoxState>(box.State, request.NewState), out var callbackFactory))
+
+            if (CallBackMap.TryGetValue(new Tuple<TransportBoxState, TransportBoxState>(box.State, request.NewState), out var callbackFactory))
             {
                 var callback = callbackFactory(this);
                 var callbackResult = await callback(box, request, cancellationToken);
@@ -110,7 +110,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                     return callbackResult;
                 }
             }
-            
+
             // Execute the transition
             var currentUser = _currentUserService.GetCurrentUser();
             var currentTime = DateTime.SpecifyKind(_timeProvider.GetUtcNow().UtcDateTime, DateTimeKind.Utc);
@@ -155,7 +155,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
             };
         }
     }
-    
+
     private async Task<ChangeTransportBoxStateResponse?> HandleNewToOpened(TransportBox box, ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(request.BoxCode))
@@ -191,7 +191,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
 
         return null;
     }
-    
+
     private async Task<ChangeTransportBoxStateResponse?> HandleOpenToReserve(TransportBox box, ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(request.Location))
@@ -206,7 +206,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
 
         return null;
     }
-    
+
     private async Task<ChangeTransportBoxStateResponse?> HandleReceived(TransportBox box, ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
     {
         foreach (var item in box.Items)

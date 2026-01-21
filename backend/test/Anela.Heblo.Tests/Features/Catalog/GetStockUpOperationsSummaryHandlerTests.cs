@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockUpOperationsSummary;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using MockQueryable;
 using Moq;
 using Xunit;
 
@@ -25,10 +26,10 @@ public class GetStockUpOperationsSummaryHandlerTests
     {
         // Arrange
         var request = new GetStockUpOperationsSummaryRequest();
-        var emptyOperations = new List<StockUpOperation>().AsQueryable();
+        var emptyOperations = new List<StockUpOperation>();
 
         _repositoryMock.Setup(r => r.GetAll())
-            .Returns(emptyOperations);
+            .Returns(emptyOperations.BuildMock());
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -56,17 +57,17 @@ public class GetStockUpOperationsSummaryHandlerTests
             new("GPM-000001-PROD2", "PROD2", 5, StockUpSourceType.GiftPackageManufacture, 1),
             new("GPM-000002-PROD3", "PROD3", 8, StockUpSourceType.GiftPackageManufacture, 2),
             new("BOX-000001-PROD4", "PROD4", 15, StockUpSourceType.TransportBox, 1),
-        }.AsQueryable();
+        };
 
         // Set states via reflection or state transition methods
-        operations.ElementAt(0).MarkAsSubmitted(System.DateTime.UtcNow);
-        operations.ElementAt(1).MarkAsSubmitted(System.DateTime.UtcNow);
-        operations.ElementAt(1).MarkAsFailed(System.DateTime.UtcNow, "Test error");
-        // operations.ElementAt(2) stays Pending
-        operations.ElementAt(3).MarkAsSubmitted(System.DateTime.UtcNow);
+        operations[0].MarkAsSubmitted(System.DateTime.UtcNow);
+        operations[1].MarkAsSubmitted(System.DateTime.UtcNow);
+        operations[1].MarkAsFailed(System.DateTime.UtcNow, "Test error");
+        // operations[2] stays Pending
+        operations[3].MarkAsSubmitted(System.DateTime.UtcNow);
 
         _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations);
+            .Returns(operations.BuildMock());
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -89,11 +90,11 @@ public class GetStockUpOperationsSummaryHandlerTests
         {
             new("GPM-000001-PROD1", "PROD1", 10, StockUpSourceType.GiftPackageManufacture, 1),
             new("BOX-000001-PROD2", "PROD2", 5, StockUpSourceType.TransportBox, 1),
-        }.AsQueryable();
+        };
 
         // Both pending
         _repositoryMock.Setup(r => r.GetAll())
-            .Returns(operations);
+            .Returns(operations.BuildMock());
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);

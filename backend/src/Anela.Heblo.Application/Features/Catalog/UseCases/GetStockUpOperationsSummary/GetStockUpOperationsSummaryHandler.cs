@@ -13,7 +13,7 @@ public class GetStockUpOperationsSummaryHandler : IRequestHandler<GetStockUpOper
         _repository = repository;
     }
 
-    public Task<GetStockUpOperationsSummaryResponse> Handle(GetStockUpOperationsSummaryRequest request, CancellationToken cancellationToken)
+    public async Task<GetStockUpOperationsSummaryResponse> Handle(GetStockUpOperationsSummaryRequest request, CancellationToken cancellationToken)
     {
         var query = _repository.GetAll()
             .Where(x => x.State == StockUpOperationState.Pending
@@ -26,21 +26,18 @@ public class GetStockUpOperationsSummaryHandler : IRequestHandler<GetStockUpOper
             query = query.Where(x => x.SourceType == request.SourceType.Value);
         }
 
-        // Group by state and count - executed in-memory for testability
-        var counts = query
+        // Group by state and count efficiently
+        var counts = await query
             .GroupBy(x => x.State)
             .Select(g => new { State = g.Key, Count = g.Count() })
-            .ToList();
+            .ToListAsync(cancellationToken);
 
-        // Map to response
-        var response = new GetStockUpOperationsSummaryResponse
+        return new GetStockUpOperationsSummaryResponse
         {
             PendingCount = counts.FirstOrDefault(x => x.State == StockUpOperationState.Pending)?.Count ?? 0,
             SubmittedCount = counts.FirstOrDefault(x => x.State == StockUpOperationState.Submitted)?.Count ?? 0,
             FailedCount = counts.FirstOrDefault(x => x.State == StockUpOperationState.Failed)?.Count ?? 0,
             Success = true
         };
-
-        return Task.FromResult(response);
     }
 }
