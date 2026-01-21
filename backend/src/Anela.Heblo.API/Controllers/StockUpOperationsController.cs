@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockUpOperations;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockUpOperationsSummary;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RetryStockUpOperation;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using MediatR;
@@ -57,6 +58,23 @@ public class StockUpOperationsController : ControllerBase
             return BadRequest(response);
         }
 
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Get summary counts of stock-up operations by state
+    /// </summary>
+    /// <param name="sourceType">Optional filter by source type (GiftPackageManufacture or TransportBox)</param>
+    [HttpGet("summary")]
+    public async Task<ActionResult<GetStockUpOperationsSummaryResponse>> GetSummary(
+        [FromQuery] StockUpSourceType? sourceType = null)
+    {
+        var request = new GetStockUpOperationsSummaryRequest
+        {
+            SourceType = sourceType
+        };
+
+        var response = await _mediator.Send(request);
         return Ok(response);
     }
 }
