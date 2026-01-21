@@ -1,8 +1,8 @@
 using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.TriggerRecurringJob;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Tests.Features.BackgroundJobs.Infrastructure;
 using Hangfire;
-using Hangfire.MemoryStorage;
 using Hangfire.Storage;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -16,15 +16,20 @@ namespace Anela.Heblo.Tests.Features.BackgroundJobs;
 ///
 /// This test ensures that the reflection-based job enqueueing works end-to-end
 /// with real Hangfire components.
+/// Uses HangfireTestFixture via collection to properly manage Hangfire infrastructure and prevent
+/// ObjectDisposedException when tests run in bulk.
 /// </summary>
+[Collection("Hangfire")]
 public class TriggerRecurringJobHandlerIntegrationTests
 {
+    public TriggerRecurringJobHandlerIntegrationTests(HangfireTestFixture fixture)
+    {
+        // Hangfire is already initialized by the shared collection fixture
+    }
     [Fact]
     public async Task Handle_WithRealHangfire_SuccessfullyEnqueuesJob()
     {
-        // Arrange - Set up real Hangfire with in-memory storage
-        GlobalConfiguration.Configuration.UseMemoryStorage();
-
+        // Arrange - Hangfire is already configured by the fixture
         var mockStatusChecker = new Mock<IRecurringJobStatusChecker>();
         var mockHandlerLogger = new Mock<ILogger<TriggerRecurringJobHandler>>();
         var mockEnqueuerLogger = new Mock<ILogger<HangfireJobEnqueuer>>();
@@ -74,9 +79,7 @@ public class TriggerRecurringJobHandlerIntegrationTests
         // This test specifically verifies that we create Expression<Func<T, Task>>
         // not Expression<Action<T>>, which is the root cause of the error
 
-        // Arrange
-        GlobalConfiguration.Configuration.UseMemoryStorage();
-
+        // Arrange - Hangfire is already configured by the fixture
         var mockStatusChecker = new Mock<IRecurringJobStatusChecker>();
         var mockHandlerLogger = new Mock<ILogger<TriggerRecurringJobHandler>>();
         var mockEnqueuerLogger = new Mock<ILogger<HangfireJobEnqueuer>>();
@@ -129,9 +132,7 @@ public class TriggerRecurringJobHandlerIntegrationTests
     [Fact]
     public async Task Handle_WithDisabledJob_CanBeTriggeredWithForceFlag()
     {
-        // Arrange
-        GlobalConfiguration.Configuration.UseMemoryStorage();
-
+        // Arrange - Hangfire is already configured by the fixture
         var mockStatusChecker = new Mock<IRecurringJobStatusChecker>();
         var mockHandlerLogger = new Mock<ILogger<TriggerRecurringJobHandler>>();
         var mockEnqueuerLogger = new Mock<ILogger<HangfireJobEnqueuer>>();

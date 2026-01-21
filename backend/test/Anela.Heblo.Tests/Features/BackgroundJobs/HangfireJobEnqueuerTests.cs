@@ -13,10 +13,11 @@ namespace Anela.Heblo.Tests.Features.BackgroundJobs;
 /// <summary>
 /// Unit tests for HangfireJobEnqueuer service.
 /// Tests reflection-based job enqueueing logic.
-/// Uses HangfireTestFixture to properly manage Hangfire infrastructure and prevent
+/// Uses HangfireTestFixture via collection to properly manage Hangfire infrastructure and prevent
 /// ObjectDisposedException when tests run in bulk.
 /// </summary>
-public class HangfireJobEnqueuerTests : IClassFixture<HangfireTestFixture>
+[Collection("Hangfire")]
+public class HangfireJobEnqueuerTests
 {
     private readonly Mock<ILogger<HangfireJobEnqueuer>> _loggerMock;
     private readonly IBackgroundJobClient _backgroundJobClient;
@@ -24,7 +25,7 @@ public class HangfireJobEnqueuerTests : IClassFixture<HangfireTestFixture>
 
     public HangfireJobEnqueuerTests(HangfireTestFixture fixture)
     {
-        // Hangfire is already initialized by the fixture
+        // Hangfire is already initialized by the shared collection fixture
         // Just create the test instance dependencies
         _loggerMock = new Mock<ILogger<HangfireJobEnqueuer>>();
         _backgroundJobClient = new BackgroundJobClient(JobStorage.Current);
