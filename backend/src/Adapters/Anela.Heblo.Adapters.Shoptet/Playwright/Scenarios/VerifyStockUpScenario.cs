@@ -63,24 +63,24 @@ public class VerifyStockUpScenario
             await page.WaitForLoadStateAsync();
         }
 
-        // Fill document number filter
+        // Expand filter panel first
         _logger.LogDebug($"Filtering by document number: {documentNumber}");
         try
         {
-            // Find the document number filter input (might be named "documentNumber", "cislo", or similar)
-            var documentFilter = page.Locator("input[name='documentNumber']")
-                .Or(page.Locator("input[placeholder*='Číslo dokladu']"))
-                .Or(page.Locator("input[placeholder*='doklad']"));
+            // Step 1: Click toggle button to expand filters
+            var toggleButton = page.Locator("[data-testid='buttonToggleFilter']");
+            await toggleButton.ClickAsync(new LocatorClickOptions { Timeout = 10000 });
+            await page.WaitForTimeoutAsync(500); // Wait for filter panel to expand
+            _logger.LogDebug("Filter panel expanded");
 
-            await documentFilter.First.FillAsync(documentNumber);
+            // Step 2: Fill document number in the now-visible input
+            var documentFilter = page.Locator("input[name='documentNumber']");
+            await documentFilter.FillAsync(documentNumber);
             _logger.LogDebug("Document number filled in filter");
 
-            // Click filter button
-            var filterButton = page.Locator("button:has-text('Filtrovat')")
-                .Or(page.Locator("button:has-text('Hledat')")
-                .Or(page.Locator("button[type='submit']")));
-
-            await filterButton.First.ClickAsync();
+            // Step 3: Click the filter apply button
+            var filterButton = page.Locator("[data-testid='buttonActivateFilter']");
+            await filterButton.ClickAsync();
             await page.WaitForLoadStateAsync();
             await page.WaitForTimeoutAsync(1000); // Wait for results to load
 
@@ -88,21 +88,25 @@ public class VerifyStockUpScenario
         }
         catch (TimeoutException ex)
         {
-            _logger.LogWarning($"Could not find filter controls: {ex.Message}");
+            _logger.LogWarning($"Could not interact with filter controls: {ex.Message}");
             return false;
         }
 
-        // Check if table contains at least one row with the document number
+        // Check if table contains any rows (document number is not displayed in table, only used as filter)
         try
         {
-            // Look for table rows containing the document number
-            var resultRows = page.Locator($"tr:has-text('{documentNumber}')")
-                .Or(page.Locator($"td:has-text('{documentNumber}')"));
+            // Check if table has any data rows (not just headers)
+            var tableRows = page.Locator("table tbody tr");
+            var rowCount = await tableRows.CountAsync();
 
-            var count = await resultRows.CountAsync();
-            var exists = count > 0;
+            // Check for "no results" message
+            var noResultsMessage = page.Locator("text=/žádné položky|nenalezen|no records/i");
+            var hasNoResultsMessage = await noResultsMessage.CountAsync() > 0;
 
-            _logger.LogInformation($"Verification result for document {documentNumber}: {(exists ? "FOUND" : "NOT FOUND")} ({count} rows)");
+            // Document exists if there are rows in the table and no "no results" message
+            var exists = rowCount > 0 && !hasNoResultsMessage;
+
+            _logger.LogInformation($"Verification result for document {documentNumber}: {(exists ? "FOUND" : "NOT FOUND")} ({rowCount} rows in table, no results message: {hasNoResultsMessage})");
 
             return exists;
         }

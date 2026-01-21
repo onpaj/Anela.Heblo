@@ -12,16 +12,7 @@ public class PlaywrightBrowserFactory
     }
     public Task<IBrowser> CreateAsync(IPlaywright playwright)
     {
-        if (_options.Headless)
-        {
-            return playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
-            {
-                Headless = _options.Headless,
-            });
-        }
-
-        // Chromium got stuck on IOS is not headless
-        return playwright.Firefox.LaunchAsync(new BrowserTypeLaunchOptions()
+        return playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
         {
             Headless = _options.Headless,
         });
