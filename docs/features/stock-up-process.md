@@ -20,10 +20,14 @@ Stock-up operations are triggered by two main business processes:
 
 ### 1. Transport Box Receiving (Inbound Logistics)
 When materials arrive from suppliers in transport boxes:
-- Staff marks the transport box as "Received" in the system
-- System automatically creates stock-up operations for each product in the box
+- Staff calls **ReceiveTransportBoxHandler** API to mark the box as "Received"
+- Handler **immediately creates** StockUpOperations in **Pending state** for each product in the box during the receive operation
+- Box state transitions: InTransit/Reserve → **Received**
+- Background orchestration service processes these operations asynchronously
+- **TransportBoxCompletionService** (background refresh task) runs every 2 minutes to check completion status
+- **Only after all** stock-up operations reach **Completed state**, the transport box is marked as "Stocked"
 - Shoptet inventory is increased to reflect received materials
-- Document number format: `BOX-{boxId}-{productCode}` (e.g., `BOX-000123-PROD001`)
+- Document number format: `BOX-{boxId:000000}-{productCode}` (e.g., `BOX-000123-PROD001`)
 
 ### 2. Gift Package Manufacturing (Production)
 When gift packages are manufactured from ingredients:
@@ -44,11 +48,12 @@ When gift packages are manufactured from ingredients:
                      │
                      ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ 2. STOCK-UP OPERATION CREATED                                   │
-│    - System generates unique document number                    │
+│ 2. STOCK-UP OPERATIONS CREATED (in Pending state)               │
+│    - System generates unique document number for each item      │
 │    - Records product code and quantity change                   │
 │    - Links to source operation (box or manufacture)             │
 │    - State: Pending                                             │
+│    - Transport box STAYS in "Received" state                    │
 └────────────────────┬────────────────────────────────────────────┘
                      │
                      ↓
@@ -95,6 +100,16 @@ When gift packages are manufactured from ingredients:
 │    - If found → Mark as Completed ✓                            │
 │    - If not found → Mark as FAILED                              │
 │    - If verification fails → Mark as FAILED                     │
+└────────────────────┬────────────────────────────────────────────┘
+                     │
+                     ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ 7. TRANSPORT BOX COMPLETION (Background Refresh Task)           │
+│    - TransportBoxCompletionService runs every 2 minutes         │
+│    - Check if ALL stock-up operations for the box are Completed │
+│    - If YES → Mark transport box as "Stocked"                   │
+│    - If ANY operation Failed → Mark transport box as "Error"    │
+│    - If still Pending/Submitted → Keep box in "Received" state  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -214,7 +229,11 @@ Indirect integration through:
 - Purchase recommendations influenced by stock levels
 
 ### Internal System Integration
-**Transport Module**: When boxes are marked "Received", triggers stock-up operations
+**Transport Module**:
+- **ReceiveTransportBoxHandler** creates stock-up operations in Pending state when box is received
+- **TransportBoxCompletionService** (background refresh task) checks completion status every 2 minutes
+- Once all operations are Completed, box is marked as "Stocked"
+- If any operation fails, box is marked as "Error"
 
 **Manufacture Module**: When gift packages are manufactured, triggers both positive (products) and negative (ingredients) stock-ups
 
@@ -225,6 +244,8 @@ While this is a business-focused document, here are the main service classes inv
 ### Core Services
 - **StockUpOrchestrationService**: Main coordinator that implements the 4-layer protection system and orchestrates the entire flow
 - **ShoptetPlaywrightStockDomainService**: Bridge to Shoptet, executes browser automation scenarios
+- **TransportBoxCompletionService**: Background refresh task (runs every 2 minutes via BackgroundRefreshSchedulerService) that checks if all stock-up operations for received boxes are completed and transitions boxes to "Stocked" state
+- **ReceiveTransportBoxHandler**: Creates StockUpOperations immediately when box is received via API call
 
 ### Automation Scenarios
 - **StockUpScenario**: Playwright script that submits inventory changes to Shoptet admin interface
@@ -232,6 +253,7 @@ While this is a business-focused document, here are the main service classes inv
 
 ### Domain Entity
 - **StockUpOperation**: Represents a single stock change with document number, product code, amount, source, and state
+- **TransportBox**: Represents a transport box with state machine (Received → Stocked)
 
 ## Monitoring & Observability
 
@@ -321,9 +343,14 @@ Potential improvements to consider:
 
 ---
 
-**Document Version**: 1.1
-**Last Updated**: 2026-01-20
+**Document Version**: 1.3
+**Last Updated**: 2026-01-21
 **Changes**:
+- v1.3: Corrected architecture - TransportBoxCompletionService is background refresh task (not Hangfire job)
+- v1.3: Clarified ReceiveTransportBoxHandler creates StockUpOperations during receive operation
+- v1.3: Updated document number format to include padding (BOX-{boxId:000000}-{productCode})
+- v1.2: Stock-up operations now created immediately when box is received (Pending state), box stays in "Received" until all operations complete
+- v1.2: Added CompleteReceivedBoxesJob background job for transitioning boxes to "Stocked" after stock-up completion
 - v1.1: Consolidated Verified and Completed states into single Completed state (reflects actual implementation)
 - v1.1: Added UI retry functionality specification
 **Author**: System Documentation (generated from codebase analysis)

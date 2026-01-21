@@ -66,18 +66,20 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
                     box.Id, box.Code, box.Items.Count);
 
                 // Stock up all items from the box
+                // This CREATES StockUpOperation entities in Pending state
+                // Box state will be changed by CompleteReceivedBoxesJob after all operations complete
                 await StockUpBoxItemsAsync(box, cancellationToken);
 
-                // Change box state to Stocked (as we're not implementing InSwap)
-                box.ToPick(DateTime.UtcNow, userName);
+                // ⚠️ DO NOT change box state here!
+                // Box stays in "Received" until CompleteReceivedBoxesJob verifies all operations completed
 
-                // Save changes
+                // Save changes (box remains in Received state)
                 await _transportBoxRepository.UpdateAsync(box, cancellationToken);
                 await _transportBoxRepository.SaveChangesAsync(cancellationToken);
 
-                response.SuccessfulBoxesCount++;
+                response.OperationsCreatedCount++;
 
-                _logger.LogInformation("Successfully processed transport box {BoxId} ({BoxCode}) with {ItemCount} items",
+                _logger.LogInformation("Successfully created stock-up operations for transport box {BoxId} ({BoxCode}) with {ItemCount} items",
                     box.Id, box.Code, box.Items.Count);
             }
             catch (Exception ex)
@@ -107,8 +109,8 @@ public class ProcessReceivedBoxesHandler : IRequestHandler<ProcessReceivedBoxesR
         }
 
         _logger.LogInformation("Completed processing of received transport boxes - Batch ID: {BatchId}. " +
-                             "Processed: {ProcessedCount}, Successful: {SuccessfulCount}, Failed: {FailedCount}",
-            batchId, response.ProcessedBoxesCount, response.SuccessfulBoxesCount, response.FailedBoxesCount);
+                             "Processed: {ProcessedCount}, Operations Created: {OperationsCreated}, Failed: {FailedCount}",
+            batchId, response.ProcessedBoxesCount, response.OperationsCreatedCount, response.FailedBoxesCount);
 
         try
         {

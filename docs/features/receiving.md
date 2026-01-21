@@ -112,107 +112,26 @@ public class FinishTransportJobArgs
 }
 ```
 
-#### 2.2 Transport Box Application Service
+#### 2.2 Receive Transport Box Handler
 
-```csharp
-public class TransportBoxAppService : ITransportBoxAppService
-{
-    private readonly IRepository<TransportBox, int> _repository;
-    private readonly IClock _clock;
-    private readonly ICurrentUser _userProvider;
-    private readonly IEshopStockTakingDomainService _stockUpDomainService;
-    private readonly ICatalogRepository _catalogRepository;
+**⚠️ CORRECT ARCHITECTURE:**
+The **ReceiveTransportBoxHandler** is the only handler that creates StockUpOperations. It does this immediately when a box is received via API call.
 
-    [RemoteService(IsEnabled = false)]
-    [AllowAnonymous]
-    public async Task StockUpReceivedBoxes(string finishBatchId = null)
-    {
-        // 1. Najít všechny boxy ve stavu Received
-        var boxes = await _repository.GetListAsync(f => f.State == TransportBoxState.Received);
+**What ReceiveTransportBoxHandler does:**
+1. **Receives the box**: Changes box state from InTransit/Reserve to **Received**
+2. **Creates StockUpOperations**: Immediately creates StockUpOperation entities in **Pending state** for each item in the box
+3. **Saves changes**: Persists both the box state change and the new StockUpOperations
+4. **Returns success**: API call completes successfully
 
-        // 2. Vygenerovat batch ID, pokud není poskytnut
-        if (finishBatchId == null)
-            finishBatchId = _clock.Now.ToString("yyyy-MM-dd HH:mm:ss");
+**Document Number Format**: `BOX-{boxId:000000}-{productCode}` (e.g., `BOX-000123-PROD001`)
 
-        // 3. Zpracovat každý box
-        foreach (var box in boxes)
-        {
-            try
-            {
-                await StockUpAsync(new StockUpRequestDto()
-                {
-                    Id = finishBatchId,
-                    BoxId = box.Id,
-                    ReceiveState = box.DefaultReceiveState
-                });
-            }
-            catch (Exception ex)
-            {
-                // Při chybě nastavit box do error stavu
-                box.Error(_clock.Now, _userProvider.UserName, ex.Message);
-                await _repository.UpdateAsync(box, true);
-            }
-        }
+**Key Points:**
+1. **Single responsibility**: ReceiveTransportBoxHandler creates StockUpOperations during receive operation
+2. **Synchronous creation**: StockUpOperations are created before handler returns
+3. **Asynchronous completion**: TransportBoxCompletionService (background task) checks completion status later
+4. **Decoupled workflow**: Stock-up execution and box completion are separate processes
 
-        // 4. Asynchronní refresh dat (neblokující)
-        _ = Task.Run(async () =>
-        {
-            await _catalogRepository.RefreshEshopStockData(CancellationToken.None);
-            await _catalogRepository.RefreshTransportData(CancellationToken.None);
-        });
-    }
-
-    public async Task StockUpAsync(StockUpRequestDto request)
-    {
-        if (request.BoxId.HasValue)
-        {
-            var box = await _repository.GetAsync(request.BoxId.Value);
-            
-            // Naskladnit všechny items z boxu
-            await ReceiveItems(request.Id, box.Items);
-            
-            // Změnit stav boxu podle DefaultReceiveState
-            if (request.ReceiveState == TransportBoxState.InSwap)
-                box.ToSwap(_clock.Now, _userProvider.UserName);
-            else if (request.ReceiveState == TransportBoxState.Stocked)
-                box.ToPick(_clock.Now, _userProvider.UserName);
-            else
-                box.Error(_clock.Now, _userProvider.UserName, $"Unknown receive state {request.ReceiveState}");
-            
-            await _repository.UpdateAsync(box, true);
-        }
-        else if (request.Items != null)
-        {
-            await ReceiveItems(request.Id, request.Items);
-        }
-        else
-        {
-            throw new AbpValidationException("Either BoxId or Items must have a value");
-        }
-    }
-
-    private async Task ReceiveItems(string receiveId, IReadOnlyList<TransportBoxItem> items)
-    {
-        // Konverze na StockUpItem a volání stock service
-        foreach (var item in items)
-        {
-            await _stockUpDomainService.StockUpAsync(new StockUpRequest()
-            {
-                StockUpId = receiveId,
-                Product = item.ProductCode,
-                Amount = item.Amount
-            });
-        }
-
-        // Refresh dat v backgroundu
-        _ = Task.Run(async () =>
-        {
-            await _catalogRepository.RefreshEshopStockData(CancellationToken.None);
-            await _catalogRepository.RefreshTransportData(CancellationToken.None);
-        });
-    }
-}
-```
+**There is NO ProcessReceivedBoxesHandler** - this was part of an incorrect architecture design and does not exist in the codebase.
 
 #### 2.3 DTO objekty
 
@@ -351,33 +270,36 @@ public class RecurringJob : Entity<string>
 
 ## Proces flow
 
+**⚠️ CORRECT WORKFLOW:** Stock-up operations are created during box receive operation. Box state changes happen via background refresh task.
+
 ```mermaid
 graph TD
-    A[Hangfire Job každých 5 min] --> B[FinishTransportJob]
-    B --> C{Job povolen?}
-    C -->|Ne| D[Konec]
-    C -->|Ano| E[StockUpReceivedBoxes]
-    E --> F[Najít boxy ve stavu Received]
-    F --> G{Existují boxy?}
-    G -->|Ne| D
-    G -->|Ano| H[Pro každý box]
-    H --> I[StockUpAsync]
-    I --> J[ReceiveItems - naskladnit produkty]
-    J --> K{DefaultReceiveState?}
-    K -->|Stocked| L[ToPick - změna na Stocked]
-    K -->|InSwap| M[ToSwap - změna na InSwap]
-    K -->|Jiný| N[Error stav]
-    L --> O[Uložit změny]
-    M --> O
-    N --> O
-    O --> P{Další box?}
-    P -->|Ano| H
-    P -->|Ne| Q[Refresh eshop/transport data]
-    Q --> D
-    
-    I --> R{Chyba?}
-    R -->|Ano| S[Nastavit Error stav]
-    S --> P
+    A[User API Call: Receive Box] --> B[ReceiveTransportBoxHandler]
+    B --> C[Box: InTransit/Reserve -> Received]
+    C --> D[Pro každý item vytvořit StockUpOperation Pending]
+    D --> E[Uložit box + operations]
+    E --> F[Return success]
+
+    style B fill:#4caf50,stroke:#1b5e20,stroke-width:2px
+    style D fill:#4caf50,stroke:#1b5e20,stroke-width:2px
+
+    O[TransportBoxCompletionService - každé 2 min] --> P[Najít boxy ve stavu Received]
+    P --> Q{Existují boxy?}
+    Q -->|Ne| R[Konec]
+    Q -->|Ano| S[Pro každý box zkontrolovat StockUpOperations]
+    S --> T{Všechny Completed?}
+    T -->|Ano| U[Box -> Stocked]
+    T -->|Ne, některá Failed| V[Box -> Error]
+    T -->|Ne, ještě běží| W[Nechat ve stavu Received]
+    U --> X{Další box?}
+    V --> X
+    W --> X
+    X -->|Ano| S
+    X -->|Ne| R
+
+    style O fill:#2196f3,stroke:#0d47a1,stroke-width:3px
+    style U fill:#4caf50,stroke:#1b5e20,stroke-width:2px
+    style V fill:#f44336,stroke:#b71c1c,stroke-width:2px
 ```
 
 ## Důležité aspekty implementace

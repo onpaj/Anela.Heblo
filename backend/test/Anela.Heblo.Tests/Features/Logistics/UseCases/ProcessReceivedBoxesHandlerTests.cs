@@ -56,7 +56,7 @@ public class ProcessReceivedBoxesHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.ProcessedBoxesCount.Should().Be(0);
-        result.SuccessfulBoxesCount.Should().Be(0);
+        result.OperationsCreatedCount.Should().Be(0);
         result.FailedBoxesCount.Should().Be(0);
         result.FailedBoxCodes.Should().BeEmpty();
         result.BatchId.Should().NotBeNullOrEmpty();
@@ -101,7 +101,7 @@ public class ProcessReceivedBoxesHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.ProcessedBoxesCount.Should().Be(1);
-        result.SuccessfulBoxesCount.Should().Be(1);
+        result.OperationsCreatedCount.Should().Be(1);
         result.FailedBoxesCount.Should().Be(0);
         result.FailedBoxCodes.Should().BeEmpty();
         result.BatchId.Should().NotBeNullOrEmpty();
@@ -114,8 +114,9 @@ public class ProcessReceivedBoxesHandlerTests
                 StockUpSourceType.TransportBox, 1, It.IsAny<CancellationToken>()),
             Times.Once);
 
-        // Verify box state changed to Stocked
-        transportBox.State.Should().Be(TransportBoxState.Stocked);
+        // Verify box state remains Received (not changed to Stocked yet)
+        // Box will be changed to Stocked by CompleteReceivedBoxesJob after all operations complete
+        transportBox.State.Should().Be(TransportBoxState.Received);
 
         // Verify repository operations
         _transportBoxRepositoryMock.Verify(x => x.UpdateAsync(transportBox, It.IsAny<CancellationToken>()), Times.Once);
@@ -156,7 +157,7 @@ public class ProcessReceivedBoxesHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.ProcessedBoxesCount.Should().Be(2);
-        result.SuccessfulBoxesCount.Should().Be(2);
+        result.OperationsCreatedCount.Should().Be(2);
         result.FailedBoxesCount.Should().Be(0);
         result.FailedBoxCodes.Should().BeEmpty();
 
@@ -171,9 +172,10 @@ public class ProcessReceivedBoxesHandlerTests
             x => x.ExecuteAsync(It.IsAny<string>(), "PROD003", It.IsAny<int>(), It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Once);
 
-        // Verify both boxes changed to Stocked state
-        box1.State.Should().Be(TransportBoxState.Stocked);
-        box2.State.Should().Be(TransportBoxState.Stocked);
+        // Verify both boxes remain in Received state (not changed to Stocked yet)
+        // Box will be changed to Stocked by CompleteReceivedBoxesJob after all operations complete
+        box1.State.Should().Be(TransportBoxState.Received);
+        box2.State.Should().Be(TransportBoxState.Received);
 
         // Verify repository operations
         _transportBoxRepositoryMock.Verify(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
@@ -210,7 +212,7 @@ public class ProcessReceivedBoxesHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.ProcessedBoxesCount.Should().Be(1);
-        result.SuccessfulBoxesCount.Should().Be(0);
+        result.OperationsCreatedCount.Should().Be(0);
         result.FailedBoxesCount.Should().Be(1);
         result.FailedBoxCodes.Should().Contain("BOX001");
 
@@ -260,13 +262,14 @@ public class ProcessReceivedBoxesHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.ProcessedBoxesCount.Should().Be(2);
-        result.SuccessfulBoxesCount.Should().Be(1);
+        result.OperationsCreatedCount.Should().Be(1);
         result.FailedBoxesCount.Should().Be(1);
         result.FailedBoxCodes.Should().Contain("BOX002");
         result.FailedBoxCodes.Should().NotContain("BOX001");
 
         // Verify states
-        successBox.State.Should().Be(TransportBoxState.Stocked);
+        // Success box remains in Received state (will be changed by CompleteReceivedBoxesJob)
+        successBox.State.Should().Be(TransportBoxState.Received);
         failureBox.State.Should().Be(TransportBoxState.Error);
     }
 
@@ -302,10 +305,11 @@ public class ProcessReceivedBoxesHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        result.SuccessfulBoxesCount.Should().Be(1);
+        result.OperationsCreatedCount.Should().Be(1);
 
         // Box should still be processed successfully with "System" as user
-        transportBox.State.Should().Be(TransportBoxState.Stocked);
+        // Box remains in Received state (will be changed by CompleteReceivedBoxesJob)
+        transportBox.State.Should().Be(TransportBoxState.Received);
     }
 
     [Fact]
@@ -334,11 +338,11 @@ public class ProcessReceivedBoxesHandlerTests
         // Assert
         result.Should().NotBeNull();
         result.ProcessedBoxesCount.Should().Be(1);
-        result.SuccessfulBoxesCount.Should().Be(1);
+        result.OperationsCreatedCount.Should().Be(1);
         result.FailedBoxesCount.Should().Be(0);
 
-        // Box should still change state to Stocked even without items
-        transportBox.State.Should().Be(TransportBoxState.Stocked);
+        // Box remains in Received state even without items (will be changed by CompleteReceivedBoxesJob)
+        transportBox.State.Should().Be(TransportBoxState.Received);
 
         // No stock operations should be performed
         _stockUpOrchestrationServiceMock.Verify(

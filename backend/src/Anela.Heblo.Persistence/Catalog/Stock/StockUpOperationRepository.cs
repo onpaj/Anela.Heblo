@@ -34,6 +34,17 @@ public class StockUpOperationRepository : BaseRepository<StockUpOperation, int>,
         return await GetByStateAsync(StockUpOperationState.Failed, ct);
     }
 
+    public async Task<List<StockUpOperation>> GetBySourceAsync(
+        StockUpSourceType sourceType,
+        int sourceId,
+        CancellationToken ct = default)
+    {
+        return await Context.Set<StockUpOperation>()
+            .Where(op => op.SourceType == sourceType && op.SourceId == sourceId)
+            .OrderBy(op => op.CreatedAt)
+            .ToListAsync(ct);
+    }
+
     public IQueryable<StockUpOperation> GetAll()
     {
         return Context.Set<StockUpOperation>().AsQueryable();

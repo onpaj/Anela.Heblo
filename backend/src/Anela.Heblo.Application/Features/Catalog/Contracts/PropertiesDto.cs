@@ -1,4 +1,5 @@
 namespace Anela.Heblo.Application.Features.Catalog.Contracts;
+
 public class PropertiesDto
 {
     public int OptimalStockDaysSetup { get; set; }
