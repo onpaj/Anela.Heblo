@@ -21,22 +21,46 @@ public class StockUpOperationsController : ControllerBase
     }
 
     /// <summary>
-    /// Get stock-up operations with optional filtering by state
+    /// Get stock-up operations with advanced filtering and sorting
     /// </summary>
-    /// <param name="state">Optional filter by operation state (e.g., Failed)</param>
+    /// <param name="state">Optional filter by operation state (supports "Active" for Pending+Submitted+Failed)</param>
     /// <param name="pageSize">Page size (default: 50)</param>
     /// <param name="page">Page number (default: 1)</param>
+    /// <param name="sourceType">Optional filter by source type (TransportBox or GiftPackageManufacture)</param>
+    /// <param name="sourceId">Optional filter by source ID</param>
+    /// <param name="productCode">Optional filter by product code (exact match)</param>
+    /// <param name="documentNumber">Optional filter by document number (partial match)</param>
+    /// <param name="createdFrom">Optional filter by creation date (from)</param>
+    /// <param name="createdTo">Optional filter by creation date (to)</param>
+    /// <param name="sortBy">Sort column (id, createdAt, state, documentNumber, productCode)</param>
+    /// <param name="sortDescending">Sort direction (default: true)</param>
     [HttpGet]
     public async Task<ActionResult<GetStockUpOperationsResponse>> GetOperations(
-        [FromQuery] StockUpOperationState? state = null,
+        [FromQuery] string? state = null,
         [FromQuery] int? pageSize = null,
-        [FromQuery] int? page = null)
+        [FromQuery] int? page = null,
+        [FromQuery] StockUpSourceType? sourceType = null,
+        [FromQuery] int? sourceId = null,
+        [FromQuery] string? productCode = null,
+        [FromQuery] string? documentNumber = null,
+        [FromQuery] DateTime? createdFrom = null,
+        [FromQuery] DateTime? createdTo = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = true)
     {
         var request = new GetStockUpOperationsRequest
         {
             State = state,
             PageSize = pageSize,
-            Page = page
+            Page = page,
+            SourceType = sourceType,
+            SourceId = sourceId,
+            ProductCode = productCode,
+            DocumentNumber = documentNumber,
+            CreatedFrom = createdFrom,
+            CreatedTo = createdTo,
+            SortBy = sortBy,
+            SortDescending = sortDescending
         };
 
         var response = await _mediator.Send(request);

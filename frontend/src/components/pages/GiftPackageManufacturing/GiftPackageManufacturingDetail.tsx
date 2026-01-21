@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   RefreshCw,
   Package,
   X,
   AlertTriangle,
   CheckCircle,
+  FileText,
 } from "lucide-react";
 import { useGiftPackageDetail } from "../../../api/hooks/useGiftPackageManufacturing";
 import { GiftPackage } from "./GiftPackageManufacturingList";
@@ -30,6 +32,7 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
   fromDate,
   toDate,
 }) => {
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
 
   // Load gift package detail with components when modal is open
@@ -83,12 +86,20 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
 
   const handleEnqueueManufacture = async () => {
     if (!selectedPackage) return;
-    
+
     try {
       await onEnqueueManufacture(quantity);
       onClose();
     } catch (error) {
       console.error('Enqueue manufacturing error:', error);
+    }
+  };
+
+  // Handle navigation to StockUpOperations filtered by this gift package product
+  const handleViewStockUpOperations = () => {
+    if (selectedPackage?.code) {
+      navigate(`/stock-up-operations?sourceType=GiftPackageManufacture&productCode=${selectedPackage.code}&state=Active`);
+      onClose(); // Close modal after navigation
     }
   };
 
@@ -337,6 +348,16 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                 >
                   <RefreshCw className="h-5 w-5 mr-2" />
                   Zadat k výrobě ({quantity} ks)
+                </button>
+
+                {/* View Stock-Up Operations Button */}
+                <button
+                  onClick={handleViewStockUpOperations}
+                  disabled={!selectedPackage?.code}
+                  className="w-full flex items-center justify-center px-4 py-3 text-sm font-medium text-indigo-600 bg-white border-2 border-indigo-200 rounded-lg hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Zobrazit operace naskladnění
                 </button>
               </div>
             </div>

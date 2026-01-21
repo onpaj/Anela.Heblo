@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { X, Package, Clock, AlertCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { X, Package, Clock, AlertCircle, FileText } from "lucide-react";
 import {
   useTransportBoxByIdQuery,
   useChangeTransportBoxState,
@@ -28,6 +29,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
   isOpen,
   onClose,
 }) => {
+  const navigate = useNavigate();
   const {
     data: boxData,
     isLoading,
@@ -396,6 +398,14 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
     });
   };
 
+  // Handle navigation to StockUpOperations filtered by this box
+  const handleViewStockUpOperations = () => {
+    if (boxId) {
+      navigate(`/stock-up-operations?sourceType=TransportBox&sourceId=${boxId}&state=Active`);
+      onClose(); // Close modal after navigation
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -605,6 +615,18 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
                   handleStateChange={handleStateChange}
                 />
               )}
+            </div>
+
+            {/* View Stock-Up Operations Button */}
+            <div className="mb-4">
+              <button
+                onClick={handleViewStockUpOperations}
+                disabled={!boxId}
+                className="w-full px-4 py-3 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Zobrazit operace naskladnění
+              </button>
             </div>
 
             {/* Close Button - Fixed at bottom */}
