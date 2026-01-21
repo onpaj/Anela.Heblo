@@ -2,8 +2,10 @@ import React, { useState } from "react";
 import CatalogDetail from "../CatalogDetail";
 import GiftPackageManufacturingList, { GiftPackage } from "./GiftPackageManufacturingList";
 import GiftPackageManufacturingDetail from "./GiftPackageManufacturingDetail";
+import StockUpOperationStatusIndicator from './StockUpOperationStatusIndicator';
 import { useCreateGiftPackageManufacture, useEnqueueGiftPackageManufacture } from "../../../api/hooks/useGiftPackageManufacturing";
-import { CreateGiftPackageManufactureRequest, EnqueueGiftPackageManufactureRequest } from "../../../api/generated/api-client";
+import { useStockUpOperationsSummary } from '../../../api/hooks/useStockUpOperations';
+import { CreateGiftPackageManufactureRequest, EnqueueGiftPackageManufactureRequest, StockUpSourceType } from "../../../api/generated/api-client";
 
 const GiftPackageManufacturing: React.FC = () => {
   // State for manufacturing modal 
@@ -24,6 +26,15 @@ const GiftPackageManufacturing: React.FC = () => {
   // Manufacturing API hooks
   const createManufactureMutation = useCreateGiftPackageManufacture();
   const enqueueManufactureMutation = useEnqueueGiftPackageManufacture();
+
+  // Add summary hook for StockUpOperations status
+  const { data: stockUpSummary } = useStockUpOperationsSummary(
+    StockUpSourceType.GiftPackageManufacture
+  );
+
+  // Conditionally show indicator
+  const showIndicator = stockUpSummary &&
+    ((stockUpSummary.totalInQueue ?? 0) > 0 || (stockUpSummary.failedCount ?? 0) > 0);
 
   // Manufacturing modal handlers
   const handlePackageClick = (pkg: GiftPackage) => {
@@ -96,6 +107,10 @@ const GiftPackageManufacturing: React.FC = () => {
 
   return (
     <>
+      {showIndicator && (
+        <StockUpOperationStatusIndicator summary={stockUpSummary} />
+      )}
+
       <GiftPackageManufacturingList
         onPackageClick={handlePackageClick}
         onCatalogDetailClick={handleCatalogDetailClick}
