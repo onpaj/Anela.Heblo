@@ -205,7 +205,7 @@ const StockOperationsPage: React.FC = () => {
         <div className="flex items-center space-x-3">
           <AlertCircle className="h-8 w-8 text-gray-700" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Stock-up operace</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Naskladňovací úkoly</h1>
             <p className="text-sm text-gray-500">Přehled operací naskladnění do Shoptet</p>
           </div>
         </div>

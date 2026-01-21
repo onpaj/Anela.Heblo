@@ -1,9 +1,8 @@
-using System.Reflection;
 using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Tests.Features.BackgroundJobs.Infrastructure;
 using FluentAssertions;
 using Hangfire;
-using Hangfire.MemoryStorage;
 using Hangfire.Storage;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -14,19 +13,19 @@ namespace Anela.Heblo.Tests.Features.BackgroundJobs;
 /// <summary>
 /// Unit tests for HangfireJobEnqueuer service.
 /// Tests reflection-based job enqueueing logic.
-/// Note: These tests require Hangfire MemoryStorage to be initialized.
+/// Uses HangfireTestFixture to properly manage Hangfire infrastructure and prevent
+/// ObjectDisposedException when tests run in bulk.
 /// </summary>
-public class HangfireJobEnqueuerTests
+public class HangfireJobEnqueuerTests : IClassFixture<HangfireTestFixture>
 {
     private readonly Mock<ILogger<HangfireJobEnqueuer>> _loggerMock;
     private readonly IBackgroundJobClient _backgroundJobClient;
     private readonly HangfireJobEnqueuer _enqueuer;
 
-    public HangfireJobEnqueuerTests()
+    public HangfireJobEnqueuerTests(HangfireTestFixture fixture)
     {
-        // Initialize Hangfire with in-memory storage for testing
-        GlobalConfiguration.Configuration.UseMemoryStorage();
-
+        // Hangfire is already initialized by the fixture
+        // Just create the test instance dependencies
         _loggerMock = new Mock<ILogger<HangfireJobEnqueuer>>();
         _backgroundJobClient = new BackgroundJobClient(JobStorage.Current);
         _enqueuer = new HangfireJobEnqueuer(_loggerMock.Object, _backgroundJobClient);

@@ -258,7 +258,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         },
         {
           id: "stock-operations",
-          name: "Stock-up operace",
+          name: "Naskladnění",
           href: "/stock-operations",
         },
         {
@@ -271,12 +271,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Hangfire",
           href: "#",
           onClick: openHangfireDashboard,
-        },
-        {
-          id: "import-banky",
-          name: "Import banky",
-          href: "/finance/bank-statements",
-        },
+        }
       ],
     },
   ];

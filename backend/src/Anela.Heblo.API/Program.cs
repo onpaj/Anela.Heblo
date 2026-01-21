@@ -77,33 +77,6 @@ public partial class Program
         // configuration and Hangfire startup. This guarantees job configurations exist before recurring jobs start.
         await app.SeedRecurringJobConfigurationsAsync();
 
-        // Seed default recurring job configurations from discovered IRecurringJob implementations
-        // Note: Database creation and migrations are handled automatically by EF Core during first connection
-        // This seeding runs after app.Build() to ensure the DI container is ready, but before pipeline
-        // configuration and Hangfire startup. This guarantees job configurations exist before recurring jobs start.
-        try
-        {
-            using (var scope = app.Services.CreateScope())
-            {
-                var seedLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-                var repository = scope.ServiceProvider.GetRequiredService<Anela.Heblo.Domain.Features.BackgroundJobs.IRecurringJobConfigurationRepository>();
-
-                // Get all discovered IRecurringJob implementations
-                var discoveredJobs = scope.ServiceProvider.GetServices<Anela.Heblo.Domain.Features.BackgroundJobs.IRecurringJob>();
-
-                await repository.SeedDefaultConfigurationsAsync(discoveredJobs);
-                seedLogger.LogInformation("Successfully seeded default recurring job configurations from {Count} discovered jobs",
-                    discoveredJobs.Count());
-            }
-        }
-        catch (Exception ex)
-        {
-            // Get logger from app services for error logging
-            var errorLogger = app.Services.GetRequiredService<ILogger<Program>>();
-            errorLogger.LogError(ex, "Failed to seed recurring job configurations during startup");
-            throw; // Fail application startup if seeding fails to ensure database is properly configured
-        }
-
         // Configure pipeline
         app.ConfigureApplicationPipeline();
 

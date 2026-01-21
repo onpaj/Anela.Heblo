@@ -36,7 +36,7 @@ const StockUpOperationStatusIndicator: React.FC<
       }}
       role="button"
       tabIndex={0}
-      aria-label="Zobrazit stock-up operace s filtry"
+      aria-label="Zobrazit operace naskladnění s filtry"
       data-testid="stockup-status-indicator"
     >
       <div className="flex items-center justify-between">
