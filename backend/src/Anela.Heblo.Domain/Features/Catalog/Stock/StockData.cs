@@ -20,6 +20,11 @@ public record StockData
     /// </summary>
     public decimal Total => Available + Reserve;
 
+    /// <summary>
+    /// Effective stock including both available and ordered stock for purchase planning
+    /// </summary>
+    public decimal EffectiveStock => Available + Ordered;
+
     public List<CatalogLot> Lots { get; set; } = new();
 
 }

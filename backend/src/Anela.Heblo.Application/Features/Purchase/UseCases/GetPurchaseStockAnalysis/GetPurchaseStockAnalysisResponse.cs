@@ -30,6 +30,10 @@ public class StockAnalysisItemDto
 
     public double AvailableStock { get; set; }
 
+    public double OrderedStock { get; set; }
+
+    public double EffectiveStock { get; set; }
+
     public double MinStockLevel { get; set; }
 
     public double OptimalStockLevel { get; set; }
