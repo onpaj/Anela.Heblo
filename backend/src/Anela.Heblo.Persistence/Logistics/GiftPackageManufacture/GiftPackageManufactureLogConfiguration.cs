@@ -38,6 +38,11 @@ public class GiftPackageManufactureLogConfiguration : IEntityTypeConfiguration<G
             .HasColumnName("created_by")
             .IsRequired();
 
+        builder.Property(x => x.OperationType)
+            .HasColumnName("operation_type")
+            .HasConversion<int>()
+            .IsRequired();
+
         // Navigation property
         builder.HasMany(x => x.ConsumedItems)
             .WithOne(x => x.ManufactureLog)
@@ -50,5 +55,8 @@ public class GiftPackageManufactureLogConfiguration : IEntityTypeConfiguration<G
 
         builder.HasIndex(x => x.GiftPackageCode)
             .HasDatabaseName("ix_gift_package_manufacture_logs_gift_package_code");
+
+        builder.HasIndex(x => x.OperationType)
+            .HasDatabaseName("ix_gift_package_manufacture_logs_operation_type");
     }
 }

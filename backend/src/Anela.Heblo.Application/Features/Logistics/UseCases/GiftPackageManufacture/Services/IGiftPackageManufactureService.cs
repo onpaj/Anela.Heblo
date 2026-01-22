@@ -15,4 +15,9 @@ public interface IGiftPackageManufactureService
         int quantity,
         bool allowStockOverride,
         CancellationToken cancellationToken = default);
+
+    Task<GiftPackageDisassemblyDto> DisassembleGiftPackageAsync(
+        string giftPackageCode,
+        int quantity,
+        CancellationToken cancellationToken = default);
 }
