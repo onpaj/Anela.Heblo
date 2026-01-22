@@ -450,4 +450,222 @@ public class GiftPackageManufactureServiceTests
             new ProductPart { ProductCode = "ING002", ProductName = "Ingredient 2", Amount = 1.5 }
         };
     }
+
+    [Fact]
+    public async Task DisassembleGiftPackageAsync_ShouldCreateNegativeStockOperationForPackage()
+    {
+        // Arrange
+        var giftPackageCode = "SET001";
+        var quantity = 3;
+        var userId = "testUser";
+        var product = CreateCatalogItem(giftPackageCode, "Test Gift Set 1", ProductType.Set, 100, 50);
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        _manufactureRepositoryMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestProductParts());
+
+        // Setup catalog repository to return ingredient products
+        var ingredients = CreateTestIngredients();
+        foreach (var ingredient in ingredients)
+        {
+            var ingredientProduct = CreateCatalogItem(ingredient.ProductCode, ingredient.ProductName, ProductType.Material, 0, ingredient.AvailableStock);
+            _catalogRepositoryMock.Setup(x => x.GetByIdAsync(ingredient.ProductCode, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(ingredientProduct);
+        }
+
+        // Setup current user service to return test user
+        _currentUserServiceMock.Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(Id: "test-user-id", Name: userId, Email: "test@example.com", IsAuthenticated: true));
+
+        // Setup stock up processing service to create operations
+        _stockUpProcessingServiceMock
+            .Setup(x => x.CreateOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<StockUpSourceType>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _service.DisassembleGiftPackageAsync(giftPackageCode, quantity, CancellationToken.None);
+
+        // Assert - Verify negative stock operation for package
+        _stockUpProcessingServiceMock.Verify(x => x.CreateOperationAsync(
+            It.Is<string>(docNum => docNum.StartsWith("GPD-") && docNum.Contains(giftPackageCode)),
+            giftPackageCode,
+            -quantity, // NEGATIVE quantity for package removal
+            StockUpSourceType.GiftPackageManufacture,
+            It.IsAny<int>(),
+            It.IsAny<CancellationToken>()), Times.Once, "Should create negative stock operation for package");
+    }
+
+    [Fact]
+    public async Task DisassembleGiftPackageAsync_ShouldCreatePositiveStockOperationsForComponents()
+    {
+        // Arrange
+        var giftPackageCode = "SET001";
+        var quantity = 3;
+        var userId = "testUser";
+        var product = CreateCatalogItem(giftPackageCode, "Test Gift Set 1", ProductType.Set, 100, 50);
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        _manufactureRepositoryMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestProductParts());
+
+        // Setup catalog repository to return ingredient products
+        var ingredients = CreateTestIngredients();
+        foreach (var ingredient in ingredients)
+        {
+            var ingredientProduct = CreateCatalogItem(ingredient.ProductCode, ingredient.ProductName, ProductType.Material, 0, ingredient.AvailableStock);
+            _catalogRepositoryMock.Setup(x => x.GetByIdAsync(ingredient.ProductCode, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(ingredientProduct);
+        }
+
+        // Setup current user service to return test user
+        _currentUserServiceMock.Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(Id: "test-user-id", Name: userId, Email: "test@example.com", IsAuthenticated: true));
+
+        // Setup stock up processing service to create operations
+        _stockUpProcessingServiceMock
+            .Setup(x => x.CreateOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<StockUpSourceType>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _service.DisassembleGiftPackageAsync(giftPackageCode, quantity, CancellationToken.None);
+
+        // Assert - Verify positive stock operations for components
+        // Component 1: ING001 with RequiredQuantity = 2.0, so returned quantity = 2 * 3 = 6
+        _stockUpProcessingServiceMock.Verify(x => x.CreateOperationAsync(
+            It.Is<string>(docNum => docNum.StartsWith("GPD-") && docNum.Contains("ING001")),
+            "ING001",
+            6, // POSITIVE quantity for component return (2.0 * 3)
+            StockUpSourceType.GiftPackageManufacture,
+            It.IsAny<int>(),
+            It.IsAny<CancellationToken>()), Times.Once, "Should create positive stock operation for ING001");
+
+        // Component 2: ING002 with RequiredQuantity = 1.5, so returned quantity = 1.5 * 3 = 4 (rounded)
+        _stockUpProcessingServiceMock.Verify(x => x.CreateOperationAsync(
+            It.Is<string>(docNum => docNum.StartsWith("GPD-") && docNum.Contains("ING002")),
+            "ING002",
+            4, // POSITIVE quantity for component return (1.5 * 3 = 4.5 rounded to 4)
+            StockUpSourceType.GiftPackageManufacture,
+            It.IsAny<int>(),
+            It.IsAny<CancellationToken>()), Times.Once, "Should create positive stock operation for ING002");
+    }
+
+    [Fact]
+    public async Task DisassembleGiftPackageAsync_ShouldCreateLogWithDisassemblyOperationType()
+    {
+        // Arrange
+        var giftPackageCode = "SET001";
+        var quantity = 3;
+        var userId = "testUser";
+        var product = CreateCatalogItem(giftPackageCode, "Test Gift Set 1", ProductType.Set, 100, 50);
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        _manufactureRepositoryMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestProductParts());
+
+        // Setup catalog repository to return ingredient products
+        var ingredients = CreateTestIngredients();
+        foreach (var ingredient in ingredients)
+        {
+            var ingredientProduct = CreateCatalogItem(ingredient.ProductCode, ingredient.ProductName, ProductType.Material, 0, ingredient.AvailableStock);
+            _catalogRepositoryMock.Setup(x => x.GetByIdAsync(ingredient.ProductCode, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(ingredientProduct);
+        }
+
+        // Setup current user service to return test user
+        _currentUserServiceMock.Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(Id: "test-user-id", Name: userId, Email: "test@example.com", IsAuthenticated: true));
+
+        // Setup stock up processing service
+        _stockUpProcessingServiceMock
+            .Setup(x => x.CreateOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<StockUpSourceType>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _service.DisassembleGiftPackageAsync(giftPackageCode, quantity, CancellationToken.None);
+
+        // Assert - Verify log was created with Disassembly operation type
+        _giftPackageRepositoryMock.Verify(x => x.AddAsync(It.Is<GiftPackageManufactureLog>(log =>
+            log.GiftPackageCode == giftPackageCode &&
+            log.QuantityCreated == quantity &&
+            log.CreatedBy == userId &&
+            log.OperationType == GiftPackageOperationType.Disassembly && // VERIFY DISASSEMBLY TYPE
+            log.ConsumedItems.Count == 2), It.IsAny<CancellationToken>()), Times.Once, "Should create log with Disassembly operation type");
+
+        _giftPackageRepositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DisassembleGiftPackageAsync_WithInsufficientStock_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var giftPackageCode = "SET001";
+        var quantity = 100; // More than available stock (50)
+        var product = CreateCatalogItem(giftPackageCode, "Test Gift Set 1", ProductType.Set, 100, 50);
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        _manufactureRepositoryMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestProductParts());
+
+        // Setup catalog repository to return ingredient products
+        var ingredients = CreateTestIngredients();
+        foreach (var ingredient in ingredients)
+        {
+            var ingredientProduct = CreateCatalogItem(ingredient.ProductCode, ingredient.ProductName, ProductType.Material, 0, ingredient.AvailableStock);
+            _catalogRepositoryMock.Setup(x => x.GetByIdAsync(ingredient.ProductCode, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(ingredientProduct);
+        }
+
+        // Act & Assert
+        await _service.Invoking(x => x.DisassembleGiftPackageAsync(giftPackageCode, quantity, CancellationToken.None))
+            .Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage($"Nelze rozebrat {quantity} ks. Dostupné množství: 50 ks");
+    }
+
+    [Fact]
+    public async Task DisassembleGiftPackageAsync_WithZeroQuantity_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var giftPackageCode = "SET001";
+        var quantity = 0;
+
+        // Act & Assert
+        await _service.Invoking(x => x.DisassembleGiftPackageAsync(giftPackageCode, quantity, CancellationToken.None))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("Množství musí být větší než 0*");
+    }
+
+    [Fact]
+    public async Task DisassembleGiftPackageAsync_WithNegativeQuantity_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var giftPackageCode = "SET001";
+        var quantity = -5;
+
+        // Act & Assert
+        await _service.Invoking(x => x.DisassembleGiftPackageAsync(giftPackageCode, quantity, CancellationToken.None))
+            .Should().ThrowAsync<ArgumentException>()
+            .WithMessage("Množství musí být větší než 0*");
+    }
 }
