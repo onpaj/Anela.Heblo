@@ -324,6 +324,25 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "You can approve both at once, or approve them at different times." >> $GITHUB_STEP_SUMMARY
 
+      - name: 🏷️ Create and Push Git Tag
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "🏷️ Creating Git tag: $VERSION"
+
+          # Configure Git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create tag
+          git tag -a "$VERSION" -m "Release $VERSION"
+
+          # Push tag to repository
+          git push origin "$VERSION"
+
+          echo "✅ Git tag $VERSION created and pushed successfully!"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # Deploy to Staging - MANUAL APPROVAL REQUIRED
   deploy-staging:
     name: 🚀 Deploy to Staging
