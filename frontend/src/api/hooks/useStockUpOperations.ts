@@ -5,15 +5,22 @@ import {
   GetStockUpOperationsResponse,
   GetStockUpOperationsSummaryResponse,
   RetryStockUpOperationResponse,
-  StockUpOperationState,
   StockUpSourceType,
 } from "../generated/api-client";
 
 // Define request interface matching the backend contract
 export interface GetStockUpOperationsRequest {
-  state?: StockUpOperationState;
+  state?: string; // Changed to string to support "Active" special value
   pageSize?: number;
   page?: number;
+  sourceType?: StockUpSourceType;
+  sourceId?: number;
+  productCode?: string;
+  documentNumber?: string;
+  createdFrom?: Date;
+  createdTo?: Date;
+  sortBy?: string;
+  sortDescending?: boolean;
 }
 
 // Query keys
@@ -41,7 +48,15 @@ export const useStockUpOperationsQuery = (request: GetStockUpOperationsRequest) 
       return await client.stockUpOperations_GetOperations(
         request.state ?? undefined,
         request.pageSize ?? undefined,
-        request.page ?? undefined
+        request.page ?? undefined,
+        request.sourceType ?? undefined,
+        request.sourceId ?? undefined,
+        request.productCode ?? undefined,
+        request.documentNumber ?? undefined,
+        request.createdFrom ?? undefined,
+        request.createdTo ?? undefined,
+        request.sortBy ?? undefined,
+        request.sortDescending ?? undefined
       );
     },
   });
