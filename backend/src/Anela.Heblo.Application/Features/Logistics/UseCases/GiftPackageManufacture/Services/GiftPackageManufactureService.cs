@@ -243,6 +243,98 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         return _mapper.Map<GiftPackageManufactureDto>(manufactureLog);
     }
 
+    public async Task<GiftPackageDisassemblyDto> DisassembleGiftPackageAsync(
+        string giftPackageCode,
+        int quantity,
+        CancellationToken cancellationToken = default)
+    {
+        // 1. Validate quantity
+        if (quantity <= 0)
+        {
+            throw new ArgumentException("Množství musí být větší než 0", nameof(quantity));
+        }
+
+        // Get gift package details with current stock
+        var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, 1.0m, null, null, cancellationToken);
+
+        // Validate quantity against available stock
+        if (quantity > giftPackage.AvailableStock)
+        {
+            throw new InvalidOperationException(
+                $"Nelze rozebrat {quantity} ks. Dostupné množství: {giftPackage.AvailableStock} ks");
+        }
+
+        // 2. Create log entry with OperationType.Disassembly
+        var disassemblyLog = new GiftPackageManufactureLog(
+            giftPackageCode,
+            quantity,
+            _timeProvider.GetUtcNow().DateTime,
+            _currentUserService.GetCurrentUser().Name ?? "System",
+            GiftPackageOperationType.Disassembly);
+
+        // CRITICAL: Save the log FIRST to get the ID for DocumentNumber
+        await _giftPackageRepository.AddAsync(disassemblyLog);
+        await _giftPackageRepository.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Created GiftPackageDisassemblyLog {LogId} for {GiftPackageCode}, quantity: {Quantity}",
+            disassemblyLog.Id, giftPackageCode, quantity);
+
+        // 3. Stock-DOWN for finished product (negative amount)
+        var packageDocNumber = $"GPD-{disassemblyLog.Id:000000}-{giftPackageCode}";
+
+        _logger.LogDebug("Creating stock-down operation for package: {DocumentNumber} - {ProductCode}, Amount: {Amount}",
+            packageDocNumber, giftPackageCode, -quantity);
+
+        await _stockUpProcessingService.CreateOperationAsync(
+            packageDocNumber,
+            giftPackageCode,
+            -quantity,  // Negative = removal from stock
+            StockUpSourceType.GiftPackageManufacture,
+            disassemblyLog.Id,
+            cancellationToken);
+
+        // 4. Stock-UP for each component (positive amounts)
+        var returnedComponents = new List<GiftPackageDisassemblyItemDto>();
+
+        foreach (var ingredient in giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())
+        {
+            var returnedQuantity = (int)(ingredient.RequiredQuantity * quantity);
+            disassemblyLog.AddConsumedItem(ingredient.ProductCode, returnedQuantity);
+
+            // DocumentNumber format: GPD-{logId:000000}-{productCode}
+            var documentNumber = $"GPD-{disassemblyLog.Id:000000}-{ingredient.ProductCode}";
+
+            _logger.LogDebug("Creating stock-up operation for component: {DocumentNumber} - {ProductCode}, Amount: {Amount}",
+                documentNumber, ingredient.ProductCode, returnedQuantity);
+
+            await _stockUpProcessingService.CreateOperationAsync(
+                documentNumber,
+                ingredient.ProductCode,
+                returnedQuantity,  // Positive = return to stock
+                StockUpSourceType.GiftPackageManufacture,
+                disassemblyLog.Id,
+                cancellationToken);
+
+            returnedComponents.Add(new GiftPackageDisassemblyItemDto
+            {
+                ProductCode = ingredient.ProductCode,
+                QuantityReturned = returnedQuantity
+            });
+        }
+
+        _logger.LogInformation("Successfully completed GiftPackageDisassembly {LogId} for {GiftPackageCode}",
+            disassemblyLog.Id, giftPackageCode);
+
+        return new GiftPackageDisassemblyDto
+        {
+            GiftPackageCode = giftPackageCode,
+            QuantityDisassembled = quantity,
+            DisassembledAt = disassemblyLog.CreatedAt,
+            DisassembledBy = disassemblyLog.CreatedBy,
+            ReturnedComponents = returnedComponents
+        };
+    }
+
     private static StockSeverity CalculateSeverity(int availableStock, int suggestedQuantity, int overstockMinimal)
     {
         // If less than minimal (in any case), then severity is Critical (red on UI)

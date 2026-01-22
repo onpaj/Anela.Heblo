@@ -3350,6 +3350,44 @@ export class ApiClient {
         return Promise.resolve<CreateGiftPackageManufactureResponse>(null as any);
     }
 
+    logistics_DisassembleGiftPackage(request: DisassembleGiftPackageRequest): Promise<DisassembleGiftPackageResponse> {
+        let url_ = this.baseUrl + "/api/logistics/gift-packages/disassemble";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLogistics_DisassembleGiftPackage(_response);
+        });
+    }
+
+    protected processLogistics_DisassembleGiftPackage(response: Response): Promise<DisassembleGiftPackageResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DisassembleGiftPackageResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DisassembleGiftPackageResponse>(null as any);
+    }
+
     logistics_EnqueueGiftPackageManufacture(request: EnqueueGiftPackageManufactureRequest): Promise<EnqueueGiftPackageManufactureResponse> {
         let url_ = this.baseUrl + "/api/logistics/gift-packages/manufacture/enqueue";
         url_ = url_.replace(/[?&]$/, "");
@@ -12597,6 +12635,183 @@ export interface ICreateGiftPackageManufactureRequest {
     giftPackageCode?: string;
     quantity?: number;
     allowStockOverride?: boolean;
+    userId?: string;
+}
+
+export class DisassembleGiftPackageResponse extends BaseResponse implements IDisassembleGiftPackageResponse {
+    disassembly?: GiftPackageDisassemblyDto;
+
+    constructor(data?: IDisassembleGiftPackageResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.disassembly = _data["disassembly"] ? GiftPackageDisassemblyDto.fromJS(_data["disassembly"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): DisassembleGiftPackageResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DisassembleGiftPackageResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["disassembly"] = this.disassembly ? this.disassembly.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDisassembleGiftPackageResponse extends IBaseResponse {
+    disassembly?: GiftPackageDisassemblyDto;
+}
+
+export class GiftPackageDisassemblyDto implements IGiftPackageDisassemblyDto {
+    giftPackageCode?: string;
+    quantityDisassembled?: number;
+    disassembledAt?: Date;
+    disassembledBy?: string;
+    returnedComponents?: GiftPackageDisassemblyItemDto[];
+
+    constructor(data?: IGiftPackageDisassemblyDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.giftPackageCode = _data["giftPackageCode"];
+            this.quantityDisassembled = _data["quantityDisassembled"];
+            this.disassembledAt = _data["disassembledAt"] ? new Date(_data["disassembledAt"].toString()) : <any>undefined;
+            this.disassembledBy = _data["disassembledBy"];
+            if (Array.isArray(_data["returnedComponents"])) {
+                this.returnedComponents = [] as any;
+                for (let item of _data["returnedComponents"])
+                    this.returnedComponents!.push(GiftPackageDisassemblyItemDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): GiftPackageDisassemblyDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new GiftPackageDisassemblyDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["giftPackageCode"] = this.giftPackageCode;
+        data["quantityDisassembled"] = this.quantityDisassembled;
+        data["disassembledAt"] = this.disassembledAt ? this.disassembledAt.toISOString() : <any>undefined;
+        data["disassembledBy"] = this.disassembledBy;
+        if (Array.isArray(this.returnedComponents)) {
+            data["returnedComponents"] = [];
+            for (let item of this.returnedComponents)
+                data["returnedComponents"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IGiftPackageDisassemblyDto {
+    giftPackageCode?: string;
+    quantityDisassembled?: number;
+    disassembledAt?: Date;
+    disassembledBy?: string;
+    returnedComponents?: GiftPackageDisassemblyItemDto[];
+}
+
+export class GiftPackageDisassemblyItemDto implements IGiftPackageDisassemblyItemDto {
+    productCode?: string;
+    quantityReturned?: number;
+
+    constructor(data?: IGiftPackageDisassemblyItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.quantityReturned = _data["quantityReturned"];
+        }
+    }
+
+    static fromJS(data: any): GiftPackageDisassemblyItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new GiftPackageDisassemblyItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["quantityReturned"] = this.quantityReturned;
+        return data;
+    }
+}
+
+export interface IGiftPackageDisassemblyItemDto {
+    productCode?: string;
+    quantityReturned?: number;
+}
+
+export class DisassembleGiftPackageRequest implements IDisassembleGiftPackageRequest {
+    giftPackageCode?: string;
+    quantity?: number;
+    userId?: string;
+
+    constructor(data?: IDisassembleGiftPackageRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.giftPackageCode = _data["giftPackageCode"];
+            this.quantity = _data["quantity"];
+            this.userId = _data["userId"];
+        }
+    }
+
+    static fromJS(data: any): DisassembleGiftPackageRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new DisassembleGiftPackageRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["giftPackageCode"] = this.giftPackageCode;
+        data["quantity"] = this.quantity;
+        data["userId"] = this.userId;
+        return data;
+    }
+}
+
+export interface IDisassembleGiftPackageRequest {
+    giftPackageCode?: string;
+    quantity?: number;
     userId?: string;
 }
 

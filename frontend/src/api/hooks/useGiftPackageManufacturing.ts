@@ -6,6 +6,8 @@ import {
   GetGiftPackageDetailResponse,
   CreateGiftPackageManufactureRequest,
   CreateGiftPackageManufactureResponse,
+  DisassembleGiftPackageRequest,
+  DisassembleGiftPackageResponse,
   GetManufactureLogResponse,
   EnqueueGiftPackageManufactureRequest,
   EnqueueGiftPackageManufactureResponse,
@@ -86,11 +88,30 @@ export const useCreateGiftPackageManufacture = () => {
 };
 
 /**
+ * Hook to disassemble gift package back to components
+ */
+export const useDisassembleGiftPackage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: DisassembleGiftPackageRequest): Promise<DisassembleGiftPackageResponse> => {
+      const client = getGiftPackageClient();
+      return await client.logistics_DisassembleGiftPackage(request);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch related queries after successful disassembly
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.giftPackages, "available"] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.giftPackages, "manufacture", "log"] });
+    },
+  });
+};
+
+/**
  * Hook to enqueue gift package manufacture (asynchronous)
  */
 export const useEnqueueGiftPackageManufacture = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (request: EnqueueGiftPackageManufactureRequest): Promise<EnqueueGiftPackageManufactureResponse> => {
       const client = getGiftPackageClient();

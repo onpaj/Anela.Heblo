@@ -3,13 +3,16 @@ import { useNavigate } from "react-router-dom";
 import {
   RefreshCw,
   Package,
+  PackageOpen,
   X,
   AlertTriangle,
   CheckCircle,
   FileText,
 } from "lucide-react";
-import { useGiftPackageDetail } from "../../../api/hooks/useGiftPackageManufacturing";
+import { useGiftPackageDetail, useDisassembleGiftPackage } from "../../../api/hooks/useGiftPackageManufacturing";
 import { GiftPackage } from "./GiftPackageManufacturingList";
+import { toast } from "react-hot-toast";
+import DisassemblyTabContent from "./DisassemblyTabContent";
 
 interface GiftPackageManufacturingDetailProps {
   selectedPackage: GiftPackage | null;
@@ -34,6 +37,11 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
 }) => {
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
+  const [disassemblyQuantity, setDisassemblyQuantity] = useState(1);
+  const [activeTab, setActiveTab] = useState<'manufacture' | 'disassemble'>('manufacture');
+
+  // Disassembly mutation
+  const disassemblyMutation = useDisassembleGiftPackage();
 
   // Load gift package detail with components when modal is open
   const { data: giftPackageDetail, isLoading: detailLoading } = useGiftPackageDetail(
@@ -80,6 +88,10 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
       // Default quantity = max(0, SuggestedQuantity - AvailableStock), minimum 1
       const neededQuantity = Math.max(0, selectedPackage.suggestedQuantity - selectedPackage.availableStock);
       setQuantity(Math.max(1, neededQuantity));
+      // Default disassembly quantity to 1
+      setDisassemblyQuantity(1);
+      // Reset to manufacture tab
+      setActiveTab('manufacture');
     }
   }, [selectedPackage]);
 
@@ -92,6 +104,30 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
       onClose();
     } catch (error) {
       console.error('Enqueue manufacturing error:', error);
+    }
+  };
+
+  const handleDisassemble = async () => {
+    if (!selectedPackage) return;
+
+    try {
+      const request = {
+        giftPackageCode: selectedPackage.code,
+        quantity: disassemblyQuantity,
+      };
+
+      const response = await disassemblyMutation.mutateAsync(request as any);
+
+      if (response.success) {
+        toast.success(`Balíček ${selectedPackage.code} byl úspěšně rozebrán (${disassemblyQuantity} ks)`);
+        onClose();
+      } else {
+        const errorMessage = response.params?.['ErrorMessage'] || 'Nepodařilo se rozebrat balíček';
+        toast.error(errorMessage);
+      }
+    } catch (error: any) {
+      console.error('Disassembly error:', error);
+      toast.error(error?.message || 'Chyba při rozebírání balíčku');
     }
   };
 
@@ -253,8 +289,35 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
               </div>
             </div>
 
-            {/* Manufacturing Controls */}
-            <div className="flex-1 p-3 sm:p-4 bg-indigo-50">
+            {/* Tab Headers */}
+            <div className="flex border-b border-gray-200">
+              <button
+                onClick={() => setActiveTab('manufacture')}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  activeTab === 'manufacture'
+                    ? 'text-indigo-700 bg-indigo-50 border-b-2 border-indigo-600'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Package className="h-4 w-4 inline-block mr-2" />
+                Výroba
+              </button>
+              <button
+                onClick={() => setActiveTab('disassemble')}
+                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                  activeTab === 'disassemble'
+                    ? 'text-red-700 bg-red-50 border-b-2 border-red-600'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <PackageOpen className="h-4 w-4 inline-block mr-2" />
+                Rozebírání
+              </button>
+            </div>
+
+            {/* Manufacturing Controls - Shown when activeTab === 'manufacture' */}
+            {activeTab === 'manufacture' && (
+              <div className="flex-1 p-3 sm:p-4 bg-indigo-50">
               <h3 className="text-sm sm:text-base font-medium text-gray-900 mb-4 flex items-center">
                 <Package className="h-4 w-4 mr-2" />
                 Výrobní příkaz
@@ -361,6 +424,19 @@ const GiftPackageManufacturingDetail: React.FC<GiftPackageManufacturingDetailPro
                 </button>
               </div>
             </div>
+            )}
+
+            {/* Disassembly Controls - Shown when activeTab === 'disassemble' */}
+            {activeTab === 'disassemble' && (
+              <DisassemblyTabContent
+                selectedPackage={selectedPackage}
+                quantity={disassemblyQuantity}
+                setQuantity={setDisassemblyQuantity}
+                maxQuantity={selectedPackage.availableStock}
+                onDisassemble={handleDisassemble}
+                isPending={disassemblyMutation.isPending}
+              />
+            )}
           </div>
         </div>
       </div>
