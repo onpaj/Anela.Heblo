@@ -223,7 +223,7 @@ const PurchaseStockAnalysis: React.FC = () => {
     if (ordered > 0) {
       return {
         mainValue: formatNumber(effectiveStock, 0),
-        subValue: `+${formatNumber(ordered, 0)} obj.`,
+        subValue: `(${formatNumber(available, 0)}+${formatNumber(ordered, 0)})`,
         tooltip: `Skladem ${formatNumber(available, 0)}, objednáno ${formatNumber(ordered, 0)}`
       };
     }
