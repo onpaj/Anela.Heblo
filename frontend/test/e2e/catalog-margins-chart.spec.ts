@@ -15,22 +15,33 @@ test.describe('Catalog Margins Chart Tests', () => {
     // Wait for catalog to load
     await page.waitForSelector('table', { timeout: 15000 });
 
-    // Find and click on the first product row to open detail
-    const firstRow = page.locator('tbody tr').first();
-    await firstRow.click();
+    // Find specific product with known margin data (ProductType.Product)
+    // Try DEO002050 first, fallback to KRE003005 if not found
+    const primaryProduct = page.locator('tbody tr').filter({ hasText: 'DEO002050' }).first();
+    const primaryProductExists = await primaryProduct.isVisible({ timeout: 5000 }).catch(() => false);
+
+    if (primaryProductExists) {
+      console.log('✅ Found primary test product: DEO002050');
+      await primaryProduct.click();
+    } else {
+      console.log('⚠️  Primary product DEO002050 not found, trying alternative KRE003005');
+      const alternativeProduct = page.locator('tbody tr').filter({ hasText: 'KRE003005' }).first();
+      await expect(alternativeProduct).toBeVisible({ timeout: 10000 });
+      console.log('✅ Found alternative test product: KRE003005');
+      await alternativeProduct.click();
+    }
 
     // Wait for detail modal/page to open
     await page.waitForTimeout(2000);
 
-    // Look for Margins tab and click it
+    // Margins tab MUST be visible for ProductType.Product
     const marginsTab = page.locator('text=Marže').first();
-    const isTabVisible = await marginsTab.isVisible({ timeout: 5000 }).catch(() => false);
+    await expect(marginsTab).toBeVisible({ timeout: 5000 });
+    console.log('✅ Margins tab is visible');
 
-    if (isTabVisible) {
-      await marginsTab.click();
-      console.log('Clicked margins tab');
-      await page.waitForTimeout(1500);
-    }
+    await marginsTab.click();
+    console.log('✅ Clicked margins tab');
+    await page.waitForTimeout(1500);
 
     // Get current month label in Czech format
     const now = new Date();
@@ -41,23 +52,21 @@ test.describe('Catalog Margins Chart Tests', () => {
     const chartCanvas = page.locator('canvas').first();
     const emptyState = page.locator('text=/Náklady a marže za posledních/i').first();
 
-    const chartExists = await chartCanvas.isVisible({ timeout: 5000 }).catch(() => false);
-    const emptyStateExists = await emptyState.isVisible({ timeout: 5000 }).catch(() => false);
+    const chartVisible = await chartCanvas.isVisible({ timeout: 5000 }).catch(() => false);
+    const emptyStateVisible = await emptyState.isVisible({ timeout: 5000 }).catch(() => false);
 
-    if (chartExists) {
-      console.log('✅ Chart canvas found - chart has data');
-      expect(chartExists).toBe(true);
+    // CRITICAL: At least one MUST be visible - test should fail if neither appears
+    expect(chartVisible || emptyStateVisible).toBe(true);
+
+    if (chartVisible) {
+      console.log('✅ Chart canvas found - verifying chart renders');
+      expect(chartCanvas).toBeVisible();
       console.log('✅ Test passed: Chart is rendering with 12 months data (excluding current month)');
-    } else if (emptyStateExists) {
+    } else {
+      console.log('✅ Empty state found - verifying 12 months message');
       const emptyStateText = await emptyState.textContent();
-      console.log(`Empty state text: ${emptyStateText}`);
-
-      // Verify it says 12 months (not 13) and mentions excluding current month
       expect(emptyStateText).toContain('12 měsíc');
       console.log('✅ Test passed: Empty state shows correct message (12 months without current)');
-    } else {
-      console.log('⚠️  Neither chart nor empty state found - margins may not be visible for this product');
-      console.log('Test will pass as this is a valid state (product without margin data)');
     }
   });
 });
