@@ -1,291 +1,1084 @@
-# Gift Package Manufacturing & Disassembly
+# Gift Package Manufacture Feature
 
 ## Overview
 
-The Gift Package Manufacturing feature allows users to create gift packages by combining multiple product components into a single finished package. The Disassembly feature provides the inverse operation - breaking down manufactured gift packages back into their individual components.
+The Gift Package Manufacture feature enables production of gift package sets (ProductType.Set) from individual ingredients with automatic stock management, demand forecasting, and audit trails. It integrates deeply with Catalog, Manufacture (BOM), and Stock-Up modules to provide a complete manufacturing workflow.
 
-## Features
+## Business Context
 
-### 1. Gift Package Manufacturing (Výroba)
+Gift packages are composite products (sets) sold as single units but manufactured from multiple individual ingredients. The system:
+- Tracks daily sales to forecast demand
+- Calculates optimal stock levels based on sales velocity
+- Provides severity indicators (Critical/Severe/Optimal) for prioritization
+- Automates stock operations: consumes ingredients, produces output packages
+- Maintains complete audit trails for regulatory compliance
 
-#### Purpose
-- Combine multiple product components into a finished gift package
-- Track manufacturing operations with detailed logs
-- Create stock-up operations for finished packages and consumed components
+## Architecture
 
-#### Workflow
-1. Navigate to **Výroba dárkových balíčků** (Gift Package Manufacturing)
-2. Browse available gift packages with suggested quantities based on sales data
-3. Click on a gift package to open the detail modal
-4. **Výroba tab**:
-   - View package composition (bill of materials)
-   - View available stock for each component
-   - Validation checks ensure sufficient stock before manufacturing
-   - Set quantity to manufacture
-   - Click **"Zadat k výrobě"** to execute manufacturing
+### Clean Architecture Layers
 
-#### Technical Implementation
-- **Backend**: `DisassembleGiftPackageHandler` processes the request
-- **Service**: `GiftPackageManufactureService.ManufactureAsync()`
-- **Database**: Creates `GiftPackageManufactureLog` with `OperationType = Manufacture`
-- **Stock Operations**:
-  - Stock-UP for finished package (+quantity)
-  - Stock-DOWN for each component (-required quantity per component)
+```
+API Layer (Controllers)
+    ↓
+Application Layer (Handlers → Services)
+    ↓
+Domain Layer (Entities, Repository Interfaces)
+    ↓
+Infrastructure Layer (Repository Implementations, EF Core)
+```
 
-### 2. Gift Package Disassembly (Rozebírání)
+### Module Organization
 
-#### Purpose
-- Disassemble finished gift packages back to individual components
-- Return components to stock
-- Remove finished packages from stock
-- Handle seasonal inventory management (e.g., unsold Christmas packages)
+```
+Backend:
+/Domain/Features/Logistics/GiftPackageManufacture/
+  - GiftPackageManufactureLog.cs (aggregate root)
+  - GiftPackageManufactureItem.cs (child entity)
+  - IGiftPackageManufactureRepository.cs
 
-#### Workflow
-1. Navigate to **Výroba dárkových balíčků** (Gift Package Manufacturing)
-2. Click on a gift package to open the detail modal
-3. Switch to **Rozebírání tab** (red danger theme)
-4. **Disassembly tab**:
-   - Warning banner: "Pozor: Destruktivní operace" (destructive operation notice)
-   - View available stock (máx. počet k rozebírání)
-   - Set quantity to disassemble using:
-     - +/- buttons for increment/decrement
-     - Manual input
-     - Quick buttons: "Půlka" (half), "Vše" (all)
-   - Validation checks prevent exceeding available stock
-   - Click **"Rozebrat balíček"** (red button) to execute disassembly
+/Application/Features/Logistics/UseCases/GiftPackageManufacture/
+  - Services/
+    - IGiftPackageManufactureService.cs
+    - GiftPackageManufactureService.cs
+  - Contracts/ (DTOs)
+  - UseCases/ (MediatR handlers)
+  - GiftPackageManufactureMappingProfile.cs
+  - GiftPackageManufactureModule.cs
 
-#### Technical Implementation
-- **Backend**: `DisassembleGiftPackageHandler` processes the request
-- **Service**: `GiftPackageManufactureService.DisassembleGiftPackageAsync()`
-- **Database**: Creates `GiftPackageManufactureLog` with `OperationType = Disassembly`
-- **Stock Operations** (inverted from manufacturing):
-  - Stock-DOWN for finished package (-quantity)
-  - Stock-UP for each component (+quantity per component)
+/Persistence/Logistics/GiftPackageManufacture/
+  - GiftPackageManufactureRepository.cs
+  - GiftPackageManufactureLogConfiguration.cs
+  - GiftPackageManufactureItemConfiguration.cs
 
-## Data Model
+/API/Controllers/
+  - LogisticsController.cs (hosts endpoints)
+```
 
-### GiftPackageManufactureLog
+## Domain Model
+
+### GiftPackageManufactureLog (Aggregate Root)
+
+**Purpose**: Records each manufacturing operation with metadata for audit and traceability.
+
+**Properties**:
+```csharp
+int Id                      // Auto-generated primary key
+string GiftPackageCode      // Product code of manufactured set (max 50 chars)
+int QuantityCreated         // Number of units produced
+bool StockOverrideApplied   // Whether stock validation was bypassed
+DateTime CreatedAt          // UTC timestamp of manufacture
+string CreatedBy            // User name who initiated the operation
+List<GiftPackageManufactureItem> ConsumedItems  // Ingredients consumed
+```
+
+**Key Methods**:
+- `AddConsumedItem(productCode, quantity)` - Records ingredient consumption
+
+### GiftPackageManufactureItem (Child Entity)
+
+**Purpose**: Tracks individual ingredient consumption per manufacture operation.
+
+**Properties**:
+```csharp
+int Id                  // Primary key
+int ManufactureLogId    // Foreign key (cascade delete)
+string ProductCode      // Ingredient product code (max 50 chars)
+int QuantityConsumed    // Amount of ingredient consumed
+```
+
+### Repository Interface
 
 ```csharp
-public class GiftPackageManufactureLog
+public interface IGiftPackageManufactureRepository
 {
-    public int Id { get; private set; }
-    public string GiftPackageCode { get; private set; }
-    public int QuantityCreated { get; private set; }
-    public bool StockOverrideApplied { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public string CreatedBy { get; private set; }
-    public GiftPackageOperationType OperationType { get; private set; }
-
-    private List<GiftPackageManufactureLogItem> _consumedItems = new();
-    public IReadOnlyCollection<GiftPackageManufactureLogItem> ConsumedItems => _consumedItems.AsReadOnly();
+    Task<GiftPackageManufactureLog> GetByIdAsync(int id);
+    Task<List<GiftPackageManufactureLog>> GetRecentManufactureLogsAsync(int count = 10);
+    Task AddAsync(GiftPackageManufactureLog log);
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 ```
 
-### GiftPackageOperationType Enum
+## Database Schema
+
+### Tables
+
+**gift_package_manufacture_logs**
+```sql
+CREATE TABLE gift_package_manufacture_logs (
+    id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY,
+    gift_package_code varchar(50) NOT NULL,
+    quantity_created integer NOT NULL,
+    stock_override_applied boolean NOT NULL,
+    created_at timestamp without time zone NOT NULL,
+    created_by text NOT NULL
+);
+
+-- Indexes
+CREATE INDEX ix_gift_package_manufacture_logs_gift_package_code
+    ON gift_package_manufacture_logs(gift_package_code);
+CREATE INDEX ix_gift_package_manufacture_logs_created_at
+    ON gift_package_manufacture_logs(created_at);
+```
+
+**gift_package_manufacture_items**
+```sql
+CREATE TABLE gift_package_manufacture_items (
+    id integer PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY,
+    manufacture_log_id integer NOT NULL,
+    product_code varchar(50) NOT NULL,
+    quantity_consumed integer NOT NULL,
+    CONSTRAINT fk_manufacture_log
+        FOREIGN KEY (manufacture_log_id)
+        REFERENCES gift_package_manufacture_logs(id)
+        ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX ix_gift_package_manufacture_items_manufacture_log_id
+    ON gift_package_manufacture_items(manufacture_log_id);
+CREATE INDEX ix_gift_package_manufacture_items_product_code
+    ON gift_package_manufacture_items(product_code);
+```
+
+### Migrations
+
+1. **20250909115907_AddGiftPackageManufacturing**: Initial schema creation
+2. **20250910103535_UpdateGiftPackageManufacturing**: Changed `created_by` from UUID to text string (supports both Entra ID and mock auth)
+
+## Application Layer
+
+### Service Interface
 
 ```csharp
-public enum GiftPackageOperationType
+public interface IGiftPackageManufactureService
 {
-    Manufacture = 1,  // Default for backward compatibility
-    Disassembly = 2
+    // List all available gift packages with stock analysis
+    Task<List<GiftPackageDto>> GetAvailableGiftPackagesAsync(
+        decimal salesCoefficient = 1.0m,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        CancellationToken cancellationToken = default);
+
+    // Get detailed info for a specific gift package (includes ingredients)
+    Task<GiftPackageDto> GetGiftPackageDetailAsync(
+        string giftPackageCode,
+        decimal salesCoefficient = 1.0m,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        CancellationToken cancellationToken = default);
+
+    // Execute manufacturing operation
+    Task<GiftPackageManufactureDto> CreateManufactureAsync(
+        string giftPackageCode,
+        int quantity,
+        bool allowStockOverride,
+        CancellationToken cancellationToken = default);
 }
 ```
 
-### Document Number Format
+### Key DTOs
 
-Manufacturing operations:
-- **Document Number**: `GPM-{logId:000000}-{productCode}`
-- Example: `GPM-000123-DBV001` for package, `GPM-000123-COMP001` for component
+**GiftPackageDto**
+```csharp
+public class GiftPackageDto
+{
+    public string Code { get; set; }
+    public string Name { get; set; }
+    public int AvailableStock { get; set; }
+    public decimal DailySales { get; set; }
+    public int OverstockMinimal { get; set; }       // Minimum threshold
+    public int OverstockOptimal { get; set; }        // Target stock days
+    public int SuggestedQuantity { get; set; }       // Calculated production recommendation
+    public StockSeverity Severity { get; set; }      // Critical | Severe | Optimal
+    public decimal StockCoveragePercent { get; set; } // % of optimal stock
+    public List<GiftPackageIngredientDto>? Ingredients { get; set; }
+}
+```
 
-Disassembly operations:
-- **Document Number**: `GPD-{logId:000000}-{productCode}`
-- Example: `GPD-000124-DBV001` for package, `GPD-000124-COMP001` for component
+**GiftPackageIngredientDto**
+```csharp
+public class GiftPackageIngredientDto
+{
+    public required string ProductCode { get; set; }
+    public string? ProductName { get; set; }
+    public double RequiredQuantity { get; set; }    // Per unit of gift package
+    public double AvailableStock { get; set; }
+    public string? Image { get; set; }
 
-## UI Design
+    // Computed: AvailableStock >= RequiredQuantity
+    public bool HasSufficientStock => AvailableStock >= RequiredQuantity;
+}
+```
 
-### Tabs Structure
+**GiftPackageManufactureDto**
+```csharp
+public class GiftPackageManufactureDto
+{
+    public int Id { get; set; }
+    public string GiftPackageCode { get; set; }
+    public int QuantityCreated { get; set; }
+    public bool StockOverrideApplied { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string CreatedBy { get; set; }
+    public List<GiftPackageManufactureItemDto> ConsumedItems { get; set; }
+}
+```
 
-The gift package detail modal uses a tab-based interface:
+### MediatR Use Cases
 
-1. **Výroba Tab (Indigo Theme)**:
-   - Primary manufacturing interface
-   - Blue/indigo color scheme
-   - Focus on creating packages
+All use cases follow the pattern: Request → Handler → Service
 
-2. **Rozebírání Tab (Red Danger Theme)**:
-   - Disassembly interface
-   - Red color scheme indicates destructive operation
-   - Warning banners
-   - Maximum stock display
+1. **GetAvailableGiftPackages**
+   - Request: `GetAvailableGiftPackagesRequest` (salesCoefficient, fromDate, toDate)
+   - Response: `GetAvailableGiftPackagesResponse` (list of GiftPackageDto)
+   - Handler: `GetAvailableGiftPackagesHandler`
 
-### Responsive Design
+2. **GetGiftPackageDetail**
+   - Request: `GetGiftPackageDetailRequest` (giftPackageCode, salesCoefficient, dates)
+   - Response: `GetGiftPackageDetailResponse` (single GiftPackageDto with ingredients)
+   - Handler: `GetGiftPackageDetailHandler`
 
-- Touch-friendly controls (large +/- buttons)
-- Mobile-optimized quantity input
-- Quick action buttons for common quantities
-- Real-time validation feedback
+3. **CreateGiftPackageManufacture**
+   - Request: `CreateGiftPackageManufactureRequest` (giftPackageCode, quantity, allowStockOverride)
+   - Response: `CreateGiftPackageManufactureResponse` (GiftPackageManufactureDto)
+   - Handler: `CreateGiftPackageManufactureHandler`
+
+4. **EnqueueGiftPackageManufacture**
+   - Request: `EnqueueGiftPackageManufactureRequest` (background job)
+   - Response: `EnqueueGiftPackageManufactureResponse` (JobId)
+   - Handler: `EnqueueGiftPackageManufactureHandler`
+
+5. **GetManufactureLog**
+   - Request: `GetManufactureLogRequest` (count = 10)
+   - Response: `GetManufactureLogResponse` (list of recent logs)
+   - Handler: `GetManufactureLogHandler`
 
 ## API Endpoints
 
-### Manufacturing
-```
-POST /api/logistics/gift-packages/manufacture
-Request: { giftPackageCode: string, quantity: number }
-Response: { success: boolean, manufacture: GiftPackageManufactureDto }
-```
+**Base Route**: `/api/logistics`
 
-### Disassembly
-```
-POST /api/logistics/gift-packages/disassemble
-Request: { giftPackageCode: string, quantity: number }
-Response: { success: boolean, disassembly: GiftPackageDisassemblyDto }
-```
+**Authentication**: All endpoints require `[Authorize]`
 
-### Get Available Packages
-```
-GET /api/logistics/gift-packages/available?salesCoefficient=1.0
-Response: { packages: GiftPackageDto[] }
+### GET Endpoints
+
+#### 1. List Available Gift Packages
+
+```http
+GET /api/logistics/gift-packages/available
+    ?salesCoefficient=1.0
+    &fromDate=2025-01-01
+    &toDate=2025-12-31
 ```
 
-### Get Package Detail
-```
-GET /api/logistics/gift-packages/{code}/detail?salesCoefficient=1.0
-Response: { giftPackage: GiftPackageDetailDto }
-```
-
-## Stock Operations Integration
-
-Both manufacturing and disassembly operations create stock-up operations:
-
-### Manufacturing Stock Flow
-```
-1. Finished Package: +{quantity} ks (GPM-XXXXXX-{packageCode})
-2. Component 1: -{required} ks (GPM-XXXXXX-{comp1Code})
-3. Component 2: -{required} ks (GPM-XXXXXX-{comp2Code})
-...
-```
-
-### Disassembly Stock Flow (Inverted)
-```
-1. Finished Package: -{quantity} ks (GPD-XXXXXX-{packageCode})
-2. Component 1: +{required} ks (GPD-XXXXXX-{comp1Code})
-3. Component 2: +{required} ks (GPD-XXXXXX-{comp2Code})
-...
-```
-
-## Validation Rules
-
-### Manufacturing
-- All components must have sufficient stock
-- Quantity must be greater than 0
-- Package code must exist and be valid
-
-### Disassembly
-- Available stock of finished package must be >= requested quantity
-- Quantity must be greater than 0
-- Package code must exist and be valid
-
-## Error Handling
-
-Both operations return structured error responses:
-
-```typescript
+**Response**: `GetAvailableGiftPackagesResponse`
+```json
 {
-  success: false,
-  errorCode: ErrorCodes.InvalidOperation | ErrorCodes.InvalidValue,
-  params: {
-    "ErrorMessage": "Human-readable error message"
+  "giftPackages": [
+    {
+      "code": "SET001",
+      "name": "Relaxation Gift Set",
+      "availableStock": 15,
+      "dailySales": 2.5,
+      "overstockMinimal": 20,
+      "overstockOptimal": 30,
+      "suggestedQuantity": 75,
+      "severity": "Critical",
+      "stockCoveragePercent": 20.0,
+      "ingredients": null
+    }
+  ]
+}
+```
+
+**Use Case**: Dashboard display, production planning overview
+
+#### 2. Get Gift Package Detail
+
+```http
+GET /api/logistics/gift-packages/{giftPackageCode}/detail
+    ?salesCoefficient=1.0
+    &fromDate=2025-01-01
+    &toDate=2025-12-31
+```
+
+**Response**: `GetGiftPackageDetailResponse`
+```json
+{
+  "giftPackage": {
+    "code": "SET001",
+    "name": "Relaxation Gift Set",
+    "availableStock": 15,
+    "dailySales": 2.5,
+    "suggestedQuantity": 75,
+    "severity": "Critical",
+    "ingredients": [
+      {
+        "productCode": "SOAP001",
+        "productName": "Lavender Soap",
+        "requiredQuantity": 1.0,
+        "availableStock": 150.0,
+        "hasSufficientStock": true,
+        "image": "https://cdn.example.com/soap.jpg"
+      },
+      {
+        "productCode": "CANDLE001",
+        "productName": "Vanilla Candle",
+        "requiredQuantity": 2.0,
+        "availableStock": 50.0,
+        "hasSufficientStock": true,
+        "image": null
+      }
+    ]
   }
 }
 ```
 
-Common error scenarios:
-- **InvalidOperation**: Insufficient stock, invalid package
-- **InvalidValue**: Invalid quantity (zero or negative)
+**Use Case**: Production form, ingredient availability check
 
-## Testing
+#### 3. Get Recent Manufacture Logs
 
-### Backend Tests
-- Unit tests for `GiftPackageManufactureService`
-- Integration tests for API endpoints
-- Repository tests for data access
+```http
+GET /api/logistics/gift-packages/manufacture-log?count=10
+```
 
-### Frontend Tests
-- Component tests for `DisassemblyTabContent`
-- Hook tests for `useDisassembleGiftPackage`
-- Integration tests for tab switching
+**Response**: `GetManufactureLogResponse`
+```json
+{
+  "logs": [
+    {
+      "id": 42,
+      "giftPackageCode": "SET001",
+      "quantityCreated": 50,
+      "stockOverrideApplied": false,
+      "createdAt": "2025-01-15T10:30:00Z",
+      "createdBy": "John Doe",
+      "consumedItems": [
+        {
+          "id": 101,
+          "productCode": "SOAP001",
+          "quantityConsumed": 50
+        },
+        {
+          "id": 102,
+          "productCode": "CANDLE001",
+          "quantityConsumed": 100
+        }
+      ]
+    }
+  ]
+}
+```
 
-### E2E Tests
-- Full workflow test: gift-package-disassembly.spec.ts
-- Tab navigation and switching
-- Quantity controls verification
-- Stock update validation
+**Use Case**: Audit trail, manufacturing history
 
-## Usage Scenarios
+### POST Endpoints
 
-### Scenario 1: Seasonal Package Manufacturing
-**Context**: Preparing for Christmas season
+#### 4. Create Manufacture Operation
 
-1. Navigate to Gift Package Manufacturing
-2. Select Christmas package "DBV-XMAS-2024"
-3. View suggested quantity based on sales forecast
-4. Verify all components (ribbons, boxes, products) are in stock
-5. Manufacture required quantity
+```http
+POST /api/logistics/gift-packages/manufacture
+Content-Type: application/json
 
-### Scenario 2: Post-Season Disassembly
-**Context**: End of Christmas season with unsold packages
+{
+  "giftPackageCode": "SET001",
+  "quantity": 50,
+  "allowStockOverride": false
+}
+```
 
-1. Navigate to Gift Package Manufacturing
-2. Select Christmas package "DBV-XMAS-2024"
-3. Switch to **Rozebírání tab**
-4. View available stock: 25 packages remaining
-5. Click "Vše" (all) to disassemble all remaining packages
-6. Confirm operation
-7. Components returned to stock for future use
+**Response**: `CreateGiftPackageManufactureResponse`
+```json
+{
+  "manufacture": {
+    "id": 42,
+    "giftPackageCode": "SET001",
+    "quantityCreated": 50,
+    "stockOverrideApplied": false,
+    "createdAt": "2025-01-15T10:30:00Z",
+    "createdBy": "John Doe",
+    "consumedItems": [...]
+  }
+}
+```
 
-### Scenario 3: Partial Disassembly
-**Context**: Need to free up components for urgent order
+**Side Effects**:
+- Creates `GiftPackageManufactureLog` record
+- Creates stock-down operations for each ingredient (negative amounts)
+- Creates stock-up operation for output product (positive amount)
+- All operations linked via document number: `GPM-{logId:000000}-{productCode}`
 
-1. Open package detail modal
-2. Switch to Rozebírání tab
-3. Use "Půlka" button to disassemble half of available stock
-4. Freed components now available for other orders
+**Use Case**: Execute production batch
 
-## Migration Notes
+#### 5. Enqueue Manufacture (Background Job)
 
-### Database Migration
-- Added `operation_type` column to `gift_package_manufacture_logs`
-- Default value: `1` (Manufacture) for backward compatibility
-- Existing records automatically marked as Manufacturing operations
-- Index created on `operation_type` for query performance
+```http
+POST /api/logistics/gift-packages/manufacture/enqueue
+Content-Type: application/json
 
-### Backward Compatibility
-- Existing manufacturing functionality unchanged
-- New disassembly feature is additive
-- All existing logs remain valid
-- No breaking changes to existing API endpoints
+{
+  "giftPackageCode": "SET001",
+  "quantity": 100,
+  "allowStockOverride": false
+}
+```
+
+**Response**: `EnqueueGiftPackageManufactureResponse`
+```json
+{
+  "jobId": "hangfire-job-id-123",
+  "message": "Gift package manufacture queued successfully"
+}
+```
+
+**Use Case**: Batch processing, scheduled production runs
+
+## Business Logic and Calculations
+
+### Daily Sales Calculation
+
+```csharp
+// Date range: Use provided dates or fallback to last 12 months
+actualToDate = toDate ?? DateTime.UtcNow;
+actualFromDate = fromDate ?? actualToDate.AddYears(-1);
+daysDiff = Math.Max((actualToDate - actualFromDate).Days, 1);
+
+// Calculate daily sales with coefficient
+totalSalesInPeriod = product.GetTotalSold(actualFromDate, actualToDate) * salesCoefficient;
+dailySales = totalSalesInPeriod / daysDiff;
+```
+
+**Purpose**: Normalize sales velocity across different time periods for forecasting.
+
+**salesCoefficient**: Adjustment factor for seasonality or expected growth (default 1.0).
+
+### Suggested Quantity Calculation
+
+```csharp
+suggestedQuantity = (int)Math.Max(0, dailySales * product.Properties.OptimalStockDaysSetup);
+```
+
+**Formula**: DailySales × OptimalStockDays
+
+**Example**:
+- Daily sales: 2.5 units
+- Optimal stock days: 30
+- Suggested quantity: 75 units
+
+**Purpose**: Recommends production quantity to reach optimal stock level.
+
+### Severity Calculation
+
+```csharp
+if (availableStock < overstockMinimal)
+    return StockSeverity.Critical;  // Red: Below minimum threshold
+
+if (availableStock < suggestedQuantity)
+    return StockSeverity.Severe;    // Orange: Below optimal level
+
+return StockSeverity.Optimal;       // Green: Adequate stock
+```
+
+**Purpose**: Visual prioritization for production scheduling.
+
+### Stock Coverage Percentage
+
+```csharp
+if (dailySales <= 0 || overstockOptimal <= 0)
+    return 0m;  // Avoid division by zero
+
+optimalStockAmount = dailySales * overstockOptimal;
+stockCoveragePercent = (availableStock / optimalStockAmount) * 100m;
+```
+
+**Formula**: (AvailableStock / (DailySales × OptimalStockDays)) × 100
+
+**Example**:
+- Available: 15 units
+- Daily sales: 2.5 units
+- Optimal days: 30
+- Coverage: (15 / 75) × 100 = 20%
+
+**Purpose**: Quantifies how much of optimal stock is currently available.
+
+## Manufacturing Process Flow
+
+### Step-by-Step Execution
+
+```mermaid
+sequenceDiagram
+    participant API as API Controller
+    participant Handler as CreateManufactureHandler
+    participant Service as ManufactureService
+    participant Repo as ManufactureRepository
+    participant StockService as StockUpProcessingService
+    participant DB as Database
+
+    API->>Handler: POST /manufacture {code, qty}
+    Handler->>Service: CreateManufactureAsync()
+
+    Service->>DB: Create ManufactureLog
+    Note over Service,DB: Get ID for document numbering
+
+    Service->>Service: LoadGiftPackageDetail()
+    Note over Service: Fetch BOM with ingredients
+
+    loop For each ingredient
+        Service->>StockService: CreateOperationAsync()
+        Note over Service,StockService: Negative amount (consumption)<br/>GPM-{logId:000000}-{ingredientCode}
+    end
+
+    Service->>StockService: CreateOperationAsync()
+    Note over Service,StockService: Positive amount (production)<br/>GPM-{logId:000000}-{giftPackageCode}
+
+    Service-->>Handler: Return ManufactureDto
+    Handler-->>API: Return Response
+```
+
+### Implementation Details
+
+1. **Create Log Entry** (Line 186-195 in Service)
+   ```csharp
+   var manufactureLog = new GiftPackageManufactureLog(
+       giftPackageCode,
+       quantity,
+       allowStockOverride,
+       _timeProvider.GetUtcNow().DateTime,
+       _currentUserService.GetCurrentUser().Name ?? "System");
+
+   await _giftPackageRepository.AddAsync(manufactureLog);
+   await _giftPackageRepository.SaveChangesAsync();  // CRITICAL: Get ID first
+   ```
+
+2. **Load Gift Package Detail** (Line 201)
+   ```csharp
+   var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, 1.0m, null, null);
+   ```
+
+3. **Process Each Ingredient** (Line 204-224)
+   ```csharp
+   foreach (var ingredient in giftPackage.Ingredients)
+   {
+       var consumedQuantity = (int)(ingredient.RequiredQuantity * quantity);
+       manufactureLog.AddConsumedItem(ingredient.ProductCode, consumedQuantity);
+
+       var documentNumber = $"GPM-{manufactureLog.Id:000000}-{ingredient.ProductCode}";
+
+       await _stockUpProcessingService.CreateOperationAsync(
+           documentNumber,
+           ingredient.ProductCode,
+           -consumedQuantity,  // Negative = consumption
+           StockUpSourceType.GiftPackageManufacture,
+           manufactureLog.Id);
+   }
+   ```
+
+4. **Create Output Product** (Line 227-238)
+   ```csharp
+   var outputDocNumber = $"GPM-{manufactureLog.Id:000000}-{giftPackageCode}";
+
+   await _stockUpProcessingService.CreateOperationAsync(
+       outputDocNumber,
+       giftPackageCode,
+       quantity,  // Positive = production
+       StockUpSourceType.GiftPackageManufacture,
+       manufactureLog.Id);
+   ```
+
+### Document Number Format
+
+**Pattern**: `GPM-{logId:000000}-{productCode}`
+
+**Examples**:
+- `GPM-000042-SOAP001` - Ingredient consumption
+- `GPM-000042-CANDLE001` - Ingredient consumption
+- `GPM-000042-SET001` - Output product
+
+**Purpose**:
+- Links all stock operations to the manufacture log
+- Enables audit trail reconstruction
+- Supports regulatory compliance
+
+## Integration Points
+
+### 1. Catalog Module
+
+**Purpose**: Source of truth for product data and stock levels
+
+**Integration**:
+```csharp
+// Get Set-type products
+var catalogData = await _catalogRepository.GetAllAsync();
+var setProducts = catalogData.Where(x => x.Type == ProductType.Set);
+
+// Get ingredient stock levels
+var ingredientProduct = await _catalogRepository.GetByIdAsync(part.ProductCode);
+var availableStock = ingredientProduct?.Stock.Available ?? 0;
+```
+
+**Data Used**:
+- `ProductType.Set` - Identifies gift packages
+- `Stock.Available` - Current inventory
+- `Properties.StockMinSetup` - Minimum threshold
+- `Properties.OptimalStockDaysSetup` - Target coverage days
+- Sales history via `GetTotalSold(fromDate, toDate)`
+
+### 2. Manufacture Module
+
+**Purpose**: Provides Bill of Materials (BOM) for gift packages
+
+**Integration**:
+```csharp
+var productParts = await _manufactureRepository.GetSetPartsAsync(giftPackageCode);
+```
+
+**Returns**: `List<ProductPart>`
+```csharp
+public class ProductPart
+{
+    public string ProductCode { get; set; }
+    public string ProductName { get; set; }
+    public double Amount { get; set; }  // Required quantity per unit
+}
+```
+
+**Example BOM**:
+- SET001 (Gift Package)
+  - SOAP001 (Lavender Soap) × 1
+  - CANDLE001 (Vanilla Candle) × 2
+  - RIBBON001 (Decorative Ribbon) × 0.5
+
+### 3. Stock Module (Stock-Up Processing)
+
+**Purpose**: Automated inventory adjustment for manufacturing operations
+
+**Integration**:
+```csharp
+await _stockUpProcessingService.CreateOperationAsync(
+    documentNumber: "GPM-000042-SOAP001",
+    productCode: "SOAP001",
+    amount: -50,  // Negative = consumption
+    sourceType: StockUpSourceType.GiftPackageManufacture,
+    sourceId: 42,  // manufactureLog.Id
+    cancellationToken);
+```
+
+**Stock Operation Types**:
+- **Ingredient Consumption**: Negative amounts (stock-down)
+- **Output Production**: Positive amounts (stock-up)
+
+**Source Type Enum**:
+```csharp
+public enum StockUpSourceType
+{
+    GiftPackageManufacture = 1,
+    // ... other sources
+}
+```
+
+**Asynchronous Processing**:
+- Operations created immediately
+- Background jobs process operations (update ABRA Flexi, Shoptet)
+- Supports transactional consistency
+
+### 4. Users Module (Current User Context)
+
+**Purpose**: Audit trail - capture who initiated the operation
+
+**Integration**:
+```csharp
+var currentUser = _currentUserService.GetCurrentUser();
+var createdBy = currentUser.Name ?? "System";
+```
+
+**Supports**:
+- Microsoft Entra ID authentication (production)
+- Mock authentication (development/testing)
+
+### 5. Dashboard Integration
+
+**CriticalGiftPackagesTile**:
+```csharp
+// Custom dashboard tile
+var giftPackages = await _giftPackageManufactureService.GetAvailableGiftPackagesAsync();
+var criticalCount = giftPackages.Count(x => x.Severity == StockSeverity.Critical);
+```
+
+**Purpose**: Real-time monitoring of critical stock levels on warehouse dashboard.
+
+## Hangfire Background Jobs
+
+### Job Configuration
+
+**Service Method Decoration**:
+```csharp
+[DisplayName("GiftPackageManufacture-{0}-{1}")]
+public async Task<GiftPackageManufactureDto> CreateManufactureAsync(...)
+```
+
+**Purpose**: Makes the method available for background execution via Hangfire.
+
+**Job Name Format**: `GiftPackageManufacture-{giftPackageCode}-{quantity}`
+
+**Example**: `GiftPackageManufacture-SET001-50`
+
+### Enqueue Pattern
+
+```csharp
+var jobId = BackgroundJob.Enqueue<IGiftPackageManufactureService>(
+    service => service.CreateManufactureAsync(
+        giftPackageCode,
+        quantity,
+        allowStockOverride,
+        CancellationToken.None));
+```
+
+**Use Cases**:
+- Large batch production runs
+- Scheduled overnight manufacturing
+- Asynchronous processing to avoid blocking UI
+
+## Testing Strategy
+
+### Unit Tests
+
+**Location**: `/backend/test/Anela.Heblo.Tests/Features/Logistics/`
+
+**Test Cases**:
+1. **Severity Calculation**
+   - Test: availableStock < overstockMinimal → Critical
+   - Test: overstockMinimal ≤ availableStock < suggestedQuantity → Severe
+   - Test: availableStock ≥ suggestedQuantity → Optimal
+
+2. **Stock Coverage Calculation**
+   - Test: Normal case with valid daily sales
+   - Test: Zero daily sales → 0% coverage
+   - Test: Zero optimal days → 0% coverage
+
+3. **Daily Sales Calculation**
+   - Test: With sales coefficient = 1.0
+   - Test: With sales coefficient > 1.0 (growth scenario)
+   - Test: Custom date range vs default 12 months
+
+4. **Manufacturing Operation**
+   - Test: Creates manufacture log with correct data
+   - Test: Stock operations created for all ingredients
+   - Test: Output stock operation created
+   - Test: Document numbers follow GPM-{logId:000000}-{code} format
+
+### Integration Tests
+
+**Test Scenarios**:
+1. **GetAvailableGiftPackages**
+   - Mock catalog repository with Set-type products
+   - Verify severity calculations
+   - Verify stock coverage percentages
+
+2. **GetGiftPackageDetail**
+   - Mock catalog + manufacture repositories
+   - Verify BOM loading
+   - Verify ingredient stock lookup
+
+3. **CreateManufacture**
+   - Mock all dependencies
+   - Verify complete workflow execution
+   - Verify stock operation creation
+
+### E2E Tests (Playwright)
+
+**Test Location**: `/frontend/test/e2e/logistics/`
+
+**Test Flows**:
+1. **View Available Gift Packages**
+   - Navigate to gift package manufacture page
+   - Verify list displays with severity indicators
+   - Verify sorting and filtering
+
+2. **View Gift Package Detail**
+   - Click on gift package from list
+   - Verify ingredient list displays
+   - Verify availability calculations
+
+3. **Execute Manufacturing**
+   - Open manufacture form
+   - Enter quantity
+   - Submit and verify success message
+   - Verify log appears in history
+
+**Target Environment**: https://heblo.stg.anela.cz
+
+## Error Handling
+
+### Validation Errors
+
+**Gift Package Not Found**:
+```csharp
+if (product == null || product.Type != ProductType.Set)
+{
+    throw new ArgumentException($"Gift package '{giftPackageCode}' not found or is not a set product");
+}
+```
+
+**Response**: HTTP 400 Bad Request
+
+### Stock Validation
+
+**Implementation**: `allowStockOverride` flag (passed to service, enforcement TBD)
+
+**Future Enhancement**: Pre-check ingredient availability before creating manufacture log
+
+### Database Constraints
+
+**Cascade Delete**: `GiftPackageManufactureItem` automatically deleted when parent log is deleted
+
+**Referential Integrity**: Foreign key constraints prevent orphaned records
+
+## Performance Considerations
+
+### Database Indexes
+
+**Optimized Queries**:
+- `ix_gift_package_manufacture_logs_gift_package_code` - Fast lookup by code
+- `ix_gift_package_manufacture_logs_created_at` - Fast chronological queries
+- `ix_gift_package_manufacture_items_manufacture_log_id` - Fast join for consumed items
+- `ix_gift_package_manufacture_items_product_code` - Fast ingredient lookup
+
+### Caching Strategy
+
+**Current**: No caching (real-time data critical for manufacturing decisions)
+
+**Future Consideration**: Cache BOM data if rarely changes
+
+### Asynchronous Processing
+
+**Stock Operations**: Created asynchronously via background jobs to avoid blocking UI
+
+**Benefits**:
+- Faster response times for users
+- Resilient to external system failures (ABRA Flexi, Shoptet)
+- Supports retry logic
+
+## Security Considerations
+
+### Authentication & Authorization
+
+**All endpoints require**: `[Authorize]` attribute
+
+**User Context**: Captured via `ICurrentUserService.GetCurrentUser()`
+
+**Audit Trail**: `CreatedBy` field records who initiated each operation
+
+### Data Validation
+
+**Input Validation** (Future):
+- FluentValidation rules for request DTOs
+- Quantity must be positive
+- Gift package code must exist and be Set type
+- Ingredient availability checks (if not overridden)
+
+### SQL Injection Protection
+
+**ORM**: Entity Framework Core with parameterized queries (built-in protection)
 
 ## Future Enhancements
 
-Potential improvements for future releases:
+### 1. Stock Validation Enforcement
 
-1. **Batch Disassembly**: Disassemble multiple package types at once
-2. **Scheduled Disassembly**: Auto-disassemble unsold packages after date
-3. **Component Quality Tracking**: Track which components were returned from disassembly
-4. **Disassembly Reports**: Analytics on disassembly patterns and frequency
-5. **Undo Operation**: Ability to reverse recent disassembly operations
+**Current**: `allowStockOverride` flag exists but validation not enforced
+
+**Enhancement**:
+```csharp
+if (!allowStockOverride)
+{
+    var validation = await ValidateStockAvailability(giftPackageCode, quantity);
+    if (!validation.HasSufficientStock)
+    {
+        throw new InsufficientStockException(validation.Shortages);
+    }
+}
+```
+
+### 2. Batch Manufacturing
+
+**Current**: Single gift package per operation
+
+**Enhancement**: Support multiple gift packages in one batch
+```json
+{
+  "items": [
+    { "giftPackageCode": "SET001", "quantity": 50 },
+    { "giftPackageCode": "SET002", "quantity": 30 }
+  ]
+}
+```
+
+### 3. Predictive Analytics
+
+**Current**: Simple daily sales × optimal days
+
+**Enhancement**:
+- Seasonal forecasting (holiday spikes)
+- Machine learning models for demand prediction
+- Trend analysis (growing vs declining products)
+
+### 4. Manufacturing Scheduling
+
+**Current**: On-demand manufacturing
+
+**Enhancement**:
+- Scheduled production runs (nightly batch jobs)
+- Optimization algorithms (minimize ingredient waste)
+- Production calendar integration
+
+### 5. Quality Control
+
+**Current**: No quality tracking
+
+**Enhancement**:
+- Defect rate tracking per batch
+- Quality assurance checkpoints
+- Rejection and rework flows
+
+## Troubleshooting Guide
+
+### Issue: "Gift package not found or is not a set product"
+
+**Cause**: Product code doesn't exist in catalog or `ProductType` is not `Set`
+
+**Resolution**:
+1. Verify product exists in Shoptet/ABRA Flexi
+2. Check catalog sync is up to date
+3. Verify product type configuration
+
+### Issue: Stock operations not appearing in ABRA Flexi
+
+**Cause**: Background job failure or Hangfire not processing
+
+**Resolution**:
+1. Check Hangfire dashboard for failed jobs
+2. Verify ABRA Flexi credentials and connectivity
+3. Review StockUpProcessingService logs
+
+### Issue: Ingredient stock calculations incorrect
+
+**Cause**: BOM data out of sync or missing
+
+**Resolution**:
+1. Verify BOM exists in Manufacture module
+2. Check `manufacture_parts` table for gift package
+3. Refresh catalog data from Shoptet
+
+### Issue: Manufacturing log created but stock not adjusted
+
+**Cause**: Transaction committed before stock operations created
+
+**Resolution**:
+1. Check StockUpOperations table for related records
+2. Verify `source_type = 1` (GiftPackageManufacture)
+3. Manually reprocess operations if needed
+
+## Monitoring and Observability
+
+### Key Metrics
+
+1. **Manufacturing Volume**: Count of `GiftPackageManufactureLog` records per day
+2. **Average Production Quantity**: Mean `QuantityCreated` across logs
+3. **Critical Packages Count**: Number of packages with `Severity.Critical`
+4. **Stock Override Usage**: Count of logs with `StockOverrideApplied = true`
+
+### Logging
+
+**Service Logging** (Lines 197, 212, 223, 240 in Service):
+```csharp
+_logger.LogInformation("Created GiftPackageManufactureLog {LogId} for {GiftPackageCode}, quantity: {Quantity}");
+_logger.LogDebug("Creating stock-down operation: {DocumentNumber} - {ProductCode}, Amount: {Amount}");
+_logger.LogInformation("Successfully completed GiftPackageManufacture {LogId} for {GiftPackageCode}");
+```
+
+**Application Insights**: Logs automatically sent to Azure Application Insights
+
+### Queries for Analysis
+
+**Recent Manufacturing Activity**:
+```sql
+SELECT
+    gift_package_code,
+    SUM(quantity_created) as total_produced,
+    COUNT(*) as batch_count,
+    MAX(created_at) as last_manufactured
+FROM gift_package_manufacture_logs
+WHERE created_at >= NOW() - INTERVAL '30 days'
+GROUP BY gift_package_code
+ORDER BY total_produced DESC;
+```
+
+**Ingredient Consumption**:
+```sql
+SELECT
+    i.product_code,
+    SUM(i.quantity_consumed) as total_consumed,
+    COUNT(DISTINCT l.id) as manufacture_operations
+FROM gift_package_manufacture_items i
+JOIN gift_package_manufacture_logs l ON l.id = i.manufacture_log_id
+WHERE l.created_at >= NOW() - INTERVAL '30 days'
+GROUP BY i.product_code
+ORDER BY total_consumed DESC;
+```
 
 ## Related Documentation
 
-- [Stock-Up Process](./stock-up-process.md)
-- [Manufacturing Batch Planning](../plans/manufacture-batch-planning.md)
-- [Inventory Management](../architecture/inventory.md)
+- **Stock-Up Process**: `/docs/features/stock-up-process.md`
+- **Catalog Module**: `/docs/📘 Architecture Documentation – MVP Work.md` (Section: Catalog)
+- **Manufacture Module**: `/docs/📘 Architecture Documentation – MVP Work.md` (Section: Manufacture)
+- **Dashboard Tiles**: `/docs/features/dashboard_tiles_implementation_guide.md`
 
-## Change History
+## Appendix: Complete File Paths
 
-- **2026-01-22**: Initial implementation of Gift Package Disassembly feature (#293)
-  - Added `GiftPackageOperationType` enum
-  - Implemented disassembly backend service
-  - Created disassembly UI with red danger theme
-  - Added E2E tests for disassembly workflow
+### Backend Implementation
+
+```
+Domain:
+/Users/pajgrtondrej/Work/GitHub/Anela.Heblo/backend/src/Anela.Heblo.Domain/Features/Logistics/GiftPackageManufacture/
+  - GiftPackageManufactureLog.cs
+  - GiftPackageManufactureItem.cs
+  - IGiftPackageManufactureRepository.cs
+
+Application:
+/Users/pajgrtondrej/Work/GitHub/Anela.Heblo/backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/GiftPackageManufacture/
+  - Services/IGiftPackageManufactureService.cs
+  - Services/GiftPackageManufactureService.cs
+  - Contracts/GiftPackageDto.cs
+  - Contracts/GiftPackageIngredientDto.cs
+  - Contracts/GiftPackageManufactureDto.cs
+  - Contracts/GiftPackageManufactureItemDto.cs
+  - Contracts/GiftPackageStockValidationDto.cs
+  - Contracts/StockShortageDto.cs
+  - UseCases/GetAvailableGiftPackages/...
+  - UseCases/GetGiftPackageDetail/...
+  - UseCases/CreateGiftPackageManufacture/...
+  - UseCases/EnqueueGiftPackageManufacture/...
+  - UseCases/GetManufactureLog/...
+  - GiftPackageManufactureMappingProfile.cs
+  - GiftPackageManufactureModule.cs
+
+Persistence:
+/Users/pajgrtondrej/Work/GitHub/Anela.Heblo/backend/src/Anela.Heblo.Persistence/Logistics/GiftPackageManufacture/
+  - GiftPackageManufactureRepository.cs
+  - GiftPackageManufactureLogConfiguration.cs
+  - GiftPackageManufactureItemConfiguration.cs
+
+API:
+/Users/pajgrtondrej/Work/GitHub/Anela.Heblo/backend/src/Anela.Heblo.API/Controllers/
+  - LogisticsController.cs
+
+Migrations:
+/Users/pajgrtondrej/Work/GitHub/Anela.Heblo/backend/src/Anela.Heblo.Persistence/Migrations/
+  - 20250909115907_AddGiftPackageManufacturing.cs
+  - 20250910103535_UpdateGiftPackageManufacturing.cs
+```
+
+---
+
+**Document Version**: 1.0
+**Last Updated**: 2026-01-22
+**Author**: Claude Code (based on comprehensive codebase analysis)
+**Status**: Complete implementation documentation

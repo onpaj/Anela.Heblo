@@ -152,38 +152,11 @@ jobs:
         working-directory: ./frontend
         continue-on-error: true
         run: |
-          set +e
-
           # Build test command with optional pattern filter
           if [ -n "${{ github.event.inputs.test_pattern }}" ]; then
-            TEST_CMD="npx playwright test --grep '${{ github.event.inputs.test_pattern }}' --reporter=list,html"
+            npx playwright test --grep '${{ github.event.inputs.test_pattern }}'
           else
-            TEST_CMD="npx playwright test --reporter=list,html"
-          fi
-
-          # Run tests with output capture
-          $TEST_CMD 2>&1 | tee test_output.log
-          TEST_EXIT_CODE=$?
-          set -e
-
-          echo "test_exit_code=$TEST_EXIT_CODE" >> $GITHUB_OUTPUT
-
-          # Parse test results from output
-          if [ -f test_output.log ]; then
-            PASSED=$(grep -E -c "(✓|passed)" test_output.log 2>/dev/null || echo "0")
-            FAILED=$(grep -E -c "(✖|×|failed)" test_output.log 2>/dev/null || echo "0")
-            TOTAL=$((PASSED + FAILED))
-
-            echo "parsed_passed=$PASSED" >> $GITHUB_OUTPUT
-            echo "parsed_failed=$FAILED" >> $GITHUB_OUTPUT
-            echo "parsed_total=$TOTAL" >> $GITHUB_OUTPUT
-
-            echo "📊 Test Results: Total=$TOTAL, Passed=$PASSED, Failed=$FAILED, Exit Code=$TEST_EXIT_CODE"
-          else
-            echo "❌ Could not parse test results"
-            echo "parsed_passed=0" >> $GITHUB_OUTPUT
-            echo "parsed_failed=0" >> $GITHUB_OUTPUT
-            echo "parsed_total=0" >> $GITHUB_OUTPUT
+            npx playwright test
           fi
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
@@ -193,6 +166,16 @@ jobs:
           E2E_CLIENT_SECRET: ${{ secrets.E2E_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.REACT_APP_AZURE_TENANT_ID }}
 
+      - name: 📊 Publish Test Results to GitHub
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: '🎭 E2E Test Results'
+          path: 'frontend/test-results/junit.xml'
+          reporter: 'java-junit'
+          fail-on-error: false
+          fail-on-empty: false
+
       - name: 📊 Upload E2E test results and HTML report
         uses: actions/upload-artifact@v4
         if: always()
@@ -201,12 +184,11 @@ jobs:
           path: |
             frontend/test-results/
             frontend/playwright-report/
-            frontend/test_output.log
           retention-days: 30
 
       - name: 📸 Upload E2E screenshots (failures only)
         uses: actions/upload-artifact@v4
-        if: always() && steps.run-tests.outputs.parsed_failed != '0'
+        if: always() && steps.run-tests.outcome == 'failure'
         with:
           name: e2e-nightly-failure-screenshots-${{ github.run_number }}
           path: frontend/test-results/
@@ -218,44 +200,82 @@ jobs:
           echo "## 🎭 E2E Nightly Regression Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          EXIT_CODE="${{ steps.run-tests.outputs.test_exit_code }}"
-          PASSED="${{ steps.run-tests.outputs.parsed_passed }}"
-          FAILED="${{ steps.run-tests.outputs.parsed_failed }}"
-          TOTAL="${{ steps.run-tests.outputs.parsed_total }}"
+          # Parse JUnit XML for test results
+          if [ -f frontend/test-results/junit.xml ]; then
+            # Extract test counts from JUnit XML
+            TESTS=$(grep -o 'tests="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
+            FAILURES=$(grep -o 'failures="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
+            ERRORS=$(grep -o 'errors="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
+            SKIPPED=$(grep -o 'skipped="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
 
-          if [ "$EXIT_CODE" = "0" ]; then
-            echo "✅ **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
+            TOTAL=${TESTS:-0}
+            FAILED=$((${FAILURES:-0} + ${ERRORS:-0}))
+            SKIP=${SKIPPED:-0}
+            PASSED=$((TOTAL - FAILED - SKIP))
+
+            if [ "$FAILED" -eq 0 ]; then
+              echo "✅ **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **$FAILED test(s) failed.**" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| **Total Tests** | $TOTAL |" >> $GITHUB_STEP_SUMMARY
+            echo "| ✅ **Passed** | $PASSED |" >> $GITHUB_STEP_SUMMARY
+            echo "| ❌ **Failed** | $FAILED |" >> $GITHUB_STEP_SUMMARY
+            if [ "$SKIP" -gt 0 ]; then
+              echo "| ⏭️ **Skipped** | $SKIP |" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # List failed tests if any
+            if [ "$FAILED" -gt 0 ]; then
+              echo "### ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              grep -A 3 '<failure' frontend/test-results/junit.xml | grep 'testcase name=' | sed 's/.*name="\([^"]*\)".*/- `\1`/' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse test names" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            echo "### 📋 Test Environment" >> $GITHUB_STEP_SUMMARY
+            echo "- **URL:** ${{ env.STAGING_URL }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Browser:** ${{ github.event.inputs.browser || 'chromium' }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Authentication:** Azure Service Principal" >> $GITHUB_STEP_SUMMARY
+            echo "- **Executed at:** $(date)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📊 View Detailed Results" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Test results are displayed above in the 'Annotations' section** - click on the test reporter check for detailed pass/fail status of each test." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "For HTML report with screenshots and traces:" >> $GITHUB_STEP_SUMMARY
+            echo "1. **Download artifacts**: Go to Actions → This workflow run → Artifacts" >> $GITHUB_STEP_SUMMARY
+            echo "2. **Download** \`e2e-nightly-test-results-${{ github.run_number }}\` artifact" >> $GITHUB_STEP_SUMMARY
+            echo "3. **Extract** the ZIP file" >> $GITHUB_STEP_SUMMARY
+            echo "4. **Open** \`playwright-report/index.html\` in your browser" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ **Some tests failed.**" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **JUnit XML report not found - tests may not have run**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Test Status: ${{ steps.run-tests.outcome }}" >> $GITHUB_STEP_SUMMARY
           fi
 
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Total Tests** | $TOTAL |" >> $GITHUB_STEP_SUMMARY
-          echo "| ✅ **Passed** | $PASSED |" >> $GITHUB_STEP_SUMMARY
-          echo "| ❌ **Failed** | $FAILED |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Exit Code** | $EXIT_CODE |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Test Environment" >> $GITHUB_STEP_SUMMARY
-          echo "- **URL:** ${{ env.STAGING_URL }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Browser:** ${{ github.event.inputs.browser || 'chromium' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Authentication:** Azure Service Principal" >> $GITHUB_STEP_SUMMARY
-          echo "- **Executed at:** $(date)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📥 How to View Detailed Results:" >> $GITHUB_STEP_SUMMARY
-          echo "1. **Download artifacts**: Go to Actions → This workflow run → Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "2. **Download** \`e2e-nightly-test-results-${{ github.run_number }}\` artifact" >> $GITHUB_STEP_SUMMARY
-          echo "3. **Extract** the ZIP file" >> $GITHUB_STEP_SUMMARY
-          echo "4. **Open** \`playwright-report/index.html\` in your browser" >> $GITHUB_STEP_SUMMARY
-          echo "5. **View** detailed test results, screenshots, and traces" >> $GITHUB_STEP_SUMMARY
-
       - name: 🐛 Create or update GitHub issue on failure
-        if: always() && steps.run-tests.outputs.test_exit_code != '0'
+        if: always() && steps.run-tests.outcome == 'failure'
         run: |
-          FAILED="${{ steps.run-tests.outputs.parsed_failed }}"
-          TOTAL="${{ steps.run-tests.outputs.parsed_total }}"
-          PASSED="${{ steps.run-tests.outputs.parsed_passed }}"
+          # Parse JUnit XML for test results
+          if [ -f frontend/test-results/junit.xml ]; then
+            TESTS=$(grep -o 'tests="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
+            FAILURES=$(grep -o 'failures="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
+            ERRORS=$(grep -o 'errors="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
+
+            TOTAL=${TESTS:-0}
+            FAILED=$((${FAILURES:-0} + ${ERRORS:-0}))
+            PASSED=$((TOTAL - FAILED))
+          else
+            TOTAL="Unknown"
+            FAILED="Unknown"
+            PASSED="Unknown"
+          fi
 
           # Search for existing open E2E nightly failure issue
           EXISTING_ISSUE=$(gh issue list \
@@ -281,15 +301,16 @@ jobs:
 
           ### 🔍 Investigation Steps
 
-          1. **Download test artifacts:**
+          1. **View test results directly in workflow:**
              - Go to [this workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+             - Click on '🎭 E2E Test Results' check for detailed pass/fail status
+             - Review annotations for specific test failures
+
+          2. **Download test artifacts for detailed analysis:**
              - Download \`e2e-nightly-test-results-${{ github.run_number }}\` artifact
              - Extract and open \`playwright-report/index.html\` in your browser
-
-          2. **Review failed tests:**
              - Check screenshots for visual regressions
              - Review test traces for execution flow
-             - Check console logs for errors
 
           3. **Verify staging environment:**
              - Ensure staging is accessible: ${{ env.STAGING_URL }}
@@ -320,8 +341,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: ✅ Close GitHub issue on success
-        if: always() && steps.run-tests.outputs.test_exit_code == '0'
+        if: always() && steps.run-tests.outcome == 'success'
         run: |
+          # Parse JUnit XML for test results
+          if [ -f frontend/test-results/junit.xml ]; then
+            TESTS=$(grep -o 'tests="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
+            TOTAL=${TESTS:-0}
+          else
+            TOTAL="Unknown"
+          fi
+
           # Search for existing open E2E nightly failure issue
           EXISTING_ISSUE=$(gh issue list \
             --state open \
@@ -337,8 +366,8 @@ jobs:
           All tests passed in [workflow run #${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
 
           **Test Results:**
-          - **Total Tests:** ${{ steps.run-tests.outputs.parsed_total }}
-          - **✅ Passed:** ${{ steps.run-tests.outputs.parsed_passed }}
+          - **Total Tests:** $TOTAL
+          - **✅ Passed:** $TOTAL
           - **❌ Failed:** 0
 
           The issue has been automatically resolved."
@@ -351,13 +380,23 @@ jobs:
       - name: 📢 Send Teams notification (optional)
         if: always() && env.TEAMS_WEBHOOK_URL != ''
         run: |
-          EXIT_CODE="${{ steps.run-tests.outputs.test_exit_code }}"
-          FAILED="${{ steps.run-tests.outputs.parsed_failed }}"
-          TOTAL="${{ steps.run-tests.outputs.parsed_total }}"
-          PASSED="${{ steps.run-tests.outputs.parsed_passed }}"
+          # Parse JUnit XML for test results
+          if [ -f frontend/test-results/junit.xml ]; then
+            TESTS=$(grep -o 'tests="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
+            FAILURES=$(grep -o 'failures="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
+            ERRORS=$(grep -o 'errors="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
 
-          # Determine status color and emoji
-          if [ "$EXIT_CODE" = "0" ]; then
+            TOTAL=${TESTS:-0}
+            FAILED=$((${FAILURES:-0} + ${ERRORS:-0}))
+            PASSED=$((TOTAL - FAILED))
+          else
+            TOTAL=0
+            FAILED=0
+            PASSED=0
+          fi
+
+          # Determine status color and emoji based on test outcome
+          if [ "${{ steps.run-tests.outcome }}" = "success" ]; then
             COLOR="28A745"  # Green
             STATUS_EMOJI="✅"
             STATUS_TEXT="E2E Nightly Tests Passed"
