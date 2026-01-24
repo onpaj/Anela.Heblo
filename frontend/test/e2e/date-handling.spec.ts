@@ -49,32 +49,20 @@ test.describe('Date Handling Timezone Tests', () => {
         await page.waitForLoadState('networkidle');
       }
       
-      // Look for any item rows or catalog items
-      console.log('🔍 Looking for catalog items...');
-      
-      const itemSelectors = [
-        '[data-testid="catalog-item-row"]',
-        'tr[data-testid*="item"]',
-        'tr:has(td)',
-        '.catalog-item',
-        'tbody tr'
-      ];
-      
-      let itemRows = null;
-      for (const selector of itemSelectors) {
-        const elements = page.locator(selector);
-        const count = await elements.count();
-        if (count > 0) {
-          console.log(`✅ Found ${count} items with selector: ${selector}`);
-          itemRows = elements;
-          break;
-        }
-      }
-      
-      if (!itemRows || await itemRows.count() === 0) {
-        console.log('⚠️ No catalog items found, skipping test');
-        test.skip('No catalog items available for testing date handling');
-      }
+      // Look for transport box rows in the table
+      console.log('🔍 Looking for transport box rows...');
+
+      // Wait for table to be visible
+      await page.waitForSelector('table', { timeout: 10000 });
+
+      // Find table rows (transport boxes)
+      const itemRows = page.locator('tbody tr');
+      const rowCount = await itemRows.count();
+
+      console.log(`📊 Found ${rowCount} transport box rows`);
+
+      // Test should FAIL if no rows found, not skip
+      expect(rowCount).toBeGreaterThan(0);
       
       // Click on the first item to open modal or detail view
       console.log('🔄 Clicking on first item...');
@@ -133,22 +121,21 @@ test.describe('Date Handling Timezone Tests', () => {
             break;
           }
         }
-        
+
         if (!addButtonFound) {
-          console.log('⚠️ No add button found, skipping test');
-          test.skip('No date inputs available for testing');
+          console.log('❌ No add button found - test will fail');
         }
-        
+
         // Check again for date inputs after clicking add
         dateInputCount = await dateInputs.count();
-        if (dateInputCount === 0) {
-          console.log('⚠️ Still no date inputs after trying to add, skipping test');
-          test.skip('No date inputs available for testing after attempting to add');
-        }
+      }
+
+      // Test should FAIL if no date inputs found, not skip
+      expect(dateInputCount, 'Expected to find date input fields').toBeGreaterThan(0);
       }
     } catch (error) {
-      console.log(`⚠️ Error during setup: ${error.message}`);
-      test.skip('Test setup failed - unable to navigate to date inputs');
+      console.log(`❌ Error during setup: ${error.message}`);
+      throw new Error(`Test setup failed - unable to navigate to date inputs: ${error.message}`);
     }
     
     // Test date input handling
@@ -265,11 +252,11 @@ test.describe('Date Handling Timezone Tests', () => {
           if (itemWithDate) break;
         }
       }
-      
-      if (!itemWithDate || !(await itemWithDate.isVisible({ timeout: 5000 }))) {
-        console.log('⚠️ No items with dates found, skipping test');
-        test.skip('No items with expiration dates found for consistency testing');
-      }
+
+
+      // Test should FAIL if no date elements found, not skip
+      expect(itemWithDate, 'Expected to find at least one element with date text').toBeTruthy();
+      await expect(itemWithDate!).toBeVisible({ timeout: 5000 });
       
       // Get the displayed date before refresh
       const dateBeforeRefresh = await itemWithDate.textContent();
@@ -290,11 +277,10 @@ test.describe('Date Handling Timezone Tests', () => {
           break;
         }
       }
-      
-      if (!itemWithDateAfter) {
-        console.log('⚠️ Date element not found after refresh, skipping comparison');
-        test.skip('Date element not found after refresh');
-      }
+
+
+      // Test should FAIL if element not found after refresh
+      expect(itemWithDateAfter, 'Expected to find date element after refresh').toBeTruthy();
       
       // Get the displayed date after refresh
       const dateAfterRefresh = await itemWithDateAfter.textContent();
@@ -305,8 +291,8 @@ test.describe('Date Handling Timezone Tests', () => {
       console.log('✅ Date consistency test passed!');
       
     } catch (error) {
-      console.log(`⚠️ Error during date consistency test: ${error.message}`);
-      test.skip('Test failed due to navigation or element finding issues');
+      console.log(`❌ Error during date consistency test: ${error.message}`);
+      throw new Error(`Date consistency test failed: ${error.message}`);
     }
   });
 
@@ -359,11 +345,10 @@ test.describe('Date Handling Timezone Tests', () => {
           }
         }
       }
-      
-      if (count === 0) {
-        console.log('⚠️ No date elements found, skipping test');
-        test.skip('No date elements found for formatting testing');
-      }
+
+
+      // Test should FAIL if no date elements found, not skip
+      expect(count, 'Expected to find at least one date element').toBeGreaterThan(0);
       
       // Check that dates are in expected format (YYYY-MM-DD or localized format)
       console.log(`📊 Checking format of ${Math.min(count, 5)} date elements...`);
@@ -397,8 +382,8 @@ test.describe('Date Handling Timezone Tests', () => {
       console.log('✅ Date formatting test completed successfully!');
       
     } catch (error) {
-      console.log(`⚠️ Error during date formatting test: ${error.message}`);
-      test.skip('Test failed due to navigation or element finding issues');
+      console.log(`❌ Error during date formatting test: ${error.message}`);
+      throw new Error(`Date formatting test failed: ${error.message}`);
     }
   });
 });
