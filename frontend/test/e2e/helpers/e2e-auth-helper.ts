@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import path from 'path';
+import * as path from 'path';
 
 // Load test environment variables from .env.test if it exists (local development)
 // In CI, environment variables are provided directly
