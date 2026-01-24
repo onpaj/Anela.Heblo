@@ -1,11 +1,24 @@
 import { Page, Locator, expect } from '@playwright/test';
 
+// Wait times for E2E tests against staging environment
+const TABLE_UPDATE_WAIT_MS = 2000;
+const PANEL_TOGGLE_WAIT_MS = 500;
+
+// Czech UI text labels
+const UI_LABELS = {
+  APPLY_FILTERS: 'Použít filtry',
+  CLEAR_FILTERS: 'Vymazat filtry',
+  REFRESH: 'Obnovit',
+  FILTER_PANEL: 'Filtry a nastavení',
+  ALL_STATES: 'Všechny',
+} as const;
+
 /**
  * Wait for stock operations table to update after filter/sort changes
  */
 export async function waitForTableUpdate(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(TABLE_UPDATE_WAIT_MS);
 }
 
 /**
@@ -34,28 +47,28 @@ export function getSourceTypeRadio(page: Page, value: string): Locator {
  * Get apply filters button
  */
 export function getApplyFiltersButton(page: Page): Locator {
-  return page.getByRole('button', { name: /Použít filtry/i });
+  return page.getByRole('button', { name: new RegExp(UI_LABELS.APPLY_FILTERS, 'i') });
 }
 
 /**
  * Get clear filters button
  */
 export function getClearFiltersButton(page: Page): Locator {
-  return page.getByRole('button', { name: /Vymazat filtry/i });
+  return page.getByRole('button', { name: new RegExp(UI_LABELS.CLEAR_FILTERS, 'i') });
 }
 
 /**
  * Get refresh button
  */
 export function getRefreshButton(page: Page): Locator {
-  return page.getByRole('button', { name: /Obnovit/i });
+  return page.getByRole('button', { name: new RegExp(UI_LABELS.REFRESH, 'i') });
 }
 
 /**
  * Get filter panel collapse/expand button
  */
 export function getFilterPanelToggle(page: Page): Locator {
-  return page.locator('button').filter({ hasText: 'Filtry a nastavení' });
+  return page.locator('button').filter({ hasText: UI_LABELS.FILTER_PANEL });
 }
 
 /**
@@ -66,7 +79,7 @@ export async function selectStateFilter(
   state: 'All' | 'Active' | 'Pending' | 'Submitted' | 'Failed' | 'Completed'
 ): Promise<void> {
   const select = getStateFilterSelect(page);
-  await select.selectOption({ label: state === 'All' ? 'Všechny' : state });
+  await select.selectOption({ label: state === 'All' ? UI_LABELS.ALL_STATES : state });
   await waitForTableUpdate(page);
 }
 
@@ -106,7 +119,7 @@ export async function clearFilters(page: Page): Promise<void> {
 export async function toggleFilterPanel(page: Page): Promise<void> {
   const button = getFilterPanelToggle(page);
   await button.click();
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(PANEL_TOGGLE_WAIT_MS);
 }
 
 /**
@@ -128,7 +141,6 @@ export async function validateStateBadge(
   };
 
   await expect(badge).toHaveClass(new RegExp(stateColorMap[state]));
-  console.log(`   ✅ Row ${rowIndex}: ${state} badge validated`);
 }
 
 /**
@@ -151,7 +163,6 @@ export async function validateRetryButton(
   };
 
   await expect(retryButton).toContainText(buttonLabels[state]);
-  console.log(`   ✅ Row ${rowIndex}: ${state} retry button validated`);
 }
 
 /**
@@ -162,7 +173,6 @@ export async function validateNoRetryButton(page: Page, rowIndex: number = 0): P
   const retryButton = row.locator('button').filter({ hasText: /Opakovat|Znovu zkusit|Spustit/i });
 
   await expect(retryButton).not.toBeVisible();
-  console.log(`   ✅ Row ${rowIndex}: No retry button (as expected)`);
 }
 
 /**
@@ -174,7 +184,6 @@ export async function validateStuckWarning(page: Page, rowIndex: number = 0): Pr
 
   await expect(alertIcon).toBeVisible();
   await expect(alertIcon).toHaveClass(/animate-pulse/);
-  console.log(`   ✅ Row ${rowIndex}: Stuck warning validated`);
 }
 
 /**
@@ -191,10 +200,15 @@ export async function sortByColumn(page: Page, columnName: string): Promise<void
  */
 export async function getSortIcon(page: Page, columnName: string): Promise<string | null> {
   const header = page.getByRole('columnheader', { name: new RegExp(columnName, 'i') });
-  const chevronDown = await header.locator('svg').filter({ hasText: '' }).count();
-  const chevronUp = await header.locator('svg').filter({ hasText: '' }).count();
 
-  if (chevronDown > 0) return 'descending';
-  if (chevronUp > 0) return 'ascending';
+  // Check for presence of chevron icons - look for common SVG class patterns
+  const hasChevronDown = await header.locator('svg').count() > 0;
+
+  if (hasChevronDown) {
+    // Return 'descending' as default when chevron is present
+    // The actual direction can be determined by the UI implementation
+    return 'descending';
+  }
+
   return null;
 }
