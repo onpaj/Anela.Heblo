@@ -315,14 +315,15 @@ generate_version_changelog() {
     # Get version date
     local version_date
     version_date=$(date +"%Y-%m-%d")
-    
-    # Try to get actual tag date if possible
+
+    # Try to get actual tag/commit date if possible
     set +e
-    if git show --format=%cd --date=format:%Y-%m-%d -s "$version" >/dev/null 2>&1; then
-        version_date=$(git show --format=%cd --date=format:%Y-%m-%d -s "$version" 2>/dev/null || date +"%Y-%m-%d")
+    # Use git log to get the commit date associated with the tag (more reliable than git show for annotated tags)
+    if git rev-parse "$version" >/dev/null 2>&1; then
+        version_date=$(git log -1 --format=%cd --date=format:%Y-%m-%d "$version" 2>/dev/null || date +"%Y-%m-%d")
     fi
     set -e
-    
+
     echo -e "${BLUE}[DEBUG]${NC} Final date: $version_date" >&2
     
     # Get commits between versions
