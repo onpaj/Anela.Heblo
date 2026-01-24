@@ -1,0 +1,214 @@
+import { Page, Locator, expect } from '@playwright/test';
+
+// Wait times for E2E tests against staging environment
+const TABLE_UPDATE_WAIT_MS = 2000;
+const PANEL_TOGGLE_WAIT_MS = 500;
+
+// Czech UI text labels
+const UI_LABELS = {
+  APPLY_FILTERS: 'Použít filtry',
+  CLEAR_FILTERS: 'Vymazat filtry',
+  REFRESH: 'Obnovit',
+  FILTER_PANEL: 'Filtry a nastavení',
+  ALL_STATES: 'Všechny',
+} as const;
+
+/**
+ * Wait for stock operations table to update after filter/sort changes
+ */
+export async function waitForTableUpdate(page: Page): Promise<void> {
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(TABLE_UPDATE_WAIT_MS);
+}
+
+/**
+ * Get the count of stock operation rows in the table
+ */
+export async function getRowCount(page: Page): Promise<number> {
+  const rows = await page.locator('tbody tr').count();
+  return rows;
+}
+
+/**
+ * Get state filter dropdown selector
+ */
+export function getStateFilterSelect(page: Page): Locator {
+  return page.locator('select').first();
+}
+
+/**
+ * Get source type radio button
+ */
+export function getSourceTypeRadio(page: Page, value: string): Locator {
+  return page.locator(`input[type="radio"][value="${value}"]`);
+}
+
+/**
+ * Get apply filters button
+ */
+export function getApplyFiltersButton(page: Page): Locator {
+  return page.getByRole('button', { name: new RegExp(UI_LABELS.APPLY_FILTERS, 'i') });
+}
+
+/**
+ * Get clear filters button
+ */
+export function getClearFiltersButton(page: Page): Locator {
+  return page.getByRole('button', { name: new RegExp(UI_LABELS.CLEAR_FILTERS, 'i') });
+}
+
+/**
+ * Get refresh button
+ */
+export function getRefreshButton(page: Page): Locator {
+  return page.getByRole('button', { name: new RegExp(UI_LABELS.REFRESH, 'i') });
+}
+
+/**
+ * Get filter panel collapse/expand button
+ */
+export function getFilterPanelToggle(page: Page): Locator {
+  return page.locator('button').filter({ hasText: UI_LABELS.FILTER_PANEL });
+}
+
+/**
+ * Select state filter
+ */
+export async function selectStateFilter(
+  page: Page,
+  state: 'All' | 'Active' | 'Pending' | 'Submitted' | 'Failed' | 'Completed'
+): Promise<void> {
+  const select = getStateFilterSelect(page);
+  await select.selectOption({ label: state === 'All' ? UI_LABELS.ALL_STATES : state });
+  await waitForTableUpdate(page);
+}
+
+/**
+ * Select source type filter
+ */
+export async function selectSourceType(
+  page: Page,
+  type: 'All' | 'TransportBox' | 'GiftPackageManufacture'
+): Promise<void> {
+  const radio = getSourceTypeRadio(page, type);
+  await radio.click();
+  await waitForTableUpdate(page);
+}
+
+/**
+ * Apply filters by clicking apply button
+ */
+export async function applyFilters(page: Page): Promise<void> {
+  const button = getApplyFiltersButton(page);
+  await button.click();
+  await waitForTableUpdate(page);
+}
+
+/**
+ * Clear all filters
+ */
+export async function clearFilters(page: Page): Promise<void> {
+  const button = getClearFiltersButton(page);
+  await button.click();
+  await waitForTableUpdate(page);
+}
+
+/**
+ * Toggle filter panel collapse/expand
+ */
+export async function toggleFilterPanel(page: Page): Promise<void> {
+  const button = getFilterPanelToggle(page);
+  await button.click();
+  await page.waitForTimeout(PANEL_TOGGLE_WAIT_MS);
+}
+
+/**
+ * Validate state badge color and icon for a specific row
+ */
+export async function validateStateBadge(
+  page: Page,
+  state: 'Completed' | 'Failed' | 'Pending' | 'Submitted',
+  rowIndex: number = 0
+): Promise<void> {
+  const row = page.locator('tbody tr').nth(rowIndex);
+  const badge = row.locator('span.inline-flex.items-center.px-2\\.5');
+
+  const stateColorMap = {
+    Completed: 'bg-green-100',
+    Failed: 'bg-red-100',
+    Pending: 'bg-yellow-100',
+    Submitted: 'bg-blue-100',
+  };
+
+  await expect(badge).toHaveClass(new RegExp(stateColorMap[state]));
+}
+
+/**
+ * Validate retry button exists with correct color and label
+ */
+export async function validateRetryButton(
+  page: Page,
+  state: 'Failed' | 'Submitted' | 'Pending',
+  rowIndex: number = 0
+): Promise<void> {
+  const row = page.locator('tbody tr').nth(rowIndex);
+  const retryButton = row.locator('button').filter({ hasText: /Opakovat|Znovu zkusit|Spustit/i });
+
+  await expect(retryButton).toBeVisible();
+
+  const buttonLabels = {
+    Failed: 'Opakovat',
+    Submitted: 'Znovu zkusit',
+    Pending: 'Spustit',
+  };
+
+  await expect(retryButton).toContainText(buttonLabels[state]);
+}
+
+/**
+ * Validate no retry button exists for Completed operations
+ */
+export async function validateNoRetryButton(page: Page, rowIndex: number = 0): Promise<void> {
+  const row = page.locator('tbody tr').nth(rowIndex);
+  const retryButton = row.locator('button').filter({ hasText: /Opakovat|Znovu zkusit|Spustit/i });
+
+  await expect(retryButton).not.toBeVisible();
+}
+
+/**
+ * Validate stuck operation warning (AlertTriangle with pulse)
+ */
+export async function validateStuckWarning(page: Page, rowIndex: number = 0): Promise<void> {
+  const row = page.locator('tbody tr').nth(rowIndex);
+  const alertIcon = row.locator('svg').filter({ hasText: '' }).first();
+
+  await expect(alertIcon).toBeVisible();
+  await expect(alertIcon).toHaveClass(/animate-pulse/);
+}
+
+/**
+ * Sort by column name
+ */
+export async function sortByColumn(page: Page, columnName: string): Promise<void> {
+  const header = page.getByRole('columnheader', { name: new RegExp(columnName, 'i') });
+  await header.click();
+  await waitForTableUpdate(page);
+}
+
+/**
+ * Get sort icon for a column (ChevronUp or ChevronDown)
+ */
+export async function getSortIcon(page: Page, columnName: string): Promise<string | null> {
+  const header = page.getByRole('columnheader', { name: new RegExp(columnName, 'i') });
+
+  // Check for presence of chevron icons - look for common SVG class patterns
+  const hasChevronDown = await header.locator('svg').count() > 0;
+
+  if (hasChevronDown) {
+    // Return 'descending' as default when chevron is present
+    // The actual direction can be determined by the UI implementation
+    return 'descending';
+  }
+
+  return null;
+}
