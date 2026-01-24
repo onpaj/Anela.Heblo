@@ -27,20 +27,14 @@ test.describe('Changelog System', () => {
     // Click the changelog button
     const changelogButton = page.locator('button:has-text("Co je nové")');
     await changelogButton.click();
-    
-    // Check if modal opens - target the modal content specifically  
-    const modal = page.locator('[role="dialog"]')
-                      .or(page.locator('.modal'))
-                      .or(page.locator('.fixed.inset-0.z-50.overflow-y-auto.z-50.overflow-y-auto'))
-                      .or(page.locator('[data-testid*="modal"]'))
-                      .or(page.locator('[data-overlay-container]'))
-                      .or(page.locator('.overlay'))
-                      .or(page.locator('[aria-modal="true"]'));
+
+    // Check if modal opens using data-testid
+    const modal = page.locator('[data-testid="changelog-modal"]');
     await expect(modal).toBeVisible();
-    
+
     // Check modal title (specifically the heading, not the button)
     await expect(page.locator('h3:has-text("Co je nové")')).toBeVisible();
-    
+
     // Check for version information - try different possible texts
     const versionInfo = page.locator('text=/Aktuální verze:|Current version|Version|verze/i');
     await expect(versionInfo.first()).toBeVisible({ timeout: 10000 });
@@ -50,48 +44,41 @@ test.describe('Changelog System', () => {
     // Open changelog modal
     const changelogButton = page.locator('button:has-text("Co je nové")');
     await changelogButton.click();
-    
-    // Wait for modal to load
-    const modal = page.locator('[role="dialog"]')
-                      .or(page.locator('.modal'))
-                      .or(page.locator('.fixed.inset-0.z-50.overflow-y-auto'))
-                      .or(page.locator('[data-testid*="modal"]'))
-                      .or(page.locator('[data-overlay-container]'))
-                      .or(page.locator('.overlay'))
-                      .or(page.locator('[aria-modal="true"]'));
+
+    // Wait for modal to load using data-testid
+    const modal = page.locator('[data-testid="changelog-modal"]');
     await expect(modal).toBeVisible();
-    
-    // Check for version list in sidebar
-    const versionList = page.locator('text=Verze');
-    await expect(versionList).toBeVisible();
-    
-    // Look for version entries - try multiple approaches
-    const versionEntry = page.locator('button').filter({ hasText: /v\d+\.\d+\.\d+/ }).first()
-                             .or(page.locator('button').filter({ hasText: /\d+\.\d+\.\d+/ }).first())
-                             .or(page.locator('[data-testid*="version"]').first())
-                             .or(page.locator('li button, div button').first());
-    await expect(versionEntry).toBeVisible({ timeout: 10000 });
+
+    // Check for version list sidebar using data-testid
+    const versionSidebar = page.locator('[data-testid="changelog-version-sidebar"]');
+    await expect(versionSidebar).toBeVisible();
+
+    // Check for version list header
+    const versionListHeader = page.locator('text=Verze');
+    await expect(versionListHeader).toBeVisible();
+
+    // Look for version entries using data-testid
+    const versionList = page.locator('[data-testid="changelog-version-list"]');
+    await expect(versionList).toBeVisible({ timeout: 10000 });
+
+    // Check that at least one version entry exists
+    const versionEntries = page.locator('[data-testid^="changelog-version-"]');
+    await expect(versionEntries.first()).toBeVisible({ timeout: 10000 });
   });
 
   test('should close modal when clicking close button', async ({ page }) => {
     // Open changelog modal
     const changelogButton = page.locator('button:has-text("Co je nové")');
     await changelogButton.click();
-    
-    // Wait for modal to open
-    const modal = page.locator('[role="dialog"]')
-                      .or(page.locator('.modal'))
-                      .or(page.locator('.fixed.inset-0.z-50.overflow-y-auto'))
-                      .or(page.locator('[data-testid*="modal"]'))
-                      .or(page.locator('[data-overlay-container]'))
-                      .or(page.locator('.overlay'))
-                      .or(page.locator('[aria-modal="true"]'));
+
+    // Wait for modal to open using data-testid
+    const modal = page.locator('[data-testid="changelog-modal"]');
     await expect(modal).toBeVisible();
-    
-    // Click close button
-    const closeButton = page.locator('button[aria-label="Close"]').or(page.locator('button:has(svg)').last());
+
+    // Click close button using data-testid
+    const closeButton = page.locator('[data-testid="changelog-modal-close-button"]');
     await closeButton.click();
-    
+
     // Check if modal is closed
     await expect(modal).not.toBeVisible();
   });
@@ -100,20 +87,15 @@ test.describe('Changelog System', () => {
     // Open changelog modal
     const changelogButton = page.locator('button:has-text("Co je nové")');
     await changelogButton.click();
-    
-    // Wait for modal to open
-    const modal = page.locator('[role="dialog"]')
-                      .or(page.locator('.modal'))
-                      .or(page.locator('.fixed.inset-0.z-50.overflow-y-auto'))
-                      .or(page.locator('[data-testid*="modal"]'))
-                      .or(page.locator('[data-overlay-container]'))
-                      .or(page.locator('.overlay'))
-                      .or(page.locator('[aria-modal="true"]'));
+
+    // Wait for modal to open using data-testid
+    const modal = page.locator('[data-testid="changelog-modal"]');
     await expect(modal).toBeVisible();
-    
-    // Click on backdrop (outside modal content)
-    await page.mouse.click(100, 100);
-    
+
+    // Click on backdrop using data-testid
+    const backdrop = page.locator('[data-testid="changelog-modal-backdrop"]');
+    await backdrop.click({ position: { x: 10, y: 10 } });
+
     // Check if modal is closed
     await expect(modal).not.toBeVisible();
   });
@@ -122,20 +104,14 @@ test.describe('Changelog System', () => {
     // Open changelog modal
     const changelogButton = page.locator('button:has-text("Co je nové")');
     await changelogButton.click();
-    
-    // Wait for modal to open
-    const modal = page.locator('[role="dialog"]')
-                      .or(page.locator('.modal'))
-                      .or(page.locator('.fixed.inset-0.z-50.overflow-y-auto'))
-                      .or(page.locator('[data-testid*="modal"]'))
-                      .or(page.locator('[data-overlay-container]'))
-                      .or(page.locator('.overlay'))
-                      .or(page.locator('[aria-modal="true"]'));
+
+    // Wait for modal to open using data-testid
+    const modal = page.locator('[data-testid="changelog-modal"]');
     await expect(modal).toBeVisible();
-    
+
     // Press Escape key
     await page.keyboard.press('Escape');
-    
+
     // Check if modal is closed
     await expect(modal).not.toBeVisible();
   });
@@ -144,57 +120,52 @@ test.describe('Changelog System', () => {
     // Open changelog modal
     const changelogButton = page.locator('button:has-text("Co je nové")');
     await changelogButton.click();
-    
-    // Wait for modal to load
-    const modal = page.locator('[role="dialog"]')
-                      .or(page.locator('.modal'))
-                      .or(page.locator('.fixed.inset-0.z-50.overflow-y-auto'))
-                      .or(page.locator('[data-testid*="modal"]'))
-                      .or(page.locator('[data-overlay-container]'))
-                      .or(page.locator('.overlay'))
-                      .or(page.locator('[aria-modal="true"]'));
+
+    // Wait for modal to load using data-testid
+    const modal = page.locator('[data-testid="changelog-modal"]');
     await expect(modal).toBeVisible();
-    
-    // Click on a version (should be pre-selected by default)
-    const versionEntry = page.locator('button').filter({ hasText: /v\d+\.\d+\.\d+/ }).first()
-                             .or(page.locator('button').filter({ hasText: /\d+\.\d+\.\d+/ }).first())
-                             .or(page.locator('[data-testid*="version"]').first())
-                             .or(page.locator('li button, div button').first());
+
+    // Wait for version list to be visible
+    const versionList = page.locator('[data-testid="changelog-version-list"]');
+    await expect(versionList).toBeVisible({ timeout: 10000 });
+
+    // Click on first version entry using data-testid
+    const versionEntry = page.locator('[data-testid^="changelog-version-"]').first();
+    await expect(versionEntry).toBeVisible({ timeout: 10000 });
     await versionEntry.click();
-    
-    // Check for changelog content
-    await expect(page.locator('text=Změny')).toBeVisible();
-    
-    // Look for change entries (should have type badges)
-    const changeEntry = page.locator('[class*="bg-"]').and(page.locator('text=/oprava|funkce|vylepšení|výkon/')).first();
-    await expect(changeEntry).toBeVisible();
+
+    // Check for version details section using data-testid
+    const versionDetails = page.locator('[data-testid="changelog-version-details"]');
+    await expect(versionDetails).toBeVisible();
+
+    // Check for changes list header
+    const changesHeader = page.locator('text=Změny');
+    await expect(changesHeader).toBeVisible();
+
+    // Check for changes list using data-testid
+    const changesList = page.locator('[data-testid="changelog-changes-list"]');
+    await expect(changesList).toBeVisible();
   });
 
   test('should work in collapsed sidebar mode', async ({ page }) => {
     // Check if there's a sidebar collapse button and click it
     const collapseButton = page.locator('button[title="Collapse sidebar"]').or(page.locator('button:has(svg):has-text("")'));
-    
+
     if (await collapseButton.isVisible()) {
       await collapseButton.click();
-      
+
       // Wait for sidebar to collapse
       await page.waitForTimeout(500);
-      
+
       // Look for changelog button (should now be icon only)
       const changelogIconButton = page.locator('button[title="Co je nové"]');
       await expect(changelogIconButton).toBeVisible();
-      
+
       // Click the icon button
       await changelogIconButton.click();
-      
-      // Check if modal opens
-      const modal = page.locator('[role="dialog"]')
-                        .or(page.locator('.modal'))
-                        .or(page.locator('.fixed.inset-0.z-50.overflow-y-auto'))
-                        .or(page.locator('[data-testid*="modal"]'))
-                        .or(page.locator('[data-overlay-container]'))
-                        .or(page.locator('.overlay'))
-                        .or(page.locator('[aria-modal="true"]'));
+
+      // Check if modal opens using data-testid
+      const modal = page.locator('[data-testid="changelog-modal"]');
       await expect(modal).toBeVisible();
     }
   });
@@ -202,36 +173,30 @@ test.describe('Changelog System', () => {
   test('should handle mobile responsive layout', async ({ page }) => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
-    
+
     // Use proper E2E authentication and navigation (already done in beforeEach)
     // Just wait for the app to be ready
     await page.waitForSelector('[data-testid="app"]', { timeout: 30000 });
-    
+
     // On mobile, sidebar might be hidden by default
     // Look for menu button to open sidebar
     const menuButton = page.locator('button[aria-label="Open menu"]').or(page.locator('button:has(svg):has-text("")')).first();
-    
+
     if (await menuButton.isVisible()) {
       await menuButton.click();
     }
-    
+
     // Look for changelog button
     const changelogButton = page.locator('button:has-text("Co je nové")').or(page.locator('button[title="Co je nové"]'));
     await expect(changelogButton).toBeVisible();
-    
+
     // Click changelog button
     await changelogButton.click();
-    
-    // Check if modal opens and is properly sized for mobile
-    const modal = page.locator('[role="dialog"]')
-                      .or(page.locator('.modal'))
-                      .or(page.locator('.fixed.inset-0.z-50.overflow-y-auto'))
-                      .or(page.locator('[data-testid*="modal"]'))
-                      .or(page.locator('[data-overlay-container]'))
-                      .or(page.locator('.overlay'))
-                      .or(page.locator('[aria-modal="true"]'));
+
+    // Check if modal opens using data-testid
+    const modal = page.locator('[data-testid="changelog-modal"]');
     await expect(modal).toBeVisible();
-    
+
     // Reset to desktop viewport
     await page.setViewportSize({ width: 1280, height: 720 });
   });
