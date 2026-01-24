@@ -230,7 +230,7 @@ export async function navigateToTransportBoxes(page: any): Promise<void> {
 
 export async function navigateToCatalog(page: any): Promise<void> {
   await navigateToApp(page);
-  
+
   // Navigate to catalog via UI
   // First, try to find and click on "Produkty" section
   const produktySelector = page.locator('text="Produkty"').first();
@@ -238,7 +238,7 @@ export async function navigateToCatalog(page: any): Promise<void> {
     if (await produktySelector.isVisible({ timeout: 2000 })) {
       await produktySelector.click();
       await page.waitForTimeout(1000);
-      
+
       // Then click on "Katalog" sub-item
       const katalog = page.locator('text="Katalog"').first();
       if (await katalog.isVisible({ timeout: 2000 })) {
@@ -254,4 +254,19 @@ export async function navigateToCatalog(page: any): Promise<void> {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
   }
+}
+
+export async function navigateToStockOperations(page: any): Promise<void> {
+  await navigateToApp(page);
+
+  // Wait for app to be fully loaded
+  await page.waitForTimeout(2000);
+
+  // Direct navigation to stock operations
+  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+  await page.goto(`${baseUrl}/stock-operations`);
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(2000);
+
+  console.log('✅ Navigated to stock operations page');
 }
