@@ -95,11 +95,12 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({
   const selectedVersionData = data?.versions.find(v => v.version === selectedVersion);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" data-testid="changelog-modal">
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
         onClick={onClose}
+        data-testid="changelog-modal-backdrop"
       />
 
       {/* Modal */}
@@ -115,6 +116,8 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({
               <button
                 onClick={onClose}
                 className="text-white/80 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/50 rounded transition-colors"
+                aria-label="Close"
+                data-testid="changelog-modal-close-button"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -129,7 +132,7 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({
           {/* Content */}
           <div className="flex-1 flex overflow-hidden">
             {/* Version sidebar */}
-            <div className="w-64 bg-gray-50 border-r border-gray-200 overflow-y-auto">
+            <div className="w-64 bg-gray-50 border-r border-gray-200 overflow-y-auto" data-testid="changelog-version-sidebar">
               <div className="p-4">
                 <h4 className="text-sm font-medium text-gray-900 mb-3">Verze</h4>
                 
@@ -149,7 +152,7 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({
                 )}
 
                 {data && (
-                  <div className="space-y-2">
+                  <div className="space-y-2" data-testid="changelog-version-list">
                     {data.versions.map((version) => (
                       <button
                         key={version.version}
@@ -159,6 +162,7 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({
                             ? 'border-indigo-300 bg-indigo-50 text-indigo-900'
                             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                         }`}
+                        data-testid={`changelog-version-${version.version}`}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-sm">v{version.version}</span>
@@ -185,7 +189,7 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({
             </div>
 
             {/* Version details */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto" data-testid="changelog-version-details">
               <div className="p-6">
                 {isLoading && (
                   <div className="space-y-4">
@@ -211,7 +215,7 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({
                 {selectedVersionData && (
                   <>
                     {/* Version header */}
-                    <div className="mb-6">
+                    <div className="mb-6" data-testid="changelog-selected-version-header">
                       <div className="flex items-center space-x-3 mb-2">
                         <a 
                           href={getGitHubReleaseUrl(selectedVersionData.version)}
@@ -239,7 +243,7 @@ const ChangelogModal: React.FC<ChangelogModalProps> = ({
 
                     {/* Changes */}
                     {selectedVersionData.changes.length > 0 ? (
-                      <div className="space-y-4">
+                      <div className="space-y-4" data-testid="changelog-changes-list">
                         <h3 className="text-lg font-medium text-gray-900 mb-4">
                           Změny
                         </h3>
