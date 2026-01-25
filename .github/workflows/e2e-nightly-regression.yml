@@ -28,6 +28,12 @@ env:
   STAGING_URL: https://heblo.stg.anela.cz
   NODE_VERSION: '18'
 
+# Required permissions for test reporter to create check runs
+permissions:
+  checks: write      # Allow creating check runs for test results
+  contents: read     # Allow reading repository contents
+  issues: write      # Allow creating/updating issues for test failures
+
 jobs:
   # Validate staging health before running tests
   validate-staging-health:

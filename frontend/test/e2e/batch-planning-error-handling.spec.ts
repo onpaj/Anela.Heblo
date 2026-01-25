@@ -144,11 +144,8 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     // Check if we successfully selected a semiproduct
     if (!semiproductSelected) {
       console.log('⚠️  No semiproducts available in staging environment');
-      console.log('⏭️  Skipping test - no data available to test with');
-      
-      // Skip the test gracefully instead of failing
-      test.skip(true, 'No semiproducts available in staging environment');
-      return;
+      console.log('❌ No semiproducts available - test will fail');
+      throw new Error('No semiproducts available in staging environment - check if data exists or selectors are correct');
     }
     
     // Wait for data to load after selection
@@ -164,11 +161,8 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     
     if (rowCount === 0) {
       console.log('⚠️  No product rows found after semiproduct selection');
-      console.log('⏭️  Skipping test - no products available to configure');
-      
-      // Skip the test gracefully if no products are available
-      test.skip(true, 'No products available for batch planning in staging environment');
-      return;
+      console.log('❌ No products available - test will fail');
+      throw new Error('No products available for batch planning in staging environment - check if data exists or selectors are correct');
     }
     
     // Check fixed checkboxes for at least 2 products
@@ -200,11 +194,8 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     // Check if calculate button is available before proceeding
     if (!(await calculateButton.isVisible({ timeout: 5000 }))) {
       console.log('⚠️  Calculate button not found - possibly no data to calculate');
-      console.log('⏭️  Skipping test - cannot perform calculation without calculate button');
-      
-      // Skip the test gracefully if calculate button is not available
-      test.skip(true, 'Calculate button not available - cannot test error handling');
-      return;
+      console.log('❌ Calculate button not available - test will fail');
+      throw new Error('Calculate button not available - check if UI has changed or button selector is incorrect');
     }
     
     await calculateButton.click();
@@ -408,11 +399,11 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
         }
       }
     }
-    
+
+
     if (!semiproductSelected) {
-      console.log('⚠️  No semiproducts available - skipping correction test');
-      test.skip(true, 'No semiproducts available for correction test');
-      return;
+      console.log('❌ No semiproducts available - test will fail');
+      throw new Error('No semiproducts available for correction test - check if data exists or selectors are correct');
     }
     
     await page.waitForTimeout(2000);
@@ -420,11 +411,11 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     // Set reasonable fixed quantities (should not exceed volume)
     const productRows = page.locator('tr').filter({ has: page.locator('input[type="checkbox"]') });
     const rowCount = await productRows.count();
-    
+
+
     if (rowCount === 0) {
-      console.log('⚠️  No product rows available - skipping correction test');
-      test.skip(true, 'No products available for correction test');
-      return;
+      console.log('❌ No product rows available - test will fail');
+      throw new Error('No products available for correction test - check if data exists or selectors are correct');
     }
     
     const row = productRows.first();
@@ -446,9 +437,8 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
       await calculateButton.click();
       console.log('✅ Recalculated with corrected quantities');
     } else {
-      console.log('⚠️  Calculate button not available - skipping test');
-      test.skip(true, 'Calculate button not available for correction test');
-      return;
+      console.log('❌ Calculate button not available - test will fail');
+      throw new Error('Calculate button not available for correction test - check if UI has changed or button selector is incorrect');
     }
     
     // Wait for successful response
