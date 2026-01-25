@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CatalogList from "../CatalogList";
 import { ProductType, CatalogItemDto } from "../../../api/hooks/useCatalog";
@@ -88,7 +89,9 @@ const mockCatalogItems: CatalogItemDto[] = [
 const renderWithQueryClient = (component: React.ReactElement) => {
   const queryClient = createQueryClient();
   return render(
-    <QueryClientProvider client={queryClient}>{component}</QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>{component}</QueryClientProvider>
+    </MemoryRouter>,
   );
 };
 
