@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Search,
@@ -37,27 +37,46 @@ const productTypeOptions = [
 ];
 
 const CatalogList: React.FC = () => {
+  // URL search params for filter state management
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Initialize filters from URL params
+  const getInitialProductNameFilter = () => searchParams.get("productName") || "";
+  const getInitialProductCodeFilter = () => searchParams.get("productCode") || "";
+  const getInitialProductTypeFilter = () => {
+    const typeParam = searchParams.get("productType");
+    return typeParam && Object.values(ProductType).includes(typeParam as ProductType)
+      ? (typeParam as ProductType)
+      : "";
+  };
+  const getInitialPageNumber = () => {
+    const pageParam = searchParams.get("page");
+    return pageParam ? parseInt(pageParam, 10) : 1;
+  };
+  const getInitialPageSize = () => {
+    const sizeParam = searchParams.get("pageSize");
+    return sizeParam ? parseInt(sizeParam, 10) : 20;
+  };
+  const getInitialSortBy = () => searchParams.get("sortBy") || "";
+  const getInitialSortDescending = () => searchParams.get("sortDesc") === "true";
+
+
   // Filter states - separate input values from applied filters
-  const [productNameInput, setProductNameInput] = useState("");
-  const [productCodeInput, setProductCodeInput] = useState("");
-  const [productNameFilter, setProductNameFilter] = useState("");
-  const [productCodeFilter, setProductCodeFilter] = useState("");
+  const [productNameInput, setProductNameInput] = useState(getInitialProductNameFilter);
+  const [productCodeInput, setProductCodeInput] = useState(getInitialProductCodeFilter);
+  const [productNameFilter, setProductNameFilter] = useState(getInitialProductNameFilter);
+  const [productCodeFilter, setProductCodeFilter] = useState(getInitialProductCodeFilter);
   const [productTypeFilter, setProductTypeFilter] = useState<ProductType | "">(
-    "",
+    getInitialProductTypeFilter,
   );
 
-  // Pagination states - initialize from URL params
-  const initialPageNumber = parseInt(searchParams.get("page") || "1", 10);
-  const [pageNumber, setPageNumber] = useState(
-    isNaN(initialPageNumber) || initialPageNumber < 1 ? 1 : initialPageNumber,
-  );
-  const [pageSize, setPageSize] = useState(20);
+  // Pagination states
+  const [pageNumber, setPageNumber] = useState(getInitialPageNumber);
+  const [pageSize, setPageSize] = useState(getInitialPageSize);
 
   // Sorting states
-  const [sortBy, setSortBy] = useState<string>("");
-  const [sortDescending, setSortDescending] = useState(false);
+  const [sortBy, setSortBy] = useState<string>(getInitialSortBy);
+  const [sortDescending, setSortDescending] = useState(getInitialSortDescending);
 
   // Modal states
   const [selectedItem, setSelectedItem] = useState<CatalogItemDto | null>(null);
@@ -137,6 +156,64 @@ const CatalogList: React.FC = () => {
     setPageNumber(1); // Reset to first page when changing page size
     // React Query will automatically refetch when pageSize changes
   };
+
+  // Synchronize filter state with URL parameters when state changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    // Add filters to URL params
+    if (productNameFilter) params.set("productName", productNameFilter);
+    if (productCodeFilter) params.set("productCode", productCodeFilter);
+    if (productTypeFilter) params.set("productType", productTypeFilter);
+
+    // Add pagination to URL params
+    if (pageNumber !== 1) params.set("page", pageNumber.toString());
+    if (pageSize !== 20) params.set("pageSize", pageSize.toString());
+
+    // Add sorting to URL params
+    if (sortBy) params.set("sortBy", sortBy);
+    if (sortDescending) params.set("sortDesc", "true");
+
+    // Update URL without causing navigation
+    setSearchParams(params, { replace: true });
+  }, [productNameFilter, productCodeFilter, productTypeFilter, pageNumber, pageSize, sortBy, sortDescending, setSearchParams]);
+
+  // Handle browser back/forward navigation by reading URL params
+  // This effect runs when searchParams changes (e.g., via browser back/forward)
+  useEffect(() => {
+    const newProductName = searchParams.get("productName") || "";
+    const newProductCode = searchParams.get("productCode") || "";
+    const newProductType = searchParams.get("productType") || "";
+    const newPage = searchParams.get("page") ? parseInt(searchParams.get("page")!, 10) : 1;
+    const newPageSize = searchParams.get("pageSize") ? parseInt(searchParams.get("pageSize")!, 10) : 20;
+    const newSortBy = searchParams.get("sortBy") || "";
+    const newSortDesc = searchParams.get("sortDesc") === "true";
+
+    // Only update state if values actually changed from URL
+    // This prevents infinite loops where state update triggers URL update triggers state update
+    if (
+      newProductName !== productNameFilter ||
+      newProductCode !== productCodeFilter ||
+      newProductType !== productTypeFilter ||
+      newPage !== pageNumber ||
+      newPageSize !== pageSize ||
+      newSortBy !== sortBy ||
+      newSortDesc !== sortDescending
+    ) {
+      // Update both input and filter state from URL params
+      setProductNameInput(newProductName);
+      setProductNameFilter(newProductName);
+      setProductCodeInput(newProductCode);
+      setProductCodeFilter(newProductCode);
+      setProductTypeFilter(newProductType as ProductType | "");
+      setPageNumber(newPage);
+      setPageSize(newPageSize);
+      setSortBy(newSortBy);
+      setSortDescending(newSortDesc);
+    }
+    // Only depend on searchParams to avoid infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Reset pagination when type filter changes
   React.useEffect(() => {
