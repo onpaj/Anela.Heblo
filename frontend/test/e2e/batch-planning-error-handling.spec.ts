@@ -88,8 +88,8 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     let semiproductSelected = false;
     
     if (await semiproductInput.getAttribute('type') === 'text') {
-      // If it's an autocomplete input, try different search terms
-      const searchTerms = ['SEMI', 'POLO', 'SP', 'KRÉM', 'GEL']; // Common terms for semiproducts
+      // If it's an autocomplete input, use known staging test data
+      const searchTerms = ['Bezstarostná teenka', 'KRE001001M', 'MAS003001M']; // Known semiproducts in staging
       
       for (const term of searchTerms) {
         console.log(`🔍 Searching for semiproducts with term: ${term}`);
@@ -366,8 +366,8 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     let semiproductSelected = false;
     
     if (await semiproductSelector.isVisible({ timeout: 5000 })) {
-      // Try multiple search terms to find available semiproducts
-      const searchTerms = ['SEMI', 'POLO', 'SP', 'KRÉM', 'GEL'];
+      // Use known staging test data
+      const searchTerms = ['Bezstarostná teenka', 'KRE001001M', 'MAS003001M'];
       
       for (const term of searchTerms) {
         await semiproductSelector.click();

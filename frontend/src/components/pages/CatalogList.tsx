@@ -60,6 +60,7 @@ const CatalogList: React.FC = () => {
   const getInitialSortBy = () => searchParams.get("sortBy") || "";
   const getInitialSortDescending = () => searchParams.get("sortDesc") === "true";
 
+
   // Filter states - separate input values from applied filters
   const [productNameInput, setProductNameInput] = useState(getInitialProductNameFilter);
   const [productCodeInput, setProductCodeInput] = useState(getInitialProductCodeFilter);
@@ -219,6 +220,38 @@ const CatalogList: React.FC = () => {
     setPageNumber(1);
     // Refetch will be triggered automatically by the query dependency change
   }, [productTypeFilter]);
+
+  // Sync page number state from URL parameter changes (for external URL manipulation)
+  React.useEffect(() => {
+    const urlPageParam = searchParams.get("page");
+    const urlPageNumber = urlPageParam ? parseInt(urlPageParam, 10) : 1;
+    const validPageNumber =
+      isNaN(urlPageNumber) || urlPageNumber < 1 ? 1 : urlPageNumber;
+
+    if (validPageNumber !== pageNumber) {
+      setPageNumber(validPageNumber);
+    }
+  }, [searchParams]);
+
+  // Sync URL parameter with page number state
+  React.useEffect(() => {
+    const currentPage = searchParams.get("page");
+    const currentPageNumber = currentPage ? parseInt(currentPage, 10) : 1;
+
+    if (pageNumber === 1) {
+      // Remove page parameter when on page 1
+      if (currentPage) {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("page");
+        setSearchParams(newParams, { replace: true });
+      }
+    } else if (currentPageNumber !== pageNumber) {
+      // Update page parameter when page number changes
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("page", pageNumber.toString());
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [pageNumber, searchParams, setSearchParams]);
 
   // Modal handlers
   const handleItemClick = (item: CatalogItemDto) => {
