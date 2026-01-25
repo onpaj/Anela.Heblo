@@ -491,6 +491,8 @@ async makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
 - Component testing with React Testing Library
 - To validate some frontend behavior, use playwright MCP server agains port 3000. Both frontend and backend should be running by default, ask user to run then if they are not running
 - To run playwright tests, always user script ./scripts/run-playwright-tests.sh with optional parameter of test name (runs all UI tests when test name is not defined)
+- **E2E Test Data**: Use fixtures from `frontend/test/e2e/fixtures/test-data.ts` for consistent, reliable test data (see `docs/testing/test-data-fixtures.md` for reference)
+- **Test Failure Policy**: Tests MUST fail (not skip) when expected data is missing - use `throw new Error()` with clear message
 
 ## Design Document Alignment Rules
 
@@ -599,10 +601,17 @@ This ensures documentation stays synchronized with actual implementation and arc
     - **`test/e2e/layout/`** - Layout behavior (sidebar, responsive design)
     - **`test/e2e/features/`** - Feature-specific user journeys
     - **`test/e2e/integration/`** - Cross-component integration testing
-    
+    - **`test/e2e/fixtures/`** - Test data fixtures for consistent, reliable test data
+
     **CRITICAL Test Environment Rules:**
-    - **Unit/Integration Tests**: Use Jest with mocked dependencies, co-located with components  
+    - **Unit/Integration Tests**: Use Jest with mocked dependencies, co-located with components
     - **E2E Tests**: MUST run against staging environment (https://heblo.stg.anela.cz), located in `/frontend/test/e2e/`
+
+    **CRITICAL Test Data Rules:**
+    - **Always use test fixtures** from `test/e2e/fixtures/test-data.ts` for E2E tests requiring specific data
+    - **Reference documentation** at `docs/testing/test-data-fixtures.md` for available test data
+    - **Tests MUST fail (not skip)** when expected data is missing - throw clear error messages
+    - **Example**: Use `TestCatalogItems.bisabolol` instead of hardcoding "AKL001" or "Bisabolol"
 
 8. **Authentication Testing**:
    - Tests run against real Microsoft Entra ID on staging environment
@@ -737,4 +746,68 @@ This ensures documentation stays synchronized with actual implementation and arc
 - Use this script even when asked "create a playwright test for it to debug" something.. Create test and debug it using that script.
 - Every time you would like to check if implementation is working, test for that instead of just launching the app (unit test, integration test or end to end ui test)
 - There are 3 kinds of tests - BE (Backend, .net tests), FE (Frontend, Jest tests), UI (User interface tests, Playwright)
+
+## E2E Test Data & Fixtures
+
+**MANDATORY**: When writing E2E tests that require consistent, reliable data, ALWAYS use test data fixtures.
+
+### Test Data Reference
+
+- **Primary Source**: `docs/testing/test-data-fixtures.md` - comprehensive list of all available test data
+- **TypeScript Fixtures**: `frontend/test/e2e/fixtures/test-data.ts` - importable test data objects
+
+### Test Data Categories
+
+Available fixture data:
+1. **Catalog Items**: Well-known products and materials (Bisabolol, Glycerol, Hedvábný pan Jasmín, etc.)
+2. **Purchase Orders**: Active purchase orders in various states (Draft, V přepravě)
+3. **Manufacturing Orders**: Manufacturing orders with known products
+4. **Transport Boxes**: Boxes in different states (Otevřený, Naskladněný, Uzavřený)
+5. **Suppliers**: List of known suppliers
+
+### Usage Rules
+
+**When to use fixtures:**
+- ✅ When testing search/filter functionality - use `TestCatalogItems.bisabolol.code` instead of hardcoded "AKL001"
+- ✅ When testing with specific products - import from `test-data.ts` instead of hardcoding values
+- ✅ When writing new E2E tests that need predictable data
+
+**Fail, don't skip:**
+- ❌ **NEVER** skip tests when data is not found (`test.skip()`)
+- ✅ **ALWAYS** throw an error with a clear message: `throw new Error("Test data missing: Expected to find product X...")`
+- ✅ Use helper functions: `requireTestData()`, `assertMinimumCount()`
+
+**Example usage:**
+```typescript
+import { TestCatalogItems, requireTestData } from './fixtures/test-data';
+
+test('should filter by product name', async ({ page }) => {
+  const product = TestCatalogItems.bisabolol;
+  console.log(`🔍 Searching for: ${product.name} (${product.code})`);
+
+  await searchForProduct(page, product.name);
+
+  const rowCount = await getRowCount(page);
+  if (rowCount === 0) {
+    throw new Error(
+      `Test data missing: Expected to find "${product.name}" (${product.code}). ` +
+      `Test fixtures may be outdated.`
+    );
+  }
+
+  // Continue with assertions...
+});
+```
+
+### Updating Test Data
+
+When test data changes or becomes outdated:
+1. Update `docs/testing/test-data-fixtures.md` with current data
+2. Update `frontend/test/e2e/fixtures/test-data.ts` TypeScript definitions
+3. Re-run affected tests to verify they still pass
+
+**Data stability:**
+- **High stability**: Catalog items (products/materials) - rarely change
+- **Medium stability**: Purchase orders - may change state over time
+- **Low stability**: Transport boxes - change frequently, use state-based tests
 

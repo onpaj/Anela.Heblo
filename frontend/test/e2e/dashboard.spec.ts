@@ -81,9 +81,12 @@ test.describe('Dashboard', () => {
     const tiles = page.locator('[data-testid^="dashboard-tile-"]');
     const tileCount = await tiles.count();
 
-    // Skip if less than 2 tiles
+    // Require at least 2 tiles - fail if not enough tiles available
     if (tileCount < 2) {
-      test.skip();
+      throw new Error(
+        `Insufficient dashboard tiles for drag-and-drop test: Expected at least 2 tiles, ` +
+        `but found only ${tileCount}. Dashboard may not have enough configured tiles.`
+      );
     }
 
     // Get first and second tile IDs
