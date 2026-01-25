@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -36,6 +37,8 @@ const productTypeOptions = [
 ];
 
 const CatalogList: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
   // Filter states - separate input values from applied filters
   const [productNameInput, setProductNameInput] = useState("");
   const [productCodeInput, setProductCodeInput] = useState("");
@@ -45,8 +48,11 @@ const CatalogList: React.FC = () => {
     "",
   );
 
-  // Pagination states
-  const [pageNumber, setPageNumber] = useState(1);
+  // Pagination states - initialize from URL params
+  const initialPageNumber = parseInt(searchParams.get("page") || "1", 10);
+  const [pageNumber, setPageNumber] = useState(
+    isNaN(initialPageNumber) || initialPageNumber < 1 ? 1 : initialPageNumber,
+  );
   const [pageSize, setPageSize] = useState(20);
 
   // Sorting states
@@ -137,6 +143,38 @@ const CatalogList: React.FC = () => {
     setPageNumber(1);
     // Refetch will be triggered automatically by the query dependency change
   }, [productTypeFilter]);
+
+  // Sync page number state from URL parameter changes (for external URL manipulation)
+  React.useEffect(() => {
+    const urlPageParam = searchParams.get("page");
+    const urlPageNumber = urlPageParam ? parseInt(urlPageParam, 10) : 1;
+    const validPageNumber =
+      isNaN(urlPageNumber) || urlPageNumber < 1 ? 1 : urlPageNumber;
+
+    if (validPageNumber !== pageNumber) {
+      setPageNumber(validPageNumber);
+    }
+  }, [searchParams]);
+
+  // Sync URL parameter with page number state
+  React.useEffect(() => {
+    const currentPage = searchParams.get("page");
+    const currentPageNumber = currentPage ? parseInt(currentPage, 10) : 1;
+
+    if (pageNumber === 1) {
+      // Remove page parameter when on page 1
+      if (currentPage) {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("page");
+        setSearchParams(newParams, { replace: true });
+      }
+    } else if (currentPageNumber !== pageNumber) {
+      // Update page parameter when page number changes
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("page", pageNumber.toString());
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [pageNumber, searchParams, setSearchParams]);
 
   // Modal handlers
   const handleItemClick = (item: CatalogItemDto) => {
