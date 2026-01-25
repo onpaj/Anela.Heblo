@@ -15,6 +15,7 @@ import {
   getFilterButton,
   waitForTableUpdate,
 } from './helpers/catalog-test-helpers';
+import { TestCatalogItems, assertMinimumCount } from './fixtures/test-data';
 
 test.describe('Catalog Text Search Filters E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -38,8 +39,11 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
   // ============================================================================
 
   test('should filter products by name using Filter button', async ({ page }) => {
-    // Apply a common search term that should return results
-    await applyProductNameFilter(page, 'Krém');
+    // Use well-known test data - Bisabolol material
+    const searchTerm = TestCatalogItems.bisabolol.name;
+    console.log(`🔍 Searching for known product: ${searchTerm}`);
+
+    await applyProductNameFilter(page, searchTerm);
 
     // Wait for results
     await waitForTableUpdate(page);
@@ -47,24 +51,27 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     // Check if we have results or empty state
     const rowCount = await getRowCount(page);
 
-    if (rowCount > 0) {
-      // Validate all results contain the search term
-      await validateFilteredResults(page, { productName: 'Krém' });
-
-      // Validate filter status indicator is shown
-      await validateFilterStatusIndicator(page, true);
-
-      // Validate page was reset to 1
-      await validatePageResetToOne(page);
-    } else {
-      // If no results, validate empty state is shown
-      await validateEmptyState(page);
+    // We MUST have results for known test data - fail if not found
+    if (rowCount === 0) {
+      throw new Error(`Test data missing: Expected to find product "${searchTerm}" (${TestCatalogItems.bisabolol.code}) in catalog. Test fixtures may be outdated.`);
     }
+
+    // Validate all results contain the search term
+    await validateFilteredResults(page, { productName: searchTerm });
+
+    // Validate filter status indicator is shown
+    await validateFilterStatusIndicator(page, true);
+
+    // Validate page was reset to 1
+    await validatePageResetToOne(page);
   });
 
   test('should filter products by name using Enter key', async ({ page }) => {
-    // Apply filter using Enter key
-    await applyProductNameFilterWithEnter(page, 'Sérum');
+    // Use well-known test data - Glycerol material
+    const searchTerm = TestCatalogItems.glycerol.name;
+    console.log(`🔍 Searching for known product: ${searchTerm}`);
+
+    await applyProductNameFilterWithEnter(page, searchTerm);
 
     // Wait for results
     await waitForTableUpdate(page);
@@ -72,24 +79,28 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     // Check if we have results or empty state
     const rowCount = await getRowCount(page);
 
-    if (rowCount > 0) {
-      // Validate all results contain the search term
-      await validateFilteredResults(page, { productName: 'Sérum' });
-
-      // Validate filter status indicator is shown
-      await validateFilterStatusIndicator(page, true);
-
-      // Validate page was reset to 1
-      await validatePageResetToOne(page);
-    } else {
-      // If no results, validate empty state is shown
-      await validateEmptyState(page);
+    // We MUST have results for known test data - fail if not found
+    if (rowCount === 0) {
+      throw new Error(`Test data missing: Expected to find product "${searchTerm}" (${TestCatalogItems.glycerol.code}) in catalog. Test fixtures may be outdated.`);
     }
+
+    // Validate all results contain the search term
+    await validateFilteredResults(page, { productName: searchTerm });
+
+    // Validate filter status indicator is shown
+    await validateFilterStatusIndicator(page, true);
+
+    // Validate page was reset to 1
+    await validatePageResetToOne(page);
   });
 
   test('should perform partial name matching', async ({ page }) => {
-    // Search for partial product name
-    await applyProductNameFilter(page, 'Plet');
+    // Search for partial product name - "Glyc" should match "Glycerol"
+    const partialSearch = 'Glyc';
+    const fullProductName = TestCatalogItems.glycerol.name;
+    console.log(`🔍 Testing partial match: "${partialSearch}" should find "${fullProductName}"`);
+
+    await applyProductNameFilter(page, partialSearch);
 
     // Wait for results
     await waitForTableUpdate(page);
@@ -97,30 +108,34 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     // Validate results contain the partial match
     const rowCount = await getRowCount(page);
 
-    if (rowCount > 0) {
-      await validateFilteredResults(page, { productName: 'Plet' });
-      console.log('✅ Partial name matching working correctly');
-    } else {
-      console.log('ℹ️ No products found with partial match "Plet"');
+    if (rowCount === 0) {
+      throw new Error(`Test data missing or partial match failed: Expected to find products matching "${partialSearch}" (should include ${fullProductName}). Test fixtures may be outdated.`);
     }
+
+    await validateFilteredResults(page, { productName: partialSearch });
+    console.log('✅ Partial name matching working correctly');
   });
 
   test('should handle case-insensitive search', async ({ page }) => {
-    // Search with uppercase
-    await applyProductNameFilter(page, 'KRÉM');
+    // Search with uppercase version of known product
+    const searchTerm = TestCatalogItems.bisabolol.name.toUpperCase();
+    const expectedProduct = TestCatalogItems.bisabolol.name;
+    console.log(`🔍 Testing case-insensitive search: "${searchTerm}" should find "${expectedProduct}"`);
+
+    await applyProductNameFilter(page, searchTerm);
 
     // Wait for results
     await waitForTableUpdate(page);
 
     const rowCount = await getRowCount(page);
 
-    if (rowCount > 0) {
-      // Validate results (case-insensitive check)
-      await validateFilteredResults(page, { productName: 'krém' }, { caseSensitive: false });
-      console.log('✅ Case-insensitive search working correctly');
-    } else {
-      console.log('ℹ️ No products found for case-insensitive search');
+    if (rowCount === 0) {
+      throw new Error(`Test data missing or case-insensitive search failed: Expected to find product "${expectedProduct}" when searching for "${searchTerm}". Test fixtures may be outdated.`);
     }
+
+    // Validate results (case-insensitive check)
+    await validateFilteredResults(page, { productName: expectedProduct.toLowerCase() }, { caseSensitive: false });
+    console.log('✅ Case-insensitive search working correctly');
   });
 
   test('should reset to page 1 when applying name filter', async ({ page }) => {
@@ -131,29 +146,31 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
-    // Apply name filter
-    await applyProductNameFilter(page, 'Krém');
+    // Apply name filter with known product
+    const searchTerm = TestCatalogItems.bisabolol.name;
+    await applyProductNameFilter(page, searchTerm);
 
     // Validate page was reset to 1
     await validatePageResetToOne(page);
   });
 
   test('should display filter status in pagination info', async ({ page }) => {
-    // Apply name filter
-    await applyProductNameFilter(page, 'Krém');
+    // Apply name filter with known product
+    const searchTerm = TestCatalogItems.bisabolol.name;
+    await applyProductNameFilter(page, searchTerm);
 
     // Wait for results
     await waitForTableUpdate(page);
 
     const rowCount = await getRowCount(page);
 
-    if (rowCount > 0) {
-      // Validate filter status indicator is visible
-      await validateFilterStatusIndicator(page, true);
-      console.log('✅ Filter status indicator displayed in pagination');
-    } else {
-      console.log('ℹ️ No results to show filter status');
+    if (rowCount === 0) {
+      throw new Error(`Test data missing: Expected to find product "${searchTerm}" in catalog. Test fixtures may be outdated.`);
     }
+
+    // Validate filter status indicator is visible
+    await validateFilterStatusIndicator(page, true);
+    console.log('✅ Filter status indicator displayed in pagination');
   });
 
   // ============================================================================
@@ -161,84 +178,87 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
   // ============================================================================
 
   test('should filter products by code using Filter button', async ({ page }) => {
-    // Apply product code filter (use a short code that might match)
-    await applyProductCodeFilter(page, 'AH');
+    // Use known product code prefix - all our test materials start with "AKL"
+    const codePrefix = 'AKL';
+    console.log(`🔍 Searching for products with code prefix: ${codePrefix}`);
+
+    await applyProductCodeFilter(page, codePrefix);
 
     // Wait for results
     await waitForTableUpdate(page);
 
     const rowCount = await getRowCount(page);
 
-    if (rowCount > 0) {
-      // Validate all results contain the code
-      await validateFilteredResults(page, { productCode: 'AH' });
-
-      // Validate filter status indicator
-      await validateFilterStatusIndicator(page, true);
-
-      // Validate page reset
-      await validatePageResetToOne(page);
-    } else {
-      await validateEmptyState(page);
+    if (rowCount === 0) {
+      throw new Error(`Test data missing: Expected to find products with code prefix "${codePrefix}". Test fixtures may be outdated.`);
     }
+
+    // Validate all results contain the code
+    await validateFilteredResults(page, { productCode: codePrefix });
+
+    // Validate filter status indicator
+    await validateFilterStatusIndicator(page, true);
+
+    // Validate page reset
+    await validatePageResetToOne(page);
   });
 
   test('should filter products by code using Enter key', async ({ page }) => {
-    // Apply filter using Enter key
-    await applyProductCodeFilterWithEnter(page, 'AH');
+    // Use known product code prefix
+    const codePrefix = 'AKL';
+    console.log(`🔍 Searching for products with code prefix (Enter key): ${codePrefix}`);
+
+    await applyProductCodeFilterWithEnter(page, codePrefix);
 
     // Wait for results
     await waitForTableUpdate(page);
 
     const rowCount = await getRowCount(page);
 
-    if (rowCount > 0) {
-      await validateFilteredResults(page, { productCode: 'AH' });
-      await validateFilterStatusIndicator(page, true);
-    } else {
-      await validateEmptyState(page);
+    if (rowCount === 0) {
+      throw new Error(`Test data missing: Expected to find products with code prefix "${codePrefix}". Test fixtures may be outdated.`);
     }
+
+    await validateFilteredResults(page, { productCode: codePrefix });
+    await validateFilterStatusIndicator(page, true);
   });
 
   test('should perform exact code matching', async ({ page }) => {
-    // This test attempts to find an exact product code match
-    // First, get a product code from the table
-    const firstCodeCell = page.locator('tbody tr:first-child td:nth-child(1)');
-    const productCode = await firstCodeCell.textContent();
+    // Use a well-known exact product code
+    const exactCode = TestCatalogItems.bisabolol.code;
+    console.log(`🔍 Testing exact code match with known product: "${exactCode}"`);
 
-    if (productCode) {
-      const code = productCode.trim();
-      console.log(`🔍 Testing exact code match with: "${code}"`);
+    await applyProductCodeFilter(page, exactCode);
+    await waitForTableUpdate(page);
 
-      await applyProductCodeFilter(page, code);
-      await waitForTableUpdate(page);
+    const rowCount = await getRowCount(page);
 
-      const rowCount = await getRowCount(page);
-
-      if (rowCount > 0) {
-        await validateFilteredResults(page, { productCode: code });
-        console.log('✅ Exact code matching working correctly');
-      }
-    } else {
-      console.log('⚠️ Could not get product code for exact match test');
+    if (rowCount === 0) {
+      throw new Error(`Test data missing: Expected to find product with exact code "${exactCode}". Test fixtures may be outdated.`);
     }
+
+    await validateFilteredResults(page, { productCode: exactCode });
+    console.log('✅ Exact code matching working correctly');
   });
 
   test('should handle partial code matching', async ({ page }) => {
-    // Search for partial product code
-    await applyProductCodeFilter(page, 'AH');
+    // Search for partial product code - "AKL" is prefix for all test materials
+    const partialCode = 'AKL';
+    console.log(`🔍 Testing partial code match with: "${partialCode}"`);
+
+    await applyProductCodeFilter(page, partialCode);
 
     // Wait for results
     await waitForTableUpdate(page);
 
     const rowCount = await getRowCount(page);
 
-    if (rowCount > 0) {
-      await validateFilteredResults(page, { productCode: 'AH' });
-      console.log('✅ Partial code matching working correctly');
-    } else {
-      console.log('ℹ️ No products found with partial code "AH"');
+    if (rowCount === 0) {
+      throw new Error(`Test data missing: Expected to find products with code prefix "${partialCode}". Test fixtures may be outdated.`);
     }
+
+    await validateFilteredResults(page, { productCode: partialCode });
+    console.log('✅ Partial code matching working correctly');
   });
 
   test('should reset to page 1 when applying code filter', async ({ page }) => {
@@ -249,8 +269,9 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
-    // Apply code filter
-    await applyProductCodeFilter(page, 'AH');
+    // Apply code filter with known prefix
+    const codePrefix = 'AKL';
+    await applyProductCodeFilter(page, codePrefix);
 
     // Validate page was reset to 1
     await validatePageResetToOne(page);
@@ -286,12 +307,15 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
   });
 
   test('should apply both name and code filters simultaneously when both filled', async ({ page }) => {
-    // Fill both filters with values that should overlap
+    // Use known product that matches both name and code
+    const testProduct = TestCatalogItems.bisabolol;
     const nameInput = getProductNameInput(page);
     const codeInput = getProductCodeInput(page);
 
-    await nameInput.fill('Krém');
-    await codeInput.fill('AH');
+    console.log(`🔍 Testing combined filters: name="${testProduct.name}" AND code prefix="${testProduct.code.substring(0, 3)}"`);
+
+    await nameInput.fill(testProduct.name);
+    await codeInput.fill(testProduct.code.substring(0, 3)); // Use "AKL" prefix
 
     const filterButton = getFilterButton(page);
     await filterButton.click();
@@ -300,23 +324,22 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
 
     const rowCount = await getRowCount(page);
 
-    if (rowCount > 0) {
-      // Validate both filters are applied
-      await validateFilteredResults(page, {
-        productName: 'Krém',
-        productCode: 'AH',
-      });
-      console.log('✅ Both filters applied simultaneously');
-    } else {
-      // No results matching both criteria
-      await validateEmptyState(page);
-      console.log('ℹ️ No products match both filter criteria');
+    if (rowCount === 0) {
+      throw new Error(`Test data missing: Expected to find product matching both name="${testProduct.name}" and code="${testProduct.code}". Test fixtures may be outdated.`);
     }
+
+    // Validate both filters are applied
+    await validateFilteredResults(page, {
+      productName: testProduct.name,
+      productCode: testProduct.code.substring(0, 3),
+    });
+    console.log('✅ Both filters applied simultaneously');
   });
 
   test('should handle rapid consecutive filter button clicks', async ({ page }) => {
     const nameInput = getProductNameInput(page);
-    await nameInput.fill('Krém');
+    const searchTerm = TestCatalogItems.bisabolol.name;
+    await nameInput.fill(searchTerm);
 
     const filterButton = getFilterButton(page);
 
@@ -330,13 +353,13 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
 
     const rowCount = await getRowCount(page);
 
-    if (rowCount > 0) {
-      // Validate filter was applied correctly despite multiple clicks
-      await validateFilteredResults(page, { productName: 'Krém' });
-      console.log('✅ Rapid clicks handled correctly');
-    } else {
-      console.log('ℹ️ No results for rapid click test');
+    if (rowCount === 0) {
+      throw new Error(`Test data missing: Expected to find product "${searchTerm}" after rapid clicks. Test fixtures may be outdated.`);
     }
+
+    // Validate filter was applied correctly despite multiple clicks
+    await validateFilteredResults(page, { productName: searchTerm });
+    console.log('✅ Rapid clicks handled correctly');
   });
 
   // ============================================================================

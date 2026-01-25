@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { createE2EAuthSession, navigateToApp } from '../helpers/e2e-auth-helper';
+import { TestCatalogItems } from '../fixtures/test-data';
 
 test.describe('ManufactureBatchPlanning Workflow', () => {
   test.beforeEach(async ({ page }) => {
@@ -971,31 +972,39 @@ test.describe('ManufactureBatchPlanning Workflow', () => {
     console.log('💡 TEST VALIDATES: ALL form changes are properly persisted and no data is lost during save operation');
   });
 
-  test.skip('should validate batch planning calculations with different control modes', async ({ page }) => {
+  test('should validate batch planning calculations with different control modes', async ({ page }) => {
     console.log('📍 Test: Validate batch planning calculations with different control modes');
-    
+
+    // Use well-known semi-product from fixtures
+    const testProduct = TestCatalogItems.hedvabnyPan;
+    console.log(`🔍 Testing with product: ${testProduct.code} - ${testProduct.name}`);
+
     // Navigate to batch planning
     await page.getByRole('button', { name: 'Výroba' }).click();
     await page.getByRole('link', { name: /plánovač výrobních dávek/i }).click();
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
-    
+
     console.log('✅ Navigated to batch planning page');
-    
-    // Select product MAS001001M
+
+    // Select product using test fixture
     const productInput = page.locator('input[placeholder*="polotovar"]').first();
     await productInput.click();
-    await productInput.fill('MAS001001M');
+    await productInput.fill(testProduct.code);
     await page.waitForTimeout(1500);
-    
+
     const firstOption = page.locator('[role="option"]').first();
-    if (await firstOption.isVisible({ timeout: 2000 })) {
-      await firstOption.click();
-    } else {
-      await productInput.press('Enter');
+    const optionVisible = await firstOption.isVisible({ timeout: 3000 }).catch(() => false);
+
+    if (!optionVisible) {
+      throw new Error(
+        `Test data missing: Product "${testProduct.code}" (${testProduct.name}) not found in batch planning. ` +
+        `Test fixtures may be outdated or product not available as semi-product.`
+      );
     }
-    
-    console.log('✅ Selected product MAS001001M');
+
+    await firstOption.click();
+    console.log(`✅ Selected product ${testProduct.code}`);
     
     // Wait for initial calculation
     await page.waitForTimeout(3000);
