@@ -30,7 +30,7 @@ public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
     {
         var templates = await _accountingTemplateClient.GetAsync();
         return templates
-            .Where(w => !w.Code.StartsWith("N-") && w.AccountCode.StartsWith("5"))
+            .Where(w => !w.Code.StartsWith("N-") && w.ModuleReceivedInvoicedAvailable)
             .Select(s => new AccountingTemplateDto
             {
                 AccountCode = s.AccountCode,
