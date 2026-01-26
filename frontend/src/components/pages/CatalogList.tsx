@@ -215,12 +215,6 @@ const CatalogList: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // Reset pagination when type filter changes
-  React.useEffect(() => {
-    setPageNumber(1);
-    // Refetch will be triggered automatically by the query dependency change
-  }, [productTypeFilter]);
-
   // Sync page number state from URL parameter changes (for external URL manipulation)
   React.useEffect(() => {
     const urlPageParam = searchParams.get("page");
@@ -231,7 +225,7 @@ const CatalogList: React.FC = () => {
     if (validPageNumber !== pageNumber) {
       setPageNumber(validPageNumber);
     }
-  }, [searchParams]);
+  }, [searchParams, pageNumber]);
 
   // Sync URL parameter with page number state
   React.useEffect(() => {
@@ -373,13 +367,14 @@ const CatalogList: React.FC = () => {
               <select
                 id="productType"
                 value={productTypeFilter}
-                onChange={(e) =>
+                onChange={(e) => {
                   setProductTypeFilter(
                     e.target.value === ""
                       ? ""
                       : (e.target.value as ProductType),
-                  )
-                }
+                  );
+                  setPageNumber(1); // Reset to first page when filter changes
+                }}
                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >
                 <option value="">Všechny typy</option>
