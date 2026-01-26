@@ -5,27 +5,12 @@
 FROM node:18-alpine AS frontend-build
 WORKDIR /app/frontend
 
-# Accept build arguments for React environment variables
-ARG REACT_APP_API_URL=http://localhost:8080
-ARG REACT_APP_USE_MOCK_AUTH=true
-ARG REACT_APP_AZURE_CLIENT_ID=
-ARG REACT_APP_AZURE_AUTHORITY=
-ARG REACT_APP_AZURE_BACKEND_CLIENT_ID=
-ARG REACT_APP_AZURE_TENANT_ID=
-
-# Set environment variables for React build
-ENV REACT_APP_API_URL=$REACT_APP_API_URL
-ENV REACT_APP_USE_MOCK_AUTH=$REACT_APP_USE_MOCK_AUTH
-ENV REACT_APP_AZURE_CLIENT_ID=$REACT_APP_AZURE_CLIENT_ID
-ENV REACT_APP_AZURE_AUTHORITY=$REACT_APP_AZURE_AUTHORITY
-ENV REACT_APP_AZURE_BACKEND_CLIENT_ID=$REACT_APP_AZURE_BACKEND_CLIENT_ID
-ENV REACT_APP_AZURE_TENANT_ID=$REACT_APP_AZURE_TENANT_ID
-
 # Copy package files and install all dependencies (needed for build)
 COPY frontend/package*.json ./
 RUN npm install --legacy-peer-deps
 
 # Copy frontend source and build
+# No build-time environment variables needed - configuration loaded at runtime
 COPY frontend/ ./
 RUN npm run build
 

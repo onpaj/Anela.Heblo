@@ -26,4 +26,24 @@ public class GetConfigurationResponse : BaseResponse
     /// Response timestamp in UTC
     /// </summary>
     public DateTime Timestamp { get; set; }
+
+    /// <summary>
+    /// API base URL for the frontend
+    /// </summary>
+    public string ApiUrl { get; set; } = default!;
+
+    /// <summary>
+    /// Azure AD Client ID for authentication
+    /// </summary>
+    public string AzureClientId { get; set; } = default!;
+
+    /// <summary>
+    /// Azure AD Authority URL
+    /// </summary>
+    public string AzureAuthority { get; set; } = default!;
+
+    /// <summary>
+    /// Azure AD Tenant ID
+    /// </summary>
+    public string AzureTenantId { get; set; } = default!;
 }

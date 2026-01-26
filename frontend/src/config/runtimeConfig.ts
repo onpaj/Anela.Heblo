@@ -1,7 +1,7 @@
 /**
- * Configuration service for React app
- * Uses build-time environment variables set during Docker build process
- * This is simpler and more reliable than runtime config fetching
+ * Runtime configuration service for React app
+ * Loads configuration from backend /api/configuration endpoint at startup
+ * Enables single Docker image to work across all environments
  */
 
 export interface Config {
@@ -9,134 +9,146 @@ export interface Config {
   useMockAuth: boolean;
   azureClientId: string;
   azureAuthority: string;
+  azureTenantId: string;
+  version: string;
+  environment: string;
+}
+
+export class ConfigurationError extends Error {
+  constructor(message: string, public readonly originalError?: Error) {
+    super(message);
+    this.name = 'ConfigurationError';
+  }
 }
 
 let cachedConfig: Config | null = null;
+let configLoadPromise: Promise<Config> | null = null;
 
 /**
- * Validate critical environment variables and log missing ones
+ * Get the configuration API URL
+ * Development: http://localhost:5000/api/configuration
+ * Production: {window.location.origin}/api/configuration
  */
-const validateEnvironmentVariables = (): string[] => {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-
-  // Critical variables that should always be set
-  if (!process.env.REACT_APP_API_URL) {
-    warnings.push(
-      "REACT_APP_API_URL not set - using window.location.origin as fallback",
-    );
+const getConfigurationUrl = (): string => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  if (isDevelopment) {
+    return 'http://localhost:5000/api/configuration';
   }
-
-  // Authentication variables - check if required for real auth
-  const useMockAuth = process.env.REACT_APP_USE_MOCK_AUTH === "true";
-
-  if (!useMockAuth) {
-    if (!process.env.REACT_APP_AZURE_CLIENT_ID) {
-      errors.push(
-        "REACT_APP_AZURE_CLIENT_ID is required for real authentication but not set",
-      );
-    }
-
-    if (!process.env.REACT_APP_AZURE_AUTHORITY) {
-      errors.push(
-        "REACT_APP_AZURE_AUTHORITY is required for real authentication but not set",
-      );
-    }
-  } else {
-    console.log(
-      "🧪 Mock authentication explicitly enabled via REACT_APP_USE_MOCK_AUTH=true",
-    );
-  }
-
-  // Log warnings
-  if (warnings.length > 0) {
-    console.warn("⚠️  Configuration warnings:");
-    warnings.forEach((warning) => console.warn(`   - ${warning}`));
-  }
-
-  // Log errors
-  if (errors.length > 0) {
-    console.error("❌ Configuration errors:");
-    errors.forEach((error) => console.error(`   - ${error}`));
-    if (!useMockAuth) {
-      console.error(
-        "   💥 Real authentication requested but configuration is invalid",
-      );
-      console.error(
-        "   🔧 Set REACT_APP_USE_MOCK_AUTH=true to use mock authentication instead",
-      );
-    }
-  }
-
-  return errors;
+  return `${window.location.origin}/api/configuration`;
 };
 
 /**
- * Load configuration from build-time environment variables
- * This is simpler and more reliable than runtime fetching from backend
+ * Load configuration from backend /api/configuration endpoint
+ * This async function must be called during app initialization before rendering
  */
-export const loadConfig = (): Config => {
+export const loadConfig = async (): Promise<Config> => {
+  // Return cached config if available
   if (cachedConfig) {
+    console.log('✅ Using cached configuration');
     return cachedConfig;
   }
 
-  console.log("🔧 Loading application configuration...");
-
-  // Validate environment variables first
-  const configErrors = validateEnvironmentVariables();
-
-  // Determine if we should use mock auth
-  // According to updated specification: ONLY REACT_APP_USE_MOCK_AUTH decides
-  const shouldUseMock = process.env.REACT_APP_USE_MOCK_AUTH === "true";
-
-  // If there are config errors and mock auth is not enabled, throw error
-  if (configErrors.length > 0 && !shouldUseMock) {
-    throw new Error(
-      `Configuration errors found and mock authentication is disabled. ${configErrors.join(", ")}`,
-    );
+  // Return existing load promise if already loading
+  if (configLoadPromise) {
+    console.log('⏳ Configuration loading already in progress...');
+    return configLoadPromise;
   }
 
-  // Use build-time environment variables set during Docker build
-  cachedConfig = {
-    apiUrl: process.env.REACT_APP_API_URL || window.location.origin,
-    useMockAuth: shouldUseMock,
-    azureClientId: process.env.REACT_APP_AZURE_CLIENT_ID || "",
-    azureAuthority: process.env.REACT_APP_AZURE_AUTHORITY || "",
-  };
+  console.log('🔧 Loading runtime configuration from backend...');
 
-  // Log final configuration
-  console.log("✅ Configuration loaded successfully:", {
-    apiUrl: cachedConfig.apiUrl,
-    useMockAuth: cachedConfig.useMockAuth,
-    azureClientId: cachedConfig.azureClientId ? "[SET]" : "[NOT SET]",
-    azureAuthority: cachedConfig.azureAuthority ? "[SET]" : "[NOT SET]",
-  });
+  const configUrl = getConfigurationUrl();
+  console.log(`   Fetching from: ${configUrl}`);
 
-  if (cachedConfig.useMockAuth) {
-    console.log(
-      "🧪 Mock authentication enabled - using fake tokens for API calls",
-    );
-  } else {
-    console.log("🔐 Real authentication enabled - using Microsoft Entra ID");
-  }
+  configLoadPromise = fetch(configUrl, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'omit', // Don't send cookies for config endpoint
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new ConfigurationError(
+          `Failed to load configuration: ${response.status} ${response.statusText}`
+        );
+      }
+      return response.json();
+    })
+    .then((data) => {
+      // Map backend response to frontend config format
+      cachedConfig = {
+        apiUrl: data.apiUrl || window.location.origin,
+        useMockAuth: data.useMockAuth || false,
+        azureClientId: data.azureClientId || '',
+        azureAuthority: data.azureAuthority || '',
+        azureTenantId: data.azureTenantId || '',
+        version: data.version || 'unknown',
+        environment: data.environment || 'unknown',
+      };
 
-  return cachedConfig;
+      console.log('✅ Configuration loaded successfully:', {
+        apiUrl: cachedConfig.apiUrl,
+        useMockAuth: cachedConfig.useMockAuth,
+        azureClientId: cachedConfig.azureClientId ? '[SET]' : '[NOT SET]',
+        azureAuthority: cachedConfig.azureAuthority ? '[SET]' : '[NOT SET]',
+        azureTenantId: cachedConfig.azureTenantId ? '[SET]' : '[NOT SET]',
+        version: cachedConfig.version,
+        environment: cachedConfig.environment,
+      });
+
+      if (cachedConfig.useMockAuth) {
+        console.log('🧪 Mock authentication enabled - using fake tokens for API calls');
+      } else {
+        console.log('🔐 Real authentication enabled - using Microsoft Entra ID');
+      }
+
+      configLoadPromise = null; // Clear promise after successful load
+      return cachedConfig;
+    })
+    .catch((error) => {
+      configLoadPromise = null; // Clear promise on error so retry is possible
+      const configError = new ConfigurationError(
+        'Failed to load application configuration from backend',
+        error
+      );
+      console.error('❌ Configuration loading failed:', error);
+      throw configError;
+    });
+
+  return configLoadPromise;
 };
 
 /**
  * Get the configuration
- * Loads from environment variables if not already cached
+ * IMPORTANT: Configuration must be loaded first via loadConfig() during app initialization
+ * Throws error if configuration has not been loaded yet
  */
 export const getConfig = (): Config => {
-  return loadConfig();
+  if (!cachedConfig) {
+    throw new ConfigurationError(
+      'Configuration has not been loaded yet. Call loadConfig() during app initialization.'
+    );
+  }
+  return cachedConfig;
+};
+
+/**
+ * Check if configuration has been loaded
+ */
+export const isConfigLoaded = (): boolean => {
+  return cachedConfig !== null;
 };
 
 /**
  * Check if we should use mock authentication
  */
 export const shouldUseMockAuth = (): boolean => {
-  const config = getConfig();
-  return config.useMockAuth || !config.azureClientId || !config.azureAuthority;
+  if (!cachedConfig) {
+    throw new ConfigurationError(
+      'Configuration has not been loaded yet. Call loadConfig() during app initialization.'
+    );
+  }
+  return cachedConfig.useMockAuth || !cachedConfig.azureClientId || !cachedConfig.azureAuthority;
 };
 
 // Legacy exports for backward compatibility
