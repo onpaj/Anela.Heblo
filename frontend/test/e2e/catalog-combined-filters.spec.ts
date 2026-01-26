@@ -14,6 +14,7 @@ import {
   getPageSizeSelect,
   waitForTableUpdate,
 } from './helpers/catalog-test-helpers';
+import { waitForPageLoad, waitForLoadingComplete } from './helpers/wait-helpers';
 
 test.describe('Catalog Combined Filters E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -28,8 +29,7 @@ test.describe('Catalog Combined Filters E2E Tests', () => {
 
     // Wait for initial catalog load
     console.log('⏳ Waiting for initial catalog to load...');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
+    await waitForPageLoad(page, { headingText: 'Katalog', timeout: 10000 });
   });
 
   // ============================================================================
@@ -154,8 +154,8 @@ test.describe('Catalog Combined Filters E2E Tests', () => {
     const url = new URL(page.url());
     url.searchParams.set('page', '2');
     await page.goto(url.toString());
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('domcontentloaded');
+    await waitForLoadingComplete(page);
 
     // Verify we're on page 2
     let currentPage = await getCurrentPageFromUrl(page);
@@ -325,7 +325,7 @@ test.describe('Catalog Combined Filters E2E Tests', () => {
     await nameInput.fill('Krém');
 
     // Wait a bit
-    await page.waitForTimeout(1000);
+    await waitForLoadingComplete(page);
 
     // Get first row's name
     const firstNameCell = page.locator('tbody tr:first-child td:nth-child(2)');
@@ -359,7 +359,7 @@ test.describe('Catalog Combined Filters E2E Tests', () => {
 
     // Fill name input
     await nameInput.fill('Krém');
-    await page.waitForTimeout(500);
+    await waitForLoadingComplete(page);
 
     // Row count should not change yet
     const unchangedRowCount = await getRowCount(page);

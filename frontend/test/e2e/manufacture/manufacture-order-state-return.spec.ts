@@ -15,7 +15,7 @@ test.describe('Manufacture Order State Return Confirmation', () => {
       await navigateToApp(page);
       
       // Wait for app to load
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       await page.waitForTimeout(3000); // Give extra time for React components to initialize
       
       console.log('✅ Manufacture order state return test setup completed successfully');
@@ -40,7 +40,7 @@ test.describe('Manufacture Order State Return Confirmation', () => {
     console.log('✅ Clicked Zakázky link');
     
     // Wait for the orders page to load
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
     
     // Step 2: Look for an order that is in a state that can be returned (not Draft)
@@ -60,7 +60,7 @@ test.describe('Manufacture Order State Return Confirmation', () => {
     }
     
     // Wait for order detail to load
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
     
     // Step 3: Look for the "Previous State" button (Zpět button)

@@ -19,7 +19,7 @@ test.describe('E2E Authentication Tests (Development/Staging)', () => {
     expect(page.url()).not.toContain('login.microsoftonline.com');
     
     // Wait for React app to load and render main components
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     
     // Enhanced dashboard validation - check for main application elements and content
     console.log('🔍 Performing enhanced dashboard validation...');
@@ -236,7 +236,7 @@ test.describe('E2E Authentication Tests (Development/Staging)', () => {
     
     // Navigate to application using shared helper
     await navigateToApp(page);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     
     // Wait a bit for any API calls to complete
     await page.waitForTimeout(2000);

@@ -16,6 +16,7 @@ import {
   getClearButton,
   waitForTableUpdate,
 } from './helpers/catalog-test-helpers';
+import { waitForPageLoad, waitForLoadingComplete } from './helpers/wait-helpers';
 
 test.describe('Catalog Clear Filters E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -30,8 +31,8 @@ test.describe('Catalog Clear Filters E2E Tests', () => {
 
     // Wait for initial catalog load
     console.log('⏳ Waiting for initial catalog to load...');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
+    await page.waitForLoadState('domcontentloaded');
+    await waitForPageLoad(page, { headingText: 'Katalog', timeout: 10000 });
   });
 
   // ============================================================================
@@ -142,8 +143,8 @@ test.describe('Catalog Clear Filters E2E Tests', () => {
     const url = new URL(page.url());
     url.searchParams.set('page', '2');
     await page.goto(url.toString());
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('domcontentloaded');
+    await waitForLoadingComplete(page);
 
     // Clear filters
     await clearAllFilters(page);

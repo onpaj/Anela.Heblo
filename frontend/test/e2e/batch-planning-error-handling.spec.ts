@@ -15,7 +15,7 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
       await navigateToApp(page);
       
       // Wait for app to load
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       await page.waitForTimeout(3000); // Give extra time for React components to initialize
       
       console.log('✅ Batch planning test setup completed successfully');
@@ -58,7 +58,7 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     }
     
     // Wait for batch planning page to load
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000); // Give time for React components to initialize
     
     // Step 2: Verify we're on the batch planning page
@@ -202,7 +202,7 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     console.log('✅ Clicked calculate button');
     
     // Wait for API call to complete
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000); // Give time for response processing
     
     // Step 6: Verify toaster notification appears
@@ -359,7 +359,7 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     
     // Navigate to batch planning
     await page.goto('/batch-planning');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     
     // Try to select any available semiproduct 
     const semiproductSelector = page.locator('input[placeholder*="polotovar"]').first();
@@ -442,7 +442,7 @@ test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', ()
     }
     
     // Wait for successful response
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
     
     // Verify no error toasters appear

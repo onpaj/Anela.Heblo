@@ -10,6 +10,7 @@ import {
   waitForTableUpdate,
   validateFilteredResults,
 } from './helpers/catalog-test-helpers';
+import { waitForPageLoad, waitForLoadingComplete } from './helpers/wait-helpers';
 
 test.describe('Catalog Filter Edge Cases E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -24,8 +25,7 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
 
     // Wait for initial catalog load
     console.log('⏳ Waiting for initial catalog to load...');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
+    await waitForPageLoad(page, { headingText: 'Katalog', timeout: 10000 });
   });
 
   // ============================================================================
@@ -204,7 +204,7 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
 
     // Check if there's any loading indicator (this is implementation-specific)
     // We'll just verify the page doesn't crash
-    await page.waitForTimeout(500);
+    await waitForLoadingComplete(page);
 
     console.log('✅ Filter application does not crash (loading state test)');
 
@@ -241,11 +241,11 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
       await firstRow.click();
 
       // Wait a moment for modal to potentially open
-      await page.waitForTimeout(1000);
+      await waitForLoadingComplete(page);
 
       // Try to close modal if it opened (ESC key or close button)
       await page.keyboard.press('Escape');
-      await page.waitForTimeout(500);
+      await waitForLoadingComplete(page);
 
       // Verify filter is still applied
       const nameInput = getProductNameInput(page);
@@ -269,13 +269,11 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
 
     // Navigate away to another page (e.g., home)
     await page.goto(new URL('/', page.url()).toString());
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await waitForPageLoad(page);
 
     // Navigate back to catalog
     await navigateToCatalog(page);
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
+    await waitForPageLoad(page, { headingText: 'Katalog', timeout: 10000 });
 
     // Verify filters are cleared (expected behavior)
     const nameInputAfter = getProductNameInput(page);
