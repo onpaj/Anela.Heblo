@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession } from './helpers/e2e-auth-helper';
+import { navigateToApp } from './helpers/e2e-auth-helper';
 
 test.describe('Transport Box Receive E2E Tests', () => {
-  
+
   test.beforeEach(async ({ page }) => {
-    await createE2EAuthSession(page);
+    await navigateToApp(page);
   });
 
   test('should navigate to receive interface and test box loading', async ({ page }) => {

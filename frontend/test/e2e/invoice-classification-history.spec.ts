@@ -1,12 +1,16 @@
 import { test, expect } from '@playwright/test';
+import { navigateToApp } from './helpers/e2e-auth-helper';
 
 test.describe('Invoice Classification History', () => {
   test.beforeEach(async ({ page }) => {
+    // Establish E2E authentication session with full frontend setup
+    await navigateToApp(page);
+
     await page.goto('/purchase/invoice-classification');
-    
-    // Wait for page to load and authenticate
+
+    // Wait for page to load
     await page.waitForSelector('body', { timeout: 10000 });
-    
+
     // Navigate to History tab
     const historyTab = page.locator('text=Historie');
     if (await historyTab.count() > 0) {

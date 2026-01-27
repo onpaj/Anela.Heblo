@@ -1,15 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession } from './helpers/e2e-auth-helper';
+import { navigateToApp } from './helpers/e2e-auth-helper';
 
 test.describe('Dashboard', () => {
   test.beforeEach(async ({ page }) => {
-    // Authenticate before navigating to dashboard
-    await createE2EAuthSession(page);
+    // Authenticate before navigating to dashboard with full frontend setup
+    await navigateToApp(page);
 
-    // Navigate to dashboard
-    await page.goto('/');
-
-    // Wait for authentication and dashboard to load
+    // Wait for dashboard to load
     await page.waitForSelector('[data-testid="dashboard-container"]', { timeout: 10000 });
   });
 

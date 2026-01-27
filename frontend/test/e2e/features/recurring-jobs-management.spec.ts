@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession } from '../helpers/e2e-auth-helper';
+import { navigateToApp } from '../helpers/e2e-auth-helper';
 
 test.describe('Recurring Jobs Management', () => {
   test.beforeEach(async ({ page }) => {
-    // Establish E2E authentication session
-    await createE2EAuthSession(page);
+    // Establish E2E authentication session with full frontend setup
+    await navigateToApp(page);
 
     // Navigate to recurring jobs page
     await page.goto('/recurring-jobs');
@@ -320,8 +320,8 @@ test.describe('Recurring Jobs Management', () => {
 
 test.describe('Recurring Jobs - Manual Trigger', () => {
   test.beforeEach(async ({ page }) => {
-    // Establish E2E authentication session
-    await createE2EAuthSession(page);
+    // Establish E2E authentication session with full frontend setup
+    await navigateToApp(page);
 
     // Navigate to recurring jobs page
     await page.goto('/recurring-jobs');
