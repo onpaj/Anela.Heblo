@@ -1,16 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToCatalog } from './helpers/e2e-auth-helper';
+import { navigateToCatalog } from './helpers/e2e-auth-helper';
 
 test.describe('Catalog Margins Chart Tests', () => {
   test.beforeEach(async ({ page }) => {
-    await createE2EAuthSession(page);
+    // Navigate to catalog with full authentication
+    await navigateToCatalog(page);
   });
 
   test('margins chart should not display current month', async ({ page }) => {
     test.setTimeout(60000); // Set timeout to 60 seconds
-
-    // Navigate to catalog
-    await navigateToCatalog(page);
 
     // Wait for catalog to load
     await page.waitForSelector('table', { timeout: 15000 });

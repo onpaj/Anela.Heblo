@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToCatalog } from './helpers/e2e-auth-helper';
+import { navigateToCatalog } from './helpers/e2e-auth-helper';
 
 test.describe('Catalog UI E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Create E2E authentication session before each test
-    await createE2EAuthSession(page);
+    // Navigate to catalog with full authentication
+    await navigateToCatalog(page);
   });
 
   test('should navigate to catalog and load products via UI', async ({ page }) => {
@@ -16,9 +16,6 @@ test.describe('Catalog UI E2E Tests', () => {
         console.error('🖥️  Browser console.error:', msg.text());
       }
     });
-    
-    // Navigate to catalog using shared helper
-    await navigateToCatalog(page);
     
     // Verify we're on the catalog page
     console.log('Current URL after navigation:', page.url());

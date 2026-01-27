@@ -1,16 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToApp } from './helpers/e2e-auth-helper';
+import { navigateToApp } from './helpers/e2e-auth-helper';
 
 test.describe('Batch Planning Error Handling - Fixed Products Exceed Volume', () => {
   test.beforeEach(async ({ page }) => {
     console.log('🏭 Starting batch planning error handling test setup...');
-    
+
     try {
-      // Create E2E authentication session before each test
-      console.log('🔐 Creating E2E authentication session...');
-      await createE2EAuthSession(page);
-      
-      // Navigate to application
+      // Navigate to application with full authentication
       console.log('🚀 Navigating to application...');
       await navigateToApp(page);
       

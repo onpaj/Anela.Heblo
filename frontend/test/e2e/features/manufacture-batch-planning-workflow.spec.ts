@@ -1,17 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToApp } from '../helpers/e2e-auth-helper';
+import { navigateToApp } from '../helpers/e2e-auth-helper';
 import { TestCatalogItems } from '../fixtures/test-data';
 
 test.describe('ManufactureBatchPlanning Workflow', () => {
   test.beforeEach(async ({ page }) => {
     console.log('🏭 Starting manufacture batch planning workflow test setup...');
-    
+
     try {
-      // Create E2E authentication session before each test
-      console.log('🔐 Creating E2E authentication session...');
-      await createE2EAuthSession(page);
-      
-      // Navigate to application
+      // Navigate to application with full authentication
       console.log('🚀 Navigating to application...');
       await navigateToApp(page);
       

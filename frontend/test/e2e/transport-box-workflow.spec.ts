@@ -1,14 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToTransportBoxes } from './helpers/e2e-auth-helper';
+import { navigateToTransportBoxes } from './helpers/e2e-auth-helper';
 
 test.describe('Transport Box Workflow E2E Tests', () => {
-  
+
   test.beforeEach(async ({ page }) => {
-    await createE2EAuthSession(page);
+    // Navigate to transport boxes with full authentication
+    await navigateToTransportBoxes(page);
   });
 
   test('should test complete box state transitions (Created → Packed → Shipped → Delivered)', async ({ page }) => {
-    await navigateToTransportBoxes(page);
     
     // Find a box in 'New' or 'Created' state or create one
     let targetBox = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item').filter({ 

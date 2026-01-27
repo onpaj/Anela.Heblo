@@ -1,14 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToTransportBoxes } from './helpers/e2e-auth-helper';
+import { navigateToTransportBoxes } from './helpers/e2e-auth-helper';
 
 test.describe('Transport Box Items E2E Tests', () => {
-  
+
   test.beforeEach(async ({ page }) => {
-    await createE2EAuthSession(page);
+    // Navigate to transport boxes with full authentication
+    await navigateToTransportBoxes(page);
   });
 
   test('should navigate to Transport Box detail page', async ({ page }) => {
-    await navigateToTransportBoxes(page);
     
     // Find and click on a transport box to open detail view
     const boxItems = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');

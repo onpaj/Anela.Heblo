@@ -1,14 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToTransportBoxes } from './helpers/e2e-auth-helper';
+import { navigateToTransportBoxes } from './helpers/e2e-auth-helper';
 
 test.describe('Transport Box Creation E2E Tests', () => {
-  
+
   test.beforeEach(async ({ page }) => {
-    await createE2EAuthSession(page);
+    // Navigate to transport boxes with full authentication
+    await navigateToTransportBoxes(page);
   });
 
   test('should navigate to Transport Box creation page', async ({ page }) => {
-    await navigateToTransportBoxes(page);
     
     // Verify we're on the transport boxes list page
     await expect(page.locator('h1')).toContainText('Transportní boxy');
@@ -19,7 +19,6 @@ test.describe('Transport Box Creation E2E Tests', () => {
   });
 
   test('should create transport box when clicking "Otevřít nový box"', async ({ page }) => {
-    await navigateToTransportBoxes(page);
     
     // Get initial box count
     const initialBoxes = page.locator('[data-testid="transport-box-item"], .transport-box-item, .box-item, tr:has(td)');

@@ -1,12 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToApp } from '../helpers/e2e-auth-helper';
+import { navigateToApp } from '../helpers/e2e-auth-helper';
 
 test.describe('Sidebar Navigation', () => {
   test.beforeEach(async ({ page }) => {
-    // Create E2E authentication session
-    await createE2EAuthSession(page);
-
-    // Navigate to application
+    // Navigate to application with full authentication
     await navigateToApp(page);
 
     // Wait for page to be fully loaded

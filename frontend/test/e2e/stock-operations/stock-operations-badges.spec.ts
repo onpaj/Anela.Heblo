@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToStockOperations } from '../helpers/e2e-auth-helper';
+import { navigateToStockOperations } from '../helpers/e2e-auth-helper';
 import {
   selectStateFilter,
   waitForTableUpdate,
@@ -10,7 +10,7 @@ import {
 
 test.describe('Stock Operations - State Badges & Stuck Detection', () => {
   test.beforeEach(async ({ page }) => {
-    await createE2EAuthSession(page);
+    // Navigate to stock operations with full authentication
     await navigateToStockOperations(page);
     expect(page.url()).toContain('/stock-operations');
     await waitForTableUpdate(page);

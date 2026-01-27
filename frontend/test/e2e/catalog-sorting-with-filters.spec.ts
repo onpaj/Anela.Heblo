@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToCatalog } from './helpers/e2e-auth-helper';
+import { navigateToCatalog } from './helpers/e2e-auth-helper';
 import {
   applyProductNameFilter,
   applyProductCodeFilter,
@@ -12,10 +12,7 @@ import {
 
 test.describe('Catalog Sorting with Filters E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Create E2E authentication session before each test
-    await createE2EAuthSession(page);
-
-    // Navigate to catalog
+    // Navigate to catalog with full authentication
     console.log('🧭 Navigating to catalog page...');
     await navigateToCatalog(page);
     expect(page.url()).toContain('/catalog');

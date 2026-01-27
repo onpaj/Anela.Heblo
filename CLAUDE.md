@@ -494,6 +494,64 @@ async makeRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
 - **E2E Test Data**: Use fixtures from `frontend/test/e2e/fixtures/test-data.ts` for consistent, reliable test data (see `docs/testing/test-data-fixtures.md` for reference)
 - **Test Failure Policy**: Tests MUST fail (not skip) when expected data is missing - use `throw new Error()` with clear message
 
+**E2E Test Authentication - CRITICAL RULES**:
+
+**MANDATORY**: All E2E tests MUST use proper authentication setup to avoid Microsoft Entra ID login screen.
+
+**✅ CORRECT - Use navigateToApp() for full authentication:**
+```typescript
+import { navigateToApp } from './helpers/e2e-auth-helper';
+
+test.beforeEach(async ({ page }) => {
+  // Full authentication: backend session + frontend session (cookies, sessionStorage)
+  await navigateToApp(page);
+
+  // Now navigate to specific page
+  await page.goto('/your-page');
+});
+```
+
+**✅ CORRECT - Use navigation helpers (they call navigateToApp internally):**
+```typescript
+import { navigateToCatalog, navigateToTransportBoxes, navigateToStockOperations } from './helpers/e2e-auth-helper';
+
+test.beforeEach(async ({ page }) => {
+  // These helpers include full authentication setup
+  await navigateToCatalog(page);  // or navigateToTransportBoxes(), navigateToStockOperations()
+});
+```
+
+**❌ WRONG - Never use createE2EAuthSession() alone:**
+```typescript
+import { createE2EAuthSession } from './helpers/e2e-auth-helper';
+
+test.beforeEach(async ({ page }) => {
+  await createE2EAuthSession(page);  // ❌ Only backend session, missing frontend session
+  await page.goto('/your-page');     // ❌ Will show Microsoft login screen!
+});
+```
+
+**Why this matters:**
+- `createE2EAuthSession()` - Only sets up backend authentication (service principal token)
+- `navigateToApp()` - Full setup: backend auth + frontend session (cookies, sessionStorage, E2E flag)
+- Without frontend session, React app tries real OAuth login → Microsoft Entra ID sign-in screen
+- Tests fail because they can't get past authentication
+
+**Authentication Flow:**
+1. `navigateToApp()` calls `createE2EAuthSession()` (backend auth)
+2. Then calls `navigateToAppWithServicePrincipal()` (frontend session setup)
+3. Sets E2E session cookie for staging domain
+4. Stores E2E token in sessionStorage
+5. Waits for React app to initialize
+6. ✅ Test can now interact with authenticated app
+
+**When to use each:**
+- **navigateToApp()** - When starting at app root, then navigating to specific page
+- **navigateToCatalog()** - When testing catalog-specific features
+- **navigateToTransportBoxes()** - When testing transport box features
+- **navigateToStockOperations()** - When testing stock operations
+- **Never use createE2EAuthSession() alone** - Always combine with full navigation helpers
+
 ## Design Document Alignment Rules
 
 **MANDATORY**: All implementation work MUST align with the application design documents in `/docs`. Before making ANY changes to code, architecture, or design, Claude Code MUST:

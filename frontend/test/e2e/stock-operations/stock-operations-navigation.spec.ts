@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToStockOperations } from '../helpers/e2e-auth-helper';
+import { navigateToStockOperations } from '../helpers/e2e-auth-helper';
 import { waitForTableUpdate, getRowCount } from '../helpers/stock-operations-test-helpers';
 
 test.describe('Stock Operations - Navigation & Initial Load', () => {
   test('should navigate to page via direct URL', async ({ page }) => {
     console.log('🧪 Testing: Direct navigation to stock operations');
 
-    await createE2EAuthSession(page);
+    // Navigate to stock operations with full authentication
     await navigateToStockOperations(page);
 
     // Verify URL
@@ -22,7 +22,7 @@ test.describe('Stock Operations - Navigation & Initial Load', () => {
   test('should load with default filters (State: Active, Source: All)', async ({ page }) => {
     console.log('🧪 Testing: Default filter state on page load');
 
-    await createE2EAuthSession(page);
+    // Navigate to stock operations with full authentication
     await navigateToStockOperations(page);
     await waitForTableUpdate(page);
 
@@ -73,7 +73,7 @@ test.describe('Stock Operations - Navigation & Initial Load', () => {
   test('should display empty state when no results match filters', async ({ page }) => {
     console.log('🧪 Testing: Empty state display');
 
-    await createE2EAuthSession(page);
+    // Navigate to stock operations with full authentication
     await navigateToStockOperations(page);
     await waitForTableUpdate(page);
 

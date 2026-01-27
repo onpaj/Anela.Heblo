@@ -1,15 +1,15 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToTransportBoxes } from './helpers/e2e-auth-helper';
+import { navigateToTransportBoxes } from './helpers/e2e-auth-helper';
 
 test.describe('Debug Transport Page', () => {
-  
+
   test.beforeEach(async ({ page }) => {
-    await createE2EAuthSession(page);
+    // Navigate to transport boxes with full authentication
+    await navigateToTransportBoxes(page);
   });
 
   test('debug transport boxes navigation', async ({ page }) => {
     // Test the updated navigation logic
-    await navigateToTransportBoxes(page);
     
     // Wait for page to load
     await page.waitForTimeout(3000);

@@ -4,12 +4,11 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToApp } from '../helpers/e2e-auth-helper';
+import { navigateToApp } from '../helpers/e2e-auth-helper';
 
 test.describe('Changelog System', () => {
   test.beforeEach(async ({ page }) => {
-    // Use proper E2E authentication
-    await createE2EAuthSession(page);
+    // Navigate to application with full authentication
     await navigateToApp(page);
   });
 
