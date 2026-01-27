@@ -16,7 +16,7 @@ test.describe('ManufactureBatchPlanning Workflow', () => {
       await navigateToApp(page);
       
       // Wait for app to load
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       await page.waitForTimeout(3000); // Give extra time for React components to initialize
       
       console.log('✅ ManufactureBatchPlanning test setup completed successfully');
@@ -41,7 +41,7 @@ test.describe('ManufactureBatchPlanning Workflow', () => {
     console.log('✅ Clicked Plánovač výrobních dávek link');
     
     // Wait for the batch planning page to load
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
     
     // Step 2: Verify we're on the batch planning page
@@ -182,7 +182,7 @@ test.describe('ManufactureBatchPlanning Workflow', () => {
     console.log('🔍 Validating manufacture order modal...');
     
     // Wait for the manufacture order modal to appear
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
     
     // Look for manufacture order modal content
@@ -982,7 +982,7 @@ test.describe('ManufactureBatchPlanning Workflow', () => {
     // Navigate to batch planning
     await page.getByRole('button', { name: 'Výroba' }).click();
     await page.getByRole('link', { name: /plánovač výrobních dávek/i }).click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     console.log('✅ Navigated to batch planning page');

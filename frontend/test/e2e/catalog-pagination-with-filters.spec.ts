@@ -10,6 +10,7 @@ import {
   getPageSizeSelect,
   waitForTableUpdate,
 } from './helpers/catalog-test-helpers';
+import { waitForPageLoad } from './helpers/wait-helpers';
 
 test.describe('Catalog Pagination with Filters E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -24,8 +25,7 @@ test.describe('Catalog Pagination with Filters E2E Tests', () => {
 
     // Wait for initial catalog load
     console.log('⏳ Waiting for initial catalog to load...');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
+    await waitForPageLoad(page, { headingText: 'Katalog', timeout: 10000 });
   });
 
   // ============================================================================
@@ -95,8 +95,7 @@ test.describe('Catalog Pagination with Filters E2E Tests', () => {
     const url = new URL(page.url());
     url.searchParams.set('page', '2');
     await page.goto(url.toString());
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await waitForPageLoad(page);
 
     // Verify URL has page parameter
     const currentUrl = new URL(page.url());
@@ -221,8 +220,7 @@ test.describe('Catalog Pagination with Filters E2E Tests', () => {
     const url = new URL(page.url());
     url.searchParams.set('page', '2');
     await page.goto(url.toString());
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await waitForPageLoad(page);
 
     // Change page size
     const pageSizeSelect = getPageSizeSelect(page);

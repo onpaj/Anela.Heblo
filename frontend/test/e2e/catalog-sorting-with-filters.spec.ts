@@ -9,6 +9,7 @@ import {
   getRowCount,
   waitForTableUpdate,
 } from './helpers/catalog-test-helpers';
+import { waitForPageLoad, waitForLoadingComplete } from './helpers/wait-helpers';
 
 test.describe('Catalog Sorting with Filters E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -23,8 +24,8 @@ test.describe('Catalog Sorting with Filters E2E Tests', () => {
 
     // Wait for initial catalog load
     console.log('⏳ Waiting for initial catalog to load...');
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000);
+    await page.waitForLoadState('domcontentloaded');
+    await waitForPageLoad(page, { headingText: 'Katalog', timeout: 10000 });
   });
 
   // ============================================================================
@@ -251,8 +252,8 @@ test.describe('Catalog Sorting with Filters E2E Tests', () => {
     const url = new URL(page.url());
     url.searchParams.set('page', '2');
     await page.goto(url.toString());
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('domcontentloaded');
+    await waitForLoadingComplete(page);
 
     // Sort by Product Code
     const codeHeader = page.locator('th').filter({ hasText: 'Kód produktu' }).first();
@@ -343,7 +344,7 @@ test.describe('Catalog Sorting with Filters E2E Tests', () => {
 
     try {
       await codeHeader.click();
-      await page.waitForTimeout(1000);
+      await waitForLoadingComplete(page);
       console.log('✅ Sorting empty filtered results handled gracefully');
     } catch (error) {
       console.log('⚠️ Error when sorting empty results:', error);

@@ -15,7 +15,7 @@ test.describe('Gift Package Disassembly Workflow', () => {
       await navigateToApp(page);
 
       // Wait for app to load
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       await page.waitForTimeout(3000); // Give extra time for React components to initialize
 
       console.log('✅ Gift package disassembly test setup completed successfully');
@@ -45,7 +45,7 @@ test.describe('Gift Package Disassembly Workflow', () => {
     console.log('✅ Clicked Gift Package Manufacturing link');
 
     // Wait for the page to load
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     // Step 2: Verify we're on the gift package manufacturing page

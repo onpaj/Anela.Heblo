@@ -39,8 +39,8 @@ export default defineConfig({
   fullyParallel: false, // E2E tests should run sequentially
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 1,
+  /* Retry on CI only - DISABLED to expose flaky tests */
+  retries: 0, // Was: process.env.CI ? 2 : 1
   /* Opt out of parallel tests on CI. */
   workers: 1, // E2E tests run one at a time
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
@@ -58,9 +58,9 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
     
-    /* Increased timeouts for staging environment performance issues */
-    actionTimeout: 90000, // 90 seconds for actions (increased from 60s)
-    navigationTimeout: 90000, // 90 seconds for page navigation (increased from 60s)
+    /* Reduced timeouts for faster failure detection */
+    actionTimeout: 30000, // 30 seconds for actions (was: 90s)
+    navigationTimeout: 30000, // 30 seconds for page navigation (was: 90s)
     
     /* Screenshot on failure */
     screenshot: 'only-on-failure',
@@ -75,11 +75,11 @@ export default defineConfig({
     }
   },
 
-  /* Global test timeout for E2E - increased for staging environment performance */
-  timeout: 420000, // 7 minutes per test (increased from 5 minutes)
-  
-  /* Test file timeout - how long to wait for entire test file to complete */
-  globalTimeout: 1800000, // 30 minutes for entire test run
+  /* Global test timeout for E2E - 5 minutes per test */
+  timeout: 300000, // 5 minutes per test (was: 7 minutes)
+
+  /* Test file timeout - increased to allow all 218 tests to complete */
+  globalTimeout: 3600000, // 60 minutes for entire test run (was: 30 minutes)
 
   /* Configure projects for major browsers */
   projects: [

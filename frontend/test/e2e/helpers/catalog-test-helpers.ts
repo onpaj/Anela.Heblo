@@ -1,4 +1,5 @@
 import { Page, expect, Locator } from '@playwright/test';
+import { waitForLoadingComplete, waitForSearchResults } from './wait-helpers';
 
 /**
  * Catalog E2E Test Helpers
@@ -64,8 +65,7 @@ export async function applyProductNameFilter(page: Page, name: string): Promise<
   await input.fill(name);
   const filterButton = getFilterButton(page);
   await filterButton.click();
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
+  await waitForSearchResults(page, { endpoint: '/api/catalog' });
   console.log('✅ Product name filter applied');
 }
 
@@ -77,8 +77,7 @@ export async function applyProductNameFilterWithEnter(page: Page, name: string):
   const input = getProductNameInput(page);
   await input.fill(name);
   await input.press('Enter');
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
+  await waitForSearchResults(page, { endpoint: '/api/catalog' });
   console.log('✅ Product name filter applied with Enter');
 }
 
@@ -91,8 +90,7 @@ export async function applyProductCodeFilter(page: Page, code: string): Promise<
   await input.fill(code);
   const filterButton = getFilterButton(page);
   await filterButton.click();
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
+  await waitForSearchResults(page, { endpoint: '/api/catalog' });
   console.log('✅ Product code filter applied');
 }
 
@@ -104,8 +102,7 @@ export async function applyProductCodeFilterWithEnter(page: Page, code: string):
   const input = getProductCodeInput(page);
   await input.fill(code);
   await input.press('Enter');
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
+  await waitForSearchResults(page, { endpoint: '/api/catalog' });
   console.log('✅ Product code filter applied with Enter');
 }
 
@@ -116,8 +113,7 @@ export async function selectProductType(page: Page, type: string): Promise<void>
   console.log(`🔽 Selecting product type: "${type}"`);
   const select = getProductTypeSelect(page);
   await select.selectOption({ label: type });
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
+  await waitForSearchResults(page, { endpoint: '/api/catalog' });
   console.log('✅ Product type filter applied');
 }
 
@@ -128,8 +124,7 @@ export async function clearAllFilters(page: Page): Promise<void> {
   console.log('🔄 Clearing all filters');
   const clearButton = getClearButton(page);
   await clearButton.click();
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
+  await waitForSearchResults(page, { endpoint: '/api/catalog' });
   console.log('✅ All filters cleared');
 }
 
@@ -301,8 +296,7 @@ export async function getRowCount(page: Page): Promise<number> {
  */
 export async function waitForTableUpdate(page: Page, expectedMinRows: number = 0): Promise<void> {
   console.log('⏳ Waiting for table to update...');
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
+  await waitForSearchResults(page, { endpoint: '/api/catalog' });
 
   // Optionally wait for at least some rows to appear
   if (expectedMinRows > 0) {
