@@ -191,7 +191,7 @@ export const useProductComposition = (productCode: string) => {
   const apiClient = getAuthenticatedApiClient();
 
   return useQuery<ProductCompositionResponse>({
-    queryKey: ['productComposition', productCode],
+    queryKey: [...QUERY_KEYS.catalog, 'composition', productCode],
     queryFn: async () => {
       const relativeUrl = `/api/catalog/${encodeURIComponent(productCode)}/composition`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
