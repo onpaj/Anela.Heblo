@@ -18,7 +18,9 @@ const UI_LABELS = {
  * Wait for stock operations table to update after filter/sort changes
  */
 export async function waitForTableUpdate(page: Page): Promise<void> {
-  await waitForSearchResults(page, { endpoint: '/api/' });
+  // Simple wait for DOM updates - stock operations might use client-side filtering
+  await page.waitForTimeout(TABLE_UPDATE_WAIT_MS);
+  await waitForLoadingComplete(page);
 }
 
 /**
@@ -79,7 +81,13 @@ export async function selectStateFilter(
   state: 'All' | 'Active' | 'Pending' | 'Submitted' | 'Failed' | 'Completed'
 ): Promise<void> {
   const select = getStateFilterSelect(page);
-  await select.selectOption({ label: state === 'All' ? UI_LABELS.ALL_STATES : state });
+  // Use value instead of label since labels are in Czech but values are in English
+  await select.selectOption({ value: state });
+
+  // Click apply filters button to apply the change
+  const applyButton = getApplyFiltersButton(page);
+  await applyButton.click();
+
   await waitForTableUpdate(page);
 }
 
@@ -131,7 +139,8 @@ export async function validateStateBadge(
   rowIndex: number = 0
 ): Promise<void> {
   const row = page.locator('tbody tr').nth(rowIndex);
-  const badge = row.locator('span.inline-flex.items-center.px-2\\.5');
+  // More flexible selector - look for badge with rounded-full class
+  const badge = row.locator('span.rounded-full').first();
 
   const stateColorMap = {
     Completed: 'bg-green-100',

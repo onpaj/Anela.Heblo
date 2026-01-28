@@ -8,8 +8,7 @@ import {
   validateNoRetryButton,
 } from './helpers/stock-operations-test-helpers';
 
-// SKIPPED: Same timeout issue as stock-operations-badges - see that file's comment for details.
-test.describe.skip('Stock Operations - Retry Functionality', () => {
+test.describe('Stock Operations - Retry Functionality', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to stock operations with full authentication
     await navigateToStockOperations(page);

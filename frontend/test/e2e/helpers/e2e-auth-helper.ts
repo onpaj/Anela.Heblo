@@ -271,3 +271,47 @@ export async function navigateToStockOperations(page: any): Promise<void> {
 
   console.log('✅ Navigated to stock operations page');
 }
+
+export async function navigateToTransportBoxReceive(page: any): Promise<void> {
+  await navigateToApp(page);
+
+  // Wait for app to be fully loaded
+  await waitForLoadingComplete(page);
+
+  // Navigate to transport box receive via UI
+  const skladSelector = page.locator('button').filter({ hasText: 'Sklad' }).first();
+  try {
+    console.log('🧭 Attempting UI navigation to transport box receive via Sklad...');
+    if (await skladSelector.isVisible({ timeout: 5000 })) {
+      console.log('✅ Found Sklad menu item, clicking...');
+      await skladSelector.click();
+      await waitForLoadingComplete(page);
+
+      // Look for "Příjem boxů" sub-item after clicking Sklad
+      const prijemBoxu = page.locator('text="Příjem boxů"').first();
+      if (await prijemBoxu.isVisible({ timeout: 5000 })) {
+        console.log('✅ Found Příjem boxů submenu, clicking...');
+        await prijemBoxu.click();
+        await page.waitForLoadState('domcontentloaded');
+        await waitForLoadingComplete(page);
+        console.log('✅ UI navigation to transport box receive successful');
+        return;
+      } else {
+        console.log('❌ Příjem boxů submenu not found under Sklad');
+      }
+    } else {
+      console.log('❌ Sklad menu item not found');
+    }
+  } catch (e) {
+    console.log('❌ UI navigation failed:', e.message);
+  }
+
+  // If UI navigation fails, go directly to the path
+  console.log('🔄 Trying direct navigation to transport box receive...');
+  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+  await page.goto(`${baseUrl}/warehouse/transport-box-receive`);
+  await page.waitForLoadState('domcontentloaded');
+  await waitForPageLoad(page);
+
+  console.log('✅ Direct navigation to transport box receive completed');
+}

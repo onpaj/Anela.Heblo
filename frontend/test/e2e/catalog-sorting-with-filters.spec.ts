@@ -216,15 +216,8 @@ test.describe('Catalog Sorting with Filters E2E Tests', () => {
     }
   });
 
-  // SKIPPED: Test data missing - "Krém" filter returns 0 results in staging environment.
-  // Expected behavior: Test should verify that sorting is maintained after applying a new filter.
-  // Actual behavior: After applying "Krém" filter, getRowCount returns 0, causing test to timeout
-  // when trying to access tbody tr:nth-child(1).
-  // Error: Test timeout waiting for locator('tbody tr:nth-child(1) td:nth-child(2)').textContent()
-  // This is a test data issue - the "Krém" filter returns no results in staging, but test expects results.
-  // Recommendation: Use test data fixtures or update test to handle 0 results gracefully.
-  test.skip('should maintain sort when applying new filter', async ({ page }) => {
-    // First, sort by Product Name
+  test('should maintain sort when applying new filter', async ({ page }) => {
+    // First, sort by Product Name (ascending)
     const nameHeader = page.locator('th').filter({ hasText: 'Název produktu' }).first();
     await nameHeader.click();
     await waitForTableUpdate(page);
@@ -232,28 +225,53 @@ test.describe('Catalog Sorting with Filters E2E Tests', () => {
     const initialFirstName = await page.locator('tbody tr:nth-child(1) td:nth-child(2)').textContent();
     console.log(`   First name after sort: "${initialFirstName?.trim()}"`);
 
-    // Now apply a filter
-    await applyProductNameFilter(page, 'Krém');
+    // Now apply a filter - use a search term that will return multiple results
+    // Using "Glyc" to match "Glycerol" and other items containing "Glyc"
+    await applyProductNameFilter(page, 'Glyc');
 
-    // The sort should still be applied
+    // Give DOM time to settle after filter application
+    await page.waitForTimeout(1000);
+
+    const rowCount = await getRowCount(page);
+    console.log(`   Row count after filter: ${rowCount}`);
+
+    if (rowCount === 0) {
+      throw new Error('Test data missing: Expected to find products containing "Glyc"');
+    }
+
+    // The sort should still be applied (ascending by product name)
     const filteredFirstName = await page.locator('tbody tr:nth-child(1) td:nth-child(2)').textContent();
     console.log(`   First name after filter: "${filteredFirstName?.trim()}"`);
 
-    // Both should still contain "Krém" and should be sorted
+    // Verify the filter is working (first result should contain "Glyc")
     if (filteredFirstName) {
-      expect(filteredFirstName.toLowerCase()).toContain('krém');
+      expect(filteredFirstName.toLowerCase()).toContain('glyc');
+    }
+
+    // Verify sorting is maintained by checking order of results (if multiple)
+    if (rowCount > 1) {
+      const secondName = await page.locator('tbody tr:nth-child(2) td:nth-child(2)').textContent();
+      console.log(`   Second name after filter: "${secondName?.trim()}"`);
+
+      // Both should contain "Glyc" (filter maintained)
+      if (secondName) {
+        expect(secondName.toLowerCase()).toContain('glyc');
+      }
+
+      // First name should be alphabetically <= second name (sort maintained)
+      if (filteredFirstName && secondName) {
+        const comparison = filteredFirstName.trim().localeCompare(secondName.trim());
+        expect(comparison).toBeLessThanOrEqual(0);
+      }
     }
 
     console.log('✅ Sort maintained when applying new filter');
   });
 
-  // SKIPPED: Application implementation issue - Changing sort does not reset pagination to page 1.
+  // Testing: Pagination reset when changing sort order
   // Expected behavior: When user changes sort order while on page 2, pagination should reset to page 1
   // to show the beginning of sorted results.
-  // Actual behavior: Page remains on page 2 after changing sort, which may confuse users.
-  // Error: Expected page to be 1, but received 2 after changing sort.
-  // This is the same pagination reset bug seen in other catalog tests - sort changes should trigger pagination reset.
-  test.skip('should reset to page 1 when changing sort', async ({ page }) => {
+  test('should reset to page 1 when changing sort', async ({ page }) => {
     // Apply filter to ensure we have results
     await selectProductType(page, 'Produkt');
 
