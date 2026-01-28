@@ -1,27 +1,26 @@
-import { test, expect } from '@playwright/test';
-import { navigateToCatalog } from './helpers/e2e-auth-helper';
+import { test, expect } from "@playwright/test";
+import { navigateToCatalog } from "./helpers/e2e-auth-helper";
 import {
   applyProductNameFilter,
   applyProductCodeFilter,
   getRowCount,
   getProductNameInput,
-  getProductCodeInput,
   getFilterButton,
   waitForTableUpdate,
   validateFilteredResults,
-} from './helpers/catalog-test-helpers';
+} from "./helpers/catalog-test-helpers";
 
-test.describe('Catalog Filter Edge Cases E2E Tests', () => {
+test.describe("Catalog Filter Edge Cases E2E Tests", () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to catalog with full authentication
-    console.log('🧭 Navigating to catalog page...');
+    console.log("🧭 Navigating to catalog page...");
     await navigateToCatalog(page);
-    expect(page.url()).toContain('/catalog');
-    console.log('✅ On catalog page:', page.url());
+    expect(page.url()).toContain("/catalog");
+    console.log("✅ On catalog page:", page.url());
 
     // Wait for initial catalog load
-    console.log('⏳ Waiting for initial catalog to load...');
-    await page.waitForLoadState('networkidle');
+    console.log("⏳ Waiting for initial catalog to load...");
+    await page.waitForLoadState("networkidle");
     await page.waitForTimeout(3000);
   });
 
@@ -29,24 +28,30 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
   // SPECIAL CHARACTERS IN SEARCH
   // ============================================================================
 
-  test('should handle special characters in product name (Czech diacritics)', async ({ page }) => {
+  test("should handle special characters in product name (Czech diacritics)", async ({
+    page,
+  }) => {
     // Test Czech diacritics: č, ř, ž, š, á, é, í, ó, ú, ý
-    await applyProductNameFilter(page, 'Krém'); // Contains "é"
+    await applyProductNameFilter(page, "Krém"); // Contains "é"
 
     const rowCount = await getRowCount(page);
 
     if (rowCount > 0) {
       // Verify filter works with diacritics
-      await validateFilteredResults(page, { productName: 'Krém' }, { caseSensitive: false });
-      console.log('✅ Czech diacritics handled correctly');
+      await validateFilteredResults(
+        page,
+        { productName: "Krém" },
+        { caseSensitive: false },
+      );
+      console.log("✅ Czech diacritics handled correctly");
     } else {
-      console.log('ℹ️ No products with diacritics found');
+      console.log("ℹ️ No products with diacritics found");
     }
   });
 
-  test('should handle numbers in product name', async ({ page }) => {
+  test("should handle numbers in product name", async ({ page }) => {
     // Search for products with numbers
-    await applyProductNameFilter(page, '100');
+    await applyProductNameFilter(page, "100");
 
     await waitForTableUpdate(page);
 
@@ -54,16 +59,20 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
 
     if (rowCount > 0) {
       // Verify filter works with numbers
-      await validateFilteredResults(page, { productName: '100' }, { maxRowsToCheck: 5 });
-      console.log('✅ Numbers in product name handled correctly');
+      await validateFilteredResults(
+        page,
+        { productName: "100" },
+        { maxRowsToCheck: 5 },
+      );
+      console.log("✅ Numbers in product name handled correctly");
     } else {
       console.log('ℹ️ No products with "100" in name found');
     }
   });
 
-  test('should handle hyphens and spaces in product code', async ({ page }) => {
+  test("should handle hyphens and spaces in product code", async ({ page }) => {
     // Search for code with hyphens or spaces
-    await applyProductCodeFilter(page, 'AH-');
+    await applyProductCodeFilter(page, "AH-");
 
     await waitForTableUpdate(page);
 
@@ -72,14 +81,14 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
     console.log(`📊 Results with hyphen search: ${rowCount}`);
 
     // Just verify it doesn't crash
-    console.log('✅ Hyphens in product code handled without errors');
+    console.log("✅ Hyphens in product code handled without errors");
   });
 
-  test('should handle leading/trailing whitespace', async ({ page }) => {
+  test("should handle leading/trailing whitespace", async ({ page }) => {
     const nameInput = getProductNameInput(page);
 
     // Type with leading and trailing spaces
-    await nameInput.fill('  Krém  ');
+    await nameInput.fill("  Krém  ");
 
     const filterButton = getFilterButton(page);
     await filterButton.click();
@@ -89,10 +98,14 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
 
     if (rowCount > 0) {
       // Should still find matches (whitespace trimmed)
-      await validateFilteredResults(page, { productName: 'Krém' }, { maxRowsToCheck: 5 });
-      console.log('✅ Leading/trailing whitespace trimmed correctly');
+      await validateFilteredResults(
+        page,
+        { productName: "Krém" },
+        { maxRowsToCheck: 5 },
+      );
+      console.log("✅ Leading/trailing whitespace trimmed correctly");
     } else {
-      console.log('ℹ️ No results, but no error occurred');
+      console.log("ℹ️ No results, but no error occurred");
     }
   });
 
@@ -100,8 +113,10 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
   // EXTREME VALUES
   // ============================================================================
 
-  test('should handle very long product names (>100 chars)', async ({ page }) => {
-    const longName = 'A'.repeat(150);
+  test("should handle very long product names (>100 chars)", async ({
+    page,
+  }) => {
+    const longName = "A".repeat(150);
 
     await applyProductNameFilter(page, longName);
 
@@ -111,11 +126,11 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for very long name: ${rowCount}`);
 
-    console.log('✅ Very long product name handled without errors');
+    console.log("✅ Very long product name handled without errors");
   });
 
-  test('should handle very long product codes', async ({ page }) => {
-    const longCode = 'ABC'.repeat(50);
+  test("should handle very long product codes", async ({ page }) => {
+    const longCode = "ABC".repeat(50);
 
     await applyProductCodeFilter(page, longCode);
 
@@ -124,12 +139,12 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for very long code: ${rowCount}`);
 
-    console.log('✅ Very long product code handled without errors');
+    console.log("✅ Very long product code handled without errors");
   });
 
-  test('should handle single character search', async ({ page }) => {
+  test("should handle single character search", async ({ page }) => {
     // Single character search
-    await applyProductNameFilter(page, 'K');
+    await applyProductNameFilter(page, "K");
 
     await waitForTableUpdate(page);
 
@@ -138,44 +153,48 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
 
     if (rowCount > 0) {
       // Verify results contain "K"
-      await validateFilteredResults(page, { productName: 'K' }, { maxRowsToCheck: 5, caseSensitive: false });
-      console.log('✅ Single character search working');
+      await validateFilteredResults(
+        page,
+        { productName: "K" },
+        { maxRowsToCheck: 5, caseSensitive: false },
+      );
+      console.log("✅ Single character search working");
     } else {
-      console.log('ℹ️ No results for single character');
+      console.log("ℹ️ No results for single character");
     }
   });
 
-  test('should handle numeric-only search terms', async ({ page }) => {
+  test("should handle numeric-only search terms", async ({ page }) => {
     // Search for only numbers
-    await applyProductNameFilter(page, '123');
+    await applyProductNameFilter(page, "123");
 
     await waitForTableUpdate(page);
 
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for numeric search "123": ${rowCount}`);
 
-    console.log('✅ Numeric-only search handled correctly');
+    console.log("✅ Numeric-only search handled correctly");
   });
 
   // ============================================================================
   // PERFORMANCE & TIMING
   // ============================================================================
 
-  test('should handle rapid filter changes', async ({ page }) => {
+  test("should handle rapid filter changes", async ({ page }) => {
     const nameInput = getProductNameInput(page);
     const filterButton = getFilterButton(page);
 
     // Rapidly change filter multiple times
-    await nameInput.fill('Krém');
+    await nameInput.fill("Krém");
     await filterButton.click();
 
-    await nameInput.fill('Sérum');
+    await nameInput.fill("Sérum");
     await filterButton.click();
 
-    await nameInput.fill('Olej');
+    await nameInput.fill("Olej");
     await filterButton.click();
 
-    await nameInput.fill('Peeling');
+    await nameInput.fill("Peeling");
     await filterButton.click();
 
     // Wait for final update
@@ -185,16 +204,18 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
     console.log(`📊 Results after rapid changes: ${rowCount}`);
 
     // Verify the last filter is applied
-    await expect(nameInput).toHaveValue('Peeling');
+    await expect(nameInput).toHaveValue("Peeling");
 
-    console.log('✅ Rapid filter changes handled correctly');
+    console.log("✅ Rapid filter changes handled correctly");
   });
 
-  test('should show loading state during filter application', async ({ page }) => {
+  test("should show loading state during filter application", async ({
+    page,
+  }) => {
     const nameInput = getProductNameInput(page);
     const filterButton = getFilterButton(page);
 
-    await nameInput.fill('Krém');
+    await nameInput.fill("Krém");
 
     // Click filter and immediately check for loading indicators
     await filterButton.click();
@@ -203,15 +224,15 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
     // We'll just verify the page doesn't crash
     await page.waitForTimeout(500);
 
-    console.log('✅ Filter application does not crash (loading state test)');
+    console.log("✅ Filter application does not crash (loading state test)");
 
     // Wait for completion
     await waitForTableUpdate(page);
   });
 
-  test('should handle slow API responses gracefully', async ({ page }) => {
+  test("should handle slow API responses gracefully", async ({ page }) => {
     // Apply filter and wait longer than usual
-    await applyProductNameFilter(page, 'Krém');
+    await applyProductNameFilter(page, "Krém");
 
     // Extended wait to simulate slow response
     await page.waitForTimeout(5000);
@@ -219,80 +240,83 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
     const rowCount = await getRowCount(page);
     console.log(`📊 Results after extended wait: ${rowCount}`);
 
-    console.log('✅ Slow API responses handled gracefully');
+    console.log("✅ Slow API responses handled gracefully");
   });
 
   // ============================================================================
   // FILTER PERSISTENCE
   // ============================================================================
 
-  test('should maintain filters when opening/closing detail modal', async ({ page }) => {
+  test("should maintain filters when opening/closing detail modal", async ({
+    page,
+  }) => {
     // Apply filter
-    await applyProductNameFilter(page, 'Krém');
+    await applyProductNameFilter(page, "Krém");
 
     const initialRowCount = await getRowCount(page);
 
-    if (initialRowCount > 0) {
-      // Click on first row to open detail (if modal exists)
-      const firstRow = page.locator('tbody tr:first-child');
-      await firstRow.click();
-
-      // Wait a moment for modal to potentially open
-      await page.waitForTimeout(1000);
-
-      // Try to close modal if it opened (ESC key or close button)
-      await page.keyboard.press('Escape');
-      await page.waitForTimeout(500);
-
-      // Verify filter is still applied
-      const nameInput = getProductNameInput(page);
-      await expect(nameInput).toHaveValue('Krém');
-
-      const rowCount = await getRowCount(page);
-      expect(rowCount).toBe(initialRowCount);
-
-      console.log('✅ Filters maintained after modal interaction');
-    } else {
-      console.log('ℹ️ No results to test modal interaction');
+    // If no results, this test doesn't apply
+    if (initialRowCount === 0) {
+      console.log("ℹ️ Skipping modal test - no results found");
+      return;
     }
+
+    // Click on first row to open detail (if modal exists)
+    const firstRow = page.locator("tbody tr:first-child");
+    await firstRow.click();
+
+    // Wait a moment for modal to potentially open
+    await page.waitForTimeout(1000);
+
+    // Try to close modal if it opened (ESC key or close button)
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(500);
+
+    // Verify filter is still applied
+    const nameInput = getProductNameInput(page);
+    await expect(nameInput).toHaveValue("Krém");
+
+    const rowCount = await getRowCount(page);
+    expect(rowCount).toBe(initialRowCount);
+
+    console.log("✅ Filters maintained after modal interaction");
   });
 
-  test('should clear filters when navigating away and returning', async ({ page }) => {
+  test("should clear filters when navigating away and returning", async ({
+    page,
+  }) => {
     // Apply filter
-    await applyProductNameFilter(page, 'Krém');
+    await applyProductNameFilter(page, "Krém");
 
     const nameInput = getProductNameInput(page);
-    await expect(nameInput).toHaveValue('Krém');
+    await expect(nameInput).toHaveValue("Krém");
 
     // Navigate away to another page (e.g., home)
-    await page.goto(new URL('/', page.url()).toString());
-    await page.waitForLoadState('networkidle');
+    await page.goto(new URL("/", page.url()).toString());
+    await page.waitForLoadState("networkidle");
     await page.waitForTimeout(2000);
 
     // Navigate back to catalog
     await navigateToCatalog(page);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState("networkidle");
     await page.waitForTimeout(3000);
 
     // Verify filters are cleared (expected behavior)
     const nameInputAfter = getProductNameInput(page);
     const value = await nameInputAfter.inputValue();
 
-    expect(value).toBe('');
+    expect(value).toBe("");
 
-    console.log('✅ Filters cleared when navigating away and returning (expected)');
+    console.log(
+      "✅ Filters cleared when navigating away and returning (expected)",
+    );
   });
 
-  // SKIPPED: Application implementation issue - Browser back navigation causes page to not load correctly.
-  // Expected behavior: After using browser back/forward buttons, the catalog page should restore with filters from URL.
-  // Actual behavior: After page.goBack(), the catalog page fails to load properly - the product name input element
-  // never appears, causing a timeout after 90 seconds.
-  // Error: TimeoutError waiting for locator('input[placeholder="Název produktu..."]')
-  // This suggests an issue with how the application handles browser history navigation or restores state from URL parameters.
-  // The application may need to properly initialize/restore filters when navigating via browser history.
-  test.skip('should handle browser back/forward with filters in URL', async ({ page }) => {
+  test("should handle browser back/forward with filters in URL", async ({
+    page,
+  }) => {
     // Apply filter
-    await applyProductNameFilter(page, 'Krém');
+    await applyProductNameFilter(page, "Krém");
 
     const initialRowCount = await getRowCount(page);
 
@@ -301,7 +325,7 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
     console.log(`   URL with filter: ${urlWithFilter}`);
 
     // Navigate to a different filter
-    await applyProductNameFilter(page, 'Sérum');
+    await applyProductNameFilter(page, "Sérum");
 
     const serumRowCount = await getRowCount(page);
     console.log(`   Sérum results: ${serumRowCount}`);
@@ -315,30 +339,43 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
     const inputValue = await nameInput.inputValue();
     console.log(`   After back, input value: "${inputValue}"`);
 
-    // The behavior depends on implementation - might restore filter or clear it
-    console.log('✅ Browser back/forward handled without errors');
+    // Verify filter is restored from URL
+    expect(inputValue).toBe("Krém");
+    const rowCountAfterBack = await getRowCount(page);
+    expect(rowCountAfterBack).toBe(initialRowCount);
+    console.log("✅ Browser back restored filter from URL");
 
     // Use browser forward
     await page.goForward();
     await waitForTableUpdate(page);
 
-    console.log('✅ Browser forward handled without errors');
+    // Verify we're back to "Sérum" filter
+    const nameInputAfterForward = getProductNameInput(page);
+    const inputValueAfterForward = await nameInputAfterForward.inputValue();
+    console.log(`   After forward, input value: "${inputValueAfterForward}"`);
+
+    expect(inputValueAfterForward).toBe("Sérum");
+    const rowCountAfterForward = await getRowCount(page);
+    expect(rowCountAfterForward).toBe(serumRowCount);
+    console.log("✅ Browser forward restored filter from URL");
   });
 
   // ============================================================================
   // SPECIAL EDGE CASES
   // ============================================================================
 
-  test('should handle empty string filter after having a value', async ({ page }) => {
+  test("should handle empty string filter after having a value", async ({
+    page,
+  }) => {
     // Apply filter first
-    await applyProductNameFilter(page, 'Krém');
+    await applyProductNameFilter(page, "Krém");
 
     const filteredCount = await getRowCount(page);
     console.log(`📊 Filtered count: ${filteredCount}`);
 
     // Clear the input and apply empty filter
     const nameInput = getProductNameInput(page);
-    await nameInput.fill('');
+    await nameInput.fill("");
 
     const filterButton = getFilterButton(page);
     await filterButton.click();
@@ -350,10 +387,10 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
 
     expect(allCount).toBeGreaterThanOrEqual(filteredCount);
 
-    console.log('✅ Empty string filter handled correctly');
+    console.log("✅ Empty string filter handled correctly");
   });
 
-  test('should handle special SQL characters gracefully', async ({ page }) => {
+  test("should handle special SQL characters gracefully", async ({ page }) => {
     // Test SQL injection-like strings (should be sanitized)
     const sqlString = "'; DROP TABLE products; --";
 
@@ -368,12 +405,12 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for SQL-like string: ${rowCount}`);
 
-    console.log('✅ SQL-like characters handled safely (no crash)');
+    console.log("✅ SQL-like characters handled safely (no crash)");
   });
 
-  test('should handle regex special characters', async ({ page }) => {
+  test("should handle regex special characters", async ({ page }) => {
     // Test regex special characters
-    const regexString = '.* [a-z]+ \\d+';
+    const regexString = ".* [a-z]+ \\d+";
 
     await applyProductNameFilter(page, regexString);
 
@@ -382,6 +419,6 @@ test.describe('Catalog Filter Edge Cases E2E Tests', () => {
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for regex-like string: ${rowCount}`);
 
-    console.log('✅ Regex special characters handled correctly');
+    console.log("✅ Regex special characters handled correctly");
   });
 });

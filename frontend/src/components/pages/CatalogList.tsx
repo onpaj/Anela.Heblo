@@ -122,7 +122,7 @@ const CatalogList: React.FC = () => {
     }
     // Remove page param when resetting to page 1
     params.delete("page");
-    setSearchParams(params, { replace: true });
+    setSearchParams(params); // Creates history entry for user-initiated filter change
 
     // Force data reload by refetching
     await refetch();
@@ -150,7 +150,7 @@ const CatalogList: React.FC = () => {
     params.delete("productCode");
     params.delete("productType");
     params.delete("page");
-    setSearchParams(params, { replace: true });
+    setSearchParams(params); // Creates history entry for user-initiated filter clear
 
     // Force data reload by refetching
     await refetch();
@@ -199,7 +199,7 @@ const CatalogList: React.FC = () => {
     if (sortBy) params.set("sortBy", sortBy);
     if (sortDescending) params.set("sortDesc", "true");
 
-    // Update URL without causing navigation
+    // Update URL without creating new history entry (prevents duplicate entries from automatic sync)
     setSearchParams(params, { replace: true });
   }, [productNameFilter, productCodeFilter, productTypeFilter, pageNumber, pageSize, sortBy, sortDescending, setSearchParams]);
 
@@ -262,13 +262,13 @@ const CatalogList: React.FC = () => {
       if (currentPage) {
         const newParams = new URLSearchParams(searchParams);
         newParams.delete("page");
-        setSearchParams(newParams, { replace: true });
+        setSearchParams(newParams); // Creates history entry when cleaning up page param
       }
     } else if (currentPageNumber !== pageNumber) {
       // Update page parameter when page number changes
       const newParams = new URLSearchParams(searchParams);
       newParams.set("page", pageNumber.toString());
-      setSearchParams(newParams, { replace: true });
+      setSearchParams(newParams); // Creates history entry for page number change
     }
   }, [pageNumber, searchParams, setSearchParams]);
 
@@ -407,7 +407,7 @@ const CatalogList: React.FC = () => {
                     params.delete("productType");
                   }
                   params.delete("page"); // Remove page param when resetting to page 1
-                  setSearchParams(params, { replace: true });
+                  setSearchParams(params); // Creates history entry for user-initiated type filter change
                 }}
                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >
