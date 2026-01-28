@@ -175,3 +175,31 @@ export const useCatalogDetail = (
     enabled: !!productCode, // Only run query if productCode is provided
   });
 };
+
+export interface IngredientDto {
+  productCode: string;
+  productName: string;
+  amount: number;
+  unit: string;
+}
+
+export interface ProductCompositionResponse {
+  ingredients: IngredientDto[];
+}
+
+export const useProductComposition = (productCode: string) => {
+  const apiClient = getAuthenticatedApiClient();
+
+  return useQuery<ProductCompositionResponse>({
+    queryKey: [...QUERY_KEYS.catalog, 'composition', productCode],
+    queryFn: async () => {
+      const relativeUrl = `/api/catalog/${encodeURIComponent(productCode)}/composition`;
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'GET',
+      });
+      return response.json();
+    },
+    enabled: !!productCode,
+  });
+};

@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.DeleteManufactureDifficu
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetManufactureDifficultySettings;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetMaterialForPurchase;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateProductWeight;
@@ -46,6 +47,13 @@ public class CatalogController : BaseApiController
         return HandleResponse(response);
     }
 
+    [HttpGet("{productCode}/composition")]
+    public async Task<ActionResult<GetProductCompositionResponse>> GetComposition(string productCode)
+    {
+        var request = new GetProductCompositionRequest { ProductCode = productCode };
+        var response = await _mediator.Send(request);
+        return Ok(response);
+    }
 
     [HttpGet("materials-for-purchase")]
     public async Task<ActionResult<GetMaterialsForPurchaseResponse>> GetMaterialsForPurchase([FromQuery] GetMaterialsForPurchaseRequest request)
