@@ -261,13 +261,13 @@ const CatalogList: React.FC = () => {
       if (currentPage) {
         const newParams = new URLSearchParams(searchParams);
         newParams.delete("page");
-        setSearchParams(newParams, { replace: true });
+        setSearchParams(newParams); // Creates history entry when cleaning up page param
       }
     } else if (currentPageNumber !== pageNumber) {
       // Update page parameter when page number changes
       const newParams = new URLSearchParams(searchParams);
       newParams.set("page", pageNumber.toString());
-      setSearchParams(newParams, { replace: true });
+      setSearchParams(newParams); // Creates history entry for page number change
     }
   }, [pageNumber, searchParams, setSearchParams]);
 
