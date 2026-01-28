@@ -96,131 +96,57 @@ test.describe('Classification History - Date Filters', () => {
     }
   });
 
-  test('should filter by date range (both fromDate and toDate)', async ({ page }) => {
-    const initialCount = await getRowCount(page);
-
-    // Apply date range filter - last month to today
-    const lastMonth = new Date();
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    const fromDateStr = lastMonth.toISOString().split('T')[0];
-
-    const today = new Date();
-    const toDateStr = today.toISOString().split('T')[0];
-
-    await applyFilters(page, { fromDate: fromDateStr, toDate: toDateStr });
-
-    // Wait for filter to apply
-    await page.waitForTimeout(1000);
-
-    const filteredCount = await getRowCount(page);
-    const noRecords = await hasNoRecordsMessage(page);
-
-    // We expect either:
-    // 1. Records within range OR
-    // 2. No records message if no dates in range
-    expect(noRecords || filteredCount >= 0).toBeTruthy();
-
-    // Verify both filter inputs show the values
+  test('should filter by date range (both dates)', async ({ page }) => {
     const inputs = getFilterInputs(page);
-    const fromDateValue = await inputs.fromDate.inputValue();
-    const toDateValue = await inputs.toDate.inputValue();
-    expect(fromDateValue).toBe(fromDateStr);
-    expect(toDateValue).toBe(toDateStr);
 
-    // If we have records, verify dates are within range
-    if (filteredCount > 0 && !noRecords) {
-      const rows = getTableRows(page);
-      const firstRow = rows.first();
+    // Set date range
+    const fromDate = '2026-01-01';
+    const toDate = '2026-01-31';
+    await applyFilters(page, { fromDate, toDate });
 
-      // Check that date is within range
-      const dateCell = firstRow.locator('td').first();
-      const dateCellText = await dateCell.textContent();
+    // Verify both filters applied
+    expect(await inputs.fromDate.inputValue()).toBe(fromDate);
+    expect(await inputs.toDate.inputValue()).toBe(toDate);
 
-      if (dateCellText) {
-        console.log(
-          `First row date: ${dateCellText}, Range: ${fromDateStr} to ${toDateStr}`
-        );
-      }
-    }
+    // Verify results
+    const hasData = (await getRowCount(page)) > 0;
+    const hasNoData = await hasNoRecordsMessage(page);
+    expect(hasData || hasNoData).toBe(true);
   });
 
-  test('should handle invalid date ranges gracefully (toDate before fromDate)', async ({
-    page,
-  }) => {
-    // Apply invalid date range - toDate before fromDate
-    const today = new Date();
-    const toDateStr = today.toISOString().split('T')[0];
-
-    const nextMonth = new Date();
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-    const fromDateStr = nextMonth.toISOString().split('T')[0];
-
-    await applyFilters(page, { fromDate: fromDateStr, toDate: toDateStr });
-
-    // Wait for filter to apply
-    await page.waitForTimeout(1000);
-
-    // Should either:
-    // 1. Show no records (filter returns empty) OR
-    // 2. Show validation error OR
-    // 3. Ignore the filter
-    const noRecords = await hasNoRecordsMessage(page);
-    const rowCount = await getRowCount(page);
-
-    // We expect either no records or some error handling
-    // The system should handle this gracefully without crashing
-    expect(noRecords || rowCount >= 0).toBeTruthy();
-
-    // Verify the page is still responsive
+  test('should handle invalid date ranges gracefully', async ({ page }) => {
     const inputs = getFilterInputs(page);
-    await expect(inputs.filterButton).toBeVisible();
-    await expect(inputs.clearButton).toBeVisible();
+
+    // Set toDate before fromDate (invalid range)
+    const fromDate = '2026-01-31';
+    const toDate = '2026-01-01';
+    await applyFilters(page, { fromDate, toDate });
+
+    // Application should still work (may show no results or all results)
+    // Verify no error state appears
+    const errorElement = page.locator(':text("Chyba"), :text("Error")');
+    const hasError = (await errorElement.count()) > 0;
+    expect(hasError).toBe(false);
   });
 
   test('should clear date filters when clicking clear button', async ({ page }) => {
-    // First apply some date filters
-    const lastMonth = new Date();
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    const fromDateStr = lastMonth.toISOString().split('T')[0];
-
-    const today = new Date();
-    const toDateStr = today.toISOString().split('T')[0];
-
-    await applyFilters(page, { fromDate: fromDateStr, toDate: toDateStr });
-
-    // Wait for filter to apply
-    await page.waitForTimeout(1000);
-
-    // Verify filters are applied
     const inputs = getFilterInputs(page);
-    let fromDateValue = await inputs.fromDate.inputValue();
-    let toDateValue = await inputs.toDate.inputValue();
-    expect(fromDateValue).toBe(fromDateStr);
-    expect(toDateValue).toBe(toDateStr);
 
-    const filteredCount = await getRowCount(page);
+    // Apply date filters
+    await applyFilters(page, {
+      fromDate: '2026-01-01',
+      toDate: '2026-01-31',
+    });
 
-    // Now clear all filters
+    // Verify filters are set
+    expect(await inputs.fromDate.inputValue()).toBe('2026-01-01');
+    expect(await inputs.toDate.inputValue()).toBe('2026-01-31');
+
+    // Clear filters
     await clearAllFilters(page);
 
-    // Wait for clear to apply
-    await page.waitForTimeout(1000);
-
     // Verify filters are cleared
-    fromDateValue = await inputs.fromDate.inputValue();
-    toDateValue = await inputs.toDate.inputValue();
-    expect(fromDateValue).toBe('');
-    expect(toDateValue).toBe('');
-
-    // Verify data is reset (should show all records or original state)
-    const clearedCount = await getRowCount(page);
-    const noRecords = await hasNoRecordsMessage(page);
-
-    // After clearing, we should have records or no records message
-    expect(noRecords || clearedCount >= 0).toBeTruthy();
-
-    // If we had filtered results before, clearing should change the count
-    // (unless the filter didn't actually filter anything)
-    console.log(`Filtered count: ${filteredCount}, Cleared count: ${clearedCount}`);
+    expect(await inputs.fromDate.inputValue()).toBe('');
+    expect(await inputs.toDate.inputValue()).toBe('');
   });
 });
