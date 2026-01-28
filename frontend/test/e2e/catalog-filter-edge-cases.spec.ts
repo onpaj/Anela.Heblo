@@ -5,7 +5,6 @@ import {
   applyProductCodeFilter,
   getRowCount,
   getProductNameInput,
-  getProductCodeInput,
   getFilterButton,
   waitForTableUpdate,
   validateFilteredResults,
@@ -256,29 +255,31 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
 
     const initialRowCount = await getRowCount(page);
 
-    if (initialRowCount > 0) {
-      // Click on first row to open detail (if modal exists)
-      const firstRow = page.locator("tbody tr:first-child");
-      await firstRow.click();
-
-      // Wait a moment for modal to potentially open
-      await page.waitForTimeout(1000);
-
-      // Try to close modal if it opened (ESC key or close button)
-      await page.keyboard.press("Escape");
-      await page.waitForTimeout(500);
-
-      // Verify filter is still applied
-      const nameInput = getProductNameInput(page);
-      await expect(nameInput).toHaveValue("Krém");
-
-      const rowCount = await getRowCount(page);
-      expect(rowCount).toBe(initialRowCount);
-
-      console.log("✅ Filters maintained after modal interaction");
-    } else {
-      console.log("ℹ️ No results to test modal interaction");
+    // If no results, this test doesn't apply
+    if (initialRowCount === 0) {
+      console.log("ℹ️ Skipping modal test - no results found");
+      return;
     }
+
+    // Click on first row to open detail (if modal exists)
+    const firstRow = page.locator("tbody tr:first-child");
+    await firstRow.click();
+
+    // Wait a moment for modal to potentially open
+    await page.waitForTimeout(1000);
+
+    // Try to close modal if it opened (ESC key or close button)
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(500);
+
+    // Verify filter is still applied
+    const nameInput = getProductNameInput(page);
+    await expect(nameInput).toHaveValue("Krém");
+
+    const rowCount = await getRowCount(page);
+    expect(rowCount).toBe(initialRowCount);
+
+    console.log("✅ Filters maintained after modal interaction");
   });
 
   test("should clear filters when navigating away and returning", async ({
