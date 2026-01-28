@@ -122,7 +122,7 @@ const CatalogList: React.FC = () => {
     }
     // Remove page param when resetting to page 1
     params.delete("page");
-    setSearchParams(params, { replace: true });
+    setSearchParams(params); // Creates history entry for user-initiated filter change
 
     // Force data reload by refetching
     await refetch();
