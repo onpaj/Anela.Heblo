@@ -131,11 +131,41 @@ test.describe('Catalog Clear Filters E2E Tests', () => {
     console.log('✅ All filters cleared simultaneously');
   });
 
-  // SKIPPED: Application implementation issue - Clearing filters does not reset pagination to page 1.
-  // Expected behavior: When filters are cleared, the page should reset to 1 to show the beginning of the full dataset.
-  // Actual behavior: Page remains on page 2 after clearing filters, which may confuse users.
-  // Error: Expected page to be 1, but received 2 after clearing filters.
-  // This is a UX issue that should be fixed in the clearAllFilters handler to also reset pagination state.
+  // SKIPPED: Application bug - Pagination not reset when clearing filters
+  // Component: CatalogList.tsx (lines 123-133, handleClearFilters function)
+  // Root cause: Race condition in URL synchronization logic between multiple useEffect hooks
+  //
+  // Expected behavior:
+  //   When user clears all filters, pagination should reset to page 1 to show the beginning of the full dataset
+  //
+  // Actual behavior:
+  //   When user clears filters while on page 2, the page remains on page 2 after clearing
+  //   - The handleClearFilters function correctly calls setPageNumber(1) at line 129
+  //   - However, the URL still contains ?page=2 parameter after clearing
+  //   - The useEffect hooks that sync URL <-> state have a race condition:
+  //     * useEffect at lines 218-228 reads URL and sets pageNumber to 2 from ?page=2
+  //     * useEffect at lines 231-248 should update URL to remove ?page=2 when pageNumber=1
+  //     * These hooks interfere with each other, causing the URL to remain at ?page=2
+  //
+  // Error observed:
+  //   expect(received).toBe(expected)
+  //   Expected: 1
+  //   Received: 2
+  //
+  // Evidence:
+  //   - Pagination shows "21-40 z 906" (page 2 content) instead of "1-20 z 906" (page 1 content)
+  //   - URL contains ?page=2 after clearing filters
+  //   - This is consistent with similar pagination bugs found in catalog-pagination.spec.ts
+  //
+  // Impact:
+  //   - Moderate UX issue: Users may be confused seeing page 2 results after clearing filters
+  //   - Users can manually click page 1 button as workaround
+  //
+  // Recommended fix:
+  //   Refactor URL synchronization to avoid race conditions, possibly by:
+  //   1. Combining the two competing useEffect hooks into a single bidirectional sync
+  //   2. Adding explicit URL parameter removal in handleClearFilters
+  //   3. Using navigate() from react-router to update both state and URL atomically
   test.skip('should reset page to 1 after clearing', async ({ page }) => {
     // Apply filter and navigate to page 2
     await applyProductNameFilter(page, 'Krém');
@@ -149,6 +179,9 @@ test.describe('Catalog Clear Filters E2E Tests', () => {
 
     // Clear filters
     await clearAllFilters(page);
+
+    // Wait for URL to update after clearing filters
+    await page.waitForTimeout(1000);
 
     // Validate page was reset to 1
     await validatePageResetToOne(page);

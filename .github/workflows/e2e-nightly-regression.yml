@@ -32,7 +32,6 @@ env:
 permissions:
   checks: write      # Allow creating check runs for test results
   contents: read     # Allow reading repository contents
-  issues: write      # Allow creating/updating issues for test failures
 
 jobs:
   # Validate staging health before running tests
@@ -240,7 +239,17 @@ jobs:
             if [ "$FAILED" -gt 0 ]; then
               echo "### ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
-              grep -A 3 '<failure' frontend/test-results/junit.xml | grep 'testcase name=' | sed 's/.*name="\([^"]*\)".*/- `\1`/' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse test names" >> $GITHUB_STEP_SUMMARY
+              # Extract failed test names from JUnit XML
+              grep '<testcase' frontend/test-results/junit.xml | grep '<failure' | sed 's/.*name="\([^"]*\)".*/- \1/' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse test names" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            # List skipped tests if any
+            if [ "$SKIP" -gt 0 ]; then
+              echo "### ⏭️ Skipped Tests" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              # Extract skipped test names from JUnit XML
+              grep '<testcase' frontend/test-results/junit.xml | grep '<skipped' | sed 's/.*name="\([^"]*\)".*/- \1/' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse skipped test names" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
             fi
 
@@ -264,124 +273,6 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Test Status: ${{ steps.run-tests.outcome }}" >> $GITHUB_STEP_SUMMARY
           fi
-
-      - name: 🐛 Create or update GitHub issue on failure
-        if: always() && steps.run-tests.outcome == 'failure'
-        run: |
-          # Parse JUnit XML for test results
-          if [ -f frontend/test-results/junit.xml ]; then
-            TESTS=$(grep -o 'tests="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-            FAILURES=$(grep -o 'failures="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-            ERRORS=$(grep -o 'errors="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-
-            TOTAL=${TESTS:-0}
-            FAILED=$((${FAILURES:-0} + ${ERRORS:-0}))
-            PASSED=$((TOTAL - FAILED))
-          else
-            TOTAL="Unknown"
-            FAILED="Unknown"
-            PASSED="Unknown"
-          fi
-
-          # Search for existing open E2E nightly failure issue
-          EXISTING_ISSUE=$(gh issue list \
-            --state open \
-            --label "e2e-nightly-failure" \
-            --json number,title \
-            --jq '.[0].number' 2>/dev/null || echo "")
-
-          ISSUE_BODY="## 🎭 E2E Nightly Regression Test Failure
-
-          **Date:** $(date '+%Y-%m-%d %H:%M:%S UTC')
-          **Workflow Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-          ### 📊 Test Results
-
-          | Metric | Value |
-          |--------|-------|
-          | **Total Tests** | $TOTAL |
-          | **✅ Passed** | $PASSED |
-          | **❌ Failed** | $FAILED |
-          | **Test Environment** | ${{ env.STAGING_URL }} |
-          | **Browser** | ${{ github.event.inputs.browser || 'chromium' }} |
-
-          ### 🔍 Investigation Steps
-
-          1. **View test results directly in workflow:**
-             - Go to [this workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-             - Click on '🎭 E2E Test Results' check for detailed pass/fail status
-             - Review annotations for specific test failures
-
-          2. **Download test artifacts for detailed analysis:**
-             - Download \`e2e-nightly-test-results-${{ github.run_number }}\` artifact
-             - Extract and open \`playwright-report/index.html\` in your browser
-             - Check screenshots for visual regressions
-             - Review test traces for execution flow
-
-          3. **Verify staging environment:**
-             - Ensure staging is accessible: ${{ env.STAGING_URL }}
-             - Check recent deployments for breaking changes
-             - Verify Azure authentication is working
-
-          ### 🔗 Links
-
-          - [Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          - [Staging Environment](${{ env.STAGING_URL }})
-          - [Test Reports (Artifacts)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)
-
-          ---
-          _This issue was automatically created by the E2E nightly regression workflow._
-          _It will be automatically closed when tests pass again._"
-
-          if [ -n "$EXISTING_ISSUE" ]; then
-            echo "📝 Updating existing issue #$EXISTING_ISSUE"
-            gh issue comment "$EXISTING_ISSUE" --body "$ISSUE_BODY"
-          else
-            echo "📝 Creating new issue for E2E failure"
-            gh issue create \
-              --title "🎭 E2E Nightly Regression Tests Failed - $(date '+%Y-%m-%d')" \
-              --body "$ISSUE_BODY" \
-              --label "e2e-nightly-failure,bug"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: ✅ Close GitHub issue on success
-        if: always() && steps.run-tests.outcome == 'success'
-        run: |
-          # Parse JUnit XML for test results
-          if [ -f frontend/test-results/junit.xml ]; then
-            TESTS=$(grep -o 'tests="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-            TOTAL=${TESTS:-0}
-          else
-            TOTAL="Unknown"
-          fi
-
-          # Search for existing open E2E nightly failure issue
-          EXISTING_ISSUE=$(gh issue list \
-            --state open \
-            --label "e2e-nightly-failure" \
-            --json number,title \
-            --jq '.[0].number' 2>/dev/null || echo "")
-
-          if [ -n "$EXISTING_ISSUE" ]; then
-            echo "✅ Closing issue #$EXISTING_ISSUE - tests are now passing"
-            gh issue close "$EXISTING_ISSUE" \
-              --comment "✅ **E2E tests are now passing!**
-
-          All tests passed in [workflow run #${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
-
-          **Test Results:**
-          - **Total Tests:** $TOTAL
-          - **✅ Passed:** $TOTAL
-          - **❌ Failed:** 0
-
-          The issue has been automatically resolved."
-          else
-            echo "ℹ️ No open E2E failure issue found"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 📢 Send Teams notification (optional)
         if: always() && env.TEAMS_WEBHOOK_URL != ''

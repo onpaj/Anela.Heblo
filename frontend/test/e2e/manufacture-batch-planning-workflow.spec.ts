@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { navigateToApp } from '../helpers/e2e-auth-helper';
-import { TestCatalogItems } from '../fixtures/test-data';
+import { navigateToApp } from './helpers/e2e-auth-helper';
+import { TestCatalogItems } from './fixtures/test-data';
 
 test.describe('ManufactureBatchPlanning Workflow', () => {
   test.beforeEach(async ({ page }) => {

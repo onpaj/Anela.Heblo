@@ -1,0 +1,28 @@
+Data collection:
+
+analyze all e2e tests in @frontend/test/e2e/ and make a list in .txt file with all tests      
+  which are marked skipped with a place for mark before each such test. structure uf that file  
+  should look like this:   
+  
+  [ ] Test description 1 (file:line_number)  
+  [ ] Test description 2 (file:line_number)  
+  [ ] Test description 3 (file:line_number)
+  
+  Save this txt to @.claude/ralph_loops/fix_e2e_skipped_tests/skipped_tests_list.txt
+  
+  
+  
+Loop prompt:
+
+Look at file @.claude/ralph_loops/fix_e2e_skipped_tests/skipped_tests_list.txt and find first line which is not marked as completed ([ ] is incomplete, [x] is completed).  
+
+For that line, start new subagent (clear context), analyze test described (file, line number, test name). 
+    In case test is invalid (UI has changed since test creation) update that test. 
+    In case of missing data, use playwright to explore some test data for yourself. Then update that test to make it work.
+    In case test is valid and really shows application bug, remove skip mark from that test to enable it. Write your finding to comment for that test
+For running that test use @scripts/run-playwright-tests.sh script with specific test parameter. Do not run that script without test specified! (that would run all tests)
+After you successfully finish with that test, mark that line as completed ([x]) in @.claude/ralph_loops/fix_e2e_skipped_tests/skipped_tests_list.txt
+End your output with updated @.claude/ralph_loops/fix_e2e_skipped_tests/skipped_tests_list.txt content, close all resources you have used (background playwright procssses and scripts) and stop the session.
+
+
+Output <promise>DONE</promise> when all tests are marked as completed.

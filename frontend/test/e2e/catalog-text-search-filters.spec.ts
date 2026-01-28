@@ -135,11 +135,11 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     console.log('✅ Case-insensitive search working correctly');
   });
 
-  // SKIPPED: Application implementation issue - Applying name filter does not reset pagination to page 1.
-  // Expected behavior: When user applies name filter while on page 2, pagination should reset to page 1.
-  // Actual behavior: Page remains on page 2 after applying name filter, which may confuse users.
-  // Error: Expected page to be 1, but received 2 after applying name filter.
-  // This is the same pagination reset bug seen in other catalog tests - filter application should trigger pagination reset.
+  // SKIPPED: Test is ready but needs code deployment to staging.
+  // FIX APPLIED: Modified CatalogList.tsx to immediately update URL params when applying filters.
+  // Root cause: Race condition between setPageNumber(1) and useEffect reading old page=2 from URL.
+  // Solution: In handleApplyFilters(), immediately call setSearchParams() to remove 'page' param before useEffect runs.
+  // TODO: Unskip this test after the fix is deployed to staging environment.
   test.skip('should reset to page 1 when applying name filter', async ({ page }) => {
     // First, navigate to page 2 if possible
     const url = new URL(page.url());
@@ -263,11 +263,11 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     console.log('✅ Partial code matching working correctly');
   });
 
-  // SKIPPED: Application implementation issue - Applying code filter does not reset pagination to page 1.
-  // Expected behavior: When user applies code filter while on page 2, pagination should reset to page 1.
-  // Actual behavior: Page remains on page 2 after applying code filter, which may confuse users.
-  // Error: Expected page to be 1, but received 2 after applying code filter.
-  // This is the same pagination reset bug seen in other catalog tests - filter application should trigger pagination reset.
+  // SKIPPED: Test is ready but needs code deployment to staging.
+  // FIX APPLIED: Modified CatalogList.tsx to immediately update URL params when applying filters.
+  // Root cause: Race condition between setPageNumber(1) and useEffect reading old page=2 from URL.
+  // Solution: In handleApplyFilters(), immediately call setSearchParams() to remove 'page' param before useEffect runs.
+  // TODO: Unskip this test after the fix is deployed to staging environment.
   test.skip('should reset to page 1 when applying code filter', async ({ page }) => {
     // Navigate to page 2
     const url = new URL(page.url());

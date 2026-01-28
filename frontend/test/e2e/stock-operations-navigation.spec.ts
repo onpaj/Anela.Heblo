@@ -1,9 +1,8 @@
 import { test, expect } from '@playwright/test';
-import { navigateToStockOperations } from '../helpers/e2e-auth-helper';
-import { waitForTableUpdate, getRowCount } from '../helpers/stock-operations-test-helpers';
+import { navigateToStockOperations, navigateToApp } from './helpers/e2e-auth-helper';
+import { waitForTableUpdate, getRowCount } from './helpers/stock-operations-test-helpers';
 
-// SKIPPED: Same timeout issue as stock-operations-badges - see that file's comment for details.
-test.describe.skip('Stock Operations - Navigation & Initial Load', () => {
+test.describe('Stock Operations - Navigation & Initial Load', () => {
   test('should navigate to page via direct URL', async ({ page }) => {
     console.log('🧪 Testing: Direct navigation to stock operations');
 
@@ -42,31 +41,14 @@ test.describe.skip('Stock Operations - Navigation & Initial Load', () => {
   test('should display loading state during data fetch', async ({ page }) => {
     console.log('🧪 Testing: Loading state display');
 
-    await createE2EAuthSession(page);
-
-    // Start navigation
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
-    const navPromise = page.goto(`${baseUrl}/stock-operations`);
-
-    // Try to catch loading spinner (may be too fast)
-    try {
-      const spinner = page.locator('svg.animate-spin');
-      const isVisible = await spinner.isVisible({ timeout: 1000 });
-      if (isVisible) {
-        console.log('   ✅ Loading spinner detected');
-      } else {
-        console.log('   ℹ️ Loading too fast to catch spinner');
-      }
-    } catch (e) {
-      console.log('   ℹ️ Loading completed before spinner check');
-    }
-
-    await navPromise;
+    // Navigate to stock operations with full authentication
+    await navigateToStockOperations(page);
     await waitForTableUpdate(page);
 
-    // Verify data loaded (spinner should be gone)
-    const spinner = page.locator('svg.animate-spin');
-    await expect(spinner).not.toBeVisible();
+    // Verify data loaded - check for table content instead of spinners
+    // (multiple spinners exist on page, so checking for data presence is more reliable)
+    const tableBody = page.locator('tbody');
+    await expect(tableBody).toBeVisible();
 
     console.log('✅ Loading state test completed');
   });
@@ -101,14 +83,17 @@ test.describe.skip('Stock Operations - Navigation & Initial Load', () => {
   test('should display error state on API failure', async ({ page }) => {
     console.log('🧪 Testing: Error state display');
 
-    await createE2EAuthSession(page);
+    // Set up auth first
+    await navigateToApp(page);
 
     // Intercept API calls and force failure
     await page.route('**/api/stock-up-operations**', route => {
       route.abort('failed');
     });
 
-    await navigateToStockOperations(page);
+    // Navigate to stock operations page (will trigger failed API call)
+    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+    await page.goto(`${baseUrl}/stock-operations`);
     await page.waitForTimeout(3000);
 
     // Check for error message

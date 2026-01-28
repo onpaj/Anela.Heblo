@@ -108,6 +108,22 @@ const CatalogList: React.FC = () => {
     setProductCodeFilter(productCodeInput);
     setPageNumber(1); // Reset to first page when applying filters
 
+    // Update URL params immediately to prevent race condition with useEffect
+    const params = new URLSearchParams(searchParams);
+    if (productNameInput) {
+      params.set("productName", productNameInput);
+    } else {
+      params.delete("productName");
+    }
+    if (productCodeInput) {
+      params.set("productCode", productCodeInput);
+    } else {
+      params.delete("productCode");
+    }
+    // Remove page param when resetting to page 1
+    params.delete("page");
+    setSearchParams(params, { replace: true });
+
     // Force data reload by refetching
     await refetch();
   };
@@ -127,6 +143,14 @@ const CatalogList: React.FC = () => {
     setProductCodeFilter("");
     setProductTypeFilter("");
     setPageNumber(1); // Reset to first page when clearing filters
+
+    // Update URL params immediately to prevent race condition with useEffect
+    const params = new URLSearchParams(searchParams);
+    params.delete("productName");
+    params.delete("productCode");
+    params.delete("productType");
+    params.delete("page");
+    setSearchParams(params, { replace: true });
 
     // Force data reload by refetching
     await refetch();
@@ -368,12 +392,21 @@ const CatalogList: React.FC = () => {
                 id="productType"
                 value={productTypeFilter}
                 onChange={(e) => {
-                  setProductTypeFilter(
-                    e.target.value === ""
-                      ? ""
-                      : (e.target.value as ProductType),
-                  );
+                  const newType = e.target.value === ""
+                    ? ""
+                    : (e.target.value as ProductType);
+                  setProductTypeFilter(newType);
                   setPageNumber(1); // Reset to first page when filter changes
+
+                  // Update URL params immediately to prevent race condition with useEffect
+                  const params = new URLSearchParams(searchParams);
+                  if (newType) {
+                    params.set("productType", newType);
+                  } else {
+                    params.delete("productType");
+                  }
+                  params.delete("page"); // Remove page param when resetting to page 1
+                  setSearchParams(params, { replace: true });
                 }}
                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >

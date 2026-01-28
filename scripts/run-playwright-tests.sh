@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # Playwright Test Runner for Staging Environment
-# Usage: ./scripts/run-playwright-tests.sh [test-file-name]
+# Usage: ./scripts/run-playwright-tests.sh [test-file-name] [test-name]
 # Examples:
-#   ./scripts/run-playwright-tests.sh                    # Run all tests
-#   ./scripts/run-playwright-tests.sh auth              # Run tests matching "auth"
-#   ./scripts/run-playwright-tests.sh sidebar.spec.ts  # Run specific test file
+#   ./scripts/run-playwright-tests.sh                              # Run all tests
+#   ./scripts/run-playwright-tests.sh auth                         # Run tests matching "auth"
+#   ./scripts/run-playwright-tests.sh sidebar.spec.ts              # Run specific test file
+#   ./scripts/run-playwright-tests.sh sidebar.spec.ts "test name"  # Run single test in file
 
 set -e
 
@@ -77,6 +78,12 @@ PLAYWRIGHT_CMD="npx playwright test"
 if [ -n "$1" ]; then
     echo -e "${BLUE}🎯 Running tests matching: ${YELLOW}$1${NC}"
     PLAYWRIGHT_CMD="$PLAYWRIGHT_CMD $1"
+
+    # Add test name filter if provided (second parameter)
+    if [ -n "$2" ]; then
+        echo -e "${BLUE}🔍 Filtering for test: ${YELLOW}$2${NC}"
+        PLAYWRIGHT_CMD="$PLAYWRIGHT_CMD -g \"$2\""
+    fi
 else
     echo -e "${BLUE}🎯 Running all E2E tests${NC}"
 fi
