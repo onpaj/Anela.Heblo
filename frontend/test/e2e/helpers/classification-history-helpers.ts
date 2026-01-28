@@ -17,7 +17,14 @@ export async function waitForClassificationHistoryLoaded(page: Page): Promise<vo
 /**
  * Gets filter input elements
  */
-export function getFilterInputs(page: Page) {
+export function getFilterInputs(page: Page): {
+  fromDate: Locator;
+  toDate: Locator;
+  invoiceNumber: Locator;
+  companyName: Locator;
+  filterButton: Locator;
+  clearButton: Locator;
+} {
   return {
     fromDate: page.locator('input#fromDate'),
     toDate: page.locator('input#toDate'),
@@ -56,7 +63,7 @@ export async function applyFilters(
   }
 
   await inputs.filterButton.click();
-  await page.waitForTimeout(1000); // Wait for filter application
+  await page.waitForLoadState('networkidle'); // Wait for filter application
 }
 
 /**
@@ -65,7 +72,7 @@ export async function applyFilters(
 export async function clearAllFilters(page: Page): Promise<void> {
   const inputs = getFilterInputs(page);
   await inputs.clearButton.click();
-  await page.waitForTimeout(1000); // Wait for clear to complete
+  await page.waitForLoadState('networkidle'); // Wait for clear to complete
 }
 
 /**
@@ -101,7 +108,13 @@ export async function hasNoRecordsMessage(page: Page): Promise<boolean> {
 /**
  * Gets pagination controls
  */
-export function getPaginationControls(page: Page) {
+export function getPaginationControls(page: Page): {
+  nav: Locator;
+  prevButton: Locator;
+  nextButton: Locator;
+  currentPageButton: Locator;
+  pageSizeSelector: Locator;
+} {
   const nav = page.locator('nav[aria-label="Pagination"]');
   return {
     nav,
@@ -115,7 +128,10 @@ export function getPaginationControls(page: Page) {
 /**
  * Gets action buttons in a table row
  */
-export function getRowActionButtons(row: Locator) {
+export function getRowActionButtons(row: Locator): {
+  classifyButton: Locator;
+  createRuleButton: Locator;
+} {
   return {
     classifyButton: row.locator('button:has-text("Klasifikovat")'),
     createRuleButton: row.locator('button:has-text("Vytvořit pravidlo")'),
@@ -125,7 +141,12 @@ export function getRowActionButtons(row: Locator) {
 /**
  * Gets the rule creation modal
  */
-export function getRuleModal(page: Page) {
+export function getRuleModal(page: Page): {
+  modal: Locator;
+  companyNameInput: Locator;
+  submitButton: Locator;
+  cancelButton: Locator;
+} {
   const modal = page.locator('.fixed.inset-0.bg-gray-600');
   return {
     modal,
@@ -138,7 +159,11 @@ export function getRuleModal(page: Page) {
 /**
  * Gets status badge elements
  */
-export function getStatusBadges(page: Page) {
+export function getStatusBadges(page: Page): {
+  successBadge: Locator;
+  manualReviewBadge: Locator;
+  errorBadge: Locator;
+} {
   return {
     successBadge: page.locator('.bg-emerald-100'),
     manualReviewBadge: page.locator('.bg-yellow-100'),
