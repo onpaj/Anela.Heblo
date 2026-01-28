@@ -14,6 +14,7 @@ analyze all e2e tests in @frontend/test/e2e/ and make a list in .txt file with a
   
 Loop prompt:
 
+/ralph-loop:ralph-loop "
 Look at file @.claude/ralph_loops/fix_e2e_skipped_tests/skipped_tests_list.txt and find first line which is not marked as completed ([ ] is incomplete, [x] is completed).  
 
 For that line, start new subagent (clear context), analyze test described (file, line number, test name). 
@@ -23,6 +24,8 @@ For that line, start new subagent (clear context), analyze test described (file,
 For running that test use @scripts/run-playwright-tests.sh script with specific test parameter. Do not run that script without test specified! (that would run all tests)
 After you successfully finish with that test, mark that line as completed ([x]) in @.claude/ralph_loops/fix_e2e_skipped_tests/skipped_tests_list.txt
 End your output with updated @.claude/ralph_loops/fix_e2e_skipped_tests/skipped_tests_list.txt content, close all resources you have used (background playwright procssses and scripts) and stop the session.
+Do NOT continue with other tests, just single test should be fixed now.
 
 
 Output <promise>DONE</promise> when all tests are marked as completed.
+" --max-iterations 150 --completion-promise "DONE"

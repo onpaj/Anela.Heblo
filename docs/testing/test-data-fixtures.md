@@ -57,6 +57,14 @@ This document contains a reference list of test data available in the developmen
 |--------------|--------------|------|---------------|
 | MAS001001M | Hedvábný pan Jasmín | Polotovar | 4 variants |
 
+### Sample Products (Finished Goods)
+
+| Product Code | Product Name | Type | Available Stock | Notes |
+|--------------|--------------|------|-----------------|-------|
+| DAR001 | Dárkové balení | Produkt | - | Has margins data for testing |
+| DAR0010 | Dárkové balení mini | Produkt | - | - |
+| DEO001005 | Důvěrný pan Jasmín 5ml | Produkt | 67 | Has margins and sales data |
+
 ### Key Product Details (Example: AKL001 - Bisabolol)
 
 ```yaml

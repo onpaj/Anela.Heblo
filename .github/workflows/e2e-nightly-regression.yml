@@ -205,8 +205,70 @@ jobs:
           echo "## 🎭 E2E Nightly Regression Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Parse JUnit XML for test results
-          if [ -f frontend/test-results/junit.xml ]; then
+          # Parse JSON results (more reliable than XML parsing)
+          if [ -f frontend/test-results/results.json ]; then
+            # Install jq if not available (should be pre-installed on GitHub runners)
+            if ! command -v jq &> /dev/null; then
+              echo "⚠️ jq not found, falling back to basic parsing"
+              # Fallback to JUnit XML parsing
+              JSON_AVAILABLE=false
+            else
+              JSON_AVAILABLE=true
+            fi
+
+            if [ "$JSON_AVAILABLE" = true ]; then
+              # Parse JSON results
+              TOTAL=$(jq '[.suites[].specs[]] | length' frontend/test-results/results.json)
+              PASSED=$(jq '[.suites[].specs[] | select(.ok == true and (.tests[0].results[0].status == "passed" or .tests[0].results[0].status == "expected"))] | length' frontend/test-results/results.json)
+              FAILED=$(jq '[.suites[].specs[] | select(.ok == false)] | length' frontend/test-results/results.json)
+              SKIPPED=$(jq '[.suites[].specs[] | select(.tests[0].results[0].status == "skipped")] | length' frontend/test-results/results.json)
+
+              if [ "$FAILED" -eq 0 ]; then
+                echo "✅ **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "❌ **$FAILED test(s) failed.**" >> $GITHUB_STEP_SUMMARY
+              fi
+
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+              echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+              echo "| **Total Tests** | $TOTAL |" >> $GITHUB_STEP_SUMMARY
+              echo "| ✅ **Passed** | $PASSED |" >> $GITHUB_STEP_SUMMARY
+              echo "| ❌ **Failed** | $FAILED |" >> $GITHUB_STEP_SUMMARY
+              if [ "$SKIPPED" -gt 0 ]; then
+                echo "| ⏭️ **Skipped** | $SKIPPED |" >> $GITHUB_STEP_SUMMARY
+              fi
+              echo "" >> $GITHUB_STEP_SUMMARY
+
+              # List failed tests with error details
+              if [ "$FAILED" -gt 0 ]; then
+                echo "### ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+
+                # Extract failed test details from JSON
+                jq -r '.suites[] | .specs[] | select(.ok == false) | "**" + .title + "**\n- File: `" + .file + "`\n- Error: " + (.tests[0].results[0].error.message // "No error message") + "\n"' frontend/test-results/results.json >> $GITHUB_STEP_SUMMARY
+
+                echo "" >> $GITHUB_STEP_SUMMARY
+              fi
+
+              # List skipped tests
+              if [ "$SKIPPED" -gt 0 ]; then
+                echo "### ⏭️ Skipped Tests" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+
+                # Extract skipped test names from JSON
+                jq -r '.suites[] | .specs[] | select(.tests[0].results[0].status == "skipped") | "- " + .title' frontend/test-results/results.json >> $GITHUB_STEP_SUMMARY
+
+                echo "" >> $GITHUB_STEP_SUMMARY
+              fi
+            fi
+          fi
+
+          # Fallback to JUnit XML if JSON is not available
+          if [ ! -f frontend/test-results/results.json ] && [ -f frontend/test-results/junit.xml ]; then
+            echo "⚠️ Using JUnit XML fallback (JSON results not found)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
             # Extract test counts from JUnit XML
             TESTS=$(grep -o 'tests="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
             FAILURES=$(grep -o 'failures="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
@@ -235,44 +297,59 @@ jobs:
             fi
             echo "" >> $GITHUB_STEP_SUMMARY
 
-            # List failed tests if any
+            # List failed tests if any (improved XML parsing)
             if [ "$FAILED" -gt 0 ]; then
               echo "### ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
-              # Extract failed test names from JUnit XML
-              grep '<testcase' frontend/test-results/junit.xml | grep '<failure' | sed 's/.*name="\([^"]*\)".*/- \1/' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse test names" >> $GITHUB_STEP_SUMMARY
+
+              # Use xmllint or grep with better pattern
+              if command -v xmllint &> /dev/null; then
+                xmllint --xpath "//testcase[failure]/@name" frontend/test-results/junit.xml 2>/dev/null | sed 's/name="//g' | sed 's/"$//' | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse test names with xmllint" >> $GITHUB_STEP_SUMMARY
+              else
+                # Fallback: Extract testcase names that have failure children
+                grep -B 1 '<failure' frontend/test-results/junit.xml | grep '<testcase' | sed 's/.*name="\([^"]*\)".*/- \1/' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse test names from XML" >> $GITHUB_STEP_SUMMARY
+              fi
+
               echo "" >> $GITHUB_STEP_SUMMARY
             fi
 
-            # List skipped tests if any
+            # List skipped tests if any (improved XML parsing)
             if [ "$SKIP" -gt 0 ]; then
               echo "### ⏭️ Skipped Tests" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
-              # Extract skipped test names from JUnit XML
-              grep '<testcase' frontend/test-results/junit.xml | grep '<skipped' | sed 's/.*name="\([^"]*\)".*/- \1/' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse skipped test names" >> $GITHUB_STEP_SUMMARY
+
+              # Use xmllint or grep with better pattern
+              if command -v xmllint &> /dev/null; then
+                xmllint --xpath "//testcase[skipped]/@name" frontend/test-results/junit.xml 2>/dev/null | sed 's/name="//g' | sed 's/"$//' | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse skipped test names with xmllint" >> $GITHUB_STEP_SUMMARY
+              else
+                # Fallback: Extract testcase names that have skipped children
+                grep -B 1 '<skipped' frontend/test-results/junit.xml | grep '<testcase' | sed 's/.*name="\([^"]*\)".*/- \1/' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse skipped test names from XML" >> $GITHUB_STEP_SUMMARY
+              fi
+
               echo "" >> $GITHUB_STEP_SUMMARY
             fi
-
-            echo "### 📋 Test Environment" >> $GITHUB_STEP_SUMMARY
-            echo "- **URL:** ${{ env.STAGING_URL }}" >> $GITHUB_STEP_SUMMARY
-            echo "- **Browser:** ${{ github.event.inputs.browser || 'chromium' }}" >> $GITHUB_STEP_SUMMARY
-            echo "- **Authentication:** Azure Service Principal" >> $GITHUB_STEP_SUMMARY
-            echo "- **Executed at:** $(date)" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### 📊 View Detailed Results" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Test results are displayed above in the 'Annotations' section** - click on the test reporter check for detailed pass/fail status of each test." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "For HTML report with screenshots and traces:" >> $GITHUB_STEP_SUMMARY
-            echo "1. **Download artifacts**: Go to Actions → This workflow run → Artifacts" >> $GITHUB_STEP_SUMMARY
-            echo "2. **Download** \`e2e-nightly-test-results-${{ github.run_number }}\` artifact" >> $GITHUB_STEP_SUMMARY
-            echo "3. **Extract** the ZIP file" >> $GITHUB_STEP_SUMMARY
-            echo "4. **Open** \`playwright-report/index.html\` in your browser" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ **JUnit XML report not found - tests may not have run**" >> $GITHUB_STEP_SUMMARY
+          elif [ ! -f frontend/test-results/results.json ] && [ ! -f frontend/test-results/junit.xml ]; then
+            echo "⚠️ **No test results found - tests may not have run**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Test Status: ${{ steps.run-tests.outcome }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
+
+          echo "### 📋 Test Environment" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** ${{ env.STAGING_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Browser:** ${{ github.event.inputs.browser || 'chromium' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Authentication:** Azure Service Principal" >> $GITHUB_STEP_SUMMARY
+          echo "- **Executed at:** $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 View Detailed Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test results are displayed above in the 'Annotations' section** - click on the test reporter check for detailed pass/fail status of each test." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "For HTML report with screenshots and traces:" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Download artifacts**: Go to Actions → This workflow run → Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Download** \`e2e-nightly-test-results-${{ github.run_number }}\` artifact" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Extract** the ZIP file" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Open** \`playwright-report/index.html\` in your browser" >> $GITHUB_STEP_SUMMARY
 
       - name: 📢 Send Teams notification (optional)
         if: always() && env.TEAMS_WEBHOOK_URL != ''

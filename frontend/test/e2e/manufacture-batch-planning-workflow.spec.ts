@@ -22,15 +22,7 @@ test.describe('ManufactureBatchPlanning Workflow', () => {
     }
   });
 
-  // SKIPPED: Test execution timeout - Test suite is overly comprehensive (1100+ lines) and times out.
-  // Expected behavior: Test should complete manufacture batch planning workflow within reasonable time (< 3 minutes).
-  // Actual behavior: Test runs for extended period (> 3 minutes) without completion or timeout error.
-  // Root cause: Test includes extremely detailed validation steps with comprehensive value capture,
-  // multi-step persistence verification, lot number/expiration date testing, and checkbox state capture.
-  // This level of detail is excessive for a single E2E test and causes performance issues.
-  // Recommendation: Split into multiple smaller, focused tests - one for basic workflow, one for validation,
-  // one for persistence verification. Each test should complete within 1-2 minutes maximum.
-  test.skip('should complete full manufacture order creation workflow with MAS001001M', async ({ page }) => {
+  test('should complete full manufacture order creation workflow with MAS001001M', async ({ page }) => {
     console.log('📍 Test: Complete manufacture batch planning workflow with MAS001001M');
     
     // Step 1: Navigate to ManufactureBatchPlanning (Plánovač výrobních dávek) via sidebar
@@ -976,15 +968,7 @@ test.describe('ManufactureBatchPlanning Workflow', () => {
     console.log('💡 TEST VALIDATES: ALL form changes are properly persisted and no data is lost during save operation');
   });
 
-  // SKIPPED: Test execution timeout - Test is excessively detailed with multiple control mode testing.
-  // Expected behavior: Test should validate batch planning calculations efficiently within 1-2 minutes.
-  // Actual behavior: Test runs for extended period testing MMQ Multiplier, Total Weight, and Target Days Coverage modes.
-  // Root cause: Test attempts to validate all three control modes (MMQ, Weight, Coverage) in a single test case,
-  // with extensive logging and multiple recalculation cycles. This cumulative testing approach causes timeouts.
-  // Recommendation: Split into three separate tests - one per control mode. Each test should:
-  // 1) Select product 2) Set control mode 3) Modify value 4) Recalculate 5) Verify results
-  // Keep tests focused and fast (< 1 minute each).
-  test.skip('should validate batch planning calculations with different control modes', async ({ page }) => {
+  test('should validate batch planning calculations with different control modes', async ({ page }) => {
     console.log('📍 Test: Validate batch planning calculations with different control modes');
 
     // Use well-known semi-product from fixtures
@@ -993,18 +977,35 @@ test.describe('ManufactureBatchPlanning Workflow', () => {
 
     // Navigate to batch planning
     await page.getByRole('button', { name: 'Výroba' }).click();
-    await page.getByRole('link', { name: /plánovač výrobních dávek/i }).click();
+    await page.getByRole('link', { name: /plánovač výrobních dávek|plánování dávek/i }).click();
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     console.log('✅ Navigated to batch planning page');
 
-    // Select product using test fixture
-    const productInput = page.locator('input[placeholder*="polotovar"]').first();
-    await productInput.click();
+    // Select product using test fixture - use same approach as working test
+    const productCombobox = page.getByRole('combobox').or(
+      page.locator('input[placeholder*="polotovar"]').or(
+        page.locator('.css-18w4uv4')
+      )
+    );
+
+    await expect(productCombobox.first()).toBeVisible({ timeout: 10000 });
+    await productCombobox.first().click();
+    console.log('✅ Opened product selector dropdown');
+
+    // Fill the combobox input with product code
+    const productInput = page.locator('input[placeholder*="polotovar"]').or(
+      page.locator('#react-select-2-input')
+    );
+
     await productInput.fill(testProduct.code);
+    console.log(`✅ Entered product code ${testProduct.code}`);
+
+    // Wait for autocomplete options to appear
     await page.waitForTimeout(1500);
 
+    // Try to select first autocomplete option if available
     const firstOption = page.locator('[role="option"]').first();
     const optionVisible = await firstOption.isVisible({ timeout: 3000 }).catch(() => false);
 

@@ -104,6 +104,20 @@ export const TestCatalogItems: Record<string, CatalogItem> = {
     type: 'Materiál',
     availableStock: 86653.3,
     moq: '25000g'
+  },
+
+  // Products with margins data for testing
+  darkovyBalicek: {
+    code: 'DAR001',
+    name: 'Dárkové balení',
+    type: 'Produkt'
+  },
+
+  duvenyPanJasmin: {
+    code: 'DEO001005',
+    name: 'Důvěrný pan Jasmín 5ml',
+    type: 'Produkt',
+    availableStock: 67
   }
 };
 
