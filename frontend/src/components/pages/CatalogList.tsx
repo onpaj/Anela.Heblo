@@ -164,6 +164,7 @@ const CatalogList: React.FC = () => {
       setSortBy(column);
       setSortDescending(false);
     }
+    setPageNumber(1); // Reset to page 1 when sort changes
     // React Query will automatically refetch when sortBy or sortDescending changes
   };
 
