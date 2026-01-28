@@ -198,3 +198,51 @@ Use `Flask` from `lucide-react` to represent composition/ingredients
 - E2E tests for tab visibility and data display
 - Test empty state when no manufacture template exists
 - Test sorting functionality
+
+## Implementation Completed
+
+**Date:** 2026-01-28
+
+**Changes:**
+- Backend: Added GetProductComposition use case with handler and tests
+- Backend: Added GET /api/catalog/{productCode}/composition endpoint
+- Frontend: Added useProductComposition API hook
+- Frontend: Created CompositionTab component with sortable table
+- Frontend: Integrated tab into CatalogDetailTabs between Marže and Deník
+
+**Test Coverage:**
+- Backend: 2 handler tests (empty template, valid ingredients)
+- Frontend: 4 component tests (loading, error, empty, data display)
+- All 1635 backend tests passing
+- All 642 frontend tests passing
+
+**Implementation Adjustments:**
+- Used `Beaker` icon instead of `Flask` (Flask not available in lucide-react)
+- GetProductCompositionResponse inherits from BaseResponse (project standard)
+- Query key uses `QUERY_KEYS.catalog` pattern for consistent caching
+- React hooks moved before conditional returns (rules of hooks compliance)
+- Unit field hardcoded to "g" - future enhancement could use product type or configuration
+
+**Known Limitations:**
+- Unit field is hardcoded to "g" in the handler
+- No E2E tests added in this implementation (can be added separately)
+
+**Files Created:**
+- `backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/GetProductComposition/GetProductCompositionRequest.cs`
+- `backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/GetProductComposition/GetProductCompositionResponse.cs`
+- `backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/GetProductComposition/IngredientDto.cs`
+- `backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/GetProductComposition/GetProductCompositionHandler.cs`
+- `backend/test/Anela.Heblo.Tests/Features/Catalog/GetProductCompositionHandlerTests.cs`
+- `frontend/src/components/catalog/detail/tabs/CompositionTab.tsx`
+- `frontend/src/components/catalog/detail/tabs/__tests__/CompositionTab.test.tsx`
+
+**Files Modified:**
+- `backend/src/Anela.Heblo.API/Controllers/CatalogController.cs`
+- `frontend/src/api/hooks/useCatalog.ts`
+- `frontend/src/components/catalog/detail/CatalogDetailTabs.tsx`
+- `frontend/src/components/pages/CatalogDetail.tsx`
+
+**Next Steps:**
+- Consider adding E2E test for tab visibility and interaction
+- Evaluate if unit field should be dynamic based on ingredient type
+- Monitor usage and gather feedback on sorting preferences
