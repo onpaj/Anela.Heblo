@@ -1,16 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToCatalog } from './helpers/e2e-auth-helper';
+import { navigateToCatalog } from './helpers/e2e-auth-helper';
 
 test.describe('Catalog Product Type Filtering E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // Create E2E authentication session before each test
-    await createE2EAuthSession(page);
+    // Navigate to catalog with full authentication
+    await navigateToCatalog(page);
   });
 
   test('should filter catalog by product type "Material"', async ({ page }) => {
-    // Navigate to catalog using shared helper
     console.log('🧭 Navigating to catalog page...');
-    await navigateToCatalog(page);
 
     // Verify we're on the catalog page
     expect(page.url()).toContain('/catalog');
@@ -92,9 +90,7 @@ test.describe('Catalog Product Type Filtering E2E Tests', () => {
   });
 
   test('should filter catalog by product type "Product"', async ({ page }) => {
-    // Navigate to catalog using shared helper
     console.log('🧭 Navigating to catalog page...');
-    await navigateToCatalog(page);
 
     // Verify we're on the catalog page
     expect(page.url()).toContain('/catalog');
@@ -171,9 +167,7 @@ test.describe('Catalog Product Type Filtering E2E Tests', () => {
   });
 
   test('should reset filter when "Všechny typy" is selected', async ({ page }) => {
-    // Navigate to catalog using shared helper
     console.log('🧭 Navigating to catalog page...');
-    await navigateToCatalog(page);
 
     // Verify we're on the catalog page
     expect(page.url()).toContain('/catalog');

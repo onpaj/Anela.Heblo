@@ -263,45 +263,164 @@ frontend/test/
 └── e2e/                 # Full user journey tests
 ```
 
+### E2E Authentication Setup
+
+**CRITICAL**: All E2E tests MUST use proper authentication to avoid Microsoft Entra ID login screen.
+
+#### Authentication Helper Functions
+
+The `e2e-auth-helper.ts` provides several authentication functions:
+
+1. **`navigateToApp(page)`** - **RECOMMENDED**: Full authentication setup (backend + frontend session)
+2. **`navigateToCatalog(page)`** - Navigate to catalog with full auth
+3. **`navigateToTransportBoxes(page)`** - Navigate to transport boxes with full auth
+4. **`navigateToStockOperations(page)`** - Navigate to stock operations with full auth
+5. **`createE2EAuthSession(page)`** - **DO NOT USE ALONE**: Backend session only
+
+#### ✅ CORRECT Authentication Patterns
+
+**Pattern 1: Using navigateToApp() (Recommended)**
+```typescript
+import { navigateToApp } from './helpers/e2e-auth-helper';
+
+test.describe('Feature Tests', () => {
+  test.beforeEach(async ({ page }) => {
+    // Full authentication: backend + frontend session setup
+    await navigateToApp(page);
+
+    // Now navigate to your specific page
+    await page.goto('/your-feature-page');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('should perform feature action', async ({ page }) => {
+    // Test implementation
+  });
+});
+```
+
+**Pattern 2: Using Navigation Helpers**
+```typescript
+import { navigateToCatalog } from './helpers/e2e-auth-helper';
+
+test.describe('Catalog Tests', () => {
+  test.beforeEach(async ({ page }) => {
+    // Navigation helpers include full authentication internally
+    await navigateToCatalog(page);
+  });
+
+  test('should filter catalog items', async ({ page }) => {
+    // Test implementation
+  });
+});
+```
+
+#### ❌ INCORRECT Authentication Pattern
+
+**Never use createE2EAuthSession() alone:**
+```typescript
+import { createE2EAuthSession } from './helpers/e2e-auth-helper';
+
+test.beforeEach(async ({ page }) => {
+  await createE2EAuthSession(page);  // ❌ Only backend session!
+  await page.goto('/your-page');     // ❌ Will show Microsoft login screen
+});
+```
+
+#### Why This Matters
+
+- **`createE2EAuthSession()`** - Only creates backend authentication (service principal token)
+- **`navigateToApp()`** - Complete setup:
+  1. Creates backend auth session
+  2. Navigates to E2E app endpoint
+  3. Sets E2E session cookie for staging domain
+  4. Stores E2E token in sessionStorage
+  5. Waits for React app to initialize with E2E context
+  6. ✅ Frontend has authenticated session
+
+**Without frontend session:**
+- React app doesn't detect E2E authentication
+- MSAL attempts real OAuth login
+- Test sees Microsoft Entra ID sign-in screen
+- Test fails because it can't authenticate
+
+#### Authentication Flow Diagram
+
+```
+createE2EAuthSession()
+  ↓
+Gets service principal token from Azure AD
+  ↓
+Sends token to /api/e2etest/auth endpoint
+  ↓
+Backend validates token and creates E2E session
+  ⚠️ STOPS HERE - Frontend doesn't know about session!
+
+navigateToApp()
+  ↓
+Calls createE2EAuthSession() (backend session)
+  ↓
+Navigates to /api/e2etest/app (gets E2E cookie)
+  ↓
+Adds E2E session cookie to staging domain
+  ↓
+Navigates to frontend with ?e2e=true flag
+  ↓
+Stores E2E token in sessionStorage
+  ↓
+Waits for React app initialization
+  ↓
+✅ Frontend has complete authenticated session
+```
+
+#### When to Use Each Helper
+
+| Helper | Use When |
+|--------|----------|
+| `navigateToApp()` | Starting at app root, then navigating to specific page |
+| `navigateToCatalog()` | Testing catalog-specific features (includes full auth) |
+| `navigateToTransportBoxes()` | Testing transport box features (includes full auth) |
+| `navigateToStockOperations()` | Testing stock operations (includes full auth) |
+| `createE2EAuthSession()` | **NEVER use alone** - only as part of navigation helpers |
+
 ### Playwright Test Patterns
 
 #### Standard Test Structure
 ```typescript
 import { test, expect } from '@playwright/test';
+import { navigateToApp } from './helpers/e2e-auth-helper';
 
 test.describe('Purchase Order Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:3001');
-    await page.waitForLoadState('domcontentloaded');
-    // Mock auth automatically provides authenticated user
-    await page.waitForTimeout(500); // Allow mock auth to complete
+    // Establish full E2E authentication (backend + frontend session)
+    await navigateToApp(page);
+
+    // Navigate to purchase orders page
+    await page.goto('/purchase-orders');
+    await page.waitForLoadState('networkidle');
   });
 
   test('should create new purchase order successfully', async ({ page }) => {
-    // Navigate to purchase orders
-    await page.click('a[href="/purchase-orders"]');
-    
     // Click create new order
     await page.click('button:has-text("Create Order")');
-    
+
     // Fill form
     await page.fill('[data-testid="supplier-name"]', 'Test Supplier');
     await page.fill('[data-testid="order-date"]', '2024-12-01');
-    
+
     // Submit form
     await page.click('button[type="submit"]');
-    
+
     // Verify success
     await expect(page.locator('.success-message')).toBeVisible();
     await expect(page.locator('td:has-text("Test Supplier")')).toBeVisible();
   });
 
   test('should handle form validation errors', async ({ page }) => {
-    // Navigate and try to submit empty form
-    await page.click('a[href="/purchase-orders"]');
+    // Try to submit empty form
     await page.click('button:has-text("Create Order")');
     await page.click('button[type="submit"]');
-    
+
     // Verify validation errors
     await expect(page.locator('.error-message')).toBeVisible();
     await expect(page.locator('text="Supplier name is required"')).toBeVisible();

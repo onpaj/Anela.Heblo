@@ -1,15 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { createE2EAuthSession, navigateToApp } from './helpers/e2e-auth-helper';
+import { navigateToApp } from './helpers/e2e-auth-helper';
 
 test.describe('E2E Authentication Tests (Development/Staging)', () => {
   test.beforeEach(async ({ page }) => {
-    // Create E2E authentication session before each test
-    await createE2EAuthSession(page);
+    // Navigate to application with full authentication
+    await navigateToApp(page);
   });
 
   test('should authenticate and access main dashboard', async ({ page }) => {
-    // Navigate to application using shared helper
-    await navigateToApp(page);
     
     // Check current URL and title
     console.log('Current URL:', page.url());
