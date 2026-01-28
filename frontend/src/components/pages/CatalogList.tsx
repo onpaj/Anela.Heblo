@@ -150,7 +150,7 @@ const CatalogList: React.FC = () => {
     params.delete("productCode");
     params.delete("productType");
     params.delete("page");
-    setSearchParams(params, { replace: true });
+    setSearchParams(params); // Creates history entry for user-initiated filter clear
 
     // Force data reload by refetching
     await refetch();
