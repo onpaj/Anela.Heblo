@@ -198,7 +198,7 @@ const CatalogList: React.FC = () => {
     if (sortBy) params.set("sortBy", sortBy);
     if (sortDescending) params.set("sortDesc", "true");
 
-    // Update URL without causing navigation
+    // Update URL without creating new history entry (prevents duplicate entries from automatic sync)
     setSearchParams(params, { replace: true });
   }, [productNameFilter, productCodeFilter, productTypeFilter, pageNumber, pageSize, sortBy, sortDescending, setSearchParams]);
 
