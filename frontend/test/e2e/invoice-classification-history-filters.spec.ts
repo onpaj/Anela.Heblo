@@ -16,13 +16,11 @@ test.describe('Classification History - Date Filters', () => {
     await waitForClassificationHistoryLoaded(page);
   });
 
-  test('should filter by fromDate (date from)', async ({ page }) => {
+  test('should filter by fromDate - basic functionality', async ({ page }) => {
     const initialCount = await getRowCount(page);
 
-    // Apply fromDate filter - get records from last month onwards
-    const lastMonth = new Date();
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    const fromDateStr = lastMonth.toISOString().split('T')[0]; // YYYY-MM-DD
+    // Apply fromDate filter
+    const fromDateStr = '2026-01-01';
 
     await applyFilters(page, { fromDate: fromDateStr });
 
@@ -58,12 +56,11 @@ test.describe('Classification History - Date Filters', () => {
     }
   });
 
-  test('should filter by toDate (date to)', async ({ page }) => {
+  test('should filter by toDate - basic functionality', async ({ page }) => {
     const initialCount = await getRowCount(page);
 
-    // Apply toDate filter - get records up to today
-    const today = new Date();
-    const toDateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    // Apply toDate filter
+    const toDateStr = '2026-01-31';
 
     await applyFilters(page, { toDate: toDateStr });
 
