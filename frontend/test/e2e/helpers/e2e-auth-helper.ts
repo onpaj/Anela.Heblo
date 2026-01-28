@@ -315,3 +315,47 @@ export async function navigateToTransportBoxReceive(page: any): Promise<void> {
 
   console.log('✅ Direct navigation to transport box receive completed');
 }
+
+export async function navigateToInvoiceClassification(page: any): Promise<void> {
+  await navigateToApp(page);
+
+  // Wait for app to be fully loaded
+  await waitForLoadingComplete(page);
+
+  // Navigate to invoice classification via UI
+  const purchaseSelector = page.locator('button').filter({ hasText: 'Nákup' }).first();
+  try {
+    console.log('🧭 Attempting UI navigation to invoice classification via Nákup...');
+    if (await purchaseSelector.isVisible({ timeout: 5000 })) {
+      console.log('✅ Found Nákup menu item, clicking...');
+      await purchaseSelector.click();
+      await waitForLoadingComplete(page);
+
+      // Look for "Klasifikace faktur" sub-item after clicking Nákup
+      const klasifikaceFaktur = page.locator('text="Klasifikace faktur"').first();
+      if (await klasifikaceFaktur.isVisible({ timeout: 5000 })) {
+        console.log('✅ Found Klasifikace faktur submenu, clicking...');
+        await klasifikaceFaktur.click();
+        await page.waitForLoadState('domcontentloaded');
+        await waitForLoadingComplete(page);
+        console.log('✅ UI navigation to invoice classification successful');
+        return;
+      } else {
+        console.log('❌ Klasifikace faktur submenu not found under Nákup');
+      }
+    } else {
+      console.log('❌ Nákup menu item not found');
+    }
+  } catch (e) {
+    console.log('❌ UI navigation failed:', e.message);
+  }
+
+  // If UI navigation fails, go directly to the path
+  console.log('🔄 Trying direct navigation to invoice classification...');
+  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+  await page.goto(`${baseUrl}/purchase/invoice-classification`);
+  await page.waitForLoadState('domcontentloaded');
+  await waitForPageLoad(page);
+
+  console.log('✅ Direct navigation to invoice classification completed');
+}

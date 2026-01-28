@@ -1,41 +1,23 @@
 import { test, expect } from '@playwright/test';
-import { navigateToApp } from './helpers/e2e-auth-helper';
+import { navigateToInvoiceClassification } from './helpers/e2e-auth-helper';
 
 test.describe('Invoice Classification History', () => {
   test.beforeEach(async ({ page }) => {
-    // Establish E2E authentication session with full frontend setup
-    await navigateToApp(page);
+    // Navigate to invoice classification page with full authentication
+    console.log('🧭 Navigating to invoice classification page...');
+    await navigateToInvoiceClassification(page);
 
-    // Navigate to invoice classification page
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
-    await page.goto(`${baseUrl}/purchase/invoice-classification`);
-    await page.waitForLoadState('domcontentloaded');
+    // Verify we're on the right page
+    expect(page.url()).toContain('/purchase/invoice-classification');
+    console.log('✅ On invoice classification page:', page.url());
 
-    // Wait for React app to mount - check for the App container first
-    await page.waitForSelector('[data-testid="app"], .App, #root > div', { timeout: 15000 });
+    // Wait for page header to appear
+    await page.waitForSelector('h1:has-text("Klasifikace faktur")', { timeout: 15000 });
 
-    // Wait for either the page content OR an error message to appear
-    try {
-      // Try waiting for the page header
-      await page.waitForSelector('h1:has-text("Klasifikace faktur")', { timeout: 10000 });
+    // Wait for content to load - table, "no records" message, or error message
+    await page.waitForSelector('table, :text("Nebyly nalezeny žádné záznamy"), :text("Načítání"), :text("Loading"), :text("Error"), :text("Chyba")', { timeout: 10000 });
 
-      // Wait for content to load - table or "no records" message or loading state
-      await page.waitForSelector('table, :text("Nebyly nalezeny žádné záznamy"), :text("Načítání"), :text("Loading")', { timeout: 10000 });
-    } catch (error) {
-      // If page doesn't load, capture what's actually on screen
-      const pageContent = await page.content();
-      console.log('Page failed to load. Current URL:', page.url());
-      console.log('Page content length:', pageContent.length);
-
-      // Check if there's an error message visible
-      const errorMessages = await page.locator(':text("Error"), :text("Chyba"), [role="alert"]').count();
-      if (errorMessages > 0) {
-        const errorText = await page.locator(':text("Error"), :text("Chyba"), [role="alert"]').first().textContent();
-        console.log('Error message found:', errorText);
-      }
-
-      throw new Error(`Invoice classification page failed to load. URL: ${page.url()}`);
-    }
+    console.log('✅ Invoice classification page loaded');
   });
 
   test('pagination functionality', async ({ page }) => {
