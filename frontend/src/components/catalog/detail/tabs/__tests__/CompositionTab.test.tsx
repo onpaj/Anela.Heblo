@@ -64,4 +64,36 @@ describe('CompositionTab', () => {
       screen.getByText(/Tento produkt nemá definované složení/i)
     ).toBeInTheDocument();
   });
+
+  it('displays ingredients in a table', () => {
+    mockUseProductComposition.mockReturnValue({
+      data: {
+        ingredients: [
+          {
+            productCode: 'ING001',
+            productName: 'Bisabolol',
+            amount: 50.5,
+            unit: 'g',
+          },
+          {
+            productCode: 'ING002',
+            productName: 'Vitamin E',
+            amount: 100.25,
+            unit: 'g',
+          },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    } as any);
+
+    render(<CompositionTab productCode="TEST001" />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(screen.getByText('Bisabolol')).toBeInTheDocument();
+    expect(screen.getByText('ING001')).toBeInTheDocument();
+    expect(screen.getByText('Vitamin E')).toBeInTheDocument();
+    expect(screen.getByText('ING002')).toBeInTheDocument();
+  });
 });
