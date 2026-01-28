@@ -1,0 +1,16 @@
+---
+active: true
+iteration: 1856
+max_iterations: 0
+completion_promise: null
+started_at: "2026-01-27T19:34:09Z"
+---
+
+Fix flaky e2e test. Get first file in frontend/test/e2e/flaky (including subdirectories recursively), run it using run-playwright-test.sh script for all tests in that specific file. 
+
+Fix first failing test in that test suite. If test is correct and application implementation is fault, write that as a comment to that test and make it skip instead of failure.
+If all tests from that suite is successfull or skipped, move that file to /frontend/test/e2e
+
+When completed
+- there is no file under frontend/test/e2e/flaky directory (recursively)
+- all e2e tests are passing or are skipped. No test is failing --max-iteration 150
