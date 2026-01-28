@@ -5,6 +5,7 @@ import {
   TrendingUp,
   BookOpen,
   ArrowRight,
+  Beaker,
 } from "lucide-react";
 import { CatalogItemDto, ProductType } from "../../../api/hooks/useCatalog";
 import { JournalEntryDto } from "../../../api/generated/api-client";
@@ -13,12 +14,13 @@ import PurchaseHistoryTab from "./tabs/PurchaseHistoryTab";
 import MarginsTab from "./tabs/MarginsTab/MarginsTab";
 import JournalTab from "./tabs/JournalTab";
 import UsageTab from "./tabs/UsageTab";
+import CompositionTab from "./tabs/CompositionTab";
 
 interface CatalogDetailTabsProps {
   item: CatalogItemDto;
-  activeTab: "basic" | "history" | "margins" | "journal" | "usage";
+  activeTab: "basic" | "history" | "margins" | "composition" | "journal" | "usage";
   onTabChange: (
-    tab: "basic" | "history" | "margins" | "journal" | "usage",
+    tab: "basic" | "history" | "margins" | "composition" | "journal" | "usage",
   ) => void;
   detailData: any;
   isLoading: boolean;
@@ -90,6 +92,22 @@ const CatalogDetailTabs: React.FC<CatalogDetailTabsProps> = ({
           </button>
         )}
 
+        {/* Složení tab - pouze pro Product a SemiProduct */}
+        {(item?.type === ProductType.Product ||
+          item?.type === ProductType.SemiProduct) && (
+          <button
+            onClick={() => onTabChange("composition")}
+            className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
+              activeTab === "composition"
+                ? "border-indigo-500 text-indigo-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <Beaker className="h-4 w-4" />
+            <span>Složení</span>
+          </button>
+        )}
+
         <button
           onClick={() => onTabChange("journal")}
           className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
@@ -141,6 +159,8 @@ const CatalogDetailTabs: React.FC<CatalogDetailTabsProps> = ({
             isLoading={isLoading}
             journalEntries={journalEntries}
           />
+        ) : activeTab === "composition" ? (
+          <CompositionTab productCode={item.productCode || ""} />
         ) : activeTab === "usage" ? (
           <UsageTab productCode={item.productCode || ""} />
         ) : (

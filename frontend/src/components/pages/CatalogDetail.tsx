@@ -35,7 +35,7 @@ interface CatalogDetailProps {
   productCode?: string | null;
   isOpen: boolean;
   onClose: () => void;
-  defaultTab?: "basic" | "history" | "margins" | "usage";
+  defaultTab?: "basic" | "history" | "margins" | "composition" | "usage";
 }
 
 const CatalogDetail: React.FC<CatalogDetailProps> = ({
@@ -46,7 +46,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({
   defaultTab = "basic",
 }) => {
   const [activeTab, setActiveTab] = useState<
-    "basic" | "history" | "margins" | "journal" | "usage"
+    "basic" | "history" | "margins" | "composition" | "journal" | "usage"
   >(defaultTab as any);
   const [activeChartTab, setActiveChartTab] = useState<"input" | "output">(
     "output",
