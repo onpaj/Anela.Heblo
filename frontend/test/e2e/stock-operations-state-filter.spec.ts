@@ -7,8 +7,7 @@ import {
   validateStateBadge,
 } from './helpers/stock-operations-test-helpers';
 
-// SKIPPED: Same timeout issue as stock-operations-badges - see that file's comment for details.
-test.describe.skip('Stock Operations - State Filter', () => {
+test.describe('Stock Operations - State Filter', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to stock operations with full authentication
     await navigateToStockOperations(page);
