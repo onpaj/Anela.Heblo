@@ -123,9 +123,6 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
                 >
                   Množství{getSortIcon('amount')}
                 </th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">
-                  Jednotka
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -141,7 +138,6 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
                       maximumFractionDigits: 4,
                     })}
                   </td>
-                  <td className="py-3 px-4 text-gray-900">{ingredient.unit}</td>
                 </tr>
               ))}
             </tbody>
