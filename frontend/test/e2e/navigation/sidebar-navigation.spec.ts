@@ -7,7 +7,7 @@ test.describe('Sidebar Navigation', () => {
     await navigateToApp(page);
 
     // Wait for page to be fully loaded
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('should display Personální section with Struktura link', async ({ page }) => {

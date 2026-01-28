@@ -16,7 +16,7 @@ test.describe('Catalog Product Type Filtering E2E Tests', () => {
 
     // Wait for initial catalog load
     console.log('⏳ Waiting for initial catalog to load...');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
     // Find the product type dropdown
@@ -36,7 +36,7 @@ test.describe('Catalog Product Type Filtering E2E Tests', () => {
     // Wait for the filter to apply and table to update
     console.log('⏳ Waiting for filter to apply...');
     await page.waitForTimeout(2000);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     // Get filtered product rows
@@ -98,7 +98,7 @@ test.describe('Catalog Product Type Filtering E2E Tests', () => {
 
     // Wait for initial catalog load
     console.log('⏳ Waiting for initial catalog to load...');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
     // Find the product type dropdown
@@ -113,7 +113,7 @@ test.describe('Catalog Product Type Filtering E2E Tests', () => {
     // Wait for the filter to apply and table to update
     console.log('⏳ Waiting for filter to apply...');
     await page.waitForTimeout(2000);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     // Get filtered product rows
@@ -175,7 +175,7 @@ test.describe('Catalog Product Type Filtering E2E Tests', () => {
 
     // Wait for initial catalog load
     console.log('⏳ Waiting for initial catalog to load...');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
     // Find the product type dropdown
@@ -191,7 +191,7 @@ test.describe('Catalog Product Type Filtering E2E Tests', () => {
     console.log('🔽 Selecting "Material" product type...');
     await productTypeDropdown.selectOption({ label: 'Materiál' });
     await page.waitForTimeout(2000);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     const filteredRows = page.locator('tbody tr');
@@ -202,7 +202,7 @@ test.describe('Catalog Product Type Filtering E2E Tests', () => {
     console.log('🔄 Resetting to "Všechny typy"...');
     await productTypeDropdown.selectOption({ label: 'Všechny typy' });
     await page.waitForTimeout(2000);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     // Get final product count

@@ -1,4 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { waitForSearchResults, waitForLoadingComplete } from './wait-helpers';
 
 // Wait times for E2E tests against staging environment
 const TABLE_UPDATE_WAIT_MS = 2000;
@@ -17,8 +18,7 @@ const UI_LABELS = {
  * Wait for stock operations table to update after filter/sort changes
  */
 export async function waitForTableUpdate(page: Page): Promise<void> {
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(TABLE_UPDATE_WAIT_MS);
+  await waitForSearchResults(page, { endpoint: '/api/' });
 }
 
 /**
@@ -119,7 +119,7 @@ export async function clearFilters(page: Page): Promise<void> {
 export async function toggleFilterPanel(page: Page): Promise<void> {
   const button = getFilterPanelToggle(page);
   await button.click();
-  await page.waitForTimeout(PANEL_TOGGLE_WAIT_MS);
+  await waitForLoadingComplete(page);
 }
 
 /**

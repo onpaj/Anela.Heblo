@@ -11,7 +11,7 @@ test.describe('Manufacture Order Creation', () => {
       await navigateToApp(page);
       
       // Wait for app to load
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       await page.waitForTimeout(3000); // Give extra time for React components to initialize
       
       console.log('✅ Manufacture order test setup completed successfully');
@@ -36,7 +36,7 @@ test.describe('Manufacture Order Creation', () => {
     console.log('✅ Clicked Kalkulačka dávek link');
     
     // Wait for the batch calculator page to load
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000); // Give time for React components to initialize
     
     // Step 2: Verify we're on the batch calculator page and enter product code
@@ -103,7 +103,7 @@ test.describe('Manufacture Order Creation', () => {
     console.log('✅ Clicked production planning button');
     
     // Wait for navigation to planning page
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
     
     // Step 7: Verify we are on the "Plánování dávek" tab
@@ -127,7 +127,7 @@ test.describe('Manufacture Order Creation', () => {
     console.log('🔍 Checking for manufacture order modal...');
     
     // Wait for the page to update after clicking create order
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
     
     // Look for the manufacture order form content that should appear

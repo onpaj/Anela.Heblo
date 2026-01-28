@@ -27,7 +27,7 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
 
     // Wait for initial catalog load
     console.log('⏳ Waiting for initial catalog to load...');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
   });
 
@@ -145,7 +145,7 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     const url = new URL(page.url());
     url.searchParams.set('page', '2');
     await page.goto(url.toString());
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     // Apply name filter with known product
@@ -273,7 +273,7 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     const url = new URL(page.url());
     url.searchParams.set('page', '2');
     await page.goto(url.toString());
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(2000);
 
     // Apply code filter with known prefix

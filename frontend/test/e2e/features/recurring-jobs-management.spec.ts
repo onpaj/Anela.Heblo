@@ -21,7 +21,7 @@ test.describe.skip('Recurring Jobs Management', () => {
     await page.goto('/recurring-jobs');
 
     // Wait for the page to load
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('should display recurring jobs page with correct title', async ({ page }) => {
@@ -309,7 +309,7 @@ test.describe.skip('Recurring Jobs Management', () => {
 
     // Refresh the page
     await page.reload();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForSelector('table tbody tr', { timeout: 10000 });
 
     // Find the same job again
@@ -339,7 +339,7 @@ test.describe.skip('Recurring Jobs - Manual Trigger', () => {
     await page.goto('/recurring-jobs');
 
     // Wait for the page to load
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForSelector('table tbody tr', { timeout: 10000 });
   });
 

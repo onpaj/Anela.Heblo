@@ -1,5 +1,6 @@
 import { config } from 'dotenv';
 import * as path from 'path';
+import { waitForPageLoad, waitForLoadingComplete } from './wait-helpers';
 
 // Load test environment variables from .env.test if it exists (local development)
 // In CI, environment variables are provided directly
@@ -123,7 +124,7 @@ export async function navigateToApp(page: any): Promise<void> {
   await navigateToAppWithServicePrincipal(page);
   
   // Wait for the application to load
-  await page.waitForTimeout(3000);
+  await waitForPageLoad(page);
 }
 
 async function navigateToAppWithServicePrincipal(page: any): Promise<void> {
@@ -157,7 +158,7 @@ async function navigateToAppWithServicePrincipal(page: any): Promise<void> {
   const token = await getServicePrincipalToken();
   
   await page.goto(frontendWithE2E);
-  await page.waitForLoadState('networkidle'); // Wait for all network requests to complete
+  await page.waitForLoadState('domcontentloaded'); // Wait for all network requests to complete
   
   // Store the E2E token in sessionStorage so frontend can use it
   await page.evaluate((token) => {
@@ -176,7 +177,7 @@ export async function navigateToTransportBoxes(page: any): Promise<void> {
   await navigateToApp(page);
   
   // Wait for app to be fully loaded
-  await page.waitForTimeout(2000);
+  await waitForLoadingComplete(page);
   
   // Navigate to transport boxes via UI
   // Based on debug info, try "Sklad" (Storage/Warehouse) instead of "Logistika"
@@ -186,15 +187,15 @@ export async function navigateToTransportBoxes(page: any): Promise<void> {
     if (await skladSelector.isVisible({ timeout: 5000 })) {
       console.log('✅ Found Sklad menu item, clicking...');
       await skladSelector.click();
-      await page.waitForTimeout(2000);
+      await waitForLoadingComplete(page);
       
       // Look for "Transportní boxy" sub-item after clicking Sklad
       const transportBoxy = page.locator('text="Transportní boxy"').first();
       if (await transportBoxy.isVisible({ timeout: 5000 })) {
         console.log('✅ Found Transportní boxy submenu, clicking...');
         await transportBoxy.click();
-        await page.waitForLoadState('networkidle');
-        await page.waitForTimeout(2000);
+        await page.waitForLoadState('domcontentloaded');
+        await waitForLoadingComplete(page);
         
         // Verify we landed on the right page
         const hasTransportBoxContent = await page.locator('h1, h2, h3, [data-testid*="transport"], .transport').count() > 0;
@@ -216,8 +217,8 @@ export async function navigateToTransportBoxes(page: any): Promise<void> {
   console.log('🔄 Trying direct navigation...');
   const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
   await page.goto(`${baseUrl}/logistics/transport-boxes`);
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(5000);
+  await page.waitForLoadState('domcontentloaded');
+  await waitForPageLoad(page);
   
   // Log what we actually got after direct navigation
   const currentUrl = page.url();
@@ -237,14 +238,14 @@ export async function navigateToCatalog(page: any): Promise<void> {
   try {
     if (await produktySelector.isVisible({ timeout: 2000 })) {
       await produktySelector.click();
-      await page.waitForTimeout(1000);
+      await waitForLoadingComplete(page);
 
       // Then click on "Katalog" sub-item
       const katalog = page.locator('text="Katalog"').first();
       if (await katalog.isVisible({ timeout: 2000 })) {
         await katalog.click();
         await page.waitForLoadState('domcontentloaded');
-        await page.waitForTimeout(2000);
+        await waitForLoadingComplete(page);
       }
     }
   } catch (e) {
@@ -252,7 +253,7 @@ export async function navigateToCatalog(page: any): Promise<void> {
     const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
     await page.goto(`${baseUrl}/catalog`);
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000);
+    await waitForLoadingComplete(page);
   }
 }
 
@@ -260,13 +261,13 @@ export async function navigateToStockOperations(page: any): Promise<void> {
   await navigateToApp(page);
 
   // Wait for app to be fully loaded
-  await page.waitForTimeout(2000);
+  await waitForLoadingComplete(page);
 
   // Direct navigation to stock operations
   const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
   await page.goto(`${baseUrl}/stock-operations`);
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(2000);
+  await page.waitForLoadState('domcontentloaded');
+  await waitForLoadingComplete(page);
 
   console.log('✅ Navigated to stock operations page');
 }
