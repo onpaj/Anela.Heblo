@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { navigateToCatalog } from './helpers/e2e-auth-helper';
+import { TestCatalogItems } from './fixtures/test-data';
 
 test.describe('Catalog Margins Chart Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -7,52 +8,36 @@ test.describe('Catalog Margins Chart Tests', () => {
     await navigateToCatalog(page);
   });
 
-  // SKIPPED: Test data missing - Required products (DEO002050, KRE003005) not available in staging environment.
-  // Expected behavior: Test should validate that margin charts exclude current month data.
-  // Actual behavior: Neither the primary test product (DEO002050) nor the alternative (KRE003005)
-  // can be found in the catalog table, causing the test to fail before it can verify chart behavior.
-  // Error: expect(locator).toBeVisible() failed - element(s) not found
-  //
-  // This is a test data/environment issue. The test requires:
-  // 1. Products with ProductType.Product (not Material or Semiproduct)
-  // 2. Products with historical margin data for chart display
-  // 3. Stable test data that doesn't change between test runs
-  //
-  // Recommendation: Either:
-  // - Add these specific products to staging environment's seed data
-  // - Update test to use test data fixtures from test-data.ts
-  // - Make test more resilient by searching for ANY product with margins tab instead of specific codes
-  test.skip('margins chart should not display current month', async ({ page }) => {
-    test.setTimeout(60000); // Set timeout to 60 seconds
+  test('margins chart should not display current month', async ({ page }) => {
+    test.setTimeout(60000);
 
     // Wait for catalog to load
     await page.waitForSelector('table', { timeout: 15000 });
 
-    // Find specific product with known margin data (ProductType.Product)
-    // Try DEO002050 first, fallback to KRE003005 if not found
-    const primaryProduct = page.locator('tbody tr').filter({ hasText: 'DEO002050' }).first();
-    const primaryProductExists = await primaryProduct.isVisible({ timeout: 5000 }).catch(() => false);
-
-    if (primaryProductExists) {
-      console.log('✅ Found primary test product: DEO002050');
-      await primaryProduct.click();
-    } else {
-      console.log('⚠️  Primary product DEO002050 not found, trying alternative KRE003005');
-      const alternativeProduct = page.locator('tbody tr').filter({ hasText: 'KRE003005' }).first();
-      await expect(alternativeProduct).toBeVisible({ timeout: 10000 });
-      console.log('✅ Found alternative test product: KRE003005');
-      await alternativeProduct.click();
-    }
-
-    // Wait for detail modal/page to open
+    // Filter catalog to show only Products (not Materials or Semi-products)
+    const typeDropdown = page.locator('select').filter({ hasText: 'Všechny typy' }).first();
+    await typeDropdown.selectOption({ label: 'Produkt' });
     await page.waitForTimeout(2000);
 
-    // Margins tab MUST be visible for ProductType.Product
-    const marginsTab = page.locator('text=Marže').first();
-    await expect(marginsTab).toBeVisible({ timeout: 5000 });
-    console.log('✅ Margins tab is visible');
+    // Use test data fixture for product with margins
+    const testProduct = TestCatalogItems.darkovyBalicek;
+    const productRow = page.locator('tbody tr').filter({ hasText: testProduct.code }).first();
 
-    await marginsTab.click();
+    // Verify product exists in catalog
+    await expect(productRow).toBeVisible({ timeout: 10000 });
+    console.log(`✅ Found test product: ${testProduct.code} - ${testProduct.name}`);
+
+    // Click to open product detail
+    await productRow.click();
+    await page.waitForTimeout(2000);
+
+    // Find Marže tab - it's a button in the detail view tabs (not the sidebar navigation)
+    // The sidebar link has class "px-3 py-2", while the tab button has "px-4 py-2"
+    const marginsTabButton = page.locator('button').filter({ hasText: 'Marže' }).first();
+    await expect(marginsTabButton).toBeVisible({ timeout: 5000 });
+    console.log('✅ Margins tab button is visible');
+
+    await marginsTabButton.click();
     console.log('✅ Clicked margins tab');
     await page.waitForTimeout(1500);
 
@@ -63,7 +48,7 @@ test.describe('Catalog Margins Chart Tests', () => {
 
     // Check if chart or empty state exists
     const chartCanvas = page.locator('canvas').first();
-    const emptyState = page.locator('text=/Náklady a marže za posledních/i').first();
+    const emptyState = page.locator('text=/Náklady a marže za posledních/i, text=/Žádná data/i').first();
 
     const chartVisible = await chartCanvas.isVisible({ timeout: 5000 }).catch(() => false);
     const emptyStateVisible = await emptyState.isVisible({ timeout: 5000 }).catch(() => false);
@@ -74,7 +59,11 @@ test.describe('Catalog Margins Chart Tests', () => {
     if (chartVisible) {
       console.log('✅ Chart canvas found - verifying chart renders');
       expect(chartCanvas).toBeVisible();
-      console.log('✅ Test passed: Chart is rendering with 12 months data (excluding current month)');
+
+      // Verify current month is NOT displayed in the chart area
+      const bodyText = await page.textContent('body');
+      expect(bodyText).not.toContain(currentMonthLabel);
+      console.log(`✅ Test passed: Chart is rendering without current month (${currentMonthLabel})`);
     } else {
       console.log('✅ Empty state found - verifying 12 months message');
       const emptyStateText = await emptyState.textContent();
