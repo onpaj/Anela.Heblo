@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { navigateToStockOperations } from '../helpers/e2e-auth-helper';
+import { navigateToStockOperations } from './helpers/e2e-auth-helper';
 import {
   selectSourceType,
   waitForTableUpdate,
   getRowCount,
-} from '../helpers/stock-operations-test-helpers';
+} from './helpers/stock-operations-test-helpers';
 
 test.describe('Stock Operations - Source Type Filter', () => {
   test.beforeEach(async ({ page }) => {

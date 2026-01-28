@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { navigateToStockOperations } from '../helpers/e2e-auth-helper';
+import { navigateToStockOperations } from './helpers/e2e-auth-helper';
 import {
   selectStateFilter,
   waitForTableUpdate,
   getRowCount,
   validateRetryButton,
   validateNoRetryButton,
-} from '../helpers/stock-operations-test-helpers';
+} from './helpers/stock-operations-test-helpers';
 
 // SKIPPED: Same timeout issue as stock-operations-badges - see that file's comment for details.
 test.describe.skip('Stock Operations - Retry Functionality', () => {

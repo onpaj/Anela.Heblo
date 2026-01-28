@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToApp } from '../helpers/e2e-auth-helper';
+import { navigateToApp } from './helpers/e2e-auth-helper';
 
 test.describe('Manufacture Order Creation', () => {
   test.beforeEach(async ({ page }) => {
