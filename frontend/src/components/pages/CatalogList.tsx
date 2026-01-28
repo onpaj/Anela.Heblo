@@ -406,7 +406,7 @@ const CatalogList: React.FC = () => {
                     params.delete("productType");
                   }
                   params.delete("page"); // Remove page param when resetting to page 1
-                  setSearchParams(params, { replace: true });
+                  setSearchParams(params); // Creates history entry for user-initiated type filter change
                 }}
                 className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
               >
