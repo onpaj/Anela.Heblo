@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToCatalog } from '../helpers/e2e-auth-helper';
+import { navigateToCatalog } from './helpers/e2e-auth-helper';
 
 test.describe('Catalog Margins Chart Tests', () => {
   test.beforeEach(async ({ page }) => {

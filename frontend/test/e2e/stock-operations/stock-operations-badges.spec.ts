@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { navigateToStockOperations } from '../../helpers/e2e-auth-helper';
+import { navigateToStockOperations } from '../helpers/e2e-auth-helper';
 import {
   selectStateFilter,
   waitForTableUpdate,
   getRowCount,
   validateStateBadge,
   validateStuckWarning,
-} from '../../helpers/stock-operations-test-helpers';
+} from '../helpers/stock-operations-test-helpers';
 
 // SKIPPED: Test execution timeout - Test suite hangs or times out during execution.
 // Expected behavior: Tests should complete within reasonable time (< 2 minutes for all 7 tests).

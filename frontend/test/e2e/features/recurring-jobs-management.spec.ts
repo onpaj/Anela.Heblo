@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToApp } from '../../helpers/e2e-auth-helper';
+import { navigateToApp } from '../helpers/e2e-auth-helper';
 
 // SKIPPED: Test execution timeout - All tests in this suite timeout or hang during execution.
 // Expected behavior: Tests should complete within reasonable time (< 3 minutes total for all tests).

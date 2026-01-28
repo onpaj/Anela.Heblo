@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToCatalog } from '../helpers/e2e-auth-helper';
+import { navigateToCatalog } from './helpers/e2e-auth-helper';
 import {
   applyProductNameFilter,
   applyProductCodeFilter,
@@ -9,7 +9,7 @@ import {
   getFilterButton,
   waitForTableUpdate,
   validateFilteredResults,
-} from '../helpers/catalog-test-helpers';
+} from './helpers/catalog-test-helpers';
 
 test.describe('Catalog Filter Edge Cases E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
