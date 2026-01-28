@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToApp } from '../helpers/e2e-auth-helper';
+import { navigateToApp } from './helpers/e2e-auth-helper';
 
 // SKIPPED: Test execution timeout - Navigation to transport box receive interface times out.
 // Expected behavior: Test should navigate to Sklad section and access Příjem boxů page.

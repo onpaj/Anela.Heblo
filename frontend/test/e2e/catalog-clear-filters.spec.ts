@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToCatalog } from '../helpers/e2e-auth-helper';
+import { navigateToCatalog } from './helpers/e2e-auth-helper';
 import {
   applyProductNameFilter,
   applyProductCodeFilter,
@@ -15,7 +15,7 @@ import {
   getProductTypeSelect,
   getClearButton,
   waitForTableUpdate,
-} from '../helpers/catalog-test-helpers';
+} from './helpers/catalog-test-helpers';
 
 test.describe('Catalog Clear Filters E2E Tests', () => {
   test.beforeEach(async ({ page }) => {

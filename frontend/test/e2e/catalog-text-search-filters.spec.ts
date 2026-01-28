@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToCatalog } from '../helpers/e2e-auth-helper';
+import { navigateToCatalog } from './helpers/e2e-auth-helper';
 import {
   applyProductNameFilter,
   applyProductNameFilterWithEnter,
@@ -14,8 +14,8 @@ import {
   getProductCodeInput,
   getFilterButton,
   waitForTableUpdate,
-} from '../helpers/catalog-test-helpers';
-import { TestCatalogItems, assertMinimumCount } from '../fixtures/test-data';
+} from './helpers/catalog-test-helpers';
+import { TestCatalogItems, assertMinimumCount } from './fixtures/test-data';
 
 test.describe('Catalog Text Search Filters E2E Tests', () => {
   test.beforeEach(async ({ page }) => {

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { navigateToApp } from '../helpers/e2e-auth-helper';
+import { navigateToApp } from './helpers/e2e-auth-helper';
 
 test.describe('Invoice Classification History', () => {
   test.beforeEach(async ({ page }) => {
