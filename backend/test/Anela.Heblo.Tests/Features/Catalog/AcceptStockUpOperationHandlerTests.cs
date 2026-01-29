@@ -26,7 +26,7 @@ public class AcceptStockUpOperationHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenOperationNotFound_ReturnsFailedResponse()
+    public async Task Handle_WhenOperationNotFound_ReturnsFailure()
     {
         // Arrange
         var request = new AcceptStockUpOperationRequest { OperationId = 999 };
@@ -48,7 +48,7 @@ public class AcceptStockUpOperationHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenOperationIsNotFailed_ReturnsFailedResponse()
+    public async Task Handle_WhenOperationNotFailed_ReturnsFailure()
     {
         // Arrange
         var operation = new StockUpOperation(

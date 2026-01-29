@@ -360,22 +360,26 @@ jobs:
             .versions[] |
             select(.version == $version) |
             "## Changes\n\n" +
-            (.changes | map(
-              if .type == "feature" then "### ✨ Features\n- " + .title
-              elif .type == "fix" then "### 🐛 Bug Fixes\n- " + .title
-              elif .type == "improvement" then "### 📈 Improvements\n- " + .title
-              elif .type == "docs" then "### 📚 Documentation\n- " + .title
-              elif .type == "perf" then "### ⚡ Performance\n- " + .title
-              elif .type == "refactor" then "### ♻️ Refactoring\n- " + .title
-              elif .type == "test" then "### 🧪 Tests\n- " + .title
-              elif .type == "ci" then "### 👷 CI/CD\n- " + .title
-              else "### 📝 Other\n- " + .title
-              end
-            ) | join("\n"))
+            (
+              .changes | group_by(.type) | map(
+                (
+                  if .[0].type == "feature" then "### ✨ Features"
+                  elif .[0].type == "fix" then "### 🐛 Bug Fixes"
+                  elif .[0].type == "improvement" then "### 📈 Improvements"
+                  elif .[0].type == "docs" then "### 📚 Documentation"
+                  elif .[0].type == "perf" then "### ⚡ Performance"
+                  elif .[0].type == "refactor" then "### ♻️ Refactoring"
+                  elif .[0].type == "test" then "### 🧪 Tests"
+                  elif .[0].type == "ci" then "### 👷 CI/CD"
+                  else "### 📝 Other"
+                  end
+                ) + "\n" + (map("- " + .title) | join("\n"))
+              ) | join("\n\n")
+            )
           ' frontend/public/changelog.json || echo "No changelog available for this version.")
 
-          # If no release notes found, use a default message
-          if [ -z "$RELEASE_NOTES" ] || [ "$RELEASE_NOTES" == "null" ]; then
+          # Check if jq extraction was successful
+          if [ -z "$RELEASE_NOTES" ]; then
             RELEASE_NOTES="## Changes\n\nSee [changelog](https://heblo.anela.cz) for detailed release notes."
           fi
 
