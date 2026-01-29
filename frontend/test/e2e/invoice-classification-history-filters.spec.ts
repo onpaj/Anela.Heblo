@@ -290,3 +290,134 @@ test.describe('Classification History - Invoice Number Filters', () => {
     });
   });
 });
+
+test.describe('Classification History - Company Name Filters', () => {
+  test.beforeEach(async ({ page }) => {
+    await navigateToInvoiceClassification(page);
+    await waitForClassificationHistoryLoaded(page);
+  });
+
+  test('should filter by exact company name match', async ({ page }) => {
+    const initialCount = await getRowCount(page);
+    expect(initialCount).toBeGreaterThan(0);
+
+    // Get first row's company name
+    const rows = getTableRows(page);
+    const firstRow = rows.first();
+    const companyNameCell = firstRow.locator('td').nth(2); // Third column: Company Name
+    const companyName = await companyNameCell.textContent();
+    expect(companyName).toBeTruthy();
+
+    // Apply exact company name filter
+    await applyFilters(page, { companyName: companyName!.trim() });
+
+    // Verify results
+    const filteredCount = await getRowCount(page);
+    expect(filteredCount).toBeGreaterThan(0);
+
+    // Verify all results match the company name
+    const filteredRows = getTableRows(page);
+    const filteredCompanyNames = await filteredRows
+      .locator('td')
+      .nth(2)
+      .allTextContents();
+    filteredCompanyNames.forEach((name) => {
+      expect(name.trim()).toContain(companyName!.trim());
+    });
+  });
+
+  test('should filter by partial company name match', async ({ page }) => {
+    const initialCount = await getRowCount(page);
+    expect(initialCount).toBeGreaterThan(0);
+
+    // Get first row's company name and use first word
+    const rows = getTableRows(page);
+    const firstRow = rows.first();
+    const companyNameCell = firstRow.locator('td').nth(2);
+    const fullCompanyName = await companyNameCell.textContent();
+    expect(fullCompanyName).toBeTruthy();
+
+    const firstWord = fullCompanyName!.trim().split(' ')[0];
+
+    // Apply partial company name filter
+    await applyFilters(page, { companyName: firstWord });
+
+    // Verify results
+    const filteredCount = await getRowCount(page);
+    expect(filteredCount).toBeGreaterThan(0);
+
+    // Verify all results contain the partial name
+    const filteredRows = getTableRows(page);
+    const filteredCompanyNames = await filteredRows
+      .locator('td')
+      .nth(2)
+      .allTextContents();
+    filteredCompanyNames.forEach((name) => {
+      expect(name.toLowerCase()).toContain(firstWord.toLowerCase());
+    });
+  });
+
+  test('should be case-insensitive for company name search', async ({ page }) => {
+    const initialCount = await getRowCount(page);
+    expect(initialCount).toBeGreaterThan(0);
+
+    // Get first row's company name
+    const rows = getTableRows(page);
+    const firstRow = rows.first();
+    const companyNameCell = firstRow.locator('td').nth(2);
+    const companyName = await companyNameCell.textContent();
+    expect(companyName).toBeTruthy();
+
+    // Convert to lowercase and apply filter
+    const lowerCaseName = companyName!.trim().toLowerCase();
+    await applyFilters(page, { companyName: lowerCaseName });
+
+    // Verify results - should match regardless of case
+    const filteredCount = await getRowCount(page);
+    expect(filteredCount).toBeGreaterThan(0);
+
+    // Verify all results contain the company name (case-insensitive)
+    const filteredRows = getTableRows(page);
+    const filteredCompanyNames = await filteredRows
+      .locator('td')
+      .nth(2)
+      .allTextContents();
+    filteredCompanyNames.forEach((name) => {
+      expect(name.toLowerCase()).toContain(lowerCaseName);
+    });
+  });
+
+  test('should apply company name filter on Enter key press', async ({ page }) => {
+    const initialCount = await getRowCount(page);
+    expect(initialCount).toBeGreaterThan(0);
+
+    // Get first row's company name
+    const rows = getTableRows(page);
+    const firstRow = rows.first();
+    const companyNameCell = firstRow.locator('td').nth(2);
+    const companyName = await companyNameCell.textContent();
+    expect(companyName).toBeTruthy();
+
+    // Type company name and press Enter
+    const inputs = getFilterInputs(page);
+    await inputs.companyName.fill(companyName!.trim());
+    await inputs.companyName.press('Enter');
+
+    // Wait for filter to apply
+    await page.waitForTimeout(500);
+
+    // Verify results
+    const filteredCount = await getRowCount(page);
+    expect(filteredCount).toBeGreaterThan(0);
+
+    // Verify all results match the company name
+    const filteredRows = getTableRows(page);
+    const filteredCompanyNames = await filteredRows
+      .locator('td')
+      .nth(2)
+      .allTextContents();
+    filteredCompanyNames.forEach((name) => {
+      expect(name.trim()).toContain(companyName!.trim());
+    });
+  });
+});
