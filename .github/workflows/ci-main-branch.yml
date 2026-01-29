@@ -9,6 +9,18 @@ concurrency:
   group: main-branch-ci-${{ github.sha }}
   cancel-in-progress: true
 
+# Features:
+# - Parallel frontend and backend tests
+# - GitVersion-based semantic versioning
+# - Changelog generation (EN + CS translation via OpenAI)
+# - Docker image build and push to Docker Hub
+# - Git tag creation
+# - GitHub release creation with formatted changelog
+# - Manual approval gates for staging and production deployments
+# - Azure Web App deployment with health checks
+# - Comprehensive smoke tests with retries
+# - Teams webhook notification on successful production deployment
+
 permissions:
   contents: write
   packages: write
