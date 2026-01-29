@@ -1,9 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { waitForSearchResults, waitForLoadingComplete } from './wait-helpers';
-
-// Wait times for E2E tests against staging environment
-const TABLE_UPDATE_WAIT_MS = 2000;
-const PANEL_TOGGLE_WAIT_MS = 500;
+import { waitForSearchResults, waitForLoadingComplete, waitForDropdownOptions } from './wait-helpers';
 
 // Czech UI text labels
 const UI_LABELS = {
@@ -18,9 +14,7 @@ const UI_LABELS = {
  * Wait for stock operations table to update after filter/sort changes
  */
 export async function waitForTableUpdate(page: Page): Promise<void> {
-  // Simple wait for DOM updates - stock operations might use client-side filtering
-  await page.waitForTimeout(TABLE_UPDATE_WAIT_MS);
-  await waitForLoadingComplete(page);
+  await waitForSearchResults(page, { endpoint: '/api/StockUpOperations' });
 }
 
 /**
@@ -80,6 +74,7 @@ export async function selectStateFilter(
   page: Page,
   state: 'All' | 'Active' | 'Pending' | 'Submitted' | 'Failed' | 'Completed'
 ): Promise<void> {
+  console.log(`🔍 Selecting state filter: ${state}`);
   const select = getStateFilterSelect(page);
   // Use value instead of label since labels are in Czech but values are in English
   await select.selectOption({ value: state });
@@ -89,6 +84,7 @@ export async function selectStateFilter(
   await applyButton.click();
 
   await waitForTableUpdate(page);
+  console.log('✅ State filter applied');
 }
 
 /**
@@ -98,36 +94,44 @@ export async function selectSourceType(
   page: Page,
   type: 'All' | 'TransportBox' | 'GiftPackageManufacture'
 ): Promise<void> {
+  console.log(`🔍 Selecting source type: ${type}`);
   const radio = getSourceTypeRadio(page, type);
   await radio.click();
   await waitForTableUpdate(page);
+  console.log('✅ Source type filter applied');
 }
 
 /**
  * Apply filters by clicking apply button
  */
 export async function applyFilters(page: Page): Promise<void> {
+  console.log('🔍 Applying filters');
   const button = getApplyFiltersButton(page);
   await button.click();
   await waitForTableUpdate(page);
+  console.log('✅ Filters applied');
 }
 
 /**
  * Clear all filters
  */
 export async function clearFilters(page: Page): Promise<void> {
+  console.log('🧹 Clearing all filters');
   const button = getClearFiltersButton(page);
   await button.click();
   await waitForTableUpdate(page);
+  console.log('✅ Filters cleared');
 }
 
 /**
  * Toggle filter panel collapse/expand
  */
 export async function toggleFilterPanel(page: Page): Promise<void> {
+  console.log('🔄 Toggling filter panel');
   const button = getFilterPanelToggle(page);
   await button.click();
   await waitForLoadingComplete(page);
+  console.log('✅ Filter panel toggled');
 }
 
 /**
@@ -199,9 +203,11 @@ export async function validateStuckWarning(page: Page, rowIndex: number = 0): Pr
  * Sort by column name
  */
 export async function sortByColumn(page: Page, columnName: string): Promise<void> {
+  console.log(`📊 Sorting by column: ${columnName}`);
   const header = page.getByRole('columnheader', { name: new RegExp(columnName, 'i') });
   await header.click();
   await waitForTableUpdate(page);
+  console.log('✅ Column sort applied');
 }
 
 /**
@@ -220,4 +226,212 @@ export async function getSortIcon(page: Page, columnName: string): Promise<strin
   }
 
   return null;
+}
+
+// ============================================================================
+// Product Autocomplete Helpers
+// ============================================================================
+
+/**
+ * Get product autocomplete input field
+ */
+export function getProductAutocomplete(page: Page): Locator {
+  // Product autocomplete is the CatalogAutocomplete component
+  // Look for the combobox input
+  return page.locator('input[role="combobox"]').first();
+}
+
+/**
+ * Open product autocomplete dropdown
+ */
+export async function openProductAutocomplete(page: Page): Promise<void> {
+  console.log('📂 Opening product autocomplete dropdown');
+  const input = getProductAutocomplete(page);
+  await input.click();
+  await waitForDropdownOptions(page);
+  console.log('✅ Product autocomplete opened');
+}
+
+/**
+ * Search for product in autocomplete
+ */
+export async function searchProduct(page: Page, searchTerm: string): Promise<void> {
+  console.log(`🔍 Searching for product: "${searchTerm}"`);
+  const input = getProductAutocomplete(page);
+  await input.click();
+  await input.fill(searchTerm);
+  await waitForSearchResults(page, { endpoint: '/api/catalog' });
+  console.log('✅ Product search results loaded');
+}
+
+/**
+ * Select product from autocomplete dropdown
+ */
+export async function selectProductFromDropdown(page: Page, productCodeOrName: string): Promise<void> {
+  console.log(`✅ Selecting product from dropdown: "${productCodeOrName}"`);
+  await searchProduct(page, productCodeOrName);
+  // Click the matching option
+  const option = page.locator(`[role="option"]`).filter({ hasText: productCodeOrName }).first();
+  await option.click();
+  await waitForLoadingComplete(page);
+  console.log('✅ Product selected');
+}
+
+/**
+ * Clear product selection
+ */
+export async function clearProductSelection(page: Page): Promise<void> {
+  console.log('🧹 Clearing product selection');
+  const input = getProductAutocomplete(page);
+  // Look for clear button (X icon) - specifically look for button with X svg near the combobox
+  const clearButton = page.locator('button[aria-label="Clear"]').or(
+    page.locator('button').filter({ has: page.locator('svg.lucide-x') })
+  ).first();
+
+  const isVisible = await clearButton.isVisible().catch(() => false);
+  if (isVisible) {
+    await clearButton.click();
+  } else {
+    // Fallback: clear input directly
+    await input.fill('');
+  }
+  await waitForLoadingComplete(page);
+  console.log('✅ Product selection cleared');
+}
+
+// ============================================================================
+// Document Number Filter Helpers
+// ============================================================================
+
+/**
+ * Get document number filter input
+ */
+export function getDocumentNumberInput(page: Page): Locator {
+  // Find input with placeholder or label for document number
+  // More specific: look for input with search functionality near filter panel
+  return page.locator('input[type="text"]').filter({
+    hasText: ''
+  }).or(
+    page.locator('input[placeholder*="Číslo dokladu"]')
+  ).or(
+    page.locator('input[placeholder*="doklad"]')
+  ).first();
+}
+
+/**
+ * Search by document number
+ */
+export async function searchDocumentNumber(page: Page, documentNumber: string): Promise<void> {
+  console.log(`🔍 Searching by document number: "${documentNumber}"`);
+  const input = getDocumentNumberInput(page);
+  await input.fill(documentNumber);
+  await waitForLoadingComplete(page);
+  console.log('✅ Document number search applied');
+}
+
+/**
+ * Clear document number search
+ */
+export async function clearDocumentNumber(page: Page): Promise<void> {
+  console.log('🧹 Clearing document number search');
+  const input = getDocumentNumberInput(page);
+  await input.fill('');
+  await waitForLoadingComplete(page);
+  console.log('✅ Document number search cleared');
+}
+
+// ============================================================================
+// Date Range Filter Helpers
+// ============================================================================
+
+/**
+ * Get "Created From" date input
+ */
+export function getDateFromInput(page: Page): Locator {
+  // Date inputs are identified by label "Vytvořeno od:"
+  return page.locator('input[type="date"]').first();
+}
+
+/**
+ * Get "Created To" date input
+ */
+export function getDateToInput(page: Page): Locator {
+  // Date inputs are identified by label "Vytvořeno do:"
+  return page.locator('input[type="date"]').nth(1);
+}
+
+/**
+ * Set "Created From" date
+ */
+export async function setDateFrom(page: Page, date: string): Promise<void> {
+  console.log(`📅 Setting "Created From" date: ${date}`);
+  const input = getDateFromInput(page);
+  await input.fill(date); // Format: YYYY-MM-DD
+  await waitForLoadingComplete(page);
+  console.log('✅ "Created From" date set');
+}
+
+/**
+ * Set "Created To" date
+ */
+export async function setDateTo(page: Page, date: string): Promise<void> {
+  console.log(`📅 Setting "Created To" date: ${date}`);
+  const input = getDateToInput(page);
+  await input.fill(date); // Format: YYYY-MM-DD
+  await waitForLoadingComplete(page);
+  console.log('✅ "Created To" date set');
+}
+
+/**
+ * Clear date filters
+ */
+export async function clearDateFilters(page: Page): Promise<void> {
+  console.log('🧹 Clearing date filters');
+  const dateFrom = getDateFromInput(page);
+  const dateTo = getDateToInput(page);
+  await dateFrom.fill('');
+  await dateTo.fill('');
+  await waitForLoadingComplete(page);
+  console.log('✅ Date filters cleared');
+}
+
+// ============================================================================
+// Panel Collapse/Expand Helpers
+// ============================================================================
+
+/**
+ * Check if filter panel is collapsed
+ */
+export async function isFilterPanelCollapsed(page: Page): Promise<boolean> {
+  const toggle = getFilterPanelToggle(page);
+  // Check for ChevronRight icon (collapsed) vs ChevronDown (expanded)
+  const chevronRight = toggle.locator('svg').first();
+  const classes = await chevronRight.getAttribute('class');
+  return classes?.includes('lucide-chevron-right') ?? false;
+}
+
+/**
+ * Expand filter panel if collapsed
+ */
+export async function expandFilterPanel(page: Page): Promise<void> {
+  console.log('📂 Expanding filter panel');
+  const isCollapsed = await isFilterPanelCollapsed(page);
+  if (isCollapsed) {
+    await toggleFilterPanel(page);
+  } else {
+    console.log('ℹ️ Filter panel already expanded');
+  }
+}
+
+/**
+ * Collapse filter panel if expanded
+ */
+export async function collapseFilterPanel(page: Page): Promise<void> {
+  console.log('🔒 Collapsing filter panel');
+  const isCollapsed = await isFilterPanelCollapsed(page);
+  if (!isCollapsed) {
+    await toggleFilterPanel(page);
+  } else {
+    console.log('ℹ️ Filter panel already collapsed');
+  }
 }
