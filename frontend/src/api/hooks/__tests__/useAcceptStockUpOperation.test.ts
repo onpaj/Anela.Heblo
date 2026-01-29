@@ -5,8 +5,11 @@ import { useAcceptStockUpOperationMutation } from '../useStockUpOperations';
 import { getAuthenticatedApiClient } from '../../client';
 import { AcceptStockUpOperationResponse, StockUpResultStatus } from '../../generated/api-client';
 
-// Mock the API client module
-jest.mock('../../client');
+// Mock the API client module but preserve QUERY_KEYS
+jest.mock('../../client', () => ({
+  ...jest.requireActual('../../client'),
+  getAuthenticatedApiClient: jest.fn(),
+}));
 const mockGetAuthenticatedApiClient = getAuthenticatedApiClient as jest.MockedFunction<typeof getAuthenticatedApiClient>;
 
 describe('useAcceptStockUpOperationMutation', () => {
@@ -102,7 +105,16 @@ describe('useAcceptStockUpOperationMutation', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     // Verify both list and summaries were invalidated
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ['stockUpOperationsList'] });
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ['stockUpOperationsSummaries'] });
+    // Check that invalidateQueries was called with the expected query keys
+    const calls = invalidateQueriesSpy.mock.calls;
+    expect(calls.length).toBeGreaterThanOrEqual(2);
+
+    const queryKeys = calls.map(call => call[0].queryKey);
+    expect(queryKeys).toEqual(
+      expect.arrayContaining([
+        ['stock-up-operations', 'list'],
+        ['stock-up-operations', 'summary'],
+      ])
+    );
   });
 });

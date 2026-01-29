@@ -95,11 +95,11 @@ export const useAcceptStockUpOperationMutation = () => {
     onSuccess: () => {
       // Invalidate all stock-up operations queries to refresh the list
       queryClient.invalidateQueries({
-        queryKey: ['stockUpOperationsList'],
+        queryKey: stockUpOperationsKeys.lists(),
       });
       // Invalidate summaries to update failure counts
       queryClient.invalidateQueries({
-        queryKey: ['stockUpOperationsSummaries'],
+        queryKey: stockUpOperationsKeys.summaries(),
       });
     },
   });
