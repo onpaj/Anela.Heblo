@@ -9,6 +9,18 @@ concurrency:
   group: main-branch-ci-${{ github.sha }}
   cancel-in-progress: true
 
+# Features:
+# - Parallel frontend and backend tests
+# - GitVersion-based semantic versioning
+# - Changelog generation (EN + CS translation via OpenAI)
+# - Docker image build and push to Docker Hub
+# - Git tag creation
+# - GitHub release creation with formatted changelog
+# - Manual approval gates for staging and production deployments
+# - Azure Web App deployment with health checks
+# - Comprehensive smoke tests with retries
+# - Teams webhook notification on successful production deployment
+
 permissions:
   contents: write
   packages: write
@@ -343,6 +355,56 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: 📦 Create GitHub Release
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "📦 Creating GitHub release: $VERSION"
+
+          # Read the English changelog
+          if [ ! -f frontend/public/changelog.json ]; then
+            echo "❌ Changelog file not found!"
+            exit 1
+          fi
+
+          # Extract changelog for current version
+          CURRENT_VERSION="${VERSION#v}"
+          RELEASE_NOTES=$(jq -r --arg version "$CURRENT_VERSION" '
+            .versions[] |
+            select(.version == $version) |
+            "## Changes\n\n" +
+            (
+              .changes | group_by(.type) | map(
+                (
+                  if .[0].type == "feature" then "### ✨ Features"
+                  elif .[0].type == "fix" then "### 🐛 Bug Fixes"
+                  elif .[0].type == "improvement" then "### 📈 Improvements"
+                  elif .[0].type == "docs" then "### 📚 Documentation"
+                  elif .[0].type == "perf" then "### ⚡ Performance"
+                  elif .[0].type == "refactor" then "### ♻️ Refactoring"
+                  elif .[0].type == "test" then "### 🧪 Tests"
+                  elif .[0].type == "ci" then "### 👷 CI/CD"
+                  else "### 📝 Other"
+                  end
+                ) + "\n" + (map("- " + .title) | join("\n"))
+              ) | join("\n\n")
+            )
+          ' frontend/public/changelog.json || echo "No changelog available for this version.")
+
+          # Check if jq extraction was successful
+          if [ -z "$RELEASE_NOTES" ]; then
+            RELEASE_NOTES="## Changes\n\nSee [changelog](https://heblo.anela.cz) for detailed release notes."
+          fi
+
+          # Create GitHub release
+          echo "$RELEASE_NOTES" | gh release create "$VERSION" \
+            --title "Release $VERSION" \
+            --notes-file - \
+            --verify-tag
+
+          echo "✅ GitHub release $VERSION created successfully!"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # Deploy to Staging - MANUAL APPROVAL REQUIRED
   deploy-staging:
     name: 🚀 Deploy to Staging
@@ -415,14 +477,33 @@ jobs:
       - name: ⏳ Wait for deployment to be ready
         run: |
           echo "⏳ Waiting for deployment to be ready..."
-          sleep 30
-          for i in {1..10}; do
-            if curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health | grep -q "200"; then
-              echo "✅ Deployment is ready!"
+
+          # Initial wait for container startup (increased from 30s to 60s)
+          sleep 60
+
+          # Health check with retries (increased from 10 to 20 attempts with 15s intervals = 5 minutes total)
+          MAX_ATTEMPTS=20
+          ATTEMPT=1
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "🔍 Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health || echo "000")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Deployment is ready! (attempt $ATTEMPT/$MAX_ATTEMPTS)"
               break
             fi
-            echo "⏳ Waiting for deployment... ($i/10)"
-            sleep 10
+
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "❌ Deployment failed to become ready after $MAX_ATTEMPTS attempts"
+              echo "Last HTTP status code: $HTTP_CODE"
+              exit 1
+            fi
+
+            echo "⏳ Waiting for deployment... (HTTP $HTTP_CODE, attempt $ATTEMPT/$MAX_ATTEMPTS)"
+            sleep 15
+            ATTEMPT=$((ATTEMPT + 1))
           done
 
       - name: 📝 Deployment Summary
@@ -506,45 +587,79 @@ jobs:
       - name: ⏳ Wait for deployment to be ready
         run: |
           echo "⏳ Waiting for deployment to be ready..."
-          sleep 30
-          for i in {1..10}; do
-            if curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health | grep -q "200"; then
-              echo "✅ Deployment is ready!"
+
+          # Initial wait for container startup (increased from 30s to 60s)
+          sleep 60
+
+          # Health check with retries (increased from 10 to 20 attempts with 15s intervals = 5 minutes total)
+          MAX_ATTEMPTS=20
+          ATTEMPT=1
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "🔍 Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health || echo "000")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Deployment is ready! (attempt $ATTEMPT/$MAX_ATTEMPTS)"
               break
             fi
-            echo "⏳ Waiting for deployment... ($i/10)"
-            sleep 10
+
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "❌ Deployment failed to become ready after $MAX_ATTEMPTS attempts"
+              echo "Last HTTP status code: $HTTP_CODE"
+              exit 1
+            fi
+
+            echo "⏳ Waiting for deployment... (HTTP $HTTP_CODE, attempt $ATTEMPT/$MAX_ATTEMPTS)"
+            sleep 15
+            ATTEMPT=$((ATTEMPT + 1))
           done
 
       - name: 🧪 Run Smoke Tests
         run: |
           echo "🧪 Running smoke tests against production..."
 
-          # Health check
-          if curl -f https://${{ steps.deploy.outputs.hostname }}/health; then
-            echo "✅ Health check passed"
+          HOSTNAME="${{ steps.deploy.outputs.hostname }}"
+          TIMEOUT=30
+          ALL_PASSED=true
+
+          # Health check with timeout
+          echo "🔍 Testing /health endpoint..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "https://$HOSTNAME/health" || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Health check passed (HTTP $HTTP_CODE)"
           else
-            echo "❌ Health check failed"
-            exit 1
+            echo "❌ Health check failed (HTTP $HTTP_CODE)"
+            ALL_PASSED=false
           fi
 
-          # Liveness check
-          if curl -f https://${{ steps.deploy.outputs.hostname }}/health/live; then
-            echo "✅ Liveness check passed"
+          # Liveness check with timeout
+          echo "🔍 Testing /health/live endpoint..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "https://$HOSTNAME/health/live" || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Liveness check passed (HTTP $HTTP_CODE)"
           else
-            echo "❌ Liveness check failed"
-            exit 1
+            echo "❌ Liveness check failed (HTTP $HTTP_CODE)"
+            ALL_PASSED=false
           fi
 
-          # Readiness check
-          if curl -f https://${{ steps.deploy.outputs.hostname }}/health/ready; then
-            echo "✅ Readiness check passed"
+          # Readiness check with timeout
+          echo "🔍 Testing /health/ready endpoint..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "https://$HOSTNAME/health/ready" || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Readiness check passed (HTTP $HTTP_CODE)"
           else
-            echo "❌ Readiness check failed"
-            exit 1
+            echo "❌ Readiness check failed (HTTP $HTTP_CODE)"
+            ALL_PASSED=false
           fi
 
-          echo "✅ All smoke tests passed!"
+          if [ "$ALL_PASSED" = true ]; then
+            echo "✅ All smoke tests passed!"
+          else
+            echo "❌ Some smoke tests failed!"
+            exit 1
+          fi
 
       - name: 📝 Deployment Summary
         run: |
@@ -557,3 +672,88 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ✅ Smoke Tests Passed" >> $GITHUB_STEP_SUMMARY
           echo "All health checks passed successfully!" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📢 Notify Teams about Production Deployment
+        if: success()
+        run: |
+          VERSION="${{ needs.build-and-push.outputs.version }}"
+          HOSTNAME="${{ steps.deploy.outputs.hostname }}"
+
+          echo "📢 Sending Teams notification for version $VERSION..."
+
+          # Create Teams message payload
+          TEAMS_MESSAGE=$(cat <<EOF
+          {
+            "@type": "MessageCard",
+            "@context": "https://schema.org/extensions",
+            "summary": "Heblo ${VERSION} úspěšně nasazeno",
+            "themeColor": "00AA00",
+            "title": "🚀 Heblo ${VERSION} úspěšně nasazeno",
+            "sections": [
+              {
+                "activityTitle": "Produkční nasazení dokončeno",
+                "activitySubtitle": "$(date '+%Y-%m-%d %H:%M:%S UTC')",
+                "facts": [
+                  {
+                    "name": "Verze:",
+                    "value": "${VERSION}"
+                  },
+                  {
+                    "name": "Prostředí:",
+                    "value": "Production"
+                  },
+                  {
+                    "name": "URL:",
+                    "value": "https://${HOSTNAME}"
+                  },
+                  {
+                    "name": "Workflow:",
+                    "value": "${GITHUB_WORKFLOW}"
+                  }
+                ],
+                "markdown": true
+              }
+            ],
+            "potentialAction": [
+              {
+                "@type": "OpenUri",
+                "name": "Zobrazit aplikaci",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "https://${HOSTNAME}"
+                  }
+                ]
+              },
+              {
+                "@type": "OpenUri",
+                "name": "Zobrazit workflow run",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+          )
+
+          # Send to Teams webhook
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Content-Type: application/json" \
+            -d "$TEAMS_MESSAGE" \
+            "${{ secrets.TEAMS_WEBHOOK_URL }}")
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Teams notification sent successfully!"
+          else
+            echo "⚠️ Failed to send Teams notification (HTTP $HTTP_CODE)"
+            echo "Note: This is not a critical failure, continuing workflow..."
+          fi
+        env:
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}

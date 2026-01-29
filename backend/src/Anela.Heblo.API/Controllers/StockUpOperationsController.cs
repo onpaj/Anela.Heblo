@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Catalog.UseCases.AcceptStockUpOperation;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockUpOperations;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockUpOperationsSummary;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RetryStockUpOperation;
@@ -75,6 +76,24 @@ public class StockUpOperationsController : ControllerBase
     public async Task<ActionResult<RetryStockUpOperationResponse>> RetryOperation(int id)
     {
         var request = new RetryStockUpOperationRequest { OperationId = id };
+        var response = await _mediator.Send(request);
+
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Accept a failed stock-up operation, marking it as completed to remove from active logs
+    /// </summary>
+    /// <param name="id">Operation ID to accept</param>
+    [HttpPost("{id}/accept")]
+    public async Task<ActionResult<AcceptStockUpOperationResponse>> AcceptOperation(int id)
+    {
+        var request = new AcceptStockUpOperationRequest { OperationId = id };
         var response = await _mediator.Send(request);
 
         if (!response.Success)

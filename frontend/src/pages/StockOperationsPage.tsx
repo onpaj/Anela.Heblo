@@ -15,11 +15,13 @@ import {
   AlertTriangle,
   Play,
   Calendar,
+  Check,
 } from "lucide-react";
 import { differenceInMinutes } from "date-fns";
 import {
   useStockUpOperationsQuery,
   useRetryStockUpOperationMutation,
+  useAcceptStockUpOperationMutation,
 } from "../api/hooks/useStockUpOperations";
 import { StockUpOperationState, StockUpSourceType } from "../api/generated/api-client";
 import { CatalogAutocomplete } from "../components/common/CatalogAutocomplete";
@@ -137,6 +139,7 @@ const StockOperationsPage: React.FC = () => {
   });
 
   const retryMutation = useRetryStockUpOperationMutation();
+  const acceptMutation = useAcceptStockUpOperationMutation();
 
   // Helper functions
   const isOperationStuck = (operation: any): boolean => {
@@ -340,6 +343,19 @@ const StockOperationsPage: React.FC = () => {
         refetch();
       } catch (error) {
         console.error("Chyba při opakování operace:", error);
+      }
+    }
+  };
+
+  const handleAccept = async (operation: any) => {
+    const confirmMessage = "Opravdu chcete akceptovat tuto selhanou operaci? Operace bude označena jako Previously Failed a nebude se opakovat.";
+
+    if (window.confirm(confirmMessage)) {
+      try {
+        await acceptMutation.mutateAsync(operation.id!);
+        refetch();
+      } catch (error) {
+        console.error("Chyba při akceptování operace:", error);
       }
     }
   };
@@ -711,18 +727,30 @@ const StockOperationsPage: React.FC = () => {
                       {operation.errorMessage || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {canRetry(operation.state) && operation.id && (
-                        <button
-                          onClick={() => handleRetryWithConfirmation(operation)}
-                          disabled={retryMutation.isPending}
-                          className={`inline-flex items-center px-3 py-1 disabled:bg-gray-400 text-white text-xs font-medium rounded transition-colors duration-200 ${getRetryButtonColor(
-                            operation.state
-                          )}`}
-                        >
-                          {getRetryButtonIcon(operation.state)}
-                          <span className="ml-1">{getRetryButtonLabel(operation.state)}</span>
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {canRetry(operation.state) && operation.id && (
+                          <button
+                            onClick={() => handleRetryWithConfirmation(operation)}
+                            disabled={retryMutation.isPending}
+                            className={`inline-flex items-center px-3 py-1 disabled:bg-gray-400 text-white text-xs font-medium rounded transition-colors duration-200 ${getRetryButtonColor(
+                              operation.state
+                            )}`}
+                          >
+                            {getRetryButtonIcon(operation.state)}
+                            <span className="ml-1">{getRetryButtonLabel(operation.state)}</span>
+                          </button>
+                        )}
+                        {operation.state === StockUpOperationState.Failed && operation.id && (
+                          <button
+                            onClick={() => handleAccept(operation)}
+                            disabled={acceptMutation.isPending}
+                            className="inline-flex items-center px-3 py-1 disabled:bg-gray-400 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded transition-colors duration-200"
+                          >
+                            <Check className="h-3 w-3" />
+                            <span className="ml-1">Akceptovat</span>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

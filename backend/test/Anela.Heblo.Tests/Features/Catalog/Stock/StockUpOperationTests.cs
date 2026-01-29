@@ -358,6 +358,53 @@ public class StockUpOperationTests
 
     #endregion
 
+    #region AcceptFailure Tests
+
+    [Fact]
+    public void AcceptFailure_WhenOperationIsFailed_TransitionsToCompleted()
+    {
+        // Arrange
+        var operation = new StockUpOperation(
+            documentNumber: "DOC-001",
+            productCode: "PROD-001",
+            amount: 10,
+            sourceType: StockUpSourceType.TransportBox,
+            sourceId: 1);
+
+        operation.MarkAsFailed(DateTime.UtcNow, "Test error");
+        var acceptedAt = DateTime.UtcNow;
+
+        // Act
+        operation.AcceptFailure(acceptedAt);
+
+        // Assert
+        operation.State.Should().Be(StockUpOperationState.Completed);
+        operation.CompletedAt.Should().Be(acceptedAt);
+        operation.ErrorMessage.Should().Contain("Test error"); // Original error preserved
+        operation.ErrorMessage.Should().Contain("Manually accepted"); // Acceptance note added
+    }
+
+    [Fact]
+    public void AcceptFailure_WhenOperationIsNotFailed_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var operation = new StockUpOperation(
+            documentNumber: "DOC-001",
+            productCode: "PROD-001",
+            amount: 10,
+            sourceType: StockUpSourceType.TransportBox,
+            sourceId: 1);
+
+        // Act
+        Action act = () => operation.AcceptFailure(DateTime.UtcNow);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*Can only accept Failed operations*");
+    }
+
+    #endregion
+
     #region Helper Methods
 
     private static StockUpOperation CreateDefaultOperation()
