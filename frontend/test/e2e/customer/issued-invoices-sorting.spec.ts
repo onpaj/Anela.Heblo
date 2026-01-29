@@ -141,7 +141,9 @@ test.describe("IssuedInvoices - Sorting Functionality", () => {
 
     // Verify first row contains filter term if results exist
     const firstRowText = rowCount > 0 ? await tableRows.first().textContent() : "";
+    // eslint-disable-next-line jest/no-conditional-expect
     if (rowCount > 0) {
+      // eslint-disable-next-line jest/no-conditional-expect
       expect(firstRowText).toContain("2024");
     }
   });

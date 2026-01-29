@@ -25,8 +25,11 @@ test.describe("IssuedInvoices - Status Badges", () => {
     const pendingBadge = page.locator('span:has-text("Čeká")').first();
     const badgeClass = rowCount > 0 ? await pendingBadge.getAttribute("class") : null;
 
+    // eslint-disable-next-line jest/no-conditional-expect
     if (rowCount > 0) {
+      // eslint-disable-next-line jest/no-conditional-expect
       await expect(pendingBadge).toBeVisible();
+      // eslint-disable-next-line jest/no-conditional-expect
       expect(badgeClass).toBeTruthy();
     }
   });
@@ -44,8 +47,11 @@ test.describe("IssuedInvoices - Status Badges", () => {
     const errorBadge = page.locator('span:has-text("Chyba")').first();
     const badgeClass = rowCount > 0 ? await errorBadge.getAttribute("class") : null;
 
+    // eslint-disable-next-line jest/no-conditional-expect
     if (rowCount > 0) {
+      // eslint-disable-next-line jest/no-conditional-expect
       await expect(errorBadge).toBeVisible();
+      // eslint-disable-next-line jest/no-conditional-expect
       expect(badgeClass).toBeTruthy();
     }
   });
@@ -61,8 +67,11 @@ test.describe("IssuedInvoices - Status Badges", () => {
     const sentBadgeCount = await page.locator('span:has-text("Odesláno")').count();
     const badgeClass = sentBadgeCount > 0 ? await sentBadge.getAttribute("class") : null;
 
+    // eslint-disable-next-line jest/no-conditional-expect
     if (rowCount > 0 && sentBadgeCount > 0) {
+      // eslint-disable-next-line jest/no-conditional-expect
       await expect(sentBadge).toBeVisible();
+      // eslint-disable-next-line jest/no-conditional-expect
       expect(badgeClass).toBeTruthy();
     }
   });

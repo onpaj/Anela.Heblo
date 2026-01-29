@@ -7,7 +7,7 @@ test.describe('IssuedInvoices - Navigation and Tab Switching', () => {
     await navigateToIssuedInvoices(page);
   });
 
-  test('Test 1: Page loads successfully with authentication', async ({ page }) => {
+  test('1: Page loads successfully with authentication', async ({ page }) => {
     // Verify URL
     expect(page.url()).toContain('/customer/issued-invoices');
 
@@ -24,7 +24,7 @@ test.describe('IssuedInvoices - Navigation and Tab Switching', () => {
     await expect(errorMessage).not.toBeVisible();
   });
 
-  test('Test 2: Tab switching works correctly (Statistics ↔ Grid)', async ({ page }) => {
+  test('2: Tab switching works correctly (Statistics ↔ Grid)', async ({ page }) => {
     await waitForLoadingComplete(page);
 
     // Verify Statistics tab is active initially

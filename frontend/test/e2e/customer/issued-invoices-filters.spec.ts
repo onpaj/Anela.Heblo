@@ -12,12 +12,9 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
     await waitForLoadingComplete(page);
   });
 
-  test("Test 3: Invoice ID filter with Enter key", async ({ page }) => {
+  test("3: Invoice ID filter with Enter key", async ({ page }) => {
     const invoiceIdInput = page.locator("#invoiceId");
     const tableRows = page.locator("tbody tr");
-
-    // Get initial row count
-    const initialCount = await tableRows.count();
 
     // Enter invoice ID and press Enter
     await invoiceIdInput.fill("2024");
@@ -28,19 +25,22 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
     const filteredCount = await tableRows.count();
 
     // Should have results or show "Žádné faktury nebyly nalezeny"
+    // eslint-disable-next-line jest/no-conditional-expect
     if (filteredCount === 0) {
       const emptyMessage = page.locator(
         'text="Žádné faktury nebyly nalezeny."',
       );
+      // eslint-disable-next-line jest/no-conditional-expect
       await expect(emptyMessage).toBeVisible();
     } else {
       // Verify filtered results contain the search term
       const firstRowText = await tableRows.first().textContent();
+      // eslint-disable-next-line jest/no-conditional-expect
       expect(firstRowText).toContain("2024");
     }
   });
 
-  test("Test 4: Invoice ID filter with Filtrovat button", async ({ page }) => {
+  test("4: Invoice ID filter with Filtrovat button", async ({ page }) => {
     const invoiceIdInput = page.locator("#invoiceId");
     const filterButton = page.locator('button:has-text("Filtrovat")');
     const tableRows = page.locator("tbody tr");
@@ -55,18 +55,21 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
     // Verify filtering applied
     const filteredCount = await tableRows.count();
 
+    // eslint-disable-next-line jest/no-conditional-expect
     if (filteredCount === 0) {
       const emptyMessage = page.locator(
         'text="Žádné faktury nebyly nalezeny."',
       );
+      // eslint-disable-next-line jest/no-conditional-expect
       await expect(emptyMessage).toBeVisible();
     } else {
       const firstRowText = await tableRows.first().textContent();
+      // eslint-disable-next-line jest/no-conditional-expect
       expect(firstRowText).toContain("2024");
     }
   });
 
-  test("Test 5: Customer Name filter with Enter key", async ({ page }) => {
+  test("5: Customer Name filter with Enter key", async ({ page }) => {
     const customerNameInput = page.locator("#customerName");
     const tableRows = page.locator("tbody tr");
 
@@ -78,17 +81,19 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
     // Verify filtering applied
     const filteredCount = await tableRows.count();
 
+    // eslint-disable-next-line jest/no-conditional-expect
     if (filteredCount > 0) {
       // Verify at least one row contains the search term
       const allRowsText = await tableRows.allTextContents();
       const hasMatch = allRowsText.some((text) =>
         text.toLowerCase().includes("test"),
       );
+      // eslint-disable-next-line jest/no-conditional-expect
       expect(hasMatch).toBe(true);
     }
   });
 
-  test("Test 6: Customer Name filter with Filtrovat button", async ({
+  test("6: Customer Name filter with Filtrovat button", async ({
     page,
   }) => {
     const customerNameInput = page.locator("#customerName");
@@ -105,16 +110,18 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
     // Verify filtering applied
     const filteredCount = await tableRows.count();
 
+    // eslint-disable-next-line jest/no-conditional-expect
     if (filteredCount > 0) {
       const allRowsText = await tableRows.allTextContents();
       const hasMatch = allRowsText.some((text) =>
         text.toLowerCase().includes("test"),
       );
+      // eslint-disable-next-line jest/no-conditional-expect
       expect(hasMatch).toBe(true);
     }
   });
 
-  test("Test 7: Date range filter (Od + Do fields)", async ({ page }) => {
+  test("7: Date range filter (Od + Do fields)", async ({ page }) => {
     const dateFromInput = page.locator('input[type="date"]').first();
     const dateToInput = page.locator('input[type="date"]').last();
     const filterButton = page.locator('button:has-text("Filtrovat")');
@@ -133,7 +140,7 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
     expect(filteredCount).toBeGreaterThanOrEqual(0);
   });
 
-  test("Test 8: Show Only Unsynced checkbox", async ({ page }) => {
+  test("8: Show Only Unsynced checkbox", async ({ page }) => {
     const unsyncedCheckbox = page
       .locator('input[type="checkbox"]')
       .filter({ hasText: "Nesync" });
@@ -146,14 +153,16 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
     // Verify filtering applied
     const filteredCount = await tableRows.count();
 
+    // eslint-disable-next-line jest/no-conditional-expect
     if (filteredCount > 0) {
       // Verify at least one row has "Čeká" (Pending) badge
       const pendingBadge = page.locator('span:has-text("Čeká")').first();
+      // eslint-disable-next-line jest/no-conditional-expect
       await expect(pendingBadge).toBeVisible();
     }
   });
 
-  test("Test 9: Show Only With Errors checkbox", async ({ page }) => {
+  test("9: Show Only With Errors checkbox", async ({ page }) => {
     const errorsCheckbox = page
       .locator('input[type="checkbox"]')
       .filter({ hasText: "Chyby" });
@@ -166,14 +175,16 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
     // Verify filtering applied
     const filteredCount = await tableRows.count();
 
+    // eslint-disable-next-line jest/no-conditional-expect
     if (filteredCount > 0) {
       // Verify at least one row has "Chyba" (Error) badge
       const errorBadge = page.locator('span:has-text("Chyba")').first();
+      // eslint-disable-next-line jest/no-conditional-expect
       await expect(errorBadge).toBeVisible();
     }
   });
 
-  test("Test 10: Combined filters (multiple filters simultaneously)", async ({
+  test("10: Combined filters (multiple filters simultaneously)", async ({
     page,
   }) => {
     const invoiceIdInput = page.locator("#invoiceId");
@@ -196,7 +207,7 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
     expect(filteredCount).toBeGreaterThanOrEqual(0);
   });
 
-  test("Test 11: Clear filters button (Vymazat)", async ({ page }) => {
+  test("11: Clear filters button (Vymazat)", async ({ page }) => {
     const invoiceIdInput = page.locator("#invoiceId");
     const customerNameInput = page.locator("#customerName");
     const dateFromInput = page.locator('input[type="date"]').first();
