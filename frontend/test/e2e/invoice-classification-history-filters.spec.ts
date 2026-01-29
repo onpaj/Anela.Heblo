@@ -24,9 +24,6 @@ test.describe('Classification History - Date Filters', () => {
 
     await applyFilters(page, { fromDate: fromDateStr });
 
-    // Wait for filter to apply
-    await page.waitForTimeout(1000);
-
     const filteredCount = await getRowCount(page);
     const noRecords = await hasNoRecordsMessage(page);
 
@@ -63,9 +60,6 @@ test.describe('Classification History - Date Filters', () => {
     const toDateStr = '2026-01-31';
 
     await applyFilters(page, { toDate: toDateStr });
-
-    // Wait for filter to apply
-    await page.waitForTimeout(1000);
 
     const filteredCount = await getRowCount(page);
     const noRecords = await hasNoRecordsMessage(page);
