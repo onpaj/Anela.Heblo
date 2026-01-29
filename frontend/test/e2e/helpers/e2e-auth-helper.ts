@@ -359,3 +359,47 @@ export async function navigateToInvoiceClassification(page: any): Promise<void> 
 
   console.log('✅ Direct navigation to invoice classification completed');
 }
+
+export async function navigateToIssuedInvoices(page: any): Promise<void> {
+  await navigateToApp(page);
+
+  // Wait for app to be fully loaded
+  await waitForLoadingComplete(page);
+
+  // Navigate to issued invoices via UI
+  const customerSelector = page.locator('button').filter({ hasText: 'Zákazník' }).first();
+  try {
+    console.log('🧭 Attempting UI navigation to issued invoices via Zákazník...');
+    if (await customerSelector.isVisible({ timeout: 5000 })) {
+      console.log('✅ Found Zákazník menu item, clicking...');
+      await customerSelector.click();
+      await waitForLoadingComplete(page);
+
+      // Look for "Vydané faktury" sub-item after clicking Zákazník
+      const vydaneFaktury = page.locator('text="Vydané faktury"').first();
+      if (await vydaneFaktury.isVisible({ timeout: 5000 })) {
+        console.log('✅ Found Vydané faktury submenu, clicking...');
+        await vydaneFaktury.click();
+        await page.waitForLoadState('domcontentloaded');
+        await waitForLoadingComplete(page);
+        console.log('✅ UI navigation to issued invoices successful');
+        return;
+      } else {
+        console.log('❌ Vydané faktury submenu not found under Zákazník');
+      }
+    } else {
+      console.log('❌ Zákazník menu item not found');
+    }
+  } catch (e) {
+    console.log('❌ UI navigation failed:', e.message);
+  }
+
+  // If UI navigation fails, go directly to the path
+  console.log('🔄 Trying direct navigation to issued invoices...');
+  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+  await page.goto(`${baseUrl}/customer/issued-invoices`);
+  await page.waitForLoadState('domcontentloaded');
+  await waitForPageLoad(page);
+
+  console.log('✅ Direct navigation to issued invoices completed');
+}

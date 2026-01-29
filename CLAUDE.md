@@ -174,7 +174,49 @@ test('should filter by product', async ({ page }) => {
 });
 ```
 
-### 7. Design Document Alignment
+### 7. E2E Test File Structure
+
+**MANDATORY**: All E2E test files MUST use flat structure - directly in `frontend/test/e2e/` directory.
+
+**Only allowed subdirectories:**
+- `helpers/` - Test helper functions and utilities
+- `fixtures/` - Test data fixtures
+
+**❌ WRONG - Nested test files in subdirectories:**
+```
+frontend/test/e2e/
+├── customer/
+│   └── issued-invoices-filters.spec.ts  # ❌ NO nested test files
+├── stock/
+│   └── operations-retry.spec.ts         # ❌ NO subdirectories for tests
+```
+
+**✅ CORRECT - Flat structure with naming convention:**
+```
+frontend/test/e2e/
+├── helpers/                              # ✅ Only helpers allowed
+├── fixtures/                             # ✅ Only fixtures allowed
+├── issued-invoices-filters.spec.ts       # ✅ Flat structure at root
+├── stock-operations-retry.spec.ts        # ✅ Use naming for grouping
+└── catalog-filters.spec.ts               # ✅ All tests directly in e2e/
+```
+
+**Import paths with flat structure:**
+```typescript
+// ✅ CORRECT - All tests are at root level
+import { navigateToApp } from './helpers/e2e-auth-helper';
+import { TestCatalogItems } from './fixtures/test-data';
+
+// ❌ WRONG - Don't use relative paths for nested structure
+import { navigateToApp } from '../helpers/e2e-auth-helper';  // NO!
+```
+
+**Enforcement:**
+- Use `{feature}-{aspect}.spec.ts` naming convention to group related tests
+- NEVER create subdirectories for test files
+- See `docs/testing/playwright-e2e-testing.md` for complete testing guide
+
+### 8. Design Document Alignment
 
 **MANDATORY**: All implementation work MUST align with design documents in `/docs`.
 
@@ -205,7 +247,7 @@ test('should filter by product', async ({ page }) => {
 
 **Test Organization:**
 - **Unit/Integration**: Co-located in `__tests__/` folders next to components
-- **E2E Tests**: Located in `/frontend/test/e2e/` directory
+- **E2E Tests**: Located in `/frontend/test/e2e/` directory (MUST use flat structure - see rule 7)
 
 **Playwright Testing:**
 - **Target**: Always run against staging environment (https://heblo.stg.anela.cz)
