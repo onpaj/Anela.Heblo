@@ -100,4 +100,21 @@ public class StockUpOperation : Entity<int>
         CompletedAt = null;
         ErrorMessage = null;
     }
+
+    /// <summary>
+    /// Accept a failed operation by marking it as completed.
+    /// This allows hiding failed operations from active logs while preserving audit trail.
+    /// Original error message is retained with acceptance note appended.
+    /// </summary>
+    public void AcceptFailure(DateTime timestamp)
+    {
+        if (State != StockUpOperationState.Failed)
+            throw new InvalidOperationException($"Can only accept Failed operations, current state: {State}");
+
+        State = StockUpOperationState.Completed;
+        CompletedAt = timestamp;
+
+        // Preserve audit trail by appending acceptance note to original error
+        ErrorMessage = $"{ErrorMessage} | Manually accepted at {timestamp:yyyy-MM-dd HH:mm:ss} UTC";
+    }
 }
