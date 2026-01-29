@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { navigateToIssuedInvoices } from "../helpers/e2e-auth-helper";
-import { waitForLoadingComplete } from "../helpers/wait-helpers";
+import { navigateToIssuedInvoices } from "./helpers/e2e-auth-helper";
+import { waitForLoadingComplete } from "./helpers/wait-helpers";
 
 test.describe("IssuedInvoices - Filter Functionality", () => {
   test.beforeEach(async ({ page }) => {

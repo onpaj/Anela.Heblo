@@ -36,24 +36,38 @@ export default defineConfig({
 
 ### Test Location
 
+**MANDATORY**: E2E tests MUST use flat structure - all `*.spec.ts` files directly in `frontend/test/e2e/`.
+
+**Only subdirectories allowed:**
+- `helpers/` - Test helpers and utilities
+- `fixtures/` - Test data fixtures
+
+**❌ WRONG - Nested structure:**
 ```
 frontend/test/e2e/
-├── auth/                    # Authentication flows
-├── navigation/              # Navigation and routing
-├── layout/                  # Layout and responsive design
-├── features/                # Feature-specific user journeys
-│   ├── gift-package-disassembly.spec.ts
-│   ├── manufacture-batch-planning-workflow.spec.ts
-│   └── recurring-jobs-management.spec.ts
-├── stock-operations/        # Stock operations tests
-├── changelog/               # Changelog functionality
-├── helpers/                 # Test helpers and utilities
-│   ├── e2e-auth-helper.ts  # Authentication helpers (CRITICAL)
-│   └── ...
-├── fixtures/                # Test data fixtures
-│   └── test-data.ts        # Test data definitions
-└── *.spec.ts                # Test files
+├── customer/
+│   └── issued-invoices-filters.spec.ts  # ❌ NO subdirectories for tests
+├── stock-operations/
+│   └── retry.spec.ts                     # ❌ NO nested test files
 ```
+
+**✅ CORRECT - Flat structure:**
+```
+frontend/test/e2e/
+├── helpers/                              # ✅ Only helpers and fixtures allowed
+│   ├── e2e-auth-helper.ts
+│   └── wait-helpers.ts
+├── fixtures/                             # ✅ Test data fixtures
+│   └── test-data.ts
+├── catalog-filters.spec.ts               # ✅ All test files at root level
+├── stock-operations-retry.spec.ts        # ✅ Use naming convention for grouping
+├── issued-invoices-filters.spec.ts       # ✅ Flat structure
+└── transport-box-workflow.spec.ts        # ✅ Direct in e2e/
+```
+
+**Naming convention for grouping:**
+- Use prefixes to group related tests: `{feature}-{aspect}.spec.ts`
+- Examples: `catalog-filters.spec.ts`, `catalog-sorting.spec.ts`, `stock-operations-retry.spec.ts`
 
 ## Authentication - CRITICAL RULES
 
@@ -371,10 +385,12 @@ The `./scripts/run-playwright-tests.sh` script provides:
 
 ### Test Structure
 
+**Import paths**: Since all test files are in flat structure at `frontend/test/e2e/` root level, use `./helpers/` and `./fixtures/` for imports.
+
 ```typescript
 import { test, expect } from '@playwright/test';
-import { navigateToCatalog } from './helpers/e2e-auth-helper';
-import { TestCatalogItems } from './fixtures/test-data';
+import { navigateToCatalog } from './helpers/e2e-auth-helper';  // ✅ ./helpers/ (flat structure)
+import { TestCatalogItems } from './fixtures/test-data';        // ✅ ./fixtures/
 
 test.describe('Catalog Filtering E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -519,25 +535,31 @@ test('should display catalog', async ({ page }) => {
 
 ### Folder Structure
 
+**MANDATORY**: All test files in flat structure at `frontend/test/e2e/` root level.
+
 ```
 frontend/test/e2e/
-├── auth/                    # Authentication and login flows
-├── navigation/              # Page navigation and routing
-├── layout/                  # Responsive design and layout
-├── features/                # Feature-specific journeys
-│   ├── gift-package-disassembly.spec.ts
-│   ├── manufacture-batch-planning-workflow.spec.ts
-│   └── recurring-jobs-management.spec.ts
-├── stock-operations/        # Stock operation tests
-├── catalog*.spec.ts         # Catalog feature tests
-├── transport*.spec.ts       # Transport box tests
-└── *.spec.ts                # Other feature tests
+├── helpers/                                    # Test utilities (only subdirectory)
+│   ├── e2e-auth-helper.ts
+│   └── wait-helpers.ts
+├── fixtures/                                   # Test data (only subdirectory)
+│   └── test-data.ts
+├── catalog-filters.spec.ts                     # Catalog tests
+├── catalog-sorting.spec.ts
+├── stock-operations-retry.spec.ts              # Stock operations tests
+├── stock-operations-badges.spec.ts
+├── transport-box-workflow.spec.ts              # Transport box tests
+├── transport-box-items.spec.ts
+├── issued-invoices-filters.spec.ts             # Issued invoices tests
+├── issued-invoices-pagination.spec.ts
+└── gift-package-disassembly.spec.ts            # Other features
 ```
 
 **Naming conventions:**
 - Test files: `{feature}-{aspect}.spec.ts`
 - Test describes: `{Feature} {Aspect} E2E Tests`
 - Test cases: `should {expected behavior}`
+- Use feature prefix for grouping (e.g., `catalog-`, `stock-operations-`, `transport-`)
 
 ## CI/CD Integration
 
