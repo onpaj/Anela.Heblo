@@ -205,6 +205,28 @@ jobs:
           echo "## 🎭 E2E Nightly Regression Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
+          # Show test execution status first for debugging
+          echo "**Test Execution Status:** ${{ steps.run-tests.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Debug: List test result files
+          echo "### 🔍 Debug: Test Result Files" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          ls -lah frontend/test-results/ 2>&1 || echo "frontend/test-results/ directory not found" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Debug: Show JSON structure (first 50 lines)
+          if [ -f frontend/test-results/results.json ]; then
+            echo "### 🔍 Debug: JSON Structure (first 50 lines)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            head -n 50 frontend/test-results/results.json >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
           # Parse JSON results (more reliable than XML parsing)
           if [ -f frontend/test-results/results.json ]; then
             # Install jq if not available (should be pre-installed on GitHub runners)
@@ -217,13 +239,27 @@ jobs:
             fi
 
             if [ "$JSON_AVAILABLE" = true ]; then
-              # Parse JSON results
-              TOTAL=$(jq '[.suites[].specs[]] | length' frontend/test-results/results.json)
-              PASSED=$(jq '[.suites[].specs[] | select(.ok == true and (.tests[0].results[0].status == "passed" or .tests[0].results[0].status == "expected"))] | length' frontend/test-results/results.json)
-              FAILED=$(jq '[.suites[].specs[] | select(.ok == false)] | length' frontend/test-results/results.json)
-              SKIPPED=$(jq '[.suites[].specs[] | select(.tests[0].results[0].status == "skipped")] | length' frontend/test-results/results.json)
+              # Parse JSON results (handles nested suite structure: .suites[].suites[].specs[])
+              TOTAL=$(jq '[ .suites[].suites[]?.specs[]? ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
+              PASSED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == true) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
+              FAILED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
+              SKIPPED=$(jq '[ .suites[].suites[]?.specs[]? | select(.tests[0].results[0].status == "skipped") ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
 
-              if [ "$FAILED" -eq 0 ]; then
+              # Debug: Show parsed values
+              echo "**Debug - Parsed values:** TOTAL=$TOTAL, PASSED=$PASSED, FAILED=$FAILED, SKIPPED=$SKIPPED" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+
+              # Check if any tests actually ran
+              if [ "$TOTAL" -eq 0 ]; then
+                echo "⚠️ **No tests were executed!**" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "This usually means:" >> $GITHUB_STEP_SUMMARY
+                echo "- Test configuration validation failed" >> $GITHUB_STEP_SUMMARY
+                echo "- No test files matched the pattern" >> $GITHUB_STEP_SUMMARY
+                echo "- Playwright crashed before running tests" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "**Check the 'Run E2E Tests' step logs for details.**" >> $GITHUB_STEP_SUMMARY
+              elif [ "$FAILED" -eq 0 ]; then
                 echo "✅ **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
               else
                 echo "❌ **$FAILED test(s) failed.**" >> $GITHUB_STEP_SUMMARY
@@ -245,8 +281,8 @@ jobs:
                 echo "### ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
                 echo "" >> $GITHUB_STEP_SUMMARY
 
-                # Extract failed test details from JSON
-                jq -r '.suites[] | .specs[] | select(.ok == false) | "**" + .title + "**\n- File: `" + .file + "`\n- Error: " + (.tests[0].results[0].error.message // "No error message") + "\n"' frontend/test-results/results.json >> $GITHUB_STEP_SUMMARY
+                # Extract failed test details from JSON (handles nested structure)
+                jq -r '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | .[] | "**" + .title + "**\n- File: `" + .file + "`\n- Error: " + (.tests[0].results[0].error.message // "No error message") + "\n"' frontend/test-results/results.json >> $GITHUB_STEP_SUMMARY
 
                 echo "" >> $GITHUB_STEP_SUMMARY
               fi
@@ -256,8 +292,8 @@ jobs:
                 echo "### ⏭️ Skipped Tests" >> $GITHUB_STEP_SUMMARY
                 echo "" >> $GITHUB_STEP_SUMMARY
 
-                # Extract skipped test names from JSON
-                jq -r '.suites[] | .specs[] | select(.tests[0].results[0].status == "skipped") | "- " + .title' frontend/test-results/results.json >> $GITHUB_STEP_SUMMARY
+                # Extract skipped test names from JSON (handles nested structure)
+                jq -r '[ .suites[].suites[]?.specs[]? | select(.tests[0].results[0].status == "skipped") ] | .[] | "- " + .title' frontend/test-results/results.json >> $GITHUB_STEP_SUMMARY
 
                 echo "" >> $GITHUB_STEP_SUMMARY
               fi
@@ -280,7 +316,17 @@ jobs:
             SKIP=${SKIPPED:-0}
             PASSED=$((TOTAL - FAILED - SKIP))
 
-            if [ "$FAILED" -eq 0 ]; then
+            # Check if any tests actually ran
+            if [ "$TOTAL" -eq 0 ]; then
+              echo "⚠️ **No tests were executed!**" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "This usually means:" >> $GITHUB_STEP_SUMMARY
+              echo "- Test configuration validation failed" >> $GITHUB_STEP_SUMMARY
+              echo "- No test files matched the pattern" >> $GITHUB_STEP_SUMMARY
+              echo "- Playwright crashed before running tests" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "**Check the 'Run E2E Tests' step logs for details.**" >> $GITHUB_STEP_SUMMARY
+            elif [ "$FAILED" -eq 0 ]; then
               echo "✅ **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
             else
               echo "❌ **$FAILED test(s) failed.**" >> $GITHUB_STEP_SUMMARY
