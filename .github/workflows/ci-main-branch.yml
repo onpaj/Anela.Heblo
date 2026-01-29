@@ -465,14 +465,33 @@ jobs:
       - name: ⏳ Wait for deployment to be ready
         run: |
           echo "⏳ Waiting for deployment to be ready..."
-          sleep 30
-          for i in {1..10}; do
-            if curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health | grep -q "200"; then
-              echo "✅ Deployment is ready!"
+
+          # Initial wait for container startup (increased from 30s to 60s)
+          sleep 60
+
+          # Health check with retries (increased from 10 to 20 attempts with 15s intervals = 5 minutes total)
+          MAX_ATTEMPTS=20
+          ATTEMPT=1
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "🔍 Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health || echo "000")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Deployment is ready! (attempt $ATTEMPT/$MAX_ATTEMPTS)"
               break
             fi
-            echo "⏳ Waiting for deployment... ($i/10)"
-            sleep 10
+
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "❌ Deployment failed to become ready after $MAX_ATTEMPTS attempts"
+              echo "Last HTTP status code: $HTTP_CODE"
+              exit 1
+            fi
+
+            echo "⏳ Waiting for deployment... (HTTP $HTTP_CODE, attempt $ATTEMPT/$MAX_ATTEMPTS)"
+            sleep 15
+            ATTEMPT=$((ATTEMPT + 1))
           done
 
       - name: 📝 Deployment Summary
@@ -556,45 +575,79 @@ jobs:
       - name: ⏳ Wait for deployment to be ready
         run: |
           echo "⏳ Waiting for deployment to be ready..."
-          sleep 30
-          for i in {1..10}; do
-            if curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health | grep -q "200"; then
-              echo "✅ Deployment is ready!"
+
+          # Initial wait for container startup (increased from 30s to 60s)
+          sleep 60
+
+          # Health check with retries (increased from 10 to 20 attempts with 15s intervals = 5 minutes total)
+          MAX_ATTEMPTS=20
+          ATTEMPT=1
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "🔍 Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health || echo "000")
+
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Deployment is ready! (attempt $ATTEMPT/$MAX_ATTEMPTS)"
               break
             fi
-            echo "⏳ Waiting for deployment... ($i/10)"
-            sleep 10
+
+            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+              echo "❌ Deployment failed to become ready after $MAX_ATTEMPTS attempts"
+              echo "Last HTTP status code: $HTTP_CODE"
+              exit 1
+            fi
+
+            echo "⏳ Waiting for deployment... (HTTP $HTTP_CODE, attempt $ATTEMPT/$MAX_ATTEMPTS)"
+            sleep 15
+            ATTEMPT=$((ATTEMPT + 1))
           done
 
       - name: 🧪 Run Smoke Tests
         run: |
           echo "🧪 Running smoke tests against production..."
 
-          # Health check
-          if curl -f https://${{ steps.deploy.outputs.hostname }}/health; then
-            echo "✅ Health check passed"
+          HOSTNAME="${{ steps.deploy.outputs.hostname }}"
+          TIMEOUT=30
+          ALL_PASSED=true
+
+          # Health check with timeout
+          echo "🔍 Testing /health endpoint..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "https://$HOSTNAME/health" || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Health check passed (HTTP $HTTP_CODE)"
           else
-            echo "❌ Health check failed"
-            exit 1
+            echo "❌ Health check failed (HTTP $HTTP_CODE)"
+            ALL_PASSED=false
           fi
 
-          # Liveness check
-          if curl -f https://${{ steps.deploy.outputs.hostname }}/health/live; then
-            echo "✅ Liveness check passed"
+          # Liveness check with timeout
+          echo "🔍 Testing /health/live endpoint..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "https://$HOSTNAME/health/live" || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Liveness check passed (HTTP $HTTP_CODE)"
           else
-            echo "❌ Liveness check failed"
-            exit 1
+            echo "❌ Liveness check failed (HTTP $HTTP_CODE)"
+            ALL_PASSED=false
           fi
 
-          # Readiness check
-          if curl -f https://${{ steps.deploy.outputs.hostname }}/health/ready; then
-            echo "✅ Readiness check passed"
+          # Readiness check with timeout
+          echo "🔍 Testing /health/ready endpoint..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "https://$HOSTNAME/health/ready" || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Readiness check passed (HTTP $HTTP_CODE)"
           else
-            echo "❌ Readiness check failed"
-            exit 1
+            echo "❌ Readiness check failed (HTTP $HTTP_CODE)"
+            ALL_PASSED=false
           fi
 
-          echo "✅ All smoke tests passed!"
+          if [ "$ALL_PASSED" = true ]; then
+            echo "✅ All smoke tests passed!"
+          else
+            echo "❌ Some smoke tests failed!"
+            exit 1
+          fi
 
       - name: 📝 Deployment Summary
         run: |
