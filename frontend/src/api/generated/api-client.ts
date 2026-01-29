@@ -809,6 +809,43 @@ export class ApiClient {
         return Promise.resolve<GetCatalogDetailResponse>(null as any);
     }
 
+    catalog_GetComposition(productCode: string): Promise<GetProductCompositionResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/{productCode}/composition";
+        if (productCode === undefined || productCode === null)
+            throw new Error("The parameter 'productCode' must be defined.");
+        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_GetComposition(_response);
+        });
+    }
+
+    protected processCatalog_GetComposition(response: Response): Promise<GetProductCompositionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetProductCompositionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetProductCompositionResponse>(null as any);
+    }
+
     catalog_GetMaterialsForPurchase(searchTerm: string | null | undefined, limit: number | undefined): Promise<GetMaterialsForPurchaseResponse> {
         let url_ = this.baseUrl + "/api/Catalog/materials-for-purchase?";
         if (searchTerm !== undefined && searchTerm !== null)
@@ -5413,6 +5450,43 @@ export class ApiClient {
         return Promise.resolve<RetryStockUpOperationResponse>(null as any);
     }
 
+    stockUpOperations_AcceptOperation(id: number): Promise<AcceptStockUpOperationResponse> {
+        let url_ = this.baseUrl + "/api/StockUpOperations/{id}/accept";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processStockUpOperations_AcceptOperation(_response);
+        });
+    }
+
+    protected processStockUpOperations_AcceptOperation(response: Response): Promise<AcceptStockUpOperationResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AcceptStockUpOperationResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AcceptStockUpOperationResponse>(null as any);
+    }
+
     stockUpOperations_GetSummary(sourceType: StockUpSourceType | null | undefined): Promise<GetStockUpOperationsSummaryResponse> {
         let url_ = this.baseUrl + "/api/StockUpOperations/summary?";
         if (sourceType !== undefined && sourceType !== null)
@@ -8350,6 +8424,95 @@ export interface IMarginLevelDto {
     amount?: number;
     costLevel?: number;
     costTotal?: number;
+}
+
+export class GetProductCompositionResponse extends BaseResponse implements IGetProductCompositionResponse {
+    ingredients?: IngredientDto[];
+
+    constructor(data?: IGetProductCompositionResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["ingredients"])) {
+                this.ingredients = [] as any;
+                for (let item of _data["ingredients"])
+                    this.ingredients!.push(IngredientDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetProductCompositionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetProductCompositionResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.ingredients)) {
+            data["ingredients"] = [];
+            for (let item of this.ingredients)
+                data["ingredients"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetProductCompositionResponse extends IBaseResponse {
+    ingredients?: IngredientDto[];
+}
+
+export class IngredientDto implements IIngredientDto {
+    productCode?: string;
+    productName?: string;
+    amount?: number;
+    unit?: string;
+
+    constructor(data?: IIngredientDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.amount = _data["amount"];
+            this.unit = _data["unit"];
+        }
+    }
+
+    static fromJS(data: any): IngredientDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new IngredientDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["amount"] = this.amount;
+        data["unit"] = this.unit;
+        return data;
+    }
+}
+
+export interface IIngredientDto {
+    productCode?: string;
+    productName?: string;
+    amount?: number;
+    unit?: string;
 }
 
 export class GetMaterialsForPurchaseResponse extends BaseResponse implements IGetMaterialsForPurchaseResponse {
@@ -19211,6 +19374,43 @@ export enum StockUpResultStatus {
     InProgress = "InProgress",
     PreviouslyFailed = "PreviouslyFailed",
     Failed = "Failed",
+}
+
+export class AcceptStockUpOperationResponse extends BaseResponse implements IAcceptStockUpOperationResponse {
+    status?: StockUpResultStatus;
+    errorMessage?: string | undefined;
+
+    constructor(data?: IAcceptStockUpOperationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.status = _data["status"];
+            this.errorMessage = _data["errorMessage"];
+        }
+    }
+
+    static override fromJS(data: any): AcceptStockUpOperationResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new AcceptStockUpOperationResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["status"] = this.status;
+        data["errorMessage"] = this.errorMessage;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IAcceptStockUpOperationResponse extends IBaseResponse {
+    status?: StockUpResultStatus;
+    errorMessage?: string | undefined;
 }
 
 export class GetStockUpOperationsSummaryResponse extends BaseResponse implements IGetStockUpOperationsSummaryResponse {

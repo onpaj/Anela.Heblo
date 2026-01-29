@@ -5,6 +5,7 @@ import {
   GetStockUpOperationsResponse,
   GetStockUpOperationsSummaryResponse,
   RetryStockUpOperationResponse,
+  AcceptStockUpOperationResponse,
   StockUpSourceType,
 } from "../generated/api-client";
 
@@ -74,6 +75,31 @@ export const useRetryStockUpOperationMutation = () => {
       // Invalidate all stock-up operations queries to refresh the list
       queryClient.invalidateQueries({
         queryKey: stockUpOperationsKeys.lists(),
+      });
+    },
+  });
+};
+
+/**
+ * Hook to accept a failed StockUpOperation
+ * Invalidates both operation list and summary queries on success
+ */
+export const useAcceptStockUpOperationMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (operationId: number): Promise<AcceptStockUpOperationResponse> => {
+      const client = getStockUpOperationsClient();
+      return await client.stockUpOperations_AcceptOperation(operationId);
+    },
+    onSuccess: () => {
+      // Invalidate all stock-up operations queries to refresh the list
+      queryClient.invalidateQueries({
+        queryKey: stockUpOperationsKeys.lists(),
+      });
+      // Invalidate summaries to update failure counts
+      queryClient.invalidateQueries({
+        queryKey: stockUpOperationsKeys.summaries(),
       });
     },
   });
