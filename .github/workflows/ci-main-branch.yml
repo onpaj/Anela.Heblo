@@ -343,6 +343,52 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: 📦 Create GitHub Release
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          echo "📦 Creating GitHub release: $VERSION"
+
+          # Read the English changelog
+          if [ ! -f frontend/public/changelog.json ]; then
+            echo "❌ Changelog file not found!"
+            exit 1
+          fi
+
+          # Extract changelog for current version
+          CURRENT_VERSION="${VERSION#v}"
+          RELEASE_NOTES=$(jq -r --arg version "$CURRENT_VERSION" '
+            .versions[] |
+            select(.version == $version) |
+            "## Changes\n\n" +
+            (.changes | map(
+              if .type == "feature" then "### ✨ Features\n- " + .title
+              elif .type == "fix" then "### 🐛 Bug Fixes\n- " + .title
+              elif .type == "improvement" then "### 📈 Improvements\n- " + .title
+              elif .type == "docs" then "### 📚 Documentation\n- " + .title
+              elif .type == "perf" then "### ⚡ Performance\n- " + .title
+              elif .type == "refactor" then "### ♻️ Refactoring\n- " + .title
+              elif .type == "test" then "### 🧪 Tests\n- " + .title
+              elif .type == "ci" then "### 👷 CI/CD\n- " + .title
+              else "### 📝 Other\n- " + .title
+              end
+            ) | join("\n"))
+          ' frontend/public/changelog.json || echo "No changelog available for this version.")
+
+          # If no release notes found, use a default message
+          if [ -z "$RELEASE_NOTES" ] || [ "$RELEASE_NOTES" == "null" ]; then
+            RELEASE_NOTES="## Changes\n\nSee [changelog](https://heblo.anela.cz) for detailed release notes."
+          fi
+
+          # Create GitHub release
+          echo "$RELEASE_NOTES" | gh release create "$VERSION" \
+            --title "Release $VERSION" \
+            --notes-file - \
+            --verify-tag
+
+          echo "✅ GitHub release $VERSION created successfully!"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # Deploy to Staging - MANUAL APPROVAL REQUIRED
   deploy-staging:
     name: 🚀 Deploy to Staging
