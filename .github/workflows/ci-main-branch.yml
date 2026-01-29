@@ -660,3 +660,88 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ✅ Smoke Tests Passed" >> $GITHUB_STEP_SUMMARY
           echo "All health checks passed successfully!" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📢 Notify Teams about Production Deployment
+        if: success()
+        run: |
+          VERSION="${{ needs.build-and-push.outputs.version }}"
+          HOSTNAME="${{ steps.deploy.outputs.hostname }}"
+
+          echo "📢 Sending Teams notification for version $VERSION..."
+
+          # Create Teams message payload
+          TEAMS_MESSAGE=$(cat <<EOF
+          {
+            "@type": "MessageCard",
+            "@context": "https://schema.org/extensions",
+            "summary": "Heblo ${VERSION} úspěšně nasazeno",
+            "themeColor": "00AA00",
+            "title": "🚀 Heblo ${VERSION} úspěšně nasazeno",
+            "sections": [
+              {
+                "activityTitle": "Produkční nasazení dokončeno",
+                "activitySubtitle": "$(date '+%Y-%m-%d %H:%M:%S UTC')",
+                "facts": [
+                  {
+                    "name": "Verze:",
+                    "value": "${VERSION}"
+                  },
+                  {
+                    "name": "Prostředí:",
+                    "value": "Production"
+                  },
+                  {
+                    "name": "URL:",
+                    "value": "https://${HOSTNAME}"
+                  },
+                  {
+                    "name": "Workflow:",
+                    "value": "${GITHUB_WORKFLOW}"
+                  }
+                ],
+                "markdown": true
+              }
+            ],
+            "potentialAction": [
+              {
+                "@type": "OpenUri",
+                "name": "Zobrazit aplikaci",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "https://${HOSTNAME}"
+                  }
+                ]
+              },
+              {
+                "@type": "OpenUri",
+                "name": "Zobrazit workflow run",
+                "targets": [
+                  {
+                    "os": "default",
+                    "uri": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+          )
+
+          # Send to Teams webhook
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Content-Type: application/json" \
+            -d "$TEAMS_MESSAGE" \
+            "${{ secrets.TEAMS_WEBHOOK_URL }}")
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Teams notification sent successfully!"
+          else
+            echo "⚠️ Failed to send Teams notification (HTTP $HTTP_CODE)"
+            echo "Note: This is not a critical failure, continuing workflow..."
+          fi
+        env:
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
