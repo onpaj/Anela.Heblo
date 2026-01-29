@@ -151,6 +151,14 @@ public class StockUpScenario
         if (!_options.DryRun)
         {
             await page.ClickAsync("[data-testid='buttonAddItemsToStock']");
+
+            // CRITICAL FIX: Wait for operation to complete before closing browser
+            // Without this wait, browser closes immediately and Shoptet may not save documentNumber
+            // This prevents race condition where stock-up completes but without document number
+            _logger.LogDebug("Waiting for stock-up operation to complete for document {DocumentNumber}", request.StockUpId);
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new PageWaitForLoadStateOptions { Timeout = 30000 });
+
+            _logger.LogInformation("Stock-up operation completed for document {DocumentNumber}", request.StockUpId);
         }
         else
         {
