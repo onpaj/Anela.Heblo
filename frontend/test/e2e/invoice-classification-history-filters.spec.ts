@@ -421,3 +421,109 @@ test.describe('Classification History - Company Name Filters', () => {
     });
   });
 });
+
+test.describe('Classification History - Combined Filters', () => {
+  test.beforeEach(async ({ page }) => {
+    await navigateToInvoiceClassification(page);
+    await waitForClassificationHistoryLoaded(page);
+  });
+
+  test('should apply all four filters together', async ({ page }) => {
+    const initialCount = await getRowCount(page);
+    expect(initialCount).toBeGreaterThan(0);
+
+    // Get data from first row
+    const rows = getTableRows(page);
+    const firstRow = rows.first();
+
+    const dateCell = firstRow.locator('td').nth(0);
+    const invoiceNumberCell = firstRow.locator('td').nth(1);
+    const companyNameCell = firstRow.locator('td').nth(2);
+
+    const dateText = await dateCell.textContent();
+    const invoiceNumber = await invoiceNumberCell.textContent();
+    const companyName = await companyNameCell.textContent();
+
+    expect(dateText).toBeTruthy();
+    expect(invoiceNumber).toBeTruthy();
+    expect(companyName).toBeTruthy();
+
+    // Parse date and create date range (same month)
+    const dateParts = dateText!.trim().split('.');
+    expect(dateParts.length).toBeGreaterThanOrEqual(2);
+
+    const day = dateParts[0].padStart(2, '0');
+    const month = dateParts[1].padStart(2, '0');
+    const year = dateParts[2] || '2026';
+
+    const fromDate = `${year}-${month}-01`;
+    const toDate = `${year}-${month}-${day}`;
+
+    // Apply all four filters
+    await applyFilters(page, {
+      fromDate,
+      toDate,
+      invoiceNumber: invoiceNumber!.trim(),
+      companyName: companyName!.trim(),
+    });
+
+    // Verify results
+    const filteredCount = await getRowCount(page);
+    expect(filteredCount).toBeGreaterThan(0);
+
+    // Verify first row matches all filters
+    const filteredRows = getTableRows(page);
+    const filteredFirstRow = filteredRows.first();
+
+    const filteredInvoiceNumber = await filteredFirstRow
+      .locator('td')
+      .nth(1)
+      .textContent();
+    const filteredCompanyName = await filteredFirstRow
+      .locator('td')
+      .nth(2)
+      .textContent();
+
+    expect(filteredInvoiceNumber?.trim()).toContain(invoiceNumber!.trim());
+    expect(filteredCompanyName?.trim()).toContain(companyName!.trim());
+  });
+
+  test('should persist combined filters after pagination', async ({ page }) => {
+    const initialCount = await getRowCount(page);
+    expect(initialCount).toBeGreaterThan(0);
+
+    // Apply combined filters
+    await applyFilters(page, {
+      fromDate: '2026-01-01',
+      invoiceNumber: 'INV',
+    });
+
+    const inputs = getFilterInputs(page);
+
+    // Verify filters are applied
+    expect(await inputs.fromDate.inputValue()).toBe('2026-01-01');
+    expect(await inputs.invoiceNumber.inputValue()).toBe('INV');
+
+    // Check if pagination exists
+    const paginationNext = page.locator('[aria-label="Go to next page"]');
+    const isPaginationAvailable = (await paginationNext.count()) > 0;
+
+    if (isPaginationAvailable && (await paginationNext.isEnabled())) {
+      // Navigate to next page
+      await paginationNext.click();
+      await page.waitForTimeout(500);
+
+      // Verify filters persist
+      expect(await inputs.fromDate.inputValue()).toBe('2026-01-01');
+      expect(await inputs.invoiceNumber.inputValue()).toBe('INV');
+
+      // Verify filtered results on page 2
+      const page2Count = await getRowCount(page);
+      expect(page2Count).toBeGreaterThan(0);
+    } else {
+      // If no pagination, just verify filters remain
+      expect(await inputs.fromDate.inputValue()).toBe('2026-01-01');
+      expect(await inputs.invoiceNumber.inputValue()).toBe('INV');
+    }
+  });
+});
