@@ -144,3 +144,149 @@ test.describe('Classification History - Date Filters', () => {
     expect(await inputs.toDate.inputValue()).toBe('');
   });
 });
+
+test.describe('Classification History - Invoice Number Filters', () => {
+  test.beforeEach(async ({ page }) => {
+    await navigateToInvoiceClassification(page);
+    await waitForClassificationHistoryLoaded(page);
+  });
+
+  test('should filter by exact invoice number match', async ({ page }) => {
+    const initialCount = await getRowCount(page);
+    expect(initialCount).toBeGreaterThan(0);
+
+    // Get first row's invoice number
+    const rows = getTableRows(page);
+    const firstRow = rows.first();
+    const invoiceNumberCell = firstRow.locator('td').nth(1); // Second column: Invoice Number
+    const invoiceNumber = await invoiceNumberCell.textContent();
+    expect(invoiceNumber).toBeTruthy();
+
+    // Apply exact invoice number filter
+    await applyFilters(page, { invoiceNumber: invoiceNumber!.trim() });
+
+    // Verify results
+    const filteredCount = await getRowCount(page);
+    expect(filteredCount).toBeGreaterThan(0);
+
+    // Verify all results match the invoice number
+    const filteredRows = getTableRows(page);
+    const filteredInvoiceNumbers = await filteredRows
+      .locator('td')
+      .nth(1)
+      .allTextContents();
+    filteredInvoiceNumbers.forEach((num) => {
+      expect(num.trim()).toContain(invoiceNumber!.trim());
+    });
+  });
+
+  test('should filter by partial invoice number match', async ({ page }) => {
+    const initialCount = await getRowCount(page);
+    expect(initialCount).toBeGreaterThan(0);
+
+    // Get first row's invoice number and use first 3 characters
+    const rows = getTableRows(page);
+    const firstRow = rows.first();
+    const invoiceNumberCell = firstRow.locator('td').nth(1);
+    const fullInvoiceNumber = await invoiceNumberCell.textContent();
+    expect(fullInvoiceNumber).toBeTruthy();
+
+    const partialNumber = fullInvoiceNumber!.trim().substring(0, 3);
+
+    // Apply partial invoice number filter
+    await applyFilters(page, { invoiceNumber: partialNumber });
+
+    // Verify results
+    const filteredCount = await getRowCount(page);
+    expect(filteredCount).toBeGreaterThan(0);
+
+    // Verify all results contain the partial number
+    const filteredRows = getTableRows(page);
+    const filteredInvoiceNumbers = await filteredRows
+      .locator('td')
+      .nth(1)
+      .allTextContents();
+    filteredInvoiceNumbers.forEach((num) => {
+      expect(num.toLowerCase()).toContain(partialNumber.toLowerCase());
+    });
+  });
+
+  test('should be case-insensitive for invoice number search', async ({ page }) => {
+    const initialCount = await getRowCount(page);
+    expect(initialCount).toBeGreaterThan(0);
+
+    // Get first row's invoice number
+    const rows = getTableRows(page);
+    const firstRow = rows.first();
+    const invoiceNumberCell = firstRow.locator('td').nth(1);
+    const invoiceNumber = await invoiceNumberCell.textContent();
+    expect(invoiceNumber).toBeTruthy();
+
+    // Convert to lowercase and apply filter
+    const lowerCaseNumber = invoiceNumber!.trim().toLowerCase();
+    await applyFilters(page, { invoiceNumber: lowerCaseNumber });
+
+    // Verify results - should match regardless of case
+    const filteredCount = await getRowCount(page);
+    expect(filteredCount).toBeGreaterThan(0);
+
+    // Verify all results contain the invoice number (case-insensitive)
+    const filteredRows = getTableRows(page);
+    const filteredInvoiceNumbers = await filteredRows
+      .locator('td')
+      .nth(1)
+      .allTextContents();
+    filteredInvoiceNumbers.forEach((num) => {
+      expect(num.toLowerCase()).toContain(lowerCaseNumber);
+    });
+  });
+
+  test('should show no results for non-existent invoice number', async ({ page }) => {
+    const nonExistentNumber = 'XXXX-NONEXISTENT-9999';
+
+    // Apply filter with non-existent invoice number
+    await applyFilters(page, { invoiceNumber: nonExistentNumber });
+
+    // Verify no results message appears
+    const noRecords = await hasNoRecordsMessage(page);
+    expect(noRecords).toBe(true);
+
+    // Verify row count is 0
+    const rowCount = await getRowCount(page);
+    expect(rowCount).toBe(0);
+  });
+
+  test('should apply invoice number filter on Enter key press', async ({ page }) => {
+    const initialCount = await getRowCount(page);
+    expect(initialCount).toBeGreaterThan(0);
+
+    // Get first row's invoice number
+    const rows = getTableRows(page);
+    const firstRow = rows.first();
+    const invoiceNumberCell = firstRow.locator('td').nth(1);
+    const invoiceNumber = await invoiceNumberCell.textContent();
+    expect(invoiceNumber).toBeTruthy();
+
+    // Type invoice number and press Enter
+    const inputs = getFilterInputs(page);
+    await inputs.invoiceNumber.fill(invoiceNumber!.trim());
+    await inputs.invoiceNumber.press('Enter');
+
+    // Wait for filter to apply
+    await page.waitForTimeout(500);
+
+    // Verify results
+    const filteredCount = await getRowCount(page);
+    expect(filteredCount).toBeGreaterThan(0);
+
+    // Verify all results match the invoice number
+    const filteredRows = getTableRows(page);
+    const filteredInvoiceNumbers = await filteredRows
+      .locator('td')
+      .nth(1)
+      .allTextContents();
+    filteredInvoiceNumbers.forEach((num) => {
+      expect(num.trim()).toContain(invoiceNumber!.trim());
+    });
+  });
+});
