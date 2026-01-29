@@ -17,8 +17,6 @@ test.describe('Classification History - Date Filters', () => {
   });
 
   test('should filter by fromDate - basic functionality', async ({ page }) => {
-    const initialCount = await getRowCount(page);
-
     // Apply fromDate filter
     const fromDateStr = '2026-01-01';
 
@@ -54,8 +52,6 @@ test.describe('Classification History - Date Filters', () => {
   });
 
   test('should filter by toDate - basic functionality', async ({ page }) => {
-    const initialCount = await getRowCount(page);
-
     // Apply toDate filter
     const toDateStr = '2026-01-31';
 
@@ -109,8 +105,6 @@ test.describe('Classification History - Date Filters', () => {
   });
 
   test('should handle invalid date ranges gracefully', async ({ page }) => {
-    const inputs = getFilterInputs(page);
-
     // Set toDate before fromDate (invalid range)
     const fromDate = '2026-01-31';
     const toDate = '2026-01-01';
