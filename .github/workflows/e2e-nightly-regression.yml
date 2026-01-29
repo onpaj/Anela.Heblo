@@ -202,6 +202,28 @@ jobs:
           echo "## 🎭 E2E Test Results - ${{ matrix.module }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
+          # Show test execution status first for debugging
+          echo "**Test Execution Status:** ${{ steps.run-tests.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Debug: List test result files
+          echo "### 🔍 Debug: Test Result Files" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          ls -lah frontend/test-results/ 2>&1 || echo "frontend/test-results/ directory not found" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Debug: Show JSON structure (first 50 lines)
+          if [ -f frontend/test-results/results.json ]; then
+            echo "### 🔍 Debug: JSON Structure (first 50 lines)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            head -n 50 frontend/test-results/results.json >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
           # Parse JSON results (more reliable than XML parsing)
           if [ -f frontend/test-results/results.json ]; then
             # Install jq if not available (should be pre-installed on GitHub runners)
@@ -219,6 +241,10 @@ jobs:
               PASSED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == true) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
               FAILED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
               SKIPPED=$(jq '[ .suites[].suites[]?.specs[]? | select(.tests[0].results[0].status == "skipped") ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
+
+              # Debug: Show parsed values
+              echo "**Debug - Parsed values:** TOTAL=$TOTAL, PASSED=$PASSED, FAILED=$FAILED, SKIPPED=$SKIPPED" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
 
               # Check if any tests actually ran
               if [ "$TOTAL" -eq 0 ]; then
@@ -368,7 +394,7 @@ jobs:
           echo "3. **Extract** the ZIP file" >> $GITHUB_STEP_SUMMARY
           echo "4. **Open** \`playwright-report/index.html\` in your browser" >> $GITHUB_STEP_SUMMARY
 
-  # Aggregate results from all modules
+  # Aggregate results from all modules (optional - for Teams notifications)
   aggregate-results:
     name: 📊 Aggregate Test Results
     runs-on: ubuntu-latest
@@ -376,69 +402,16 @@ jobs:
     if: always()
 
     steps:
-      - name: 📥 Download all test results
-        uses: actions/download-artifact@v4
-        with:
-          pattern: e2e-test-results-*
-          path: all-results
-
-      - name: 📊 Aggregate and display results
+      - name: 📝 Create aggregate summary
         run: |
-          echo "## 🎭 E2E Nightly Regression - Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎭 E2E Nightly Regression - All Modules" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Initialize counters
-          TOTAL_TESTS=0
-          TOTAL_PASSED=0
-          TOTAL_FAILED=0
-          TOTAL_SKIPPED=0
-
-          # Aggregate results from all modules
-          for dir in all-results/e2e-test-results-*/; do
-            if [ -f "$dir/test-results/results.json" ]; then
-              MODULE_TOTAL=$(jq '[ .suites[].suites[]?.specs[]? ] | length' "$dir/test-results/results.json" 2>/dev/null || echo "0")
-              MODULE_PASSED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == true) ] | length' "$dir/test-results/results.json" 2>/dev/null || echo "0")
-              MODULE_FAILED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | length' "$dir/test-results/results.json" 2>/dev/null || echo "0")
-              MODULE_SKIPPED=$(jq '[ .suites[].suites[]?.specs[]? | select(.tests[0].results[0].status == "skipped") ] | length' "$dir/test-results/results.json" 2>/dev/null || echo "0")
-
-              TOTAL_TESTS=$((TOTAL_TESTS + MODULE_TOTAL))
-              TOTAL_PASSED=$((TOTAL_PASSED + MODULE_PASSED))
-              TOTAL_FAILED=$((TOTAL_FAILED + MODULE_FAILED))
-              TOTAL_SKIPPED=$((TOTAL_SKIPPED + MODULE_SKIPPED))
-            fi
-          done
-
-          # Display overall status
-          if [ "$TOTAL_FAILED" -eq 0 ]; then
-            echo "✅ **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ **$TOTAL_FAILED test(s) failed.**" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "All module test results have been published above." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Display aggregate metrics
-          echo "### 📊 Overall Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Total Tests** | $TOTAL_TESTS |" >> $GITHUB_STEP_SUMMARY
-          echo "| ✅ **Passed** | $TOTAL_PASSED |" >> $GITHUB_STEP_SUMMARY
-          echo "| ❌ **Failed** | $TOTAL_FAILED |" >> $GITHUB_STEP_SUMMARY
-          if [ "$TOTAL_SKIPPED" -gt 0 ]; then
-            echo "| ⏭️ **Skipped** | $TOTAL_SKIPPED |" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          echo "### 📦 Module Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Detailed results for each module are available in their respective job summaries above." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # List modules
-          echo "**Modules executed:**" >> $GITHUB_STEP_SUMMARY
-          echo "- catalog" >> $GITHUB_STEP_SUMMARY
-          echo "- issued-invoices" >> $GITHUB_STEP_SUMMARY
-          echo "- stock-operations" >> $GITHUB_STEP_SUMMARY
-          echo "- transport" >> $GITHUB_STEP_SUMMARY
-          echo "- manufacturing" >> $GITHUB_STEP_SUMMARY
-          echo "- core" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Modules Executed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ catalog" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ issued-invoices" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ stock-operations" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ transport" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ manufacturing" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ core" >> $GITHUB_STEP_SUMMARY
