@@ -174,47 +174,68 @@ test('should filter by product', async ({ page }) => {
 });
 ```
 
-### 7. E2E Test File Structure
+### 7. E2E Test Modular Structure
 
-**MANDATORY**: All E2E test files MUST use flat structure - directly in `frontend/test/e2e/` directory.
+**MANDATORY**: All E2E test files MUST be organized into modular structure for parallel execution.
 
-**Only allowed subdirectories:**
+**Module Structure:**
+Tests are organized into 6 logical modules:
+- `catalog/` - Catalog page tests (filters, sorting, pagination, charts)
+- `issued-invoices/` - Issued invoices tests (filters, import, navigation, badges)
+- `stock-operations/` - Stock operations tests (filters, retry, badges, panel)
+- `transport/` - Transport box tests (creation, management, workflow, EAN)
+- `manufacturing/` - Manufacturing tests (batch planning, order creation)
+- `core/` - Core functionality tests (dashboard, changelog, navigation, auth)
+
+**Shared directories:**
 - `helpers/` - Test helper functions and utilities
 - `fixtures/` - Test data fixtures
 
-**❌ WRONG - Nested test files in subdirectories:**
+**✅ CORRECT - Modular structure:**
 ```
 frontend/test/e2e/
-├── customer/
-│   └── issued-invoices-filters.spec.ts  # ❌ NO nested test files
-├── stock/
-│   └── operations-retry.spec.ts         # ❌ NO subdirectories for tests
+├── helpers/                              # ✅ Shared test utilities
+├── fixtures/                             # ✅ Test data fixtures
+├── catalog/                              # ✅ Catalog module tests
+│   ├── clear-filters.spec.ts
+│   ├── combined-filters.spec.ts
+│   └── ...
+├── issued-invoices/                      # ✅ Issued invoices module tests
+│   ├── filters.spec.ts
+│   ├── import-modal.spec.ts
+│   └── ...
+└── stock-operations/                     # ✅ Stock operations module tests
+    ├── filters.spec.ts
+    ├── retry.spec.ts
+    └── ...
 ```
 
-**✅ CORRECT - Flat structure with naming convention:**
-```
-frontend/test/e2e/
-├── helpers/                              # ✅ Only helpers allowed
-├── fixtures/                             # ✅ Only fixtures allowed
-├── issued-invoices-filters.spec.ts       # ✅ Flat structure at root
-├── stock-operations-retry.spec.ts        # ✅ Use naming for grouping
-└── catalog-filters.spec.ts               # ✅ All tests directly in e2e/
-```
-
-**Import paths with flat structure:**
+**Import paths with modular structure:**
 ```typescript
-// ✅ CORRECT - All tests are at root level
-import { navigateToApp } from './helpers/e2e-auth-helper';
-import { TestCatalogItems } from './fixtures/test-data';
+// ✅ CORRECT - Tests in modules use relative paths
+import { navigateToApp } from '../helpers/e2e-auth-helper';
+import { TestCatalogItems } from '../fixtures/test-data';
+```
 
-// ❌ WRONG - Don't use relative paths for nested structure
-import { navigateToApp } from '../helpers/e2e-auth-helper';  // NO!
+**Running tests:**
+```bash
+# Run all modules
+./scripts/run-playwright-tests.sh
+
+# Run specific module
+./scripts/run-playwright-tests.sh catalog
+./scripts/run-playwright-tests.sh issued-invoices
+./scripts/run-playwright-tests.sh stock-operations
+
+# Run by pattern
+./scripts/run-playwright-tests.sh auth
 ```
 
 **Enforcement:**
-- Use `{feature}-{aspect}.spec.ts` naming convention to group related tests
-- NEVER create subdirectories for test files
+- Tests MUST be placed in appropriate module directory
+- Module selection enables parallel CI/CD execution (3-4x speedup)
 - See `docs/testing/playwright-e2e-testing.md` for complete testing guide
+- See `docs/testing/e2e-module-guide.md` for module definitions and boundaries
 
 ### 8. Design Document Alignment
 

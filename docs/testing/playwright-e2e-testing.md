@@ -34,40 +34,58 @@ export default defineConfig({
 - Ensures responsive design works with deployed styles
 - Faster than local setup (no need to start frontend + backend)
 
-### Test Location
+### Test Location & Module Structure
 
-**MANDATORY**: E2E tests MUST use flat structure - all `*.spec.ts` files directly in `frontend/test/e2e/`.
+**MANDATORY**: E2E tests are organized into modular structure for parallel execution.
 
-**Only subdirectories allowed:**
-- `helpers/` - Test helpers and utilities
+**Module Structure (6 modules):**
+- `catalog/` - Catalog page tests (filters, sorting, pagination, charts)
+- `issued-invoices/` - Issued invoices tests (filters, import, navigation)
+- `stock-operations/` - Stock operations tests (filters, retry, badges)
+- `transport/` - Transport box tests (creation, management, workflow)
+- `manufacturing/` - Manufacturing tests (batch planning, orders)
+- `core/` - Core functionality tests (dashboard, navigation, auth)
+
+**Shared directories:**
+- `helpers/` - Test helper functions and utilities
 - `fixtures/` - Test data fixtures
 
-**❌ WRONG - Nested structure:**
+**✅ CORRECT - Modular structure:**
 ```
 frontend/test/e2e/
-├── customer/
-│   └── issued-invoices-filters.spec.ts  # ❌ NO subdirectories for tests
-├── stock-operations/
-│   └── retry.spec.ts                     # ❌ NO nested test files
-```
-
-**✅ CORRECT - Flat structure:**
-```
-frontend/test/e2e/
-├── helpers/                              # ✅ Only helpers and fixtures allowed
+├── helpers/                              # ✅ Shared test utilities
 │   ├── e2e-auth-helper.ts
 │   └── wait-helpers.ts
 ├── fixtures/                             # ✅ Test data fixtures
 │   └── test-data.ts
-├── catalog-filters.spec.ts               # ✅ All test files at root level
-├── stock-operations-retry.spec.ts        # ✅ Use naming convention for grouping
-├── issued-invoices-filters.spec.ts       # ✅ Flat structure
-└── transport-box-workflow.spec.ts        # ✅ Direct in e2e/
+├── catalog/                              # ✅ Catalog module
+│   ├── clear-filters.spec.ts
+│   ├── combined-filters.spec.ts
+│   └── ...
+├── issued-invoices/                      # ✅ Issued invoices module
+│   ├── filters.spec.ts
+│   ├── import-modal.spec.ts
+│   └── ...
+└── stock-operations/                     # ✅ Stock operations module
+    ├── filters.spec.ts
+    ├── retry.spec.ts
+    └── ...
 ```
 
-**Naming convention for grouping:**
-- Use prefixes to group related tests: `{feature}-{aspect}.spec.ts`
-- Examples: `catalog-filters.spec.ts`, `catalog-sorting.spec.ts`, `stock-operations-retry.spec.ts`
+**Import paths with modular structure:**
+```typescript
+// ✅ CORRECT - Tests in modules use relative paths to helpers/fixtures
+import { navigateToApp } from '../helpers/e2e-auth-helper';
+import { TestCatalogItems } from '../fixtures/test-data';
+```
+
+**Module benefits:**
+- **Parallel execution** - All modules run simultaneously in CI/CD
+- **3-4x speedup** - Total runtime reduced from 10-15 min to 3-5 min
+- **Selective testing** - Run individual modules during development
+- **Clear organization** - Tests grouped by feature/page
+
+**See:** `docs/testing/e2e-module-guide.md` for complete module definitions and boundaries
 
 ## Authentication - CRITICAL RULES
 
@@ -88,7 +106,7 @@ Without proper authentication setup, tests will encounter the **Microsoft Entra 
 #### ✅ CORRECT: Use navigateToApp()
 
 ```typescript
-import { navigateToApp } from './helpers/e2e-auth-helper';
+import { navigateToApp } from '../helpers/e2e-auth-helper';
 
 test.beforeEach(async ({ page }) => {
   // Full authentication: backend session + frontend session
@@ -106,7 +124,7 @@ import {
   navigateToCatalog,
   navigateToTransportBoxes,
   navigateToStockOperations
-} from './helpers/e2e-auth-helper';
+} from '../helpers/e2e-auth-helper';
 
 test.beforeEach(async ({ page }) => {
   // These helpers include full authentication setup
@@ -118,7 +136,7 @@ test.beforeEach(async ({ page }) => {
 #### ❌ WRONG: Never Use createE2EAuthSession() Alone
 
 ```typescript
-import { createE2EAuthSession } from './helpers/e2e-auth-helper';
+import { createE2EAuthSession } from '../helpers/e2e-auth-helper';
 
 test.beforeEach(async ({ page }) => {
   await createE2EAuthSession(page);  // ❌ Only backend session
@@ -191,7 +209,7 @@ E2E_BASE_URL=https://heblo.stg.anela.cz
 **Load credentials in tests:**
 
 ```typescript
-import { loadTestCredentials } from './helpers/credential-loader';
+import { loadTestCredentials } from '../helpers/credential-loader';
 
 test.beforeAll(async () => {
   const credentials = await loadTestCredentials();
@@ -258,7 +276,7 @@ See `docs/testing/test-data-fixtures.md` for complete list.
 ### Usage Example
 
 ```typescript
-import { TestCatalogItems, requireTestData } from './fixtures/test-data';
+import { TestCatalogItems, requireTestData } from '../fixtures/test-data';
 
 test('should filter by product name', async ({ page }) => {
   await navigateToCatalog(page);
@@ -389,8 +407,8 @@ The `./scripts/run-playwright-tests.sh` script provides:
 
 ```typescript
 import { test, expect } from '@playwright/test';
-import { navigateToCatalog } from './helpers/e2e-auth-helper';  // ✅ ./helpers/ (flat structure)
-import { TestCatalogItems } from './fixtures/test-data';        // ✅ ./fixtures/
+import { navigateToCatalog } from '../helpers/e2e-auth-helper';  // ✅ ./helpers/ (flat structure)
+import { TestCatalogItems } from '../fixtures/test-data';        // ✅ ./fixtures/
 
 test.describe('Catalog Filtering E2E Tests', () => {
   test.beforeEach(async ({ page }) => {

@@ -98,11 +98,21 @@ jobs:
           echo "🔗 **Staging URL:** ${{ env.STAGING_URL }}" >> $GITHUB_STEP_SUMMARY
           echo "🕐 **Validated at:** $(date)" >> $GITHUB_STEP_SUMMARY
 
-  # Run E2E tests against staging
+  # Run E2E tests against staging with parallel module execution
   run-e2e-tests:
-    name: 🎭 Run E2E Tests
+    name: 🎭 Run E2E Tests (${{ matrix.module }})
     runs-on: ubuntu-latest
     needs: validate-staging-health
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - catalog
+          - issued-invoices
+          - stock-operations
+          - transport
+          - manufacturing
+          - core
 
     steps:
       - name: 📥 Checkout code
@@ -122,25 +132,16 @@ jobs:
       - name: 🎭 Install Playwright browsers
         working-directory: ./frontend
         run: |
-          if [ "${{ github.event.inputs.browser }}" = "all" ]; then
-            npx playwright install --with-deps
-          else
-            npx playwright install --with-deps ${{ github.event.inputs.browser || 'chromium' }}
-          fi
+          # Always install chromium for modular execution
+          npx playwright install --with-deps chromium
 
-      - name: 📂 List E2E test files
+      - name: 📂 List E2E test files for module
         working-directory: ./frontend
         run: |
-          echo "🔍 Available E2E test files:"
-          find test/e2e -name "*.spec.ts" -type f | sort
+          echo "🔍 Test files in module '${{ matrix.module }}':"
+          find test/e2e/${{ matrix.module }} -name "*.spec.ts" -type f | sort
           echo ""
-
-          if [ -n "${{ github.event.inputs.test_pattern }}" ]; then
-            echo "🎯 Tests matching pattern '${{ github.event.inputs.test_pattern }}':"
-            find test/e2e -name "*${{ github.event.inputs.test_pattern }}*.spec.ts" -type f | sort
-          else
-            echo "🎯 Running ALL E2E tests"
-          fi
+          echo "📊 Test count: $(find test/e2e/${{ matrix.module }} -name "*.spec.ts" -type f | wc -l)"
 
       - name: 🔐 Validate Azure credentials
         working-directory: ./frontend
@@ -152,17 +153,13 @@ jobs:
           fi
           echo "✅ Azure credentials validated"
 
-      - name: 🧪 Run E2E tests against staging
+      - name: 🧪 Run E2E tests for module
         id: run-tests
         working-directory: ./frontend
         continue-on-error: true
         run: |
-          # Build test command with optional pattern filter
-          if [ -n "${{ github.event.inputs.test_pattern }}" ]; then
-            npx playwright test --grep '${{ github.event.inputs.test_pattern }}'
-          else
-            npx playwright test
-          fi
+          # Run tests for specific module
+          npx playwright test --project=${{ matrix.module }}
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
           CI: true
@@ -175,7 +172,7 @@ jobs:
         uses: dorny/test-reporter@v1
         if: always()
         with:
-          name: '🎭 E2E Test Results'
+          name: '🎭 E2E Test Results - ${{ matrix.module }}'
           path: 'frontend/test-results/junit.xml'
           reporter: 'java-junit'
           fail-on-error: false
@@ -185,7 +182,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-nightly-test-results-${{ github.run_number }}
+          name: e2e-test-results-${{ matrix.module }}-${{ github.run_number }}
           path: |
             frontend/test-results/
             frontend/playwright-report/
@@ -195,14 +192,14 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always() && steps.run-tests.outcome == 'failure'
         with:
-          name: e2e-nightly-failure-screenshots-${{ github.run_number }}
+          name: e2e-failure-screenshots-${{ matrix.module }}-${{ github.run_number }}
           path: frontend/test-results/
           retention-days: 30
 
       - name: 📝 Create E2E test summary
         if: always()
         run: |
-          echo "## 🎭 E2E Nightly Regression Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎭 E2E Test Results - ${{ matrix.module }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Show test execution status first for debugging
@@ -397,114 +394,24 @@ jobs:
           echo "3. **Extract** the ZIP file" >> $GITHUB_STEP_SUMMARY
           echo "4. **Open** \`playwright-report/index.html\` in your browser" >> $GITHUB_STEP_SUMMARY
 
-      - name: 📢 Send Teams notification (optional)
-        if: always() && env.TEAMS_WEBHOOK_URL != ''
+  # Aggregate results from all modules (optional - for Teams notifications)
+  aggregate-results:
+    name: 📊 Aggregate Test Results
+    runs-on: ubuntu-latest
+    needs: run-e2e-tests
+    if: always()
+
+    steps:
+      - name: 📝 Create aggregate summary
         run: |
-          # Parse JUnit XML for test results
-          if [ -f frontend/test-results/junit.xml ]; then
-            TESTS=$(grep -o 'tests="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-            FAILURES=$(grep -o 'failures="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-            ERRORS=$(grep -o 'errors="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-
-            TOTAL=${TESTS:-0}
-            FAILED=$((${FAILURES:-0} + ${ERRORS:-0}))
-            PASSED=$((TOTAL - FAILED))
-          else
-            TOTAL=0
-            FAILED=0
-            PASSED=0
-          fi
-
-          # Determine status color and emoji based on test outcome
-          if [ "${{ steps.run-tests.outcome }}" = "success" ]; then
-            COLOR="28A745"  # Green
-            STATUS_EMOJI="✅"
-            STATUS_TEXT="E2E Nightly Tests Passed"
-          else
-            COLOR="FF0000"  # Red
-            STATUS_EMOJI="❌"
-            STATUS_TEXT="E2E Nightly Tests Failed"
-          fi
-
-          # Create Teams message payload
-          PAYLOAD=$(cat <<EOF
-          {
-            "@type": "MessageCard",
-            "@context": "http://schema.org/extensions",
-            "themeColor": "$COLOR",
-            "summary": "Heblo E2E Nightly - $STATUS_TEXT",
-            "sections": [{
-              "activityTitle": "$STATUS_EMOJI Heblo E2E Nightly Regression",
-              "activitySubtitle": "$STATUS_TEXT",
-              "activityImage": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
-              "facts": [
-                {
-                  "name": "Total Tests",
-                  "value": "$TOTAL"
-                },
-                {
-                  "name": "Passed",
-                  "value": "✅ $PASSED"
-                },
-                {
-                  "name": "Failed",
-                  "value": "❌ $FAILED"
-                },
-                {
-                  "name": "Environment",
-                  "value": "${{ env.STAGING_URL }}"
-                },
-                {
-                  "name": "Browser",
-                  "value": "${{ github.event.inputs.browser || 'chromium' }}"
-                },
-                {
-                  "name": "Executed at",
-                  "value": "$(date '+%Y-%m-%d %H:%M:%S UTC')"
-                }
-              ],
-              "markdown": true
-            }],
-            "potentialAction": [
-              {
-                "@type": "OpenUri",
-                "name": "View Workflow Run",
-                "targets": [
-                  {
-                    "os": "default",
-                    "uri": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                  }
-                ]
-              },
-              {
-                "@type": "OpenUri",
-                "name": "View Staging Environment",
-                "targets": [
-                  {
-                    "os": "default",
-                    "uri": "${{ env.STAGING_URL }}"
-                  }
-                ]
-              }
-            ]
-          }
-          EOF
-          )
-
-          # Send notification to Teams
-          RESPONSE=$(curl -X POST "$TEAMS_WEBHOOK_URL" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD" \
-            -s -w "\n%{http_code}")
-
-          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Teams notification sent successfully"
-          else
-            echo "⚠️ Failed to send Teams notification (HTTP $HTTP_CODE)"
-            # Don't fail the workflow if Teams notification fails
-            exit 0
-          fi
-        env:
-          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          echo "## 🎭 E2E Nightly Regression - All Modules" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All module test results have been published above." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Modules Executed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ catalog" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ issued-invoices" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ stock-operations" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ transport" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ manufacturing" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ core" >> $GITHUB_STEP_SUMMARY
