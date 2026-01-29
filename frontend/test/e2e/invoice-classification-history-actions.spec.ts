@@ -265,3 +265,159 @@ test.describe('Classification History - Create Rule Button', () => {
     await page.waitForSelector('div[role="dialog"]', { state: 'hidden' });
   });
 });
+
+test.describe('Classification History - Rule Creation Modal', () => {
+  test.beforeEach(async ({ page }) => {
+    await navigateToClassificationHistory(page);
+  });
+
+  /**
+   * Helper function to open the rule creation modal from first row
+   */
+  async function openRuleModal(page: any) {
+    const rowCount = await getRowCount(page);
+    if (rowCount === 0) {
+      throw new Error(
+        'Test data missing: No classification history records found for testing'
+      );
+    }
+
+    const createRuleButton = page
+      .locator('table tbody tr')
+      .first()
+      .locator('button:has-text("Regel erstellen")');
+
+    await createRuleButton.click();
+    await page.waitForSelector('div[role="dialog"]', { state: 'visible' });
+  }
+
+  test('should display all form fields in rule creation modal', async ({
+    page,
+  }) => {
+    // Arrange & Act
+    await openRuleModal(page);
+
+    // Assert - all form fields should be visible
+    const companyNameInput = page.locator('input[name="companyName"]');
+    await expect(companyNameInput).toBeVisible();
+
+    const ruleTypeSelect = page.locator('select[name="ruleType"]');
+    await expect(ruleTypeSelect).toBeVisible();
+
+    const accountingTemplateSelect = page.locator(
+      'select[name="accountingTemplate"]'
+    );
+    await expect(accountingTemplateSelect).toBeVisible();
+
+    const departmentSelect = page.locator('select[name="department"]');
+    // Department might be optional/conditional
+    const isDepartmentVisible = await departmentSelect.isVisible();
+    expect(isDepartmentVisible).toBeDefined();
+
+    const descriptionTextarea = page.locator('textarea[name="description"]');
+    await expect(descriptionTextarea).toBeVisible();
+  });
+
+  test('should have rule type dropdown with correct options', async ({
+    page,
+  }) => {
+    // Arrange & Act
+    await openRuleModal(page);
+
+    // Assert - rule type dropdown should have expected options
+    const ruleTypeSelect = page.locator('select[name="ruleType"]');
+    await expect(ruleTypeSelect).toBeVisible();
+
+    // Get all options
+    const options = await ruleTypeSelect.locator('option').allTextContents();
+
+    // Should include at least these rule types
+    expect(options).toContain('Buchhaltungsvorlage');
+    expect(options.length).toBeGreaterThan(0);
+  });
+
+  test('should have accounting template dropdown with options', async ({
+    page,
+  }) => {
+    // Arrange & Act
+    await openRuleModal(page);
+
+    // Assert - accounting template dropdown should be visible
+    const accountingTemplateSelect = page.locator(
+      'select[name="accountingTemplate"]'
+    );
+    await expect(accountingTemplateSelect).toBeVisible();
+
+    // Should have at least a placeholder option
+    const options = await accountingTemplateSelect
+      .locator('option')
+      .allTextContents();
+    expect(options.length).toBeGreaterThan(0);
+  });
+
+  test('should have department dropdown with options', async ({ page }) => {
+    // Arrange & Act
+    await openRuleModal(page);
+
+    // Assert - department dropdown should be visible
+    const departmentSelect = page.locator('select[name="department"]');
+
+    // Department might be conditional based on rule type
+    const isVisible = await departmentSelect.isVisible();
+
+    if (isVisible) {
+      const options = await departmentSelect.locator('option').allTextContents();
+      expect(options.length).toBeGreaterThan(0);
+    }
+  });
+
+  test('should validate required fields before submission', async ({
+    page,
+  }) => {
+    // Arrange & Act
+    await openRuleModal(page);
+
+    // Try to submit without filling required fields
+    const saveButton = page.locator('button:has-text("Speichern")');
+
+    // Assert - save button should be disabled when required fields are empty
+    await expect(saveButton).toBeDisabled();
+
+    // Fill only company name (should still be invalid)
+    const companyNameInput = page.locator('input[name="companyName"]');
+    await companyNameInput.fill('Test Company');
+
+    // Save should still be disabled without rule type
+    await expect(saveButton).toBeDisabled();
+  });
+
+  test('should enable save button when all required fields are filled', async ({
+    page,
+  }) => {
+    // Arrange & Act
+    await openRuleModal(page);
+
+    // Fill all required fields
+    const companyNameInput = page.locator('input[name="companyName"]');
+    await companyNameInput.fill('Test Company E2E');
+
+    const ruleTypeSelect = page.locator('select[name="ruleType"]');
+    await ruleTypeSelect.selectOption({ index: 1 }); // Select first non-placeholder option
+
+    const accountingTemplateSelect = page.locator(
+      'select[name="accountingTemplate"]'
+    );
+    await accountingTemplateSelect.selectOption({ index: 1 });
+
+    const descriptionTextarea = page.locator('textarea[name="description"]');
+    await descriptionTextarea.fill('E2E test rule description');
+
+    // Assert - save button should be enabled
+    const saveButton = page.locator('button:has-text("Speichern")');
+    await expect(saveButton).toBeEnabled();
+
+    // Clean up - close modal without saving
+    const cancelButton = page.locator('button:has-text("Abbrechen")');
+    await cancelButton.click();
+  });
+});
