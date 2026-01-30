@@ -399,7 +399,7 @@ export async function navigateToIssuedInvoices(page: any): Promise<void> {
   const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
   await page.goto(`${baseUrl}/customer/issued-invoices`);
   await page.waitForLoadState('domcontentloaded');
-  await waitForPageLoad(page);
+  await waitForLoadingComplete(page);
 
   console.log('✅ Direct navigation to issued invoices completed');
 }
