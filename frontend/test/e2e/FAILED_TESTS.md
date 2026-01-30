@@ -64,9 +64,10 @@
 - **Error**: `TimeoutError: page.waitForResponse: Timeout 5000ms exceeded while waiting for event "response"`
 - **Resolution**: Test passes successfully now (8.4s runtime). No code changes needed - the timeout issue was transient or already fixed in the application.
 
-### [ ] should filter products by name using Filter button
+### [x] should filter products by name using Filter button
 - **File**: `catalog/text-search-filters.spec.ts`
 - **Error**: `TimeoutError: page.waitForResponse: Timeout 5000ms exceeded while waiting for event "response"`
+- **Resolution**: Test passes successfully now (7.1s runtime). No code changes needed - the timeout issue was transient or already fixed in the application.
 
 ### [ ] should filter products by name using Enter key
 - **File**: `catalog/text-search-filters.spec.ts`
