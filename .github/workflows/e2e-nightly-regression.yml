@@ -168,6 +168,26 @@ jobs:
           E2E_CLIENT_SECRET: ${{ secrets.E2E_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.REACT_APP_AZURE_TENANT_ID }}
 
+      - name: 📝 Export test results for aggregation
+        if: always()
+        run: |
+          # Parse JSON results and export as artifact metadata
+          if [ -f frontend/test-results/results.json ]; then
+            TOTAL=$(jq '[ .suites[].suites[]?.specs[]? ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
+            PASSED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == true) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
+            FAILED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
+            SKIPPED=$(jq '[ .suites[].suites[]?.specs[]? | select(.tests[0].results[0].status == "skipped") ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
+
+            # Export for downstream jobs
+            echo "TOTAL=$TOTAL" >> frontend/test-results/module-summary.env
+            echo "PASSED=$PASSED" >> frontend/test-results/module-summary.env
+            echo "FAILED=$FAILED" >> frontend/test-results/module-summary.env
+            echo "SKIPPED=$SKIPPED" >> frontend/test-results/module-summary.env
+            echo "MODULE=${{ matrix.module }}" >> frontend/test-results/module-summary.env
+
+            echo "📊 Module ${{ matrix.module }}: $PASSED/$TOTAL passed"
+          fi
+
       - name: 📊 Publish Test Results to GitHub
         uses: dorny/test-reporter@v1
         if: always()
@@ -195,26 +215,6 @@ jobs:
           name: e2e-failure-screenshots-${{ matrix.module }}-${{ github.run_number }}
           path: frontend/test-results/
           retention-days: 30
-
-      - name: 📝 Export test results for aggregation
-        if: always()
-        run: |
-          # Parse JSON results and export as artifact metadata
-          if [ -f frontend/test-results/results.json ]; then
-            TOTAL=$(jq '[ .suites[].suites[]?.specs[]? ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
-            PASSED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == true) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
-            FAILED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
-            SKIPPED=$(jq '[ .suites[].suites[]?.specs[]? | select(.tests[0].results[0].status == "skipped") ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
-
-            # Export for downstream jobs
-            echo "TOTAL=$TOTAL" >> frontend/test-results/module-summary.env
-            echo "PASSED=$PASSED" >> frontend/test-results/module-summary.env
-            echo "FAILED=$FAILED" >> frontend/test-results/module-summary.env
-            echo "SKIPPED=$SKIPPED" >> frontend/test-results/module-summary.env
-            echo "MODULE=${{ matrix.module }}" >> frontend/test-results/module-summary.env
-
-            echo "📊 Module ${{ matrix.module }}: $PASSED/$TOTAL passed"
-          fi
 
   # Aggregate results from all modules
   aggregate-results:
