@@ -332,7 +332,7 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
 
     // Use browser back
     await page.goBack();
-    await waitForTableUpdate(page);
+    await page.waitForTimeout(1000);
 
     // Verify we're back to "Krém" filter
     const nameInput = getProductNameInput(page);
@@ -347,7 +347,7 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
 
     // Use browser forward
     await page.goForward();
-    await waitForTableUpdate(page);
+    await page.waitForTimeout(1000);
 
     // Verify we're back to "Sérum" filter
     const nameInputAfterForward = getProductNameInput(page);
