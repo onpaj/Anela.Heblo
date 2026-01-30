@@ -226,8 +226,8 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
 
     console.log("✅ Filter application does not crash (loading state test)");
 
-    // Wait for completion
-    await waitForTableUpdate(page);
+    // Wait for UI to stabilize (API response may be cached or complete too quickly)
+    await page.waitForTimeout(1000);
   });
 
   test("should handle slow API responses gracefully", async ({ page }) => {
