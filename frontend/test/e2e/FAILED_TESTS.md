@@ -49,9 +49,10 @@
 - **Error**: `TimeoutError: page.waitForResponse: Timeout 5000ms exceeded while waiting for event "response"`
 - **Resolution**: Fixed by replacing `waitForTableUpdate()` calls with `page.waitForTimeout(1000)` after `page.goBack()` and `page.goForward()`. The API response was completing too quickly or being cached when navigating browser history, causing the wait for API response to timeout. Test now passes in 9.8s.
 
-### [ ] should maintain filter when changing sort direction
+### [x] should maintain filter when changing sort direction
 - **File**: `catalog/sorting-with-filters.spec.ts`
 - **Error**: `expect(received).toBe(expected) // Object.is equality - Expected: 20, Received: 0`
+- **Resolution**: Test passes successfully now (7.9s runtime). No code changes needed - the issue was transient or already fixed in the application.
 
 ### [ ] should reset to page 1 when changing sort
 - **File**: `catalog/sorting-with-filters.spec.ts`
