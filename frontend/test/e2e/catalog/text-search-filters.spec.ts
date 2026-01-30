@@ -213,8 +213,8 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
 
     await applyProductCodeFilterWithEnter(page, codePrefix);
 
-    // Wait for results
-    await waitForTableUpdate(page);
+    // Wait for UI to stabilize (API response already waited in helper)
+    await page.waitForTimeout(1000);
 
     const rowCount = await getRowCount(page);
 
