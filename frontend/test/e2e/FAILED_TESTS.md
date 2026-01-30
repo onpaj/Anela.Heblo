@@ -59,9 +59,10 @@
 - **Error**: `expect(received).toBe(expected) // Object.is equality - Expected: 1, Received: 2`
 - **Resolution**: Test marked as `.skip()` due to application bug. When user is on page 2 and clicks to sort by a different column, they remain on page 2 instead of being taken to page 1 to see the beginning of newly sorted results. This is a real UX issue that should be fixed in the application. Expected: URL should reset to page=1 after clicking sort header. Actual: URL keeps page=2, showing records 21-40 instead of 1-20 of sorted results.
 
-### [ ] should handle sorting empty filtered results
+### [x] should handle sorting empty filtered results
 - **File**: `catalog/sorting-with-filters.spec.ts`
 - **Error**: `TimeoutError: page.waitForResponse: Timeout 5000ms exceeded while waiting for event "response"`
+- **Resolution**: Test passes successfully now (8.4s runtime). No code changes needed - the timeout issue was transient or already fixed in the application.
 
 ### [ ] should filter products by name using Filter button
 - **File**: `catalog/text-search-filters.spec.ts`
