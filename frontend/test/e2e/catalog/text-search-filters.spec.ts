@@ -416,7 +416,7 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     // Apply filter with no matches
     await applyProductCodeFilter(page, 'ZZZZZ99999');
 
-    await waitForTableUpdate(page);
+    await page.waitForTimeout(1000);
 
     // Validate empty state
     await validateEmptyState(page);

@@ -104,9 +104,10 @@
 - **Error**: `TimeoutError: page.waitForResponse: Timeout 5000ms exceeded while waiting for event "response"`
 - **Resolution**: Test passes successfully now (6.9s runtime). No code changes needed - the timeout issue was transient or already fixed in the application.
 
-### [ ] should show empty state with filter applied
+### [x] should show empty state with filter applied
 - **File**: `catalog/text-search-filters.spec.ts`
 - **Error**: `TimeoutError: page.waitForResponse: Timeout 5000ms exceeded while waiting for event "response"`
+- **Resolution**: Fixed by replacing `waitForTableUpdate(page)` with `page.waitForTimeout(1000)`. The helper function `applyProductCodeFilter` already waits for API response internally, so calling `waitForTableUpdate` tries to wait for a second API call that doesn't exist. Test now passes in 11.8s.
 
 ### [ ] should allow clearing filters from empty state
 - **File**: `catalog/text-search-filters.spec.ts`
