@@ -1,12 +1,18 @@
 #!/bin/bash
 
 # Playwright Test Runner for Staging Environment
-# Usage: ./scripts/run-playwright-tests.sh [test-file-name] [test-name]
+# Usage: ./scripts/run-playwright-tests.sh [module|test-pattern] [test-name]
 # Examples:
-#   ./scripts/run-playwright-tests.sh                              # Run all tests
-#   ./scripts/run-playwright-tests.sh auth                         # Run tests matching "auth"
-#   ./scripts/run-playwright-tests.sh sidebar.spec.ts              # Run specific test file
-#   ./scripts/run-playwright-tests.sh sidebar.spec.ts "test name"  # Run single test in file
+#   ./scripts/run-playwright-tests.sh                              # Run all modules
+#   ./scripts/run-playwright-tests.sh catalog                      # Run catalog module only
+#   ./scripts/run-playwright-tests.sh issued-invoices              # Run issued-invoices module only
+#   ./scripts/run-playwright-tests.sh stock-operations             # Run stock-operations module only
+#   ./scripts/run-playwright-tests.sh transport                    # Run transport module only
+#   ./scripts/run-playwright-tests.sh manufacturing                # Run manufacturing module only
+#   ./scripts/run-playwright-tests.sh core                         # Run core module only
+#   ./scripts/run-playwright-tests.sh auth                         # Run tests matching "auth" pattern
+#
+# Available modules: catalog, issued-invoices, stock-operations, transport, manufacturing, core
 
 set -e
 
@@ -71,13 +77,23 @@ fi
 export PLAYWRIGHT_BASE_URL="$STAGING_URL"
 export CI=false  # Disable CI mode for better debugging
 
+# Define available modules
+MODULES=("catalog" "issued-invoices" "stock-operations" "transport" "manufacturing" "core")
+
 # Build test command
 PLAYWRIGHT_CMD="npx playwright test"
 
-# Add test file filter if provided
+# Add module or pattern filter if provided
 if [ -n "$1" ]; then
-    echo -e "${BLUE}🎯 Running tests matching: ${YELLOW}$1${NC}"
-    PLAYWRIGHT_CMD="$PLAYWRIGHT_CMD $1"
+    # Check if first parameter is a module name
+    if [[ " ${MODULES[@]} " =~ " ${1} " ]]; then
+        echo -e "${BLUE}🎯 Running module: ${YELLOW}$1${NC}"
+        PLAYWRIGHT_CMD="$PLAYWRIGHT_CMD --project=$1"
+    else
+        # Otherwise treat as test pattern
+        echo -e "${BLUE}🎯 Running tests matching pattern: ${YELLOW}$1${NC}"
+        PLAYWRIGHT_CMD="$PLAYWRIGHT_CMD $1"
+    fi
 
     # Add test name filter if provided (second parameter)
     if [ -n "$2" ]; then
@@ -85,7 +101,7 @@ if [ -n "$1" ]; then
         PLAYWRIGHT_CMD="$PLAYWRIGHT_CMD -g \"$2\""
     fi
 else
-    echo -e "${BLUE}🎯 Running all E2E tests${NC}"
+    echo -e "${BLUE}🎯 Running all E2E tests (all modules)${NC}"
 fi
 
 # Additional Playwright options

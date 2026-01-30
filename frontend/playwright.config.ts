@@ -82,10 +82,36 @@ export default defineConfig({
   /* Test file timeout - increased to allow all 218 tests to complete */
   globalTimeout: 3600000, // 60 minutes for entire test run (was: 30 minutes)
 
-  /* Configure projects for major browsers */
+  /* Configure projects for modular test execution */
   projects: [
     {
-      name: 'chromium',
+      name: 'catalog',
+      testDir: './test/e2e/catalog',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'issued-invoices',
+      testDir: './test/e2e/issued-invoices',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'stock-operations',
+      testDir: './test/e2e/stock-operations',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'transport',
+      testDir: './test/e2e/transport',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'manufacturing',
+      testDir: './test/e2e/manufacturing',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'core',
+      testDir: './test/e2e/core',
       use: { ...devices['Desktop Chrome'] },
     },
   ],

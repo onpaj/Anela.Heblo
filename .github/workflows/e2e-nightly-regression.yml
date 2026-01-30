@@ -98,11 +98,21 @@ jobs:
           echo "🔗 **Staging URL:** ${{ env.STAGING_URL }}" >> $GITHUB_STEP_SUMMARY
           echo "🕐 **Validated at:** $(date)" >> $GITHUB_STEP_SUMMARY
 
-  # Run E2E tests against staging
+  # Run E2E tests against staging with parallel module execution
   run-e2e-tests:
-    name: 🎭 Run E2E Tests
+    name: 🎭 Run E2E Tests (${{ matrix.module }})
     runs-on: ubuntu-latest
     needs: validate-staging-health
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - catalog
+          - issued-invoices
+          - stock-operations
+          - transport
+          - manufacturing
+          - core
 
     steps:
       - name: 📥 Checkout code
@@ -122,25 +132,16 @@ jobs:
       - name: 🎭 Install Playwright browsers
         working-directory: ./frontend
         run: |
-          if [ "${{ github.event.inputs.browser }}" = "all" ]; then
-            npx playwright install --with-deps
-          else
-            npx playwright install --with-deps ${{ github.event.inputs.browser || 'chromium' }}
-          fi
+          # Always install chromium for modular execution
+          npx playwright install --with-deps chromium
 
-      - name: 📂 List E2E test files
+      - name: 📂 List E2E test files for module
         working-directory: ./frontend
         run: |
-          echo "🔍 Available E2E test files:"
-          find test/e2e -name "*.spec.ts" -type f | sort
+          echo "🔍 Test files in module '${{ matrix.module }}':"
+          find test/e2e/${{ matrix.module }} -name "*.spec.ts" -type f | sort
           echo ""
-
-          if [ -n "${{ github.event.inputs.test_pattern }}" ]; then
-            echo "🎯 Tests matching pattern '${{ github.event.inputs.test_pattern }}':"
-            find test/e2e -name "*${{ github.event.inputs.test_pattern }}*.spec.ts" -type f | sort
-          else
-            echo "🎯 Running ALL E2E tests"
-          fi
+          echo "📊 Test count: $(find test/e2e/${{ matrix.module }} -name "*.spec.ts" -type f | wc -l)"
 
       - name: 🔐 Validate Azure credentials
         working-directory: ./frontend
@@ -152,17 +153,13 @@ jobs:
           fi
           echo "✅ Azure credentials validated"
 
-      - name: 🧪 Run E2E tests against staging
+      - name: 🧪 Run E2E tests for module
         id: run-tests
         working-directory: ./frontend
         continue-on-error: true
         run: |
-          # Build test command with optional pattern filter
-          if [ -n "${{ github.event.inputs.test_pattern }}" ]; then
-            npx playwright test --grep '${{ github.event.inputs.test_pattern }}'
-          else
-            npx playwright test
-          fi
+          # Run tests for specific module
+          npx playwright test --project=${{ matrix.module }}
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
           CI: true
@@ -171,11 +168,31 @@ jobs:
           E2E_CLIENT_SECRET: ${{ secrets.E2E_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.REACT_APP_AZURE_TENANT_ID }}
 
+      - name: 📝 Export test results for aggregation
+        if: always()
+        run: |
+          # Parse JSON results and export as artifact metadata
+          if [ -f frontend/test-results/results.json ]; then
+            TOTAL=$(jq '[ .suites[].suites[]?.specs[]? ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
+            PASSED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == true) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
+            FAILED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
+            SKIPPED=$(jq '[ .suites[].suites[]?.specs[]? | select(.tests[0].results[0].status == "skipped") ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
+
+            # Export for downstream jobs
+            echo "TOTAL=$TOTAL" >> frontend/test-results/module-summary.env
+            echo "PASSED=$PASSED" >> frontend/test-results/module-summary.env
+            echo "FAILED=$FAILED" >> frontend/test-results/module-summary.env
+            echo "SKIPPED=$SKIPPED" >> frontend/test-results/module-summary.env
+            echo "MODULE=${{ matrix.module }}" >> frontend/test-results/module-summary.env
+
+            echo "📊 Module ${{ matrix.module }}: $PASSED/$TOTAL passed"
+          fi
+
       - name: 📊 Publish Test Results to GitHub
         uses: dorny/test-reporter@v1
         if: always()
         with:
-          name: '🎭 E2E Test Results'
+          name: '🎭 E2E Test Results - ${{ matrix.module }}'
           path: 'frontend/test-results/junit.xml'
           reporter: 'java-junit'
           fail-on-error: false
@@ -185,7 +202,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-nightly-test-results-${{ github.run_number }}
+          name: e2e-test-results-${{ matrix.module }}-${{ github.run_number }}
           path: |
             frontend/test-results/
             frontend/playwright-report/
@@ -195,316 +212,125 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always() && steps.run-tests.outcome == 'failure'
         with:
-          name: e2e-nightly-failure-screenshots-${{ github.run_number }}
+          name: e2e-failure-screenshots-${{ matrix.module }}-${{ github.run_number }}
           path: frontend/test-results/
           retention-days: 30
 
-      - name: 📝 Create E2E test summary
-        if: always()
+  # Aggregate results from all modules
+  aggregate-results:
+    name: 📊 Aggregate Test Results
+    runs-on: ubuntu-latest
+    needs: run-e2e-tests
+    if: always()
+
+    steps:
+      - name: 📥 Download all test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: e2e-test-results-*-${{ github.run_number }}
+          path: all-test-results
+
+      - name: 📝 Create comprehensive aggregate summary
         run: |
-          echo "## 🎭 E2E Nightly Regression Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎭 E2E Nightly Regression - Complete Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **Staging URL:** ${{ env.STAGING_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "🕐 **Executed at:** $(date)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Show test execution status first for debugging
-          echo "**Test Execution Status:** ${{ steps.run-tests.outcome }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          # Initialize totals
+          GRAND_TOTAL=0
+          GRAND_PASSED=0
+          GRAND_FAILED=0
+          GRAND_SKIPPED=0
 
-          # Debug: List test result files
-          echo "### 🔍 Debug: Test Result Files" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          ls -lah frontend/test-results/ 2>&1 || echo "frontend/test-results/ directory not found" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          # Collect module data
+          declare -A MODULE_TOTAL
+          declare -A MODULE_PASSED
+          declare -A MODULE_FAILED
+          declare -A MODULE_SKIPPED
 
-          # Debug: Show JSON structure (first 50 lines)
-          if [ -f frontend/test-results/results.json ]; then
-            echo "### 🔍 Debug: JSON Structure (first 50 lines)" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
-            head -n 50 frontend/test-results/results.json >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
+          # Parse results from each module
+          for module_dir in all-test-results/e2e-test-results-*; do
+            # Look for module-summary.env file
+            if [ -f "$module_dir/test-results/module-summary.env" ]; then
+              source "$module_dir/test-results/module-summary.env"
 
-          # Parse JSON results (more reliable than XML parsing)
-          if [ -f frontend/test-results/results.json ]; then
-            # Install jq if not available (should be pre-installed on GitHub runners)
-            if ! command -v jq &> /dev/null; then
-              echo "⚠️ jq not found, falling back to basic parsing"
-              # Fallback to JUnit XML parsing
-              JSON_AVAILABLE=false
-            else
-              JSON_AVAILABLE=true
+              MODULE_TOTAL[$MODULE]=$TOTAL
+              MODULE_PASSED[$MODULE]=$PASSED
+              MODULE_FAILED[$MODULE]=$FAILED
+              MODULE_SKIPPED[$MODULE]=$SKIPPED
+
+              GRAND_TOTAL=$((GRAND_TOTAL + TOTAL))
+              GRAND_PASSED=$((GRAND_PASSED + PASSED))
+              GRAND_FAILED=$((GRAND_FAILED + FAILED))
+              GRAND_SKIPPED=$((GRAND_SKIPPED + SKIPPED))
             fi
+          done
 
-            if [ "$JSON_AVAILABLE" = true ]; then
-              # Parse JSON results (handles nested suite structure: .suites[].suites[].specs[])
-              TOTAL=$(jq '[ .suites[].suites[]?.specs[]? ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
-              PASSED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == true) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
-              FAILED=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
-              SKIPPED=$(jq '[ .suites[].suites[]?.specs[]? | select(.tests[0].results[0].status == "skipped") ] | length' frontend/test-results/results.json 2>/dev/null || echo "0")
+          # Overall status
+          if [ "$GRAND_FAILED" -eq 0 ]; then
+            echo "### ✅ All Tests Passed!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ $GRAND_FAILED Test(s) Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-              # Debug: Show parsed values
-              echo "**Debug - Parsed values:** TOTAL=$TOTAL, PASSED=$PASSED, FAILED=$FAILED, SKIPPED=$SKIPPED" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
+          # Summary table
+          echo "| Module | Total | Passed | Failed | Skipped |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|--------|--------|---------|" >> $GITHUB_STEP_SUMMARY
 
-              # Check if any tests actually ran
-              if [ "$TOTAL" -eq 0 ]; then
-                echo "⚠️ **No tests were executed!**" >> $GITHUB_STEP_SUMMARY
-                echo "" >> $GITHUB_STEP_SUMMARY
-                echo "This usually means:" >> $GITHUB_STEP_SUMMARY
-                echo "- Test configuration validation failed" >> $GITHUB_STEP_SUMMARY
-                echo "- No test files matched the pattern" >> $GITHUB_STEP_SUMMARY
-                echo "- Playwright crashed before running tests" >> $GITHUB_STEP_SUMMARY
-                echo "" >> $GITHUB_STEP_SUMMARY
-                echo "**Check the 'Run E2E Tests' step logs for details.**" >> $GITHUB_STEP_SUMMARY
-              elif [ "$FAILED" -eq 0 ]; then
-                echo "✅ **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
-              else
-                echo "❌ **$FAILED test(s) failed.**" >> $GITHUB_STEP_SUMMARY
-              fi
+          # Total row first
+          echo "| **TOTAL** | **$GRAND_TOTAL** | **$GRAND_PASSED** | **$GRAND_FAILED** | **$GRAND_SKIPPED** |" >> $GITHUB_STEP_SUMMARY
 
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
-              echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-              echo "| **Total Tests** | $TOTAL |" >> $GITHUB_STEP_SUMMARY
-              echo "| ✅ **Passed** | $PASSED |" >> $GITHUB_STEP_SUMMARY
-              echo "| ❌ **Failed** | $FAILED |" >> $GITHUB_STEP_SUMMARY
-              if [ "$SKIPPED" -gt 0 ]; then
-                echo "| ⏭️ **Skipped** | $SKIPPED |" >> $GITHUB_STEP_SUMMARY
-              fi
-              echo "" >> $GITHUB_STEP_SUMMARY
+          # Module rows in consistent order
+          for module in catalog issued-invoices stock-operations transport manufacturing core; do
+            if [ -n "${MODULE_TOTAL[$module]}" ]; then
+              TOTAL=${MODULE_TOTAL[$module]}
+              PASSED=${MODULE_PASSED[$module]}
+              FAILED=${MODULE_FAILED[$module]}
+              SKIPPED=${MODULE_SKIPPED[$module]}
 
-              # List failed tests with error details
+              STATUS_ICON="✅"
               if [ "$FAILED" -gt 0 ]; then
-                echo "### ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
-                echo "" >> $GITHUB_STEP_SUMMARY
-
-                # Extract failed test details from JSON (handles nested structure)
-                jq -r '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | .[] | "**" + .title + "**\n- File: `" + .file + "`\n- Error: " + (.tests[0].results[0].error.message // "No error message") + "\n"' frontend/test-results/results.json >> $GITHUB_STEP_SUMMARY
-
-                echo "" >> $GITHUB_STEP_SUMMARY
+                STATUS_ICON="❌"
               fi
 
-              # List skipped tests
-              if [ "$SKIPPED" -gt 0 ]; then
-                echo "### ⏭️ Skipped Tests" >> $GITHUB_STEP_SUMMARY
-                echo "" >> $GITHUB_STEP_SUMMARY
-
-                # Extract skipped test names from JSON (handles nested structure)
-                jq -r '[ .suites[].suites[]?.specs[]? | select(.tests[0].results[0].status == "skipped") ] | .[] | "- " + .title' frontend/test-results/results.json >> $GITHUB_STEP_SUMMARY
-
-                echo "" >> $GITHUB_STEP_SUMMARY
-              fi
+              echo "| $STATUS_ICON **$module** | $TOTAL | $PASSED | $FAILED | $SKIPPED |" >> $GITHUB_STEP_SUMMARY
             fi
-          fi
+          done
 
-          # Fallback to JUnit XML if JSON is not available
-          if [ ! -f frontend/test-results/results.json ] && [ -f frontend/test-results/junit.xml ]; then
-            echo "⚠️ Using JUnit XML fallback (JSON results not found)" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-
-            # Extract test counts from JUnit XML
-            TESTS=$(grep -o 'tests="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-            FAILURES=$(grep -o 'failures="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-            ERRORS=$(grep -o 'errors="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-            SKIPPED=$(grep -o 'skipped="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-
-            TOTAL=${TESTS:-0}
-            FAILED=$((${FAILURES:-0} + ${ERRORS:-0}))
-            SKIP=${SKIPPED:-0}
-            PASSED=$((TOTAL - FAILED - SKIP))
-
-            # Check if any tests actually ran
-            if [ "$TOTAL" -eq 0 ]; then
-              echo "⚠️ **No tests were executed!**" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "This usually means:" >> $GITHUB_STEP_SUMMARY
-              echo "- Test configuration validation failed" >> $GITHUB_STEP_SUMMARY
-              echo "- No test files matched the pattern" >> $GITHUB_STEP_SUMMARY
-              echo "- Playwright crashed before running tests" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "**Check the 'Run E2E Tests' step logs for details.**" >> $GITHUB_STEP_SUMMARY
-            elif [ "$FAILED" -eq 0 ]; then
-              echo "✅ **All tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "❌ **$FAILED test(s) failed.**" >> $GITHUB_STEP_SUMMARY
-            fi
-
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
-            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-            echo "| **Total Tests** | $TOTAL |" >> $GITHUB_STEP_SUMMARY
-            echo "| ✅ **Passed** | $PASSED |" >> $GITHUB_STEP_SUMMARY
-            echo "| ❌ **Failed** | $FAILED |" >> $GITHUB_STEP_SUMMARY
-            if [ "$SKIP" -gt 0 ]; then
-              echo "| ⏭️ **Skipped** | $SKIP |" >> $GITHUB_STEP_SUMMARY
-            fi
-            echo "" >> $GITHUB_STEP_SUMMARY
-
-            # List failed tests if any (improved XML parsing)
-            if [ "$FAILED" -gt 0 ]; then
-              echo "### ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-
-              # Use xmllint or grep with better pattern
-              if command -v xmllint &> /dev/null; then
-                xmllint --xpath "//testcase[failure]/@name" frontend/test-results/junit.xml 2>/dev/null | sed 's/name="//g' | sed 's/"$//' | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse test names with xmllint" >> $GITHUB_STEP_SUMMARY
-              else
-                # Fallback: Extract testcase names that have failure children
-                grep -B 1 '<failure' frontend/test-results/junit.xml | grep '<testcase' | sed 's/.*name="\([^"]*\)".*/- \1/' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse test names from XML" >> $GITHUB_STEP_SUMMARY
-              fi
-
-              echo "" >> $GITHUB_STEP_SUMMARY
-            fi
-
-            # List skipped tests if any (improved XML parsing)
-            if [ "$SKIP" -gt 0 ]; then
-              echo "### ⏭️ Skipped Tests" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-
-              # Use xmllint or grep with better pattern
-              if command -v xmllint &> /dev/null; then
-                xmllint --xpath "//testcase[skipped]/@name" frontend/test-results/junit.xml 2>/dev/null | sed 's/name="//g' | sed 's/"$//' | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse skipped test names with xmllint" >> $GITHUB_STEP_SUMMARY
-              else
-                # Fallback: Extract testcase names that have skipped children
-                grep -B 1 '<skipped' frontend/test-results/junit.xml | grep '<testcase' | sed 's/.*name="\([^"]*\)".*/- \1/' >> $GITHUB_STEP_SUMMARY || echo "- Failed to parse skipped test names from XML" >> $GITHUB_STEP_SUMMARY
-              fi
-
-              echo "" >> $GITHUB_STEP_SUMMARY
-            fi
-          elif [ ! -f frontend/test-results/results.json ] && [ ! -f frontend/test-results/junit.xml ]; then
-            echo "⚠️ **No test results found - tests may not have run**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Test Status: ${{ steps.run-tests.outcome }}" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "### 📋 Test Environment" >> $GITHUB_STEP_SUMMARY
-          echo "- **URL:** ${{ env.STAGING_URL }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Browser:** ${{ github.event.inputs.browser || 'chromium' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Authentication:** Azure Service Principal" >> $GITHUB_STEP_SUMMARY
-          echo "- **Executed at:** $(date)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+
+          # List all failed tests from all modules
+          if [ "$GRAND_FAILED" -gt 0 ]; then
+            echo "### ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            for module_dir in all-test-results/e2e-test-results-*; do
+              if [ -f "$module_dir/test-results/results.json" ]; then
+                # Extract module name from directory
+                MODULE_NAME=$(basename "$module_dir" | sed 's/e2e-test-results-//' | sed 's/-[0-9]*$//')
+
+                # Check if module has failures
+                FAILED_COUNT=$(jq '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | length' "$module_dir/test-results/results.json" 2>/dev/null || echo "0")
+
+                if [ "$FAILED_COUNT" -gt 0 ]; then
+                  echo "#### Module: $MODULE_NAME" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+
+                  # Extract failed test details
+                  jq -r '[ .suites[].suites[]?.specs[]? | select(.ok == false) ] | .[] | "**" + .title + "**\n- File: `" + .file + "`\n- Error: " + (.tests[0].results[0].error.message // "No error message") + "\n"' "$module_dir/test-results/results.json" >> $GITHUB_STEP_SUMMARY
+
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                fi
+              fi
+            done
+          fi
+
           echo "### 📊 View Detailed Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Test results are displayed above in the 'Annotations' section** - click on the test reporter check for detailed pass/fail status of each test." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "For HTML report with screenshots and traces:" >> $GITHUB_STEP_SUMMARY
-          echo "1. **Download artifacts**: Go to Actions → This workflow run → Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "2. **Download** \`e2e-nightly-test-results-${{ github.run_number }}\` artifact" >> $GITHUB_STEP_SUMMARY
-          echo "3. **Extract** the ZIP file" >> $GITHUB_STEP_SUMMARY
-          echo "4. **Open** \`playwright-report/index.html\` in your browser" >> $GITHUB_STEP_SUMMARY
-
-      - name: 📢 Send Teams notification (optional)
-        if: always() && env.TEAMS_WEBHOOK_URL != ''
-        run: |
-          # Parse JUnit XML for test results
-          if [ -f frontend/test-results/junit.xml ]; then
-            TESTS=$(grep -o 'tests="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-            FAILURES=$(grep -o 'failures="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-            ERRORS=$(grep -o 'errors="[0-9]*"' frontend/test-results/junit.xml | head -1 | grep -o '[0-9]*')
-
-            TOTAL=${TESTS:-0}
-            FAILED=$((${FAILURES:-0} + ${ERRORS:-0}))
-            PASSED=$((TOTAL - FAILED))
-          else
-            TOTAL=0
-            FAILED=0
-            PASSED=0
-          fi
-
-          # Determine status color and emoji based on test outcome
-          if [ "${{ steps.run-tests.outcome }}" = "success" ]; then
-            COLOR="28A745"  # Green
-            STATUS_EMOJI="✅"
-            STATUS_TEXT="E2E Nightly Tests Passed"
-          else
-            COLOR="FF0000"  # Red
-            STATUS_EMOJI="❌"
-            STATUS_TEXT="E2E Nightly Tests Failed"
-          fi
-
-          # Create Teams message payload
-          PAYLOAD=$(cat <<EOF
-          {
-            "@type": "MessageCard",
-            "@context": "http://schema.org/extensions",
-            "themeColor": "$COLOR",
-            "summary": "Heblo E2E Nightly - $STATUS_TEXT",
-            "sections": [{
-              "activityTitle": "$STATUS_EMOJI Heblo E2E Nightly Regression",
-              "activitySubtitle": "$STATUS_TEXT",
-              "activityImage": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png",
-              "facts": [
-                {
-                  "name": "Total Tests",
-                  "value": "$TOTAL"
-                },
-                {
-                  "name": "Passed",
-                  "value": "✅ $PASSED"
-                },
-                {
-                  "name": "Failed",
-                  "value": "❌ $FAILED"
-                },
-                {
-                  "name": "Environment",
-                  "value": "${{ env.STAGING_URL }}"
-                },
-                {
-                  "name": "Browser",
-                  "value": "${{ github.event.inputs.browser || 'chromium' }}"
-                },
-                {
-                  "name": "Executed at",
-                  "value": "$(date '+%Y-%m-%d %H:%M:%S UTC')"
-                }
-              ],
-              "markdown": true
-            }],
-            "potentialAction": [
-              {
-                "@type": "OpenUri",
-                "name": "View Workflow Run",
-                "targets": [
-                  {
-                    "os": "default",
-                    "uri": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                  }
-                ]
-              },
-              {
-                "@type": "OpenUri",
-                "name": "View Staging Environment",
-                "targets": [
-                  {
-                    "os": "default",
-                    "uri": "${{ env.STAGING_URL }}"
-                  }
-                ]
-              }
-            ]
-          }
-          EOF
-          )
-
-          # Send notification to Teams
-          RESPONSE=$(curl -X POST "$TEAMS_WEBHOOK_URL" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD" \
-            -s -w "\n%{http_code}")
-
-          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Teams notification sent successfully"
-          else
-            echo "⚠️ Failed to send Teams notification (HTTP $HTTP_CODE)"
-            # Don't fail the workflow if Teams notification fails
-            exit 0
-          fi
-        env:
-          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          echo "For detailed HTML reports with screenshots and traces:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to **Actions** → This workflow run → **Artifacts**" >> $GITHUB_STEP_SUMMARY
+          echo "2. Download module-specific artifacts (e.g., \`e2e-test-results-catalog-${{ github.run_number }}\`)" >> $GITHUB_STEP_SUMMARY
+          echo "3. Extract and open \`playwright-report/index.html\` in your browser" >> $GITHUB_STEP_SUMMARY
