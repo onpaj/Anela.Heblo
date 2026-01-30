@@ -121,8 +121,9 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
 
     await applyProductNameFilter(page, searchTerm);
 
-    // Wait for results
-    await waitForTableUpdate(page);
+    // Wait for results - using timeout instead of API response wait
+    // API response may complete too quickly or be cached
+    await page.waitForTimeout(1000);
 
     const rowCount = await getRowCount(page);
 
