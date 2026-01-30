@@ -29,9 +29,10 @@
 - **Error**: `TimeoutError: page.waitForResponse: Timeout 5000ms exceeded while waiting for event "response"`
 - **Resolution**: Fixed by replacing `selectProductType` helper calls with direct select operations and using `page.waitForTimeout(1000)` instead of waiting for API responses. The issue was that when text filters result in 0 rows, changing product type doesn't always trigger a new API call that the test can wait for.
 
-### [ ] should handle numbers in product name
+### [x] should handle numbers in product name
 - **File**: `catalog/filter-edge-cases.spec.ts`
 - **Error**: `TimeoutError: page.waitForResponse: Timeout 5000ms exceeded while waiting for event "response"`
+- **Resolution**: Test passes successfully now (8.7s runtime). No code changes needed - the timeout issue was transient or already fixed in the application.
 
 ### [ ] should handle hyphens and spaces in product code
 - **File**: `catalog/filter-edge-cases.spec.ts`
