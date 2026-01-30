@@ -250,21 +250,49 @@ jobs:
           declare -A MODULE_FAILED
           declare -A MODULE_SKIPPED
 
+          # Debug: List downloaded artifacts
+          echo "📦 Downloaded artifacts:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          ls -la all-test-results/ >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
           # Parse results from each module
           for module_dir in all-test-results/e2e-test-results-*; do
-            if [ -f "$module_dir/test-results/module-summary.env" ]; then
-              source "$module_dir/test-results/module-summary.env"
+            echo "🔍 Checking: $module_dir" >> $GITHUB_STEP_SUMMARY
 
-              MODULE_TOTAL[$MODULE]=$TOTAL
-              MODULE_PASSED[$MODULE]=$PASSED
-              MODULE_FAILED[$MODULE]=$FAILED
-              MODULE_SKIPPED[$MODULE]=$SKIPPED
-
-              GRAND_TOTAL=$((GRAND_TOTAL + TOTAL))
-              GRAND_PASSED=$((GRAND_PASSED + PASSED))
-              GRAND_FAILED=$((GRAND_FAILED + FAILED))
-              GRAND_SKIPPED=$((GRAND_SKIPPED + SKIPPED))
+            # Debug: Show structure of this artifact
+            if [ -d "$module_dir" ]; then
+              echo "📂 Structure:" >> $GITHUB_STEP_SUMMARY
+              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+              ls -la "$module_dir" >> $GITHUB_STEP_SUMMARY
+              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
             fi
+
+            # Try different possible paths for module-summary.env
+            if [ -f "$module_dir/module-summary.env" ]; then
+              echo "✅ Found at: $module_dir/module-summary.env" >> $GITHUB_STEP_SUMMARY
+              source "$module_dir/module-summary.env"
+            elif [ -f "$module_dir/test-results/module-summary.env" ]; then
+              echo "✅ Found at: $module_dir/test-results/module-summary.env" >> $GITHUB_STEP_SUMMARY
+              source "$module_dir/test-results/module-summary.env"
+            else
+              echo "❌ module-summary.env not found in $module_dir" >> $GITHUB_STEP_SUMMARY
+              continue
+            fi
+
+            MODULE_TOTAL[$MODULE]=$TOTAL
+            MODULE_PASSED[$MODULE]=$PASSED
+            MODULE_FAILED[$MODULE]=$FAILED
+            MODULE_SKIPPED[$MODULE]=$SKIPPED
+
+            GRAND_TOTAL=$((GRAND_TOTAL + TOTAL))
+            GRAND_PASSED=$((GRAND_PASSED + PASSED))
+            GRAND_FAILED=$((GRAND_FAILED + FAILED))
+            GRAND_SKIPPED=$((GRAND_SKIPPED + SKIPPED))
+
+            echo "📊 Loaded: MODULE=$MODULE, TOTAL=$TOTAL, PASSED=$PASSED, FAILED=$FAILED, SKIPPED=$SKIPPED" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           done
 
           # Overall status
