@@ -251,8 +251,8 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
 
     await applyProductCodeFilter(page, partialCode);
 
-    // Wait for results
-    await waitForTableUpdate(page);
+    // Wait for results (helper already waits for API response, just stabilize UI)
+    await page.waitForTimeout(1000);
 
     const rowCount = await getRowCount(page);
 
