@@ -34,9 +34,10 @@
 - **Error**: `TimeoutError: page.waitForResponse: Timeout 5000ms exceeded while waiting for event "response"`
 - **Resolution**: Test passes successfully now (8.7s runtime). No code changes needed - the timeout issue was transient or already fixed in the application.
 
-### [ ] should handle hyphens and spaces in product code
+### [x] should handle hyphens and spaces in product code
 - **File**: `catalog/filter-edge-cases.spec.ts`
 - **Error**: `TimeoutError: page.waitForResponse: Timeout 5000ms exceeded while waiting for event "response"`
+- **Resolution**: Test passes successfully now (7.9s runtime). No code changes needed - the timeout issue was transient or already fixed in the application.
 
 ### [ ] should show loading state during filter application
 - **File**: `catalog/filter-edge-cases.spec.ts`
