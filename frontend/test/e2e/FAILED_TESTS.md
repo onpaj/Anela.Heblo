@@ -158,13 +158,15 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Test passes successfully now (5.7s runtime). No code changes needed - the navigation issue was transient or already fixed. Test successfully applies multiple filters (invoice ID, date from, date to) and verifies filtering works.
 
-### [ ] 11: Clear filters button (Vymazat)
+### [x] 11: Clear filters button (Vymazat)
 - **File**: `issued-invoices/filters.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Test passes successfully now (5.8s runtime). No code changes needed - the navigation issue was transient or already fixed. Test successfully applies filters, clicks "Vymazat" (Clear) button, and verifies all filter inputs are cleared and data is restored.
 
-### [ ] 30: Import button opens modal
+### [x] 30: Import button opens modal
 - **File**: `issued-invoices/import-modal.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Test marked as `.skip()` due to **incorrect test expectations**. After fixing button selector from "Importovat faktury" to "Import", discovered that the Import button opens a DATE-RANGE import modal (for importing from external API), NOT a file upload modal as the test expects. The actual modal contains radio buttons for import type (Date range vs Specific invoice), currency dropdown, date fields, Cancel/Import buttons - it does NOT contain file upload area, drag-drop functionality, or file format text that the test looks for. **All 14 tests in import-modal.spec.ts test file upload functionality that doesn't exist in the application.** These tests should be removed, rewritten to test the actual modal, or kept disabled until file upload feature is implemented. See detailed comments in test file.
 
 ### [ ] 31: Modal displays file upload area
 - **File**: `issued-invoices/import-modal.spec.ts`
