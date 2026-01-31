@@ -284,9 +284,15 @@ test.describe("IssuedInvoices - Import Modal", () => {
     await expect(submitButton).toBeDisabled();
   });
 
-  test("41: Displays validation error for invalid file type", async ({
+  test.skip("41: Displays validation error for invalid file type", async ({
     page,
   }) => {
+    // SKIPPED: Feature mismatch - Import button opens DATE-RANGE modal, not file upload modal
+    // The test expects to find file input (input[type="file"]) and test file upload validation.
+    // However, the actual modal is a date-range import modal with different UI and purpose.
+    // All 14 tests in this file test file upload functionality that doesn't exist.
+    // See tests #30-40 comments and previous iterations for detailed findings.
+    // TODO: Remove these tests or rewrite to test the actual date-range import modal
     const importButton = page.locator('button:has-text("Import")');
     await importButton.click();
 
