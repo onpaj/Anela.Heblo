@@ -329,10 +329,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Fixed by replacing page number button disabled state checks with record range text verification. The application doesn't use URL parameters for pagination state, and page number buttons remain enabled (only styled visually for active page). Test now verifies page 2 state by checking record range starts with "2" (e.g., "21-40"), and after applying filter verifies reset to page 1 by checking record range starts with "1" (e.g., "1-20"). Also verifies first page button is disabled on page 1. Test now passes in 7.6s.
 
-### [ ] 12: Sort by Invoice ID ascending
+### [x] 12: Sort by Invoice ID ascending
 
 - **File**: `issued-invoices/sorting.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Fixed by updating table header text from "ID faktury" to "Číslo faktury" (the actual column header name) and replacing `waitForLoadingComplete()` with `page.waitForTimeout(1000)`. Also proactively fixed column indices for Customer (nth(2) instead of nth(1)) and Date (nth(1) instead of nth(2)) columns in tests 14-17 to match actual table structure (columns: Invoice Number, Date, Customer, Amount, Currency, Status, Last Sync). Test now passes in 10.3s.
 
 ### [ ] 13: Sort by Invoice ID descending
 
