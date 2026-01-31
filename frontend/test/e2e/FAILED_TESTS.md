@@ -281,10 +281,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Fixed by replacing overly broad error detection (`text=/Error|Chyba/i`) with specific verification that key UI elements (Statistics and Grid tabs) are visible. The original error check was matching the legitimate statistics label "S chybami" (With Errors) instead of only checking for actual error messages. Test now passes in 3.6s.
 
-### [ ] 2: Tab switching works correctly (Statistics ↔ Grid)
+### [x] 2: Tab switching works correctly (Statistics ↔ Grid)
 
 - **File**: `issued-invoices/navigation.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Test passes successfully now (5.2s runtime). No code changes needed - the navigation issue was already fixed in previous iterations when `navigateToIssuedInvoices` helper was updated to use `waitForLoadingComplete()` instead of `waitForPageLoad()`. Test successfully verifies tab switching between Statistics and Grid views.
 
 ### [ ] 19: Default page size is 10 rows per page
 
