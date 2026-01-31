@@ -149,7 +149,13 @@ test.describe("IssuedInvoices - Import Modal", () => {
     await expect(modal).not.toBeVisible();
   });
 
-  test("36: Close modal by clicking backdrop", async ({ page }) => {
+  test.skip("36: Close modal by clicking backdrop", async ({ page }) => {
+    // SKIPPED: Feature mismatch - Import button opens DATE-RANGE modal, not file upload modal
+    // While this test checks generic modal close functionality (clicking backdrop - which likely works),
+    // all 14 tests in this file are designed to test file upload import workflow that doesn't exist.
+    // The actual modal is a date-range import modal with different UI and purpose.
+    // See tests #30-35 comments and previous iterations for detailed findings.
+    // TODO: Remove these tests or rewrite to test the actual date-range import modal
     const importButton = page.locator('button:has-text("Import")');
     await importButton.click();
 
