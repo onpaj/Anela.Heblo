@@ -367,11 +367,11 @@ export async function navigateToIssuedInvoices(page: any): Promise<void> {
   await waitForLoadingComplete(page);
 
   // Navigate to issued invoices via UI
-  const customerSelector = page.locator('button').filter({ hasText: 'Zákazník' }).first();
+  const customerSelector = page.locator('button').filter({ hasText: 'Zákaznické' }).first();
   try {
-    console.log('🧭 Attempting UI navigation to issued invoices via Zákazník...');
+    console.log('🧭 Attempting UI navigation to issued invoices via Zákaznické...');
     if (await customerSelector.isVisible({ timeout: 5000 })) {
-      console.log('✅ Found Zákazník menu item, clicking...');
+      console.log('✅ Found Zákaznické menu item, clicking...');
       await customerSelector.click();
       await waitForLoadingComplete(page);
 
@@ -385,10 +385,10 @@ export async function navigateToIssuedInvoices(page: any): Promise<void> {
         console.log('✅ UI navigation to issued invoices successful');
         return;
       } else {
-        console.log('❌ Vydané faktury submenu not found under Zákazník');
+        console.log('❌ Vydané faktury submenu not found under Zákaznické');
       }
     } else {
-      console.log('❌ Zákazník menu item not found');
+      console.log('❌ Zákaznické menu item not found');
     }
   } catch (e) {
     console.log('❌ UI navigation failed:', e.message);

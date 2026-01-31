@@ -6,36 +6,36 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
   test.beforeEach(async ({ page }) => {
     await navigateToIssuedInvoices(page);
 
-    // Switch to Grid tab
+    // Wait for page to load completely - check for either loading state or tabs
+    // If there's an error or infinite loading, this will timeout and fail clearly
+    const loadingIndicator = page.locator('text=/Načítání faktur/i');
     const gridTab = page.locator('button:has-text("Seznam")');
+
+    // Wait for loading to complete OR tabs to appear (whichever comes first)
+    try {
+      await Promise.race([
+        loadingIndicator.waitFor({ state: 'hidden', timeout: 30000 }),
+        gridTab.waitFor({ state: 'visible', timeout: 30000 })
+      ]);
+    } catch (error) {
+      // If we timeout, check what's actually on the page
+      const errorMessage = page.locator('text=/Chyba při načítání/i');
+      const isErrorVisible = await errorMessage.isVisible().catch(() => false);
+
+      if (isErrorVisible) {
+        const errorText = await errorMessage.textContent();
+        throw new Error(`Page failed to load - error message: ${errorText}`);
+      }
+
+      throw new Error(`Page failed to load within timeout - loading indicator still visible or tabs never appeared`);
+    }
+
+    // Now switch to Grid tab (should be visible after loading completes)
     await gridTab.click();
     await waitForLoadingComplete(page);
   });
 
-  test.skip("3: Invoice ID filter with Enter key", async ({ page }) => {
-    // SKIPPED: Application bug - Issued Invoices page fails to load/render properly
-    //
-    // Root Cause Analysis:
-    // 1. Navigation helper fixed: Changed navigateToIssuedInvoices() from waitForPageLoad()
-    //    to waitForLoadingComplete() to match pattern used by working modules (catalog, etc.)
-    // 2. After navigation fix, page loads but "Seznam" (Grid) tab button is not visible/clickable
-    // 3. This indicates the page fails to render tabs, likely due to:
-    //    - API endpoint /api/issued-invoices not working (404, 403, or 500 error)
-    //    - useIssuedInvoicesList hook stuck in loading or error state
-    //    - Missing backend implementation or permission issues
-    //
-    // Evidence:
-    // - ALL 43 issued-invoices tests fail with identical "Main element not visible" error
-    // - After navigation fix, test progresses to "Timeout waiting for button:has-text('Seznam')"
-    // - Page shows error message instead of tabs when API fails (see IssuedInvoicesPage.tsx:321-330)
-    //
-    // TODO:
-    // - Verify /api/issued-invoices endpoint exists and returns data
-    // - Check backend logs for errors when accessing issued invoices
-    // - Verify E2E test user has permission to access issued invoices feature
-    // - Fix API/backend issue before re-enabling these tests
-    //
-    // See FAILED_TESTS.md for complete analysis
+  test("3: Invoice ID filter with Enter key", async ({ page }) => {
 
     const invoiceIdInput = page.locator("#invoiceId");
     const tableRows = page.locator("tbody tr");
