@@ -275,10 +275,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Test marked as `.skip()` due to **incorrect test expectations**. Same root cause as tests #30-42: Import button opens a DATE-RANGE import modal (for importing from external API), NOT a file upload modal. The test expects to find file input (`input[type="file"]`), upload a file, submit it with "Nahrát" (Upload) button, and see success message ("Úspěšně nahráno" or "Import byl úspěšný"). However, the actual modal contains radio buttons, currency dropdown, and date fields - no file upload functionality. **All 14 tests in import-modal.spec.ts test file upload functionality that doesn't exist in the application.** See tests #30-42 resolutions and previous iterations for detailed findings.
 
-### [ ] 1: Page loads successfully with authentication
+### [x] 1: Page loads successfully with authentication
 
 - **File**: `issued-invoices/navigation.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Fixed by replacing overly broad error detection (`text=/Error|Chyba/i`) with specific verification that key UI elements (Statistics and Grid tabs) are visible. The original error check was matching the legitimate statistics label "S chybami" (With Errors) instead of only checking for actual error messages. Test now passes in 3.6s.
 
 ### [ ] 2: Tab switching works correctly (Statistics ↔ Grid)
 
