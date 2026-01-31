@@ -323,10 +323,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Fixed by updating selector from `.filter({ hasText: "10" })` to `select#pageSize`, changing option from non-existent "25" to valid option "10" (available options: 10, 20, 50, 100), and replacing `waitForLoadingComplete()` with `page.waitForTimeout(1000)`. Test verifies page size can be changed from default 20 to 10 rows per page. Test now passes in 7.4s.
 
-### [ ] 25: Pagination resets to page 1 when filters change
+### [x] 25: Pagination resets to page 1 when filters change
 
 - **File**: `issued-invoices/pagination.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Fixed by replacing page number button disabled state checks with record range text verification. The application doesn't use URL parameters for pagination state, and page number buttons remain enabled (only styled visually for active page). Test now verifies page 2 state by checking record range starts with "2" (e.g., "21-40"), and after applying filter verifies reset to page 1 by checking record range starts with "1" (e.g., "1-20"). Also verifies first page button is disabled on page 1. Test now passes in 7.6s.
 
 ### [ ] 12: Sort by Invoice ID ascending
 

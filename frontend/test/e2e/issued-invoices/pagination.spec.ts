@@ -143,21 +143,25 @@ test.describe("IssuedInvoices - Pagination", () => {
     const paginationNav = page.locator('nav[aria-label="Pagination"]');
     const nextButton = paginationNav.locator('button').last();
     await nextButton.click();
-    await waitForLoadingComplete(page);
+    await page.waitForTimeout(1000);
 
-    // Verify we're on page 2 (page 2 button should be disabled/active)
-    const page2Button = paginationNav.getByRole('button', { name: '2', exact: true });
-    await expect(page2Button).toBeDisabled();
+    // Verify we're on page 2 by checking the visible record range (should show "21-40" or similar)
+    const recordRangeText = await page.locator('p').filter({ hasText: /\d+-\d+ z \d+/ }).textContent();
+    expect(recordRangeText).toMatch(/^2\d-\d+/); // Should start with "2" (page 2 = records 21-40)
 
     // Apply a filter
     const invoiceIdInput = page.locator('input[placeholder*="Číslo faktury"]');
     const filterButton = page.locator('button:has-text("Filtrovat")');
     await invoiceIdInput.fill("2024");
     await filterButton.click();
-    await waitForLoadingComplete(page);
+    await page.waitForTimeout(1000);
 
-    // Verify pagination reset to page 1 (page 1 button should be disabled/active)
-    const page1Button = paginationNav.getByRole('button', { name: '1', exact: true });
-    await expect(page1Button).toBeDisabled();
+    // Verify pagination reset to page 1 by checking the visible record range (should show "1-20" or similar)
+    const recordRangeTextAfterFilter = await page.locator('p').filter({ hasText: /\d+-\d+ z \d+/ }).textContent();
+    expect(recordRangeTextAfterFilter).toMatch(/^1-\d+/); // Should start with "1" (page 1 = records 1-20)
+
+    // Also verify the first page button is disabled
+    const firstPageButton = paginationNav.locator('button').first();
+    await expect(firstPageButton).toBeDisabled();
   });
 });
