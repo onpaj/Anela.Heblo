@@ -16,13 +16,13 @@ test.describe("IssuedInvoices - Pagination", () => {
     const tableRows = page.locator("tbody tr");
     const rowCount = await tableRows.count();
 
-    // Should display up to 10 rows on first page
+    // Should display up to 20 rows on first page (default page size is 20)
     expect(rowCount).toBeGreaterThan(0);
-    expect(rowCount).toBeLessThanOrEqual(10);
+    expect(rowCount).toBeLessThanOrEqual(20);
 
-    // Verify pagination controls are visible
-    const paginationControls = page.locator('[role="navigation"]').filter({ hasText: "Stránka" });
-    await expect(paginationControls).toBeVisible();
+    // Verify page size selector shows default value of 20
+    const pageSizeSelect = page.locator('select#pageSize');
+    await expect(pageSizeSelect).toHaveValue('20');
   });
 
   test("20: Navigate to next page", async ({ page }) => {
