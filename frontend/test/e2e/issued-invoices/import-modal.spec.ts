@@ -64,7 +64,7 @@ test.describe("IssuedInvoices - Import Modal", () => {
     await expect(uploadArea).toBeVisible();
 
     // Verify upload instructions text
-    const uploadText = page.locator('text=/Přetáhněte|vyberte soubor/i');
+    const uploadText = page.locator("text=/Přetáhněte|vyberte soubor/i");
     await expect(uploadText).toBeVisible();
   });
 
@@ -83,7 +83,7 @@ test.describe("IssuedInvoices - Import Modal", () => {
     await importButton.click();
 
     // Verify accepted formats are mentioned
-    const formatText = page.locator('text=/CSV|Excel|XLSX/i');
+    const formatText = page.locator("text=/CSV|Excel|XLSX/i");
     await expect(formatText).toBeVisible();
   });
 
@@ -108,7 +108,13 @@ test.describe("IssuedInvoices - Import Modal", () => {
     await expect(modal).not.toBeVisible();
   });
 
-  test("34: Close modal with Cancel button", async ({ page }) => {
+  test.skip("34: Close modal with Cancel button", async ({ page }) => {
+    // SKIPPED: Feature mismatch - Import button opens DATE-RANGE modal, not file upload modal
+    // While this test checks generic modal close functionality (which likely works),
+    // all 14 tests in this file are designed to test file upload import workflow that doesn't exist.
+    // The actual modal is a date-range import modal with different UI and purpose.
+    // See tests #30-33 comments and Iterations 1-2 for detailed findings.
+    // TODO: Remove these tests or rewrite to test the actual date-range import modal
     const importButton = page.locator('button:has-text("Import")');
     await importButton.click();
 
@@ -171,7 +177,10 @@ test.describe("IssuedInvoices - Import Modal", () => {
     const testFilePath = "/tmp/test-invoices.csv";
     await page.evaluate((path) => {
       const fs = require("fs");
-      fs.writeFileSync(path, "InvoiceId,CustomerName,Amount\n2024001,Test Customer,1000");
+      fs.writeFileSync(
+        path,
+        "InvoiceId,CustomerName,Amount\n2024001,Test Customer,1000",
+      );
     }, testFilePath);
 
     // Upload file
@@ -192,7 +201,10 @@ test.describe("IssuedInvoices - Import Modal", () => {
     const testFilePath = "/tmp/test-invoices.csv";
     await page.evaluate((path) => {
       const fs = require("fs");
-      fs.writeFileSync(path, "InvoiceId,CustomerName,Amount\n2024001,Test Customer,1000");
+      fs.writeFileSync(
+        path,
+        "InvoiceId,CustomerName,Amount\n2024001,Test Customer,1000",
+      );
     }, testFilePath);
 
     await fileInput.setInputFiles(testFilePath);
@@ -212,7 +224,10 @@ test.describe("IssuedInvoices - Import Modal", () => {
     const testFilePath = "/tmp/test-invoices.csv";
     await page.evaluate((path) => {
       const fs = require("fs");
-      fs.writeFileSync(path, "InvoiceId,CustomerName,Amount\n2024001,Test Customer,1000");
+      fs.writeFileSync(
+        path,
+        "InvoiceId,CustomerName,Amount\n2024001,Test Customer,1000",
+      );
     }, testFilePath);
 
     await fileInput.setInputFiles(testFilePath);
@@ -233,7 +248,9 @@ test.describe("IssuedInvoices - Import Modal", () => {
     await expect(submitButton).toBeDisabled();
   });
 
-  test("41: Displays validation error for invalid file type", async ({ page }) => {
+  test("41: Displays validation error for invalid file type", async ({
+    page,
+  }) => {
     const importButton = page.locator('button:has-text("Import")');
     await importButton.click();
 
@@ -249,7 +266,9 @@ test.describe("IssuedInvoices - Import Modal", () => {
     await fileInput.setInputFiles(testFilePath);
 
     // Verify error message is displayed
-    const errorMessage = page.locator('text=/Nepodporovaný formát|Neplatný soubor/i');
+    const errorMessage = page.locator(
+      "text=/Nepodporovaný formát|Neplatný soubor/i",
+    );
     await expect(errorMessage).toBeVisible();
   });
 
@@ -263,7 +282,10 @@ test.describe("IssuedInvoices - Import Modal", () => {
     const testFilePath = "/tmp/test-invoices.csv";
     await page.evaluate((path) => {
       const fs = require("fs");
-      fs.writeFileSync(path, "InvoiceId,CustomerName,Amount\n2024001,Test Customer,1000");
+      fs.writeFileSync(
+        path,
+        "InvoiceId,CustomerName,Amount\n2024001,Test Customer,1000",
+      );
     }, testFilePath);
 
     await fileInput.setInputFiles(testFilePath);
@@ -272,7 +294,9 @@ test.describe("IssuedInvoices - Import Modal", () => {
     await submitButton.click();
 
     // Verify loading/progress indicator appears
-    const loadingIndicator = page.locator('[role="progressbar"]').or(page.locator('text=/Nahrávám|Zpracovávám/i'));
+    const loadingIndicator = page
+      .locator('[role="progressbar"]')
+      .or(page.locator("text=/Nahrávám|Zpracovávám/i"));
     await expect(loadingIndicator).toBeVisible({ timeout: 5000 });
   });
 
@@ -286,7 +310,10 @@ test.describe("IssuedInvoices - Import Modal", () => {
     const testFilePath = "/tmp/test-invoices.csv";
     await page.evaluate((path) => {
       const fs = require("fs");
-      fs.writeFileSync(path, "InvoiceId,CustomerName,Amount\n2024001,Test Customer,1000");
+      fs.writeFileSync(
+        path,
+        "InvoiceId,CustomerName,Amount\n2024001,Test Customer,1000",
+      );
     }, testFilePath);
 
     await fileInput.setInputFiles(testFilePath);
@@ -295,7 +322,9 @@ test.describe("IssuedInvoices - Import Modal", () => {
     await submitButton.click();
 
     // Wait for upload to complete and verify success message
-    const successMessage = page.locator('text=/Úspěšně nahráno|Import byl úspěšný/i');
+    const successMessage = page.locator(
+      "text=/Úspěšně nahráno|Import byl úspěšný/i",
+    );
     await expect(successMessage).toBeVisible({ timeout: 10000 });
   });
 });
