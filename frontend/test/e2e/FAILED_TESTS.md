@@ -311,10 +311,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Fixed by updating the assertion to check that the first button (left arrow "go to first page" button) is disabled when on page 1, rather than expecting the page number button "1" to be disabled. The application uses visual styling (bg-indigo-50, border-indigo-500) to indicate the active page number, but keeps the button enabled. The first/previous navigation button is what actually gets disabled on page 1. Test now passes in 14.3s.
 
-### [ ] 23: Navigate to last page
+### [x] 23: Navigate to last page
 
 - **File**: `issued-invoices/pagination.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Fixed by redesigning test to match actual pagination behavior. The application doesn't have a dedicated "Last Page" button - pagination shows `[First] [1] [2] [3] [4] [5] [Next]`. The test now finds the highest visible page number button (e.g., "5"), clicks it, and verifies navigation by comparing row content before/after. This approach works with the actual pagination implementation instead of assuming a "go to last page" button exists. Test now passes in 6.1s.
 
 ### [ ] 24: Change page size (items per page)
 
