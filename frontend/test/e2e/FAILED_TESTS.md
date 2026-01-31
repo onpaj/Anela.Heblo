@@ -299,10 +299,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Fixed by replacing `button[aria-label="Další stránka"]` selector with more robust approach: using `nav[aria-label="Pagination"]` to find the pagination navigation, then selecting the last button (which is the "Next page" button). The original selector failed because the Next button doesn't have the `aria-label` attribute. Test now passes in 12.1s.
 
-### [ ] 21: Navigate to previous page
+### [x] 21: Navigate to previous page
 
 - **File**: `issued-invoices/pagination.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Test passes successfully now (8.3s runtime). No code changes needed - the navigation issue was already fixed in previous iterations when `navigateToIssuedInvoices` helper was updated to use `waitForLoadingComplete()` instead of `waitForPageLoad()`. The pagination button selectors were also fixed in Iteration 16 (test #20). Test successfully navigates to page 2, then back to page 1, and verifies content changes correctly.
 
 ### [ ] 22: Navigate to first page
 
