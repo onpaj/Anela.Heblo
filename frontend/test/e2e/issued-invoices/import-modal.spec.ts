@@ -68,7 +68,17 @@ test.describe("IssuedInvoices - Import Modal", () => {
     await expect(uploadText).toBeVisible();
   });
 
-  test("32: Modal displays accepted file formats", async ({ page }) => {
+  test.skip("32: Modal displays accepted file formats", async ({ page }) => {
+    // SKIPPED: Feature mismatch - Import button opens DATE-RANGE modal, not file upload modal
+    // The actual modal contains:
+    //   - Radio buttons for import type (Date range vs Specific invoice)
+    //   - Currency dropdown, date fields, Cancel/Import buttons
+    // The actual modal does NOT contain:
+    //   - File format text (CSV, Excel, XLSX)
+    //   - File upload input or drag-drop area
+    // All 14 tests in this file test file upload functionality that doesn't exist.
+    // See tests #30-31 comments and Iterations 4-5 analysis for detailed findings.
+    // TODO: Remove these tests or rewrite to test the actual date-range import modal
     const importButton = page.locator('button:has-text("Import")');
     await importButton.click();
 
