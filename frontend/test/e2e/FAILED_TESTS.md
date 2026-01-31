@@ -293,10 +293,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Fixed by updating test expectations to match actual application behavior. The default page size is 20 (not 10). Updated test to expect up to 20 rows and verify page size selector shows value "20". Test now passes in 6.7s.
 
-### [ ] 20: Navigate to next page
+### [x] 20: Navigate to next page
 
 - **File**: `issued-invoices/pagination.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Fixed by replacing `button[aria-label="Další stránka"]` selector with more robust approach: using `nav[aria-label="Pagination"]` to find the pagination navigation, then selecting the last button (which is the "Next page" button). The original selector failed because the Next button doesn't have the `aria-label` attribute. Test now passes in 12.1s.
 
 ### [ ] 21: Navigate to previous page
 
