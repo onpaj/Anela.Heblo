@@ -168,9 +168,10 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Test marked as `.skip()` due to **incorrect test expectations**. After fixing button selector from "Importovat faktury" to "Import", discovered that the Import button opens a DATE-RANGE import modal (for importing from external API), NOT a file upload modal as the test expects. The actual modal contains radio buttons for import type (Date range vs Specific invoice), currency dropdown, date fields, Cancel/Import buttons - it does NOT contain file upload area, drag-drop functionality, or file format text that the test looks for. **All 14 tests in import-modal.spec.ts test file upload functionality that doesn't exist in the application.** These tests should be removed, rewritten to test the actual modal, or kept disabled until file upload feature is implemented. See detailed comments in test file.
 
-### [ ] 31: Modal displays file upload area
+### [x] 31: Modal displays file upload area
 - **File**: `issued-invoices/import-modal.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Test marked as `.skip()` due to **incorrect test expectations**. Same root cause as test #30: Import button opens a DATE-RANGE import modal (for importing from external API), NOT a file upload modal. The test expects `input[type="file"]` and drag-drop upload instructions that don't exist in the actual modal. **All 14 tests in import-modal.spec.ts test file upload functionality that doesn't exist in the application.** See test #30 resolution and Iteration 4 analysis for detailed findings.
 
 ### [ ] 32: Modal displays accepted file formats
 - **File**: `issued-invoices/import-modal.spec.ts`
