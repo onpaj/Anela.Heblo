@@ -78,9 +78,8 @@ test.describe("IssuedInvoices - Pagination", () => {
     await firstPageButton.click();
     await waitForLoadingComplete(page);
 
-    // Verify we're on page 1 - check URL or that page 1 button is now disabled
-    const page1Button = paginationNav.getByRole('button', { name: '1', exact: true });
-    await expect(page1Button).toBeDisabled();
+    // Verify we're on page 1 - the first button (go to first page) should now be disabled
+    await expect(firstPageButton).toBeDisabled();
   });
 
   test("23: Navigate to last page", async ({ page }) => {

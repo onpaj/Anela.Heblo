@@ -305,10 +305,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Test passes successfully now (8.3s runtime). No code changes needed - the navigation issue was already fixed in previous iterations when `navigateToIssuedInvoices` helper was updated to use `waitForLoadingComplete()` instead of `waitForPageLoad()`. The pagination button selectors were also fixed in Iteration 16 (test #20). Test successfully navigates to page 2, then back to page 1, and verifies content changes correctly.
 
-### [ ] 22: Navigate to first page
+### [x] 22: Navigate to first page
 
 - **File**: `issued-invoices/pagination.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Fixed by updating the assertion to check that the first button (left arrow "go to first page" button) is disabled when on page 1, rather than expecting the page number button "1" to be disabled. The application uses visual styling (bg-indigo-50, border-indigo-500) to indicate the active page number, but keeps the button enabled. The first/previous navigation button is what actually gets disabled on page 1. Test now passes in 14.3s.
 
 ### [ ] 23: Navigate to last page
 
