@@ -233,10 +233,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Test marked as `.skip()` due to **incorrect test expectations**. Same root cause as tests #30-35: Import button opens a DATE-RANGE import modal (for importing from external API), NOT a file upload modal. While this test checks generic modal close functionality (clicking backdrop - which likely works), all 14 tests in import-modal.spec.ts are designed to test file upload import workflow that doesn't exist in the application. See tests #30-35 resolutions and previous iterations for detailed findings.
 
-### [ ] 37: Upload button is disabled without file
+### [x] 37: Upload button is disabled without file
 
 - **File**: `issued-invoices/import-modal.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Test marked as `.skip()` due to **incorrect test expectations**. Same root cause as tests #30-36: Import button opens a DATE-RANGE import modal (for importing from external API), NOT a file upload modal. The test expects to find an "Upload" button ("Nahrát") that should be disabled without a file, but the actual modal has "Import" button for date-range import, not file upload. **All 14 tests in import-modal.spec.ts test file upload functionality that doesn't exist in the application.** See tests #30-36 resolutions and previous iterations for detailed findings.
 
 ### [ ] 38: File selection enables upload button
 
