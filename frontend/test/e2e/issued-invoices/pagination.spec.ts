@@ -126,16 +126,16 @@ test.describe("IssuedInvoices - Pagination", () => {
     const tableRows = page.locator("tbody tr");
 
     // Find page size selector
-    const pageSizeSelect = page.locator('select').filter({ hasText: "10" });
+    const pageSizeSelect = page.locator('select#pageSize');
 
-    // Change to 25 items per page
-    await pageSizeSelect.selectOption("25");
-    await waitForLoadingComplete(page);
+    // Change to 10 items per page (available options: 10, 20, 50, 100)
+    await pageSizeSelect.selectOption("10");
+    await page.waitForTimeout(1000);
 
-    // Verify more rows are displayed (up to 25)
+    // Verify fewer rows are displayed (up to 10, less than default 20)
     const rowCount = await tableRows.count();
-    expect(rowCount).toBeGreaterThan(10);
-    expect(rowCount).toBeLessThanOrEqual(25);
+    expect(rowCount).toBeGreaterThan(0);
+    expect(rowCount).toBeLessThanOrEqual(10);
   });
 
   test("25: Pagination resets to page 1 when filters change", async ({ page }) => {
