@@ -293,18 +293,18 @@ test.describe('Classification History - Create Rule Button', () => {
     const createRuleButton = page
       .locator('table tbody tr')
       .first()
-      .locator('button:has-text("Regel erstellen")');
+      .locator('button:has-text("Vytvořit pravidlo")');
     await createRuleButton.click();
 
     // Wait for modal
-    await page.waitForSelector('div[role="dialog"]', { state: 'visible' });
+    await page.waitForSelector('h2:has-text("Vytvořit pravidlo klasifikace")', { state: 'visible' });
 
     // Click cancel button
-    const cancelButton = page.locator('button:has-text("Abbrechen")');
+    const cancelButton = page.locator('button:has-text("Zrušit")');
     await cancelButton.click();
 
     // Assert - modal should be hidden
-    await page.waitForSelector('div[role="dialog"]', { state: 'hidden' });
+    await page.waitForSelector('h2:has-text("Vytvořit pravidlo klasifikace")', { state: 'hidden' });
   });
 });
 
