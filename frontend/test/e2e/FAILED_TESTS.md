@@ -359,10 +359,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Test passes successfully now (6.2s runtime). No code changes needed - the navigation issue was already fixed in previous iterations when `navigateToIssuedInvoices` helper was updated to use `waitForLoadingComplete()` instead of `waitForPageLoad()`. Test successfully sorts invoices by Date in ascending order and verifies data is displayed.
 
-### [ ] 17: Sort by Invoice Date descending
+### [x] 17: Sort by Invoice Date descending
 
 - **File**: `issued-invoices/sorting.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Test passes successfully now (7.0s runtime). No code changes needed - the navigation issue was already fixed in previous iterations when `navigateToIssuedInvoices` helper was updated to use `waitForLoadingComplete()` instead of `waitForPageLoad()`. Test successfully sorts invoices by Date in descending order (double-click on header) and verifies data is displayed.
 
 ### [ ] 18: Sorting persists with filters
 
