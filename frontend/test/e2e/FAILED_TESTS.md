@@ -523,10 +523,11 @@
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
 - **Resolution**: Fixed by updating selector from `select[name="accountingTemplate"]` to `getByRole('combobox', { name: 'Účetní předpis *' })` and adding `page.waitForTimeout(2000)` to wait for options to load asynchronously. Following the same pattern from test #48 (Iteration 28), the form modal doesn't use HTML `name` attributes - instead uses accessible role-based selectors with Czech labels. Test now passes in 5.0s.
 
-### [ ] should have department dropdown with options
+### [x] should have department dropdown with options
 
 - **File**: `core/invoice-classification-history-actions.spec.ts`
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
+- **Resolution**: Test passes successfully now (3.5s runtime). No code changes needed - the navigation helper and modal selector fixes from previous iterations (tests #48-49, Iterations 28-29) already resolved this test. The `openRuleModal` helper function was updated in Iteration 27 to use Czech button text and correct modal selector. Test successfully verifies department dropdown field is visible in the rule creation modal.
 
 ### [ ] should validate required fields before submission
 
