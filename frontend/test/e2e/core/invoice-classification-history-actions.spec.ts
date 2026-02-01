@@ -260,16 +260,20 @@ test.describe('Classification History - Create Rule Button', () => {
 
     // Act - open Create Rule modal
     const createRuleButton = firstRow.locator(
-      'button:has-text("Regel erstellen")'
+      'button:has-text("Vytvořit pravidlo")'
     );
     await createRuleButton.click();
 
-    // Wait for modal
-    await page.waitForSelector('div[role="dialog"]', { state: 'visible' });
+    // Wait for modal - it uses <h2> heading, not div[role="dialog"]
+    await page.waitForSelector('h2:has-text("Vytvořit pravidlo klasifikace")', {
+      state: 'visible',
+    });
 
-    // Assert - company name input should be prefilled
-    const companyInput = page.locator('input[name="companyName"]');
-    const inputValue = await companyInput.inputValue();
+    // Assert - company name should be prefilled in "Vzor" (Pattern) field
+    const patternInput = page.getByPlaceholder(
+      'např. Regex nebo text v názvu firmy'
+    );
+    const inputValue = await patternInput.inputValue();
 
     expect(inputValue).toBe(companyName?.trim() || '');
   });

@@ -493,10 +493,11 @@
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
 - **Resolution**: Fixed by updating button selector from German "Regel erstellen" to Czech "Vytvořit pravidlo" (line 234). After navigation helper was fixed in Iteration 18, the test correctly progresses to finding the Create Rule button. Following the same pattern from test #43 (Iteration 23), updated the button text to match actual application language. Test now passes in 5.1s.
 
-### [ ] should prefill company name when opening rule creation modal
+### [x] should prefill company name when opening rule creation modal
 
 - **File**: `core/invoice-classification-history-actions.spec.ts`
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
+- **Resolution**: Fixed by updating button selector from German "Regel erstellen" to Czech "Vytvořit pravidlo", changing modal selector from `div[role="dialog"]` to `h2:has-text("Vytvořit pravidlo klasifikace")`, and updating the prefilled field selector to use `getByPlaceholder('např. Regex nebo text v názvu firmy')` instead of `input[name="companyName"]`. The modal uses `<h2>` heading (not `div[role="dialog"]`), and the company name is prefilled in the "Vzor" (Pattern) field. Test now passes in 3.3s.
 
 ### [ ] should close rule creation modal when cancel is clicked
 
