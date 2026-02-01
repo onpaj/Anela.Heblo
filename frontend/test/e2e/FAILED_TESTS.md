@@ -383,10 +383,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Test passes successfully now (3.1s runtime). No code changes needed - the navigation issue was already fixed in previous iterations when `navigateToIssuedInvoices` helper was updated to use `waitForLoadingComplete()` instead of `waitForPageLoad()`. The checkbox selector was already correct (`page.getByRole('checkbox', { name: 'Chyby' })`), matching the fix pattern from test #26 (Iteration 7).
 
-### [ ] 28: Status badge displays correctly for 'Odesláno' (Sent)
+### [x] 28: Status badge displays correctly for 'Odesláno' (Sent)
 
 - **File**: `issued-invoices/status-badges.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Test passes successfully now (3.9s runtime). No code changes needed - the navigation issue was already fixed in previous iterations when `navigateToIssuedInvoices` helper was updated to use `waitForLoadingComplete()` instead of `waitForPageLoad()`. Pattern continues from tests #26 and #27 (Iterations 7-8): tests in `status-badges.spec.ts` that previously failed at navigation now work with the fixed navigation helper.
 
 ### [ ] 29: Multiple status badges can appear in grid
 
