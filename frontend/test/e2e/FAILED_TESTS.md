@@ -547,10 +547,11 @@
 - **Error**: `expect(received).toBeGreaterThan(expected) - Expected: > 0, Received: 0`
 - **Resolution**: Fixed by correcting column indices and extracting only the invoice number from the combined cell. Column 0 contains both invoice number (first div) and date (second div). Updated test to use `nth(0).locator('div').first()` instead of `nth(1)` to get the invoice number. Also fixed tests #54-56 (invoice number filters) and #57-61 (company name filters and combined filters) which had similar column index issues. Test now passes in 4.6s.
 
-### [ ] should filter by partial invoice number match
+### [x] should filter by partial invoice number match
 
 - **File**: `core/invoice-classification-history-filters.spec.ts`
 - **Error**: `expect(received).toBeGreaterThan(expected) - Expected: > 0, Received: 0`
+- **Resolution**: Test passes successfully now (4.9s runtime). No code changes needed - the column index fix from test #53 (Iteration 33) already resolved this test. The fix changed column indices to use `nth(0).locator('div').first()` for invoice number instead of `nth(1)`, which applies to all invoice number filter tests (#53-56). Test successfully verifies partial invoice number matching (e.g., "PF250" matches "PF25005").
 
 ### [ ] should be case-insensitive for invoice number search
 
