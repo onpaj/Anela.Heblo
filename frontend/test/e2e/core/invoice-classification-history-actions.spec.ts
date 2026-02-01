@@ -327,10 +327,10 @@ test.describe('Classification History - Rule Creation Modal', () => {
     const createRuleButton = page
       .locator('table tbody tr')
       .first()
-      .locator('button:has-text("Regel erstellen")');
+      .locator('button:has-text("Vytvořit pravidlo")');
 
     await createRuleButton.click();
-    await page.waitForSelector('div[role="dialog"]', { state: 'visible' });
+    await page.waitForSelector('h2:has-text("Vytvořit pravidlo klasifikace")', { state: 'visible' });
   }
 
   test('should display all form fields in rule creation modal', async ({
@@ -340,24 +340,24 @@ test.describe('Classification History - Rule Creation Modal', () => {
     await openRuleModal(page);
 
     // Assert - all form fields should be visible
-    const companyNameInput = page.locator('input[name="companyName"]');
-    await expect(companyNameInput).toBeVisible();
+    const ruleNameInput = page.getByRole('textbox', { name: 'Název pravidla *' });
+    await expect(ruleNameInput).toBeVisible();
 
-    const ruleTypeSelect = page.locator('select[name="ruleType"]');
+    const ruleTypeSelect = page.getByRole('combobox', { name: 'Typ pravidla *' });
     await expect(ruleTypeSelect).toBeVisible();
 
-    const accountingTemplateSelect = page.locator(
-      'select[name="accountingTemplate"]'
-    );
+    const patternInput = page.getByRole('textbox', { name: 'Vzor *' });
+    await expect(patternInput).toBeVisible();
+
+    const accountingTemplateSelect = page.getByRole('combobox', { name: 'Účetní předpis *' });
     await expect(accountingTemplateSelect).toBeVisible();
 
-    const departmentSelect = page.locator('select[name="department"]');
-    // Department might be optional/conditional
-    const isDepartmentVisible = await departmentSelect.isVisible();
-    expect(isDepartmentVisible).toBeDefined();
+    const departmentSelect = page.getByRole('combobox', { name: 'Oddělení' });
+    // Department is optional
+    await expect(departmentSelect).toBeVisible();
 
-    const descriptionTextarea = page.locator('textarea[name="description"]');
-    await expect(descriptionTextarea).toBeVisible();
+    const activeCheckbox = page.getByRole('checkbox', { name: 'Pravidlo je aktivní' });
+    await expect(activeCheckbox).toBeVisible();
   });
 
   test('should have rule type dropdown with correct options', async ({

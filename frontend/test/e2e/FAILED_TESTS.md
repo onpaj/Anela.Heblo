@@ -505,10 +505,11 @@
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
 - **Resolution**: Fixed by updating button selectors from German to Czech (following pattern from tests #43-45). Changed "Regel erstellen" → "Vytvořit pravidlo", "Abbrechen" → "Zrušit", and updated modal selector from `div[role="dialog"]` to `h2:has-text("Vytvořit pravidlo klasifikace")` to match actual application structure (modal uses `<h2>` heading, not `div[role="dialog"]`). Test now passes in 4.8s.
 
-### [ ] should display all form fields in rule creation modal
+### [x] should display all form fields in rule creation modal
 
 - **File**: `core/invoice-classification-history-actions.spec.ts`
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
+- **Resolution**: Fixed by updating the `openRuleModal` helper function to use Czech button text "Vytvořit pravidlo" instead of German "Regel erstellen", changing modal selector from `div[role="dialog"]` to `h2:has-text("Vytvořit pravidlo klasifikace")`, and updating all form field selectors to match actual modal structure. Changed from `input[name="..."]` selectors to `getByRole()` with Czech labels: "Název pravidla *" (Rule name), "Typ pravidla *" (Rule type), "Vzor *" (Pattern), "Účetní předpis *" (Accounting template), "Oddělení" (Department), "Pravidlo je aktivní" (Active checkbox). Test now passes in 2.6s.
 
 ### [ ] should have rule type dropdown with correct options
 
