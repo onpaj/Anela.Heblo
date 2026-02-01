@@ -565,10 +565,11 @@
 - **Error**: `expect(received).toBeGreaterThan(expected) - Expected: > 0, Received: 0`
 - **Resolution**: Test passes successfully now (4.8s runtime). No code changes needed - the column index fix from test #53 (Iteration 33) already resolved this test. The fix changed column indices to use `nth(0).locator('div').first()` for extracting invoice number from the combined invoice+date cell, which applies to all invoice number filter tests. Test successfully verifies that pressing Enter key in the invoice number filter field triggers the filter.
 
-### [ ] should filter by exact company name match
+### [x] should filter by exact company name match
 
 - **File**: `core/invoice-classification-history-filters.spec.ts`
 - **Error**: `expect(received).toBeGreaterThan(expected) - Expected: > 0, Received: 0`
+- **Resolution**: Test passes successfully now (5.4s runtime). No code changes needed - the column index fix from test #53 (Iteration 33) already resolved this test. The fix updated company name column index from `nth(2)` to `nth(1)` to match actual table structure. Test successfully verifies exact company name filtering.
 
 ### [ ] should filter by partial company name match
 
