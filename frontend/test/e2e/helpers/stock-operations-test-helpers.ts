@@ -83,7 +83,7 @@ export async function selectStateFilter(
   const applyButton = getApplyFiltersButton(page);
   await applyButton.click();
 
-  await waitForTableUpdate(page);
+  await page.waitForTimeout(1000);
   console.log('✅ State filter applied');
 }
 

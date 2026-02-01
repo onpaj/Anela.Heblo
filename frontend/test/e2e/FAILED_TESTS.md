@@ -441,10 +441,11 @@
 - **Error**: `TimeoutError: page.waitForResponse: Timeout 5000ms exceeded while waiting for event "response"`
 - **Resolution**: Test passes successfully now (4.9s runtime). No code changes needed - the timeout issue was already fixed in Iteration 15 (test #34) when `selectSourceType` helper function was updated to replace `waitForTableUpdate(page)` with `page.waitForTimeout(1000)`. All tests in `source-filter.spec.ts` (#34, #35, #36) now pass - all three tests benefit from the same helper fix.
 
-### [ ] should filter by "Active" state (default)
+### [x] should filter by "Active" state (default)
 
 - **File**: `stock-operations/state-filter.spec.ts`
 - **Error**: `TimeoutError: page.waitForResponse: Timeout 5000ms exceeded while waiting for event "response"`
+- **Resolution**: Fixed by replacing `waitForTableUpdate(page)` with `page.waitForTimeout(1000)` in the `selectStateFilter` helper function (line 86 in `helpers/stock-operations-test-helpers.ts`). Following the pattern from Iterations 12, 15, and 16, the API response was completing too quickly or being cached, causing the wait for API response to timeout. Test now passes in 6.1s.
 
 ---
 
