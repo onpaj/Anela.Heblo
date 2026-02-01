@@ -511,10 +511,11 @@
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
 - **Resolution**: Fixed by updating the `openRuleModal` helper function to use Czech button text "Vytvořit pravidlo" instead of German "Regel erstellen", changing modal selector from `div[role="dialog"]` to `h2:has-text("Vytvořit pravidlo klasifikace")`, and updating all form field selectors to match actual modal structure. Changed from `input[name="..."]` selectors to `getByRole()` with Czech labels: "Název pravidla *" (Rule name), "Typ pravidla *" (Rule type), "Vzor *" (Pattern), "Účetní předpis *" (Accounting template), "Oddělení" (Department), "Pravidlo je aktivní" (Active checkbox). Test now passes in 2.6s.
 
-### [ ] should have rule type dropdown with correct options
+### [x] should have rule type dropdown with correct options
 
 - **File**: `core/invoice-classification-history-actions.spec.ts`
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
+- **Resolution**: Fixed by updating selector from `select[name="ruleType"]` to `getByRole('combobox', { name: 'Typ pravidla *' })`, changing expected option text from German "Buchhaltungsvorlage" to Czech options ("Název firmy", "IČO", "Popis faktury"), and adding `page.waitForTimeout(2000)` to wait for options to load asynchronously. The combobox options are loaded via API and initially show "Načítání..." (Loading...) before populating with actual rule types. Test now passes in 5.2s.
 
 ### [ ] should have accounting template dropdown with options
 

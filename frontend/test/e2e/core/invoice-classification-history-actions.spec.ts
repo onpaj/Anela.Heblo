@@ -367,14 +367,20 @@ test.describe('Classification History - Rule Creation Modal', () => {
     await openRuleModal(page);
 
     // Assert - rule type dropdown should have expected options
-    const ruleTypeSelect = page.locator('select[name="ruleType"]');
+    const ruleTypeSelect = page.getByRole('combobox', { name: 'Typ pravidla *' });
     await expect(ruleTypeSelect).toBeVisible();
 
-    // Get all options
+    // Wait for options to load (options are loaded asynchronously)
+    // The combobox initially shows "Načítání..." (Loading...), wait for actual options to be attached
+    await page.waitForTimeout(2000);  // Give time for options to load via API
+
+    // Get all options from the combobox (it's a native <select> element)
     const options = await ruleTypeSelect.locator('option').allTextContents();
 
-    // Should include at least these rule types
-    expect(options).toContain('Buchhaltungsvorlage');
+    // Should include at least these rule types (Czech)
+    expect(options).toContain('Název firmy');  // Company name
+    expect(options).toContain('IČO');  // Tax ID
+    expect(options).toContain('Popis faktury');  // Invoice description
     expect(options.length).toBeGreaterThan(0);
   });
 
