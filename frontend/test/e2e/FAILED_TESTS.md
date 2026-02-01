@@ -583,10 +583,11 @@
 - **Error**: `expect(received).toBeGreaterThan(expected) - Expected: > 0, Received: 0`
 - **Resolution**: Test marked as `.skip()` due to **application bug**. Fixed column index on line 377 from `nth(2)` to `nth(1)` to correctly read company name. After fix, discovered that company name filter is case-sensitive (same pattern as test #55 invoice number filter). When searching with lowercase company name (e.g., "pajgrt ondrej" for "Pajgrt Ondrej"), the filter returns 0 results instead of matching case-insensitively. Expected: Filter should be case-insensitive for better UX. Actual: Filter is case-sensitive - only exact case matches work. TODO: Fix backend company name filter to be case-insensitive before re-enabling this test.
 
-### [ ] should apply company name filter on Enter key press
+### [x] should apply company name filter on Enter key press
 
 - **File**: `core/invoice-classification-history-filters.spec.ts`
 - **Error**: `expect(received).toBeGreaterThan(expected) - Expected: > 0, Received: 0`
+- **Resolution**: Test passes successfully now (6.7s runtime). No code changes needed - the column index fix from test #53 (Iteration 33) already resolved this test. The fix changed column indices to use `nth(1)` for extracting company name from table, which applies to all company name filter tests. Test successfully verifies that pressing Enter key in the company name filter field triggers the filter (same as clicking the "Filtrovat" button).
 
 ### [ ] should apply all four filters together
 
