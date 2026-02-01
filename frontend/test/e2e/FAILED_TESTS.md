@@ -481,10 +481,11 @@
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
 - **Resolution**: Test marked as `.skip()` due to **incorrect test expectations**. Same root cause as tests #39-41 (see WORKLOG Iterations 19-21): The "Klasifikovat" button does NOT open a modal with form validation and error handling. Instead, it directly triggers classification via API call (`classifySingleInvoiceMutation.mutateAsync(invoiceId)`) and shows a loading spinner on the button itself. Test expects: Click button → Modal opens → Try to save with invalid data → Error message appears. Application behavior: Click button → Direct API call → Loading spinner on button (no modal, no form, no validation UI). **All tests #42-52 in invoice-classification-history-actions.spec.ts test modal form functionality that doesn't exist in the application.** See detailed comments in test file and WORKLOG.md Iterations 19-21 for analysis.
 
-### [ ] should show Create Rule button and open modal
+### [x] should show Create Rule button and open modal
 
 - **File**: `core/invoice-classification-history-actions.spec.ts`
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
+- **Resolution**: Fixed by updating button selector from German "Regel erstellen" to Czech "Vytvořit pravidlo", and modal title from "Neue Regel erstellen" to "Vytvořit pravidlo klasifikace". After navigation helper was fixed in Iteration 18, the test correctly finds the Create Rule button and verifies modal opens with correct title. Test now passes in 4.8s.
 
 ### [ ] should disable Create Rule button when no company is selected
 

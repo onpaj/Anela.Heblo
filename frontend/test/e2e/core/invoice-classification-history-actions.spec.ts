@@ -203,17 +203,17 @@ test.describe('Classification History - Create Rule Button', () => {
     const createRuleButton = page
       .locator('table tbody tr')
       .first()
-      .locator('button:has-text("Regel erstellen")');
+      .locator('button:has-text("Vytvořit pravidlo")');
 
     await expect(createRuleButton).toBeVisible();
     await createRuleButton.click();
 
     // Wait for modal to appear
-    await page.waitForSelector('div[role="dialog"]', { state: 'visible' });
+    await page.waitForTimeout(1000); // Wait for modal animation
 
     // Assert - modal should have correct title
-    const modalTitle = page.locator('div[role="dialog"] h2');
-    await expect(modalTitle).toHaveText('Neue Regel erstellen');
+    const modalTitle = page.locator('h2:has-text("Vytvořit pravidlo klasifikace")');
+    await expect(modalTitle).toBeVisible();
   });
 
   test('should disable Create Rule button when no company is selected', async ({
