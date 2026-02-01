@@ -33,7 +33,7 @@ test.describe('Classification History - Classify Invoice Button', () => {
     const classifyButton = page
       .locator('table tbody tr')
       .first()
-      .locator('button:has-text("Klassifizieren")');
+      .locator('button:has-text("Klasifikovat")');
 
     // Assert
     await expect(classifyButton).toBeVisible();

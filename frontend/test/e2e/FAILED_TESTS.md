@@ -451,10 +451,11 @@
 
 ## Core Module (25 failed)
 
-### [ ] should show Classify Invoice button in action column
+### [x] should show Classify Invoice button in action column
 
 - **File**: `core/invoice-classification-history-actions.spec.ts`
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
+- **Resolution**: Fixed by adding missing helper functions to `classification-history-helpers.ts`. Added `navigateToClassificationHistory()` (wrapper for `navigateToInvoiceClassification`), updated `waitForClassificationHistoryLoaded()` to wait for table rows to load (not just table element), and added all missing modal/action helper functions (`clickFirstRowClassifyButton`, `openClassifyInvoiceModal`, `getClassifyInvoiceModalTitle`, `clickClassifyInvoiceCancel`, `clickClassifyInvoiceSave`, `selectClassificationRuleType`, `selectClassificationAccountingTemplate`, `selectClassificationDepartment`, `fillClassificationDescription`). Also fixed test button text from "Klassifizieren" (German) to "Klasifikovat" (Czech) to match actual application language. Test now passes in 4.1s.
 
 ### [ ] should show loading state when classifying invoice
 
