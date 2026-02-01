@@ -459,26 +459,44 @@ test.describe('Classification History - Rule Creation Modal', () => {
     await openRuleModal(page);
 
     // Fill all required fields
-    const companyNameInput = page.locator('input[name="companyName"]');
-    await companyNameInput.fill('Test Company E2E');
+    // Note: Rule name field (Název pravidla *) - required
+    const ruleNameInput = page.getByRole('textbox', {
+      name: 'Název pravidla *',
+    });
+    await ruleNameInput.fill('E2E Test Rule');
 
-    const ruleTypeSelect = page.locator('select[name="ruleType"]');
+    // Note: Rule type field (Typ pravidla *) - required
+    const ruleTypeSelect = page.getByRole('combobox', {
+      name: 'Typ pravidla *',
+    });
+    await page.waitForTimeout(2000); // Wait for options to load async
     await ruleTypeSelect.selectOption({ index: 1 }); // Select first non-placeholder option
 
-    const accountingTemplateSelect = page.locator(
-      'select[name="accountingTemplate"]'
+    // Note: Pattern field (Vzor *) - required (where company name gets prefilled)
+    const patternInput = page.getByPlaceholder(
+      'např. Regex nebo text v názvu firmy'
     );
+    await patternInput.fill('Test Company E2E');
+
+    // Note: Accounting template field (Účetní předpis *) - required
+    const accountingTemplateSelect = page.getByRole('combobox', {
+      name: 'Účetní předpis *',
+    });
+    await page.waitForTimeout(2000); // Wait for options to load async
     await accountingTemplateSelect.selectOption({ index: 1 });
 
-    const descriptionTextarea = page.locator('textarea[name="description"]');
-    await descriptionTextarea.fill('E2E test rule description');
-
     // Assert - save button should be enabled
-    const saveButton = page.locator('button:has-text("Speichern")');
+    // Note: Changed from German "Speichern" to Czech "Vytvořit"
+    const cancelButton = page.getByRole('button', {
+      name: 'Zrušit',
+      exact: true,
+    });
+    const saveButton = page
+      .getByRole('button', { name: 'Vytvořit', exact: true })
+      .filter({ near: cancelButton });
     await expect(saveButton).toBeEnabled();
 
     // Clean up - close modal without saving
-    const cancelButton = page.locator('button:has-text("Abbrechen")');
     await cancelButton.click();
   });
 });

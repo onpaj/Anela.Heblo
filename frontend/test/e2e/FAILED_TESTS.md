@@ -535,10 +535,11 @@
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
 - **Resolution**: Test marked as `.skip()` due to **application bug**. After fixing navigation helper (Iteration 18) and button selectors (German → Czech), discovered that the "Vytvořit" (Create) button in the rule creation modal remains ENABLED even when required fields are empty. Expected: Button should be disabled when required fields (Název pravidla, Typ pravidla, Vzor, Účetní předpis) are not filled. Actual: Button has `disabled:opacity-50` class but is not actually disabled. Form validation appears to be missing on client side - proper UX would disable submit button for incomplete forms. See detailed comment in test file explaining the bug and TODO for implementing client-side form validation in RuleForm component.
 
-### [ ] should enable save button when all required fields are filled
+### [x] should enable save button when all required fields are filled
 
 - **File**: `core/invoice-classification-history-actions.spec.ts`
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
+- **Resolution**: Fixed by updating all form field selectors from HTML `name` attributes to accessible role-based selectors with Czech labels. Changed `input[name="companyName"]` to rule name textbox (`Název pravidla *`), pattern textbox with placeholder, rule type combobox (`Typ pravidla *`), and accounting template combobox (`Účetní předpis *`). Also updated button selectors from German ("Speichern") to Czech ("Vytvořit") and added `page.waitForTimeout(2000)` for async option loading. Following the same pattern from tests #47-50 (Iterations 27-29), the modal doesn't use HTML `name` attributes - instead uses accessible role labels. Test now passes in 7.7s.
 
 ### [ ] should filter by exact invoice number match
 
