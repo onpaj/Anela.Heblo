@@ -23,6 +23,11 @@ on:
           - 'firefox'
           - 'webkit'
           - 'all'
+      enable_parallel:
+        description: 'Enable parallel execution across modules (may cause timeouts under heavy load)'
+        required: false
+        default: false
+        type: boolean
 
 env:
   STAGING_URL: https://heblo.stg.anela.cz
@@ -98,7 +103,7 @@ jobs:
           echo "🔗 **Staging URL:** ${{ env.STAGING_URL }}" >> $GITHUB_STEP_SUMMARY
           echo "🕐 **Validated at:** $(date)" >> $GITHUB_STEP_SUMMARY
 
-  # Run E2E tests against staging with parallel module execution
+  # Run E2E tests against staging with optional parallel module execution
   run-e2e-tests:
     name: 🎭 Run E2E Tests (${{ matrix.module }})
     runs-on: ubuntu-latest
@@ -106,15 +111,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module:
-          - catalog
-          - issued-invoices
-          - stock-operations
-          - transport
-          - manufacturing
-          - core
+        # Conditional matrix: parallel mode runs modules separately, sequential mode runs all at once
+        module: ${{ fromJSON(github.event.inputs.enable_parallel == 'true' && '["catalog", "issued-invoices", "stock-operations", "transport", "manufacturing", "core"]' || '["all"]') }}
 
     steps:
+      - name: ℹ️ Test execution mode
+        run: |
+          if [ "${{ matrix.module }}" = "all" ]; then
+            echo "🔄 Mode: Sequential execution (all tests, 1 worker)"
+            echo "⚠️  Parallel execution is DISABLED to prevent staging environment timeouts"
+          else
+            echo "⚡ Mode: Parallel execution (module: ${{ matrix.module }})"
+            echo "✅ Parallel execution is ENABLED"
+          fi
+
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
@@ -138,10 +148,17 @@ jobs:
       - name: 📂 List E2E test files for module
         working-directory: ./frontend
         run: |
-          echo "🔍 Test files in module '${{ matrix.module }}':"
-          find test/e2e/${{ matrix.module }} -name "*.spec.ts" -type f | sort
-          echo ""
-          echo "📊 Test count: $(find test/e2e/${{ matrix.module }} -name "*.spec.ts" -type f | wc -l)"
+          if [ "${{ matrix.module }}" = "all" ]; then
+            echo "🔍 Running ALL E2E tests (sequential mode):"
+            find test/e2e -name "*.spec.ts" -type f ! -path "*/helpers/*" ! -path "*/fixtures/*" | sort
+            echo ""
+            echo "📊 Total test count: $(find test/e2e -name "*.spec.ts" -type f ! -path "*/helpers/*" ! -path "*/fixtures/*" | wc -l)"
+          else
+            echo "🔍 Test files in module '${{ matrix.module }}':"
+            find test/e2e/${{ matrix.module }} -name "*.spec.ts" -type f | sort
+            echo ""
+            echo "📊 Test count: $(find test/e2e/${{ matrix.module }} -name "*.spec.ts" -type f | wc -l)"
+          fi
 
       - name: 🔐 Validate Azure credentials
         working-directory: ./frontend
@@ -158,8 +175,15 @@ jobs:
         working-directory: ./frontend
         continue-on-error: true
         run: |
-          # Run tests for specific module
-          npx playwright test --project=${{ matrix.module }}
+          if [ "${{ matrix.module }}" = "all" ]; then
+            echo "🏃 Running ALL E2E tests sequentially (no workers)..."
+            # Run all tests with 1 worker to avoid parallel execution
+            npx playwright test --workers=1
+          else
+            echo "🏃 Running tests for module: ${{ matrix.module }}..."
+            # Run tests for specific module
+            npx playwright test --project=${{ matrix.module }}
+          fi
         env:
           PLAYWRIGHT_BASE_URL: ${{ env.STAGING_URL }}
           CI: true
