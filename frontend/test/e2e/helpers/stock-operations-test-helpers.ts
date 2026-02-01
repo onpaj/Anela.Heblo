@@ -204,7 +204,12 @@ export async function validateStuckWarning(page: Page, rowIndex: number = 0): Pr
  */
 export async function sortByColumn(page: Page, columnName: string): Promise<void> {
   console.log(`📊 Sorting by column: ${columnName}`);
-  const header = page.getByRole('columnheader', { name: new RegExp(columnName, 'i') });
+  // Stock Operations table structure: table has 2 <tbody> elements
+  // First <tbody> = header row (cells are clickable)
+  // Second <tbody> = data rows
+  // Simple approach: find any td with matching text and click it
+  // The column headers will be the first match since they come before data rows
+  const header = page.locator('table').getByText(columnName, { exact: true }).first();
   await header.click();
   await waitForTableUpdate(page);
   console.log('✅ Column sort applied');
@@ -214,7 +219,8 @@ export async function sortByColumn(page: Page, columnName: string): Promise<void
  * Get sort icon for a column (ChevronUp or ChevronDown)
  */
 export async function getSortIcon(page: Page, columnName: string): Promise<string | null> {
-  const header = page.getByRole('columnheader', { name: new RegExp(columnName, 'i') });
+  // Stock Operations table: first <tbody> = headers
+  const header = page.locator('table tbody').first().locator('td').filter({ hasText: columnName });
 
   // Check for presence of chevron icons - look for common SVG class patterns
   const hasChevronDown = await header.locator('svg').count() > 0;
