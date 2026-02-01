@@ -97,7 +97,7 @@ export async function selectSourceType(
   console.log(`🔍 Selecting source type: ${type}`);
   const radio = getSourceTypeRadio(page, type);
   await radio.click();
-  await waitForTableUpdate(page);
+  await page.waitForTimeout(1000);
   console.log('✅ Source type filter applied');
 }
 
