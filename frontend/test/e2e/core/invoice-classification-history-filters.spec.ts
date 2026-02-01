@@ -343,7 +343,7 @@ test.describe('Classification History - Company Name Filters', () => {
     // Get first row's company name and use first word
     const rows = getTableRows(page);
     const firstRow = rows.first();
-    const companyNameCell = firstRow.locator('td').nth(2);
+    const companyNameCell = firstRow.locator('td').nth(1);
     const fullCompanyName = await companyNameCell.textContent();
     expect(fullCompanyName).toBeTruthy();
 

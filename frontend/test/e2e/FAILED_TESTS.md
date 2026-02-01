@@ -571,10 +571,11 @@
 - **Error**: `expect(received).toBeGreaterThan(expected) - Expected: > 0, Received: 0`
 - **Resolution**: Test passes successfully now (5.4s runtime). No code changes needed - the column index fix from test #53 (Iteration 33) already resolved this test. The fix updated company name column index from `nth(2)` to `nth(1)` to match actual table structure. Test successfully verifies exact company name filtering.
 
-### [ ] should filter by partial company name match
+### [x] should filter by partial company name match
 
 - **File**: `core/invoice-classification-history-filters.spec.ts`
 - **Error**: `expect(received).toBeGreaterThan(expected) - Expected: > 0, Received: 0`
+- **Resolution**: Test passes successfully now (4.8s runtime). Fixed column index on line 346 from `nth(2)` to `nth(1)` to correctly extract company name from table. The test was reading from Description column (column 2) instead of Company Name column (column 1). This follows the same column structure fix pattern from test #53 (Iteration 33). Test successfully verifies partial company name filtering (e.g., first word of company name matches all results).
 
 ### [ ] should be case-insensitive for company name search
 
