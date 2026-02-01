@@ -146,7 +146,16 @@ test.describe('Classification History - Classify Invoice Button', () => {
     // (Implementation depends on actual behavior)
   });
 
-  test('should handle classification errors gracefully', async ({ page }) => {
+  test.skip('should handle classification errors gracefully', async ({ page }) => {
+    // SKIPPED: Modal form functionality doesn't exist in the application
+    // The "Klasifikovat" button does NOT open a modal with form validation and error handling.
+    // Instead, it directly triggers classification via API call: classifySingleInvoiceMutation.mutateAsync(invoiceId)
+    // Application behavior: Click button → Direct API call → Loading spinner on button (no modal, no form, no validation UI)
+    // Test expects: Click button → Modal opens → Try to save with invalid data → Error message appears
+    // See WORKLOG.md Iterations 19-21 for detailed analysis of this systematic issue.
+    // All tests #39-52 in this file test modal form functionality that doesn't exist.
+    // TODO: Remove test or rewrite to test actual API error handling behavior (e.g., API returns error, toast notification appears)
+
     // Arrange
     const rowCount = await getRowCount(page);
     if (rowCount === 0) {
