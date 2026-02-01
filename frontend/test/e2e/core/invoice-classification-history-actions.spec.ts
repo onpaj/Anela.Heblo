@@ -391,10 +391,13 @@ test.describe('Classification History - Rule Creation Modal', () => {
     await openRuleModal(page);
 
     // Assert - accounting template dropdown should be visible
-    const accountingTemplateSelect = page.locator(
-      'select[name="accountingTemplate"]'
-    );
+    const accountingTemplateSelect = page.getByRole('combobox', {
+      name: 'Účetní předpis *',
+    });
     await expect(accountingTemplateSelect).toBeVisible();
+
+    // Wait for options to load asynchronously
+    await page.waitForTimeout(2000);
 
     // Should have at least a placeholder option
     const options = await accountingTemplateSelect

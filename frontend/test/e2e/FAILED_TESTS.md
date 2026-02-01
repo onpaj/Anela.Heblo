@@ -517,10 +517,11 @@
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
 - **Resolution**: Fixed by updating selector from `select[name="ruleType"]` to `getByRole('combobox', { name: 'Typ pravidla *' })`, changing expected option text from German "Buchhaltungsvorlage" to Czech options ("Název firmy", "IČO", "Popis faktury"), and adding `page.waitForTimeout(2000)` to wait for options to load asynchronously. The combobox options are loaded via API and initially show "Načítání..." (Loading...) before populating with actual rule types. Test now passes in 5.2s.
 
-### [ ] should have accounting template dropdown with options
+### [x] should have accounting template dropdown with options
 
 - **File**: `core/invoice-classification-history-actions.spec.ts`
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
+- **Resolution**: Fixed by updating selector from `select[name="accountingTemplate"]` to `getByRole('combobox', { name: 'Účetní předpis *' })` and adding `page.waitForTimeout(2000)` to wait for options to load asynchronously. Following the same pattern from test #48 (Iteration 28), the form modal doesn't use HTML `name` attributes - instead uses accessible role-based selectors with Czech labels. Test now passes in 5.0s.
 
 ### [ ] should have department dropdown with options
 
