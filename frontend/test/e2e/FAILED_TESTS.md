@@ -377,10 +377,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Fixed by updating checkbox selector from `page.locator('input[type="checkbox"]').filter({ hasText: "Nesync" })` to `page.getByRole('checkbox', { name: 'Nesync' })`, and correcting test expectations. The "Nesync" filter actually shows invoices with sync errors ("Chyba" status), not pending invoices ("Čeká"). Updated test to look for "Chyba" badge instead of "Čeká" badge when "Nesync" filter is applied. Test now passes in 4.5s.
 
-### [ ] 27: Status badge displays correctly for 'Chyba' (Error)
+### [x] 27: Status badge displays correctly for 'Chyba' (Error)
 
 - **File**: `issued-invoices/status-badges.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Test passes successfully now (3.1s runtime). No code changes needed - the navigation issue was already fixed in previous iterations when `navigateToIssuedInvoices` helper was updated to use `waitForLoadingComplete()` instead of `waitForPageLoad()`. The checkbox selector was already correct (`page.getByRole('checkbox', { name: 'Chyby' })`), matching the fix pattern from test #26 (Iteration 7).
 
 ### [ ] 28: Status badge displays correctly for 'Odesláno' (Sent)
 
