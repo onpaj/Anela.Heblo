@@ -335,10 +335,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Fixed by updating table header text from "ID faktury" to "Číslo faktury" (the actual column header name) and replacing `waitForLoadingComplete()` with `page.waitForTimeout(1000)`. Also proactively fixed column indices for Customer (nth(2) instead of nth(1)) and Date (nth(1) instead of nth(2)) columns in tests 14-17 to match actual table structure (columns: Invoice Number, Date, Customer, Amount, Currency, Status, Last Sync). Test now passes in 10.3s.
 
-### [ ] 13: Sort by Invoice ID descending
+### [x] 13: Sort by Invoice ID descending
 
 - **File**: `issued-invoices/sorting.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Test passes successfully now (6.5s runtime). No code changes needed - the navigation issue was already fixed in previous iterations when `navigateToIssuedInvoices` helper was updated to use `waitForLoadingComplete()` instead of `waitForPageLoad()`. Test successfully sorts invoices by ID in descending order (double-click on header) and verifies data is displayed.
 
 ### [ ] 14: Sort by Customer Name ascending
 
