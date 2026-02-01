@@ -231,7 +231,7 @@ test.describe('Classification History - Create Rule Button', () => {
     // (This test assumes some rows might not have company data)
     const firstRow = page.locator('table tbody tr').first();
     const createRuleButton = firstRow.locator(
-      'button:has-text("Regel erstellen")'
+      'button:has-text("Vytvořit pravidlo")'
     );
 
     // Assert - button should be visible

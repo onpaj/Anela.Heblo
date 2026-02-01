@@ -487,10 +487,11 @@
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
 - **Resolution**: Fixed by updating button selector from German "Regel erstellen" to Czech "Vytvořit pravidlo", and modal title from "Neue Regel erstellen" to "Vytvořit pravidlo klasifikace". After navigation helper was fixed in Iteration 18, the test correctly finds the Create Rule button and verifies modal opens with correct title. Test now passes in 4.8s.
 
-### [ ] should disable Create Rule button when no company is selected
+### [x] should disable Create Rule button when no company is selected
 
 - **File**: `core/invoice-classification-history-actions.spec.ts`
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
+- **Resolution**: Fixed by updating button selector from German "Regel erstellen" to Czech "Vytvořit pravidlo" (line 234). After navigation helper was fixed in Iteration 18, the test correctly progresses to finding the Create Rule button. Following the same pattern from test #43 (Iteration 23), updated the button text to match actual application language. Test now passes in 5.1s.
 
 ### [ ] should prefill company name when opening rule creation modal
 
