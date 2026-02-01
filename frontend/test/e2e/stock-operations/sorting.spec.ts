@@ -58,6 +58,9 @@ test.describe('Stock Operations - Column Sorting', () => {
   test('should sort by Document Number column', async ({ page }) => {
     console.log('🧪 Testing: Sort by Document Number column');
 
+    // Select "All" state to get more data for testing
+    await selectStateFilter(page, 'All');
+
     const rowCount = await getRowCount(page);
 
     if (rowCount > 1) {

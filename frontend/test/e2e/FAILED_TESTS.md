@@ -417,10 +417,11 @@
 - **Error**: `TimeoutError: locator.click: Timeout 30000ms exceeded - waiting for getByRole('columnheader', { name: /ID/i })`
 - **Resolution**: Fixed by updating `sortByColumn` helper to use `page.locator('table').getByText(columnName, { exact: true }).first()` instead of complex tbody selectors. Stock Operations table has unique structure with TWO `<tbody>` elements (first = headers, second = data rows). Also added `selectStateFilter(page, 'All')` to ensure test data is available, and removed chevron visibility checks. Test now passes in 5.0s, successfully verifying ascending/descending sort toggle (IDs: 56,55 → 1,2).
 
-### [ ] should sort by Document Number column
+### [x] should sort by Document Number column
 
 - **File**: `stock-operations/sorting.spec.ts`
 - **Error**: `TimeoutError: locator.click: Timeout 30000ms exceeded - waiting for getByRole('columnheader', { name: /Číslo dokladu/i })`
+- **Resolution**: Fixed by adding `selectStateFilter(page, 'All')` to ensure test data is available (following the same pattern from test #32 fix in Iteration 13). Without the state filter, test was passing with default "Active" state but skipping actual sorting logic due to insufficient data (rowCount <= 1). With "All" state filter, test now has enough data to execute sorting and verify document numbers are displayed after sort. Test now passes in 7.0s.
 
 ### [ ] should filter by "All" source types (default)
 
