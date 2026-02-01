@@ -541,10 +541,11 @@
 - **Error**: `TypeError: (0, _classificationHistoryHelpers.navigateToClassificationHistory) is not a function`
 - **Resolution**: Fixed by updating all form field selectors from HTML `name` attributes to accessible role-based selectors with Czech labels. Changed `input[name="companyName"]` to rule name textbox (`Název pravidla *`), pattern textbox with placeholder, rule type combobox (`Typ pravidla *`), and accounting template combobox (`Účetní předpis *`). Also updated button selectors from German ("Speichern") to Czech ("Vytvořit") and added `page.waitForTimeout(2000)` for async option loading. Following the same pattern from tests #47-50 (Iterations 27-29), the modal doesn't use HTML `name` attributes - instead uses accessible role labels. Test now passes in 7.7s.
 
-### [ ] should filter by exact invoice number match
+### [x] should filter by exact invoice number match
 
 - **File**: `core/invoice-classification-history-filters.spec.ts`
 - **Error**: `expect(received).toBeGreaterThan(expected) - Expected: > 0, Received: 0`
+- **Resolution**: Fixed by correcting column indices and extracting only the invoice number from the combined cell. Column 0 contains both invoice number (first div) and date (second div). Updated test to use `nth(0).locator('div').first()` instead of `nth(1)` to get the invoice number. Also fixed tests #54-56 (invoice number filters) and #57-61 (company name filters and combined filters) which had similar column index issues. Test now passes in 4.6s.
 
 ### [ ] should filter by partial invoice number match
 
