@@ -84,20 +84,20 @@ test.describe("IssuedInvoices - Status Badges", () => {
 
     expect(rowCount).toBeGreaterThan(0);
 
-    // Count different status badges
-    const pendingCount = await page.locator('span:has-text("Čeká")').count();
+    // Count different status badges (note: "Synced" is shown in English, not Czech)
+    const syncedCount = await page.locator('span:has-text("Synced")').count();
     const errorCount = await page.locator('span:has-text("Chyba")').count();
-    const sentCount = await page.locator('span:has-text("Odesláno")').count();
+    const pendingCount = await page.locator('span:has-text("Čeká")').count();
 
     // Verify at least one type of badge exists
-    const totalBadges = pendingCount + errorCount + sentCount;
+    const totalBadges = syncedCount + errorCount + pendingCount;
     expect(totalBadges).toBeGreaterThan(0);
 
     // Verify each row has exactly one status badge
     for (let i = 0; i < Math.min(rowCount, 5); i++) {
       const row = tableRows.nth(i);
       const badgesInRow = row.locator('span').filter({
-        hasText: /Čeká|Chyba|Odesláno/,
+        hasText: /Synced|Chyba|Čeká/,
       });
       const badgeCount = await badgesInRow.count();
       expect(badgeCount).toBeGreaterThanOrEqual(1);

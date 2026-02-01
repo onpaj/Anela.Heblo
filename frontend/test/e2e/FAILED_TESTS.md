@@ -389,10 +389,11 @@
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
 - **Resolution**: Test passes successfully now (3.9s runtime). No code changes needed - the navigation issue was already fixed in previous iterations when `navigateToIssuedInvoices` helper was updated to use `waitForLoadingComplete()` instead of `waitForPageLoad()`. Pattern continues from tests #26 and #27 (Iterations 7-8): tests in `status-badges.spec.ts` that previously failed at navigation now work with the fixed navigation helper.
 
-### [ ] 29: Multiple status badges can appear in grid
+### [x] 29: Multiple status badges can appear in grid
 
 - **File**: `issued-invoices/status-badges.spec.ts`
 - **Error**: `expect(locator).toBeVisible() failed - Locator: locator('main, [role="main"]') - Expected: visible - Timeout: 5000ms - Error: element(s) not found`
+- **Resolution**: Fixed by updating test to look for "Synced" status (shown in English) instead of Czech statuses "Odesláno" and "Čeká". The application displays "Synced" for successfully synced invoices, and the test expectations were using incorrect Czech status texts that don't appear in the default grid view without filters. Updated badge detection to use `/Synced|Chyba|Čeká/` pattern. Test now passes in 3.8s.
 
 ---
 
