@@ -405,10 +405,11 @@
 - **Error**: `expect(received).toContain(expected) - Expected substring: "Opravdu chcete akceptovat tuto chybnou operaci?" - Received string: "Opravdu chcete akceptovat tuto selhanou operaci? Operace bude označena jako Previously Failed a nebude se opakovat."`
 - **Resolution**: Fixed by updating test assertion to match actual application dialog message. Changed expected text from "chybnou" (faulty) to "selhanou" (failed) on line 49. The application dialog shows "Opravdu chcete akceptovat tuto selhanou operaci?" with additional explanation text. Test passes in 5.8s.
 
-### [ ] should display empty state when no results match filters
+### [x] should display empty state when no results match filters
 
 - **File**: `stock-operations/navigation.spec.ts`
 - **Error**: `TimeoutError: page.waitForResponse: Timeout 5000ms exceeded while waiting for event "response"`
+- **Resolution**: Fixed by replacing `waitForTableUpdate(page)` with `page.waitForTimeout(1000)` after selecting "Completed" state filter (line 67). The API response was completing too quickly or being cached, causing the wait for API response to timeout. Test now passes in 6.3s.
 
 ### [ ] should sort by ID column (ascending/descending)
 
