@@ -108,7 +108,12 @@ export async function applyFilters(page: Page): Promise<void> {
   console.log('🔍 Applying filters');
   const button = getApplyFiltersButton(page);
   await button.click();
-  await waitForTableUpdate(page);
+
+  // Wait for loading to complete (UI-based, more reliable than API response)
+  await waitForLoadingComplete(page, { timeout: 30000 });
+
+  // Small additional wait for table to stabilize
+  await page.waitForTimeout(500);
   console.log('✅ Filters applied');
 }
 
@@ -119,7 +124,12 @@ export async function clearFilters(page: Page): Promise<void> {
   console.log('🧹 Clearing all filters');
   const button = getClearFiltersButton(page);
   await button.click();
-  await waitForTableUpdate(page);
+
+  // Wait for loading to complete (UI-based, more reliable than API response)
+  await waitForLoadingComplete(page, { timeout: 30000 });
+
+  // Small additional wait for table to stabilize
+  await page.waitForTimeout(500);
   console.log('✅ Filters cleared');
 }
 
@@ -204,6 +214,7 @@ export async function validateStuckWarning(page: Page, rowIndex: number = 0): Pr
  */
 export async function sortByColumn(page: Page, columnName: string): Promise<void> {
   console.log(`📊 Sorting by column: ${columnName}`);
+
   // Stock Operations table structure: table has 2 <tbody> elements
   // First <tbody> = header row (cells are clickable)
   // Second <tbody> = data rows
@@ -211,7 +222,12 @@ export async function sortByColumn(page: Page, columnName: string): Promise<void
   // The column headers will be the first match since they come before data rows
   const header = page.locator('table').getByText(columnName, { exact: true }).first();
   await header.click();
-  await waitForTableUpdate(page);
+
+  // Wait for loading to complete (UI-based, more reliable than API response)
+  await waitForLoadingComplete(page, { timeout: 30000 });
+
+  // Small additional wait for table to stabilize
+  await page.waitForTimeout(500);
   console.log('✅ Column sort applied');
 }
 
