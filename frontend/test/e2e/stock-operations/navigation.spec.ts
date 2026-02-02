@@ -64,7 +64,7 @@ test.describe('Stock Operations - Navigation & Initial Load', () => {
     // that likely won't match any data
     const stateSelect = page.locator('select').first();
     await stateSelect.selectOption({ label: 'Completed' });
-    await waitForTableUpdate(page);
+    await page.waitForTimeout(1000);
 
     const rowCount = await getRowCount(page);
 

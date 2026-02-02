@@ -46,7 +46,7 @@ test.describe('Stock Operations - Accept Failed Operations', () => {
       page.once('dialog', async dialog => {
         dialogShown = true;
         console.log(`   📝 Dialog message: "${dialog.message()}"`);
-        expect(dialog.message()).toContain('Opravdu chcete akceptovat tuto chybnou operaci?');
+        expect(dialog.message()).toContain('Opravdu chcete akceptovat tuto selhanou operaci?');
         await dialog.dismiss();
         console.log('   ✅ Dialog cancelled');
       });

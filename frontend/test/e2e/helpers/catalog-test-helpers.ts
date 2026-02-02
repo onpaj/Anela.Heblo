@@ -65,7 +65,12 @@ export async function applyProductNameFilter(page: Page, name: string): Promise<
   await input.fill(name);
   const filterButton = getFilterButton(page);
   await filterButton.click();
-  await waitForSearchResults(page, { endpoint: '/api/catalog' });
+
+  // Wait for loading to complete (UI-based, more reliable than API response)
+  await waitForLoadingComplete(page, { timeout: 30000 });
+
+  // Small additional wait for table to stabilize
+  await page.waitForTimeout(500);
   console.log('✅ Product name filter applied');
 }
 
@@ -77,7 +82,12 @@ export async function applyProductNameFilterWithEnter(page: Page, name: string):
   const input = getProductNameInput(page);
   await input.fill(name);
   await input.press('Enter');
-  await waitForSearchResults(page, { endpoint: '/api/catalog' });
+
+  // Wait for loading to complete (UI-based, more reliable than API response)
+  await waitForLoadingComplete(page, { timeout: 30000 });
+
+  // Small additional wait for table to stabilize
+  await page.waitForTimeout(500);
   console.log('✅ Product name filter applied with Enter');
 }
 
@@ -90,7 +100,12 @@ export async function applyProductCodeFilter(page: Page, code: string): Promise<
   await input.fill(code);
   const filterButton = getFilterButton(page);
   await filterButton.click();
-  await waitForSearchResults(page, { endpoint: '/api/catalog' });
+
+  // Wait for loading to complete (UI-based, more reliable than API response)
+  await waitForLoadingComplete(page, { timeout: 30000 });
+
+  // Small additional wait for table to stabilize
+  await page.waitForTimeout(500);
   console.log('✅ Product code filter applied');
 }
 
@@ -102,7 +117,12 @@ export async function applyProductCodeFilterWithEnter(page: Page, code: string):
   const input = getProductCodeInput(page);
   await input.fill(code);
   await input.press('Enter');
-  await waitForSearchResults(page, { endpoint: '/api/catalog' });
+
+  // Wait for loading to complete (UI-based, more reliable than API response)
+  await waitForLoadingComplete(page, { timeout: 30000 });
+
+  // Small additional wait for table to stabilize
+  await page.waitForTimeout(500);
   console.log('✅ Product code filter applied with Enter');
 }
 
@@ -113,7 +133,12 @@ export async function selectProductType(page: Page, type: string): Promise<void>
   console.log(`🔽 Selecting product type: "${type}"`);
   const select = getProductTypeSelect(page);
   await select.selectOption({ label: type });
-  await waitForSearchResults(page, { endpoint: '/api/catalog' });
+
+  // Wait for loading to complete (UI-based, more reliable than API response)
+  await waitForLoadingComplete(page, { timeout: 30000 });
+
+  // Small additional wait for table to stabilize
+  await page.waitForTimeout(500);
   console.log('✅ Product type filter applied');
 }
 
@@ -124,7 +149,12 @@ export async function clearAllFilters(page: Page): Promise<void> {
   console.log('🔄 Clearing all filters');
   const clearButton = getClearButton(page);
   await clearButton.click();
-  await waitForSearchResults(page, { endpoint: '/api/catalog' });
+
+  // Wait for loading to complete (UI-based, more reliable than API response)
+  await waitForLoadingComplete(page, { timeout: 30000 });
+
+  // Small additional wait for table to stabilize
+  await page.waitForTimeout(500);
   console.log('✅ All filters cleared');
 }
 

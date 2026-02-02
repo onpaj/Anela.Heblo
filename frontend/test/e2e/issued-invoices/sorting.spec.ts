@@ -14,11 +14,11 @@ test.describe("IssuedInvoices - Sorting Functionality", () => {
 
   test("12: Sort by Invoice ID ascending", async ({ page }) => {
     const tableRows = page.locator("tbody tr");
-    const sortHeader = page.locator('th:has-text("ID faktury")');
+    const sortHeader = page.locator('th:has-text("Číslo faktury")');
 
     // Click to sort ascending
     await sortHeader.click();
-    await waitForLoadingComplete(page);
+    await page.waitForTimeout(1000);
 
     // Get first two invoice IDs
     const firstRowId = await tableRows.first().locator("td").first().textContent();
@@ -31,13 +31,13 @@ test.describe("IssuedInvoices - Sorting Functionality", () => {
 
   test("13: Sort by Invoice ID descending", async ({ page }) => {
     const tableRows = page.locator("tbody tr");
-    const sortHeader = page.locator('th:has-text("ID faktury")');
+    const sortHeader = page.locator('th:has-text("Číslo faktury")');
 
     // Click twice to sort descending
     await sortHeader.click();
-    await waitForLoadingComplete(page);
+    await page.waitForTimeout(1000);
     await sortHeader.click();
-    await waitForLoadingComplete(page);
+    await page.waitForTimeout(1000);
 
     // Get first two invoice IDs
     const firstRowId = await tableRows.first().locator("td").first().textContent();
@@ -50,15 +50,15 @@ test.describe("IssuedInvoices - Sorting Functionality", () => {
 
   test("14: Sort by Customer Name ascending", async ({ page }) => {
     const tableRows = page.locator("tbody tr");
-    const sortHeader = page.locator('th:has-text("Název zákazníka")');
+    const sortHeader = page.locator('th:has-text("Zákazník")');
 
     // Click to sort ascending
     await sortHeader.click();
-    await waitForLoadingComplete(page);
+    await page.waitForTimeout(1000);
 
     // Get first two customer names
-    const firstRowName = await tableRows.first().locator("td").nth(1).textContent();
-    const secondRowName = await tableRows.nth(1).locator("td").nth(1).textContent();
+    const firstRowName = await tableRows.first().locator("td").nth(2).textContent();
+    const secondRowName = await tableRows.nth(1).locator("td").nth(2).textContent();
 
     // Verify names are present
     expect(firstRowName).toBeTruthy();
@@ -67,17 +67,17 @@ test.describe("IssuedInvoices - Sorting Functionality", () => {
 
   test("15: Sort by Customer Name descending", async ({ page }) => {
     const tableRows = page.locator("tbody tr");
-    const sortHeader = page.locator('th:has-text("Název zákazníka")');
+    const sortHeader = page.locator('th:has-text("Zákazník")');
 
     // Click twice to sort descending
     await sortHeader.click();
-    await waitForLoadingComplete(page);
+    await page.waitForTimeout(1000);
     await sortHeader.click();
-    await waitForLoadingComplete(page);
+    await page.waitForTimeout(1000);
 
     // Get first two customer names
-    const firstRowName = await tableRows.first().locator("td").nth(1).textContent();
-    const secondRowName = await tableRows.nth(1).locator("td").nth(1).textContent();
+    const firstRowName = await tableRows.first().locator("td").nth(2).textContent();
+    const secondRowName = await tableRows.nth(1).locator("td").nth(2).textContent();
 
     // Verify names are present
     expect(firstRowName).toBeTruthy();
@@ -86,15 +86,15 @@ test.describe("IssuedInvoices - Sorting Functionality", () => {
 
   test("16: Sort by Invoice Date ascending", async ({ page }) => {
     const tableRows = page.locator("tbody tr");
-    const sortHeader = page.locator('th:has-text("Datum vystavení")');
+    const sortHeader = page.locator('th:has-text("Datum faktury")');
 
     // Click to sort ascending
     await sortHeader.click();
-    await waitForLoadingComplete(page);
+    await page.waitForTimeout(1000);
 
     // Get first two dates
-    const firstRowDate = await tableRows.first().locator("td").nth(2).textContent();
-    const secondRowDate = await tableRows.nth(1).locator("td").nth(2).textContent();
+    const firstRowDate = await tableRows.first().locator("td").nth(1).textContent();
+    const secondRowDate = await tableRows.nth(1).locator("td").nth(1).textContent();
 
     // Verify dates are present
     expect(firstRowDate).toBeTruthy();
@@ -103,17 +103,17 @@ test.describe("IssuedInvoices - Sorting Functionality", () => {
 
   test("17: Sort by Invoice Date descending", async ({ page }) => {
     const tableRows = page.locator("tbody tr");
-    const sortHeader = page.locator('th:has-text("Datum vystavení")');
+    const sortHeader = page.locator('th:has-text("Datum faktury")');
 
     // Click twice to sort descending
     await sortHeader.click();
-    await waitForLoadingComplete(page);
+    await page.waitForTimeout(1000);
     await sortHeader.click();
-    await waitForLoadingComplete(page);
+    await page.waitForTimeout(1000);
 
     // Get first two dates
-    const firstRowDate = await tableRows.first().locator("td").nth(2).textContent();
-    const secondRowDate = await tableRows.nth(1).locator("td").nth(2).textContent();
+    const firstRowDate = await tableRows.first().locator("td").nth(1).textContent();
+    const secondRowDate = await tableRows.nth(1).locator("td").nth(1).textContent();
 
     // Verify dates are present
     expect(firstRowDate).toBeTruthy();
@@ -123,17 +123,17 @@ test.describe("IssuedInvoices - Sorting Functionality", () => {
   test("18: Sorting persists with filters", async ({ page }) => {
     const invoiceIdInput = page.locator("#invoiceId");
     const filterButton = page.locator('button:has-text("Filtrovat")');
-    const sortHeader = page.locator('th:has-text("ID faktury")');
+    const sortHeader = page.locator('th:has-text("Číslo faktury")');
     const tableRows = page.locator("tbody tr");
 
     // Apply sort
     await sortHeader.click();
-    await waitForLoadingComplete(page);
+    await page.waitForTimeout(1000);
 
     // Apply filter
     await invoiceIdInput.fill("2024");
     await filterButton.click();
-    await waitForLoadingComplete(page);
+    await page.waitForTimeout(1000);
 
     // Verify results are both filtered and sorted
     const rowCount = await tableRows.count();

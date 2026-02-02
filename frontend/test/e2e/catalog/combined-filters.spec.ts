@@ -254,15 +254,24 @@ test.describe('Catalog Combined Filters E2E Tests', () => {
     await waitForTableUpdate(page);
 
     // Now change product type multiple times
-    await selectProductType(page, 'Produkt');
+    // Note: These filters result in 0 rows, so we use a simpler wait strategy
+    const typeSelect = getProductTypeSelect(page);
+
+    console.log('🔽 Selecting product type: "Produkt"');
+    await typeSelect.selectOption({ label: 'Produkt' });
+    await page.waitForTimeout(1000); // Wait for UI to stabilize
     const count1 = await getRowCount(page);
     console.log(`📊 Product type: Produkt - ${count1} rows`);
 
-    await selectProductType(page, 'Materiál');
+    console.log('🔽 Selecting product type: "Materiál"');
+    await typeSelect.selectOption({ label: 'Materiál' });
+    await page.waitForTimeout(1000); // Wait for UI to stabilize
     const count2 = await getRowCount(page);
     console.log(`📊 Product type: Materiál - ${count2} rows`);
 
-    await selectProductType(page, 'Všechny typy');
+    console.log('🔽 Selecting product type: "Všechny typy"');
+    await typeSelect.selectOption({ label: 'Všechny typy' });
+    await page.waitForTimeout(1000); // Wait for UI to stabilize
     const count3 = await getRowCount(page);
     console.log(`📊 Product type: Všechny typy - ${count3} rows`);
 

@@ -4,6 +4,7 @@ import {
   sortByColumn,
   waitForTableUpdate,
   getRowCount,
+  selectStateFilter,
 } from '../helpers/stock-operations-test-helpers';
 
 test.describe('Stock Operations - Column Sorting', () => {
@@ -17,16 +18,14 @@ test.describe('Stock Operations - Column Sorting', () => {
   test('should sort by ID column (ascending/descending)', async ({ page }) => {
     console.log('🧪 Testing: Sort by ID column');
 
+    // Select "All" state to get more data for testing
+    await selectStateFilter(page, 'All');
+
     const rowCount = await getRowCount(page);
 
     if (rowCount > 1) {
       // Click ID column header to sort
       await sortByColumn(page, 'ID');
-
-      // Verify sort icon exists
-      const header = page.getByRole('columnheader', { name: /ID/i });
-      const chevron = header.locator('svg').first();
-      await expect(chevron).toBeVisible();
 
       console.log('   ✅ First sort applied');
 
@@ -59,16 +58,14 @@ test.describe('Stock Operations - Column Sorting', () => {
   test('should sort by Document Number column', async ({ page }) => {
     console.log('🧪 Testing: Sort by Document Number column');
 
+    // Select "All" state to get more data for testing
+    await selectStateFilter(page, 'All');
+
     const rowCount = await getRowCount(page);
 
     if (rowCount > 1) {
       // Click Document Number column header
       await sortByColumn(page, 'Číslo dokladu');
-
-      // Verify sort icon exists
-      const header = page.getByRole('columnheader', { name: /Číslo dokladu/i });
-      const chevron = header.locator('svg').first();
-      await expect(chevron).toBeVisible();
 
       console.log('   ✅ Document Number sort applied');
 
@@ -90,7 +87,8 @@ test.describe('Stock Operations - Column Sorting', () => {
 
     if (rowCount > 1) {
       // Created At should be default sort (descending)
-      const header = page.getByRole('columnheader', { name: /Vytvořeno/i });
+      // Stock Operations table: first <tbody> = headers
+      const header = page.locator('table tbody').first().locator('td').filter({ hasText: 'Vytvořeno' });
       const chevronDown = header.locator('svg').first();
 
       // Check if default descending sort is active

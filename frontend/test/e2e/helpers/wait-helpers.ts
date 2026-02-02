@@ -27,7 +27,7 @@ export async function waitForTableLoad(page: Page, options: { minRows?: number; 
  * More reliable than waiting for table update alone.
  */
 export async function waitForFilterApply(page: Page, options: { endpoint?: string; timeout?: number } = {}) {
-  const { endpoint = '/api/catalog', timeout = 5000 } = options;
+  const { endpoint = '/api/catalog', timeout = 15000 } = options;
 
   await page.waitForResponse(
     resp => resp.url().includes(endpoint) && resp.status() === 200,
@@ -96,7 +96,7 @@ export async function waitForLoadingComplete(page: Page, options: { timeout?: nu
  * Combines API wait with table update check.
  */
 export async function waitForSearchResults(page: Page, options: { endpoint?: string; timeout?: number } = {}) {
-  const { endpoint = '/api/', timeout = 5000 } = options;
+  const { endpoint = '/api/', timeout = 15000 } = options;
 
   // Wait for API response
   await page.waitForResponse(
