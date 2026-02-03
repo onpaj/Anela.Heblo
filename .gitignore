@@ -146,5 +146,5 @@ test-results/
 
 # Git worktrees
 .worktrees/
-BRIEF.md
-WORKLOG.md
+./BRIEF.md
+./WORKLOG.md

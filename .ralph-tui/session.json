@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "sessionId": "cb002659-411c-4940-9436-6bc072891270",
+  "status": "running",
+  "startedAt": "2026-02-03T16:46:04.616Z",
+  "updatedAt": "2026-02-03T16:51:12.184Z",
+  "currentIteration": 0,
+  "maxIterations": 100,
+  "tasksCompleted": 0,
+  "isPaused": false,
+  "agentPlugin": "claude",
+  "trackerState": {
+    "plugin": "json",
+    "prdPath": "./tasks/prd.json",
+    "totalTasks": 23,
+    "tasks": [
+      {
+        "id": "US-001",
+        "title": "Upgrade Rem.FlexiBee NuGet packages to latest stable",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-002",
+        "title": "Review IStockMovementClient and IStockItemsMovementClient APIs",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-003",
+        "title": "Update dependency injection configuration for new FlexiBee clients",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-004",
+        "title": "Refactor SubmitManufactureAsync to use consumption movement",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-005",
+        "title": "Implement production movement creation in SubmitManufactureAsync",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-006",
+        "title": "Implement error handling for consumption movement failures",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-007",
+        "title": "Implement error handling for production movement failures",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-008",
+        "title": "Preserve material validation logic",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-009",
+        "title": "Write unit tests for successful two-movement creation",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-010",
+        "title": "Write unit tests for consumption movement failure",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-011",
+        "title": "Write unit tests for production movement failure",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-012",
+        "title": "Write unit tests for material validation failures",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-013",
+        "title": "Write unit tests for batch number preservation",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-014",
+        "title": "Update existing unit tests for refactored implementation",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-015",
+        "title": "Manual testing: Submit manufacturing with valid materials",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-016",
+        "title": "Manual testing: Submit with insufficient materials",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-017",
+        "title": "Manual testing: Verify historical orders still readable",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-018",
+        "title": "Manual testing: Verify error message clarity",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-019",
+        "title": "Verify API contracts unchanged",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-020",
+        "title": "Verify UI requires no changes",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-021",
+        "title": "Code review and dotnet format validation",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-022",
+        "title": "Deploy to staging and smoke test",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-023",
+        "title": "Production deployment with monitoring",
+        "status": "open",
+        "completedInSession": false
+      }
+    ]
+  },
+  "iterations": [],
+  "skippedTaskIds": [],
+  "cwd": "/Users/pajgrtondrej/Work/GitHub/Anela.Heblo",
+  "activeTaskIds": [],
+  "subagentPanelVisible": false
+}

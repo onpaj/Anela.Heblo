@@ -1,0 +1,502 @@
+{
+  "name": "Manufacturing Stock Movement Refactoring",
+  "branchName": "feature/manufacture_revamp",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Upgrade Rem.FlexiBee NuGet packages to latest stable",
+      "description": "Upgrade all FlexiBee package references to latest stable version and address any breaking changes from the package upgrade.",
+      "acceptanceCriteria": [
+        "All FlexiBee package references updated to latest stable",
+        "Breaking changes from package upgrade addressed",
+        "No deprecated API usage",
+        "Solution builds successfully"
+      ],
+      "priority": 1,
+      "passes": true,
+      "dependsOn": [],
+      "labels": [
+        "preparation",
+        "dependencies",
+        "P0"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-002",
+      "title": "Review IStockMovementClient and IStockItemsMovementClient APIs",
+      "description": "Study the new FlexiBee stock movement APIs to understand their usage patterns, parameters, and error handling.",
+      "acceptanceCriteria": [
+        "IStockMovementClient API usage documented",
+        "IStockItemsMovementClient API usage documented",
+        "Consumption movement creation pattern understood",
+        "Production movement creation pattern understood",
+        "Error handling patterns identified"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-001"
+      ],
+      "labels": [
+        "preparation",
+        "research",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Update dependency injection configuration for new FlexiBee clients",
+      "description": "Configure dependency injection to provide IStockMovementClient and IStockItemsMovementClient to the manufacturing module.",
+      "acceptanceCriteria": [
+        "IStockMovementClient registered in DI container",
+        "IStockItemsMovementClient registered in DI container",
+        "Manufacturing module dependencies updated",
+        "No breaking changes to existing DI configuration"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-001"
+      ],
+      "labels": [
+        "preparation",
+        "configuration",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Refactor SubmitManufactureAsync to use consumption movement",
+      "description": "Replace manufacturing order creation with consumption stock movement that moves raw materials from inventory to WIP.",
+      "acceptanceCriteria": [
+        "Consumption movement created using IStockMovementClient",
+        "Raw materials correctly marked as consumed",
+        "Movement references manufacturing batch/operation",
+        "Existing material validation logic preserved",
+        "Batch/lot number tracking maintained"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-002",
+        "US-003"
+      ],
+      "labels": [
+        "core-implementation",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Implement production movement creation in SubmitManufactureAsync",
+      "description": "Add production stock movement that moves finished goods from WIP to inventory, creating the second movement of the manufacturing operation.",
+      "acceptanceCriteria": [
+        "Production movement created using IStockMovementClient",
+        "Finished goods correctly added to inventory",
+        "Movement references same manufacturing batch as consumption movement",
+        "Both movements are linked to single operation"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-004"
+      ],
+      "labels": [
+        "core-implementation",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Implement error handling for consumption movement failures",
+      "description": "Add comprehensive error handling when consumption movement creation fails, preventing production movement from being attempted.",
+      "acceptanceCriteria": [
+        "Clear error messages for consumption movement failures",
+        "No production movement attempted if consumption fails",
+        "Error details include FlexiBee response information",
+        "No partial state created in case of early failure"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-004"
+      ],
+      "labels": [
+        "core-implementation",
+        "error-handling",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Implement error handling for production movement failures",
+      "description": "Add error handling for production movement failures that includes logging of successful consumption movement ID for manual rollback.",
+      "acceptanceCriteria": [
+        "Clear error messages for production movement failures",
+        "Consumption movement ID logged in error details",
+        "Partial success state documented for operator",
+        "Error details enable manual rollback in FlexiBee"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-005"
+      ],
+      "labels": [
+        "core-implementation",
+        "error-handling",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "Preserve material validation logic",
+      "description": "Ensure all existing material availability and quantity validations are maintained in the refactored implementation.",
+      "acceptanceCriteria": [
+        "Raw material availability checked before any movements",
+        "Quantity validations match existing logic",
+        "Business rule validations unchanged",
+        "Validation errors prevent stock movement creation"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-004"
+      ],
+      "labels": [
+        "core-implementation",
+        "validation",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-009",
+      "title": "Write unit tests for successful two-movement creation",
+      "description": "Create unit tests verifying successful creation of both consumption and production movements.",
+      "acceptanceCriteria": [
+        "Test verifies consumption movement created first",
+        "Test verifies production movement created second",
+        "Test verifies both movements linked to operation",
+        "Test verifies correct material quantities",
+        "Mocks for IStockMovementClient implemented"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-005"
+      ],
+      "labels": [
+        "testing",
+        "unit-tests",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-010",
+      "title": "Write unit tests for consumption movement failure",
+      "description": "Create unit tests verifying correct error handling when consumption movement creation fails.",
+      "acceptanceCriteria": [
+        "Test verifies error returned immediately",
+        "Test verifies no production movement attempted",
+        "Test verifies clear error message",
+        "Test verifies no partial state created"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-006"
+      ],
+      "labels": [
+        "testing",
+        "unit-tests",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-011",
+      "title": "Write unit tests for production movement failure",
+      "description": "Create unit tests verifying correct error handling when production movement fails after successful consumption.",
+      "acceptanceCriteria": [
+        "Test verifies consumption movement ID logged",
+        "Test verifies error details include rollback information",
+        "Test verifies partial success state documented",
+        "Test verifies clear error message for operator"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-007"
+      ],
+      "labels": [
+        "testing",
+        "unit-tests",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-012",
+      "title": "Write unit tests for material validation failures",
+      "description": "Create unit tests verifying material validation logic prevents invalid manufacturing operations.",
+      "acceptanceCriteria": [
+        "Test verifies insufficient materials rejected",
+        "Test verifies invalid quantities rejected",
+        "Test verifies no movements created on validation failure",
+        "Test verifies validation error messages clear"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-008"
+      ],
+      "labels": [
+        "testing",
+        "unit-tests",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-013",
+      "title": "Write unit tests for batch number preservation",
+      "description": "Create unit tests verifying batch/lot number tracking is correctly preserved in stock movements.",
+      "acceptanceCriteria": [
+        "Test verifies batch number passed to consumption movement",
+        "Test verifies batch number passed to production movement",
+        "Test verifies both movements reference same batch",
+        "Test verifies batch linkage for tracking"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-005"
+      ],
+      "labels": [
+        "testing",
+        "unit-tests",
+        "P1"
+      ]
+    },
+    {
+      "id": "US-014",
+      "title": "Update existing unit tests for refactored implementation",
+      "description": "Modify existing manufacturing unit tests to work with new stock movement implementation.",
+      "acceptanceCriteria": [
+        "All existing tests updated to use new mocks",
+        "Test assertions updated for new behavior",
+        "No tests removed without justification",
+        "Unit test coverage maintained or improved"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-009",
+        "US-010",
+        "US-011",
+        "US-012"
+      ],
+      "labels": [
+        "testing",
+        "unit-tests",
+        "P1"
+      ]
+    },
+    {
+      "id": "US-015",
+      "title": "Manual testing: Submit manufacturing with valid materials",
+      "description": "Manually test successful manufacturing operation against FlexiBee staging environment.",
+      "acceptanceCriteria": [
+        "Manufacturing submission succeeds",
+        "Consumption movement visible in FlexiBee staging",
+        "Production movement visible in FlexiBee staging",
+        "Material quantities correctly updated",
+        "Finished goods correctly added to inventory"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-005"
+      ],
+      "labels": [
+        "testing",
+        "manual-testing",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-016",
+      "title": "Manual testing: Submit with insufficient materials",
+      "description": "Manually test validation error handling when attempting to manufacture with insufficient materials.",
+      "acceptanceCriteria": [
+        "Validation error returned",
+        "Clear error message shown",
+        "No stock movements created",
+        "Error message specifies which material is insufficient"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-008"
+      ],
+      "labels": [
+        "testing",
+        "manual-testing",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-017",
+      "title": "Manual testing: Verify historical orders still readable",
+      "description": "Verify that historical manufacturing orders created with old flow remain accessible and readable.",
+      "acceptanceCriteria": [
+        "Old manufacturing orders queryable",
+        "Historical data displays correctly",
+        "No errors when viewing old orders",
+        "Historical reports continue to work"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-005"
+      ],
+      "labels": [
+        "testing",
+        "manual-testing",
+        "P1"
+      ]
+    },
+    {
+      "id": "US-018",
+      "title": "Manual testing: Verify error message clarity",
+      "description": "Manually test and verify all error scenarios produce clear, actionable error messages.",
+      "acceptanceCriteria": [
+        "Consumption failure errors are clear",
+        "Production failure errors include rollback info",
+        "Validation errors specify the problem",
+        "All errors include next steps for operator"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-006",
+        "US-007"
+      ],
+      "labels": [
+        "testing",
+        "manual-testing",
+        "P1"
+      ]
+    },
+    {
+      "id": "US-019",
+      "title": "Verify API contracts unchanged",
+      "description": "Ensure manufacturing API endpoints maintain backward compatibility with existing request/response DTOs.",
+      "acceptanceCriteria": [
+        "API endpoints unchanged",
+        "Request DTOs unchanged",
+        "Response DTOs unchanged",
+        "No breaking changes to API contracts"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-005"
+      ],
+      "labels": [
+        "validation",
+        "backward-compatibility",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-020",
+      "title": "Verify UI requires no changes",
+      "description": "Confirm that frontend manufacturing components continue to work without modification.",
+      "acceptanceCriteria": [
+        "Manufacturing UI components unchanged",
+        "Frontend API calls still work",
+        "User workflow identical",
+        "No UI regressions observed"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-019"
+      ],
+      "labels": [
+        "validation",
+        "backward-compatibility",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-021",
+      "title": "Code review and dotnet format validation",
+      "description": "Perform code review and ensure all code passes dotnet format validation before deployment.",
+      "acceptanceCriteria": [
+        "Code follows Clean Architecture patterns",
+        "Code passes dotnet format validation",
+        "No deprecated API usage",
+        "Error handling comprehensive",
+        "Code review approved"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-014",
+        "US-018"
+      ],
+      "labels": [
+        "deployment",
+        "code-quality",
+        "P1"
+      ]
+    },
+    {
+      "id": "US-022",
+      "title": "Deploy to staging and smoke test",
+      "description": "Deploy refactored implementation to staging environment and perform smoke testing.",
+      "acceptanceCriteria": [
+        "Successfully deployed to staging",
+        "Basic manufacturing operation succeeds",
+        "Error scenarios tested",
+        "No critical issues found",
+        "Staging environment stable"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-021"
+      ],
+      "labels": [
+        "deployment",
+        "staging",
+        "P0"
+      ]
+    },
+    {
+      "id": "US-023",
+      "title": "Production deployment with monitoring",
+      "description": "Deploy to production environment with active monitoring for error rates and performance.",
+      "acceptanceCriteria": [
+        "Successfully deployed to production",
+        "Error rate ≤ baseline manufacturing error rate",
+        "No performance degradation observed",
+        "Monitoring alerts configured",
+        "Rollback plan documented"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-022"
+      ],
+      "labels": [
+        "deployment",
+        "production",
+        "P0"
+      ]
+    }
+  ],
+  "metadata": {
+    "updatedAt": "2026-02-03T16:51:12.172Z"
+  }
+}
