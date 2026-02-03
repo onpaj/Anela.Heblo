@@ -711,4 +711,259 @@ public class SubmitManufactureHandlerTests
                 r.Items[0].ProductCode == "MAT016"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_ProductionMovementFailure_LogsConsumptionMovementId()
+    {
+        // Arrange
+        var manufactureOrderCode = "MO-2024-014";
+        var consumptionMovementReference = "MOV-CONSUMPTION-014";
+        var flexiBeeError = "Target warehouse is locked for inventory";
+
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = manufactureOrderCode,
+            ManufactureInternalNumber = "INT-014",
+            Date = new DateTime(2024, 1, 28),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new SubmitManufactureRequestItem
+                {
+                    ProductCode = "MAT017",
+                    Name = "Test Material 17",
+                    Amount = 100.0m
+                }
+            },
+            LotNumber = "LOT-2024-014",
+            ExpirationDate = new DateOnly(2025, 1, 28)
+        };
+
+        _manufactureClientMock
+            .Setup(x => x.SubmitManufactureAsync(
+                It.IsAny<SubmitManufactureClientRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ProductionMovementFailedException(
+                flexiBeeError,
+                manufactureOrderCode,
+                consumptionMovementReference));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ErrorCode.Should().Be(ErrorCodes.ProductionMovementCreationFailed);
+
+        // Verify that consumption movement ID is logged
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains(consumptionMovementReference)),
+                It.IsAny<Exception>(),
+                It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ProductionMovementFailure_ErrorDetailsIncludeRollbackInformation()
+    {
+        // Arrange
+        var manufactureOrderCode = "MO-2024-015";
+        var consumptionMovementReference = "MOV-CONSUMPTION-015";
+        var flexiBeeError = "Production warehouse full - cannot accept new stock";
+
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = manufactureOrderCode,
+            ManufactureInternalNumber = "INT-015",
+            Date = new DateTime(2024, 1, 29),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new SubmitManufactureRequestItem
+                {
+                    ProductCode = "MAT018",
+                    Name = "Test Material 18",
+                    Amount = 150.0m
+                }
+            },
+            LotNumber = "LOT-2024-015",
+            ExpirationDate = new DateOnly(2025, 2, 28)
+        };
+
+        _manufactureClientMock
+            .Setup(x => x.SubmitManufactureAsync(
+                It.IsAny<SubmitManufactureClientRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ProductionMovementFailedException(
+                flexiBeeError,
+                manufactureOrderCode,
+                consumptionMovementReference));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ErrorCode.Should().Be(ErrorCodes.ProductionMovementCreationFailed);
+        result.Params.Should().NotBeNull();
+
+        // Verify rollback instructions are included
+        result.Params.Should().ContainKey("RollbackInstructions");
+        result.Params["RollbackInstructions"].Should().Contain("PARTIAL SUCCESS");
+        result.Params["RollbackInstructions"].Should().Contain(consumptionMovementReference);
+        result.Params["RollbackInstructions"].Should().Contain("Manual rollback required");
+
+        // Verify consumption movement ID is included
+        result.Params.Should().ContainKey("ConsumptionMovementId");
+        result.Params["ConsumptionMovementId"].Should().Be(consumptionMovementReference);
+
+        // Verify FlexiBee error is included
+        result.Params.Should().ContainKey("FlexiBeeError");
+        result.Params["FlexiBeeError"].Should().Be(flexiBeeError);
+    }
+
+    [Fact]
+    public async Task Handle_ProductionMovementFailure_PartialSuccessStateDocumented()
+    {
+        // Arrange
+        var manufactureOrderCode = "MO-2024-016";
+        var consumptionMovementReference = "MOV-CONSUMPTION-016";
+        var flexiBeeError = "Invalid product configuration for target warehouse";
+
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = manufactureOrderCode,
+            ManufactureInternalNumber = "INT-016",
+            Date = new DateTime(2024, 1, 30),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.SemiProduct,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new SubmitManufactureRequestItem
+                {
+                    ProductCode = "MAT019",
+                    Name = "Test Material 19",
+                    Amount = 200.0m
+                }
+            },
+            LotNumber = "LOT-2024-016",
+            ExpirationDate = new DateOnly(2025, 3, 30)
+        };
+
+        _manufactureClientMock
+            .Setup(x => x.SubmitManufactureAsync(
+                It.IsAny<SubmitManufactureClientRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ProductionMovementFailedException(
+                flexiBeeError,
+                manufactureOrderCode,
+                consumptionMovementReference));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ErrorCode.Should().Be(ErrorCodes.ProductionMovementCreationFailed);
+        result.ManufactureId.Should().BeNull();
+
+        // Verify partial success state is documented
+        result.Params.Should().NotBeNull();
+        result.Params.Should().ContainKey("ConsumptionMovementId");
+        result.Params["ConsumptionMovementId"].Should().Be(consumptionMovementReference);
+
+        // Verify error message documents partial state
+        result.Params.Should().ContainKey("ErrorMessage");
+        result.Params["ErrorMessage"].Should().Contain("PARTIAL SUCCESS");
+        result.Params["ErrorMessage"].Should().Contain("Consumption movement");
+        result.Params["ErrorMessage"].Should().Contain("was successfully created");
+        result.Params["ErrorMessage"].Should().Contain("MUST BE MANUALLY ROLLED BACK");
+
+        // Verify manufacture order code is included
+        result.Params.Should().ContainKey("ManufactureOrderCode");
+        result.Params["ManufactureOrderCode"].Should().Be(manufactureOrderCode);
+    }
+
+    [Fact]
+    public async Task Handle_ProductionMovementFailure_ClearErrorMessageForOperator()
+    {
+        // Arrange
+        var manufactureOrderCode = "MO-2024-017";
+        var consumptionMovementReference = "MOV-CONSUMPTION-017";
+        var flexiBeeError = "Network timeout while creating production movement";
+
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = manufactureOrderCode,
+            ManufactureInternalNumber = "INT-017",
+            Date = new DateTime(2024, 1, 31),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new SubmitManufactureRequestItem
+                {
+                    ProductCode = "MAT020",
+                    Name = "Test Material 20",
+                    Amount = 250.0m
+                }
+            },
+            LotNumber = "LOT-2024-017",
+            ExpirationDate = new DateOnly(2025, 4, 30)
+        };
+
+        _manufactureClientMock
+            .Setup(x => x.SubmitManufactureAsync(
+                It.IsAny<SubmitManufactureClientRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ProductionMovementFailedException(
+                flexiBeeError,
+                manufactureOrderCode,
+                consumptionMovementReference));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ErrorCode.Should().Be(ErrorCodes.ProductionMovementCreationFailed);
+        result.Params.Should().NotBeNull();
+
+        // Verify clear error message for operator
+        result.Params.Should().ContainKey("ErrorMessage");
+        var errorMessage = result.Params["ErrorMessage"];
+
+        // Error message should clearly state what happened
+        errorMessage.Should().Contain("PARTIAL SUCCESS");
+        errorMessage.Should().Contain("Production movement");
+        errorMessage.Should().Contain("failed");
+
+        // Error message should identify the successful consumption movement
+        errorMessage.Should().Contain(consumptionMovementReference);
+        errorMessage.Should().Contain("was successfully created");
+
+        // Error message should provide clear action for operator
+        errorMessage.Should().Contain("MUST BE MANUALLY ROLLED BACK");
+        errorMessage.Should().Contain("FlexiBee");
+
+        // Verify FlexiBee error is included for technical details
+        result.Params.Should().ContainKey("FlexiBeeError");
+        result.Params["FlexiBeeError"].Should().Be(flexiBeeError);
+
+        // Verify manufacture order code for reference
+        result.Params.Should().ContainKey("ManufactureOrderCode");
+        result.Params["ManufactureOrderCode"].Should().Be(manufactureOrderCode);
+
+        // Verify rollback instructions are clear
+        result.Params.Should().ContainKey("RollbackInstructions");
+        result.Params["RollbackInstructions"].Should().Contain(consumptionMovementReference);
+        result.Params["RollbackInstructions"].Should().Contain("created");
+        result.Params["RollbackInstructions"].Should().Contain("failed");
+        result.Params["RollbackInstructions"].Should().Contain("Manual rollback required");
+    }
 }
