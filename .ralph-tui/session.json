@@ -3,10 +3,10 @@
   "sessionId": "cb002659-411c-4940-9436-6bc072891270",
   "status": "running",
   "startedAt": "2026-02-03T16:46:04.616Z",
-  "updatedAt": "2026-02-03T19:14:39.475Z",
-  "currentIteration": 4,
+  "updatedAt": "2026-02-03T19:28:45.565Z",
+  "currentIteration": 5,
   "maxIterations": 100,
-  "tasksCompleted": 19,
+  "tasksCompleted": 20,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -137,8 +137,8 @@
       {
         "id": "US-021",
         "title": "Code review and dotnet format validation",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-022",
@@ -374,6 +374,16 @@
       "durationMs": 365468,
       "startedAt": "2026-02-03T19:08:33.710Z",
       "endedAt": "2026-02-03T19:14:39.178Z"
+    },
+    {
+      "iteration": 5,
+      "status": "completed",
+      "taskId": "US-021",
+      "taskTitle": "Code review and dotnet format validation",
+      "taskCompleted": true,
+      "durationMs": 844822,
+      "startedAt": "2026-02-03T19:14:40.478Z",
+      "endedAt": "2026-02-03T19:28:45.300Z"
     }
   ],
   "skippedTaskIds": [],
