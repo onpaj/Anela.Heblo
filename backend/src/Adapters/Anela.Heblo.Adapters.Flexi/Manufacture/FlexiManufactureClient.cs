@@ -116,11 +116,98 @@ public class FlexiManufactureClient : IManufactureClient
             _logger.LogInformation("Successfully created consumption movement {MovementReference} for manufacture order {ManufactureOrderCode}",
                 movementReference, request.ManufactureOrderCode);
 
+            // Step 2: Create production movement (finished goods IN to inventory)
+            _logger.LogDebug("Starting production movement creation for manufacture order {ManufactureOrderCode}", request.ManufactureOrderCode);
+
+            // Determine target warehouse based on manufacture type
+            var targetWarehouseId = request.ManufactureType == ErpManufactureType.SemiProduct
+                ? FlexiStockClient.SemiProductsWarehouseId
+                : FlexiStockClient.ProductsWarehouseId;
+
+            // Read stock for unit price calculation (use cost from consumption for production)
+            var productionStockItems = await _stockClient.StockToDateAsync(request.Date, FlexiStockClient.MaterialWarehouseId, cancellationToken);
+
+            // Create production movement request (finished goods IN to inventory)
+            var productionMovementRequest = new StockItemsMovementUpsertRequestFlexiDto()
+            {
+                CreatedBy = request.CreatedBy,
+                AccountingDate = request.Date,
+                IssueDate = request.Date,
+                StockItems = validItems.Select(item =>
+                {
+                    // Calculate unit price from consumed materials
+                    var materialCost = stockItems.Where(s => validItems.Any(v => v.ProductCode == s.ProductCode))
+                        .Sum(s => s.Price * s.Stock);
+                    var totalProducedQuantity = validItems.Sum(v => v.Amount);
+                    var unitPrice = totalProducedQuantity > 0 ? materialCost / totalProducedQuantity : 0;
+
+                    return new StockItemsMovementUpsertRequestItemFlexiDto()
+                    {
+                        ProductCode = item.ProductCode,
+                        ProductName = item.ProductName,
+                        Amount = (double)item.Amount,
+                        AmountIssued = (double)item.Amount,
+                        LotNumber = request.LotNumber,
+                        Expiration = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+                        UnitPrice = (double)unitPrice,
+                    };
+                }).ToList(),
+                Description = request.ManufactureOrderCode,
+                DocumentTypeCode = request.ManufactureType == ErpManufactureType.SemiProduct ? WarehouseDocumentTypeSemiProduct : WarehouseDocumentTypeProduct,
+                StockMovementDirection = StockMovementDirection.In, // Production = IN movement
+                Note = request.ManufactureInternalNumber,
+                WarehouseId = targetWarehouseId.ToString(),
+            };
+
+            _logger.LogDebug("Creating production stock movement for manufacture order {ManufactureOrderCode}. Target warehouse: {WarehouseId}, ItemsCount: {ItemsCount}",
+                request.ManufactureOrderCode, targetWarehouseId, productionMovementRequest.StockItems.Count);
+
+            // Create production movement
+            var productionMovementResult = await _stockMovementClient.SaveAsync(productionMovementRequest, cancellationToken);
+
+            if (!productionMovementResult.IsSuccess)
+            {
+                var errorMessage = productionMovementResult.GetErrorMessage();
+                _logger.LogError("Failed to create production movement for manufacture order {ManufactureOrderCode}: {Error}. Consumption movement was created: {ConsumptionMovementReference}",
+                    request.ManufactureOrderCode, errorMessage, movementReference);
+                throw new InvalidOperationException($"Failed to create production stock movement: {errorMessage}. Consumption movement created: {movementReference}");
+            }
+
+            // Retrieve production document reference
+            var productionDocumentIdString = productionMovementResult?.Result?.Results?.FirstOrDefault()?.Id;
+            if (string.IsNullOrEmpty(productionDocumentIdString))
+            {
+                _logger.LogError("No document ID returned from production movement for manufacture order {ManufactureOrderCode}. Consumption movement: {ConsumptionMovementReference}",
+                    request.ManufactureOrderCode, movementReference);
+                throw new InvalidOperationException($"No document ID returned from production stock movement. Consumption movement created: {movementReference}");
+            }
+
+            if (!int.TryParse(productionDocumentIdString, out var productionDocumentId))
+            {
+                _logger.LogError("Failed to parse production document ID '{DocumentId}' for manufacture order {ManufactureOrderCode}. Consumption movement: {ConsumptionMovementReference}",
+                    productionDocumentIdString, request.ManufactureOrderCode, movementReference);
+                throw new InvalidOperationException($"Failed to parse production document ID: {productionDocumentIdString}. Consumption movement created: {movementReference}");
+            }
+
+            var productionDocument = await _stockMovementClient.GetAsync(productionDocumentId);
+            var productionMovementReference = productionDocument.FirstOrDefault()?.Document.DocumentCode;
+
+            if (string.IsNullOrEmpty(productionMovementReference))
+            {
+                _logger.LogError("No movement reference returned for production movement {DocumentId}. Consumption movement: {ConsumptionMovementReference}",
+                    productionDocumentId, movementReference);
+                throw new InvalidOperationException($"No movement reference returned for production document ID: {productionDocumentId}. Consumption movement created: {movementReference}");
+            }
+
+            _logger.LogInformation("Successfully created both consumption movement {ConsumptionMovementReference} and production movement {ProductionMovementReference} for manufacture order {ManufactureOrderCode}",
+                movementReference, productionMovementReference, request.ManufactureOrderCode);
+
+            // Return consumption movement reference (maintaining backward compatibility)
             return movementReference;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to submit manufacture consumption movement for order {ManufactureOrderCode}: {ErrorMessage}",
+            _logger.LogError(ex, "Failed to submit manufacture movements for order {ManufactureOrderCode}: {ErrorMessage}",
                 request.ManufactureOrderCode, ex.Message);
             throw;
         }
