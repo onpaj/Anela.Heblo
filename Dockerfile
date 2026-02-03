@@ -27,6 +27,8 @@ RUN npm ci --legacy-peer-deps
 
 # Copy frontend source and build
 COPY frontend/ ./
+# Disable eslint during build (linting is done in CI)
+ENV DISABLE_ESLINT_PLUGIN=true
 RUN npm run build
 
 # Stage 2: Build ASP.NET Core Backend
