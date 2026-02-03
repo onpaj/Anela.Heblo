@@ -93,6 +93,12 @@ public enum ErrorCodes
     CannotScheduleInPast = 1213,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     InvalidScheduleDateOrder = 1214,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    ConsumptionMovementCreationFailed = 1215,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    ProductionMovementCreationFailed = 1216,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    ManufactureSubmissionFailed = 1217,
 
     // Catalog module errors (13XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

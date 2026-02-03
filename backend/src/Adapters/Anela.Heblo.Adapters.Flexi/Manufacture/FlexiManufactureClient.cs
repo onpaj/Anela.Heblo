@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Flexi.Stock;
+using Anela.Heblo.Application.Features.Manufacture.Infrastructure.Exceptions;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
@@ -40,7 +41,9 @@ public class FlexiManufactureClient : IManufactureClient
             if (validItems.Count == 0)
             {
                 _logger.LogError("No valid items to consume for manufacture order {ManufactureOrderCode}", request.ManufactureOrderCode);
-                throw new InvalidOperationException("No valid items to consume - all amounts are zero or negative");
+                throw new ManufactureSubmissionFailedException(
+                    "No valid items to consume - all amounts are zero or negative",
+                    request.ManufactureOrderCode);
             }
 
             // Read current stock quantities for materials to get unit prices
@@ -86,7 +89,9 @@ public class FlexiManufactureClient : IManufactureClient
                 var errorMessage = stockMovementResult.GetErrorMessage();
                 _logger.LogError("Failed to create consumption movement for manufacture order {ManufactureOrderCode}: {Error}",
                     request.ManufactureOrderCode, errorMessage);
-                throw new InvalidOperationException($"Failed to create consumption stock movement: {errorMessage}");
+                throw new ConsumptionMovementFailedException(
+                    errorMessage,
+                    request.ManufactureOrderCode);
             }
 
             // Retrieve created document reference
@@ -94,14 +99,18 @@ public class FlexiManufactureClient : IManufactureClient
             if (string.IsNullOrEmpty(newDocumentIdString))
             {
                 _logger.LogError("No document ID returned from consumption movement for manufacture order {ManufactureOrderCode}", request.ManufactureOrderCode);
-                throw new InvalidOperationException("No document ID returned from consumption stock movement");
+                throw new ConsumptionMovementFailedException(
+                    "No document ID returned from FlexiBee API",
+                    request.ManufactureOrderCode);
             }
 
             if (!int.TryParse(newDocumentIdString, out var newDocumentId))
             {
                 _logger.LogError("Failed to parse document ID '{DocumentId}' for manufacture order {ManufactureOrderCode}",
                     newDocumentIdString, request.ManufactureOrderCode);
-                throw new InvalidOperationException($"Failed to parse document ID: {newDocumentIdString}");
+                throw new ConsumptionMovementFailedException(
+                    $"Invalid document ID format returned from FlexiBee: {newDocumentIdString}",
+                    request.ManufactureOrderCode);
             }
 
             var document = await _stockMovementClient.GetAsync(newDocumentId);
@@ -110,7 +119,9 @@ public class FlexiManufactureClient : IManufactureClient
             if (string.IsNullOrEmpty(movementReference))
             {
                 _logger.LogError("No movement reference returned for consumption movement {DocumentId}", newDocumentId);
-                throw new InvalidOperationException($"No movement reference returned for document ID: {newDocumentId}");
+                throw new ConsumptionMovementFailedException(
+                    $"No movement reference returned for document ID: {newDocumentId}",
+                    request.ManufactureOrderCode);
             }
 
             _logger.LogInformation("Successfully created consumption movement {MovementReference} for manufacture order {ManufactureOrderCode}",
@@ -170,7 +181,10 @@ public class FlexiManufactureClient : IManufactureClient
                 var errorMessage = productionMovementResult.GetErrorMessage();
                 _logger.LogError("Failed to create production movement for manufacture order {ManufactureOrderCode}: {Error}. Consumption movement was created: {ConsumptionMovementReference}",
                     request.ManufactureOrderCode, errorMessage, movementReference);
-                throw new InvalidOperationException($"Failed to create production stock movement: {errorMessage}. Consumption movement created: {movementReference}");
+                throw new ProductionMovementFailedException(
+                    errorMessage,
+                    request.ManufactureOrderCode,
+                    movementReference);
             }
 
             // Retrieve production document reference
@@ -179,14 +193,20 @@ public class FlexiManufactureClient : IManufactureClient
             {
                 _logger.LogError("No document ID returned from production movement for manufacture order {ManufactureOrderCode}. Consumption movement: {ConsumptionMovementReference}",
                     request.ManufactureOrderCode, movementReference);
-                throw new InvalidOperationException($"No document ID returned from production stock movement. Consumption movement created: {movementReference}");
+                throw new ProductionMovementFailedException(
+                    "No document ID returned from FlexiBee API",
+                    request.ManufactureOrderCode,
+                    movementReference);
             }
 
             if (!int.TryParse(productionDocumentIdString, out var productionDocumentId))
             {
                 _logger.LogError("Failed to parse production document ID '{DocumentId}' for manufacture order {ManufactureOrderCode}. Consumption movement: {ConsumptionMovementReference}",
                     productionDocumentIdString, request.ManufactureOrderCode, movementReference);
-                throw new InvalidOperationException($"Failed to parse production document ID: {productionDocumentIdString}. Consumption movement created: {movementReference}");
+                throw new ProductionMovementFailedException(
+                    $"Invalid document ID format returned from FlexiBee: {productionDocumentIdString}",
+                    request.ManufactureOrderCode,
+                    movementReference);
             }
 
             var productionDocument = await _stockMovementClient.GetAsync(productionDocumentId);
@@ -196,7 +216,10 @@ public class FlexiManufactureClient : IManufactureClient
             {
                 _logger.LogError("No movement reference returned for production movement {DocumentId}. Consumption movement: {ConsumptionMovementReference}",
                     productionDocumentId, movementReference);
-                throw new InvalidOperationException($"No movement reference returned for production document ID: {productionDocumentId}. Consumption movement created: {movementReference}");
+                throw new ProductionMovementFailedException(
+                    $"No movement reference returned for document ID: {productionDocumentId}",
+                    request.ManufactureOrderCode,
+                    movementReference);
             }
 
             _logger.LogInformation("Successfully created both consumption movement {ConsumptionMovementReference} and production movement {ProductionMovementReference} for manufacture order {ManufactureOrderCode}",

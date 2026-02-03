@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Infrastructure.Exceptions;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
@@ -54,9 +55,51 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
                 ManufactureId = manufactureId
             };
         }
+        catch (ConsumptionMovementFailedException ex)
+        {
+            _logger.LogError(ex, "Consumption movement failed for manufacture order {ManufactureOrderId}. FlexiBee error: {FlexiBeeError}",
+                request.ManufactureOrderNumber, ex.FlexiBeeErrorMessage);
+
+            return new SubmitManufactureResponse(
+                ex.ErrorCode,
+                new Dictionary<string, string>
+                {
+                    { "ManufactureOrderCode", ex.ManufactureOrderCode ?? request.ManufactureOrderNumber },
+                    { "FlexiBeeError", ex.FlexiBeeErrorMessage ?? "Unknown error" },
+                    { "ErrorMessage", ex.Message }
+                });
+        }
+        catch (ProductionMovementFailedException ex)
+        {
+            _logger.LogError(ex, "Production movement failed for manufacture order {ManufactureOrderId}. FlexiBee error: {FlexiBeeError}. Consumption movement: {ConsumptionMovement}",
+                request.ManufactureOrderNumber, ex.FlexiBeeErrorMessage, ex.ConsumptionMovementReference);
+
+            return new SubmitManufactureResponse(
+                ex.ErrorCode,
+                new Dictionary<string, string>
+                {
+                    { "ManufactureOrderCode", ex.ManufactureOrderCode ?? request.ManufactureOrderNumber },
+                    { "FlexiBeeError", ex.FlexiBeeErrorMessage ?? "Unknown error" },
+                    { "ConsumptionMovementReference", ex.ConsumptionMovementReference },
+                    { "ErrorMessage", ex.Message }
+                });
+        }
+        catch (ManufactureSubmissionFailedException ex)
+        {
+            _logger.LogError(ex, "Manufacture submission validation failed for order {ManufactureOrderId}",
+                request.ManufactureOrderNumber);
+
+            return new SubmitManufactureResponse(
+                ex.ErrorCode,
+                new Dictionary<string, string>
+                {
+                    { "ManufactureOrderCode", ex.ManufactureOrderCode ?? request.ManufactureOrderNumber },
+                    { "ErrorMessage", ex.Message }
+                });
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating manufacture for order {ManufactureOrderId}", request.ManufactureOrderNumber);
+            _logger.LogError(ex, "Unexpected error creating manufacture for order {ManufactureOrderId}", request.ManufactureOrderNumber);
             return new SubmitManufactureResponse(ex);
         }
     }

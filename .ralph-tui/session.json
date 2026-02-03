@@ -3,10 +3,10 @@
   "sessionId": "cb002659-411c-4940-9436-6bc072891270",
   "status": "running",
   "startedAt": "2026-02-03T16:46:04.616Z",
-  "updatedAt": "2026-02-03T17:15:06.458Z",
-  "currentIteration": 3,
+  "updatedAt": "2026-02-03T17:20:57.351Z",
+  "currentIteration": 4,
   "maxIterations": 100,
-  "tasksCompleted": 3,
+  "tasksCompleted": 4,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -41,8 +41,8 @@
       {
         "id": "US-005",
         "title": "Implement production movement creation in SubmitManufactureAsync",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-006",
@@ -184,10 +184,20 @@
       "durationMs": 544970,
       "startedAt": "2026-02-03T17:06:01.323Z",
       "endedAt": "2026-02-03T17:15:06.293Z"
+    },
+    {
+      "iteration": 4,
+      "status": "completed",
+      "taskId": "US-005",
+      "taskTitle": "Implement production movement creation in SubmitManufactureAsync",
+      "taskCompleted": true,
+      "durationMs": 329420,
+      "startedAt": "2026-02-03T17:15:07.464Z",
+      "endedAt": "2026-02-03T17:20:36.884Z"
     }
   ],
   "skippedTaskIds": [],
   "cwd": "/Users/pajgrtondrej/Work/GitHub/Anela.Heblo",
   "activeTaskIds": [],
-  "subagentPanelVisible": false
+  "subagentPanelVisible": true
 }
