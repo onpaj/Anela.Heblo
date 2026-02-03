@@ -3,10 +3,10 @@
   "sessionId": "cb002659-411c-4940-9436-6bc072891270",
   "status": "running",
   "startedAt": "2026-02-03T16:46:04.616Z",
-  "updatedAt": "2026-02-03T17:59:49.781Z",
-  "currentIteration": 13,
+  "updatedAt": "2026-02-03T18:03:38.365Z",
+  "currentIteration": 14,
   "maxIterations": 100,
-  "tasksCompleted": 10,
+  "tasksCompleted": 11,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -107,8 +107,8 @@
       {
         "id": "US-016",
         "title": "Manual testing: Submit with insufficient materials",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-017",
@@ -284,6 +284,16 @@
       "durationMs": 237429,
       "startedAt": "2026-02-03T17:55:52.186Z",
       "endedAt": "2026-02-03T17:59:49.615Z"
+    },
+    {
+      "iteration": 14,
+      "status": "completed",
+      "taskId": "US-016",
+      "taskTitle": "Manual testing: Submit with insufficient materials",
+      "taskCompleted": true,
+      "durationMs": 227412,
+      "startedAt": "2026-02-03T17:59:50.789Z",
+      "endedAt": "2026-02-03T18:03:38.201Z"
     }
   ],
   "skippedTaskIds": [],
