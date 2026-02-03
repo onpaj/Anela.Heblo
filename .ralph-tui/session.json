@@ -3,10 +3,10 @@
   "sessionId": "cb002659-411c-4940-9436-6bc072891270",
   "status": "running",
   "startedAt": "2026-02-03T16:46:04.616Z",
-  "updatedAt": "2026-02-03T17:40:25.610Z",
-  "currentIteration": 7,
+  "updatedAt": "2026-02-03T17:46:49.404Z",
+  "currentIteration": 8,
   "maxIterations": 100,
-  "tasksCompleted": 7,
+  "tasksCompleted": 8,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -65,8 +65,8 @@
       {
         "id": "US-009",
         "title": "Write unit tests for successful two-movement creation",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-010",
@@ -224,6 +224,16 @@
       "durationMs": 164702,
       "startedAt": "2026-02-03T17:37:40.750Z",
       "endedAt": "2026-02-03T17:40:25.452Z"
+    },
+    {
+      "iteration": 8,
+      "status": "completed",
+      "taskId": "US-009",
+      "taskTitle": "Write unit tests for successful two-movement creation",
+      "taskCompleted": true,
+      "durationMs": 382631,
+      "startedAt": "2026-02-03T17:40:26.616Z",
+      "endedAt": "2026-02-03T17:46:49.247Z"
     }
   ],
   "skippedTaskIds": [],
