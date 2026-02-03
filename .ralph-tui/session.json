@@ -3,10 +3,10 @@
   "sessionId": "cb002659-411c-4940-9436-6bc072891270",
   "status": "running",
   "startedAt": "2026-02-03T16:46:04.616Z",
-  "updatedAt": "2026-02-03T18:03:38.365Z",
-  "currentIteration": 14,
+  "updatedAt": "2026-02-03T18:10:25.031Z",
+  "currentIteration": 15,
   "maxIterations": 100,
-  "tasksCompleted": 11,
+  "tasksCompleted": 12,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -113,8 +113,8 @@
       {
         "id": "US-017",
         "title": "Manual testing: Verify historical orders still readable",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-018",
@@ -294,6 +294,16 @@
       "durationMs": 227412,
       "startedAt": "2026-02-03T17:59:50.789Z",
       "endedAt": "2026-02-03T18:03:38.201Z"
+    },
+    {
+      "iteration": 15,
+      "status": "completed",
+      "taskId": "US-017",
+      "taskTitle": "Manual testing: Verify historical orders still readable",
+      "taskCompleted": true,
+      "durationMs": 405512,
+      "startedAt": "2026-02-03T18:03:39.370Z",
+      "endedAt": "2026-02-03T18:10:24.882Z"
     }
   ],
   "skippedTaskIds": [],
