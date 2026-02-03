@@ -966,4 +966,279 @@ public class SubmitManufactureHandlerTests
         result.Params["RollbackInstructions"].Should().Contain("failed");
         result.Params["RollbackInstructions"].Should().Contain("Manual rollback required");
     }
+
+    [Fact]
+    public async Task Handle_InsufficientMaterialStock_RejectsManufacture()
+    {
+        // Arrange
+        var manufactureOrderCode = "MO-2024-018";
+        var insufficientMaterialCode = "MAT021";
+        var flexiBeeError = $"Insufficient stock for material {insufficientMaterialCode}. Required: 1000, Available: 500";
+
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = manufactureOrderCode,
+            ManufactureInternalNumber = "INT-018",
+            Date = new DateTime(2024, 2, 1),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new SubmitManufactureRequestItem
+                {
+                    ProductCode = insufficientMaterialCode,
+                    Name = "Test Material 21",
+                    Amount = 1000.0m // More than available stock
+                }
+            },
+            LotNumber = "LOT-2024-018",
+            ExpirationDate = new DateOnly(2025, 5, 1)
+        };
+
+        _manufactureClientMock
+            .Setup(x => x.SubmitManufactureAsync(
+                It.IsAny<SubmitManufactureClientRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ConsumptionMovementFailedException(
+                flexiBeeError,
+                manufactureOrderCode));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ManufactureId.Should().BeNull();
+        result.ErrorCode.Should().Be(ErrorCodes.ConsumptionMovementCreationFailed);
+        result.Params.Should().NotBeNull();
+        result.Params.Should().ContainKey("ManufactureOrderCode");
+        result.Params["ManufactureOrderCode"].Should().Be(manufactureOrderCode);
+        result.Params.Should().ContainKey("FlexiBeeError");
+        result.Params["FlexiBeeError"].Should().Contain("Insufficient stock");
+        result.Params["FlexiBeeError"].Should().Contain(insufficientMaterialCode);
+    }
+
+    [Fact]
+    public async Task Handle_ZeroQuantityItems_RejectsManufacture()
+    {
+        // Arrange
+        var manufactureOrderCode = "MO-2024-019";
+        var validationError = "No valid items to consume - all amounts are zero or negative";
+
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = manufactureOrderCode,
+            ManufactureInternalNumber = "INT-019",
+            Date = new DateTime(2024, 2, 2),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new SubmitManufactureRequestItem
+                {
+                    ProductCode = "MAT022",
+                    Name = "Test Material 22",
+                    Amount = 0.0m // Zero amount - invalid
+                }
+            },
+            LotNumber = "LOT-2024-019",
+            ExpirationDate = new DateOnly(2025, 6, 2)
+        };
+
+        _manufactureClientMock
+            .Setup(x => x.SubmitManufactureAsync(
+                It.IsAny<SubmitManufactureClientRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ManufactureSubmissionFailedException(
+                validationError,
+                manufactureOrderCode));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ManufactureId.Should().BeNull();
+        result.ErrorCode.Should().Be(ErrorCodes.ManufactureSubmissionFailed);
+        result.Params.Should().NotBeNull();
+        result.Params.Should().ContainKey("ManufactureOrderCode");
+        result.Params["ManufactureOrderCode"].Should().Be(manufactureOrderCode);
+        result.Params.Should().ContainKey("ErrorMessage");
+        result.Params["ErrorMessage"].Should().Contain("No valid items to consume");
+        result.Params["ErrorMessage"].Should().Contain("zero or negative");
+    }
+
+    [Fact]
+    public async Task Handle_NegativeQuantityItems_RejectsManufacture()
+    {
+        // Arrange
+        var manufactureOrderCode = "MO-2024-020";
+        var validationError = "No valid items to consume - all amounts are zero or negative";
+
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = manufactureOrderCode,
+            ManufactureInternalNumber = "INT-020",
+            Date = new DateTime(2024, 2, 3),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new SubmitManufactureRequestItem
+                {
+                    ProductCode = "MAT023",
+                    Name = "Test Material 23",
+                    Amount = -50.0m // Negative amount - invalid
+                }
+            },
+            LotNumber = "LOT-2024-020",
+            ExpirationDate = new DateOnly(2025, 7, 3)
+        };
+
+        _manufactureClientMock
+            .Setup(x => x.SubmitManufactureAsync(
+                It.IsAny<SubmitManufactureClientRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ManufactureSubmissionFailedException(
+                validationError,
+                manufactureOrderCode));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ManufactureId.Should().BeNull();
+        result.ErrorCode.Should().Be(ErrorCodes.ManufactureSubmissionFailed);
+        result.Params.Should().NotBeNull();
+        result.Params.Should().ContainKey("ManufactureOrderCode");
+        result.Params["ManufactureOrderCode"].Should().Be(manufactureOrderCode);
+        result.Params.Should().ContainKey("ErrorMessage");
+        result.Params["ErrorMessage"].Should().Contain("No valid items to consume");
+    }
+
+    [Fact]
+    public async Task Handle_MaterialValidationFailure_NoMovementsCreated()
+    {
+        // Arrange
+        var manufactureOrderCode = "MO-2024-021";
+        var flexiBeeError = "Material MAT024 is not available in warehouse";
+
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = manufactureOrderCode,
+            ManufactureInternalNumber = "INT-021",
+            Date = new DateTime(2024, 2, 4),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new SubmitManufactureRequestItem
+                {
+                    ProductCode = "MAT024",
+                    Name = "Test Material 24",
+                    Amount = 100.0m
+                }
+            },
+            LotNumber = "LOT-2024-021",
+            ExpirationDate = new DateOnly(2025, 8, 4)
+        };
+
+        _manufactureClientMock
+            .Setup(x => x.SubmitManufactureAsync(
+                It.IsAny<SubmitManufactureClientRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ConsumptionMovementFailedException(
+                flexiBeeError,
+                manufactureOrderCode));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ErrorCode.Should().Be(ErrorCodes.ConsumptionMovementCreationFailed);
+
+        // Verify no manufacture ID was created (no movements were created)
+        result.ManufactureId.Should().BeNull();
+
+        // Verify that params does not contain ConsumptionMovementId
+        // (which would indicate a partial success with movement created)
+        result.Params.Should().NotBeNull();
+        result.Params.Should().NotContainKey("ConsumptionMovementId");
+        result.Params.Should().NotContainKey("RollbackInstructions");
+
+        // Verify that only one call was made (consumption movement attempt)
+        // and no production movement was attempted
+        _manufactureClientMock.Verify(x => x.SubmitManufactureAsync(
+            It.IsAny<SubmitManufactureClientRequest>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ValidationFailure_ErrorMessageClearAndDescriptive()
+    {
+        // Arrange
+        var manufactureOrderCode = "MO-2024-022";
+        var materialCode = "MAT025";
+        var requiredQuantity = 2000m;
+        var availableQuantity = 750m;
+        var flexiBeeError = $"Insufficient stock for material {materialCode}. Required: {requiredQuantity}, Available: {availableQuantity}";
+
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = manufactureOrderCode,
+            ManufactureInternalNumber = "INT-022",
+            Date = new DateTime(2024, 2, 5),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new SubmitManufactureRequestItem
+                {
+                    ProductCode = materialCode,
+                    Name = "Test Material 25",
+                    Amount = requiredQuantity
+                }
+            },
+            LotNumber = "LOT-2024-022",
+            ExpirationDate = new DateOnly(2025, 9, 5)
+        };
+
+        _manufactureClientMock
+            .Setup(x => x.SubmitManufactureAsync(
+                It.IsAny<SubmitManufactureClientRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ConsumptionMovementFailedException(
+                flexiBeeError,
+                manufactureOrderCode));
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ErrorCode.Should().Be(ErrorCodes.ConsumptionMovementCreationFailed);
+        result.Params.Should().NotBeNull();
+
+        // Verify error message is clear and contains all relevant information
+        result.Params.Should().ContainKey("FlexiBeeError");
+        result.Params["FlexiBeeError"].Should().Be(flexiBeeError);
+
+        // Verify error message is descriptive
+        result.Params.Should().ContainKey("ErrorMessage");
+        result.Params["ErrorMessage"].Should().Contain("Failed to create consumption stock movement");
+        result.Params["ErrorMessage"].Should().Contain(flexiBeeError);
+
+        // Verify manufacture order code is included for reference
+        result.Params.Should().ContainKey("ManufactureOrderCode");
+        result.Params["ManufactureOrderCode"].Should().Be(manufactureOrderCode);
+
+        // Verify error message contains specific material code
+        result.Params["FlexiBeeError"].Should().Contain(materialCode);
+
+        // Verify error message contains quantity information
+        result.Params["FlexiBeeError"].Should().Contain("Required");
+        result.Params["FlexiBeeError"].Should().Contain("Available");
+    }
 }
