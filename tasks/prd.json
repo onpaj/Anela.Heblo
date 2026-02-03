@@ -189,7 +189,7 @@
         "Mocks for IStockMovementClient implemented"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "US-005"
       ],
@@ -197,7 +197,8 @@
         "testing",
         "unit-tests",
         "P0"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-010",
@@ -504,6 +505,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-03T17:40:25.454Z"
+    "updatedAt": "2026-02-03T17:46:49.250Z"
   }
 }
