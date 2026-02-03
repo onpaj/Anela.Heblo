@@ -2,35 +2,26 @@ using Anela.Heblo.Adapters.Flexi.Stock;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
-using Rem.FlexiBeeSDK.Client.Clients.IssuedOrders;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
-using Rem.FlexiBeeSDK.Model.IssuedOrders;
 using Rem.FlexiBeeSDK.Model.Products.StockMovement;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture;
 
 public class FlexiManufactureClient : IManufactureClient
 {
-    private const string DocumentTypeSemiProduct = "VYR-POLOTOVAR";
-    private const string DocumentTypeProduct = "VYR-PRODUKT";
     private const string WarehouseDocumentTypeSemiProduct = "VYROBA-POLOTOVAR";
     private const string WarehouseDocumentTypeProduct = "VYROBA-PRODUKT";
-    private const string WarehouseCodeSemiProduct = "POLOTOVARY";
-    private const string WarehouseCodeProduct = "ZBOZI";
-    private readonly IIssuedOrdersClient _ordersClient;
     private readonly IErpStockClient _stockClient;
     private readonly IStockItemsMovementClient _stockMovementClient;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<FlexiManufactureClient> _logger;
 
     public FlexiManufactureClient(
-        IIssuedOrdersClient ordersClient,
         IErpStockClient stockClient,
         IStockItemsMovementClient stockMovementClient,
         TimeProvider timeProvider,
         ILogger<FlexiManufactureClient> logger)
     {
-        _ordersClient = ordersClient ?? throw new ArgumentNullException(nameof(ordersClient));
         _stockClient = stockClient ?? throw new ArgumentNullException(nameof(stockClient));
         _stockMovementClient = stockMovementClient ?? throw new ArgumentNullException(nameof(stockMovementClient));
         _timeProvider = timeProvider;
@@ -39,96 +30,97 @@ public class FlexiManufactureClient : IManufactureClient
 
     public async Task<string> SubmitManufactureAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken = default)
     {
-
-        _logger.LogDebug("Starting manufacture order submission. ManufactureOrderId: {ManufactureOrderId}, Type: {ManufactureType}, ItemsCount: {ItemsCount}",
+        _logger.LogDebug("Starting manufacture consumption movement. ManufactureOrderCode: {ManufactureOrderCode}, Type: {ManufactureType}, ItemsCount: {ItemsCount}",
             request.ManufactureOrderCode, request.ManufactureType, request.Items.Count);
 
         try
         {
-            // Map request to FlexiBee DTO
-            var createOrder = new CreateIssuedOrderFlexiDto()
+            // Validate items
+            var validItems = request.Items.Where(w => w.Amount > 0).ToList();
+            if (validItems.Count == 0)
             {
-                DepartmentCode = "C",
-                OrderInternalNumber = request.ManufactureInternalNumber,
-                DocumentType = request.ManufactureType == ErpManufactureType.SemiProduct ? DocumentTypeSemiProduct : DocumentTypeProduct,
-                WarehouseDocumentType = request.ManufactureType == ErpManufactureType.SemiProduct ? WarehouseDocumentTypeSemiProduct : WarehouseDocumentTypeProduct,
-                DateCreated = request.Date,
-                DateVat = request.Date,
+                _logger.LogError("No valid items to consume for manufacture order {ManufactureOrderCode}", request.ManufactureOrderCode);
+                throw new InvalidOperationException("No valid items to consume - all amounts are zero or negative");
+            }
+
+            // Read current stock quantities for materials to get unit prices
+            var stockItems = await _stockClient.StockToDateAsync(request.Date, FlexiStockClient.MaterialWarehouseId, cancellationToken);
+
+            // Create stock movement request for consumption (materials OUT from inventory → WIP)
+            var stockMovementRequest = new StockItemsMovementUpsertRequestFlexiDto()
+            {
                 CreatedBy = request.CreatedBy,
-                User = request.CreatedBy,
-                Note = request.ManufactureOrderCode,
-                Description = request.ManufactureOrderCode,
-                Items = request.Items.Where(w => w.Amount > 0)
-                    .Select(s => MapToFlexiItem(s, request)).ToList()
-            };
-
-            _logger.LogDebug("Mapped request to CreateIssuedOrderFlexiDto. DocumentType: {DocumentType}, ItemsCount: {ItemsCount}",
-                createOrder.DocumentType, createOrder.Items?.Count ?? 0);
-
-            // Create the issued order
-            var result = await _ordersClient.SaveAsync(createOrder, cancellationToken);
-            if (!result.IsSuccess)
-            {
-                _logger.LogError("Failed to create manufacture order {ManufactureOrderId}: {Error}", request.ManufactureOrderCode, result.GetErrorMessage());
-                throw new InvalidOperationException($"Failed to create issued order: {result.GetErrorMessage()}");
-            }
-
-            var firstResult = result.Result.Results.First();
-            if (firstResult?.Id == null)
-            {
-                _logger.LogError("SaveAsync returned result with null Id for manufacture order {ManufactureOrderId}", request.ManufactureOrderCode);
-                throw new InvalidOperationException("Failed to create issued order - no ID returned");
-            }
-
-            if (!int.TryParse(firstResult.Id.ToString(), out var orderId))
-            {
-                _logger.LogError("Failed to parse order ID '{OrderId}' for manufacture order {ManufactureOrderId}",
-                    firstResult.Id, request.ManufactureOrderCode);
-                throw new InvalidOperationException($"Failed to parse order ID: {firstResult.Id}");
-            }
-
-            _logger.LogDebug("Successfully created issued order with ID {OrderId} for manufacture order {ManufactureOrderId}",
-                orderId, request.ManufactureOrderCode);
-
-            var savedOrder = await _ordersClient.GetAsync(orderId, cancellationToken);
-
-            // Finalize the order
-            var finalizeOrder = new FinalizeIssuedOrderFlexiDto(orderId)
-            {
-                FinalizeStockMovement = new IssuedOrderStockMovementFlexiDto()
+                AccountingDate = request.Date,
+                IssueDate = request.Date,
+                StockItems = validItems.Select(item =>
                 {
-                    Items = savedOrder.Items.Select(s => new FinalizeIssuedOrderItemFlexiDto()
+                    var stockItem = stockItems.FirstOrDefault(s => s.ProductCode == item.ProductCode);
+                    var unitPrice = stockItem?.Price ?? 0;
+
+                    return new StockItemsMovementUpsertRequestItemFlexiDto()
                     {
-                        Id = s.Id,
-                        Amount = s.Amount,
+                        ProductCode = item.ProductCode,
+                        ProductName = item.ProductName,
+                        Amount = (double)item.Amount,
+                        AmountIssued = (double)item.Amount,
                         LotNumber = request.LotNumber,
-                        ExpirationDate = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-                    }).ToList(),
-                    WarehouseDocumentType = createOrder.WarehouseDocumentType,
-                    WarehouseCode = request.ManufactureType == ErpManufactureType.SemiProduct ? WarehouseCodeSemiProduct : WarehouseCodeProduct,
-                }
+                        Expiration = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+                        UnitPrice = (double)unitPrice,
+                    };
+                }).ToList(),
+                Description = request.ManufactureOrderCode,
+                DocumentTypeCode = request.ManufactureType == ErpManufactureType.SemiProduct ? WarehouseDocumentTypeSemiProduct : WarehouseDocumentTypeProduct,
+                StockMovementDirection = StockMovementDirection.Out, // Consumption = OUT movement
+                Note = request.ManufactureInternalNumber,
+                WarehouseId = FlexiStockClient.MaterialWarehouseId.ToString(),
             };
 
-            _logger.LogDebug("Finalizing issued order {OrderId}", orderId);
+            _logger.LogDebug("Creating consumption stock movement for manufacture order {ManufactureOrderCode}. ItemsCount: {ItemsCount}",
+                request.ManufactureOrderCode, stockMovementRequest.StockItems.Count);
 
+            // Create consumption movement
+            var stockMovementResult = await _stockMovementClient.SaveAsync(stockMovementRequest, cancellationToken);
 
-            var finalizeResult = await _ordersClient.FinalizeAsync(finalizeOrder, cancellationToken);
-
-            if (!finalizeResult.IsSuccess)
+            if (!stockMovementResult.IsSuccess)
             {
-                var shortenedMessage = finalizeResult.GetErrorMessage()?.Split("Could not execute JDBC batch update")
-                    .First();
-                _logger.LogError("FinalizeAsync failed for order {OrderId}: {ErrorMessage}", orderId, shortenedMessage);
-                throw new InvalidOperationException($"Failed to finalize issued order {orderId}: {shortenedMessage}");
+                var errorMessage = stockMovementResult.GetErrorMessage();
+                _logger.LogError("Failed to create consumption movement for manufacture order {ManufactureOrderCode}: {Error}",
+                    request.ManufactureOrderCode, errorMessage);
+                throw new InvalidOperationException($"Failed to create consumption stock movement: {errorMessage}");
             }
 
-            _logger.LogDebug("Successfully finalized issued order {OrderId}", orderId);
+            // Retrieve created document reference
+            var newDocumentIdString = stockMovementResult?.Result?.Results?.FirstOrDefault()?.Id;
+            if (string.IsNullOrEmpty(newDocumentIdString))
+            {
+                _logger.LogError("No document ID returned from consumption movement for manufacture order {ManufactureOrderCode}", request.ManufactureOrderCode);
+                throw new InvalidOperationException("No document ID returned from consumption stock movement");
+            }
 
-            return savedOrder.Code;
+            if (!int.TryParse(newDocumentIdString, out var newDocumentId))
+            {
+                _logger.LogError("Failed to parse document ID '{DocumentId}' for manufacture order {ManufactureOrderCode}",
+                    newDocumentIdString, request.ManufactureOrderCode);
+                throw new InvalidOperationException($"Failed to parse document ID: {newDocumentIdString}");
+            }
+
+            var document = await _stockMovementClient.GetAsync(newDocumentId);
+            var movementReference = document.FirstOrDefault()?.Document.DocumentCode;
+
+            if (string.IsNullOrEmpty(movementReference))
+            {
+                _logger.LogError("No movement reference returned for consumption movement {DocumentId}", newDocumentId);
+                throw new InvalidOperationException($"No movement reference returned for document ID: {newDocumentId}");
+            }
+
+            _logger.LogInformation("Successfully created consumption movement {MovementReference} for manufacture order {ManufactureOrderCode}",
+                movementReference, request.ManufactureOrderCode);
+
+            return movementReference;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to submit manufacture order {ManufactureOrderId}: {ErrorMessage}",
+            _logger.LogError(ex, "Failed to submit manufacture consumption movement for order {ManufactureOrderCode}: {ErrorMessage}",
                 request.ManufactureOrderCode, ex.Message);
             throw;
         }
@@ -278,22 +270,4 @@ public class FlexiManufactureClient : IManufactureClient
     }
 
 
-    private static IssuedOrderItemFlexiDto MapToFlexiItem(SubmitManufactureClientItem item,
-        SubmitManufactureClientRequest request)
-    {
-        if (item.Amount <= 0)
-        {
-            throw new ArgumentException("Item quantity must be greater than zero", nameof(item));
-        }
-
-        return new IssuedOrderItemFlexiDto
-        {
-            ProductCode = item.ProductCode,
-            Name = item.ProductName,
-            Amount = (double)item.Amount,
-            LotNumber = request.LotNumber,
-            ExpirationDate = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            WarehouseCode = request.ManufactureType == ErpManufactureType.SemiProduct ? WarehouseCodeSemiProduct : WarehouseCodeProduct,
-        };
-    }
 }

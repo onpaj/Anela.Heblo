@@ -3,7 +3,6 @@ using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Rem.FlexiBeeSDK.Client.Clients.IssuedOrders;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
 using Rem.FlexiBeeSDK.Model.Products.StockMovement;
 using Rem.FlexiBeeSDK.Model;
@@ -13,7 +12,6 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 
 public class DiscardResidualSemiProductTests
 {
-    private readonly Mock<IIssuedOrdersClient> _mockOrdersClient;
     private readonly Mock<IErpStockClient> _mockStockClient;
     private readonly Mock<IStockItemsMovementClient> _mockStockMovementClient;
     private readonly Mock<ILogger<FlexiManufactureClient>> _mockLogger;
@@ -21,13 +19,11 @@ public class DiscardResidualSemiProductTests
 
     public DiscardResidualSemiProductTests()
     {
-        _mockOrdersClient = new Mock<IIssuedOrdersClient>();
         _mockStockClient = new Mock<IErpStockClient>();
         _mockStockMovementClient = new Mock<IStockItemsMovementClient>();
         _mockLogger = new Mock<ILogger<FlexiManufactureClient>>();
 
         _client = new FlexiManufactureClient(
-            _mockOrdersClient.Object,
             _mockStockClient.Object,
             _mockStockMovementClient.Object,
             TimeProvider.System,
