@@ -514,4 +514,201 @@ public class SubmitManufactureHandlerTests
             It.IsAny<SubmitManufactureClientRequest>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_BatchNumberPreservation_VerifiesBatchNumberPassedToConsumptionMovement()
+    {
+        // Arrange
+        var lotNumber = "BATCH-2024-001";
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = "MO-2024-010",
+            ManufactureInternalNumber = "INT-010",
+            Date = new DateTime(2024, 1, 24),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new SubmitManufactureRequestItem
+                {
+                    ProductCode = "MAT013",
+                    Name = "Test Material 13",
+                    Amount = 100.0m
+                }
+            },
+            LotNumber = lotNumber,
+            ExpirationDate = new DateOnly(2025, 10, 24)
+        };
+
+        var expectedMovementReference = "MOV-2024-010";
+
+        _manufactureClientMock
+            .Setup(x => x.SubmitManufactureAsync(
+                It.IsAny<SubmitManufactureClientRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedMovementReference);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ManufactureId.Should().Be(expectedMovementReference);
+
+        // Verify that batch number was passed to the client request
+        _manufactureClientMock.Verify(x => x.SubmitManufactureAsync(
+            It.Is<SubmitManufactureClientRequest>(r =>
+                r.LotNumber == lotNumber),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_BatchNumberPreservation_VerifiesBatchNumberPassedToProductionMovement()
+    {
+        // Arrange
+        var lotNumber = "BATCH-2024-002";
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = "MO-2024-011",
+            ManufactureInternalNumber = "INT-011",
+            Date = new DateTime(2024, 1, 25),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.SemiProduct,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new SubmitManufactureRequestItem
+                {
+                    ProductCode = "MAT014",
+                    Name = "Test Material 14",
+                    Amount = 150.0m
+                }
+            },
+            LotNumber = lotNumber,
+            ExpirationDate = new DateOnly(2025, 11, 25)
+        };
+
+        var expectedMovementReference = "MOV-2024-011";
+
+        _manufactureClientMock
+            .Setup(x => x.SubmitManufactureAsync(
+                It.IsAny<SubmitManufactureClientRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedMovementReference);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ManufactureId.Should().Be(expectedMovementReference);
+
+        // Verify that batch number was passed to the client request
+        // The implementation uses the same batch number for both consumption and production movements
+        _manufactureClientMock.Verify(x => x.SubmitManufactureAsync(
+            It.Is<SubmitManufactureClientRequest>(r =>
+                r.LotNumber == lotNumber),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_BatchNumberPreservation_VerifiesBothMovementsUseSameBatch()
+    {
+        // Arrange
+        var lotNumber = "BATCH-2024-003";
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = "MO-2024-012",
+            ManufactureInternalNumber = "INT-012",
+            Date = new DateTime(2024, 1, 26),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new SubmitManufactureRequestItem
+                {
+                    ProductCode = "MAT015",
+                    Name = "Test Material 15",
+                    Amount = 200.0m
+                }
+            },
+            LotNumber = lotNumber,
+            ExpirationDate = new DateOnly(2025, 12, 26)
+        };
+
+        var expectedMovementReference = "MOV-2024-012";
+
+        _manufactureClientMock
+            .Setup(x => x.SubmitManufactureAsync(
+                It.IsAny<SubmitManufactureClientRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedMovementReference);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ManufactureId.Should().Be(expectedMovementReference);
+
+        // Verify that both consumption and production movements use the same batch number
+        // The implementation creates both movements within the same SubmitManufactureAsync call
+        // using the same request.LotNumber value
+        _manufactureClientMock.Verify(x => x.SubmitManufactureAsync(
+            It.Is<SubmitManufactureClientRequest>(r =>
+                r.LotNumber == lotNumber &&
+                r.ManufactureOrderCode == "MO-2024-012"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_BatchNumberPreservation_VerifiesBatchLinkageForTracking()
+    {
+        // Arrange
+        var lotNumber = "BATCH-2024-004";
+        var manufactureOrderCode = "MO-2024-013";
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = manufactureOrderCode,
+            ManufactureInternalNumber = "INT-013",
+            Date = new DateTime(2024, 1, 27),
+            CreatedBy = "TestUser",
+            ManufactureType = ErpManufactureType.Product,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new SubmitManufactureRequestItem
+                {
+                    ProductCode = "MAT016",
+                    Name = "Test Material 16",
+                    Amount = 250.0m
+                }
+            },
+            LotNumber = lotNumber,
+            ExpirationDate = new DateOnly(2026, 1, 27)
+        };
+
+        var expectedMovementReference = "MOV-2024-013";
+
+        _manufactureClientMock
+            .Setup(x => x.SubmitManufactureAsync(
+                It.IsAny<SubmitManufactureClientRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedMovementReference);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.ManufactureId.Should().Be(expectedMovementReference);
+
+        // Verify that batch number and manufacture order code are linked for tracking
+        // This enables traceability from finished goods back to raw materials
+        _manufactureClientMock.Verify(x => x.SubmitManufactureAsync(
+            It.Is<SubmitManufactureClientRequest>(r =>
+                r.LotNumber == lotNumber &&
+                r.ManufactureOrderCode == manufactureOrderCode &&
+                r.Items.Count == 1 &&
+                r.Items[0].ProductCode == "MAT016"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

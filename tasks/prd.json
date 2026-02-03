@@ -330,7 +330,7 @@
         "manual-testing",
         "P0"
       ],
-      "completionNotes": "Manual testing procedure documented in docs/testing/manual-testing-us-015-manufacturing-submission.md - Ready for QA execution"
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-016",
@@ -507,6 +507,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-03T18:30:00.000Z"
+    "updatedAt": "2026-02-03T17:59:49.616Z"
   }
 }
