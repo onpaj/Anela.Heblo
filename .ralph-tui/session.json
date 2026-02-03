@@ -3,10 +3,10 @@
   "sessionId": "cb002659-411c-4940-9436-6bc072891270",
   "status": "running",
   "startedAt": "2026-02-03T16:46:04.616Z",
-  "updatedAt": "2026-02-03T16:57:08.135Z",
-  "currentIteration": 0,
+  "updatedAt": "2026-02-03T17:03:34.656Z",
+  "currentIteration": 1,
   "maxIterations": 100,
-  "tasksCompleted": 0,
+  "tasksCompleted": 1,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -16,15 +16,15 @@
     "tasks": [
       {
         "id": "US-001",
-        "title": "Upgrade Rem.FlexiBee NuGet packages to latest stable (0.1.119)",
+        "title": "Upgrade Rem.FlexiBee NuGet packages to latest stable",
         "status": "open",
         "completedInSession": false
       },
       {
         "id": "US-002",
         "title": "Review IStockMovementClient and IStockItemsMovementClient APIs",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-003",
@@ -154,7 +154,18 @@
       }
     ]
   },
-  "iterations": [],
+  "iterations": [
+    {
+      "iteration": 1,
+      "status": "completed",
+      "taskId": "US-002",
+      "taskTitle": "Review IStockMovementClient and IStockItemsMovementClient APIs",
+      "taskCompleted": true,
+      "durationMs": 386100,
+      "startedAt": "2026-02-03T16:57:08.392Z",
+      "endedAt": "2026-02-03T17:03:34.492Z"
+    }
+  ],
   "skippedTaskIds": [],
   "cwd": "/Users/pajgrtondrej/Work/GitHub/Anela.Heblo",
   "activeTaskIds": [],
