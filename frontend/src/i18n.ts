@@ -113,7 +113,10 @@ const resources = {
         FixedProductsExceedAvailableVolume: "Fixní produkty vyžadují více objemu ({volumeUsedByFixed} g) než je k dispozici ({availableVolume} g). Nedostatek: {deficit} g.",
         OrderNotFound: "Zakázka nenalezena",
         CannotUpdateCompletedOrder: "Nelze upravit rozpis dokončených zakázek",
-        CannotUpdateCancelledOrder: "Nelze upravit rozpis zrušených zakázek", 
+        CannotUpdateCancelledOrder: "Nelze upravit rozpis zrušených zakázek",
+        ConsumptionMovementCreationFailed: "Vytvoření spotřebního pohybu selhalo",
+        ProductionMovementCreationFailed: "Vytvoření výrobního pohybu selhalo",
+        ManufactureSubmissionFailed: "Odeslání výrobní zakázky selhalo", 
         CannotScheduleInPast: "Nelze naplánovat výrobu do minulosti",
         InvalidScheduleDateOrder: "Datum výroby polotovaru nemůže být po datu dokončení produktu",
 
