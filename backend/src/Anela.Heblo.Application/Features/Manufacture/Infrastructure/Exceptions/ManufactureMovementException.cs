@@ -49,6 +49,8 @@ public class ConsumptionMovementFailedException : ManufactureMovementException
 /// <summary>
 /// Exception thrown when production movement creation fails after consumption succeeds.
 /// Includes reference to the created consumption movement for manual cleanup.
+/// This represents a partial success state where the consumption movement was successfully created
+/// but the production movement failed, requiring manual rollback in FlexiBee.
 /// </summary>
 public class ProductionMovementFailedException : ManufactureMovementException
 {
@@ -60,7 +62,8 @@ public class ProductionMovementFailedException : ManufactureMovementException
         string consumptionMovementReference,
         Exception? innerException = null)
         : base(
-            $"Failed to create production stock movement: {flexiBeeErrorMessage}. Consumption movement created: {consumptionMovementReference}",
+            $"PARTIAL SUCCESS - Production movement creation failed: {flexiBeeErrorMessage}. " +
+            $"Consumption movement {consumptionMovementReference} was successfully created and MUST BE MANUALLY ROLLED BACK in FlexiBee.",
             ErrorCodes.ProductionMovementCreationFailed,
             flexiBeeErrorMessage,
             manufactureOrderCode,

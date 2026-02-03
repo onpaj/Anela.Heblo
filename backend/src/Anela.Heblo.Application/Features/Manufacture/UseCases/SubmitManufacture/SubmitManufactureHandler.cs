@@ -71,7 +71,7 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
         }
         catch (ProductionMovementFailedException ex)
         {
-            _logger.LogError(ex, "Production movement failed for manufacture order {ManufactureOrderId}. FlexiBee error: {FlexiBeeError}. Consumption movement: {ConsumptionMovement}",
+            _logger.LogError(ex, "Production movement failed for manufacture order {ManufactureOrderId}. FlexiBee error: {FlexiBeeError}. Consumption movement ID: {ConsumptionMovement}. MANUAL ROLLBACK REQUIRED.",
                 request.ManufactureOrderNumber, ex.FlexiBeeErrorMessage, ex.ConsumptionMovementReference);
 
             return new SubmitManufactureResponse(
@@ -80,7 +80,8 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
                 {
                     { "ManufactureOrderCode", ex.ManufactureOrderCode ?? request.ManufactureOrderNumber },
                     { "FlexiBeeError", ex.FlexiBeeErrorMessage ?? "Unknown error" },
-                    { "ConsumptionMovementReference", ex.ConsumptionMovementReference },
+                    { "ConsumptionMovementId", ex.ConsumptionMovementReference },
+                    { "RollbackInstructions", $"PARTIAL SUCCESS: Consumption movement {ex.ConsumptionMovementReference} was created but production movement failed. Manual rollback required in FlexiBee." },
                     { "ErrorMessage", ex.Message }
                 });
         }
