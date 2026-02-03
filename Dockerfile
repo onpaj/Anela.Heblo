@@ -23,7 +23,7 @@ ENV REACT_APP_AZURE_TENANT_ID=$REACT_APP_AZURE_TENANT_ID
 
 # Copy package files and install all dependencies (needed for build)
 COPY frontend/package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm ci --legacy-peer-deps
 
 # Copy frontend source and build
 COPY frontend/ ./
