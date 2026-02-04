@@ -7,12 +7,12 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBy
 
 public class CalculatedBatchSizeHandler : IRequestHandler<CalculatedBatchSizeRequest, CalculatedBatchSizeResponse>
 {
-    private readonly IManufactureRepository _manufactureRepository;
+    private readonly IManufactureClient _manufactureClient;
     private readonly ICatalogRepository _catalogRepository;
 
-    public CalculatedBatchSizeHandler(IManufactureRepository manufactureRepository, ICatalogRepository catalogRepository)
+    public CalculatedBatchSizeHandler(IManufactureClient manufactureClient, ICatalogRepository catalogRepository)
     {
-        _manufactureRepository = manufactureRepository;
+        _manufactureClient = manufactureClient;
         _catalogRepository = catalogRepository;
     }
 
@@ -20,7 +20,7 @@ public class CalculatedBatchSizeHandler : IRequestHandler<CalculatedBatchSizeReq
     {
         try
         {
-            var template = await _manufactureRepository.GetManufactureTemplateAsync(request.ProductCode, cancellationToken);
+            var template = await _manufactureClient.GetManufactureTemplateAsync(request.ProductCode, cancellationToken);
             var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
 
             if (template == null)

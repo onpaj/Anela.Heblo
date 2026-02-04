@@ -10,15 +10,15 @@ namespace Anela.Heblo.Tests.Features.Catalog;
 
 public class GetProductUsageHandlerTests
 {
-    private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
+    private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly GetProductUsageHandler _handler;
 
     public GetProductUsageHandlerTests()
     {
-        _manufactureRepositoryMock = new Mock<IManufactureRepository>();
+        _manufactureClientMock = new Mock<IManufactureClient>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
-        _handler = new GetProductUsageHandler(_manufactureRepositoryMock.Object, _catalogRepositoryMock.Object);
+        _handler = new GetProductUsageHandler(_manufactureClientMock.Object, _catalogRepositoryMock.Object);
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public class GetProductUsageHandlerTests
         // Arrange
         var request = new GetProductUsageRequest { ProductCode = "NONEXISTENT" };
 
-        _manufactureRepositoryMock.Setup(x => x.FindByIngredientAsync("NONEXISTENT", It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.FindByIngredientAsync("NONEXISTENT", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureTemplate>());
 
         // Act
@@ -46,7 +46,7 @@ public class GetProductUsageHandlerTests
         var request = new GetProductUsageRequest { ProductCode = "INGREDIENT001" };
         var originalTemplates = CreateManufactureTemplates();
 
-        _manufactureRepositoryMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(originalTemplates);
 
         // Template product has no MMQ configured
@@ -74,7 +74,7 @@ public class GetProductUsageHandlerTests
         var request = new GetProductUsageRequest { ProductCode = "INGREDIENT001" };
         var originalTemplates = CreateManufactureTemplates();
 
-        _manufactureRepositoryMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(originalTemplates);
 
         // Template product with MMQ configured
@@ -107,7 +107,7 @@ public class GetProductUsageHandlerTests
         var request = new GetProductUsageRequest { ProductCode = "INGREDIENT001" };
         var originalTemplates = CreateManufactureTemplates();
 
-        _manufactureRepositoryMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(originalTemplates);
 
         // Template product with smaller MMQ
@@ -153,7 +153,7 @@ public class GetProductUsageHandlerTests
             }
         };
 
-        _manufactureRepositoryMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(invalidTemplates);
 
         // Template product with MMQ configured 
@@ -197,7 +197,7 @@ public class GetProductUsageHandlerTests
             }
         };
 
-        _manufactureRepositoryMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(templates);
 
         // Template product with MMQ configured
@@ -228,7 +228,7 @@ public class GetProductUsageHandlerTests
         // Arrange
         var request = new GetProductUsageRequest { ProductCode = "INGREDIENT001" };
 
-        _manufactureRepositoryMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureTemplate>());
 
         // Act
