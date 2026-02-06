@@ -16,6 +16,7 @@ public class FlexiLotsClient : ILotsClient
         var lots = await _lotsClient.GetAsync(productCode, limit, skip, cancellationToken);
         return lots.Select(s => new CatalogLot()
         {
+            Id = s.Id,
             ProductCode = s.ProductCode,
             Amount = s.Amount,
             Expiration = s.Expiration.HasValue ? DateOnly.FromDateTime(s.Expiration.Value.Date) : null,
