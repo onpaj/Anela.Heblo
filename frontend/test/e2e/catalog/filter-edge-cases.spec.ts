@@ -138,8 +138,6 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
     // Single character search
     await applyProductNameFilter(page, "K");
 
-    await waitForTableUpdate(page);
-
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for single character "K": ${rowCount}`);
 
