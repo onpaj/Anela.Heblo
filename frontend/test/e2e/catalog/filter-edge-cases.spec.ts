@@ -402,8 +402,6 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
 
     await applyProductNameFilter(page, regexString);
 
-    await waitForTableUpdate(page);
-
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for regex-like string: ${rowCount}`);
 
