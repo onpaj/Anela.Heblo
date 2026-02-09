@@ -116,8 +116,6 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
 
     await applyProductNameFilter(page, longName);
 
-    await waitForTableUpdate(page);
-
     // Should not crash, might return no results
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for very long name: ${rowCount}`);
