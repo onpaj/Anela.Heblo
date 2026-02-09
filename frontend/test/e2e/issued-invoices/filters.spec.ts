@@ -44,6 +44,8 @@ test.describe("IssuedInvoices - Filter Functionality", () => {
     await invoiceIdInput.fill("2024");
     await invoiceIdInput.press("Enter");
     await waitForLoadingComplete(page);
+    // Add stabilization wait to ensure table has finished updating after filter
+    await page.waitForTimeout(500);
 
     // Verify rows are filtered
     const filteredCount = await tableRows.count();
