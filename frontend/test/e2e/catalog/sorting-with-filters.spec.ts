@@ -376,8 +376,6 @@ test.describe('Catalog Sorting with Filters E2E Tests', () => {
     // Apply filter that results in no matches
     await applyProductNameFilter(page, 'NONEXISTENTPRODUCT12345');
 
-    await waitForTableUpdate(page);
-
     const rowCount = await getRowCount(page);
     expect(rowCount).toBe(0);
 
