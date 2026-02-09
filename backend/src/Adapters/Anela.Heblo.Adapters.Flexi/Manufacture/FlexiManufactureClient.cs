@@ -31,6 +31,7 @@ internal sealed class ConsumptionItem
     public string? LotNumber { get; init; }
     public DateOnly? Expiration { get; init; }
     public required double Amount { get; init; }
+    public required string SourceProductCode { get; init; }
 }
 
 public class FlexiManufactureClient : IManufactureClient
@@ -102,14 +103,12 @@ public class FlexiManufactureClient : IManufactureClient
 
     private async Task SubmitManufacturePerProductAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken)
     {
-        foreach (var item in request.Items)
-        {
-            // Skip items with zero or negative amount
-            if (item.Amount <= 0)
-            {
-                continue;
-            }
+        // Phase 1: Collect all ingredient requirements with product attribution
+        var allConsumptionItems = new List<ConsumptionItem>();
+        var productCosts = new Dictionary<string, double>();
 
+        foreach (var item in request.Items.Where(i => i.Amount > 0))
+        {
             // Create a single-item request for this specific product
             var singleProductRequest = new SubmitManufactureClientRequest
             {
@@ -124,17 +123,26 @@ public class FlexiManufactureClient : IManufactureClient
                 ValidateIngredientStock = request.ValidateIngredientStock
             };
 
-            // Process this product independently
+            // Get ingredient requirements for this product
             var ingredientRequirements = await AggregateIngredientRequirementsAsync(singleProductRequest, cancellationToken);
+
             if (request.ValidateIngredientStock)
             {
                 await ValidateIngredientStockAsync(ingredientRequirements, cancellationToken);
             }
+
             var ingredientLots = await LoadAvailableLotsAsync(ingredientRequirements, cancellationToken);
-            var consumptionItems = AllocateConsumptionItemsUsingFefo(ingredientRequirements, ingredientLots);
-            var productConsumptionCost = await SubmitConsumptionMovementsAsync(singleProductRequest, consumptionItems, cancellationToken);
-            await SubmitProductionMovementAsync(singleProductRequest, productConsumptionCost, cancellationToken);
+            var consumptionItems = AllocateConsumptionItemsUsingFefo(ingredientRequirements, ingredientLots, item.ProductCode);
+
+            allConsumptionItems.AddRange(consumptionItems);
+            productCosts[item.ProductCode] = 0; // Will be calculated during consumption
         }
+
+        // Phase 2: Create ONE consume document (per warehouse) with all consumption lines
+        await SubmitConsolidatedConsumptionMovementsAsync(request, allConsumptionItems, productCosts, cancellationToken);
+
+        // Phase 3: Create ONE produce document with all products
+        await SubmitConsolidatedProductionMovementAsync(request, productCosts, cancellationToken);
     }
 
     private async Task<Dictionary<string, IngredientRequirement>> AggregateIngredientRequirementsAsync(
@@ -243,7 +251,8 @@ public class FlexiManufactureClient : IManufactureClient
 
     private List<ConsumptionItem> AllocateConsumptionItemsUsingFefo(
         Dictionary<string, IngredientRequirement> ingredientRequirements,
-        Dictionary<string, List<CatalogLot>> ingredientLots)
+        Dictionary<string, List<CatalogLot>> ingredientLots,
+        string sourceProductCode = "")
     {
         var consumptionItems = new List<ConsumptionItem>();
 
@@ -259,7 +268,8 @@ public class FlexiManufactureClient : IManufactureClient
                     ProductType = requirement.ProductType,
                     LotNumber = null,
                     Expiration = null,
-                    Amount = requirement.RequiredAmount
+                    Amount = requirement.RequiredAmount,
+                    SourceProductCode = sourceProductCode
                 });
                 continue;
             }
@@ -288,7 +298,8 @@ public class FlexiManufactureClient : IManufactureClient
                     ProductType = requirement.ProductType,
                     LotNumber = lot.Lot,
                     Expiration = lot.Expiration,
-                    Amount = amountFromThisLot
+                    Amount = amountFromThisLot,
+                    SourceProductCode = sourceProductCode
                 });
 
                 remainingToAllocate -= amountFromThisLot;
@@ -375,7 +386,7 @@ public class FlexiManufactureClient : IManufactureClient
 
             var consumptionResult = await _stockMovementClient.SaveAsync(consumptionRequest, cancellationToken);
 
-            if (!consumptionResult.IsSuccess)
+            if (consumptionResult != null && !consumptionResult.IsSuccess)
             {
                 throw new InvalidOperationException(
                     $"Failed to create consumption stock movement for warehouse {warehouseId}: {consumptionResult.GetErrorMessage()}"
@@ -433,7 +444,133 @@ public class FlexiManufactureClient : IManufactureClient
 
         var productionResult = await _stockMovementClient.SaveAsync(productionRequest, cancellationToken);
 
-        if (!productionResult.IsSuccess)
+        if (productionResult != null && !productionResult.IsSuccess)
+        {
+            throw new InvalidOperationException(
+                $"Failed to create production stock movement: {productionResult.GetErrorMessage()}"
+            );
+        }
+    }
+
+    private async Task SubmitConsolidatedConsumptionMovementsAsync(
+        SubmitManufactureClientRequest request,
+        List<ConsumptionItem> consumptionItems,
+        Dictionary<string, double> productCosts,
+        CancellationToken cancellationToken)
+    {
+        var consumptionByWarehouse = consumptionItems
+            .GroupBy(item => item.ProductType switch
+            {
+                ProductType.Material => FlexiStockClient.MaterialWarehouseId,
+                ProductType.SemiProduct => FlexiStockClient.SemiProductsWarehouseId,
+                ProductType.Product or ProductType.Goods => FlexiStockClient.ProductsWarehouseId,
+                _ => FlexiStockClient.MaterialWarehouseId
+            })
+            .ToList();
+
+        foreach (var warehouseGroup in consumptionByWarehouse)
+        {
+            var warehouseId = warehouseGroup.Key;
+            var stockItems = await _stockClient.StockToDateAsync(request.Date, warehouseId, cancellationToken);
+            var stockMovementItems = new List<StockItemsMovementUpsertRequestItemFlexiDto>();
+
+            foreach (var consumptionItem in warehouseGroup)
+            {
+                var stockItem = stockItems.FirstOrDefault(s => s.ProductCode == consumptionItem.ProductCode);
+                var unitPrice = stockItem != null ? (double)stockItem.Price : 0;
+
+                // Track cost per manufactured product
+                productCosts[consumptionItem.SourceProductCode] += unitPrice * consumptionItem.Amount;
+
+                stockMovementItems.Add(new StockItemsMovementUpsertRequestItemFlexiDto
+                {
+                    ProductCode = consumptionItem.ProductCode,
+                    ProductName = consumptionItem.ProductName,
+                    Amount = consumptionItem.Amount,
+                    AmountIssued = consumptionItem.Amount,
+                    LotNumber = consumptionItem.LotNumber,
+                    Expiration = consumptionItem.Expiration?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+                    UnitPrice = unitPrice
+                });
+            }
+
+            var documentType = warehouseId switch
+            {
+                _ when warehouseId == FlexiStockClient.SemiProductsWarehouseId => WarehouseDocumentTypeSemiProduct,
+                _ when warehouseId == FlexiStockClient.ProductsWarehouseId => WarehouseDocumentTypeProduct,
+                _ => WarehouseDocumentTypeSemiProduct
+            };
+
+            var consumptionRequest = new StockItemsMovementUpsertRequestFlexiDto
+            {
+                CreatedBy = request.CreatedBy,
+                AccountingDate = request.Date,
+                IssueDate = request.Date,
+                StockItems = stockMovementItems,
+                Description = request.ManufactureOrderCode,
+                DocumentTypeCode = documentType,
+                StockMovementDirection = StockMovementDirection.Out,
+                Note = request.ManufactureInternalNumber,
+                WarehouseId = warehouseId.ToString()
+            };
+
+            var consumptionResult = await _stockMovementClient.SaveAsync(consumptionRequest, cancellationToken);
+
+            if (consumptionResult != null && !consumptionResult.IsSuccess)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to create consumption stock movement for warehouse {warehouseId}: {consumptionResult.GetErrorMessage()}"
+                );
+            }
+        }
+    }
+
+    private async Task SubmitConsolidatedProductionMovementAsync(
+        SubmitManufactureClientRequest request,
+        Dictionary<string, double> productCosts,
+        CancellationToken cancellationToken)
+    {
+        var productMovementItems = request.Items
+            .Where(i => i.Amount > 0)
+            .Select(item =>
+            {
+                var productCost = productCosts.GetValueOrDefault(item.ProductCode, 0);
+                var unitPrice = item.Amount > 0 ? productCost / (double)item.Amount : 0;
+
+                return new StockItemsMovementUpsertRequestItemFlexiDto
+                {
+                    ProductCode = item.ProductCode,
+                    ProductName = item.ProductName,
+                    Amount = (double)item.Amount,
+                    AmountIssued = (double)item.Amount,
+                    LotNumber = request.LotNumber,
+                    Expiration = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+                    UnitPrice = unitPrice
+                };
+            }).ToList();
+
+        // Don't create production movement if there are no products
+        if (productMovementItems.Count == 0)
+        {
+            return;
+        }
+
+        var productionRequest = new StockItemsMovementUpsertRequestFlexiDto
+        {
+            CreatedBy = request.CreatedBy,
+            AccountingDate = request.Date,
+            IssueDate = request.Date,
+            StockItems = productMovementItems,
+            Description = request.ManufactureOrderCode,
+            DocumentTypeCode = WarehouseDocumentTypeProduct,
+            StockMovementDirection = StockMovementDirection.In,
+            Note = request.ManufactureInternalNumber,
+            WarehouseId = FlexiStockClient.ProductsWarehouseId.ToString()
+        };
+
+        var productionResult = await _stockMovementClient.SaveAsync(productionRequest, cancellationToken);
+
+        if (productionResult != null && !productionResult.IsSuccess)
         {
             throw new InvalidOperationException(
                 $"Failed to create production stock movement: {productionResult.GetErrorMessage()}"
