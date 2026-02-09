@@ -158,8 +158,6 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
     // Search for only numbers
     await applyProductNameFilter(page, "123");
 
-    await waitForTableUpdate(page);
-
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for numeric search "123": ${rowCount}`);
 
