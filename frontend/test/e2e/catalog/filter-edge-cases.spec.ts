@@ -128,8 +128,6 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
 
     await applyProductCodeFilter(page, longCode);
 
-    await waitForTableUpdate(page);
-
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for very long code: ${rowCount}`);
 
