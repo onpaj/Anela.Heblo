@@ -72,8 +72,6 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
     // Search for code with hyphens or spaces
     await applyProductCodeFilter(page, "AH-");
 
-    await waitForTableUpdate(page);
-
     const rowCount = await getRowCount(page);
 
     console.log(`📊 Results with hyphen search: ${rowCount}`);
