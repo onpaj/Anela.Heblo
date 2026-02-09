@@ -57,6 +57,11 @@ This document contains a reference list of test data available in the developmen
 |--------------|--------------|------|---------------|
 | MAS001001M | Hedvábný pan Jasmín | Polotovar | 4 variants |
 
+**Required for batch planning tests:**
+- MAS001001M has 10 products configured in its recipe/composition
+- Minimum 2 products needed for error handling tests
+- Used in: `manufacturing/batch-planning-error-handling.spec.ts`
+
 ### Sample Products (Finished Goods)
 
 | Product Code | Product Name | Type | Available Stock | Notes |
