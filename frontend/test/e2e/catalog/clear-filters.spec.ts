@@ -234,17 +234,11 @@ test.describe('Catalog Clear Filters E2E Tests', () => {
     // Apply filter that results in empty state
     await applyProductNameFilter(page, 'NONEXISTENTPRODUCT12345');
 
-    await waitForTableUpdate(page);
-
     // Verify empty state
     await validateEmptyState(page);
 
-    // Clear filters
-    const clearButton = getClearButton(page);
-    await expect(clearButton).toBeVisible();
-    await clearButton.click();
-
-    await waitForTableUpdate(page);
+    // Clear filters using helper (includes proper UI-based waiting)
+    await clearAllFilters(page);
 
     // Verify products are shown again
     const rowCount = await getRowCount(page);
