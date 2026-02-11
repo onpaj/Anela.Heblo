@@ -167,7 +167,7 @@ const FinancialOverview: React.FC = () => {
         tooltip: {
           callbacks: {
             label: function (context) {
-              return `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`;
+              return `${context.dataset.label}: ${formatCurrency(context.parsed.y ?? 0)}`;
             },
           },
         },
