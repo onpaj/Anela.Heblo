@@ -216,14 +216,14 @@ const ProductMarginSummary: React.FC = () => {
           callbacks: {
             label: (context) => {
               const productName = context.dataset.label;
-              const margin = formatCurrency(context.parsed.y);
+              const margin = formatCurrency(context.parsed.y ?? 0);
               const monthData = data?.monthlyData?.[context.dataIndex];
               let tooltip = `${productName}: ${margin}`;
 
               // For "Other" products, we need to calculate aggregated tooltip data
               if (productName === "Ostatní produkty") {
                 const monthData = data?.monthlyData?.[context.dataIndex];
-                const totalMargin = context.parsed.y;
+                const totalMargin = context.parsed.y ?? 0;
                 const totalMonthMargin = monthData?.totalMonthMargin || 0;
                 const percentage =
                   totalMonthMargin > 0
