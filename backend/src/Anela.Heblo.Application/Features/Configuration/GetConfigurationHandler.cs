@@ -36,7 +36,11 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
                 Version = appConfig.Version,
                 Environment = appConfig.Environment,
                 UseMockAuth = appConfig.UseMockAuth,
-                Timestamp = appConfig.Timestamp
+                Timestamp = appConfig.Timestamp,
+                ApiUrl = appConfig.ApiUrl,
+                AzureClientId = appConfig.AzureClientId,
+                AzureAuthority = appConfig.AzureAuthority,
+                AzureTenantId = appConfig.AzureTenantId
             };
 
             _logger.LogDebug("Configuration retrieved successfully: {@Config}", response);
@@ -65,11 +69,42 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
         // Get mock auth setting
         var useMockAuth = _configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, false);
 
-        var config = ApplicationConfiguration.CreateWithDefaults(version, environment, useMockAuth);
+        // Get API URL (priority: API_URL_OVERRIDE environment variable, otherwise empty)
+        var apiUrl = GetApiUrl();
+
+        // Get Azure AD configuration
+        var azureClientId = _configuration["AzureAd:ClientId"] ?? string.Empty;
+        var azureTenantId = _configuration["AzureAd:TenantId"] ?? string.Empty;
+        var azureAuthority = !string.IsNullOrEmpty(azureTenantId)
+            ? $"https://login.microsoftonline.com/{azureTenantId}"
+            : string.Empty;
+
+        var config = ApplicationConfiguration.CreateWithDefaults(
+            version,
+            environment,
+            useMockAuth,
+            apiUrl,
+            azureClientId,
+            azureAuthority,
+            azureTenantId);
 
         await Task.CompletedTask; // Placeholder for potential async operations
 
         return config;
+    }
+
+    private string GetApiUrl()
+    {
+        // Priority: API_URL_OVERRIDE environment variable, otherwise empty string
+        var apiUrl = Environment.GetEnvironmentVariable("API_URL_OVERRIDE");
+        if (!string.IsNullOrEmpty(apiUrl))
+        {
+            _logger.LogDebug("API URL found from API_URL_OVERRIDE environment variable: {ApiUrl}", apiUrl);
+            return apiUrl;
+        }
+
+        _logger.LogDebug("No API_URL_OVERRIDE found, returning empty string");
+        return string.Empty;
     }
 
     private string? GetVersionFromSources()
