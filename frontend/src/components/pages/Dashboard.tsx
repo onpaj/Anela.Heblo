@@ -79,19 +79,19 @@ const Dashboard: React.FC = () => {
       data-testid="dashboard-container"
     >
       {/* Header - Fixed */}
-      <div className="flex-shrink-0 mb-3 px-4 sm:px-6 lg:px-8">
+      <div className="flex-shrink-0 mb-3 px-3 sm:px-4 md:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
               Dashboard
             </h1>
-            <p className="mt-2 text-gray-600">
+            <p className="mt-2 text-gray-600 hidden sm:block">
               Přehled systému a aktuálního stavu
             </p>
           </div>
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center space-x-2 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 transition-colors"
+            className="flex items-center space-x-2 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 transition-colors hidden md:flex"
           >
             <Settings className="h-4 w-4" />
             <span className="text-sm font-medium">Nastavení</span>
