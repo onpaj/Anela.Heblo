@@ -53,9 +53,9 @@ export const PurchaseOrdersInTransitTile: React.FC<PurchaseOrdersInTransitTilePr
   const count = data.data?.count ?? 0;
 
   return (
-    <div 
+    <div
       className={`
-        flex flex-col items-center justify-center h-full
+        flex flex-col items-center justify-center h-full leading-relaxed
         ${isClickable ? 'cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg' : ''}
       `}
       onClick={handleClick}

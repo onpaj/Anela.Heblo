@@ -60,7 +60,7 @@ export const ProductionTile: React.FC<ProductionTileProps> = ({ data, title }) =
   }
 
   return (
-    <div 
+    <div
       className={`
         h-full
         ${isClickable ? 'cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg' : ''}
@@ -68,7 +68,7 @@ export const ProductionTile: React.FC<ProductionTileProps> = ({ data, title }) =
       onClick={handleClick}
       title={tooltip}
     >
-      <div className="space-y-3 max-h-24 overflow-y-auto">
+      <div className="space-y-3 h-48 md:h-auto max-h-72 overflow-y-auto leading-relaxed">
         {products.slice(0, 3).map((product, index) => (
           <div key={index} className="flex justify-between items-center gap-2">
             <span className="text-base text-gray-900 truncate font-medium flex-1">
@@ -77,14 +77,14 @@ export const ProductionTile: React.FC<ProductionTileProps> = ({ data, title }) =
             <div className="flex items-center gap-1 flex-shrink-0">
               <div title={product.semiProductCompleted ? 'Polotovar hotový' : 'Polotovar čeká'}>
                 <Check
-                  className={`h-4 w-4 ${
+                  className={`h-5 w-5 md:h-4 md:w-4 ${
                     product.semiProductCompleted ? 'text-green-500' : 'text-gray-300'
                   }`}
                 />
               </div>
               <div title={product.productsCompleted ? 'Kompletní' : 'Nekompletní'}>
                 <Check
-                  className={`h-4 w-4 ${
+                  className={`h-5 w-5 md:h-4 md:w-4 ${
                     product.productsCompleted ? 'text-green-500' : 'text-gray-300'
                   }`}
                 />
@@ -93,7 +93,7 @@ export const ProductionTile: React.FC<ProductionTileProps> = ({ data, title }) =
           </div>
         ))}
         {products.length > 3 && (
-          <div className="text-xs text-gray-500 pt-1">
+          <div className="text-sm md:text-xs text-gray-500 pt-1">
             +{products.length - 3} další
           </div>
         )}

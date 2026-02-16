@@ -103,7 +103,7 @@ export const InventorySummaryTile: React.FC<InventorySummaryTileProps> = ({ data
     >
       {/* Pie Chart */}
       <div className="flex-shrink-0">
-        <svg width="120" height="120" viewBox="0 0 100 100">
+        <svg className="w-48 md:w-32 h-48 md:h-32" viewBox="0 0 100 100">
           {segments.map((segment, index) => (
             <path key={index} d={segment.path} fill={segment.color} />
           ))}
@@ -111,32 +111,32 @@ export const InventorySummaryTile: React.FC<InventorySummaryTileProps> = ({ data
       </div>
 
       {/* Legend with values */}
-      <div className="flex flex-col space-y-2 flex-1 pt-1">
+      <div className="flex flex-col space-y-2 flex-1 pt-1 leading-relaxed">
         {/* Green: < 120 days */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded-sm bg-green-500"></div>
-            <span className="text-sm text-gray-700">&lt; 180 dní</span>
+            <span className="text-base md:text-sm text-gray-700">&lt; 180 dní</span>
           </div>
-          <span className="text-xl font-bold text-gray-900">{recent}</span>
+          <span className="text-2xl md:text-xl font-bold text-gray-900">{recent}</span>
         </div>
 
         {/* Orange: 120-250 days */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded-sm bg-amber-500"></div>
-            <span className="text-sm text-gray-700">180-365 dní</span>
+            <span className="text-base md:text-sm text-gray-700">180-365 dní</span>
           </div>
-          <span className="text-xl font-bold text-gray-900">{medium}</span>
+          <span className="text-2xl md:text-xl font-bold text-gray-900">{medium}</span>
         </div>
 
         {/* Red: > 250 days or never */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="w-4 h-4 rounded-sm bg-red-500"></div>
-            <span className="text-sm text-gray-700">&gt; 365 dní</span>
+            <span className="text-base md:text-sm text-gray-700">&gt; 365 dní</span>
           </div>
-          <span className="text-xl font-bold text-gray-900">{redTotal}</span>
+          <span className="text-2xl md:text-xl font-bold text-gray-900">{redTotal}</span>
         </div>
       </div>
     </div>

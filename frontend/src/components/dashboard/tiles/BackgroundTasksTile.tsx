@@ -40,9 +40,9 @@ export const BackgroundTasksTile: React.FC<BackgroundTasksTileProps> = ({ data }
   };
 
   return (
-    <div 
+    <div
       className={`
-        flex flex-col items-center justify-center
+        flex flex-col items-center justify-center leading-relaxed
         ${isClickable ? 'cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg' : ''}
       `}
       onClick={handleClick}
@@ -55,9 +55,9 @@ export const BackgroundTasksTile: React.FC<BackgroundTasksTileProps> = ({ data }
         Background úlohy
       </div>
       {total > 0 && (
-        <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+        <div className="w-full bg-gray-200 rounded-full h-3 md:h-2 mt-3">
           <div
-            className="bg-blue-600 h-2 rounded-full transition-all"
+            className="bg-blue-600 h-3 md:h-2 rounded-full transition-all"
             style={{ width: `${(completed / total) * 100}%` }}
           ></div>
         </div>

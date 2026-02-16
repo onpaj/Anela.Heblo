@@ -90,27 +90,27 @@ export const LowStockAlertTile: React.FC<LowStockAlertTileProps> = ({ data }) =>
   };
 
   return (
-    <div className="h-full flex flex-col text-xs">
+    <div className="h-full flex flex-col text-sm md:text-xs leading-relaxed">
       {/* Compact products list */}
       <div className="flex-1 overflow-auto">
         <div className="space-y-1">
           {products.slice(0, 2).map((product) => (
             <div
               key={product.productCode}
-              className="p-2 hover:bg-gray-50 cursor-pointer transition-colors duration-200 rounded border border-gray-100"
+              className="p-3 md:p-2 min-h-12 hover:bg-gray-50 cursor-pointer transition-colors duration-200 rounded border border-gray-100"
               onClick={() => handleRowClick(product)}
             >
               {/* Two line product row */}
               <div>
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-base md:text-xs">
                   <div className="font-medium text-gray-900 truncate">
                     {product.productName}
                   </div>
-                  <div className="font-mono text-xs text-gray-600">
+                  <div className="font-mono text-sm md:text-xs text-gray-600">
                     {formatNumber(product.eshopStock)} / {formatNumber(product.reserveStock)} / {formatNumber(product.transportStock)}
                   </div>
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-sm md:text-xs text-gray-500">
                   {product.productCode}
                 </div>
               </div>
@@ -120,7 +120,7 @@ export const LowStockAlertTile: React.FC<LowStockAlertTileProps> = ({ data }) =>
             <div className="text-center pt-1">
               <button
                 onClick={handleClick}
-                className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                className="text-sm md:text-xs text-blue-600 hover:text-blue-800 hover:underline"
                 title={tooltip}
               >
                 +{totalCount - 2} dalších
