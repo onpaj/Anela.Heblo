@@ -7,11 +7,13 @@ import { TileHeader, TileContent } from './tiles';
 interface DashboardTileProps {
   tile: DashboardTileType;
   className?: string;
+  isDragDisabled?: boolean;
 }
 
 const DashboardTile: React.FC<DashboardTileProps> = ({
   tile,
-  className = ''
+  className = '',
+  isDragDisabled = false
 }) => {
   const {
     attributes,
@@ -20,9 +22,12 @@ const DashboardTile: React.FC<DashboardTileProps> = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: tile.tileId });
+  } = useSortable({
+    id: tile.tileId,
+    disabled: isDragDisabled
+  });
 
-  const style = {
+  const style = isDragDisabled ? {} : {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
@@ -58,7 +63,7 @@ const DashboardTile: React.FC<DashboardTileProps> = ({
     >
       <TileHeader
         title={tile.title}
-        dragHandleProps={{ ...attributes, ...listeners }}
+        dragHandleProps={isDragDisabled ? undefined : { ...attributes, ...listeners }}
       />
 
       <div className="p-4 flex-1">

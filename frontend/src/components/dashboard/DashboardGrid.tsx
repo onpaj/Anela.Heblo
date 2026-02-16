@@ -16,6 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import DashboardTile from './DashboardTile';
 import { DashboardTile as DashboardTileType } from '../../api/hooks/useDashboard';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 
 interface DashboardGridProps {
   tiles: DashboardTileType[];
@@ -28,6 +29,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
   onReorder,
   className = ''
 }) => {
+  const isMobile = useIsMobile();
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -61,6 +64,33 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
     );
   }
 
+  const gridContent = (
+    <div
+      className={`
+        grid gap-4 w-full
+        grid-cols-1 md:grid-cols-3 lg:grid-cols-6
+        auto-rows-fr
+        ${className}
+      `}
+      style={{ minHeight: '200px' }}
+      data-testid="dashboard-grid"
+    >
+      {tiles.map((tile) => (
+        <DashboardTile
+          key={tile.tileId}
+          tile={tile}
+          isDragDisabled={isMobile}
+        />
+      ))}
+    </div>
+  );
+
+  // On mobile, render tiles without drag-and-drop context
+  if (isMobile) {
+    return gridContent;
+  }
+
+  // On desktop, enable drag-and-drop
   return (
     <DndContext
       sensors={sensors}
@@ -68,23 +98,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={tiles.map(t => t.tileId)} strategy={rectSortingStrategy}>
-        <div
-          className={`
-            grid gap-4 w-full
-            grid-cols-1 md:grid-cols-3 lg:grid-cols-6
-            auto-rows-fr
-            ${className}
-          `}
-          style={{ minHeight: '200px' }}
-          data-testid="dashboard-grid"
-        >
-          {tiles.map((tile) => (
-            <DashboardTile
-              key={tile.tileId}
-              tile={tile}
-            />
-          ))}
-        </div>
+        {gridContent}
       </SortableContext>
     </DndContext>
   );

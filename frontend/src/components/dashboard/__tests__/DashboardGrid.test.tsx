@@ -3,11 +3,19 @@ import { render, screen } from '@testing-library/react';
 import DashboardGrid from '../DashboardGrid';
 import { DashboardTile as DashboardTileType } from '../../../api/hooks/useDashboard';
 
+// Mock useMediaQuery hook
+jest.mock('../../../hooks/useMediaQuery', () => ({
+  useIsMobile: jest.fn(() => false), // Default to desktop
+}));
+
 // Mock DashboardTile component
 jest.mock('../DashboardTile', () => {
-  return function MockDashboardTile({ tile }: { tile: DashboardTileType }) {
+  return function MockDashboardTile({ tile, isDragDisabled }: { tile: DashboardTileType; isDragDisabled?: boolean }) {
     return (
-      <div data-testid={`dashboard-tile-${tile.tileId}`}>
+      <div
+        data-testid={`dashboard-tile-${tile.tileId}`}
+        data-drag-disabled={String(isDragDisabled)}
+      >
         {tile.title}
       </div>
     );
@@ -137,11 +145,50 @@ describe('DashboardGrid', () => {
     );
   });
 
-  it('should render DndContext and SortableContext', () => {
+  it('should render DndContext and SortableContext on desktop', () => {
     render(<DashboardGrid tiles={mockTiles} />);
-    
+
     expect(screen.getByTestId('dnd-context')).toBeInTheDocument();
     expect(screen.getByTestId('sortable-context')).toBeInTheDocument();
+  });
+
+  it('should NOT render DndContext on mobile', () => {
+    const { useIsMobile } = require('../../../hooks/useMediaQuery');
+    useIsMobile.mockReturnValue(true);
+
+    render(<DashboardGrid tiles={mockTiles} />);
+
+    expect(screen.queryByTestId('dnd-context')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('sortable-context')).not.toBeInTheDocument();
+
+    // Reset mock
+    useIsMobile.mockReturnValue(false);
+  });
+
+  it('should pass isDragDisabled=true to tiles on mobile', () => {
+    const { useIsMobile } = require('../../../hooks/useMediaQuery');
+    useIsMobile.mockReturnValue(true);
+
+    render(<DashboardGrid tiles={mockTiles} />);
+
+    const tile1 = screen.getByTestId('dashboard-tile-tile-1');
+    const tile2 = screen.getByTestId('dashboard-tile-tile-2');
+
+    expect(tile1).toHaveAttribute('data-drag-disabled', 'true');
+    expect(tile2).toHaveAttribute('data-drag-disabled', 'true');
+
+    // Reset mock
+    useIsMobile.mockReturnValue(false);
+  });
+
+  it('should not pass isDragDisabled on desktop (drag enabled)', () => {
+    render(<DashboardGrid tiles={mockTiles} />);
+
+    const tile1 = screen.getByTestId('dashboard-tile-tile-1');
+    const tile2 = screen.getByTestId('dashboard-tile-tile-2');
+
+    // On desktop, drag should be enabled (DndContext is used)
+    expect(screen.getByTestId('dnd-context')).toBeInTheDocument();
   });
 
   it('should call onReorder when provided', () => {

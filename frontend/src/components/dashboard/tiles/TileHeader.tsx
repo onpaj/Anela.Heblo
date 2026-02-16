@@ -12,13 +12,15 @@ export const TileHeader: React.FC<TileHeaderProps> = ({ title, dragHandleProps }
       <h3 className="text-sm font-medium text-gray-900 truncate tile-title">
         {title}
       </h3>
-      <button
-        {...dragHandleProps}
-        className="text-gray-400 hover:text-gray-600 transition-colors cursor-grab active:cursor-grabbing"
-        title="Přetáhnout pro změnu pořadí"
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
+      {dragHandleProps && (
+        <button
+          {...dragHandleProps}
+          className="text-gray-400 hover:text-gray-600 transition-colors cursor-grab active:cursor-grabbing"
+          title="Přetáhnout pro změnu pořadí"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 };
