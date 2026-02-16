@@ -64,14 +64,16 @@ describe('TileHeader', () => {
 
   it('should apply title styling', () => {
     render(<TileHeader title="Test Title" />);
-    
+
     const titleElement = screen.getByText('Test Title');
     expect(titleElement).toHaveClass(
-      'text-sm',
+      'text-base',
+      'md:text-sm',
       'font-medium',
       'text-gray-900',
       'truncate',
-      'tile-title'
+      'tile-title',
+      'leading-relaxed'
     );
   });
 
