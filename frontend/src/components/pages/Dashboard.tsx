@@ -12,11 +12,13 @@ import {
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import DashboardGrid from "../dashboard/DashboardGrid";
 import DashboardSettings from "../dashboard/DashboardSettings";
+import { useIsMobile } from "../../hooks/useMediaQuery";
 
 const Dashboard: React.FC = () => {
   useLiveHealthCheck();
   useReadyHealthCheck();
 
+  const isMobile = useIsMobile();
   const [showSettings, setShowSettings] = useState(false);
 
   const { data: userSettings, isLoading: settingsLoading } = useUserDashboardSettings();
@@ -101,7 +103,7 @@ const Dashboard: React.FC = () => {
 
       {/* Content Area */}
       <div className="flex-1 px-4 sm:px-6 lg:px-8 overflow-auto">
-        {showSettings ? (
+        {showSettings && !isMobile ? (
           <DashboardSettings onClose={() => setShowSettings(false)} />
         ) : (
           <>

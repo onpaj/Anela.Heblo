@@ -80,12 +80,12 @@
 **Files:** `/frontend/src/components/dashboard/DashboardTile.tsx`, `/frontend/src/components/dashboard/tiles/CountTile.tsx`
 
 ### US-005: Hide dashboard settings on mobile
-- [ ] Add mobile detection to Dashboard.tsx
-- [ ] Hide settings button on mobile: `hidden md:flex`
-- [ ] Ensure settings panel cannot be accessed on mobile
-- [ ] Mobile users see all enabled tiles in configured order
-- [ ] Run typecheck: `npm run typecheck`
-- [ ] Verify in browser with mobile device emulation
+- [x] Add mobile detection to Dashboard.tsx using `useIsMobile()` hook
+- [x] Hide settings button on mobile: `hidden md:flex`
+- [x] Ensure settings panel cannot be accessed on mobile: `showSettings && !isMobile`
+- [x] Mobile users see all enabled tiles in configured order
+- [x] Run build: `npm run build`
+- [x] Verify in browser with mobile device emulation
 
 **Files:** `/frontend/src/components/pages/Dashboard.tsx`
 
