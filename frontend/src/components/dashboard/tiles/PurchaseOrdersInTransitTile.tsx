@@ -53,13 +53,14 @@ export const PurchaseOrdersInTransitTile: React.FC<PurchaseOrdersInTransitTilePr
   const count = data.data?.count ?? 0;
 
   return (
-    <div 
+    <div
       className={`
-        flex flex-col items-center justify-center h-full
-        ${isClickable ? 'cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg' : ''}
+        flex flex-col items-center justify-center h-full leading-relaxed min-h-44
+        ${isClickable ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 rounded-lg' : ''}
       `}
       onClick={handleClick}
       title={tooltip}
+      style={isClickable ? { touchAction: 'manipulation' } : undefined}
     >
       <div className="mb-2 text-orange-600">
         <Truck className="h-10 w-10" />

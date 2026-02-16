@@ -7,11 +7,13 @@ import { TileHeader, TileContent } from './tiles';
 interface DashboardTileProps {
   tile: DashboardTileType;
   className?: string;
+  isDragDisabled?: boolean;
 }
 
 const DashboardTile: React.FC<DashboardTileProps> = ({
   tile,
-  className = ''
+  className = '',
+  isDragDisabled = false
 }) => {
   const {
     attributes,
@@ -20,22 +22,27 @@ const DashboardTile: React.FC<DashboardTileProps> = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: tile.tileId });
+  } = useSortable({
+    id: tile.tileId,
+    disabled: isDragDisabled
+  });
 
-  const style = {
+  const style = isDragDisabled ? {} : {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
 
   const getSizeClasses = () => {
+    // On mobile (<768px), all tiles are full-width (col-span-1)
+    // On desktop (>=768px), tiles use their configured size
     switch (tile.size) {
       case 'Small':
         return 'col-span-1 row-span-1';
       case 'Medium':
-        return 'col-span-2 row-span-1';
+        return 'col-span-1 md:col-span-2 row-span-1';
       case 'Large':
-        return 'col-span-2 row-span-2';
+        return 'col-span-1 md:col-span-2 row-span-1 md:row-span-2';
       default:
         return 'col-span-1 row-span-1';
     }
@@ -56,7 +63,7 @@ const DashboardTile: React.FC<DashboardTileProps> = ({
     >
       <TileHeader
         title={tile.title}
-        dragHandleProps={{ ...attributes, ...listeners }}
+        dragHandleProps={isDragDisabled ? undefined : { ...attributes, ...listeners }}
       />
 
       <div className="p-4 flex-1">

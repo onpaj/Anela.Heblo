@@ -70,17 +70,17 @@ describe('DashboardTile', () => {
   it('should apply correct size classes for Medium size', () => {
     const mediumTile = { ...mockTile, size: 'Medium' as const };
     renderWithDndContext(<DashboardTile tile={mediumTile} />);
-    
+
     const tileElement = screen.getByTestId('dashboard-tile-test-tile-123');
-    expect(tileElement).toHaveClass('col-span-2', 'row-span-1');
+    expect(tileElement).toHaveClass('col-span-1', 'md:col-span-2', 'row-span-1');
   });
 
   it('should apply correct size classes for Large size', () => {
     const largeTile = { ...mockTile, size: 'Large' as const };
     renderWithDndContext(<DashboardTile tile={largeTile} />);
-    
+
     const tileElement = screen.getByTestId('dashboard-tile-test-tile-123');
-    expect(tileElement).toHaveClass('col-span-2', 'row-span-2');
+    expect(tileElement).toHaveClass('col-span-1', 'md:col-span-2', 'row-span-1', 'md:row-span-2');
   });
 
   it('should apply default size classes for unknown size', () => {
