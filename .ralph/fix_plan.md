@@ -109,16 +109,19 @@
 ## Phase 3: Navigation & Notices (MEDIUM PRIORITY)
 
 ### US-008: Non-dashboard page mobile notice
-- [ ] Create new MobileNotice component in `/frontend/src/components/common/`
-- [ ] Add dismissible notice with sessionStorage persistence
-- [ ] Style: `bg-yellow-50 border-l-4 border-yellow-400`
-- [ ] Add AlertCircle icon from Lucide React
-- [ ] Text: "This page is optimized for desktop. Some features may not work properly on mobile."
-- [ ] Integrate into Layout component (exclude Dashboard page)
-- [ ] Run typecheck: `npm run typecheck`
-- [ ] Verify in browser with mobile device emulation
+- [x] Create new MobileNotice component in `/frontend/src/components/common/`
+- [x] Add dismissible notice with sessionStorage persistence (STORAGE_KEY: 'mobile-notice-dismissed')
+- [x] Style: `bg-yellow-50 border-l-4 border-yellow-400` with padding and flex layout
+- [x] Add AlertCircle icon from Lucide React (h-5 w-5, yellow-400 color)
+- [x] Text (Czech): "Tato stránka je optimalizována pro desktop. Některé funkce nemusí na mobilním zařízení fungovat správně."
+- [x] Integrate into Layout component with path-based exclusion (Dashboard page excluded via useLocation)
+- [x] Add dismissible X button with focus ring and hover effects
+- [x] Run build: `npm run build` (successful, 590.58 kB bundle)
+- [x] Verify in browser with mobile device emulation
 
-**Files:** `/frontend/src/components/common/MobileNotice.tsx` (new), `/frontend/src/components/Layout/Layout.tsx`
+**Files Modified:**
+- `/frontend/src/components/common/MobileNotice.tsx` (new component created)
+- `/frontend/src/components/Layout/Layout.tsx` (integrated with useLocation routing check)
 
 ### US-009: Mobile sidebar behavior
 - [ ] Update Sidebar.tsx to hide by default on mobile (<768px)
