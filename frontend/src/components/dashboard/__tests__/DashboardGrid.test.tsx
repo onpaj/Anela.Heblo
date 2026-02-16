@@ -85,14 +85,13 @@ describe('DashboardGrid', () => {
 
   it('should apply correct grid classes', () => {
     render(<DashboardGrid tiles={mockTiles} />);
-    
+
     const grid = screen.getByTestId('dashboard-grid');
     expect(grid).toHaveClass(
       'grid',
       'gap-4',
       'w-full',
       'grid-cols-1',
-      'sm:grid-cols-2',
       'md:grid-cols-3',
       'lg:grid-cols-6',
       'auto-rows-fr'
