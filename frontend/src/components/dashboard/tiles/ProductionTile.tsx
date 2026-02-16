@@ -40,13 +40,14 @@ export const ProductionTile: React.FC<ProductionTileProps> = ({ data, title }) =
   // Empty state when no production is scheduled
   if (totalOrders === 0 || products.length === 0) {
     return (
-      <div 
+      <div
         className={`
-          h-full flex flex-col items-center justify-center text-center
-          ${isClickable ? 'cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg' : ''}
+          h-full flex flex-col items-center justify-center text-center min-h-44
+          ${isClickable ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 rounded-lg' : ''}
         `}
         onClick={handleClick}
         title={tooltip}
+        style={isClickable ? { touchAction: 'manipulation' } : undefined}
       >
         <PackageCheck className="h-12 w-12 text-gray-300 mb-3" />
         <p className="text-sm font-medium text-gray-500 mb-1">
@@ -62,11 +63,12 @@ export const ProductionTile: React.FC<ProductionTileProps> = ({ data, title }) =
   return (
     <div
       className={`
-        h-full
-        ${isClickable ? 'cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg' : ''}
+        h-full min-h-44
+        ${isClickable ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 rounded-lg' : ''}
       `}
       onClick={handleClick}
       title={tooltip}
+      style={isClickable ? { touchAction: 'manipulation' } : undefined}
     >
       <div className="space-y-3 h-48 md:h-auto max-h-72 overflow-y-auto leading-relaxed">
         {products.slice(0, 3).map((product, index) => (

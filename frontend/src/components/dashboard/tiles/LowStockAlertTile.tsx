@@ -97,8 +97,9 @@ export const LowStockAlertTile: React.FC<LowStockAlertTileProps> = ({ data }) =>
           {products.slice(0, 2).map((product) => (
             <div
               key={product.productCode}
-              className="p-3 md:p-2 min-h-12 hover:bg-gray-50 cursor-pointer transition-colors duration-200 rounded border border-gray-100"
+              className="p-3 md:p-2 min-h-12 hover:bg-gray-50 active:bg-gray-100 cursor-pointer transition-colors duration-200 rounded border border-gray-100"
               onClick={() => handleRowClick(product)}
+              style={{ touchAction: 'manipulation' }}
             >
               {/* Two line product row */}
               <div>

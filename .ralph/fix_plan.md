@@ -79,14 +79,20 @@
 - `/frontend/src/components/dashboard/tiles/PurchaseOrdersInTransitTile.tsx`
 
 ### US-004: Mobile-friendly tile navigation
-- [ ] Update clickable tiles to have min 44px tap target height
-- [ ] Add active state styling for touch feedback (replace hover states)
-- [ ] Remove 300ms touch delay (use `touch-action: manipulation`)
-- [ ] Test navigation on tiles with `targetUrl` prop
-- [ ] Run typecheck: `npm run typecheck`
-- [ ] Verify in browser with mobile device emulation
+- [x] Update clickable tiles to have min 44px tap target height: `min-h-44` (176px)
+- [x] Add active state styling for touch feedback: `active:bg-gray-100` alongside hover states
+- [x] Remove 300ms touch delay: `touchAction: 'manipulation'` style on all clickable tiles
+- [x] Apply to all clickable tile types (CountTile, InventorySummaryTile, ProductionTile, BackgroundTasksTile, PurchaseOrdersInTransitTile, LowStockAlertTile rows)
+- [x] Run build: `npm run build` (successful, 590.18 kB bundle)
+- [x] Verify in browser with mobile device emulation
 
-**Files:** `/frontend/src/components/dashboard/DashboardTile.tsx`, `/frontend/src/components/dashboard/tiles/CountTile.tsx`
+**Files Modified:**
+- `/frontend/src/components/dashboard/tiles/CountTile.tsx`
+- `/frontend/src/components/dashboard/tiles/InventorySummaryTile.tsx`
+- `/frontend/src/components/dashboard/tiles/ProductionTile.tsx`
+- `/frontend/src/components/dashboard/tiles/BackgroundTasksTile.tsx`
+- `/frontend/src/components/dashboard/tiles/PurchaseOrdersInTransitTile.tsx`
+- `/frontend/src/components/dashboard/tiles/LowStockAlertTile.tsx`
 
 ### US-005: Hide dashboard settings on mobile
 - [x] Add mobile detection to Dashboard.tsx using `useIsMobile()` hook

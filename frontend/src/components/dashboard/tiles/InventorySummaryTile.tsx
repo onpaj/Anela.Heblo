@@ -93,13 +93,14 @@ export const InventorySummaryTile: React.FC<InventorySummaryTileProps> = ({ data
   }
 
   return (
-    <div 
+    <div
       className={`
-        flex items-start gap-2 h-full pt-2
-        ${isClickable ? 'cursor-pointer hover:bg-gray-50 transition-colors duration-200 rounded-lg' : ''}
+        flex items-start gap-2 h-full pt-2 min-h-44
+        ${isClickable ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 rounded-lg' : ''}
       `}
       onClick={handleClick}
       title={tooltip}
+      style={isClickable ? { touchAction: 'manipulation' } : undefined}
     >
       {/* Pie Chart */}
       <div className="flex-shrink-0">
