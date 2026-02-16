@@ -299,7 +299,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         className={`
         fixed top-0 left-0 z-40 bottom-0 bg-white border-r border-gray-200 shadow-sm transform transition-all duration-300 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0
-        ${isCollapsed ? "w-16" : "w-64"}
+        ${isCollapsed ? "w-16" : "w-4/5 max-w-[280px] md:w-64"}
       `}
       >
         <div className="flex flex-col h-full">
@@ -352,7 +352,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                       {!isCollapsed ? (
                         <Link
                           to={section.href!}
-                          onClick={() => setActiveItem(section.id)}
+                          onClick={() => {
+                            setActiveItem(section.id);
+                            onClose(); // Close sidebar on mobile after navigation
+                          }}
                           className={`
                             flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-300
                             ${
@@ -462,7 +465,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 <Link
                                   key={subItem.id}
                                   to={subItem.href}
-                                  onClick={() => setActiveItem(subItem.id)}
+                                  onClick={() => {
+                                    setActiveItem(subItem.id);
+                                    onClose(); // Close sidebar on mobile after navigation
+                                  }}
                                   className={`
                                     block px-3 py-2 text-sm rounded-md transition-colors duration-300
                                     ${
