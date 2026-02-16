@@ -148,3 +148,4 @@ test-results/
 .worktrees/
 BRIEF.md
 WORKLOG.md
+.ralph/
