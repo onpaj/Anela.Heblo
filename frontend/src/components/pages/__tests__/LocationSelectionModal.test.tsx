@@ -1,4 +1,6 @@
 import React from "react";
+import * as fs from "fs";
+import * as path from "path";
 import {
   render,
   screen,
@@ -6,10 +8,24 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import LocationSelectionModal from "../LocationSelectionModal";
+import LocationSelectionModal, {
+  LOCATIONS,
+} from "../LocationSelectionModal";
 import { useChangeTransportBoxState } from "../../../api/hooks/useTransportBoxes";
 import { TransportBoxState } from "../../../api/generated/api-client";
 import { TestRouterWrapper } from "../../../test-utils/router-wrapper";
+
+function getBackendTransportBoxLocationValues(): string[] {
+  const enumFile = path.resolve(
+    __dirname,
+    "../../../../../backend/src/Anela.Heblo.Domain/Features/Logistics/Transport/TransportBoxLocation.cs",
+  );
+  const content = fs.readFileSync(enumFile, "utf-8");
+  // Match enum member names: lines inside the enum block that contain an identifier
+  const matches = content.match(/^\s{4}(\w+),?\s*$/gm);
+  if (!matches) return [];
+  return matches.map((m) => m.trim().replace(/,$/, ""));
+}
 
 // Mock the hook
 jest.mock("../../../api/hooks/useTransportBoxes", () => ({
@@ -96,6 +112,7 @@ describe("LocationSelectionModal", () => {
       expect(screen.getByText("Kumbal")).toBeInTheDocument();
       expect(screen.getByText("Relax")).toBeInTheDocument();
       expect(screen.getByText("Sklad Skla")).toBeInTheDocument();
+      expect(screen.getByText("Karantena")).toBeInTheDocument();
       expect(screen.getByText("Přesunout do rezervy")).toBeInTheDocument();
       expect(screen.getByText("Zrušit")).toBeInTheDocument();
     });
@@ -682,6 +699,7 @@ describe("LocationSelectionModal", () => {
       expect(screen.getByText("Kumbal")).toBeInTheDocument();
       expect(screen.getByText("Relax")).toBeInTheDocument();
       expect(screen.getByText("Sklad Skla")).toBeInTheDocument();
+      expect(screen.getByText("Karantena")).toBeInTheDocument();
     });
 
     it("should have correct values for location options", () => {
@@ -706,6 +724,53 @@ describe("LocationSelectionModal", () => {
       expect(screen.getByRole("option", { name: /sklad skla/i })).toHaveValue(
         "SkladSkla",
       );
+      expect(screen.getByRole("option", { name: /karantena/i })).toHaveValue(
+        "Karantena",
+      );
+    });
+
+    it("should include every value from the backend TransportBoxLocation enum", () => {
+      // Reads the backend C# enum file and verifies each enum member has a
+      // corresponding entry in the frontend LOCATIONS array.
+      // When a new location is added to TransportBoxLocation.cs this test
+      // will fail automatically, prompting the developer to add it here too.
+      const backendValues = getBackendTransportBoxLocationValues();
+      expect(backendValues.length).toBeGreaterThan(0);
+
+      const frontendValues = LOCATIONS.map((l) => l.value);
+
+      backendValues.forEach((backendValue) => {
+        expect(frontendValues).toContain(backendValue);
+      });
+
+      expect(frontendValues).toHaveLength(backendValues.length);
+    });
+
+    it("should render every location from LOCATIONS in the dropdown", () => {
+      render(
+        <LocationSelectionModal
+          isOpen={true}
+          onClose={mockOnClose}
+          boxId={1}
+          onSuccess={mockOnSuccess}
+        />,
+        { wrapper: createWrapper },
+      );
+
+      const select = screen.getByLabelText("Vyberte lokaci pro rezervu:");
+      const renderedOptions = Array.from(
+        select.querySelectorAll("option"),
+      ).filter((o) => o.value !== "");
+
+      expect(renderedOptions).toHaveLength(LOCATIONS.length);
+
+      LOCATIONS.forEach(({ value, label }) => {
+        const option = screen.getByRole("option", {
+          name: new RegExp(label, "i"),
+        });
+        expect(option).toBeInTheDocument();
+        expect(option).toHaveValue(value);
+      });
     });
   });
 });
