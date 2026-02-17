@@ -53,8 +53,6 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
     // Search for products with numbers
     await applyProductNameFilter(page, "100");
 
-    await waitForTableUpdate(page);
-
     const rowCount = await getRowCount(page);
 
     if (rowCount > 0) {
@@ -73,8 +71,6 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
   test("should handle hyphens and spaces in product code", async ({ page }) => {
     // Search for code with hyphens or spaces
     await applyProductCodeFilter(page, "AH-");
-
-    await waitForTableUpdate(page);
 
     const rowCount = await getRowCount(page);
 
@@ -120,8 +116,6 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
 
     await applyProductNameFilter(page, longName);
 
-    await waitForTableUpdate(page);
-
     // Should not crash, might return no results
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for very long name: ${rowCount}`);
@@ -134,8 +128,6 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
 
     await applyProductCodeFilter(page, longCode);
 
-    await waitForTableUpdate(page);
-
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for very long code: ${rowCount}`);
 
@@ -145,8 +137,6 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
   test("should handle single character search", async ({ page }) => {
     // Single character search
     await applyProductNameFilter(page, "K");
-
-    await waitForTableUpdate(page);
 
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for single character "K": ${rowCount}`);
@@ -167,8 +157,6 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
   test("should handle numeric-only search terms", async ({ page }) => {
     // Search for only numbers
     await applyProductNameFilter(page, "123");
-
-    await waitForTableUpdate(page);
 
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for numeric search "123": ${rowCount}`);
@@ -413,8 +401,6 @@ test.describe("Catalog Filter Edge Cases E2E Tests", () => {
     const regexString = ".* [a-z]+ \\d+";
 
     await applyProductNameFilter(page, regexString);
-
-    await waitForTableUpdate(page);
 
     const rowCount = await getRowCount(page);
     console.log(`📊 Results for regex-like string: ${rowCount}`);

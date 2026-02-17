@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
+import { MobileNotice } from "../common/MobileNotice";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +12,10 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const location = useLocation();
+
+  // Don't show mobile notice on dashboard page
+  const isDashboardPage = location.pathname === '/' || location.pathname === '/dashboard';
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
@@ -29,6 +35,9 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
       <div
         className={`flex-1 flex flex-col transition-all duration-300 ${sidebarCollapsed ? "md:pl-16" : "md:pl-64"} pt-16 md:pt-0`}
       >
+        {/* Mobile notice for non-dashboard pages */}
+        {!isDashboardPage && <MobileNotice />}
+
         {/* Page content */}
         <main className="flex-1 relative overflow-auto">
           <div className="p-3 md:p-4 bg-gray-50">
