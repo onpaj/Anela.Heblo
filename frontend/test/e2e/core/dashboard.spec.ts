@@ -27,12 +27,16 @@ test.describe('Dashboard', () => {
     await page.waitForSelector('[data-testid^="dashboard-tile-"]', { timeout: 5000 });
 
     // Check if background task status tile (AutoShow: true) is visible
-    // TileId is generated from class name: BackgroundTaskStatusTile -> backgroundtaskstatus
+    // TileId naming convention: TileExtensions.GetTileId() lowercases the class name and removes "tile" suffix.
+    // Example: BackgroundTaskStatusTile -> "backgroundtaskstatustile".toLowerCase().replace("tile","") -> "backgroundtaskstatus"
     const backgroundTasksTile = page.locator('[data-testid="dashboard-tile-backgroundtaskstatus"]');
     await expect(backgroundTasksTile).toBeVisible();
 
-    // Verify the tile has content (using the actual class name from DashboardTile component)
-    await expect(backgroundTasksTile.locator('.text-sm.font-medium')).toContainText('Stav background tasků');
+    // Verify the tile has content using .tile-title class from TileHeader component.
+    // Note: the h3 uses responsive classes "text-base md:text-sm font-medium ..." - the
+    // ".text-sm" selector does NOT match because the Tailwind class is "md:text-sm" (different class name).
+    // Use the stable .tile-title class instead.
+    await expect(backgroundTasksTile.locator('.tile-title')).toContainText('Stav background tasků');
   });
 
   test('should open dashboard settings', async ({ page }) => {
