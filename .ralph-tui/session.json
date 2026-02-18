@@ -3,10 +3,10 @@
   "sessionId": "8d56ac1f-7fd5-4de4-8742-7c94111e1cfd",
   "status": "running",
   "startedAt": "2026-02-18T08:30:32.322Z",
-  "updatedAt": "2026-02-18T08:41:59.822Z",
-  "currentIteration": 2,
+  "updatedAt": "2026-02-18T08:44:28.918Z",
+  "currentIteration": 3,
   "maxIterations": 200,
-  "tasksCompleted": 2,
+  "tasksCompleted": 3,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -34,10 +34,20 @@
       "durationMs": 239561,
       "startedAt": "2026-02-18T08:35:46.866Z",
       "endedAt": "2026-02-18T08:39:46.427Z"
+    },
+    {
+      "iteration": 3,
+      "status": "completed",
+      "taskId": "US-003",
+      "taskTitle": "Fix dashboard AutoShow tile test failure",
+      "taskCompleted": true,
+      "durationMs": 132221,
+      "startedAt": "2026-02-18T08:39:47.598Z",
+      "endedAt": "2026-02-18T08:41:59.819Z"
     }
   ],
   "skippedTaskIds": [],
   "cwd": "/Users/pajgrtondrej/Work/GitHub/Anela.Heblo",
   "activeTaskIds": [],
-  "subagentPanelVisible": false
+  "subagentPanelVisible": true
 }

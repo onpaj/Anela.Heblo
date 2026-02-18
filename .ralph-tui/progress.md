@@ -5,6 +5,11 @@ after each iteration and it's included in prompts for context.
 
 ## Codebase Patterns (Study These First)
 
+### Invoice classification history table - column 0 structure
+- Column 0 (`td.nth(0)`) contains two `<div>` children: `div.nth(0)` = invoice number, `div.nth(1)` = formatted date (DD.MM.YYYY)
+- `textContent()` on the whole cell may or may not include a `\n` separator between the divs — do NOT use `split('\n')` to parse
+- Always use `cell.locator('div').nth(0).textContent()` and `cell.locator('div').nth(1).textContent()` directly
+
 ### CatalogList loading state
 - React Query's `isLoading` flag renders a plain `<div>` with `Loader2` icon (no `data-loading`, `.loading`, `.spinner`, `aria-busy` attributes)
 - `waitForLoadingComplete` in wait-helpers.ts will ALWAYS return immediately on catalog page (no selector matches)
@@ -60,4 +65,18 @@ after each iteration and it's included in prompts for context.
   - **Why it returns immediately**: `waitForLoadingComplete` checks for selectors `[data-loading="true"], .loading, .spinner, [aria-busy="true"]` - none of these are in CatalogList.tsx. The React Query loading state renders a plain `<div>` with `Loader2` icon (no matching attribute/class). Count is always 0, function returns immediately.
   - **Full code path**: `applyProductNameFilter` → fill → click → `waitForLoadingComplete` (returns immediately, no matching selector) → 500ms timeout → returns. Test then calls `waitForTableUpdate` → `waitForSearchResults` → `page.waitForResponse('/api/catalog')` which times out because the response already came in.
   - **Fix direction for US-002**: Register `page.waitForResponse` BEFORE triggering the filter action (Promise must be set up before the response arrives, not after)
+---
+
+## 2026-02-18 - US-004
+- Fixed failing test 'should apply all four filters together' in `frontend/test/e2e/core/invoice-classification-history-filters.spec.ts`
+- Files changed: `frontend/test/e2e/core/invoice-classification-history-filters.spec.ts`
+- **What was implemented:**
+  - Replaced fragile `textContent().split('\n')` parsing with direct `locator('div').nth(0/1).textContent()` calls to extract invoice number and date from column 0
+  - Column 0 (`td.nth(0)`) has two `<div>` children: div 0 = invoice number, div 1 = formatted date (DD.MM.YYYY)
+  - Also cleaned up the post-filter verification: removed the now-unused `filteredInvoiceAndDate` intermediate variable, getting `filteredInvoiceNumber` directly from `div.nth(0)` instead
+- **Root cause:** `textContent()` on a `<td>` with two `<div>` children does NOT reliably produce a `\n` separator between the div contents. The test assumed a newline separator, so `split('\n').filter(l => l)` only produced one element instead of two, causing `expect(lines.length).toBeGreaterThanOrEqual(2)` to fail.
+- **Learnings:**
+  - Never use `textContent().split('\n')` to parse multi-part cell content — use direct `locator('div').nth(N).textContent()` calls instead
+  - `textContent()` on a parent element concatenates all children's text without guaranteed whitespace separators
+  - The other invoice number tests already correctly used `locator('div').first().textContent()` — the combined-filter test was the outlier
 ---
