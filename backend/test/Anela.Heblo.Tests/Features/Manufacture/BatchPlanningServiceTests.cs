@@ -13,7 +13,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class BatchPlanningServiceTests
 {
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
-    private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
+    private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<IBatchDistributionCalculator> _batchDistributionCalculatorMock;
     private readonly Mock<ILogger<BatchPlanningService>> _loggerMock;
     private readonly BatchPlanningService _service;
@@ -21,10 +21,10 @@ public class BatchPlanningServiceTests
     public BatchPlanningServiceTests()
     {
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
-        _manufactureRepositoryMock = new Mock<IManufactureRepository>();
+        _manufactureClientMock = new Mock<IManufactureClient>();
         _batchDistributionCalculatorMock = new Mock<IBatchDistributionCalculator>();
         _loggerMock = new Mock<ILogger<BatchPlanningService>>();
-        _service = new BatchPlanningService(_catalogRepositoryMock.Object, _manufactureRepositoryMock.Object, _batchDistributionCalculatorMock.Object, _loggerMock.Object);
+        _service = new BatchPlanningService(_catalogRepositoryMock.Object, _manufactureClientMock.Object, _batchDistributionCalculatorMock.Object, _loggerMock.Object);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class BatchPlanningServiceTests
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync("SEMI001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(semiproduct);
 
-        _manufactureRepositoryMock.Setup(x => x.FindByIngredientAsync("SEMI001", It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.FindByIngredientAsync("SEMI001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureTemplate>());
 
         // Act & Assert
@@ -389,7 +389,7 @@ public class BatchPlanningServiceTests
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync("SEMI001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(semiproduct);
 
-        _manufactureRepositoryMock.Setup(x => x.FindByIngredientAsync("SEMI001", It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.FindByIngredientAsync("SEMI001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(templates);
 
         foreach (var product in products)

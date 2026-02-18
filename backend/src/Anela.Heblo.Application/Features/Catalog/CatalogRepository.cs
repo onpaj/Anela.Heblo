@@ -34,7 +34,7 @@ public class CatalogRepository : ICatalogRepository
     private readonly IProductPriceErpClient _productPriceErpClient;
     private readonly ITransportBoxRepository _transportBoxRepository;
     private readonly IStockTakingRepository _stockTakingRepository;
-    private readonly IManufactureRepository _manufactureRepository;
+    private readonly IManufactureClient _manufactureClient;
     private readonly IPurchaseOrderRepository _purchaseOrderRepository;
     private readonly IManufactureOrderRepository _manufactureOrderRepository;
     private readonly IManufactureHistoryClient _manufactureHistoryClient;
@@ -69,7 +69,7 @@ public class CatalogRepository : ICatalogRepository
         IProductPriceErpClient productPriceErpClient,
         ITransportBoxRepository transportBoxRepository,
         IStockTakingRepository stockTakingRepository,
-        IManufactureRepository manufactureRepository,
+        IManufactureClient manufactureClient,
         IPurchaseOrderRepository purchaseOrderRepository,
         IManufactureOrderRepository manufactureOrderRepository,
         IManufactureHistoryClient manufactureHistoryClient,
@@ -93,7 +93,7 @@ public class CatalogRepository : ICatalogRepository
         _productPriceErpClient = productPriceErpClient;
         _transportBoxRepository = transportBoxRepository;
         _stockTakingRepository = stockTakingRepository;
-        _manufactureRepository = manufactureRepository;
+        _manufactureClient = manufactureClient ?? throw new ArgumentNullException(nameof(manufactureClient));
         _purchaseOrderRepository = purchaseOrderRepository;
         _manufactureOrderRepository = manufactureOrderRepository;
         _manufactureHistoryClient = manufactureHistoryClient;

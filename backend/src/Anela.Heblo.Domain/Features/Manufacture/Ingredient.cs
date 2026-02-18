@@ -11,4 +11,6 @@ public class Ingredient
     public double OriginalAmount { get; set; }
     public decimal Price { get; set; }
     public ProductType ProductType { get; set; }
+    public bool HasLots { get; set; }
+    public bool HasExpiration { get; set; }
 }

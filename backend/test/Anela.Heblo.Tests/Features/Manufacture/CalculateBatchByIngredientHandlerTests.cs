@@ -10,15 +10,15 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 
 public class CalculateBatchByIngredientHandlerTests
 {
-    private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
+    private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly CalculateBatchByIngredientHandler _handler;
 
     public CalculateBatchByIngredientHandlerTests()
     {
-        _manufactureRepositoryMock = new Mock<IManufactureRepository>();
+        _manufactureClientMock = new Mock<IManufactureClient>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
-        _handler = new CalculateBatchByIngredientHandler(_manufactureRepositoryMock.Object, _catalogRepositoryMock.Object);
+        _handler = new CalculateBatchByIngredientHandler(_manufactureClientMock.Object, _catalogRepositoryMock.Object);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public class CalculateBatchByIngredientHandlerTests
             MinimalManufactureQuantity = 100.0
         };
 
-        _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
 
         // Setup catalog items with stock information
@@ -111,7 +111,7 @@ public class CalculateBatchByIngredientHandlerTests
     {
         // Arrange
         const string productCode = "NONEXISTENT";
-        _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ManufactureTemplate?)null);
 
         var request = new CalculateBatchByIngredientRequest
@@ -153,7 +153,7 @@ public class CalculateBatchByIngredientHandlerTests
             }
         };
 
-        _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
 
         var request = new CalculateBatchByIngredientRequest

@@ -1,5 +1,6 @@
 using Anela.Heblo.Adapters.Flexi.Manufacture;
 using Anela.Heblo.Adapters.Flexi.Tests.Integration.Infrastructure;
+using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
@@ -8,19 +9,15 @@ using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
 namespace Anela.Heblo.Adapters.Flexi.Tests.Integration;
 
 [Collection("FlexiIntegration")]
-public class FlexiManufactureRepositoryIntegrationTests : IClassFixture<FlexiIntegrationTestFixture>
+public class FlexiManufactureClientIntegrationTests : IClassFixture<FlexiIntegrationTestFixture>
 {
     private readonly FlexiIntegrationTestFixture _fixture;
-    private readonly IBoMClient _bomClient;
-    private readonly IProductSetsClient _productSetsClient;
-    private readonly FlexiManufactureRepository _repository;
+    private readonly IManufactureClient _client;
 
-    public FlexiManufactureRepositoryIntegrationTests(FlexiIntegrationTestFixture fixture)
+    public FlexiManufactureClientIntegrationTests(FlexiIntegrationTestFixture fixture)
     {
         _fixture = fixture;
-        _bomClient = _fixture.ServiceProvider.GetRequiredService<IBoMClient>();
-        _productSetsClient = _fixture.ServiceProvider.GetRequiredService<IProductSetsClient>();
-        _repository = new FlexiManufactureRepository(_bomClient, _productSetsClient);
+        _client = _fixture.ServiceProvider.GetRequiredService<IManufactureClient>();
     }
 
     [Theory]
@@ -30,7 +27,7 @@ public class FlexiManufactureRepositoryIntegrationTests : IClassFixture<FlexiInt
     {
         // Arrange
         // Act
-        var result = await _repository.GetManufactureTemplateAsync(productCode);
+        var result = await _client.GetManufactureTemplateAsync(productCode);
 
         // Assert
         result.Should().NotBeNull();
@@ -48,7 +45,7 @@ public class FlexiManufactureRepositoryIntegrationTests : IClassFixture<FlexiInt
         const string nonExistentProductId = "NON_EXISTENT_PRODUCT_12345";
 
         // Act
-        var act = async () => await _repository.GetManufactureTemplateAsync(nonExistentProductId);
+        var act = async () => await _client.GetManufactureTemplateAsync(nonExistentProductId);
 
         // Assert
         await act.Should().ThrowAsync<Exception>();
@@ -62,7 +59,7 @@ public class FlexiManufactureRepositoryIntegrationTests : IClassFixture<FlexiInt
         const string ingredientCode = "HYD007"; // Replace with actual ingredient code
 
         // Act
-        var result = await _repository.FindByIngredientAsync(ingredientCode, CancellationToken.None);
+        var result = await _client.FindByIngredientAsync(ingredientCode, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();
@@ -84,7 +81,7 @@ public class FlexiManufactureRepositoryIntegrationTests : IClassFixture<FlexiInt
         const string nonExistentIngredientCode = "NON_EXISTENT_INGREDIENT_12345";
 
         // Act
-        var result = await _repository.FindByIngredientAsync(nonExistentIngredientCode, CancellationToken.None);
+        var result = await _client.FindByIngredientAsync(nonExistentIngredientCode, CancellationToken.None);
 
         // Assert
         result.Should().NotBeNull();
@@ -100,7 +97,7 @@ public class FlexiManufactureRepositoryIntegrationTests : IClassFixture<FlexiInt
         // You should replace the IDs with actual values from your FlexiBee system
 
         // Step 1: Get a manufacture template for a known product
-        var template = await _repository.GetManufactureTemplateAsync(productCode);
+        var template = await _client.GetManufactureTemplateAsync(productCode);
 
         template.Should().NotBeNull();
         template.Ingredients.Should().NotBeEmpty();
@@ -108,7 +105,7 @@ public class FlexiManufactureRepositoryIntegrationTests : IClassFixture<FlexiInt
         // Step 2: For each ingredient, find where else it's used
         foreach (var ingredient in template.Ingredients.Take(3)) // Test first 3 ingredients
         {
-            var usageTemplates = await _repository.FindByIngredientAsync(ingredient.ProductCode, CancellationToken.None);
+            var usageTemplates = await _client.FindByIngredientAsync(ingredient.ProductCode, CancellationToken.None);
 
             // The ingredient might be used in other products
             usageTemplates.Should().NotBeNull();

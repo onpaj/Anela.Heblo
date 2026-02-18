@@ -8,13 +8,13 @@ namespace Anela.Heblo.Tests.Features.Catalog;
 
 public class GetProductCompositionHandlerTests
 {
-    private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
+    private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly GetProductCompositionHandler _handler;
 
     public GetProductCompositionHandlerTests()
     {
-        _manufactureRepositoryMock = new Mock<IManufactureRepository>();
-        _handler = new GetProductCompositionHandler(_manufactureRepositoryMock.Object);
+        _manufactureClientMock = new Mock<IManufactureClient>();
+        _handler = new GetProductCompositionHandler(_manufactureClientMock.Object);
     }
 
     [Fact]
@@ -23,7 +23,7 @@ public class GetProductCompositionHandlerTests
         // Arrange
         var request = new GetProductCompositionRequest { ProductCode = "NONEXISTENT" };
 
-        _manufactureRepositoryMock
+        _manufactureClientMock
             .Setup(x => x.GetManufactureTemplateAsync("NONEXISTENT", It.IsAny<CancellationToken>()))
             .ReturnsAsync((ManufactureTemplate)null);
 
@@ -65,7 +65,7 @@ public class GetProductCompositionHandlerTests
             }
         };
 
-        _manufactureRepositoryMock
+        _manufactureClientMock
             .Setup(x => x.GetManufactureTemplateAsync("PROD001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
 

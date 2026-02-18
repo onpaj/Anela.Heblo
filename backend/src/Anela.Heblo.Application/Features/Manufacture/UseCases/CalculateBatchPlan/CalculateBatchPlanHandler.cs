@@ -10,13 +10,14 @@ public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanReque
 {
     private readonly IBatchPlanningService _batchPlanningService;
     private readonly ICatalogRepository _catalogRepository;
-    private readonly IManufactureRepository _manufactureRepository;
+    private readonly IManufactureClient _manufactureClient
+        ;
 
-    public CalculateBatchPlanHandler(IBatchPlanningService batchPlanningService, ICatalogRepository catalogRepository, IManufactureRepository manufactureRepository)
+    public CalculateBatchPlanHandler(IBatchPlanningService batchPlanningService, ICatalogRepository catalogRepository, IManufactureClient manufactureClient)
     {
         _batchPlanningService = batchPlanningService;
         _catalogRepository = catalogRepository;
-        _manufactureRepository = manufactureRepository;
+        _manufactureClient = manufactureClient;
     }
 
     public async Task<CalculateBatchPlanResponse> Handle(CalculateBatchPlanRequest request, CancellationToken cancellationToken)
@@ -25,7 +26,7 @@ public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanReque
         var product = await _catalogRepository.GetByIdAsync(request.ProductCode, cancellationToken);
         if (product?.Type == ProductType.Product)
         {
-            var manufactureTemplate = await _manufactureRepository.GetManufactureTemplateAsync(request.ProductCode, cancellationToken);
+            var manufactureTemplate = await _manufactureClient.GetManufactureTemplateAsync(request.ProductCode, cancellationToken);
             request.ManufactureType = manufactureTemplate.ManufactureType;
             if (request.ManufactureType == ManufactureType.MultiPhase)
             {
