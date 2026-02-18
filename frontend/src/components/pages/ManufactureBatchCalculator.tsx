@@ -10,6 +10,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 type CalculationMode = "batch-size" | "ingredient";
 
+export const computePercentage = (
+  calculatedAmount: number,
+  newBatchSize: number | null | undefined,
+): string => {
+  if (!newBatchSize || newBatchSize <= 0) return 'N/A';
+  return ((calculatedAmount / newBatchSize) * 100).toFixed(2) + '%';
+};
+
 const ManufactureBatchCalculator: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<CatalogItemDto | null>(
     null,
@@ -528,6 +536,9 @@ const ManufactureBatchCalculator: React.FC = () => {
                     Přepočítané množství
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    %
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Skladem
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -565,6 +576,9 @@ const ManufactureBatchCalculator: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {calculatedAmount.toFixed(2)}g
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {computePercentage(calculatedAmount, calculationResult.newBatchSize)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <span

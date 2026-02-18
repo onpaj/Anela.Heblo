@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { BrowserRouter } from 'react-router-dom';
-import ManufactureBatchCalculator from '../ManufactureBatchCalculator';
+import ManufactureBatchCalculator, { computePercentage } from '../ManufactureBatchCalculator';
 
 // Mock the API hook
 jest.mock('../../../api/hooks/useManufactureBatch', () => ({
@@ -41,16 +41,6 @@ jest.mock('../CatalogDetail', () => {
     return null;
   };
 });
-
-// The exact helper logic that will be used in the component's render function.
-// Defined here to test the pure logic before the component is modified.
-const computePercentage = (
-  calculatedAmount: number,
-  newBatchSize: number | null | undefined,
-): string => {
-  if (!newBatchSize || newBatchSize <= 0) return 'N/A';
-  return ((calculatedAmount / newBatchSize) * 100).toFixed(2) + '%';
-};
 
 describe('computePercentage helper', () => {
   it('returns formatted percentage for normal values', () => {
@@ -95,9 +85,6 @@ describe('ManufactureBatchCalculator', () => {
     expect(screen.getByText('Kalkulačka dávek pro výrobu')).toBeInTheDocument();
 
     // No percentage column header should appear before a calculation is run
-    const percentageHeaders = screen
-      .queryAllByRole('columnheader')
-      .filter((el) => el.textContent?.includes('%'));
-    expect(percentageHeaders).toHaveLength(0);
+    expect(screen.queryByRole('columnheader', { name: '%' })).not.toBeInTheDocument();
   });
 });
