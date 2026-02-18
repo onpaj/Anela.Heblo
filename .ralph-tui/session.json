@@ -3,10 +3,10 @@
   "sessionId": "8d56ac1f-7fd5-4de4-8742-7c94111e1cfd",
   "status": "running",
   "startedAt": "2026-02-18T08:30:32.322Z",
-  "updatedAt": "2026-02-18T08:35:45.679Z",
-  "currentIteration": 0,
+  "updatedAt": "2026-02-18T08:39:46.430Z",
+  "currentIteration": 1,
   "maxIterations": 200,
-  "tasksCompleted": 0,
+  "tasksCompleted": 1,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -14,7 +14,18 @@
     "totalTasks": 0,
     "tasks": []
   },
-  "iterations": [],
+  "iterations": [
+    {
+      "iteration": 1,
+      "status": "completed",
+      "taskId": "US-001",
+      "taskTitle": "Analyze root cause of catalog text-search-filter timeouts",
+      "taskCompleted": true,
+      "durationMs": 136950,
+      "startedAt": "2026-02-18T08:33:28.724Z",
+      "endedAt": "2026-02-18T08:35:45.674Z"
+    }
+  ],
   "skippedTaskIds": [],
   "cwd": "/Users/pajgrtondrej/Work/GitHub/Anela.Heblo",
   "activeTaskIds": [],
