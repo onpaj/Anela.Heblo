@@ -3,10 +3,10 @@
   "sessionId": "80b06cee-5cbb-4e5f-a614-f94377799e27",
   "status": "running",
   "startedAt": "2026-02-18T09:18:29.293Z",
-  "updatedAt": "2026-02-18T09:20:51.145Z",
-  "currentIteration": 0,
+  "updatedAt": "2026-02-18T09:22:10.149Z",
+  "currentIteration": 1,
   "maxIterations": 200,
-  "tasksCompleted": 0,
+  "tasksCompleted": 1,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -14,7 +14,18 @@
     "totalTasks": 0,
     "tasks": []
   },
-  "iterations": [],
+  "iterations": [
+    {
+      "iteration": 1,
+      "status": "completed",
+      "taskId": "US-001",
+      "taskTitle": "Replace sessionStorage.clear() with targeted clearing in auth redirect handler",
+      "taskCompleted": true,
+      "durationMs": 121229,
+      "startedAt": "2026-02-18T09:18:49.913Z",
+      "endedAt": "2026-02-18T09:20:51.142Z"
+    }
+  ],
   "skippedTaskIds": [],
   "cwd": "/Users/pajgrtondrej/Work/GitHub/Anela.Heblo",
   "activeTaskIds": [],

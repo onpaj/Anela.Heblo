@@ -54,6 +54,8 @@ import { AppInitializer } from "./components/AppInitializer";
 import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog";
 import "./i18n";
 
+let isRedirecting = false;
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -163,19 +165,23 @@ function App() {
         if (!isE2ETestMode() && !appConfig.useMockAuth) {
           console.log("🔐 Setting up global authentication redirect handler");
           setGlobalAuthRedirectHandler(() => {
+            if (isRedirecting) return;
+            isRedirecting = true;
+
             console.log("🔐 Executing automatic login redirect due to token expiration");
-            
+
             // Clear app-level session data (preserve MSAL PKCE verifier for auth code exchange)
             UserStorage.clearUserInfo();
             clearTokenCache();
-            
+
             // Use the MSAL instance to perform login redirect
             instance.loginRedirect({
               ...apiRequest,
               prompt: "select_account", // Show account picker for expired sessions
             }).catch((error) => {
               console.error("❌ Automatic login redirect failed:", error);
-              
+              isRedirecting = false;
+
               // Fallback: redirect to root and let normal auth flow handle it
               window.location.href = "/";
             });

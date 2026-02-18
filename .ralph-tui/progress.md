@@ -21,3 +21,16 @@ after each iteration and it's included in prompts for context.
   - Pre-existing lint errors exist in test files (unrelated to this change); `App.tsx` itself is lint-clean
   - The react-i18next `node_modules` type errors are pre-existing and not introduced by this change
 ---
+
+## 2026-02-18 - US-002
+- What was implemented: Added `isRedirecting` boolean guard in module scope of `frontend/src/App.tsx` to prevent concurrent `loginRedirect()` calls from corrupting each other's PKCE state.
+- Files changed: `frontend/src/App.tsx`
+  - Added `let isRedirecting = false;` in module scope (before `queryClient` creation)
+  - Added `if (isRedirecting) return;` at the start of the `setGlobalAuthRedirectHandler` callback
+  - Added `isRedirecting = true;` immediately after the early-return guard
+  - Added `isRedirecting = false;` in the `.catch()` handler to allow retry after failed redirect
+- **Learnings:**
+  - Module-scope variables persist across React re-renders and component remounts, making them ideal for singleton guards
+  - The `.catch()` reset is critical: without it, a failed `loginRedirect()` would permanently block future redirect attempts
+  - Pre-existing react-i18next node_modules type errors (not from src/) are pre-existing and unrelated to this change
+---
