@@ -94,6 +94,39 @@ export async function waitForLoadingComplete(page: Page, options: { timeout?: nu
 /**
  * Wait for search/filter results to update.
  * Combines API wait with table update check.
+ *
+ * // Root cause (US-001 analysis):
+ * // The tests in catalog/text-search-filters.spec.ts call:
+ * //   applyProductNameFilter → fill → click → waitForLoadingComplete → return
+ * //   then: waitForTableUpdate → waitForSearchResults → page.waitForResponse('/api/catalog')
+ * //
+ * // This causes a race condition and timeout because:
+ * //
+ * // 1. waitForLoadingComplete checks for selectors:
+ * //      [data-loading="true"], .loading, .spinner, [aria-busy="true"]
+ * //    None of these are rendered by CatalogList.tsx. The loading state is managed
+ * //    by React Query's `isLoading` flag, which renders a plain <div> with a Loader2
+ * //    icon - NO matching attribute or class from the selector list.
+ * //    Result: waitForLoadingComplete finds count=0 and returns IMMEDIATELY.
+ * //
+ * // 2. Because waitForLoadingComplete returns immediately (no indicator matched),
+ * //    the filter helper (applyProductNameFilter) returns while the API call may
+ * //    still be in-flight OR has already completed. In practice, handleApplyFilters
+ * //    calls await refetch() synchronously after setting filters, so the API response
+ * //    arrives quickly.
+ * //
+ * // 3. By the time the test calls waitForTableUpdate → waitForSearchResults →
+ * //    page.waitForResponse('/api/catalog'), the API response has ALREADY been
+ * //    received and consumed by React Query. page.waitForResponse only intercepts
+ * //    future responses, not past ones - so it times out waiting for a response
+ * //    that already happened.
+ * //
+ * // Summary: The race condition is that page.waitForResponse is registered AFTER
+ * // the API response has already arrived, because waitForLoadingComplete returns
+ * // immediately (no loading indicator selector matches CatalogList's DOM structure).
+ * //
+ * // Fix applied in US-002: Register page.waitForResponse BEFORE triggering the
+ * // filter action, so it captures the response rather than missing it.
  */
 export async function waitForSearchResults(page: Page, options: { endpoint?: string; timeout?: number } = {}) {
   const { endpoint = '/api/', timeout = 15000 } = options;
