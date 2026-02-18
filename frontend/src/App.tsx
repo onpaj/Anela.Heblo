@@ -170,6 +170,12 @@ function App() {
 
             console.log("🔐 Executing automatic login redirect due to token expiration");
 
+            // Save current URL to localStorage so it can be restored after re-login
+            const returnUrl = window.location.pathname + window.location.search;
+            if (returnUrl && returnUrl !== '/') {
+              localStorage.setItem('auth.returnUrl', returnUrl);
+            }
+
             // Clear app-level session data (preserve MSAL PKCE verifier for auth code exchange)
             UserStorage.clearUserInfo();
             clearTokenCache();

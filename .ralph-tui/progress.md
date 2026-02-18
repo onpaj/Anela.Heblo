@@ -22,6 +22,16 @@ after each iteration and it's included in prompts for context.
   - The react-i18next `node_modules` type errors are pre-existing and not introduced by this change
 ---
 
+## 2026-02-18 - US-003
+- What was implemented: Added returnUrl saving to localStorage before `loginRedirect()` fires in the `setGlobalAuthRedirectHandler` callback in `frontend/src/App.tsx`. Reads `window.location.pathname + window.location.search`, and saves it under key `'auth.returnUrl'` only if non-empty and not equal to `'/'`.
+- Files changed: `frontend/src/App.tsx`
+  - Added 4 lines before the `UserStorage.clearUserInfo()` call: reads `returnUrl` from `window.location`, conditionally calls `localStorage.setItem('auth.returnUrl', returnUrl)`
+- **Learnings:**
+  - The pre-existing react-i18next node_modules type errors do not affect `App.tsx` src code; typecheck on src is clean
+  - Standard DOM APIs (`window.location.pathname`, `window.location.search`, `localStorage.setItem`) require no imports in TypeScript
+  - The returnUrl save must happen BEFORE clearing session data, so the user's current route is captured before any state is wiped
+---
+
 ## 2026-02-18 - US-002
 - What was implemented: Added `isRedirecting` boolean guard in module scope of `frontend/src/App.tsx` to prevent concurrent `loginRedirect()` calls from corrupting each other's PKCE state.
 - Files changed: `frontend/src/App.tsx`
