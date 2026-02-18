@@ -108,6 +108,12 @@ function App() {
         const instance = new PublicClientApplication(msalConfig);
         setMsalInstance(instance);
 
+        // Clean up stale returnUrl on normal app start (not during MSAL redirect callback)
+        const isHandlingRedirect = window.location.search.includes('code=') || window.location.hash.includes('code=');
+        if (!isHandlingRedirect) {
+          localStorage.removeItem('auth.returnUrl');
+        }
+
         // Set global token provider for API client
         if (isE2ETestMode()) {
           console.log("🧪 Setting up E2E test authentication token provider");

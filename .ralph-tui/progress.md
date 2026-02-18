@@ -47,6 +47,16 @@ after each iteration and it's included in prompts for context.
   - Pre-existing react-i18next node_modules type errors (not from src/) are pre-existing and unrelated to this change
 ---
 
+## 2026-02-18 - US-005
+- What was implemented: Added `isHandlingRedirect` check in the `initializeApp` useEffect in `frontend/src/App.tsx`, immediately after the MSAL instance is created. On a clean app start (no `code=` in URL search or hash), `localStorage.removeItem('auth.returnUrl')` is called to clear any stale returnUrl. During MSAL redirect callbacks, the key is preserved so US-004's navigation logic can use it.
+- Files changed: `frontend/src/App.tsx`
+  - Added 4 lines after `setMsalInstance(instance)`: checks `window.location.search.includes('code=') || window.location.hash.includes('code=')`, and conditionally calls `localStorage.removeItem('auth.returnUrl')`
+- **Learnings:**
+  - Placement right after `setMsalInstance` ensures MSAL instance exists before any redirect handling, and cleanup happens before token provider/redirect handler setup
+  - Standard DOM APIs (`window.location.search`, `window.location.hash`, `localStorage.removeItem`) need no imports in TypeScript
+  - `window.location.hash` must also be checked because MSAL can use hash-based redirect mode
+---
+
 ## 2026-02-18 - US-004
 - What was implemented: Added `useNavigate` from react-router-dom to `AuthGuard.tsx` and a new `useEffect` that runs when `isAuthenticated` and `inProgress` change. When `isAuthenticated === true` and `inProgress === 'none'`, reads `localStorage.getItem('auth.returnUrl')`. If non-empty and different from `window.location.pathname`, removes the key and calls `navigate(returnUrl)`.
 - Files changed:
