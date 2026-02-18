@@ -40,6 +40,7 @@ import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
 import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache } from "./api/client";
+import { UserStorage } from "./auth/userStorage";
 import { apiRequest } from "./auth/msalConfig";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { isE2ETestMode, getE2EAccessToken } from "./auth/e2eAuth";
@@ -52,6 +53,8 @@ import { GlobalLoadingIndicator } from "./components/GlobalLoadingIndicator";
 import { AppInitializer } from "./components/AppInitializer";
 import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog";
 import "./i18n";
+
+let isRedirecting = false;
 
 // Create a client
 const queryClient = new QueryClient({
@@ -104,6 +107,12 @@ function App() {
         console.log("📱 Creating MSAL instance...");
         const instance = new PublicClientApplication(msalConfig);
         setMsalInstance(instance);
+
+        // Clean up stale returnUrl on normal app start (not during MSAL redirect callback)
+        const isHandlingRedirect = window.location.search.includes('code=') || window.location.hash.includes('code=');
+        if (!isHandlingRedirect) {
+          localStorage.removeItem('auth.returnUrl');
+        }
 
         // Set global token provider for API client
         if (isE2ETestMode()) {
@@ -162,18 +171,29 @@ function App() {
         if (!isE2ETestMode() && !appConfig.useMockAuth) {
           console.log("🔐 Setting up global authentication redirect handler");
           setGlobalAuthRedirectHandler(() => {
+            if (isRedirecting) return;
+            isRedirecting = true;
+
             console.log("🔐 Executing automatic login redirect due to token expiration");
-            
-            // Clear any existing session data
-            sessionStorage.clear();
-            
+
+            // Save current URL to localStorage so it can be restored after re-login
+            const returnUrl = window.location.pathname + window.location.search;
+            if (returnUrl && returnUrl !== '/') {
+              localStorage.setItem('auth.returnUrl', returnUrl);
+            }
+
+            // Clear app-level session data (preserve MSAL PKCE verifier for auth code exchange)
+            UserStorage.clearUserInfo();
+            clearTokenCache();
+
             // Use the MSAL instance to perform login redirect
             instance.loginRedirect({
               ...apiRequest,
               prompt: "select_account", // Show account picker for expired sessions
             }).catch((error) => {
               console.error("❌ Automatic login redirect failed:", error);
-              
+              isRedirecting = false;
+
               // Fallback: redirect to root and let normal auth flow handle it
               window.location.href = "/";
             });
