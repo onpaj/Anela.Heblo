@@ -14,7 +14,7 @@ export const computePercentage = (
   calculatedAmount: number,
   newBatchSize: number | null | undefined,
 ): string => {
-  if (!newBatchSize || newBatchSize <= 0) return 'N/A';
+  if (newBatchSize == null || !isFinite(newBatchSize) || newBatchSize <= 0) return 'N/A';
   return ((calculatedAmount / newBatchSize) * 100).toFixed(2) + '%';
 };
 
@@ -577,7 +577,7 @@ const ManufactureBatchCalculator: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {calculatedAmount.toFixed(2)}g
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {computePercentage(calculatedAmount, calculationResult.newBatchSize)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

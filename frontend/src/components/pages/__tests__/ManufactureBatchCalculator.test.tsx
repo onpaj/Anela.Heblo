@@ -71,6 +71,18 @@ describe('computePercentage helper', () => {
     // 1/3 * 100 = 33.333... → "33.33%"
     expect(computePercentage(1, 3)).toBe('33.33%');
   });
+
+  it('returns N/A when newBatchSize is NaN', () => {
+    expect(computePercentage(100, NaN)).toBe('N/A');
+  });
+
+  it('returns N/A when newBatchSize is negative', () => {
+    expect(computePercentage(100, -500)).toBe('N/A');
+  });
+
+  it('returns negative percentage when calculatedAmount is negative', () => {
+    expect(computePercentage(-50, 1000)).toBe('-5.00%');
+  });
 });
 
 describe('ManufactureBatchCalculator', () => {
