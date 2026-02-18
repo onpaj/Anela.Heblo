@@ -40,6 +40,7 @@ import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
 import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache } from "./api/client";
+import { UserStorage } from "./auth/userStorage";
 import { apiRequest } from "./auth/msalConfig";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { isE2ETestMode, getE2EAccessToken } from "./auth/e2eAuth";
@@ -164,8 +165,9 @@ function App() {
           setGlobalAuthRedirectHandler(() => {
             console.log("🔐 Executing automatic login redirect due to token expiration");
             
-            // Clear any existing session data
-            sessionStorage.clear();
+            // Clear app-level session data (preserve MSAL PKCE verifier for auth code exchange)
+            UserStorage.clearUserInfo();
+            clearTokenCache();
             
             // Use the MSAL instance to perform login redirect
             instance.loginRedirect({
