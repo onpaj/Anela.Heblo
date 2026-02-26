@@ -36,4 +36,29 @@ public class ProductMappingIssuedInvoiceImportTransformationTests
         Assert.Equal(NewCode, result.Items[0].Code);
         Assert.Equal("Test Product", result.Items[0].Name); // Other properties unchanged
     }
+
+    [Fact]
+    public async Task TransformAsync_WithMultipleMatchingItems_ReplacesAllOccurrences()
+    {
+        // Arrange
+        var invoiceDetail = new IssuedInvoiceDetail
+        {
+            Items = new List<IssuedInvoiceDetailItem>
+            {
+                new IssuedInvoiceDetailItem { Code = OriginalCode, Name = "Product A" },
+                new IssuedInvoiceDetailItem { Code = OriginalCode, Name = "Product B" },
+                new IssuedInvoiceDetailItem { Code = OriginalCode, Name = "Product C" }
+            }
+        };
+
+        // Act
+        var result = await _transformation.TransformAsync(invoiceDetail);
+
+        // Assert
+        Assert.Equal(3, result.Items.Count);
+        Assert.All(result.Items, item => Assert.Equal(NewCode, item.Code));
+        Assert.Equal("Product A", result.Items[0].Name);
+        Assert.Equal("Product B", result.Items[1].Name);
+        Assert.Equal("Product C", result.Items[2].Name);
+    }
 }
