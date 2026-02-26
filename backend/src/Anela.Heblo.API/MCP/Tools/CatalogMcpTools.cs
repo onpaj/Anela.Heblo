@@ -1,5 +1,9 @@
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetMaterialForPurchase;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
 
@@ -81,5 +85,102 @@ public class CatalogMcpTools
         }
 
         return response;
+    }
+
+    // TODO: Add [McpTool] attribute
+    // [McpTool(
+    //     Name = "catalog_get_composition",
+    //     Description = "Get the composition/recipe of a product, showing all ingredients and their quantities. Use this to understand what materials are needed to manufacture a product."
+    // )]
+    public async Task<GetProductCompositionResponse> GetProductComposition(
+        // [McpToolParameter(Description = "Product code (e.g., 'AKL001')", Required = true)]
+        string productCode
+    )
+    {
+        var request = new GetProductCompositionRequest { ProductCode = productCode };
+        var response = await _mediator.Send(request);
+
+        if (!response.Success)
+        {
+            throw new McpToolException(
+                response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR",
+                response.FullError()
+            );
+        }
+
+        return response;
+    }
+
+    // TODO: Add [McpTool] attribute
+    // [McpTool(
+    //     Name = "catalog_get_materials_for_purchase",
+    //     Description = "Get list of materials that need to be purchased based on current stock levels and planned production. Use this for procurement planning."
+    // )]
+    public async Task<GetMaterialsForPurchaseResponse> GetMaterialsForPurchase()
+    {
+        var request = new GetMaterialsForPurchaseRequest();
+        return await _mediator.Send(request);
+    }
+
+    // TODO: Add [McpTool] attribute
+    // [McpTool(
+    //     Name = "catalog_get_autocomplete",
+    //     Description = "Search for products by name or code with autocomplete functionality. Returns a limited set of matching products for quick lookup."
+    // )]
+    public async Task<GetCatalogListResponse> GetAutocomplete(
+        // [McpToolParameter(Description = "Search term to match against product name or code")]
+        string? searchTerm = null,
+
+        // [McpToolParameter(Description = "Maximum number of results to return (default: 20)")]
+        int limit = 20,
+
+        // [McpToolParameter(Description = "Filter by product types")]
+        ProductType[]? productTypes = null
+    )
+    {
+        var request = new GetCatalogListRequest
+        {
+            SearchTerm = searchTerm,
+            PageSize = limit,
+            PageNumber = 1,
+            ProductTypes = productTypes
+        };
+
+        return await _mediator.Send(request);
+    }
+
+    // TODO: Add [McpTool] attribute
+    // [McpTool(
+    //     Name = "catalog_get_usage",
+    //     Description = "Get information about where a product is used (which products include it as an ingredient). Use this for impact analysis when considering changes to a material or semi-product."
+    // )]
+    public async Task<GetProductUsageResponse> GetProductUsage(
+        // [McpToolParameter(Description = "Product code (e.g., 'AKL001')", Required = true)]
+        string productCode
+    )
+    {
+        var request = new GetProductUsageRequest { ProductCode = productCode };
+        var response = await _mediator.Send(request);
+
+        if (!response.Success)
+        {
+            throw new McpToolException(
+                response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR",
+                response.FullError()
+            );
+        }
+
+        return response;
+    }
+
+    // TODO: Add [McpTool] attribute
+    // [McpTool(
+    //     Name = "catalog_get_warehouse_statistics",
+    //     Description = "Get warehouse statistics including total items, stock levels, and value metrics. Use this for high-level inventory analysis."
+    // )]
+    public async Task<GetWarehouseStatisticsResponse> GetWarehouseStatistics()
+    {
+        var request = new GetWarehouseStatisticsRequest();
+        return await _mediator.Send(request);
     }
 }

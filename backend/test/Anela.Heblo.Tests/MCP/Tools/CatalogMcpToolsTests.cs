@@ -2,6 +2,10 @@ using Anela.Heblo.API.MCP;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetMaterialForPurchase;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
@@ -118,5 +122,115 @@ public class CatalogMcpToolsTests
 
         Assert.Equal("ProductNotFound", exception.Code);
         Assert.Contains("XYZ123", exception.Message);
+    }
+
+    [Fact]
+    public async Task GetProductComposition_ShouldMapParametersCorrectly()
+    {
+        // Arrange
+        var expectedResponse = new GetProductCompositionResponse
+        {
+            Success = true
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetProductCompositionRequest>(), default))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _tools.GetProductComposition("AKL001");
+
+        // Assert
+        _mediatorMock.Verify(m => m.Send(
+            It.Is<GetProductCompositionRequest>(req => req.ProductCode == "AKL001"),
+            default
+        ), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetMaterialsForPurchase_ShouldMapParametersCorrectly()
+    {
+        // Arrange
+        var expectedResponse = new GetMaterialsForPurchaseResponse();
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetMaterialsForPurchaseRequest>(), default))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _tools.GetMaterialsForPurchase();
+
+        // Assert
+        _mediatorMock.Verify(m => m.Send(
+            It.IsAny<GetMaterialsForPurchaseRequest>(),
+            default
+        ), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAutocomplete_ShouldMapParametersCorrectly()
+    {
+        // Arrange
+        var expectedResponse = new GetCatalogListResponse();
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetCatalogListRequest>(), default))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _tools.GetAutocomplete("Bis", 10, new[] { ProductType.Material });
+
+        // Assert
+        _mediatorMock.Verify(m => m.Send(
+            It.Is<GetCatalogListRequest>(req =>
+                req.SearchTerm == "Bis" &&
+                req.PageSize == 10 &&
+                req.PageNumber == 1
+            ),
+            default
+        ), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetProductUsage_ShouldMapParametersCorrectly()
+    {
+        // Arrange
+        var expectedResponse = new GetProductUsageResponse
+        {
+            Success = true
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetProductUsageRequest>(), default))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _tools.GetProductUsage("AKL001");
+
+        // Assert
+        _mediatorMock.Verify(m => m.Send(
+            It.Is<GetProductUsageRequest>(req => req.ProductCode == "AKL001"),
+            default
+        ), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetWarehouseStatistics_ShouldMapParametersCorrectly()
+    {
+        // Arrange
+        var expectedResponse = new GetWarehouseStatisticsResponse();
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetWarehouseStatisticsRequest>(), default))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _tools.GetWarehouseStatistics();
+
+        // Assert
+        _mediatorMock.Verify(m => m.Send(
+            It.IsAny<GetWarehouseStatisticsRequest>(),
+            default
+        ), Times.Once);
     }
 }
