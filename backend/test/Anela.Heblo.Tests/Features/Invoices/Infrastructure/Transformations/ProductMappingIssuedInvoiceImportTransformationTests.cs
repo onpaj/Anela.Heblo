@@ -85,4 +85,20 @@ public class ProductMappingIssuedInvoiceImportTransformationTests
         Assert.Equal("Product A", result.Items[0].Name);
         Assert.Equal("Product B", result.Items[1].Name);
     }
+
+    [Fact]
+    public async Task TransformAsync_WithEmptyItemsList_ReturnsInvoiceUnchanged()
+    {
+        // Arrange
+        var invoiceDetail = new IssuedInvoiceDetail
+        {
+            Items = new List<IssuedInvoiceDetailItem>()
+        };
+
+        // Act
+        var result = await _transformation.TransformAsync(invoiceDetail);
+
+        // Assert
+        Assert.Empty(result.Items);
+    }
 }
