@@ -28,9 +28,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **🎭 Playwright E2E Testing**: `docs/testing/playwright-e2e-testing.md` - E2E testing setup, authentication, commands
 - **📊 Test Data Fixtures**: `docs/testing/test-data-fixtures.md` - Available test data for E2E tests
 
+### MCP & Integration
+- **🔌 MCP Server**: See "MCP Server" section below - 15 tools across Catalog, Manufacturing, and Batch Planning
+
 ## MCP Server
 
-**Model Context Protocol Integration** - The application exposes MCP tools for AI assistants to interact with read-only endpoints.
+**Model Context Protocol Integration** - The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, and perform batch calculations.
 
 **Available Tools:**
 
@@ -65,7 +68,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Testing:**
 - Test location: `backend/test/Anela.Heblo.Tests/MCP/Tools/`
 - Total tests: 16 (8 Catalog + 4 ManufactureOrder + 4 ManufactureBatch)
-- See `docs/testing/mcp-testing.md` for testing guide
+- See existing test files for examples of MCP tool testing patterns
 
 **Future Work:**
 - Waiting for Microsoft.Extensions.AI v9.2+ for full MCP server registration
