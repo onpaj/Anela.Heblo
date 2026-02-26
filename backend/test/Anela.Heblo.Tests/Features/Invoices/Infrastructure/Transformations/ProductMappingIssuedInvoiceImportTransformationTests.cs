@@ -127,4 +127,26 @@ public class ProductMappingIssuedInvoiceImportTransformationTests
         Assert.Equal("OTHER002", result.Items[2].Code);
         Assert.Equal(NewCode, result.Items[3].Code);
     }
+
+    [Fact]
+    public async Task TransformAsync_IsCaseSensitive_DoesNotReplaceWrongCase()
+    {
+        // Arrange
+        var invoiceDetail = new IssuedInvoiceDetail
+        {
+            Items = new List<IssuedInvoiceDetailItem>
+            {
+                new IssuedInvoiceDetailItem { Code = OriginalCode.ToLower(), Name = "Product A" },
+                new IssuedInvoiceDetailItem { Code = OriginalCode, Name = "Product B" }
+            }
+        };
+
+        // Act
+        var result = await _transformation.TransformAsync(invoiceDetail);
+
+        // Assert
+        Assert.Equal(2, result.Items.Count);
+        Assert.Equal(OriginalCode.ToLower(), result.Items[0].Code); // Not replaced (wrong case)
+        Assert.Equal(NewCode, result.Items[1].Code); // Replaced (exact match)
+    }
 }
