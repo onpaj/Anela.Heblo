@@ -101,4 +101,30 @@ public class ProductMappingIssuedInvoiceImportTransformationTests
         // Assert
         Assert.Empty(result.Items);
     }
+
+    [Fact]
+    public async Task TransformAsync_WithMixedItems_ReplacesOnlyMatchingItems()
+    {
+        // Arrange
+        var invoiceDetail = new IssuedInvoiceDetail
+        {
+            Items = new List<IssuedInvoiceDetailItem>
+            {
+                new IssuedInvoiceDetailItem { Code = "OTHER001", Name = "Product A" },
+                new IssuedInvoiceDetailItem { Code = OriginalCode, Name = "Product B" },
+                new IssuedInvoiceDetailItem { Code = "OTHER002", Name = "Product C" },
+                new IssuedInvoiceDetailItem { Code = OriginalCode, Name = "Product D" }
+            }
+        };
+
+        // Act
+        var result = await _transformation.TransformAsync(invoiceDetail);
+
+        // Assert
+        Assert.Equal(4, result.Items.Count);
+        Assert.Equal("OTHER001", result.Items[0].Code);
+        Assert.Equal(NewCode, result.Items[1].Code);
+        Assert.Equal("OTHER002", result.Items[2].Code);
+        Assert.Equal(NewCode, result.Items[3].Code);
+    }
 }
