@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
 
@@ -46,5 +47,39 @@ public class CatalogMcpTools
         };
 
         return await _mediator.Send(request);
+    }
+
+    // TODO: Add [McpTool] attribute when Microsoft.Extensions.AI API is finalized
+    // [McpTool(
+    //     Name = "catalog_get_detail",
+    //     Description = "Get detailed information for a specific product including stock levels, recent transactions, and pricing history. Use this to analyze individual product performance."
+    // )]
+    public async Task<GetCatalogDetailResponse> GetCatalogDetail(
+        // TODO: Add [McpToolParameter] attributes when API is finalized
+        // [McpToolParameter(Description = "Product code (e.g., 'AKL001', 'SLU000001')", Required = true)]
+        string productCode,
+
+        // [McpToolParameter(Description = "Number of months to look back for transaction history (default: 13)")]
+        int monthsBack = 13
+    )
+    {
+        var request = new GetCatalogDetailRequest
+        {
+            ProductCode = productCode,
+            MonthsBack = monthsBack
+        };
+
+        var response = await _mediator.Send(request);
+
+        // Handle response envelope (Success/Error pattern)
+        if (!response.Success)
+        {
+            throw new McpToolException(
+                response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR",
+                response.FullError()
+            );
+        }
+
+        return response;
     }
 }

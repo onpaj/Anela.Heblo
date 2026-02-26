@@ -1,6 +1,8 @@
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
+using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
 using Moq;
@@ -66,7 +68,7 @@ public class CatalogMcpToolsTests
         var expectedResponse = new GetCatalogDetailResponse
         {
             Success = true,
-            ProductCode = "AKL001"
+            Item = new CatalogItemDto { ProductCode = "AKL001" }
         };
 
         _mediatorMock
@@ -95,10 +97,14 @@ public class CatalogMcpToolsTests
     public async Task GetCatalogDetail_ShouldThrowMcpToolException_WhenProductNotFound()
     {
         // Arrange
-        var errorResponse = new GetCatalogDetailResponse("NOT_FOUND")
+        var errorResponse = new GetCatalogDetailResponse
         {
             Success = false,
-            ErrorMessage = "Product 'XYZ123' not found"
+            ErrorCode = ErrorCodes.ProductNotFound,
+            Params = new Dictionary<string, string>
+            {
+                { "ProductCode", "XYZ123" }
+            }
         };
 
         _mediatorMock
@@ -110,7 +116,7 @@ public class CatalogMcpToolsTests
             () => _tools.GetCatalogDetail("XYZ123")
         );
 
-        Assert.Equal("NOT_FOUND", exception.Code);
+        Assert.Equal("ProductNotFound", exception.Code);
         Assert.Contains("XYZ123", exception.Message);
     }
 }
