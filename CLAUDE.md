@@ -28,6 +28,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **🎭 Playwright E2E Testing**: `docs/testing/playwright-e2e-testing.md` - E2E testing setup, authentication, commands
 - **📊 Test Data Fixtures**: `docs/testing/test-data-fixtures.md` - Available test data for E2E tests
 
+## MCP Server
+
+**Model Context Protocol Integration** - The application exposes MCP tools for AI assistants to interact with read-only endpoints.
+
+**Available Tools:**
+
+**Catalog Tools (7):**
+- `GetCatalogList` - List products with filtering/pagination
+- `GetCatalogDetail` - Get detailed product information
+- `GetProductComposition` - Get product composition/ingredients
+- `GetMaterialsForPurchase` - Get materials needed for purchase
+- `GetAutocomplete` - Search products for autocomplete
+- `GetProductUsage` - Get product usage in compositions
+- `GetWarehouseStatistics` - Get warehouse statistics
+
+**Manufacture Order Tools (4):**
+- `GetManufactureOrders` - List manufacture orders with filtering
+- `GetManufactureOrder` - Get single manufacture order details
+- `GetCalendarView` - Get calendar view of manufacture orders
+- `GetResponsiblePersons` - Get responsible persons from Entra ID
+
+**Manufacture Batch Tools (4):**
+- `GetBatchTemplate` - Get batch template for product
+- `CalculateBatchBySize` - Calculate batch by desired size
+- `CalculateBatchByIngredient` - Calculate batch by ingredient quantity
+- `CalculateBatchPlan` - Calculate batch plan for multiple products
+
+**Implementation:**
+- Tool classes: `backend/src/Anela.Heblo.API/MCP/Tools/`
+- Registration: `McpModule.cs` (transient services)
+- Pattern: Thin wrappers around MediatR handlers
+- Error handling: `McpToolException` for protocol errors
+- Authentication: Uses existing Microsoft Entra ID authentication
+
+**Testing:**
+- Test location: `backend/test/Anela.Heblo.Tests/MCP/Tools/`
+- Total tests: 16 (8 Catalog + 4 ManufactureOrder + 4 ManufactureBatch)
+- See `docs/testing/mcp-testing.md` for testing guide
+
+**Future Work:**
+- Waiting for Microsoft.Extensions.AI v9.2+ for full MCP server registration
+- TODO markers in code indicate where [McpTool] attributes will be added
+
 ## Architecture Principles
 
 **Clean Architecture with Vertical Slice Organization:**
