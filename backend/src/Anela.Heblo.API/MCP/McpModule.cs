@@ -1,4 +1,4 @@
-// using Anela.Heblo.API.MCP.Tools;
+using Anela.Heblo.API.MCP.Tools;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anela.Heblo.API.MCP;
@@ -13,9 +13,9 @@ public static class McpModule
     {
         // Register MCP tool classes as transient (new instance per request)
         // Tools will be registered here as we create them
-        // services.AddTransient<CatalogMcpTools>();
-        // services.AddTransient<ManufactureOrderMcpTools>();
-        // services.AddTransient<ManufactureBatchMcpTools>();
+        services.AddTransient<CatalogMcpTools>();
+        services.AddTransient<ManufactureOrderMcpTools>();
+        services.AddTransient<ManufactureBatchMcpTools>();
 
         // TODO: Register MCP server when Microsoft.Extensions.AI package is updated
         // services.AddMcpServer(options =>
