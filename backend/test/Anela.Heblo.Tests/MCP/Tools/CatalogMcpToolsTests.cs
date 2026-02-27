@@ -106,7 +106,7 @@ public class CatalogMcpToolsTests
     }
 
     [Fact]
-    public async Task GetCatalogDetail_ShouldThrowInvalidOperationException_WhenProductNotFound()
+    public async Task GetCatalogDetail_ShouldThrowMcpException_WhenProductNotFound()
     {
         // Arrange
         var errorResponse = new GetCatalogDetailResponse
