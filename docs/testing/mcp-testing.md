@@ -480,3 +480,441 @@ MCP testing focuses on verifying:
 4. **Error scenarios** are handled with `McpToolException`
 
 Keep tests simple, focused, and follow established patterns for consistency across the codebase.
+
+## MCP Server Integration Testing
+
+This section covers testing the MCP server endpoint directly, verifying tool discovery, invocation, and performance.
+
+### Prerequisites
+
+Before running integration tests, ensure:
+
+1. **Server is running:**
+   - Local: `dotnet run --project backend/src/Anela.Heblo.API` (runs on https://localhost:5001)
+   - Staging: https://heblo.stg.anela.cz
+   - Production: https://heblo.anela.cz
+
+2. **Authentication token available:**
+   - Microsoft Entra ID bearer token required for all endpoints
+   - For local testing, obtain token from `.env.test` file or Azure CLI
+   - Token must have valid permissions for the application
+
+3. **Test tools installed:**
+   - `curl` - For basic HTTP testing
+   - `jq` - For JSON parsing (optional, but helpful)
+   - MCP client (Claude Desktop, etc.) - For full client testing
+
+### Testing MCP Endpoint
+
+#### Test 1: Endpoint Availability
+
+Verify the MCP endpoint is accessible and returns correct response:
+
+```bash
+# Test local endpoint
+curl -X GET https://localhost:5001/mcp \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Accept: text/event-stream" \
+  --insecure
+
+# Test staging endpoint
+curl -X GET https://heblo.stg.anela.cz/mcp \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Accept: text/event-stream"
+```
+
+**Expected response:**
+- Status: `200 OK`
+- Content-Type: `text/event-stream`
+- SSE stream with MCP server events
+
+**Common issues:**
+- `401 Unauthorized` - Invalid or missing bearer token
+- `404 Not Found` - Endpoint not mapped correctly (check Program.cs)
+- `500 Internal Server Error` - Server configuration issue
+
+#### Test 2: Tool Discovery
+
+Use JSON-RPC to discover available MCP tools:
+
+```bash
+# Create JSON-RPC request for tools/list
+cat > request.json << 'EOF'
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/list",
+  "params": {}
+}
+EOF
+
+# Send request to MCP endpoint
+curl -X POST https://localhost:5001/mcp \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  --data @request.json \
+  --insecure
+```
+
+**Expected response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "tools": [
+      {
+        "name": "GetCatalogList",
+        "description": "List products from catalog with filtering and pagination",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pageNumber": { "type": "integer" },
+            "pageSize": { "type": "integer" },
+            "productTypes": { "type": "array" }
+          }
+        }
+      },
+      // ... 14 more tools
+    ]
+  }
+}
+```
+
+**Verification:**
+- Response contains 15 tools total
+- 7 Catalog tools (GetCatalogList, GetCatalogDetail, etc.)
+- 4 Manufacture Order tools (GetManufactureOrders, etc.)
+- 4 Manufacture Batch tools (GetBatchTemplate, etc.)
+
+#### Test 3: Tool Invocation
+
+Test calling a specific MCP tool:
+
+```bash
+# Create JSON-RPC request for GetCatalogList
+cat > invoke.json << 'EOF'
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/call",
+  "params": {
+    "name": "GetCatalogList",
+    "arguments": {
+      "pageNumber": 1,
+      "pageSize": 10,
+      "productTypes": ["Material"]
+    }
+  }
+}
+EOF
+
+# Send request to MCP endpoint
+curl -X POST https://localhost:5001/mcp \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  --data @invoke.json \
+  --insecure | jq
+```
+
+**Expected response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"items\":[...],\"totalCount\":42,\"pageNumber\":1,\"pageSize\":10}"
+      }
+    ]
+  }
+}
+```
+
+**Verification:**
+- Response contains `result.content` array
+- Content includes JSON-formatted tool response
+- Data matches expected structure (items array, pagination info)
+
+### Testing with Claude Desktop
+
+Configure Claude Desktop to connect to your MCP server:
+
+#### Configuration Setup
+
+Edit `claude_desktop_config.json` (location varies by OS):
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+
+Add your MCP server:
+
+```json
+{
+  "mcpServers": {
+    "anela-heblo-local": {
+      "url": "https://localhost:5001/mcp",
+      "transport": "sse",
+      "authentication": {
+        "type": "bearer",
+        "token": "YOUR_ENTRA_ID_TOKEN"
+      }
+    },
+    "anela-heblo-staging": {
+      "url": "https://heblo.stg.anela.cz/mcp",
+      "transport": "sse",
+      "authentication": {
+        "type": "bearer",
+        "token": "YOUR_ENTRA_ID_TOKEN"
+      }
+    }
+  }
+}
+```
+
+#### Token Management
+
+For local development testing:
+
+```bash
+# Option 1: Get token from Azure CLI
+az account get-access-token --resource YOUR_APP_ID --query accessToken -o tsv
+
+# Option 2: Use token from .env.test file
+cat frontend/.env.test | grep SERVICE_PRINCIPAL_TOKEN
+```
+
+**Token expiration:**
+- Entra ID tokens typically expire after 1 hour
+- Claude Desktop will show authentication errors when token expires
+- Refresh configuration with new token as needed
+
+#### Verify Connection
+
+After configuration:
+
+1. **Restart Claude Desktop** - Required to load new configuration
+2. **Check connection status** - Look for MCP server in Claude Desktop UI
+3. **Test tool discovery** - Ask Claude: "What MCP tools do you have access to?"
+4. **Test tool invocation** - Ask Claude: "Get the catalog list from Anela Heblo"
+
+**Expected behavior:**
+- Claude recognizes 15 tools from anela-heblo server
+- Tools are categorized: Catalog (7), Manufacture Order (4), Manufacture Batch (4)
+- Tool invocations return real data from your environment
+
+### Performance Testing
+
+Measure MCP server latency and throughput:
+
+#### Test 1: Response Time
+
+Measure tool invocation latency:
+
+```bash
+# Test GetCatalogList response time
+time curl -X POST https://localhost:5001/mcp \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"GetCatalogList","arguments":{"pageNumber":1,"pageSize":10}}}' \
+  --insecure \
+  -o /dev/null -s -w "Time: %{time_total}s\n"
+```
+
+**Performance baselines:**
+- Local: < 500ms for simple queries
+- Staging/Production: < 1000ms for simple queries
+- Complex queries (batch calculations): < 3000ms
+
+#### Test 2: Concurrent Requests
+
+Test server handling of multiple concurrent requests:
+
+```bash
+# Run 10 concurrent requests
+for i in {1..10}; do
+  curl -X POST https://localhost:5001/mcp \
+    -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+    -H "Content-Type: application/json" \
+    --data '{"jsonrpc":"2.0","id":'$i',"method":"tools/call","params":{"name":"GetCatalogList","arguments":{}}}' \
+    --insecure \
+    -o /dev/null -s -w "Request $i: %{time_total}s\n" &
+done
+wait
+```
+
+**Expected behavior:**
+- All requests complete successfully
+- No significant latency degradation
+- No 429 (rate limit) or 503 (service unavailable) errors
+
+#### Test 3: Large Dataset Handling
+
+Test with tools returning large datasets:
+
+```bash
+# Request large page size
+curl -X POST https://localhost:5001/mcp \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"GetCatalogList","arguments":{"pageSize":100}}}' \
+  --insecure \
+  -w "\nSize: %{size_download} bytes\nTime: %{time_total}s\n"
+```
+
+**Performance expectations:**
+- Response size: Varies by data (typically 10KB - 500KB)
+- Response time: Should scale linearly with page size
+- No timeout errors (< 30s)
+
+### Troubleshooting
+
+#### Issue: Tools Not Discovered
+
+**Symptoms:**
+- `tools/list` returns empty array
+- Claude Desktop shows no tools available
+
+**Solutions:**
+1. **Verify tool registration:**
+   ```bash
+   # Check McpModule.cs has tool services registered
+   grep -A 20 "public static IServiceCollection" backend/src/Anela.Heblo.API/MCP/McpModule.cs
+   ```
+
+2. **Check server logs:**
+   ```bash
+   # Run server with logging
+   dotnet run --project backend/src/Anela.Heblo.API
+   # Look for "MCP tool registered" messages
+   ```
+
+3. **Verify endpoint mapping:**
+   ```bash
+   # Check ApplicationBuilderExtensions.cs
+   grep "MapMcpServer\|/mcp" backend/src/Anela.Heblo.API/ApplicationBuilderExtensions.cs
+   ```
+
+#### Issue: Authentication Failures
+
+**Symptoms:**
+- `401 Unauthorized` responses
+- "Invalid token" errors in logs
+
+**Solutions:**
+1. **Verify token validity:**
+   ```bash
+   # Decode JWT token to check expiration
+   echo "YOUR_TOKEN" | cut -d. -f2 | base64 -d | jq .exp
+   # Compare with current time
+   date +%s
+   ```
+
+2. **Check token scopes:**
+   - Token must have correct audience (application ID)
+   - Token must have valid user/service principal claims
+
+3. **Regenerate token:**
+   ```bash
+   # Get fresh token from Azure CLI
+   az account get-access-token --resource YOUR_APP_ID
+   ```
+
+#### Issue: Slow Response Times
+
+**Symptoms:**
+- Tool calls taking > 5 seconds
+- Timeout errors in Claude Desktop
+
+**Solutions:**
+1. **Check database performance:**
+   ```bash
+   # Run with SQL logging enabled
+   export ASPNETCORE_ENVIRONMENT=Development
+   dotnet run --project backend/src/Anela.Heblo.API
+   # Look for slow queries in logs
+   ```
+
+2. **Profile tool execution:**
+   - Add timing logs in MCP tool classes
+   - Check MediatR handler performance
+   - Verify database indexes exist
+
+3. **Test network latency:**
+   ```bash
+   # Measure round-trip time
+   ping heblo.stg.anela.cz
+   # Check if network is bottleneck
+   ```
+
+4. **Review pagination:**
+   - Large page sizes (> 100) may cause slow queries
+   - Reduce `pageSize` parameter in tool calls
+   - Add database query optimization
+
+#### Issue: SSE Connection Drops
+
+**Symptoms:**
+- Connection closes unexpectedly
+- "Connection reset" errors
+
+**Solutions:**
+1. **Check server timeout settings:**
+   - SSE connections should stay open
+   - Verify no aggressive reverse proxy timeouts
+
+2. **Test with keep-alive:**
+   ```bash
+   # Use curl with verbose output
+   curl -v -X GET https://localhost:5001/mcp \
+     -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+     -H "Accept: text/event-stream" \
+     --no-buffer
+   ```
+
+3. **Verify firewall/proxy:**
+   - Some proxies block SSE connections
+   - Test direct connection vs. through proxy
+
+#### Issue: Tool Returns Wrong Data
+
+**Symptoms:**
+- Tool executes but returns unexpected results
+- Data doesn't match database state
+
+**Solutions:**
+1. **Verify MediatR handler:**
+   ```bash
+   # Find handler for the tool
+   grep -r "GetCatalogListHandler" backend/src/Anela.Heblo.Application/
+   # Review handler logic
+   ```
+
+2. **Test handler directly:**
+   - Write unit test for MediatR handler
+   - Verify handler returns correct data
+   - Check parameter mapping in MCP tool class
+
+3. **Check database state:**
+   ```bash
+   # Query database directly
+   # Compare with tool response
+   ```
+
+### Integration Test Checklist
+
+Before deploying MCP server changes:
+
+- [ ] **Endpoint availability:** Test with curl on all environments
+- [ ] **Tool discovery:** Verify all 15 tools returned by `tools/list`
+- [ ] **Authentication:** Test with valid and invalid tokens
+- [ ] **Tool invocation:** Test at least one tool per category (Catalog, Order, Batch)
+- [ ] **Error handling:** Test with invalid parameters, verify error responses
+- [ ] **Performance:** Measure response times, verify < 1s for simple queries
+- [ ] **Claude Desktop:** Test end-to-end with real MCP client
+- [ ] **Staging validation:** Run smoke tests against staging environment
+- [ ] **Production readiness:** All tests pass on staging before production deploy
