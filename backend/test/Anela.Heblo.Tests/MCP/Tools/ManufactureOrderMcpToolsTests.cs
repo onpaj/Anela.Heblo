@@ -1,9 +1,11 @@
+using System.Text.Json;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrders;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using MediatR;
+using ModelContextProtocol;
 using Moq;
 using Xunit;
 
@@ -31,13 +33,17 @@ public class ManufactureOrderMcpToolsTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _tools.GetManufactureOrders();
+        var jsonResult = await _tools.GetManufactureOrders();
 
         // Assert
         _mediatorMock.Verify(m => m.Send(
             It.IsAny<GetManufactureOrdersRequest>(),
             default
         ), Times.Once);
+
+        var deserialized = JsonSerializer.Deserialize<GetManufactureOrdersResponse>(jsonResult);
+        Assert.NotNull(deserialized);
+        Assert.True(deserialized.Success);
     }
 
     [Fact]
@@ -51,13 +57,40 @@ public class ManufactureOrderMcpToolsTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _tools.GetManufactureOrder(123);
+        var jsonResult = await _tools.GetManufactureOrder(123);
 
         // Assert
         _mediatorMock.Verify(m => m.Send(
             It.Is<GetManufactureOrderRequest>(req => req.Id == 123),
             default
         ), Times.Once);
+
+        var deserialized = JsonSerializer.Deserialize<GetManufactureOrderResponse>(jsonResult);
+        Assert.NotNull(deserialized);
+        Assert.True(deserialized.Success);
+    }
+
+    [Fact]
+    public async Task GetManufactureOrder_ShouldThrowMcpException_WhenOrderNotFound()
+    {
+        // Arrange
+        var errorResponse = new GetManufactureOrderResponse
+        {
+            Success = false,
+            ErrorCode = Anela.Heblo.Application.Shared.ErrorCodes.OrderNotFound,
+            Params = new Dictionary<string, string> { { "Id", "999" } }
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetManufactureOrderRequest>(), default))
+            .ReturnsAsync(errorResponse);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<McpException>(
+            () => _tools.GetManufactureOrder(999)
+        );
+
+        Assert.Contains("NotFound", exception.Message);
     }
 
     [Fact]
@@ -71,13 +104,17 @@ public class ManufactureOrderMcpToolsTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _tools.GetCalendarView();
+        var jsonResult = await _tools.GetCalendarView();
 
         // Assert
         _mediatorMock.Verify(m => m.Send(
             It.IsAny<GetCalendarViewRequest>(),
             default
         ), Times.Once);
+
+        var deserialized = JsonSerializer.Deserialize<GetCalendarViewResponse>(jsonResult);
+        Assert.NotNull(deserialized);
+        Assert.True(deserialized.Success);
     }
 
     [Fact]
@@ -91,12 +128,16 @@ public class ManufactureOrderMcpToolsTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _tools.GetResponsiblePersons("group-id-123");
+        var jsonResult = await _tools.GetResponsiblePersons("group-id-123");
 
         // Assert
         _mediatorMock.Verify(m => m.Send(
             It.Is<GetGroupMembersRequest>(req => req.GroupId == "group-id-123"),
             default
         ), Times.Once);
+
+        var deserialized = JsonSerializer.Deserialize<GetGroupMembersResponse>(jsonResult);
+        Assert.NotNull(deserialized);
+        Assert.True(deserialized.Success);
     }
 }

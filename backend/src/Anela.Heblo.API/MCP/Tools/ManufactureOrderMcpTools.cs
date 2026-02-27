@@ -1,8 +1,12 @@
+using System.ComponentModel;
+using System.Text.Json;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrders;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using MediatR;
+using ModelContextProtocol;
+using ModelContextProtocol.Server;
 
 namespace Anela.Heblo.API.MCP.Tools;
 
@@ -10,6 +14,7 @@ namespace Anela.Heblo.API.MCP.Tools;
 /// MCP tools for Manufacture Order operations.
 /// Provides read-only access to manufacture order data for planning and tracking.
 /// </summary>
+[McpServerToolType]
 public class ManufactureOrderMcpTools
 {
     private readonly IMediator _mediator;
@@ -19,34 +24,23 @@ public class ManufactureOrderMcpTools
         _mediator = mediator;
     }
 
-    // TODO: Add [McpTool] attribute
-    // [McpTool(
-    //     Name = "manufacture_order_get_list",
-    //     Description = "Get list of manufacture orders with optional filtering. Use this to see all planned and in-progress manufacturing activities."
-    // )]
-    public async Task<GetManufactureOrdersResponse> GetManufactureOrders()
+    [McpServerTool]
+    public async Task<string> GetManufactureOrders()
     {
         var request = new GetManufactureOrdersRequest();
         var response = await _mediator.Send(request);
 
         if (!response.Success)
         {
-            throw new McpToolException(
-                response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR",
-                response.FullError()
-            );
+            throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return response;
+        return JsonSerializer.Serialize(response);
     }
 
-    // TODO: Add [McpTool] attribute
-    // [McpTool(
-    //     Name = "manufacture_order_get_detail",
-    //     Description = "Get detailed information about a specific manufacture order including materials, timeline, and status. Use this to track progress of a manufacturing batch."
-    // )]
-    public async Task<GetManufactureOrderResponse> GetManufactureOrder(
-        // [McpToolParameter(Description = "Manufacture order ID", Required = true)]
+    [McpServerTool]
+    public async Task<string> GetManufactureOrder(
+        [Description("Manufacture order ID")]
         int id
     )
     {
@@ -55,43 +49,29 @@ public class ManufactureOrderMcpTools
 
         if (!response.Success)
         {
-            throw new McpToolException(
-                response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR",
-                response.FullError()
-            );
+            throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return response;
+        return JsonSerializer.Serialize(response);
     }
 
-    // TODO: Add [McpTool] attribute
-    // [McpTool(
-    //     Name = "manufacture_order_get_calendar",
-    //     Description = "Get calendar view of manufacture orders showing scheduled production timeline. Use this for production planning and capacity analysis."
-    // )]
-    public async Task<GetCalendarViewResponse> GetCalendarView()
+    [McpServerTool]
+    public async Task<string> GetCalendarView()
     {
         var request = new GetCalendarViewRequest();
         var response = await _mediator.Send(request);
 
         if (!response.Success)
         {
-            throw new McpToolException(
-                response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR",
-                response.FullError()
-            );
+            throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return response;
+        return JsonSerializer.Serialize(response);
     }
 
-    // TODO: Add [McpTool] attribute
-    // [McpTool(
-    //     Name = "manufacture_order_get_responsible_persons",
-    //     Description = "Get list of people who can be assigned as responsible for manufacture orders. Use this when planning order assignments."
-    // )]
-    public async Task<GetGroupMembersResponse> GetResponsiblePersons(
-        // [McpToolParameter(Description = "Microsoft Entra ID group ID for manufacture team", Required = true)]
+    [McpServerTool]
+    public async Task<string> GetResponsiblePersons(
+        [Description("Microsoft Entra ID group ID for manufacture team")]
         string groupId
     )
     {
@@ -100,12 +80,9 @@ public class ManufactureOrderMcpTools
 
         if (!response.Success)
         {
-            throw new McpToolException(
-                response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR",
-                response.FullError()
-            );
+            throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return response;
+        return JsonSerializer.Serialize(response);
     }
 }
