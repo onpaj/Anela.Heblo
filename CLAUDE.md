@@ -70,9 +70,39 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Total tests: 16 (8 Catalog + 4 ManufactureOrder + 4 ManufactureBatch)
 - See existing test files for examples of MCP tool testing patterns
 
-**Future Work:**
-- Waiting for Microsoft.Extensions.AI v9.2+ for full MCP server registration
-- TODO markers in code indicate where [McpTool] attributes will be added
+**Status:** ✅ Active - MCP server running on /mcp endpoint
+
+**Endpoint:** `/mcp` (requires Microsoft Entra ID authentication)
+
+**Transport:** SSE (Server-Sent Events) for web-based MCP clients
+
+**Configuration:**
+
+Available endpoints by environment:
+- **Production**: `https://heblo.anela.cz/mcp`
+- **Staging**: `https://heblo.stg.anela.cz/mcp`
+- **Local Development**: `https://localhost:5001/mcp`
+
+**MCP Client Setup:**
+
+Add to your MCP client configuration (e.g., Claude Desktop `claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "anela-heblo": {
+      "url": "https://heblo.anela.cz/mcp",
+      "transport": "sse",
+      "authentication": {
+        "type": "bearer",
+        "token": "YOUR_ENTRA_ID_TOKEN"
+      }
+    }
+  }
+}
+```
+
+For local development, use `https://localhost:5001/mcp` as the URL.
 
 ## Architecture Principles
 
