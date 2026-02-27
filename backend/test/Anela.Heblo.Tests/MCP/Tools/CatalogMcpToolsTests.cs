@@ -1,4 +1,4 @@
-using Anela.Heblo.API.MCP;
+using System.Text.Json;
 using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
@@ -42,7 +42,7 @@ public class CatalogMcpToolsTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _tools.GetCatalogList(
+        var jsonResult = await _tools.GetCatalogList(
             searchTerm: "Bisabolol",
             productTypes: new[] { ProductType.Material },
             pageNumber: 2,
@@ -62,7 +62,11 @@ public class CatalogMcpToolsTests
             default
         ), Times.Once);
 
-        Assert.Equal(expectedResponse, result);
+        var deserialized = JsonSerializer.Deserialize<GetCatalogListResponse>(jsonResult);
+        Assert.NotNull(deserialized);
+        Assert.Equal(0, deserialized.TotalCount);
+        Assert.Equal(2, deserialized.PageNumber);
+        Assert.Equal(25, deserialized.PageSize);
     }
 
     [Fact]
@@ -80,7 +84,7 @@ public class CatalogMcpToolsTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _tools.GetCatalogDetail(
+        var jsonResult = await _tools.GetCatalogDetail(
             productCode: "AKL001",
             monthsBack: 6
         );
@@ -94,11 +98,14 @@ public class CatalogMcpToolsTests
             default
         ), Times.Once);
 
-        Assert.Equal(expectedResponse, result);
+        var deserialized = JsonSerializer.Deserialize<GetCatalogDetailResponse>(jsonResult);
+        Assert.NotNull(deserialized);
+        Assert.True(deserialized.Success);
+        Assert.Equal("AKL001", deserialized.Item?.ProductCode);
     }
 
     [Fact]
-    public async Task GetCatalogDetail_ShouldThrowMcpToolException_WhenProductNotFound()
+    public async Task GetCatalogDetail_ShouldThrowInvalidOperationException_WhenProductNotFound()
     {
         // Arrange
         var errorResponse = new GetCatalogDetailResponse
@@ -116,11 +123,11 @@ public class CatalogMcpToolsTests
             .ReturnsAsync(errorResponse);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<McpToolException>(
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => _tools.GetCatalogDetail("XYZ123")
         );
 
-        Assert.Equal("ProductNotFound", exception.Code);
+        Assert.Contains("ProductNotFound", exception.Message);
         Assert.Contains("XYZ123", exception.Message);
     }
 
@@ -138,13 +145,17 @@ public class CatalogMcpToolsTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _tools.GetProductComposition("AKL001");
+        var jsonResult = await _tools.GetProductComposition("AKL001");
 
         // Assert
         _mediatorMock.Verify(m => m.Send(
             It.Is<GetProductCompositionRequest>(req => req.ProductCode == "AKL001"),
             default
         ), Times.Once);
+
+        var deserialized = JsonSerializer.Deserialize<GetProductCompositionResponse>(jsonResult);
+        Assert.NotNull(deserialized);
+        Assert.True(deserialized.Success);
     }
 
     [Fact]
@@ -158,13 +169,16 @@ public class CatalogMcpToolsTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _tools.GetMaterialsForPurchase();
+        var jsonResult = await _tools.GetMaterialsForPurchase();
 
         // Assert
         _mediatorMock.Verify(m => m.Send(
             It.IsAny<GetMaterialsForPurchaseRequest>(),
             default
         ), Times.Once);
+
+        var deserialized = JsonSerializer.Deserialize<GetMaterialsForPurchaseResponse>(jsonResult);
+        Assert.NotNull(deserialized);
     }
 
     [Fact]
@@ -178,7 +192,7 @@ public class CatalogMcpToolsTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _tools.GetAutocomplete("Bis", 10, new[] { ProductType.Material });
+        var jsonResult = await _tools.GetAutocomplete("Bis", 10, new[] { ProductType.Material });
 
         // Assert
         _mediatorMock.Verify(m => m.Send(
@@ -189,6 +203,9 @@ public class CatalogMcpToolsTests
             ),
             default
         ), Times.Once);
+
+        var deserialized = JsonSerializer.Deserialize<GetCatalogListResponse>(jsonResult);
+        Assert.NotNull(deserialized);
     }
 
     [Fact]
@@ -205,13 +222,17 @@ public class CatalogMcpToolsTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _tools.GetProductUsage("AKL001");
+        var jsonResult = await _tools.GetProductUsage("AKL001");
 
         // Assert
         _mediatorMock.Verify(m => m.Send(
             It.Is<GetProductUsageRequest>(req => req.ProductCode == "AKL001"),
             default
         ), Times.Once);
+
+        var deserialized = JsonSerializer.Deserialize<GetProductUsageResponse>(jsonResult);
+        Assert.NotNull(deserialized);
+        Assert.True(deserialized.Success);
     }
 
     [Fact]
@@ -225,12 +246,15 @@ public class CatalogMcpToolsTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _tools.GetWarehouseStatistics();
+        var jsonResult = await _tools.GetWarehouseStatistics();
 
         // Assert
         _mediatorMock.Verify(m => m.Send(
             It.IsAny<GetWarehouseStatisticsRequest>(),
             default
         ), Times.Once);
+
+        var deserialized = JsonSerializer.Deserialize<GetWarehouseStatisticsResponse>(jsonResult);
+        Assert.NotNull(deserialized);
     }
 }
