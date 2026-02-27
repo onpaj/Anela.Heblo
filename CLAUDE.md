@@ -60,9 +60,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Implementation:**
 - Tool classes: `backend/src/Anela.Heblo.API/MCP/Tools/`
-- Registration: `McpModule.cs` (transient services)
+- Registration: `McpModule.cs` (AddMcpServer + WithHttpTransport + WithTools)
 - Pattern: Thin wrappers around MediatR handlers
-- Error handling: `McpToolException` for protocol errors
+- Error handling: `McpException` from `ModelContextProtocol` namespace for protocol errors
 - Authentication: Uses existing Microsoft Entra ID authentication
 
 **Testing:**

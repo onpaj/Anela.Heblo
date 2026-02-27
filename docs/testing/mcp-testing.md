@@ -97,13 +97,13 @@ public async Task GetCatalogDetail_ShouldMapParametersCorrectly()
 
 ## Error Handling Tests
 
-MCP tools throw `McpToolException` when business logic fails. Error handling tests verify this behavior.
+MCP tools throw `McpException` when business logic fails. Error handling tests verify this behavior.
 
 ### Example Error Test
 
 ```csharp
 [Fact]
-public async Task GetCatalogDetail_ShouldThrowMcpToolException_WhenProductNotFound()
+public async Task GetCatalogDetail_ShouldThrowMcpException_WhenProductNotFound()
 {
     // Arrange
     var errorResponse = new GetCatalogDetailResponse
@@ -121,11 +121,11 @@ public async Task GetCatalogDetail_ShouldThrowMcpToolException_WhenProductNotFou
         .ReturnsAsync(errorResponse);
 
     // Act & Assert
-    var exception = await Assert.ThrowsAsync<McpToolException>(
+    var exception = await Assert.ThrowsAsync<McpException>(
         () => _tools.GetCatalogDetail("XYZ123")
     );
 
-    Assert.Equal("ProductNotFound", exception.Code);
+    Assert.Contains("ProductNotFound", exception.Message);
     Assert.Contains("XYZ123", exception.Message);
 }
 ```
@@ -203,7 +203,7 @@ public class YourFeatureMcpToolsTests
 
 **Test methods:**
 - Success: `{MethodName}_ShouldMapParametersCorrectly`
-- Error: `{MethodName}_ShouldThrowMcpToolException_When{Condition}`
+- Error: `{MethodName}_ShouldThrowMcpException_When{Condition}`
 
 ### 3. Use Same Pattern
 
@@ -244,7 +244,7 @@ public async Task YourMethod_ShouldMapParametersCorrectly()
 
 **Error test:**
 - Mock error response (`Success = false`, `ErrorCode` set)
-- Verify `McpToolException` thrown
+- Verify `McpException` thrown
 - Verify error code and message extracted correctly
 
 ### 5. Verify Parameter Mapping
@@ -275,7 +275,7 @@ After adding tests:
 - ✅ Keep tests focused on MCP tool behavior, not business logic
 - ✅ Mock `IMediator` consistently across all tests
 - ✅ Verify parameter mapping explicitly with `It.Is<T>()`
-- ✅ Test error scenarios with `McpToolException`
+- ✅ Test error scenarios with `McpException`
 - ✅ Use descriptive test method names following convention
 - ✅ Follow AAA (Arrange-Act-Assert) pattern strictly
 
@@ -450,7 +450,7 @@ Current gaps to address:
 - Request parameters match setup conditions
 - Tool method is actually calling mediator
 
-**Issue:** `McpToolException` not thrown when expected
+**Issue:** `McpException` not thrown when expected
 
 **Solution:** Check that:
 - Response has `Success = false`
@@ -477,7 +477,7 @@ MCP testing focuses on verifying:
 1. **Parameter mapping** from MCP interface to MediatR requests
 2. **Mediator invocation** happens correctly (once, with right request)
 3. **Response handling** returns data or throws appropriate exceptions
-4. **Error scenarios** are handled with `McpToolException`
+4. **Error scenarios** are handled with `McpException`
 
 Keep tests simple, focused, and follow established patterns for consistency across the codebase.
 
