@@ -114,6 +114,26 @@ public static class ApplicationBuilderExtensions
         // MCP server endpoint — requires authentication (Microsoft Entra ID)
         app.MapMcp("/mcp").RequireAuthorization();
 
+        // OAuth 2.0 authorization server metadata — required for MCP clients (e.g. Claude Desktop)
+        // to discover the real authorization server (Microsoft Entra ID) instead of hitting the SPA fallback.
+        app.MapGet("/.well-known/oauth-authorization-server", (IConfiguration config) =>
+        {
+            var tenantId = config["AzureAd:TenantId"];
+            var clientId = config["AzureAd:ClientId"];
+            var baseUrl = $"https://login.microsoftonline.com/{tenantId}/oauth2/v2.0";
+
+            return Results.Json(new
+            {
+                issuer = $"https://login.microsoftonline.com/{tenantId}/v2.0",
+                authorization_endpoint = $"{baseUrl}/authorize",
+                token_endpoint = $"{baseUrl}/token",
+                response_types_supported = new[] { "code" },
+                grant_types_supported = new[] { "authorization_code" },
+                code_challenge_methods_supported = new[] { "S256" },
+                client_id = clientId,
+            });
+        }).AllowAnonymous();
+
         app.ConfigureHealthCheckEndpoints();
 
         app.ConfigureSpaFallback();
