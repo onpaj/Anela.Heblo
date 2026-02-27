@@ -9,6 +9,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
+using ModelContextProtocol;
 using Moq;
 using Xunit;
 
@@ -123,7 +124,7 @@ public class CatalogMcpToolsTests
             .ReturnsAsync(errorResponse);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exception = await Assert.ThrowsAsync<McpException>(
             () => _tools.GetCatalogDetail("XYZ123")
         );
 

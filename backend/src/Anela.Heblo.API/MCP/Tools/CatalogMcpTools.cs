@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Domain.Features.Catalog;
 using MediatR;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 
 namespace Anela.Heblo.API.MCP.Tools;
@@ -66,7 +67,7 @@ public class CatalogMcpTools
 
         if (!response.Success)
         {
-            throw new InvalidOperationException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
+            throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
         return JsonSerializer.Serialize(response);
@@ -82,7 +83,7 @@ public class CatalogMcpTools
 
         if (!response.Success)
         {
-            throw new InvalidOperationException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
+            throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
         return JsonSerializer.Serialize(response);
@@ -127,7 +128,7 @@ public class CatalogMcpTools
 
         if (!response.Success)
         {
-            throw new InvalidOperationException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
+            throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
         return JsonSerializer.Serialize(response);
