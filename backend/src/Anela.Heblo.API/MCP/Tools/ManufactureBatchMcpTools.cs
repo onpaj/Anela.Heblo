@@ -1,7 +1,11 @@
+using System.ComponentModel;
+using System.Text.Json;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchByIngredient;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
 using MediatR;
+using ModelContextProtocol;
+using ModelContextProtocol.Server;
 
 namespace Anela.Heblo.API.MCP.Tools;
 
@@ -9,6 +13,7 @@ namespace Anela.Heblo.API.MCP.Tools;
 /// MCP tools for Manufacture Batch calculations.
 /// Provides read-only batch calculation tools for production planning.
 /// </summary>
+[McpServerToolType]
 public class ManufactureBatchMcpTools
 {
     private readonly IMediator _mediator;
@@ -18,13 +23,9 @@ public class ManufactureBatchMcpTools
         _mediator = mediator;
     }
 
-    // TODO: Add [McpTool] attribute
-    // [McpTool(
-    //     Name = "manufacture_batch_get_template",
-    //     Description = "Get the batch template for a product showing the standard recipe and quantities. Use this as a starting point for batch calculations."
-    // )]
-    public async Task<CalculatedBatchSizeResponse> GetBatchTemplate(
-        // [McpToolParameter(Description = "Product code to get batch template for", Required = true)]
+    [McpServerTool]
+    public async Task<string> GetBatchTemplate(
+        [Description("Product code to get batch template for")]
         string productCode
     )
     {
@@ -33,68 +34,60 @@ public class ManufactureBatchMcpTools
 
         if (!response.Success)
         {
-            throw new McpToolException(
-                response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR",
-                response.FullError()
-            );
+            throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return response;
+        return JsonSerializer.Serialize(response);
     }
 
-    // TODO: Add [McpTool] attribute
-    // [McpTool(
-    //     Name = "manufacture_batch_calculate_by_size",
-    //     Description = "Calculate batch quantities based on desired batch size. Use this to plan material requirements for a specific production quantity."
-    // )]
-    public async Task<CalculatedBatchSizeResponse> CalculateBatchBySize(
-        // [McpToolParameter(Description = "Batch calculation request with product code and desired size", Required = true)]
-        CalculatedBatchSizeRequest request
+    [McpServerTool]
+    public async Task<string> CalculateBatchBySize(
+        [Description("Product code to calculate batch for")]
+        string productCode,
+        [Description("Desired batch size")]
+        double desiredBatchSize
     )
     {
+        var request = new CalculatedBatchSizeRequest { ProductCode = productCode, DesiredBatchSize = desiredBatchSize };
         var response = await _mediator.Send(request);
 
         if (!response.Success)
         {
-            throw new McpToolException(
-                response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR",
-                response.FullError()
-            );
+            throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return response;
+        return JsonSerializer.Serialize(response);
     }
 
-    // TODO: Add [McpTool] attribute
-    // [McpTool(
-    //     Name = "manufacture_batch_calculate_by_ingredient",
-    //     Description = "Calculate batch quantities based on available ingredient quantity. Use this to optimize material usage when you have a specific amount of an ingredient to use up."
-    // )]
-    public async Task<CalculateBatchByIngredientResponse> CalculateBatchByIngredient(
-        // [McpToolParameter(Description = "Batch calculation request with ingredient and quantity", Required = true)]
-        CalculateBatchByIngredientRequest request
+    [McpServerTool]
+    public async Task<string> CalculateBatchByIngredient(
+        [Description("Product code to calculate batch for")]
+        string productCode,
+        [Description("Ingredient code to scale by")]
+        string ingredientCode,
+        [Description("Available quantity of the ingredient")]
+        double desiredIngredientAmount
     )
     {
+        var request = new CalculateBatchByIngredientRequest
+        {
+            ProductCode = productCode,
+            IngredientCode = ingredientCode,
+            DesiredIngredientAmount = desiredIngredientAmount
+        };
         var response = await _mediator.Send(request);
 
         if (!response.Success)
         {
-            throw new McpToolException(
-                response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR",
-                response.FullError()
-            );
+            throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return response;
+        return JsonSerializer.Serialize(response);
     }
 
-    // TODO: Add [McpTool] attribute
-    // [McpTool(
-    //     Name = "manufacture_batch_calculate_plan",
-    //     Description = "Calculate a complete batch plan for multiple products. Use this for comprehensive production planning across multiple items."
-    // )]
-    public async Task<CalculateBatchPlanResponse> CalculateBatchPlan(
-        // [McpToolParameter(Description = "Batch plan request with products and quantities", Required = true)]
+    [McpServerTool]
+    public async Task<string> CalculateBatchPlan(
+        [Description("Batch plan request with products and quantities")]
         CalculateBatchPlanRequest request
     )
     {
@@ -102,12 +95,9 @@ public class ManufactureBatchMcpTools
 
         if (!response.Success)
         {
-            throw new McpToolException(
-                response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR",
-                response.FullError()
-            );
+            throw new McpException($"[{response.ErrorCode?.ToString() ?? "UNKNOWN_ERROR"}] {response.FullError()}");
         }
 
-        return response;
+        return JsonSerializer.Serialize(response);
     }
 }
