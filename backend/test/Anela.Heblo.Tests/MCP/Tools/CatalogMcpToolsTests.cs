@@ -160,6 +160,33 @@ public class CatalogMcpToolsTests
     }
 
     [Fact]
+    public async Task GetProductComposition_ShouldThrowMcpException_WhenProductNotFound()
+    {
+        // Arrange
+        var errorResponse = new GetProductCompositionResponse
+        {
+            Success = false,
+            ErrorCode = ErrorCodes.ProductNotFound,
+            Params = new Dictionary<string, string>
+            {
+                { "ProductCode", "XYZ123" }
+            }
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetProductCompositionRequest>(), default))
+            .ReturnsAsync(errorResponse);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<McpException>(
+            () => _tools.GetProductComposition("XYZ123")
+        );
+
+        Assert.Contains("ProductNotFound", exception.Message);
+        Assert.Contains("XYZ123", exception.Message);
+    }
+
+    [Fact]
     public async Task GetMaterialsForPurchase_ShouldMapParametersCorrectly()
     {
         // Arrange
@@ -200,7 +227,10 @@ public class CatalogMcpToolsTests
             It.Is<GetCatalogListRequest>(req =>
                 req.SearchTerm == "Bis" &&
                 req.PageSize == 10 &&
-                req.PageNumber == 1
+                req.PageNumber == 1 &&
+                req.ProductTypes != null &&
+                req.ProductTypes.Length == 1 &&
+                req.ProductTypes[0] == ProductType.Material
             ),
             default
         ), Times.Once);
@@ -234,6 +264,33 @@ public class CatalogMcpToolsTests
         var deserialized = JsonSerializer.Deserialize<GetProductUsageResponse>(jsonResult);
         Assert.NotNull(deserialized);
         Assert.True(deserialized.Success);
+    }
+
+    [Fact]
+    public async Task GetProductUsage_ShouldThrowMcpException_WhenProductNotFound()
+    {
+        // Arrange
+        var errorResponse = new GetProductUsageResponse
+        {
+            Success = false,
+            ErrorCode = ErrorCodes.ProductNotFound,
+            Params = new Dictionary<string, string>
+            {
+                { "ProductCode", "XYZ123" }
+            }
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetProductUsageRequest>(), default))
+            .ReturnsAsync(errorResponse);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<McpException>(
+            () => _tools.GetProductUsage("XYZ123")
+        );
+
+        Assert.Contains("ProductNotFound", exception.Message);
+        Assert.Contains("XYZ123", exception.Message);
     }
 
     [Fact]
