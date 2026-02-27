@@ -34,8 +34,7 @@
         <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.1" />
         <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="8.0.1" />
         <PackageReference Include="System.Text.Json" Version="10.0.3" />
-        <PackageReference Include="Microsoft.Extensions.AI" Version="10.3.0" />
-        <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.3.0" />
+        <PackageReference Include="ModelContextProtocol.AspNetCore" Version="1.0.0" />
     </ItemGroup>
 
     <ItemGroup>
