@@ -94,6 +94,29 @@ public class ManufactureOrderMcpToolsTests
     }
 
     [Fact]
+    public async Task GetManufactureOrders_ShouldThrowMcpException_WhenDataNotAvailable()
+    {
+        // Arrange
+        var errorResponse = new GetManufactureOrdersResponse
+        {
+            Success = false,
+            ErrorCode = Anela.Heblo.Application.Shared.ErrorCodes.ManufacturingDataNotAvailable,
+            Params = new Dictionary<string, string>()
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetManufactureOrdersRequest>(), default))
+            .ReturnsAsync(errorResponse);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<McpException>(
+            () => _tools.GetManufactureOrders()
+        );
+
+        Assert.Contains("ManufacturingDataNotAvailable", exception.Message);
+    }
+
+    [Fact]
     public async Task GetCalendarView_ShouldMapParametersCorrectly()
     {
         // Arrange
@@ -118,6 +141,29 @@ public class ManufactureOrderMcpToolsTests
     }
 
     [Fact]
+    public async Task GetCalendarView_ShouldThrowMcpException_WhenDataNotAvailable()
+    {
+        // Arrange
+        var errorResponse = new GetCalendarViewResponse
+        {
+            Success = false,
+            ErrorCode = Anela.Heblo.Application.Shared.ErrorCodes.ManufacturingDataNotAvailable,
+            Params = new Dictionary<string, string>()
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetCalendarViewRequest>(), default))
+            .ReturnsAsync(errorResponse);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<McpException>(
+            () => _tools.GetCalendarView()
+        );
+
+        Assert.Contains("ManufacturingDataNotAvailable", exception.Message);
+    }
+
+    [Fact]
     public async Task GetResponsiblePersons_ShouldMapParametersCorrectly()
     {
         // Arrange
@@ -139,5 +185,28 @@ public class ManufactureOrderMcpToolsTests
         var deserialized = JsonSerializer.Deserialize<GetGroupMembersResponse>(jsonResult);
         Assert.NotNull(deserialized);
         Assert.True(deserialized.Success);
+    }
+
+    [Fact]
+    public async Task GetResponsiblePersons_ShouldThrowMcpException_WhenExternalServiceFails()
+    {
+        // Arrange
+        var errorResponse = new GetGroupMembersResponse
+        {
+            Success = false,
+            ErrorCode = Anela.Heblo.Application.Shared.ErrorCodes.ExternalServiceError,
+            Params = new Dictionary<string, string> { { "GroupId", "group-id-999" } }
+        };
+
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetGroupMembersRequest>(), default))
+            .ReturnsAsync(errorResponse);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<McpException>(
+            () => _tools.GetResponsiblePersons("group-id-999")
+        );
+
+        Assert.Contains("ExternalServiceError", exception.Message);
     }
 }
