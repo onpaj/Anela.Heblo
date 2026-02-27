@@ -5,6 +5,7 @@ using Hangfire;
 using Anela.Heblo.API.Infrastructure.Hangfire;
 using Microsoft.AspNetCore.HttpLogging;
 using Anela.Heblo.API.Infrastructure.Authentication;
+using ModelContextProtocol.AspNetCore;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -109,6 +110,9 @@ public static class ApplicationBuilderExtensions
         }
 
         app.MapControllers();
+
+        // MCP server endpoint — requires authentication (Microsoft Entra ID)
+        app.MapMcp("/mcp").RequireAuthorization();
 
         app.ConfigureHealthCheckEndpoints();
 
