@@ -4,13 +4,14 @@ This document provides comprehensive guidance for testing Model Context Protocol
 
 ## Overview
 
-**MCP Tools** enable Claude to interact with the Anela Heblo backend through standardized tool interfaces. This guide explains how to write and run tests for these MCP tool implementations.
+**MCP Tools** enable Claude to interact with the Anela Heblo backend through standardized tool interfaces using the official ModelContextProtocol.AspNetCore SDK.
 
 **Key characteristics:**
-- Tests validate MCP tool behavior (not business logic)
+- Tests validate MCP tool behavior (parameter mapping, JSON serialization, error handling)
 - Uses **Moq** to mock `IMediator` dependencies
-- Verifies parameter mapping from MCP interface to MediatR requests
+- Verifies JSON serialization of responses
 - Tests both success and error scenarios
+- Uses official SDK attributes: `[McpServerToolType]`, `[McpServerTool]`, `[Description]`
 - Follows standard AAA (Arrange-Act-Assert) pattern
 
 ## Test Organization
@@ -20,11 +21,11 @@ This document provides comprehensive guidance for testing Model Context Protocol
 **Path:** `backend/test/Anela.Heblo.Tests/MCP/Tools/`
 
 **Test Classes:**
-- `CatalogMcpToolsTests.cs` - 8 tests for Catalog tools
-- `ManufactureOrderMcpToolsTests.cs` - 4 tests for Manufacture Order tools
-- `ManufactureBatchMcpToolsTests.cs` - 4 tests for Manufacture Batch tools
+- `CatalogMcpToolsTests.cs` - Tests for Catalog tools
+- `ManufactureOrderMcpToolsTests.cs` - Tests for Manufacture Order tools
+- `ManufactureBatchMcpToolsTests.cs` - Tests for Manufacture Batch tools
 
-**Total Tests:** 16
+**Total Tests:** 26 (parameter mapping + JSON serialization + error handling)
 
 ### Test Coverage
 

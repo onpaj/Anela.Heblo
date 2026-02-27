@@ -67,14 +67,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Testing:**
 - Test location: `backend/test/Anela.Heblo.Tests/MCP/Tools/`
-- Total tests: 16 (8 Catalog + 4 ManufactureOrder + 4 ManufactureBatch)
+- Total tests: 26 (comprehensive coverage including parameter mapping, JSON serialization, and error handling)
 - See existing test files for examples of MCP tool testing patterns
 
-**Status:** ✅ Active - MCP server running on /mcp endpoint
+**Status:** ✅ Active - MCP server running on /mcp endpoint using official ModelContextProtocol.AspNetCore SDK
 
 **Endpoint:** `/mcp` (requires Microsoft Entra ID authentication)
 
 **Transport:** SSE (Server-Sent Events) for web-based MCP clients
+
+**SDK:** Official MCP C# SDK from https://github.com/modelcontextprotocol/csharp-sdk
+
+**Tool Pattern:**
+- Tools decorated with `[McpServerToolType]` (class) and `[McpServerTool]` (methods)
+- Parameters use `[Description]` attribute for documentation
+- Methods return `Task<string>` with JSON-serialized responses
+- Errors thrown as `McpException` (handled by SDK)
 
 **Configuration:**
 
