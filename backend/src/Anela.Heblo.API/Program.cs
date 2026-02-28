@@ -2,6 +2,7 @@ using Anela.Heblo.Adapters.Comgate;
 using Anela.Heblo.Adapters.Flexi;
 using Anela.Heblo.Adapters.Shoptet;
 using Anela.Heblo.API.Extensions;
+using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Xcc;
@@ -48,6 +49,9 @@ public partial class Program
         builder.Services.AddFlexiAdapter(builder.Configuration);
         builder.Services.AddShoptetAdapter(builder.Configuration);
         builder.Services.AddComgateAdapter(builder.Configuration);
+
+        // MCP server
+        builder.Services.AddMcpServices();
 
         // Hangfire background jobs
         builder.Services.AddHangfireServices(builder.Configuration, builder.Environment);

@@ -28,6 +28,90 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **🎭 Playwright E2E Testing**: `docs/testing/playwright-e2e-testing.md` - E2E testing setup, authentication, commands
 - **📊 Test Data Fixtures**: `docs/testing/test-data-fixtures.md` - Available test data for E2E tests
 
+### MCP & Integration
+- **🔌 MCP Server**: See "MCP Server" section below - 15 tools across Catalog, Manufacturing, and Batch Planning
+
+## MCP Server
+
+**Model Context Protocol Integration** - The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, and perform batch calculations.
+
+**Available Tools:**
+
+**Catalog Tools (7):**
+- `GetCatalogList` - List products with filtering/pagination
+- `GetCatalogDetail` - Get detailed product information
+- `GetProductComposition` - Get product composition/ingredients
+- `GetMaterialsForPurchase` - Get materials needed for purchase
+- `GetAutocomplete` - Search products for autocomplete
+- `GetProductUsage` - Get product usage in compositions
+- `GetWarehouseStatistics` - Get warehouse statistics
+
+**Manufacture Order Tools (4):**
+- `GetManufactureOrders` - List manufacture orders with filtering
+- `GetManufactureOrder` - Get single manufacture order details
+- `GetCalendarView` - Get calendar view of manufacture orders
+- `GetResponsiblePersons` - Get responsible persons from Entra ID
+
+**Manufacture Batch Tools (4):**
+- `GetBatchTemplate` - Get batch template for product
+- `CalculateBatchBySize` - Calculate batch by desired size
+- `CalculateBatchByIngredient` - Calculate batch by ingredient quantity
+- `CalculateBatchPlan` - Calculate batch plan for multiple products
+
+**Implementation:**
+- Tool classes: `backend/src/Anela.Heblo.API/MCP/Tools/`
+- Registration: `McpModule.cs` (AddMcpServer + WithHttpTransport + WithTools)
+- Pattern: Thin wrappers around MediatR handlers
+- Error handling: `McpException` from `ModelContextProtocol` namespace for protocol errors
+- Authentication: Uses existing Microsoft Entra ID authentication
+
+**Testing:**
+- Test location: `backend/test/Anela.Heblo.Tests/MCP/Tools/`
+- Total tests: 26 (comprehensive coverage including parameter mapping, JSON serialization, and error handling)
+- See existing test files for examples of MCP tool testing patterns
+
+**Status:** ✅ Active - MCP server running on /mcp endpoint using official ModelContextProtocol.AspNetCore SDK
+
+**Endpoint:** `/mcp` (requires Microsoft Entra ID authentication)
+
+**Transport:** SSE (Server-Sent Events) for web-based MCP clients
+
+**SDK:** Official MCP C# SDK from https://github.com/modelcontextprotocol/csharp-sdk
+
+**Tool Pattern:**
+- Tools decorated with `[McpServerToolType]` (class) and `[McpServerTool]` (methods)
+- Parameters use `[Description]` attribute for documentation
+- Methods return `Task<string>` with JSON-serialized responses
+- Errors thrown as `McpException` (handled by SDK)
+
+**Configuration:**
+
+Available endpoints by environment:
+- **Production**: `https://heblo.anela.cz/mcp`
+- **Staging**: `https://heblo.stg.anela.cz/mcp`
+- **Local Development**: `https://localhost:5001/mcp`
+
+**MCP Client Setup:**
+
+Add to your MCP client configuration (e.g., Claude Desktop `claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "anela-heblo": {
+      "url": "https://heblo.anela.cz/mcp",
+      "transport": "sse",
+      "authentication": {
+        "type": "bearer",
+        "token": "YOUR_ENTRA_ID_TOKEN"
+      }
+    }
+  }
+}
+```
+
+For local development, use `https://localhost:5001/mcp` as the URL.
+
 ## Architecture Principles
 
 **Clean Architecture with Vertical Slice Organization:**
