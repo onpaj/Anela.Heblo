@@ -122,6 +122,8 @@ public static class ApplicationBuilderExtensions
             var clientId = config["AzureAd:ClientId"];
             var baseUrl = $"https://login.microsoftonline.com/{tenantId}/oauth2/v2.0";
 
+            var scope = $"api://{clientId}/access_as_user";
+
             return Results.Json(new
             {
                 issuer = $"https://login.microsoftonline.com/{tenantId}/v2.0",
@@ -130,6 +132,7 @@ public static class ApplicationBuilderExtensions
                 response_types_supported = new[] { "code" },
                 grant_types_supported = new[] { "authorization_code" },
                 code_challenge_methods_supported = new[] { "S256" },
+                scopes_supported = new[] { scope },
                 client_id = clientId,
             });
         }).AllowAnonymous();
