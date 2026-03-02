@@ -6,4 +6,5 @@ public class CatalogLot
     public decimal Amount { get; set; }
     public DateOnly? Expiration { get; set; }
     public string? Lot { get; set; }
+    public int Id { get; set; }
 }
