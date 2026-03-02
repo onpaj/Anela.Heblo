@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Bank;
+using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
@@ -72,10 +73,16 @@ public class ApplicationDbContext : DbContext
     // Background Jobs module
     public DbSet<RecurringJobConfiguration> RecurringJobConfigurations { get; set; } = null!;
 
+    // Knowledge Base module
+    public DbSet<KnowledgeBaseDocument> KnowledgeBaseDocuments { get; set; } = null!;
+    public DbSet<KnowledgeBaseChunk> KnowledgeBaseChunks { get; set; } = null!;
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.HasPostgresExtension("vector");
 
         // Apply configurations from current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
