@@ -13,6 +13,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Npgsql;
+using Pgvector;
 
 namespace Anela.Heblo.Persistence;
 
@@ -42,7 +44,10 @@ public static class PersistenceModule
             }
             else
             {
-                options.UseNpgsql(connectionString);
+                var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+                dataSourceBuilder.UseVector();
+                var dataSource = dataSourceBuilder.Build();
+                options.UseNpgsql(dataSource);
             }
         });
 
