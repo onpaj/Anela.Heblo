@@ -19,6 +19,9 @@ public static class KnowledgeBaseModule
 
         // IKnowledgeBaseRepository is registered in PersistenceModule (real EF Core implementation)
 
+        // OneDrive service for document ingestion
+        services.AddScoped<IOneDriveService, GraphOneDriveService>();
+
         // MediatR handlers are automatically registered by AddMediatR scan
 
         return services;
