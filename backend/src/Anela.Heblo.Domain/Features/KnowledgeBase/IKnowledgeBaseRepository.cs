@@ -9,6 +9,7 @@ public interface IKnowledgeBaseRepository
         float[] queryEmbedding,
         int topK,
         CancellationToken ct = default);
-    Task<bool> DocumentExistsBySourcePathAsync(string sourcePath, CancellationToken ct = default);
+    Task<KnowledgeBaseDocument?> GetDocumentByHashAsync(string contentHash, CancellationToken ct = default);
+    Task UpdateDocumentSourcePathAsync(Guid documentId, string newSourcePath, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }

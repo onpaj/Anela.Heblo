@@ -34,6 +34,13 @@ public class KnowledgeBaseDocumentConfiguration : IEntityTypeConfiguration<Knowl
         builder.Property(e => e.IndexedAt)
             .HasColumnType("timestamp without time zone");
 
+        builder.Property(e => e.ContentHash)
+            .IsRequired()
+            .HasMaxLength(64);
+
+        builder.HasIndex(e => e.ContentHash)
+            .IsUnique();
+
         builder.HasMany(e => e.Chunks)
             .WithOne(e => e.Document)
             .HasForeignKey(e => e.DocumentId)

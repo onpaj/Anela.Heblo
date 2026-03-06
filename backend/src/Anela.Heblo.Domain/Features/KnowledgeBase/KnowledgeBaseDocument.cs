@@ -6,6 +6,7 @@ public class KnowledgeBaseDocument
     public string Filename { get; set; } = string.Empty;
     public string SourcePath { get; set; } = string.Empty;
     public string ContentType { get; set; } = string.Empty;
+    public string ContentHash { get; set; } = string.Empty; // SHA-256 hex, 64 chars
     public string Status { get; set; } = DocumentStatus.Processing;
     public DateTime CreatedAt { get; set; }
     public DateTime? IndexedAt { get; set; }
