@@ -1,0 +1,24 @@
+using MediatR;
+
+namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
+
+public class SearchDocumentsRequest : IRequest<SearchDocumentsResponse>
+{
+    public string Query { get; set; } = string.Empty;
+    public int TopK { get; set; } = 5;
+}
+
+public class SearchDocumentsResponse
+{
+    public List<ChunkResult> Chunks { get; set; } = [];
+}
+
+public class ChunkResult
+{
+    public Guid ChunkId { get; set; }
+    public Guid DocumentId { get; set; }
+    public string Content { get; set; } = string.Empty;
+    public double Score { get; set; }
+    public string SourceFilename { get; set; } = string.Empty;
+    public string SourcePath { get; set; } = string.Empty;
+}
