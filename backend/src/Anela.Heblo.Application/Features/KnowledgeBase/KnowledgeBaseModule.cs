@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
-using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,8 +17,7 @@ public static class KnowledgeBaseModule
         services.AddScoped<IClaudeService, AnthropicClaudeService>();
         services.AddScoped<DocumentChunker>();
 
-        // Placeholder repository — replaced by the real EF Core implementation in Phase 4
-        services.AddScoped<IKnowledgeBaseRepository, NotImplementedKnowledgeBaseRepository>();
+        // IKnowledgeBaseRepository is registered in PersistenceModule (real EF Core implementation)
 
         // MediatR handlers are automatically registered by AddMediatR scan
 
