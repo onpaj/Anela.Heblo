@@ -130,9 +130,9 @@ public static class ApplicationBuilderExtensions
                 authorization_endpoint = $"{baseUrl}/authorize",
                 token_endpoint = $"{baseUrl}/token",
                 response_types_supported = new[] { "code" },
-                grant_types_supported = new[] { "authorization_code" },
+                grant_types_supported = new[] { "authorization_code", "refresh_token" },
                 code_challenge_methods_supported = new[] { "S256" },
-                scopes_supported = new[] { scope },
+                scopes_supported = new[] { scope, "offline_access" },
                 client_id = clientId,
             });
         }).AllowAnonymous();
