@@ -16,7 +16,8 @@ public static class McpModule
             .WithHttpTransport()
             .WithTools<CatalogMcpTools>()
             .WithTools<ManufactureOrderMcpTools>()
-            .WithTools<ManufactureBatchMcpTools>();
+            .WithTools<ManufactureBatchMcpTools>()
+            .WithTools<KnowledgeBaseTools>();
 
         return services;
     }
