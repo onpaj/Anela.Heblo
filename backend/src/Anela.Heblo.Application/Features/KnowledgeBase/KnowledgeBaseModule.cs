@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Domain.Features.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,8 +20,18 @@ public static class KnowledgeBaseModule
 
         // IKnowledgeBaseRepository is registered in PersistenceModule (real EF Core implementation)
 
-        // OneDrive service for document ingestion
-        services.AddScoped<IOneDriveService, GraphOneDriveService>();
+        // OneDrive service — use mock in mock auth mode (no ITokenAcquisition available)
+        var useMockAuth = configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, defaultValue: false);
+        var bypassJwtValidation = configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, defaultValue: false);
+
+        if (useMockAuth || bypassJwtValidation)
+        {
+            services.AddScoped<IOneDriveService, MockOneDriveService>();
+        }
+        else
+        {
+            services.AddScoped<IOneDriveService, GraphOneDriveService>();
+        }
 
         // MediatR handlers are automatically registered by AddMediatR scan
 
