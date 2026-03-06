@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
@@ -8,7 +9,7 @@ public class AskQuestionRequest : IRequest<AskQuestionResponse>
     public int TopK { get; set; } = 5;
 }
 
-public class AskQuestionResponse
+public class AskQuestionResponse : BaseResponse
 {
     public string Answer { get; set; } = string.Empty;
     public List<SourceReference> Sources { get; set; } = [];

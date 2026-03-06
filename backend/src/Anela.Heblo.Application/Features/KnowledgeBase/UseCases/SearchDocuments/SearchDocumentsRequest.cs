@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
@@ -8,7 +9,7 @@ public class SearchDocumentsRequest : IRequest<SearchDocumentsResponse>
     public int TopK { get; set; } = 5;
 }
 
-public class SearchDocumentsResponse
+public class SearchDocumentsResponse : BaseResponse
 {
     public List<ChunkResult> Chunks { get; set; } = [];
 }
