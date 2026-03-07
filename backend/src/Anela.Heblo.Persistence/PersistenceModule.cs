@@ -2,17 +2,21 @@ using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
+using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Persistence.BackgroundJobs;
 using Anela.Heblo.Persistence.Catalog.Stock;
 using Anela.Heblo.Persistence.Dashboard;
 using Anela.Heblo.Persistence.Features.Bank;
 using Anela.Heblo.Persistence.InvoiceClassification;
+using Anela.Heblo.Persistence.KnowledgeBase;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Npgsql;
+using Pgvector;
 
 namespace Anela.Heblo.Persistence;
 
@@ -42,7 +46,10 @@ public static class PersistenceModule
             }
             else
             {
-                options.UseNpgsql(connectionString);
+                var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+                dataSourceBuilder.UseVector();
+                var dataSource = dataSourceBuilder.Build();
+                options.UseNpgsql(dataSource);
             }
         });
 
@@ -64,6 +71,9 @@ public static class PersistenceModule
 
         // Background Jobs repositories
         services.AddScoped<IRecurringJobConfigurationRepository, RecurringJobConfigurationRepository>();
+
+        // KnowledgeBase repositories
+        services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
 
         return services;
     }
