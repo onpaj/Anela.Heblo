@@ -16,6 +16,7 @@ public class GraphOneDriveService : IOneDriveService
 {
     private readonly ITokenAcquisition _tokenAcquisition;
     private readonly KnowledgeBaseOptions _options;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GraphOneDriveService> _logger;
     private const string GraphScope = "https://graph.microsoft.com/.default";
     private const string GraphBaseUrl = "https://graph.microsoft.com/v1.0";
@@ -23,10 +24,12 @@ public class GraphOneDriveService : IOneDriveService
     public GraphOneDriveService(
         ITokenAcquisition tokenAcquisition,
         IOptions<KnowledgeBaseOptions> options,
+        IHttpClientFactory httpClientFactory,
         ILogger<GraphOneDriveService> logger)
     {
         _tokenAcquisition = tokenAcquisition;
         _options = options.Value;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -35,12 +38,13 @@ public class GraphOneDriveService : IOneDriveService
         _logger.LogDebug("Listing files in OneDrive inbox: {Path}", _options.OneDriveInboxPath);
 
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
-        using var client = CreateHttpClient(token);
+        using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
         var encodedPath = Uri.EscapeDataString(_options.OneDriveInboxPath.TrimStart('/'));
-        var url = $"{GraphBaseUrl}/me/drive/root:/{encodedPath}:/children?$filter=file ne null";
+        var url = $"{GraphBaseUrl}/users/{Uri.EscapeDataString(_options.OneDriveUserId)}/drive/root:/{encodedPath}:/children?$filter=file ne null";
 
-        var response = await client.GetAsync(url, ct);
+        var request = CreateRequest(HttpMethod.Get, url, token);
+        var response = await client.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync(ct);
@@ -74,10 +78,11 @@ public class GraphOneDriveService : IOneDriveService
         _logger.LogDebug("Downloading file {FileId} from OneDrive", fileId);
 
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
-        using var client = CreateHttpClient(token);
+        using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-        var url = $"{GraphBaseUrl}/me/drive/items/{fileId}/content";
-        var response = await client.GetAsync(url, ct);
+        var url = $"{GraphBaseUrl}/users/{Uri.EscapeDataString(_options.OneDriveUserId)}/drive/items/{fileId}/content";
+        var request = CreateRequest(HttpMethod.Get, url, token);
+        var response = await client.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
 
         return await response.Content.ReadAsByteArrayAsync(ct);
@@ -88,7 +93,7 @@ public class GraphOneDriveService : IOneDriveService
         _logger.LogDebug("Moving file {Filename} ({FileId}) to archived folder", filename, fileId);
 
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
-        using var client = CreateHttpClient(token);
+        using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
         var archivedFolderPath = _options.OneDriveArchivedPath.TrimStart('/');
         var body = JsonSerializer.Serialize(new
@@ -99,18 +104,18 @@ public class GraphOneDriveService : IOneDriveService
             }
         });
 
-        var url = $"{GraphBaseUrl}/me/drive/items/{fileId}";
-        var content = new StringContent(body, Encoding.UTF8, "application/json");
-        var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
+        var url = $"{GraphBaseUrl}/users/{Uri.EscapeDataString(_options.OneDriveUserId)}/drive/items/{fileId}";
+        var request = CreateRequest(new HttpMethod("PATCH"), url, token);
+        request.Content = new StringContent(body, Encoding.UTF8, "application/json");
 
         var response = await client.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
     }
 
-    private static HttpClient CreateHttpClient(string token)
+    private static HttpRequestMessage CreateRequest(HttpMethod method, string url, string token)
     {
-        var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        return client;
+        var request = new HttpRequestMessage(method, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return request;
     }
 }

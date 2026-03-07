@@ -5,7 +5,7 @@ using Anela.Heblo.Domain.Features.KnowledgeBase;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure.Jobs;
+namespace Anela.Heblo.Application.Features.KnowledgeBase.Jobs;
 
 public class KnowledgeBaseIngestionJob : IRecurringJob
 {
@@ -81,6 +81,16 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
 
                     skipped++;
                     continue;
+                }
+
+                // Check for replaced file at same path (different content, same location)
+                var existingByPath = await _repository.GetDocumentBySourcePathAsync(file.Path, cancellationToken);
+                if (existingByPath is not null)
+                {
+                    _logger.LogInformation(
+                        "File {Filename} at {Path} has new content (hash changed). Deleting old document {Id} before re-indexing.",
+                        file.Name, file.Path, existingByPath.Id);
+                    await _repository.DeleteDocumentAsync(existingByPath.Id, cancellationToken);
                 }
 
                 await _mediator.Send(new IndexDocumentRequest

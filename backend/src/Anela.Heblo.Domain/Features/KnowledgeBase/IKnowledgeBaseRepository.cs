@@ -10,6 +10,8 @@ public interface IKnowledgeBaseRepository
         int topK,
         CancellationToken ct = default);
     Task<KnowledgeBaseDocument?> GetDocumentByHashAsync(string contentHash, CancellationToken ct = default);
+    Task<KnowledgeBaseDocument?> GetDocumentBySourcePathAsync(string sourcePath, CancellationToken ct = default);
+    Task DeleteDocumentAsync(Guid documentId, CancellationToken ct = default);
     Task UpdateDocumentSourcePathAsync(Guid documentId, string newSourcePath, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }

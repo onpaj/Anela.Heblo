@@ -11,4 +11,10 @@ public class KnowledgeBaseOptions
     public int MaxRetrievedChunks { get; set; } = 5;
     public string ClaudeModel { get; set; } = "claude-sonnet-4-6";
     public int ClaudeMaxTokens { get; set; } = 1024;
+
+    /// <summary>
+    /// UPN or object ID of the OneDrive user account used for ingestion (app-only access).
+    /// Example: "service@anela.cz" or a GUID object ID.
+    /// </summary>
+    public string OneDriveUserId { get; set; } = string.Empty;
 }

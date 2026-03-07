@@ -30,6 +30,7 @@ public static class KnowledgeBaseModule
         }
         else
         {
+            services.AddHttpClient("MicrosoftGraph");
             services.AddScoped<IOneDriveService, GraphOneDriveService>();
         }
 

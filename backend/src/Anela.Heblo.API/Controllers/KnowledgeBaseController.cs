@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
+using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
-using Anela.Heblo.Domain.Features.KnowledgeBase;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,27 +13,17 @@ namespace Anela.Heblo.API.Controllers;
 public class KnowledgeBaseController : BaseApiController
 {
     private readonly IMediator _mediator;
-    private readonly IKnowledgeBaseRepository _repository;
 
-    public KnowledgeBaseController(IMediator mediator, IKnowledgeBaseRepository repository)
+    public KnowledgeBaseController(IMediator mediator)
     {
         _mediator = mediator;
-        _repository = repository;
     }
 
     [HttpGet("documents")]
-    public async Task<IActionResult> GetDocuments(CancellationToken ct)
+    public async Task<ActionResult<GetDocumentsResponse>> GetDocuments(CancellationToken ct)
     {
-        var docs = await _repository.GetAllDocumentsAsync(ct);
-        return Ok(docs.Select(d => new
-        {
-            d.Id,
-            d.Filename,
-            d.Status,
-            d.ContentType,
-            d.CreatedAt,
-            d.IndexedAt
-        }));
+        var result = await _mediator.Send(new GetDocumentsRequest(), ct);
+        return HandleResponse(result);
     }
 
     [HttpPost("search")]

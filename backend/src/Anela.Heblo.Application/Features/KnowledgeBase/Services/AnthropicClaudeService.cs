@@ -1,21 +1,23 @@
 using Anthropic;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
 
 public class AnthropicClaudeService : IClaudeService
 {
+    private readonly KnowledgeBaseOptions _options;
     private readonly IConfiguration _configuration;
-    private readonly string _model;
-    private readonly int _maxTokens;
     private readonly ILogger<AnthropicClaudeService> _logger;
 
-    public AnthropicClaudeService(IConfiguration configuration, ILogger<AnthropicClaudeService> logger)
+    public AnthropicClaudeService(
+        IOptions<KnowledgeBaseOptions> options,
+        IConfiguration configuration,
+        ILogger<AnthropicClaudeService> logger)
     {
+        _options = options.Value;
         _configuration = configuration;
-        _model = configuration["KnowledgeBase:ClaudeModel"] ?? "claude-sonnet-4-6";
-        _maxTokens = int.TryParse(configuration["KnowledgeBase:ClaudeMaxTokens"], out var t) ? t : 1024;
         _logger = logger;
     }
 
@@ -47,12 +49,12 @@ public class AnthropicClaudeService : IClaudeService
             ANSWER:
             """;
 
-        _logger.LogDebug("Calling Claude {Model}, question length {Len}", _model, question.Length);
+        _logger.LogDebug("Calling Claude {Model}, question length {Len}", _options.ClaudeModel, question.Length);
 
         var response = await api.CreateMessageAsync(
-            model: _model,
+            model: _options.ClaudeModel,
             messages: [prompt],
-            maxTokens: _maxTokens,
+            maxTokens: _options.ClaudeMaxTokens,
             cancellationToken: ct);
 
         // response.Content is OneOf<string, IList<Block>>

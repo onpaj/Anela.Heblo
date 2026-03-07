@@ -25,7 +25,8 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
         var chunkList = chunks.ToList();
 
         var connection = (NpgsqlConnection)_context.Database.GetDbConnection();
-        await connection.OpenAsync(ct);
+        if (connection.State != System.Data.ConnectionState.Open)
+            await connection.OpenAsync(ct);
 
         foreach (var chunk in chunkList)
         {
@@ -62,14 +63,17 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
         var vector = new Vector(queryEmbedding);
 
         var connection = (NpgsqlConnection)_context.Database.GetDbConnection();
-        await connection.OpenAsync(ct);
+        if (connection.State != System.Data.ConnectionState.Open)
+            await connection.OpenAsync(ct);
 
         // Cosine distance: lower = more similar. Score = 1 - distance.
         await using var cmd = new NpgsqlCommand(
-            $"""
+            """
             SELECT c."Id", c."DocumentId", c."ChunkIndex", c."Content",
-                   1 - (c."Embedding" <=> @embedding) AS "Score"
+                   1 - (c."Embedding" <=> @embedding) AS "Score",
+                   d."Filename", d."SourcePath"
             FROM dbo."KnowledgeBaseChunks" c
+            JOIN dbo."KnowledgeBaseDocuments" d ON c."DocumentId" = d."Id"
             ORDER BY c."Embedding" <=> @embedding
             LIMIT @topK
             """,
@@ -88,10 +92,15 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             var chunkIndex = reader.GetInt32(2);
             var content = reader.GetString(3);
             var score = reader.GetDouble(4);
+            var filename = reader.GetString(5);
+            var sourcePath = reader.GetString(6);
 
-            // Load document via EF Core
-            var document = await _context.KnowledgeBaseDocuments
-                .FindAsync([documentId], ct);
+            var document = new KnowledgeBaseDocument
+            {
+                Id = documentId,
+                Filename = filename,
+                SourcePath = sourcePath
+            };
 
             var chunk = new KnowledgeBaseChunk
             {
@@ -99,8 +108,8 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
                 DocumentId = documentId,
                 ChunkIndex = chunkIndex,
                 Content = content,
-                Embedding = queryEmbedding, // placeholder — actual embedding not retrieved for performance
-                Document = document!
+                Embedding = [],
+                Document = document
             };
 
             results.Add((chunk, score));
@@ -113,6 +122,19 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
     {
         return await _context.KnowledgeBaseDocuments
             .FirstOrDefaultAsync(d => d.ContentHash == contentHash, ct);
+    }
+
+    public async Task<KnowledgeBaseDocument?> GetDocumentBySourcePathAsync(string sourcePath, CancellationToken ct = default)
+    {
+        return await _context.KnowledgeBaseDocuments
+            .FirstOrDefaultAsync(d => d.SourcePath == sourcePath, ct);
+    }
+
+    public async Task DeleteDocumentAsync(Guid documentId, CancellationToken ct = default)
+    {
+        await _context.KnowledgeBaseDocuments
+            .Where(d => d.Id == documentId)
+            .ExecuteDeleteAsync(ct);
     }
 
     public async Task UpdateDocumentSourcePathAsync(Guid documentId, string newSourcePath, CancellationToken ct = default)

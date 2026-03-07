@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Shared;
 using MediatR;
 
@@ -5,7 +6,10 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocument
 
 public class SearchDocumentsRequest : IRequest<SearchDocumentsResponse>
 {
+    [Required, MinLength(1), MaxLength(2000)]
     public string Query { get; set; } = string.Empty;
+
+    [Range(1, 20)]
     public int TopK { get; set; } = 5;
 }
 
