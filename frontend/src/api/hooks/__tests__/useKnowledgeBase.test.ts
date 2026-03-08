@@ -6,6 +6,8 @@ import {
   useKnowledgeBaseSearchMutation,
   useKnowledgeBaseAskMutation,
   useDeleteKnowledgeBaseDocumentMutation,
+  useKnowledgeBaseUploadPermission,
+  useUploadKnowledgeBaseDocumentMutation,
 } from '../useKnowledgeBase';
 import * as clientModule from '../../client';
 
@@ -14,6 +16,11 @@ jest.mock('../../client', () => ({
   QUERY_KEYS: {
     knowledgeBase: ['knowledge-base'],
   },
+}));
+
+const mockUseMsal = jest.fn();
+jest.mock('@azure/msal-react', () => ({
+  useMsal: () => mockUseMsal(),
 }));
 
 const mockGetAuthenticatedApiClient =
@@ -47,6 +54,10 @@ describe('useKnowledgeBase hooks', () => {
       baseUrl: 'http://localhost:5001',
       http: mockHttp,
     } as any);
+  });
+
+  beforeEach(() => {
+    mockUseMsal.mockReturnValue({ accounts: [], instance: {} as any, inProgress: 'none' as any });
   });
 
   describe('useKnowledgeBaseDocumentsQuery', () => {
@@ -170,6 +181,71 @@ describe('useKnowledgeBase hooks', () => {
         'http://localhost:5001/api/knowledgebase/documents/doc-abc-123',
         expect.objectContaining({ method: 'DELETE' }),
       );
+    });
+  });
+
+  describe('useKnowledgeBaseUploadPermission', () => {
+    it('returns true when KnowledgeBase.Upload claim is present', () => {
+      mockUseMsal.mockReturnValue({
+        accounts: [{ idTokenClaims: { 'KnowledgeBase.Upload': 'true', roles: ['heblo_user'] } }],
+      });
+      const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
+        wrapper: createWrapper,
+      });
+      expect(result.current).toBe(true);
+    });
+
+    it('returns false when claim is absent', () => {
+      mockUseMsal.mockReturnValue({
+        accounts: [{ idTokenClaims: { roles: ['heblo_user'] } }],
+      });
+      const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
+        wrapper: createWrapper,
+      });
+      expect(result.current).toBe(false);
+    });
+
+    it('returns false when no account is signed in', () => {
+      mockUseMsal.mockReturnValue({ accounts: [] });
+      const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
+        wrapper: createWrapper,
+      });
+      expect(result.current).toBe(false);
+    });
+  });
+
+  describe('useUploadKnowledgeBaseDocumentMutation', () => {
+    it('sends multipart POST and returns upload response', async () => {
+      const mockData = {
+        success: true,
+        document: {
+          id: 'new-doc-1',
+          filename: 'guide.pdf',
+          status: 'indexed',
+          contentType: 'application/pdf',
+          createdAt: '2026-03-08T10:00:00Z',
+          indexedAt: '2026-03-08T10:01:00Z',
+        },
+      };
+      mockHttp.fetch.mockResolvedValue(mockFetchResponse(mockData));
+
+      const { result } = renderHook(() => useUploadKnowledgeBaseDocumentMutation(), {
+        wrapper: createWrapper,
+      });
+
+      const file = new File(['pdf content'], 'guide.pdf', { type: 'application/pdf' });
+
+      await waitFor(() => {
+        result.current.mutate(file);
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(mockHttp.fetch).toHaveBeenCalledWith(
+        'http://localhost:5001/api/knowledgebase/documents/upload',
+        expect.objectContaining({ method: 'POST' }),
+      );
+      expect(result.current.data?.document?.filename).toBe('guide.pdf');
     });
   });
 });

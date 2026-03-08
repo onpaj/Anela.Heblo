@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMsal } from '@azure/msal-react';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 // ---- Types ----
@@ -47,6 +48,25 @@ export interface AskQuestionResponse {
 export interface DeleteDocumentResponse {
   success: boolean;
 }
+
+export interface UploadDocumentResponse {
+  success: boolean;
+  document: DocumentSummary | null;
+}
+
+// ---- Permission hooks ----
+
+/**
+ * Returns true when the current MSAL account has the KnowledgeBase.Upload custom claim.
+ * Controls visibility of the Upload tab and delete buttons.
+ */
+export const useKnowledgeBaseUploadPermission = (): boolean => {
+  const { accounts } = useMsal();
+  const account = accounts[0];
+  if (!account) return false;
+  const claims = account.idTokenClaims as Record<string, unknown> | undefined;
+  return Boolean(claims?.['KnowledgeBase.Upload']);
+};
 
 // ---- Query key factory ----
 
@@ -163,6 +183,40 @@ export const useDeleteKnowledgeBaseDocumentMutation = () => {
 
       if (!response.ok) {
         throw new Error(`Delete failed: ${response.status}`);
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: knowledgeBaseKeys.documents() });
+    },
+  });
+};
+
+/**
+ * Upload a file to the knowledge base.
+ * Sends multipart/form-data to POST /api/knowledgebase/documents/upload.
+ * Invalidates the documents list on success.
+ */
+export const useUploadKnowledgeBaseDocumentMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (file: File): Promise<UploadDocumentResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const fullUrl = `${(apiClient as any).baseUrl}/api/knowledgebase/documents/upload`;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Do NOT set Content-Type header — browser sets it with multipart boundary automatically
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
       }
 
       return response.json();
