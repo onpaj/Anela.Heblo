@@ -1,22 +1,28 @@
-using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
 
 public class WordDocumentExtractor : IDocumentTextExtractor
 {
-    private static readonly HashSet<string> SupportedTypes =
-    [
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/docx"
-    ];
+    private readonly ILogger<WordDocumentExtractor> _logger;
+
+    public WordDocumentExtractor(ILogger<WordDocumentExtractor> logger)
+    {
+        _logger = logger;
+    }
 
     public bool CanHandle(string contentType) =>
-        SupportedTypes.Contains(contentType.ToLowerInvariant());
+        contentType.Equals(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            StringComparison.OrdinalIgnoreCase)
+        || contentType.Equals("application/msword", StringComparison.OrdinalIgnoreCase);
 
     public Task<string> ExtractTextAsync(byte[] content, CancellationToken ct = default)
     {
+        _logger.LogDebug("Extracting text from Word document ({Bytes} bytes)", content.Length);
+
         using var stream = new MemoryStream(content);
         using var doc = WordprocessingDocument.Open(stream, isEditable: false);
 
@@ -26,16 +32,13 @@ public class WordDocumentExtractor : IDocumentTextExtractor
             return Task.FromResult(string.Empty);
         }
 
-        var sb = new StringBuilder();
-        foreach (var paragraph in body.Descendants<Paragraph>())
-        {
-            var text = paragraph.InnerText;
-            if (!string.IsNullOrWhiteSpace(text))
-            {
-                sb.AppendLine(text);
-            }
-        }
+        var paragraphs = body.Descendants<Paragraph>()
+            .Select(p => p.InnerText)
+            .Where(t => !string.IsNullOrWhiteSpace(t));
 
-        return Task.FromResult(sb.ToString());
+        var text = string.Join("\n\n", paragraphs);
+
+        _logger.LogDebug("Extracted {CharCount} characters from Word document", text.Length);
+        return Task.FromResult(text);
     }
 }
