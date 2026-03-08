@@ -39,7 +39,7 @@ public class IndexDocumentHandlerTests
         _repository.Setup(r => r.AddDocumentAsync(It.IsAny<KnowledgeBaseDocument>(), default))
             .Callback<KnowledgeBaseDocument, CancellationToken>((doc, _) => savedDoc = doc);
 
-        var handler = new IndexDocumentHandler(_extractor.Object, _embedding.Object, _chunker, _repository.Object);
+        var handler = new IndexDocumentHandler(new[] { _extractor.Object }, _embedding.Object, _chunker, _repository.Object);
 
         await handler.Handle(new IndexDocumentRequest
         {
@@ -64,7 +64,7 @@ public class IndexDocumentHandlerTests
     {
         _extractor.Setup(e => e.CanHandle("image/png")).Returns(false);
 
-        var handler = new IndexDocumentHandler(_extractor.Object, _embedding.Object, _chunker, _repository.Object);
+        var handler = new IndexDocumentHandler(new[] { _extractor.Object }, _embedding.Object, _chunker, _repository.Object);
 
         await Assert.ThrowsAsync<NotSupportedException>(() =>
             handler.Handle(new IndexDocumentRequest
@@ -75,5 +75,25 @@ public class IndexDocumentHandlerTests
                 Content = [1, 2, 3],
                 ContentHash = "abc"
             }, default));
+    }
+
+    [Fact]
+    public async Task Handle_ThrowsNotSupportedException_WhenNoExtractorMatchesContentType()
+    {
+        var request = new IndexDocumentRequest
+        {
+            Filename = "file.xyz",
+            SourcePath = "/file.xyz",
+            ContentType = "application/unknown",
+            Content = [1, 2, 3],
+            ContentHash = "abc123",
+        };
+
+        _extractor.Setup(e => e.CanHandle("application/unknown")).Returns(false);
+
+        var handler = new IndexDocumentHandler(new[] { _extractor.Object }, _embedding.Object, _chunker, _repository.Object);
+
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            handler.Handle(request, CancellationToken.None));
     }
 }

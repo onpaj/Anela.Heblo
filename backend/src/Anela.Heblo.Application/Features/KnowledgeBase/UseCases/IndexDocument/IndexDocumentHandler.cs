@@ -8,20 +8,20 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.IndexDocument;
 
 public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest>
 {
-    private readonly IDocumentTextExtractor _extractor;
+    private readonly IEnumerable<IDocumentTextExtractor> _extractors;
     private readonly IEmbeddingService _embeddingService;
     private readonly DocumentChunker _chunker;
     private readonly IKnowledgeBaseRepository _repository;
     private readonly ILogger<IndexDocumentHandler> _logger;
 
     public IndexDocumentHandler(
-        IDocumentTextExtractor extractor,
+        IEnumerable<IDocumentTextExtractor> extractors,
         IEmbeddingService embeddingService,
         DocumentChunker chunker,
         IKnowledgeBaseRepository repository,
         ILogger<IndexDocumentHandler>? logger = null)
     {
-        _extractor = extractor;
+        _extractors = extractors;
         _embeddingService = embeddingService;
         _chunker = chunker;
         _repository = repository;
@@ -32,10 +32,8 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest>
     {
         _logger.LogInformation("Indexing document {Filename} from {SourcePath}", request.Filename, request.SourcePath);
 
-        if (!_extractor.CanHandle(request.ContentType))
-        {
-            throw new NotSupportedException($"Content type '{request.ContentType}' is not supported.");
-        }
+        var extractor = _extractors.FirstOrDefault(e => e.CanHandle(request.ContentType))
+            ?? throw new NotSupportedException($"Content type '{request.ContentType}' is not supported.");
 
         var document = new KnowledgeBaseDocument
         {
@@ -50,7 +48,7 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest>
 
         await _repository.AddDocumentAsync(document, cancellationToken);
 
-        var text = await _extractor.ExtractTextAsync(request.Content, cancellationToken);
+        var text = await extractor.ExtractTextAsync(request.Content, cancellationToken);
         var chunkTexts = _chunker.Chunk(text);
 
         var chunks = new List<KnowledgeBaseChunk>();
