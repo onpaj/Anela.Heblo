@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
+using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.DeleteDocument;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using MediatR;
@@ -42,5 +43,12 @@ public class KnowledgeBaseController : BaseApiController
     {
         var result = await _mediator.Send(request, ct);
         return HandleResponse(result);
+    }
+
+    [HttpDelete("documents/{id:guid}")]
+    public async Task<IActionResult> DeleteDocument(Guid id, CancellationToken ct)
+    {
+        await _mediator.Send(new DeleteDocumentRequest { DocumentId = id }, ct);
+        return NoContent();
     }
 }
