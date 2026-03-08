@@ -97,6 +97,8 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
     {
         var doc = MakeDocument("hash-test.pdf", "deadbeef001");
         await _repository.AddDocumentAsync(doc);
+        // SaveChanges must precede AddChunksAsync: chunks use raw SQL with FK to the document
+        await _repository.SaveChangesAsync();
 
         var chunk = new KnowledgeBaseChunk
         {
@@ -108,7 +110,6 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
         };
 
         await _repository.AddChunksAsync([chunk]);
-        await _repository.SaveChangesAsync();
 
         var found = await _repository.GetDocumentByHashAsync("deadbeef001");
 
@@ -122,6 +123,8 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
     {
         var doc = MakeDocument("search-test.pdf", "deadbeef002");
         await _repository.AddDocumentAsync(doc);
+        // SaveChanges must precede AddChunksAsync: chunks use raw SQL with FK to the document
+        await _repository.SaveChangesAsync();
 
         var chunk1 = new KnowledgeBaseChunk
         {
@@ -142,7 +145,6 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
         };
 
         await _repository.AddChunksAsync([chunk1, chunk2]);
-        await _repository.SaveChangesAsync();
 
         // Query vector aligned with chunk1
         var results = await _repository.SearchSimilarAsync([1.0f, 0.0f, 0.0f], topK: 2);
@@ -157,6 +159,8 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
     {
         var doc = MakeDocument("delete-test.pdf", "deadbeef003");
         await _repository.AddDocumentAsync(doc);
+        // SaveChanges must precede AddChunksAsync: chunks use raw SQL with FK to the document
+        await _repository.SaveChangesAsync();
 
         var chunk = new KnowledgeBaseChunk
         {
@@ -168,7 +172,6 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
         };
 
         await _repository.AddChunksAsync([chunk]);
-        await _repository.SaveChangesAsync();
 
         await _repository.DeleteDocumentAsync(doc.Id);
 
