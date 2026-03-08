@@ -35,4 +35,15 @@ public static class AuthorizationConstants
         /// </summary>
         public const string HebloUser = "heblo_user";
     }
+
+    /// <summary>
+    /// Custom Entra ID claims
+    /// </summary>
+    public static class Claims
+    {
+        /// <summary>
+        /// Claim required for uploading documents to the Knowledge Base
+        /// </summary>
+        public const string KnowledgeBaseUpload = "KnowledgeBase.Upload";
+    }
 }
