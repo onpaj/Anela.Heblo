@@ -1,84 +1,94 @@
 import React, { useState } from 'react';
 import { Search } from 'lucide-react';
-import { useKnowledgeBaseSearchMutation } from '../../api/hooks/useKnowledgeBase';
+import {
+  useKnowledgeBaseSearchMutation,
+  ChunkResult,
+} from '../../api/hooks/useKnowledgeBase';
+
+const ScoreBadge: React.FC<{ score: number }> = ({ score }) => {
+  const pct = Math.round(score * 100);
+  const color =
+    pct >= 80
+      ? 'bg-green-100 text-green-800'
+      : pct >= 60
+      ? 'bg-yellow-100 text-yellow-800'
+      : 'bg-gray-100 text-gray-600';
+  return (
+    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${color}`}>
+      {pct}%
+    </span>
+  );
+};
+
+const ChunkCard: React.FC<{ chunk: ChunkResult }> = ({ chunk }) => (
+  <div className="border border-gray-200 rounded-lg p-4 space-y-2">
+    <div className="flex items-center justify-between">
+      <span className="text-sm font-medium text-gray-700">{chunk.sourceFilename}</span>
+      <ScoreBadge score={chunk.score} />
+    </div>
+    <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-5">{chunk.content}</p>
+  </div>
+);
 
 const KnowledgeBaseSearchTab: React.FC = () => {
   const [query, setQuery] = useState('');
-  const [topK, setTopK] = useState(5);
-  const searchMutation = useKnowledgeBaseSearchMutation();
+  const search = useKnowledgeBaseSearchMutation();
 
   const handleSearch = () => {
     if (query.trim()) {
-      searchMutation.mutate({ query: query.trim(), topK });
+      search.mutate({ query: query.trim() });
     }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSearch();
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-3">
+      <div className="flex gap-2">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          placeholder="Hledaný výraz..."
-          className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onKeyDown={handleKeyDown}
+          placeholder="Hledat v znalostní bázi..."
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <label htmlFor="topk-search">Výsledky:</label>
-          <input
-            id="topk-search"
-            type="number"
-            min={1}
-            max={20}
-            value={topK}
-            onChange={(e) => setTopK(Number(e.target.value))}
-            className="w-16 px-2 py-2 border border-gray-300 rounded text-sm"
-          />
-        </div>
         <button
           onClick={handleSearch}
-          disabled={searchMutation.isPending || !query.trim()}
-          className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+          disabled={search.isPending || !query.trim()}
+          className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
         >
-          <Search size={16} />
+          <Search className="w-4 h-4" />
           Hledat
         </button>
       </div>
 
-      {searchMutation.isPending && (
-        <div className="text-center py-8 text-gray-500">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2" />
-          Vyhledávám...
+      {search.isPending && (
+        <div className="space-y-2 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 bg-gray-100 rounded-lg" />
+          ))}
         </div>
       )}
 
-      {searchMutation.isError && (
-        <p className="text-red-600 text-sm">Vyhledávání selhalo. Zkuste to prosím znovu.</p>
+      {search.isError && (
+        <div className="text-red-600 text-sm">Vyhledávání se nezdařilo. Zkuste to znovu.</div>
       )}
 
-      {searchMutation.data && (
+      {search.data && (
         <div className="space-y-3">
-          {searchMutation.data.chunks.length === 0 ? (
-            <p className="text-gray-500 text-sm py-4">Žádné výsledky.</p>
+          {search.data.chunks.length === 0 ? (
+            <p className="text-sm text-gray-500 text-center py-6">
+              Žádné výsledky pro „{query}".
+            </p>
           ) : (
-            searchMutation.data.chunks.map((chunk) => (
-              <div key={chunk.chunkId} className="border border-gray-200 rounded p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-xs text-gray-500">{chunk.sourceFilename}</span>
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium">
-                    {Math.round(chunk.score * 100)}% shoda
-                  </span>
-                </div>
-                <p className="text-sm text-gray-800 leading-relaxed">{chunk.content}</p>
-              </div>
+            search.data.chunks.map((chunk) => (
+              <ChunkCard key={chunk.chunkId} chunk={chunk} />
             ))
           )}
         </div>
-      )}
-
-      {!searchMutation.data && !searchMutation.isPending && !searchMutation.isError && (
-        <p className="text-gray-400 text-sm py-8 text-center">Zadejte výraz pro zahájení vyhledávání.</p>
       )}
     </div>
   );

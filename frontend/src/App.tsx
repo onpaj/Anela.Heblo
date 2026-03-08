@@ -34,6 +34,7 @@ import InvoiceClassificationPage from "./pages/InvoiceClassification/InvoiceClas
 import PackingMaterialsPage from "./pages/PackingMaterialsPage";
 import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
+import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";

@@ -46,9 +46,9 @@ public class KnowledgeBaseController : BaseApiController
     }
 
     [HttpDelete("documents/{id:guid}")]
-    public async Task<IActionResult> DeleteDocument(Guid id, CancellationToken ct)
+    public async Task<ActionResult<DeleteDocumentResponse>> DeleteDocument(Guid id, CancellationToken ct)
     {
-        await _mediator.Send(new DeleteDocumentRequest { DocumentId = id }, ct);
-        return NoContent();
+        var result = await _mediator.Send(new DeleteDocumentRequest { DocumentId = id }, ct);
+        return HandleResponse(result);
     }
 }

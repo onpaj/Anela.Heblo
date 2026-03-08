@@ -1,125 +1,145 @@
 import React, { useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { useKnowledgeBaseDocumentsQuery, useDeleteKnowledgeBaseDocumentMutation } from '../../api/hooks/useKnowledgeBase';
+import {
+  useKnowledgeBaseDocumentsQuery,
+  useDeleteKnowledgeBaseDocumentMutation,
+  DocumentSummary,
+} from '../../api/hooks/useKnowledgeBase';
 
-const STATUS_COLORS: Record<string, string> = {
-  indexed: 'bg-green-100 text-green-800',
-  processing: 'bg-yellow-100 text-yellow-800',
-  failed: 'bg-red-100 text-red-800',
+const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+  const colorMap: Record<string, string> = {
+    indexed: 'bg-green-100 text-green-800',
+    processing: 'bg-yellow-100 text-yellow-800',
+    failed: 'bg-red-100 text-red-800',
+  };
+  const classes = colorMap[status.toLowerCase()] ?? 'bg-gray-100 text-gray-800';
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${classes}`}>
+      {status}
+    </span>
+  );
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  indexed: 'Indexováno',
-  processing: 'Zpracovává se',
-  failed: 'Chyba',
-};
+const ConfirmDeleteDialog: React.FC<{
+  document: DocumentSummary;
+  onConfirm: () => void;
+  onCancel: () => void;
+}> = ({ document, onConfirm, onCancel }) => (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
+      <h2 className="text-lg font-semibold mb-2">Smazat dokument?</h2>
+      <p className="text-sm text-gray-600 mb-4">
+        Opravdu chcete smazat <strong>{document.filename}</strong>? Tato akce je nevratná.
+      </p>
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={onCancel}
+          className="px-4 py-2 text-sm rounded border border-gray-300 hover:bg-gray-50"
+        >
+          Zrušit
+        </button>
+        <button
+          onClick={onConfirm}
+          className="px-4 py-2 text-sm rounded bg-red-600 text-white hover:bg-red-700"
+        >
+          Smazat
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
 const KnowledgeBaseDocumentsTab: React.FC = () => {
-  const { data: documents, isLoading, isError, refetch } = useKnowledgeBaseDocumentsQuery();
-  const deleteMutation = useDeleteKnowledgeBaseDocumentMutation();
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const { data, isLoading, error } = useKnowledgeBaseDocumentsQuery();
+  const deleteDocument = useDeleteKnowledgeBaseDocumentMutation();
+  const [pendingDelete, setPendingDelete] = useState<DocumentSummary | null>(null);
+
+  const handleDeleteConfirm = async () => {
+    if (!pendingDelete) return;
+    try {
+      await deleteDocument.mutateAsync(pendingDelete.id);
+    } finally {
+      setPendingDelete(null);
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-2 animate-pulse">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
+          <div key={i} className="h-10 bg-gray-100 rounded" />
         ))}
       </div>
     );
   }
 
-  if (isError) {
+  if (error) {
     return (
-      <div className="text-center py-12">
-        <p className="text-red-600 mb-4">Nepodařilo se načíst dokumenty.</p>
-        <button onClick={() => refetch()} className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
-          Zkusit znovu
-        </button>
-      </div>
+      <div className="text-red-600 text-sm">Nepodařilo se načíst dokumenty.</div>
     );
   }
 
-  if (!documents || documents.length === 0) {
+  const documents = data?.documents ?? [];
+
+  if (documents.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
-        <p>Žádné dokumenty nejsou indexovány.</p>
-        <p className="text-sm mt-1">Dokumenty se načítají z OneDrive každých 15 minut.</p>
+      <div className="text-gray-500 text-sm text-center py-8">
+        Žádné dokumenty nejsou indexovány. Nahrajte soubory do OneDrive složky Inbox.
       </div>
     );
   }
-
-  const handleDelete = async (id: string) => {
-    await deleteMutation.mutateAsync(id);
-    setConfirmDeleteId(null);
-  };
 
   return (
     <>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 text-left text-gray-500">
-            <th className="pb-2 font-medium">Soubor</th>
-            <th className="pb-2 font-medium">Typ</th>
-            <th className="pb-2 font-medium">Status</th>
-            <th className="pb-2 font-medium">Indexováno</th>
-            <th className="pb-2" />
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {documents.map((doc) => (
-            <tr key={doc.id} className="hover:bg-gray-50">
-              <td className="py-3 font-medium text-gray-900">{doc.filename}</td>
-              <td className="py-3 text-gray-500">{doc.contentType}</td>
-              <td className="py-3">
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[doc.status] ?? 'bg-gray-100 text-gray-800'}`}>
-                  {STATUS_LABELS[doc.status] ?? doc.status}
-                </span>
-              </td>
-              <td className="py-3 text-gray-500">
-                {doc.indexedAt
-                  ? new Date(doc.indexedAt).toLocaleString('cs-CZ', { dateStyle: 'short', timeStyle: 'short' })
-                  : '—'}
-              </td>
-              <td className="py-3 text-right">
-                <button
-                  onClick={() => setConfirmDeleteId(doc.id)}
-                  className="text-gray-400 hover:text-red-600 transition-colors"
-                  title="Smazat dokument"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </td>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 text-sm">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Soubor</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Stav</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Typ</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Vytvořeno</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-500">Indexováno</th>
+              <th className="px-4 py-2" />
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {documents.map((doc) => (
+              <tr key={doc.id} className="hover:bg-gray-50">
+                <td className="px-4 py-2 font-medium">{doc.filename}</td>
+                <td className="px-4 py-2">
+                  <StatusBadge status={doc.status} />
+                </td>
+                <td className="px-4 py-2 text-gray-500">{doc.contentType}</td>
+                <td className="px-4 py-2 text-gray-500">
+                  {new Date(doc.createdAt).toLocaleDateString('cs-CZ')}
+                </td>
+                <td className="px-4 py-2 text-gray-500">
+                  {doc.indexedAt
+                    ? new Date(doc.indexedAt).toLocaleDateString('cs-CZ')
+                    : '–'}
+                </td>
+                <td className="px-4 py-2 text-right">
+                  <button
+                    onClick={() => setPendingDelete(doc)}
+                    title="Smazat dokument"
+                    className="text-gray-400 hover:text-red-600 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {/* Confirm delete dialog */}
-      {confirmDeleteId && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Smazat dokument?</h3>
-            <p className="text-sm text-gray-600 mb-6">
-              Dokument a všechny jeho indexované části budou trvale odstraněny.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setConfirmDeleteId(null)}
-                className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
-              >
-                Zrušit
-              </button>
-              <button
-                onClick={() => handleDelete(confirmDeleteId)}
-                disabled={deleteMutation.isPending}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-              >
-                {deleteMutation.isPending ? 'Mazání...' : 'Smazat'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {pendingDelete && (
+        <ConfirmDeleteDialog
+          document={pendingDelete}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setPendingDelete(null)}
+        />
       )}
     </>
   );
