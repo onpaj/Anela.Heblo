@@ -15,7 +15,7 @@ public class DeleteDocumentHandlerTests
         var documentId = Guid.NewGuid();
 
         _repository
-            .Setup(r => r.DeleteDocumentAsync(documentId, default))
+            .Setup(r => r.DeleteDocumentAsync(documentId, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var handler = new DeleteDocumentHandler(_repository.Object);
@@ -24,6 +24,6 @@ public class DeleteDocumentHandlerTests
             default);
 
         Assert.True(result.Success);
-        _repository.Verify(r => r.DeleteDocumentAsync(documentId, default), Times.Once);
+        _repository.Verify(r => r.DeleteDocumentAsync(documentId, It.IsAny<CancellationToken>()), Times.Once);
     }
 }
