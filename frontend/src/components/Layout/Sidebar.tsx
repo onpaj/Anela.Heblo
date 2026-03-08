@@ -271,7 +271,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Hangfire",
           href: "#",
           onClick: openHangfireDashboard,
-        }
+        },
+        {
+          id: "knowledge-base",
+          name: "Znalostní báze",
+          href: "/knowledge-base",
+        },
       ],
     },
   ];
