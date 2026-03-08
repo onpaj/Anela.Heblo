@@ -15,6 +15,8 @@ public static class KnowledgeBaseModule
         // Register application services
         services.AddScoped<IEmbeddingService, OpenAiEmbeddingService>();
         services.AddScoped<IDocumentTextExtractor, PdfTextExtractor>();
+        services.AddScoped<IDocumentTextExtractor, WordDocumentExtractor>();
+        services.AddScoped<IDocumentTextExtractor, PlainTextExtractor>();
         services.AddScoped<IClaudeService, AnthropicClaudeService>();
         services.AddScoped<DocumentChunker>();
 
