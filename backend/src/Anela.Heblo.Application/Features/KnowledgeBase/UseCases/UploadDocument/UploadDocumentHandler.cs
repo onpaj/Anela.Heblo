@@ -39,7 +39,7 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
         var existing = await _repository.GetDocumentByHashAsync(hash, cancellationToken);
         if (existing != null)
         {
-            return new UploadDocumentResponse { Success = true, Document = MapToSummary(existing) };
+            return new UploadDocumentResponse { Document = MapToSummary(existing) };
         }
 
         // Create document record in "processing" state
@@ -94,7 +94,7 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
             throw;
         }
 
-        return new UploadDocumentResponse { Success = true, Document = MapToSummary(doc) };
+        return new UploadDocumentResponse { Document = MapToSummary(doc) };
     }
 
     private static DocumentSummary MapToSummary(KnowledgeBaseDocument doc) =>
