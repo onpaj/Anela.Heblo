@@ -1,34 +1,36 @@
 import React, { useState } from 'react';
 import { Database } from 'lucide-react';
+import KnowledgeBaseSearchAskTab from '../components/knowledge-base/KnowledgeBaseSearchAskTab';
 import KnowledgeBaseDocumentsTab from '../components/knowledge-base/KnowledgeBaseDocumentsTab';
-import KnowledgeBaseSearchTab from '../components/knowledge-base/KnowledgeBaseSearchTab';
-import KnowledgeBaseAskTab from '../components/knowledge-base/KnowledgeBaseAskTab';
+import KnowledgeBaseUploadTab from '../components/knowledge-base/KnowledgeBaseUploadTab';
+import { useKnowledgeBaseUploadPermission } from '../api/hooks/useKnowledgeBase';
 
-type Tab = 'documents' | 'search' | 'ask';
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'documents', label: 'Dokumenty' },
-  { id: 'search', label: 'Vyhledávání' },
-  { id: 'ask', label: 'Dotaz AI' },
-];
+type Tab = 'search' | 'documents' | 'upload';
 
 const KnowledgeBasePage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('documents');
+  const canUpload = useKnowledgeBaseUploadPermission();
+  const [activeTab, setActiveTab] = useState<Tab>('search');
+
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'search', label: 'Hledat' },
+    { id: 'documents', label: 'Dokumenty' },
+    ...(canUpload ? [{ id: 'upload' as Tab, label: 'Nahrát soubor' }] : []),
+  ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-4">
       <div className="flex items-center gap-3">
         <Database className="w-6 h-6 text-blue-600" />
         <h1 className="text-2xl font-semibold text-gray-900">Znalostní báze</h1>
       </div>
 
       <div className="border-b border-gray-200">
-        <nav className="-mb-px flex gap-6">
-          {TABS.map((tab) => (
+        <nav className="flex gap-6" aria-label="Tabs">
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors ${
+              className={`py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.id
                   ? 'border-blue-600 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -40,10 +42,12 @@ const KnowledgeBasePage: React.FC = () => {
         </nav>
       </div>
 
-      <div>
-        {activeTab === 'documents' && <KnowledgeBaseDocumentsTab />}
-        {activeTab === 'search' && <KnowledgeBaseSearchTab />}
-        {activeTab === 'ask' && <KnowledgeBaseAskTab />}
+      <div className="pt-2">
+        {activeTab === 'search' && <KnowledgeBaseSearchAskTab />}
+        {activeTab === 'documents' && <KnowledgeBaseDocumentsTab canDelete={canUpload} />}
+        {activeTab === 'upload' && canUpload && (
+          <KnowledgeBaseUploadTab onUploadSuccess={() => setActiveTab('documents')} />
+        )}
       </div>
     </div>
   );
