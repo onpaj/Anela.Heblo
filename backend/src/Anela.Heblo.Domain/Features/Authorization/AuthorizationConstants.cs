@@ -34,16 +34,10 @@ public static class AuthorizationConstants
         /// Base role required for application access
         /// </summary>
         public const string HebloUser = "heblo_user";
-    }
 
-    /// <summary>
-    /// Custom Entra ID claims
-    /// </summary>
-    public static class Claims
-    {
         /// <summary>
-        /// Claim required for uploading documents to the Knowledge Base
+        /// Role required for managing the Knowledge Base (upload, delete documents)
         /// </summary>
-        public const string KnowledgeBaseUpload = "KnowledgeBase.Upload";
+        public const string KnowledgeBaseManager = "knowledge_base_manager";
     }
 }

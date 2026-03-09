@@ -108,8 +108,7 @@ public static class AuthenticationExtensions
 
             options.AddPolicy("KnowledgeBaseUpload", policy =>
                 policy.RequireAuthenticatedUser()
-                      .RequireRole(AuthorizationConstants.Roles.HebloUser)
-                      .RequireClaim(AuthorizationConstants.Claims.KnowledgeBaseUpload));
+                      .RequireRole(AuthorizationConstants.Roles.KnowledgeBaseManager));
         });
     }
 }
