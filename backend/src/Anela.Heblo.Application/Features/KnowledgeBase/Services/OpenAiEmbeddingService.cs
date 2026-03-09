@@ -9,7 +9,8 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
 
 public class OpenAiEmbeddingService : IEmbeddingService
 {
-    private readonly EmbeddingClient _client;
+    private readonly KnowledgeBaseOptions _options;
+    private readonly IConfiguration _configuration;
     private readonly ResiliencePipeline _pipeline;
     private readonly ILogger<OpenAiEmbeddingService> _logger;
 
@@ -18,9 +19,8 @@ public class OpenAiEmbeddingService : IEmbeddingService
         IConfiguration configuration,
         ILogger<OpenAiEmbeddingService> logger)
     {
-        var apiKey = configuration["OpenAI:ApiKey"]
-            ?? throw new InvalidOperationException("OpenAI:ApiKey is not configured.");
-        _client = new EmbeddingClient(options.Value.EmbeddingModel, apiKey);
+        _options = options.Value;
+        _configuration = configuration;
         _logger = logger;
         _pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new RetryStrategyOptions
@@ -35,9 +35,14 @@ public class OpenAiEmbeddingService : IEmbeddingService
 
     public async Task<float[]> GenerateEmbeddingAsync(string text, CancellationToken ct = default)
     {
+        var apiKey = _configuration["OpenAI:ApiKey"]
+            ?? throw new InvalidOperationException("OpenAI:ApiKey is not configured.");
+
+        var client = new EmbeddingClient(_options.EmbeddingModel, apiKey);
+
         _logger.LogDebug("Generating embedding for {CharCount} characters", text.Length);
         var result = await _pipeline.ExecuteAsync(
-            async token => await _client.GenerateEmbeddingAsync(text, cancellationToken: token),
+            async token => await client.GenerateEmbeddingAsync(text, cancellationToken: token),
             ct);
         return result.Value.ToFloats().ToArray();
     }
