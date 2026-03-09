@@ -49,7 +49,11 @@ const ConfirmDeleteDialog: React.FC<{
   </div>
 );
 
-const KnowledgeBaseDocumentsTab: React.FC = () => {
+interface Props {
+  canDelete: boolean;
+}
+
+const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
   const { data, isLoading, error } = useKnowledgeBaseDocumentsQuery();
   const deleteDocument = useDeleteKnowledgeBaseDocumentMutation();
   const [pendingDelete, setPendingDelete] = useState<DocumentSummary | null>(null);
@@ -100,7 +104,7 @@ const KnowledgeBaseDocumentsTab: React.FC = () => {
               <th className="px-4 py-2 text-left font-medium text-gray-500">Typ</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Vytvořeno</th>
               <th className="px-4 py-2 text-left font-medium text-gray-500">Indexováno</th>
-              <th className="px-4 py-2" />
+              {canDelete && <th className="px-4 py-2" />}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -119,15 +123,17 @@ const KnowledgeBaseDocumentsTab: React.FC = () => {
                     ? new Date(doc.indexedAt).toLocaleDateString('cs-CZ')
                     : '–'}
                 </td>
-                <td className="px-4 py-2 text-right">
-                  <button
-                    onClick={() => setPendingDelete(doc)}
-                    title="Smazat dokument"
-                    className="text-gray-400 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </td>
+                {canDelete && (
+                  <td className="px-4 py-2 text-right">
+                    <button
+                      onClick={() => setPendingDelete(doc)}
+                      title="Smazat dokument"
+                      className="text-gray-400 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
