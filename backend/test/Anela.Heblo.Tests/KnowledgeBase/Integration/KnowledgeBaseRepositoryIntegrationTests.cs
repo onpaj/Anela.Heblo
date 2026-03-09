@@ -92,7 +92,7 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
             IndexedAt = DateTime.UtcNow
         };
 
-    [Fact(Skip="Postponed")]
+    [Fact]
     public async Task AddDocumentAndChunks_ThenRetrieveByHash()
     {
         var doc = MakeDocument("hash-test.pdf", "deadbeef001");
@@ -118,7 +118,7 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
         Assert.Equal("hash-test.pdf", found.Filename);
     }
 
-    [Fact(Skip="Postponed")]
+    [Fact]
     public async Task SearchSimilarAsync_ReturnsClosestChunkByCosineSimilarity()
     {
         var doc = MakeDocument("search-test.pdf", "deadbeef002");
@@ -154,7 +154,7 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
         Assert.True(results[0].Score > results[1].Score);
     }
 
-    [Fact(Skip="Postponed")]
+    [Fact]
     public async Task DeleteDocumentAsync_CascadesToChunks()
     {
         var doc = MakeDocument("delete-test.pdf", "deadbeef003");
