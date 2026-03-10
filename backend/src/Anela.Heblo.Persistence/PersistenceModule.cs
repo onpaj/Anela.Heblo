@@ -27,18 +27,27 @@ public static class PersistenceModule
 {
     public static IServiceCollection AddPersistenceServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
+        var connectionString = configuration.GetConnectionString(environment.EnvironmentName);
+
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            throw new Exception($"No connection string '{environment.EnvironmentName}' found in configuration.");
+        }
+
+        var useInMemory = bool.Parse(configuration["UseInMemoryDatabase"] ?? "false");
+
+        // Build NpgsqlDataSource once as a singleton to avoid EF Core creating multiple internal service providers
+        NpgsqlDataSource? dataSource = null;
+        if (!useInMemory && connectionString != "InMemory")
+        {
+            var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+            dataSourceBuilder.UseVector();
+            dataSource = dataSourceBuilder.Build();
+        }
+
         // Register DbContext
         services.AddDbContext<ApplicationDbContext>(options =>
         {
-            var connectionString = configuration.GetConnectionString(environment.EnvironmentName);
-
-            if (string.IsNullOrEmpty(connectionString))
-            {
-                throw new Exception($"No connection string '{environment.EnvironmentName}' found in configuration.");
-            }
-
-            var useInMemory = bool.Parse(configuration["UseInMemoryDatabase"] ?? "false");
-
             if (useInMemory || connectionString == "InMemory")
             {
                 // For testing scenarios where no real database is needed
@@ -46,10 +55,7 @@ public static class PersistenceModule
             }
             else
             {
-                var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
-                dataSourceBuilder.UseVector();
-                var dataSource = dataSourceBuilder.Build();
-                options.UseNpgsql(dataSource);
+                options.UseNpgsql(dataSource!);
             }
         });
 
