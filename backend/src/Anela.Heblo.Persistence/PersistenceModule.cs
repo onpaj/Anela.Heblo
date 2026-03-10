@@ -36,13 +36,16 @@ public static class PersistenceModule
 
         var useInMemory = bool.Parse(configuration["UseInMemoryDatabase"] ?? "false");
 
-        // Build NpgsqlDataSource once as a singleton to avoid EF Core creating multiple internal service providers
+        // Build NpgsqlDataSource once as a singleton so all DbContext scopes share
+        // a single connection pool. Building it inside AddDbContext would create a
+        // new pool per DI scope (EF Core 8 default: optionsLifetime = Scoped).
         NpgsqlDataSource? dataSource = null;
         if (!useInMemory && connectionString != "InMemory")
         {
             var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
             dataSourceBuilder.UseVector();
             dataSource = dataSourceBuilder.Build();
+            services.AddSingleton(dataSource); // Register for DI-managed disposal
         }
 
         // Register DbContext
