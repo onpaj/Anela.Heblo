@@ -60,6 +60,9 @@ public class KnowledgeBaseController : BaseApiController
         IFormFile file,
         CancellationToken ct)
     {
+        if (file is null)
+            return BadRequest(new UploadDocumentResponse { Success = false });
+
         await using var stream = file.OpenReadStream();
         var request = new UploadDocumentRequest
         {

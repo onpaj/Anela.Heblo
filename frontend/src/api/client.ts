@@ -226,8 +226,12 @@ export const getAuthenticatedApiClient = (
 
       const headers: Record<string, string> = {
         ...((init?.headers as Record<string, string>) || {}),
-        "Content-Type": "application/json",
       };
+
+      // Do not set Content-Type for FormData — browser sets it automatically with the correct multipart boundary
+      if (!(init?.body instanceof FormData)) {
+        headers["Content-Type"] = "application/json";
+      }
 
       // Handle E2E authentication with special header
       if (isE2ETestMode()) {

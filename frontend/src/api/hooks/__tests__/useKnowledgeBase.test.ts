@@ -23,6 +23,18 @@ jest.mock('@azure/msal-react', () => ({
   useMsal: () => mockUseMsal(),
 }));
 
+const mockShouldUseMockAuth = jest.fn();
+jest.mock('../../../config/runtimeConfig', () => ({
+  shouldUseMockAuth: () => mockShouldUseMockAuth(),
+}));
+
+const mockGetUser = jest.fn();
+jest.mock('../../../auth/mockAuth', () => ({
+  mockAuthService: {
+    getUser: () => mockGetUser(),
+  },
+}));
+
 const mockGetAuthenticatedApiClient =
   clientModule.getAuthenticatedApiClient as jest.MockedFunction<
     typeof clientModule.getAuthenticatedApiClient
@@ -58,6 +70,8 @@ describe('useKnowledgeBase hooks', () => {
 
   beforeEach(() => {
     mockUseMsal.mockReturnValue({ accounts: [], instance: {} as any, inProgress: 'none' as any });
+    mockShouldUseMockAuth.mockReturnValue(false);
+    mockGetUser.mockReturnValue(null);
   });
 
   describe('useKnowledgeBaseDocumentsQuery', () => {
@@ -207,6 +221,28 @@ describe('useKnowledgeBase hooks', () => {
 
     it('returns false when no account is signed in', () => {
       mockUseMsal.mockReturnValue({ accounts: [] });
+      const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
+        wrapper: createWrapper,
+      });
+      expect(result.current).toBe(false);
+    });
+  });
+
+  describe('useKnowledgeBaseUploadPermission (mock auth mode)', () => {
+    beforeEach(() => {
+      mockShouldUseMockAuth.mockReturnValue(true);
+    });
+
+    it('returns true when mock user has knowledge_base_manager role', () => {
+      mockGetUser.mockReturnValue({ roles: ['finance_reader', 'knowledge_base_manager'] });
+      const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
+        wrapper: createWrapper,
+      });
+      expect(result.current).toBe(true);
+    });
+
+    it('returns false when mock user lacks knowledge_base_manager role', () => {
+      mockGetUser.mockReturnValue({ roles: ['finance_reader'] });
       const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
         wrapper: createWrapper,
       });

@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMsal } from '@azure/msal-react';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import { shouldUseMockAuth } from '../../config/runtimeConfig';
+import { mockAuthService } from '../../auth/mockAuth';
 
 // ---- Types ----
 
@@ -62,6 +64,13 @@ export interface UploadDocumentResponse {
  */
 export const useKnowledgeBaseUploadPermission = (): boolean => {
   const { accounts } = useMsal();
+
+  // In mock auth mode, MSAL has no accounts — read roles from mockAuthService instead
+  if (shouldUseMockAuth()) {
+    const user = mockAuthService.getUser();
+    return Array.isArray(user?.roles) && user.roles.includes('knowledge_base_manager');
+  }
+
   const account = accounts[0];
   if (!account) return false;
   const claims = account.idTokenClaims as Record<string, unknown> | undefined;
