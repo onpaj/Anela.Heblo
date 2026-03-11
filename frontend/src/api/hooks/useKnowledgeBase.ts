@@ -57,7 +57,7 @@ export interface UploadDocumentResponse {
 // ---- Permission hooks ----
 
 /**
- * Returns true when the current MSAL account has the KnowledgeBase.Upload custom claim.
+ * Returns true when the current MSAL account has the knowledge_base_manager role.
  * Controls visibility of the Upload tab and delete buttons.
  */
 export const useKnowledgeBaseUploadPermission = (): boolean => {
@@ -65,7 +65,8 @@ export const useKnowledgeBaseUploadPermission = (): boolean => {
   const account = accounts[0];
   if (!account) return false;
   const claims = account.idTokenClaims as Record<string, unknown> | undefined;
-  return Boolean(claims?.['KnowledgeBase.Upload']);
+  const roles = claims?.['roles'];
+  return Array.isArray(roles) && roles.includes('knowledge_base_manager');
 };
 
 // ---- Query key factory ----

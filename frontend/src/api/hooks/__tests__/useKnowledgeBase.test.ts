@@ -185,9 +185,9 @@ describe('useKnowledgeBase hooks', () => {
   });
 
   describe('useKnowledgeBaseUploadPermission', () => {
-    it('returns true when KnowledgeBase.Upload claim is present', () => {
+    it('returns true when knowledge_base_manager role is present', () => {
       mockUseMsal.mockReturnValue({
-        accounts: [{ idTokenClaims: { 'KnowledgeBase.Upload': 'true', roles: ['heblo_user'] } }],
+        accounts: [{ idTokenClaims: { roles: ['heblo_user', 'knowledge_base_manager'] } }],
       });
       const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
         wrapper: createWrapper,
@@ -195,7 +195,7 @@ describe('useKnowledgeBase hooks', () => {
       expect(result.current).toBe(true);
     });
 
-    it('returns false when claim is absent', () => {
+    it('returns false when role is absent', () => {
       mockUseMsal.mockReturnValue({
         accounts: [{ idTokenClaims: { roles: ['heblo_user'] } }],
       });
