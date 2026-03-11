@@ -42,18 +42,42 @@ Quarantine
 public enum TransportBoxLocation { Kumbal, Relax, SkladSkla }
 ```
 
-**`TransportBox` entity** — add `ToQuarantine()` method (no location parameter):
+**`TransportBox` entity** — the following changes are required:
+
+1. Add `ToQuarantine()` method (no location parameter). Explicitly set `Location = null` inside the method to ensure that any stale location value is cleared, regardless of what the handler may have written:
 ```csharp
 public void ToQuarantine(DateTime date, string userName)
 {
+    Location = null;
     ChangeState(TransportBoxState.Quarantine, date, userName, TransportBoxState.Opened);
 }
 ```
 
-**State machine transitions:**
-- `Opened → Quarantine` (no condition, no location required)
-- `Quarantine → Received` (quarantine cleared, stock enters warehouse)
-- `Quarantine → Opened` (reverted back for re-packing)
+2. Add `IsInQuarantinePredicate` and `IsInQuarantine` property (parallel to `IsInReservePredicate`/`IsInReserve`):
+```csharp
+public static Expression<Func<TransportBox, bool>> IsInQuarantinePredicate =
+    b => b.State == TransportBoxState.Quarantine;
+
+public bool IsInQuarantine => State == TransportBoxState.Quarantine;
+```
+
+3. Update `Receive()` to accept `Quarantine` as a valid source state (alongside `InTransit` and `Reserve`):
+```csharp
+ChangeState(TransportBoxState.Received, date, userName,
+    TransportBoxState.InTransit, TransportBoxState.Reserve, TransportBoxState.Quarantine);
+```
+
+4. Update `RevertToOpened()` to allow `Quarantine` as a valid source state (alongside `InTransit` and `Reserve`).
+
+5. Register `quarantineNode` in the static `_transitions` dictionary with outbound transitions:
+   - `Quarantine → Received` (quarantine cleared, stock enters warehouse)
+   - `Quarantine → Opened` (reverted back for re-packing)
+
+6. Register `Opened → Quarantine` transition on the `openedNode` (no condition, no location required).
+
+**Intentional asymmetries vs. Reserve:**
+- `ToQuarantine()` only accepts `Opened` as source — `Error → Quarantine` is out of scope. `ToReserve()` accepts both `Opened` and `Error`; this asymmetry is deliberate. `Error → Quarantine` can be added in a future iteration if needed.
+- `InSwap` state has no transitions registered in `_transitions` in the current implementation (pre-existing omission, out of scope for this change).
 
 **`StockData`** — add `Quarantine` property:
 ```csharp
@@ -61,25 +85,36 @@ public decimal Quarantine { get; set; }
 ```
 `Total` updated to: `Available + Reserve + Quarantine`
 
+`EffectiveStock` (`Available + Ordered`) is intentionally **not** updated — quarantined items are on hold and must not factor into purchase planning until cleared.
+
+Note: `StockData` is currently declared as a `record`, which is a pre-existing violation of the project's DTO class rule (CLAUDE.md rule 3). Changing it to a `class` is out of scope for this change — add the `Quarantine` property to the existing record as-is.
+
 ### Application Layer
 
-**`ChangeTransportBoxStateHandler`** — add `HandleOpenToQuarantine()` method (no location validation, parallel to `HandleOpenToReserve()`). `HandleReceived()` requires no changes.
+**`ChangeTransportBoxStateHandler`:**
+- Add `HandleOpenToQuarantine()` method (no location validation, parallel to `HandleOpenToReserve()`)
+- Add `(TransportBoxState.Quarantine, TransportBoxState.Received) => HandleReceived` entry to the `CallBackMap` so stock-up operations are created when a Quarantine box is received
+- Location safety: the handler contains a second location assignment block (after the CallBackMap lookup) that silently writes `request.Location` into `box.Location` if it is non-empty. For `Opened → Quarantine`, `ToQuarantine()` explicitly sets `Location = null`, which overrides any stale client value. No additional handler guard is required, but this is the mechanism — do not remove the `Location = null` from `ToQuarantine()`.
 
 **`GetTransportBoxByIdHandler`** — add Czech label:
 ```csharp
 TransportBoxState.Quarantine => "V karanténě"
 ```
 
-**`TransportBoxDto`** — add `IsInQuarantine` property (parallel to `IsInReserve`).
+**`TransportBoxDto`** — add `IsInQuarantine` property (backed by `transportBox.IsInQuarantine`, parallel to `IsInReserve`).
 
 **`CatalogRepository`:**
-- Add `GetProductsInQuarantine()` (filters boxes by `Quarantine` state, same pattern as `GetProductsInReserve()`)
-- Call from `RefreshReserveData()` (or rename to `RefreshStockStateData()`)
+- Add `GetProductsInQuarantine()` using `IsInQuarantinePredicate` (same pattern as `GetProductsInReserve()`)
+- Keep `RefreshReserveData()` name — call `GetProductsInQuarantine()` from within it (do not rename the method)
+- Add `CachedInQuarantineData` field and `QuarantineLoadDate` property (parallel to `CachedInReserveData` / `ReserveLoadDate`)
+- Include `QuarantineLoadDate` in the hardcoded `loadDates` array inside `ChangesPendingForMerge` so stale quarantine data triggers a pending-merge flag. Note: `ManufactureCostLoadDate` is already missing from this array (pre-existing bug, out of scope)
 - Apply per product:
   ```csharp
   product.Stock.Quarantine = CachedInQuarantineData.ContainsKey(product.ProductCode)
       ? CachedInQuarantineData[product.ProductCode] : 0;
   ```
+
+**`ICatalogRepository`** — add `QuarantineLoadDate` property to the interface (parallel to `ReserveLoadDate`). The quarantine refresh is called from within `RefreshReserveData()` so no new interface method is needed.
 
 ### Infrastructure Layer
 
@@ -94,7 +129,7 @@ TransportBoxState.Quarantine => "V karanténě"
 
 **State transition UI** — add Quarantine as a selectable transition from Opened state. No location modal shown for Quarantine transition.
 
-**`TransportBoxInfo.tsx`** — add label `"V karanténě"` for Quarantine state. Location field remains hidden for Quarantine.
+**`TransportBoxInfo.tsx`** — add label `"V karanténě"` for Quarantine state. Location field remains hidden for Quarantine (Quarantine boxes have `Location = null` throughout their lifetime).
 
 **`useTransportBoxes.ts`** — no structural changes; location is already optional in the hook.
 
@@ -123,6 +158,7 @@ None. Existing boxes in Reserve+Karantena stay as-is. Karantena is simply no lon
 - `Application/Features/Logistics/UseCases/GetTransportBoxById/GetTransportBoxByIdHandler.cs`
 - `Application/Features/Logistics/Contracts/TransportBoxDto.cs`
 - `Application/Features/Catalog/CatalogRepository.cs`
+- `Domain/Features/Catalog/ICatalogRepository.cs`
 
 ### Frontend
 - `src/components/pages/LocationSelectionModal.tsx`
