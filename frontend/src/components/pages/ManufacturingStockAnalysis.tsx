@@ -34,6 +34,27 @@ import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { usePlanningList } from "../../contexts/PlanningListContext";
 import PlanningListPanel from "../common/PlanningListPanel";
 
+const SALES_MULTIPLIER_COOKIE = "manufacturing-stock-sales-multiplier";
+
+const getCookie = (name: string): string | null => {
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`));
+  return match ? match.split("=")[1] : null;
+};
+
+const setCookie = (name: string, value: string): void => {
+  document.cookie = `${name}=${value}; path=/; max-age=31536000`;
+};
+
+const readSalesMultiplierCookie = (): number => {
+  const raw = getCookie(SALES_MULTIPLIER_COOKIE);
+  if (raw === null) return 1.0;
+  const parsed = parseFloat(raw);
+  if (isNaN(parsed) || parsed < 0.1 || parsed > 3.0) return 1.0;
+  return parsed;
+};
+
 const ManufacturingStockAnalysis: React.FC = () => {
   // State for filters
   const [filters, setFilters] = useState<GetManufacturingStockAnalysisRequest>({
@@ -48,6 +69,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
     pageSize: 20,
     sortBy: ManufacturingStockSortBy.OverstockPercentage,
     sortDescending: false,
+    salesMultiplier: readSalesMultiplierCookie(),
   });
 
   // State for product detail modal
@@ -88,6 +110,17 @@ const ManufacturingStockAnalysis: React.FC = () => {
     newFilters: Partial<GetManufacturingStockAnalysisRequest>,
   ) => {
     setFilters((prev) => ({ ...prev, ...newFilters, pageNumber: 1 }));
+  };
+
+  // Handler for sales multiplier change
+  const handleSalesMultiplierChange = (delta: number) => {
+    setFilters((prev) => {
+      const current = prev.salesMultiplier ?? 1.0;
+      const next = Math.round((current + delta) * 10) / 10;
+      const clamped = Math.min(3.0, Math.max(0.1, next));
+      setCookie(SALES_MULTIPLIER_COOKIE, clamped.toString());
+      return { ...prev, salesMultiplier: clamped, pageNumber: 1 };
+    });
   };
 
   // Handler for pagination
@@ -736,6 +769,43 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   </div>
                 </>
               )}
+
+              {/* Sales multiplier control - always visible */}
+              <div
+                className="flex items-center border border-gray-300 rounded-md shadow-sm bg-white"
+                title="Násobitel denních prodejů pro simulaci poptávky"
+              >
+                <button
+                  onClick={() => handleSalesMultiplierChange(-0.1)}
+                  disabled={(filters.salesMultiplier ?? 1.0) <= 0.1}
+                  className="px-1.5 py-1 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40 rounded-l-md"
+                  aria-label="Snížit násobitel"
+                >
+                  −
+                </button>
+                <span
+                  className={`px-1.5 py-1 text-xs min-w-[2.5rem] text-center ${
+                    (filters.salesMultiplier ?? 1.0) !== 1.0
+                      ? "text-indigo-600 font-semibold"
+                      : "text-gray-700"
+                  }`}
+                  title={
+                    (filters.salesMultiplier ?? 1.0) !== 1.0
+                      ? "Prodejní násobitel aktivní"
+                      : undefined
+                  }
+                >
+                  {((filters.salesMultiplier ?? 1.0).toFixed(1))}x
+                </span>
+                <button
+                  onClick={() => handleSalesMultiplierChange(0.1)}
+                  disabled={(filters.salesMultiplier ?? 1.0) >= 3.0}
+                  className="px-1.5 py-1 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40 rounded-r-md"
+                  aria-label="Zvýšit násobitel"
+                >
+                  +
+                </button>
+              </div>
 
               {/* Action buttons - always visible */}
               <button

@@ -64,7 +64,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
 
         // 3. Analyze all items for summary calculation
         var allAnalysisItems = finishedProducts
-            .Select(item => AnalyzeManufacturingStockItem(item, fromDate, toDate))
+            .Select(item => AnalyzeManufacturingStockItem(item, fromDate, toDate, request.SalesMultiplier))
             .ToList();
 
         var productFamilies = allAnalysisItems
@@ -98,13 +98,14 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         };
     }
 
-    private ManufacturingStockItemDto AnalyzeManufacturingStockItem(CatalogAggregate item, DateTime fromDate, DateTime toDate)
+    private ManufacturingStockItemDto AnalyzeManufacturingStockItem(CatalogAggregate item, DateTime fromDate, DateTime toDate, double salesMultiplier = 1.0)
     {
         // Calculate daily sales rate using domain service
         var dailySalesRate = _consumptionCalculator.CalculateDailySalesRate(item.SalesHistory, fromDate, toDate);
+        dailySalesRate *= salesMultiplier;
 
         // Calculate total sales in period for display
-        var salesInPeriod = item.GetTotalSold(fromDate, toDate);
+        var salesInPeriod = item.GetTotalSold(fromDate, toDate) * salesMultiplier;
 
         // Calculate stock days available using domain service - now includes reserve stock
         var stockDaysAvailable = _consumptionCalculator.CalculateStockDaysAvailable(item.Stock.Total, dailySalesRate);

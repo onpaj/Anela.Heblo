@@ -314,4 +314,64 @@ public class GetManufacturingStockAnalysisRequestValidatorTests
     }
 
     #endregion
+
+    #region SalesMultiplier Tests
+
+    [Fact]
+    public void SalesMultiplier_WhenDefault_ShouldNotHaveValidationError()
+    {
+        // Arrange
+        var request = new GetManufacturingStockAnalysisRequest { SalesMultiplier = 1.0 };
+
+        // Act & Assert
+        var result = _validator.TestValidate(request);
+        result.ShouldNotHaveValidationErrorFor(x => x.SalesMultiplier);
+    }
+
+    [Theory]
+    [InlineData(0.1)]
+    [InlineData(1.0)]
+    [InlineData(1.5)]
+    [InlineData(3.0)]
+    public void SalesMultiplier_WhenWithinRange_ShouldNotHaveValidationError(double multiplier)
+    {
+        // Arrange
+        var request = new GetManufacturingStockAnalysisRequest { SalesMultiplier = multiplier };
+
+        // Act & Assert
+        var result = _validator.TestValidate(request);
+        result.ShouldNotHaveValidationErrorFor(x => x.SalesMultiplier);
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-1.0)]
+    [InlineData(0.09)]
+    public void SalesMultiplier_WhenBelowMinimum_ShouldHaveValidationError(double multiplier)
+    {
+        // Arrange
+        var request = new GetManufacturingStockAnalysisRequest { SalesMultiplier = multiplier };
+
+        // Act & Assert
+        var result = _validator.TestValidate(request);
+        result.ShouldHaveValidationErrorFor(x => x.SalesMultiplier)
+            .WithErrorMessage("SalesMultiplier must be between 0.1 and 3.0");
+    }
+
+    [Theory]
+    [InlineData(3.1)]
+    [InlineData(5.0)]
+    [InlineData(10.0)]
+    public void SalesMultiplier_WhenAboveMaximum_ShouldHaveValidationError(double multiplier)
+    {
+        // Arrange
+        var request = new GetManufacturingStockAnalysisRequest { SalesMultiplier = multiplier };
+
+        // Act & Assert
+        var result = _validator.TestValidate(request);
+        result.ShouldHaveValidationErrorFor(x => x.SalesMultiplier)
+            .WithErrorMessage("SalesMultiplier must be between 0.1 and 3.0");
+    }
+
+    #endregion
 }
