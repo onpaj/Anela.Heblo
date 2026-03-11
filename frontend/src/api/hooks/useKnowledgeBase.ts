@@ -68,7 +68,7 @@ export const useKnowledgeBaseUploadPermission = (): boolean => {
   // In mock auth mode, MSAL has no accounts — read roles from mockAuthService instead
   if (shouldUseMockAuth()) {
     const user = mockAuthService.getUser();
-    return Array.isArray(user?.roles) && user.roles.includes('knowledge_base_manager');
+    return Array.isArray(user?.roles) && user?.roles.includes('knowledge_base_manager');
   }
 
   const account = accounts[0];
