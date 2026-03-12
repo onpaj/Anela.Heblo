@@ -1,6 +1,7 @@
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.KnowledgeBase;
+using DotNet.Testcontainers.Configurations;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Testcontainers.PostgreSql;
@@ -11,6 +12,12 @@ namespace Anela.Heblo.Tests.KnowledgeBase.Integration;
 [Trait("Category", "Integration")]
 public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
 {
+    static KnowledgeBaseRepositoryIntegrationTests()
+    {
+        // Podman does not support the Ryuk/ResourceReaper container; disable it to avoid NullReferenceException
+        TestcontainersSettings.ResourceReaperEnabled = false;
+    }
+
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
         .WithImage("pgvector/pgvector:pg16")
         .Build();
