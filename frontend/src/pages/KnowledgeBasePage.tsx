@@ -21,7 +21,7 @@ const KnowledgeBasePage: React.FC = () => {
     <div className="p-6 space-y-4">
       <div className="flex items-center gap-3">
         <Database className="w-6 h-6 text-blue-600" />
-        <h1 className="text-2xl font-semibold text-gray-900">Znalostní báze</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Knowledgebase</h1>
       </div>
 
       <div className="border-b border-gray-200">
