@@ -26,7 +26,10 @@ public class KnowledgeBaseDocumentConfiguration : IEntityTypeConfiguration<Knowl
 
         builder.Property(e => e.Status)
             .IsRequired()
-            .HasMaxLength(50);
+            .HasMaxLength(50)
+            .HasConversion(
+                v => v.ToString().ToLowerInvariant(),
+                v => Enum.Parse<DocumentStatus>(v, true));
 
         builder.Property(e => e.CreatedAt)
             .HasColumnType("timestamp without time zone");

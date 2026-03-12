@@ -24,7 +24,7 @@ public class GetDocumentsHandler : IRequestHandler<GetDocumentsRequest, GetDocum
             {
                 Id = d.Id,
                 Filename = d.Filename,
-                Status = d.Status,
+                Status = d.Status.ToString().ToLowerInvariant(),
                 ContentType = d.ContentType,
                 CreatedAt = d.CreatedAt,
                 IndexedAt = d.IndexedAt

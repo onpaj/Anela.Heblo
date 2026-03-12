@@ -113,7 +113,7 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
         {
             Id = doc.Id,
             Filename = doc.Filename,
-            Status = doc.Status,
+            Status = doc.Status.ToString().ToLowerInvariant(),
             ContentType = doc.ContentType,
             CreatedAt = doc.CreatedAt,
             IndexedAt = doc.IndexedAt,
