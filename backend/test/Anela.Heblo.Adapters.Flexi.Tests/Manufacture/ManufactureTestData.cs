@@ -14,16 +14,18 @@ namespace Anela.Heblo.Adapters.Flexi.Tests.Manufacture;
 public static class ManufactureTestData
 {
     /// <summary>
-    /// Real material products from test-data-fixtures.md
+    /// Ingredients used in manufacture consumption movements.
+    /// These are typed as SemiProduct because only SemiProductsWarehouseId and ProductsWarehouseId
+    /// are valid warehouse targets for consumption movements (MaterialWarehouseId is not valid).
     /// </summary>
     public static class Materials
     {
-        public static readonly TestProduct Bisabolol = new("AKL001", "Bisabolol", ProductType.Material);
-        public static readonly TestProduct DermosoftEco = new("AKL003", "Dermosoft Eco 1388", ProductType.Material);
-        public static readonly TestProduct Glycerol = new("AKL007", "Glycerol 99% Ph.Eur", ProductType.Material);
-        public static readonly TestProduct PentylenGlykol = new("AKL011", "Pentylen Glykol Green+", ProductType.Material);
-        public static readonly TestProduct ArrowrootStarch = new("AKL020", "Arrowroot škrob BIO", ProductType.Material);
-        public static readonly TestProduct ZincOxide = new("AKL021", "Oxid zinečnatý", ProductType.Material);
+        public static readonly TestProduct Bisabolol = new("AKL001", "Bisabolol", ProductType.SemiProduct);
+        public static readonly TestProduct DermosoftEco = new("AKL003", "Dermosoft Eco 1388", ProductType.SemiProduct);
+        public static readonly TestProduct Glycerol = new("AKL007", "Glycerol 99% Ph.Eur", ProductType.SemiProduct);
+        public static readonly TestProduct PentylenGlykol = new("AKL011", "Pentylen Glykol Green+", ProductType.SemiProduct);
+        public static readonly TestProduct ArrowrootStarch = new("AKL020", "Arrowroot škrob BIO", ProductType.SemiProduct);
+        public static readonly TestProduct ZincOxide = new("AKL021", "Oxid zinečnatý", ProductType.SemiProduct);
     }
 
     /// <summary>

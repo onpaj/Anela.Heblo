@@ -895,7 +895,7 @@ public class FlexiManufactureClient : IManufactureClient
         {
             ErpManufactureType.SemiProduct => WarehouseDocumentType_InboundSemiProduct,
             ErpManufactureType.Product => WarehouseDocumentType_InboundProduct,
-            _ => throw new InvalidOperationException("Unknown warehouse for consumption movement")
+            _ => throw new InvalidOperationException("Unknown warehouse for consumption movement for manufacture type " + manufactureType)
         };
         return documentType;
     }
@@ -906,7 +906,7 @@ public class FlexiManufactureClient : IManufactureClient
         {
             FlexiStockClient.SemiProductsWarehouseId => WarehouseDocumentType_OutboundMaterial,
             FlexiStockClient.ProductsWarehouseId => WarehouseDocumentType_OutboundSemiProduct,
-            _ => throw new InvalidOperationException("Unknown warehouse for consumption movement")
+            _ => throw new InvalidOperationException("Unknown warehouse for consumption movement for warehouseId " + warehouseId)
         };
         return documentType;
     }

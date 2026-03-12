@@ -482,11 +482,11 @@ public class FlexiManufactureClientTests
         // Assert
         Assert.Equal("MO-001", result);
 
-        // Verify consumption movement (Out)
+        // Verify consumption movement (Out) - SemiProduct ingredients use SemiProducts warehouse
         _mockStockMovementClient.Verify(x => x.SaveAsync(
             It.Is<StockItemsMovementUpsertRequestFlexiDto>(req =>
                 req.StockMovementDirection == StockMovementDirection.Out &&
-                req.WarehouseId == FlexiStockClient.MaterialWarehouseId.ToString()),
+                req.WarehouseId == FlexiStockClient.SemiProductsWarehouseId.ToString()),
             It.IsAny<CancellationToken>()), Times.Once);
 
         // Verify production movement (In)
@@ -504,12 +504,12 @@ public class FlexiManufactureClientTests
         var request = ManufactureTestData.CreateManufactureRequest(ManufactureTestData.SemiProducts.SilkBar, 10m);
         request.ManufactureType = ErpManufactureType.SemiProduct;
 
-        // Setup BoM with ingredients from different warehouses
+        // Setup BoM with ingredients from same warehouse (SemiProducts warehouse)
         var bomItems = new List<BoMItemFlexiDto>
         {
             CreateBoMItemHeader(1, ManufactureTestData.SemiProducts.SilkBar, 10.0),
-            ManufactureTestData.CreateBoMItem(2, 2, 3.0, ManufactureTestData.Materials.Bisabolol), // Material warehouse
-            ManufactureTestData.CreateBoMItem(3, 2, 2.0, ManufactureTestData.Materials.Glycerol)   // Material warehouse
+            ManufactureTestData.CreateBoMItem(2, 2, 3.0, ManufactureTestData.Materials.Bisabolol), // SemiProduct warehouse
+            ManufactureTestData.CreateBoMItem(3, 2, 2.0, ManufactureTestData.Materials.Glycerol)   // SemiProduct warehouse
         };
 
         _mockBomClient.Setup(x => x.GetAsync(ManufactureTestData.SemiProducts.SilkBar.Code, It.IsAny<CancellationToken>()))
@@ -527,11 +527,11 @@ public class FlexiManufactureClientTests
         // Assert
         Assert.Equal("MO-001", result);
 
-        // Verify single consumption movement with both materials
+        // Verify single consumption movement with both ingredients from SemiProducts warehouse
         _mockStockMovementClient.Verify(x => x.SaveAsync(
             It.Is<StockItemsMovementUpsertRequestFlexiDto>(req =>
                 req.StockMovementDirection == StockMovementDirection.Out &&
-                req.WarehouseId == FlexiStockClient.MaterialWarehouseId.ToString() &&
+                req.WarehouseId == FlexiStockClient.SemiProductsWarehouseId.ToString() &&
                 req.StockItems.Count == 2),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -548,7 +548,7 @@ public class FlexiManufactureClientTests
     #region Warehouse Selection Tests
 
     [Fact]
-    public async Task SubmitManufactureAsync_MaterialIngredient_UsesMaterialWarehouse()
+    public async Task SubmitManufactureAsync_SemiProductIngredient_UsesSemiProductsWarehouseForConsumption()
     {
         // Arrange
         var request = ManufactureTestData.CreateManufactureRequest(ManufactureTestData.Products.ConfidentBar, 10m);
@@ -556,7 +556,7 @@ public class FlexiManufactureClientTests
         var bomItems = new List<BoMItemFlexiDto>
         {
             CreateBoMItemHeader(1, ManufactureTestData.Products.ConfidentBar, 10.0),
-            ManufactureTestData.CreateBoMItem(2, 2, 5.0, ManufactureTestData.Materials.Bisabolol) // Material type
+            ManufactureTestData.CreateBoMItem(2, 2, 5.0, ManufactureTestData.Materials.Bisabolol) // SemiProduct type
         };
 
         _mockBomClient.Setup(x => x.GetAsync(ManufactureTestData.Products.ConfidentBar.Code, It.IsAny<CancellationToken>()))
@@ -571,11 +571,11 @@ public class FlexiManufactureClientTests
         // Assert
         Assert.Equal("MO-001", result);
 
-        // Verify material warehouse used for consumption
+        // Verify semi-products warehouse used for consumption
         _mockStockMovementClient.Verify(x => x.SaveAsync(
             It.Is<StockItemsMovementUpsertRequestFlexiDto>(req =>
                 req.StockMovementDirection == StockMovementDirection.Out &&
-                req.WarehouseId == FlexiStockClient.MaterialWarehouseId.ToString()),
+                req.WarehouseId == FlexiStockClient.SemiProductsWarehouseId.ToString()),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
