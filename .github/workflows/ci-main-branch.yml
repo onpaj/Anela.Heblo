@@ -24,6 +24,7 @@ concurrency:
 permissions:
   contents: write
   packages: write
+  checks: write
 
 env:
   REGISTRY: docker.io
@@ -51,10 +52,12 @@ jobs:
 
       - name: 🧪 Run tests with coverage
         working-directory: ./frontend
-        run: npm test -- --coverage --watchAll=false
+        run: npm test -- --coverage --watchAll=false --reporters=default --reporters=jest-junit
         env:
           REACT_APP_USE_MOCK_AUTH: true
           CI: true
+          JEST_JUNIT_OUTPUT_DIR: ./test-results
+          JEST_JUNIT_OUTPUT_NAME: junit.xml
 
       - name: 📊 Upload coverage reports
         uses: codecov/codecov-action@v3
@@ -66,6 +69,15 @@ jobs:
           name: frontend-coverage
           fail_ci_if_error: false
           verbose: true
+
+      - name: 📋 Frontend Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Frontend Tests
+          path: frontend/test-results/junit.xml
+          reporter: jest-junit
+          fail-on-error: false
 
   # Backend Tests - Parallel execution
   backend-tests:
@@ -141,6 +153,15 @@ jobs:
           name: backend-coverage
           fail_ci_if_error: false
           verbose: true
+
+      - name: 📋 Backend Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Backend Tests
+          path: coverage/**/*.trx
+          reporter: dotnet-trx
+          fail-on-error: false
 
       - name: 🏗️ Build solution
         run: dotnet build Anela.Heblo.sln --configuration Release --no-restore

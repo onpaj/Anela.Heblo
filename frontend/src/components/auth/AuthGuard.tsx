@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/useAuth";
 import { useMockAuth, shouldUseMockAuth } from "../../auth/mockAuth";
 import { useE2EAuth, isE2ETestMode } from "../../auth/e2eAuth";
@@ -8,6 +9,8 @@ interface AuthGuardProps {
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
+  const navigate = useNavigate();
+
   // Priority: E2E auth > Mock auth > Real auth
   const realAuth = useAuth();
   const mockAuth = useMockAuth();
@@ -29,6 +32,16 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       });
     }
   }, [isAuthenticated, inProgress, login]);
+
+  useEffect(() => {
+    if (isAuthenticated && inProgress === "none") {
+      const returnUrl = localStorage.getItem("auth.returnUrl");
+      if (returnUrl && returnUrl !== window.location.pathname) {
+        localStorage.removeItem("auth.returnUrl");
+        navigate(returnUrl);
+      }
+    }
+  }, [isAuthenticated, inProgress, navigate]);
 
   // Show loading while authentication is in progress
   if (inProgress !== "none") {

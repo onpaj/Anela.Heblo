@@ -31,8 +31,8 @@ public static class InvoicesModule
         services.AddTransient<IIssuedInvoiceImportTransformation, RemoveDAtTheEndOfProductCodeIssuedInvoiceImportTransformation>();
 
         // Product mapping transformations can be registered based on configuration
-        // services.AddTransient<IIssuedInvoiceImportTransformation>(provider => 
-        //     new ProductMappingIssuedInvoiceImportTransformation("OLD_CODE", "NEW_CODE"));
+        services.AddTransient<IIssuedInvoiceImportTransformation>(provider =>
+            new ProductMappingIssuedInvoiceImportTransformation("1287", "SLU000001"));
 
         // MediatR handlers are automatically registered by MediatR scan
 

@@ -50,5 +50,10 @@ public class GetManufacturingStockAnalysisRequestValidator : AbstractValidator<G
                 .MaximumLength(50)
                 .WithMessage("ProductFamily cannot exceed 50 characters");
         });
+
+        // SalesMultiplier validation
+        RuleFor(x => x.SalesMultiplier)
+            .InclusiveBetween(0.1, 3.0)
+            .WithMessage("SalesMultiplier must be between 0.1 and 3.0");
     }
 }

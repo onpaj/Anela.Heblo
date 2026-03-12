@@ -1,5 +1,7 @@
 import { Page, expect, Locator } from '@playwright/test';
-import { waitForLoadingComplete, waitForSearchResults } from './wait-helpers';
+import { waitForLoadingComplete } from './wait-helpers';
+
+const CATALOG_API_ENDPOINT = '/api/catalog';
 
 /**
  * Catalog E2E Test Helpers
@@ -64,13 +66,15 @@ export async function applyProductNameFilter(page: Page, name: string): Promise<
   const input = getProductNameInput(page);
   await input.fill(name);
   const filterButton = getFilterButton(page);
-  await filterButton.click();
 
-  // Wait for loading to complete (UI-based, more reliable than API response)
-  await waitForLoadingComplete(page, { timeout: 30000 });
+  // Register waitForResponse BEFORE the click so we don't miss the response
+  const responsePromise = page.waitForResponse(
+    resp => resp.url().includes(CATALOG_API_ENDPOINT) && resp.status() === 200,
+    { timeout: 30000 }
+  );
+  await Promise.all([responsePromise, filterButton.click()]);
 
-  // Small additional wait for table to stabilize
-  await page.waitForTimeout(500);
+  await waitForLoadingComplete(page, { timeout: 10000 });
   console.log('✅ Product name filter applied');
 }
 
@@ -81,13 +85,15 @@ export async function applyProductNameFilterWithEnter(page: Page, name: string):
   console.log(`🔍 Applying product name filter with Enter: "${name}"`);
   const input = getProductNameInput(page);
   await input.fill(name);
-  await input.press('Enter');
 
-  // Wait for loading to complete (UI-based, more reliable than API response)
-  await waitForLoadingComplete(page, { timeout: 30000 });
+  // Register waitForResponse BEFORE the Enter press so we don't miss the response
+  const responsePromise = page.waitForResponse(
+    resp => resp.url().includes(CATALOG_API_ENDPOINT) && resp.status() === 200,
+    { timeout: 30000 }
+  );
+  await Promise.all([responsePromise, input.press('Enter')]);
 
-  // Small additional wait for table to stabilize
-  await page.waitForTimeout(500);
+  await waitForLoadingComplete(page, { timeout: 10000 });
   console.log('✅ Product name filter applied with Enter');
 }
 
@@ -99,13 +105,15 @@ export async function applyProductCodeFilter(page: Page, code: string): Promise<
   const input = getProductCodeInput(page);
   await input.fill(code);
   const filterButton = getFilterButton(page);
-  await filterButton.click();
 
-  // Wait for loading to complete (UI-based, more reliable than API response)
-  await waitForLoadingComplete(page, { timeout: 30000 });
+  // Register waitForResponse BEFORE the click so we don't miss the response
+  const responsePromise = page.waitForResponse(
+    resp => resp.url().includes(CATALOG_API_ENDPOINT) && resp.status() === 200,
+    { timeout: 30000 }
+  );
+  await Promise.all([responsePromise, filterButton.click()]);
 
-  // Small additional wait for table to stabilize
-  await page.waitForTimeout(500);
+  await waitForLoadingComplete(page, { timeout: 10000 });
   console.log('✅ Product code filter applied');
 }
 
@@ -116,13 +124,15 @@ export async function applyProductCodeFilterWithEnter(page: Page, code: string):
   console.log(`🔍 Applying product code filter with Enter: "${code}"`);
   const input = getProductCodeInput(page);
   await input.fill(code);
-  await input.press('Enter');
 
-  // Wait for loading to complete (UI-based, more reliable than API response)
-  await waitForLoadingComplete(page, { timeout: 30000 });
+  // Register waitForResponse BEFORE the Enter press so we don't miss the response
+  const responsePromise = page.waitForResponse(
+    resp => resp.url().includes(CATALOG_API_ENDPOINT) && resp.status() === 200,
+    { timeout: 30000 }
+  );
+  await Promise.all([responsePromise, input.press('Enter')]);
 
-  // Small additional wait for table to stabilize
-  await page.waitForTimeout(500);
+  await waitForLoadingComplete(page, { timeout: 10000 });
   console.log('✅ Product code filter applied with Enter');
 }
 
@@ -132,13 +142,15 @@ export async function applyProductCodeFilterWithEnter(page: Page, code: string):
 export async function selectProductType(page: Page, type: string): Promise<void> {
   console.log(`🔽 Selecting product type: "${type}"`);
   const select = getProductTypeSelect(page);
-  await select.selectOption({ label: type });
 
-  // Wait for loading to complete (UI-based, more reliable than API response)
-  await waitForLoadingComplete(page, { timeout: 30000 });
+  // Register waitForResponse BEFORE the select so we don't miss the response
+  const responsePromise = page.waitForResponse(
+    resp => resp.url().includes(CATALOG_API_ENDPOINT) && resp.status() === 200,
+    { timeout: 30000 }
+  );
+  await Promise.all([responsePromise, select.selectOption({ label: type })]);
 
-  // Small additional wait for table to stabilize
-  await page.waitForTimeout(500);
+  await waitForLoadingComplete(page, { timeout: 10000 });
   console.log('✅ Product type filter applied');
 }
 
@@ -148,13 +160,15 @@ export async function selectProductType(page: Page, type: string): Promise<void>
 export async function clearAllFilters(page: Page): Promise<void> {
   console.log('🔄 Clearing all filters');
   const clearButton = getClearButton(page);
-  await clearButton.click();
 
-  // Wait for loading to complete (UI-based, more reliable than API response)
-  await waitForLoadingComplete(page, { timeout: 30000 });
+  // Register waitForResponse BEFORE the click so we don't miss the response
+  const responsePromise = page.waitForResponse(
+    resp => resp.url().includes(CATALOG_API_ENDPOINT) && resp.status() === 200,
+    { timeout: 30000 }
+  );
+  await Promise.all([responsePromise, clearButton.click()]);
 
-  // Small additional wait for table to stabilize
-  await page.waitForTimeout(500);
+  await waitForLoadingComplete(page, { timeout: 10000 });
   console.log('✅ All filters cleared');
 }
 
@@ -322,11 +336,30 @@ export async function getRowCount(page: Page): Promise<number> {
 }
 
 /**
- * Wait for table to update after filter change
+ * Wait for table to update after filter change.
+ *
+ * NOTE: When called after one of the apply*Filter helpers (which already await the API
+ * response via Promise.all), this function only needs to verify DOM stability.
+ * It does NOT call waitForSearchResults/waitForResponse, which would race against
+ * an already-consumed response and time out.
+ *
+ * For cases where the trigger action is done outside a helper, pass the responsePromise
+ * option to wait for the API response correctly.
  */
-export async function waitForTableUpdate(page: Page, expectedMinRows: number = 0): Promise<void> {
+export async function waitForTableUpdate(
+  page: Page,
+  expectedMinRows: number = 0,
+  options: { responsePromise?: Promise<unknown> } = {}
+): Promise<void> {
   console.log('⏳ Waiting for table to update...');
-  await waitForSearchResults(page, { endpoint: '/api/catalog' });
+
+  if (options.responsePromise) {
+    // Caller registered waitForResponse before the action - await it now
+    await options.responsePromise;
+  }
+
+  // Wait for loading indicator to disappear (if any)
+  await waitForLoadingComplete(page, { timeout: 10000 });
 
   // Optionally wait for at least some rows to appear
   if (expectedMinRows > 0) {
@@ -342,6 +375,18 @@ export async function waitForTableUpdate(page: Page, expectedMinRows: number = 0
       console.log('⚠️  Expected rows not found, checking for empty state...');
     });
   }
+
+  // Wait for table or empty state to be present to confirm DOM has updated
+  await page.waitForFunction(
+    () => {
+      const rows = document.querySelectorAll('tbody tr');
+      const emptyMsg = document.querySelector('[class*="text-center"]');
+      return rows.length > 0 || (emptyMsg !== null && emptyMsg.textContent?.includes('nalezen'));
+    },
+    { timeout: 10000 }
+  ).catch(() => {
+    // DOM may not have the empty state text or rows - continue anyway
+  });
 
   console.log('✅ Table update completed');
 }

@@ -459,22 +459,17 @@ test.describe('Classification History - Combined Filters', () => {
     const invoiceAndDateCell = firstRow.locator('td').nth(0);
     const companyNameCell = firstRow.locator('td').nth(1);
 
-    const invoiceAndDateText = await invoiceAndDateCell.textContent();
+    // Column 0: invoice number is in first <div>, date is in second <div>
+    const invoiceNumber = await invoiceAndDateCell.locator('div').nth(0).textContent();
+    const dateText = await invoiceAndDateCell.locator('div').nth(1).textContent();
     const companyName = await companyNameCell.textContent();
 
-    expect(invoiceAndDateText).toBeTruthy();
+    expect(invoiceNumber).toBeTruthy();
+    expect(dateText).toBeTruthy();
     expect(companyName).toBeTruthy();
 
-    // Split the cell content to get invoice number and date
-    // Format is "INVOICE_NUMBER\nDD.MM.YYYY" or "INVOICE_NUMBERDD.MM.YYYY"
-    const lines = invoiceAndDateText!.trim().split('\n').map(l => l.trim()).filter(l => l);
-    expect(lines.length).toBeGreaterThanOrEqual(2);
-
-    const invoiceNumber = lines[0];
-    const dateText = lines[1];
-
-    // Parse date and create date range (same month)
-    const dateParts = dateText.split('.');
+    // Parse date (format: DD.MM.YYYY) and create date range (same month)
+    const dateParts = dateText!.trim().split('.');
     expect(dateParts.length).toBeGreaterThanOrEqual(2);
 
     const day = dateParts[0].padStart(2, '0');
@@ -500,18 +495,17 @@ test.describe('Classification History - Combined Filters', () => {
     const filteredRows = getTableRows(page);
     const filteredFirstRow = filteredRows.first();
 
-    const filteredInvoiceAndDate = await filteredFirstRow
+    // Extract invoice number from the first <div> in the combined cell (column 0)
+    const filteredInvoiceNumber = await filteredFirstRow
       .locator('td')
+      .nth(0)
+      .locator('div')
       .nth(0)
       .textContent();
     const filteredCompanyName = await filteredFirstRow
       .locator('td')
       .nth(1)
       .textContent();
-
-    // Extract invoice number from the combined cell
-    const filteredLines = filteredInvoiceAndDate!.trim().split('\n').map(l => l.trim()).filter(l => l);
-    const filteredInvoiceNumber = filteredLines[0];
 
     expect(filteredInvoiceNumber?.trim()).toContain(invoiceNumber!.trim());
     expect(filteredCompanyName?.trim()).toContain(companyName!.trim());
