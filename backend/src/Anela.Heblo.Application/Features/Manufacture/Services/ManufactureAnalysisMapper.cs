@@ -37,6 +37,7 @@ public class ManufactureAnalysisMapper : IManufactureAnalysisMapper
             TransportStock = (double)catalogItem.Stock.Transport,
             PrimaryStockSource = catalogItem.Stock.PrimaryStockSource.ToString(),
             Reserve = (double)catalogItem.Stock.Reserve,
+            Quarantine = (double)catalogItem.Stock.Quarantine,
             Planned = (double)catalogItem.Stock.Planned,
             SalesInPeriod = salesInPeriod,
             DailySalesRate = dailySalesRate,

@@ -464,6 +464,20 @@ const ManufacturingStockAnalysis: React.FC = () => {
               )}
             </td>
 
+            {/* Quarantine Stock */}
+            <td
+              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
+              style={{ minWidth: "90px", width: "10%" }}
+            >
+              {(subItem.quarantine || 0) > 0 ? (
+                <div className="font-medium text-orange-700">
+                  {formatNumber(subItem.quarantine, 0)}
+                </div>
+              ) : (
+                <span className="text-gray-400">—</span>
+              )}
+            </td>
+
             {/* Planned Stock */}
             <td
               className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
@@ -1153,6 +1167,13 @@ const ManufacturingStockAnalysis: React.FC = () => {
                     Rezerv
                   </SortableHeader>
                   <SortableHeader
+                    column={ManufacturingStockSortBy.Quarantine}
+                    className="text-right"
+                    style={{ minWidth: "60px", width: "10%" }}
+                  >
+                    Karant.
+                  </SortableHeader>
+                  <SortableHeader
                     column={ManufacturingStockSortBy.Planned}
                     className="text-right"
                     style={{ minWidth: "60px", width: "10%" }}
@@ -1329,6 +1350,20 @@ const ManufacturingStockAnalysis: React.FC = () => {
                           {(item.reserve || 0) > 0 ? (
                             <div className="font-bold">
                               {formatNumber(item.reserve, 0)}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+
+                        {/* Quarantine Stock */}
+                        <td
+                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
+                          style={{ minWidth: "60px", width: "10%" }}
+                        >
+                          {(item.quarantine || 0) > 0 ? (
+                            <div className="font-bold text-orange-700">
+                              {formatNumber(item.quarantine, 0)}
                             </div>
                           ) : (
                             <span className="text-gray-400">—</span>

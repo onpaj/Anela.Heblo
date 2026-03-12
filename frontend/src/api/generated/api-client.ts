@@ -18,6 +18,36 @@ export class ApiClient {
         this.baseUrl = baseUrl ?? "";
     }
 
+    get_wellKnownOauthAuthorizationServer(): Promise<void> {
+        let url_ = this.baseUrl + "/.well-known/oauth-authorization-server";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGet_wellKnownOauthAuthorizationServer(_response);
+        });
+    }
+
+    protected processGet_wellKnownOauthAuthorizationServer(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
     analytics_GetProductMarginSummary(timeWindow: string | undefined, topProductCount: number | undefined, groupingMode: ProductGroupingMode | undefined, marginLevel: string | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined): Promise<GetProductMarginSummaryResponse> {
         let url_ = this.baseUrl + "/api/Analytics/product-margin-summary?";
         if (timeWindow === null)
@@ -4264,7 +4294,7 @@ export class ApiClient {
         return Promise.resolve<GetStockTakingHistoryResponse>(null as any);
     }
 
-    manufacturingStockAnalysis_GetStockAnalysis(timePeriod: TimePeriodFilter | undefined, customFromDate: Date | null | undefined, customToDate: Date | null | undefined, productFamily: string | null | undefined, criticalItemsOnly: boolean | undefined, majorItemsOnly: boolean | undefined, adequateItemsOnly: boolean | undefined, unconfiguredOnly: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: ManufacturingStockSortBy | undefined, sortDescending: boolean | undefined): Promise<GetManufacturingStockAnalysisResponse> {
+    manufacturingStockAnalysis_GetStockAnalysis(timePeriod: TimePeriodFilter | undefined, customFromDate: Date | null | undefined, customToDate: Date | null | undefined, productFamily: string | null | undefined, criticalItemsOnly: boolean | undefined, majorItemsOnly: boolean | undefined, adequateItemsOnly: boolean | undefined, unconfiguredOnly: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: ManufacturingStockSortBy | undefined, sortDescending: boolean | undefined, salesMultiplier: number | undefined): Promise<GetManufacturingStockAnalysisResponse> {
         let url_ = this.baseUrl + "/api/manufacturing-stock-analysis?";
         if (timePeriod === null)
             throw new Error("The parameter 'timePeriod' cannot be null.");
@@ -4310,6 +4340,10 @@ export class ApiClient {
             throw new Error("The parameter 'sortDescending' cannot be null.");
         else if (sortDescending !== undefined)
             url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        if (salesMultiplier === null)
+            throw new Error("The parameter 'salesMultiplier' cannot be null.");
+        else if (salesMultiplier !== undefined)
+            url_ += "SalesMultiplier=" + encodeURIComponent("" + salesMultiplier) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -7594,6 +7628,7 @@ export class StockDto implements IStockDto {
     erp?: number;
     transport?: number;
     reserve?: number;
+    quarantine?: number;
     ordered?: number;
     available?: number;
 
@@ -7612,6 +7647,7 @@ export class StockDto implements IStockDto {
             this.erp = _data["erp"];
             this.transport = _data["transport"];
             this.reserve = _data["reserve"];
+            this.quarantine = _data["quarantine"];
             this.ordered = _data["ordered"];
             this.available = _data["available"];
         }
@@ -7630,6 +7666,7 @@ export class StockDto implements IStockDto {
         data["erp"] = this.erp;
         data["transport"] = this.transport;
         data["reserve"] = this.reserve;
+        data["quarantine"] = this.quarantine;
         data["ordered"] = this.ordered;
         data["available"] = this.available;
         return data;
@@ -7641,6 +7678,7 @@ export interface IStockDto {
     erp?: number;
     transport?: number;
     reserve?: number;
+    quarantine?: number;
     ordered?: number;
     available?: number;
 }
@@ -19622,6 +19660,7 @@ export class TransportBoxDto implements ITransportBoxDto {
     location?: string | undefined;
     isInTransit?: boolean;
     isInReserve?: boolean;
+    isInQuarantine?: boolean;
     isReceivable?: boolean;
     itemCount?: number;
     creationTime?: Date;
@@ -19652,6 +19691,7 @@ export class TransportBoxDto implements ITransportBoxDto {
             this.location = _data["location"];
             this.isInTransit = _data["isInTransit"];
             this.isInReserve = _data["isInReserve"];
+            this.isInQuarantine = _data["isInQuarantine"];
             this.isReceivable = _data["isReceivable"];
             this.itemCount = _data["itemCount"];
             this.creationTime = _data["creationTime"] ? new Date(_data["creationTime"].toString()) : <any>undefined;
@@ -19694,6 +19734,7 @@ export class TransportBoxDto implements ITransportBoxDto {
         data["location"] = this.location;
         data["isInTransit"] = this.isInTransit;
         data["isInReserve"] = this.isInReserve;
+        data["isInQuarantine"] = this.isInQuarantine;
         data["isReceivable"] = this.isReceivable;
         data["itemCount"] = this.itemCount;
         data["creationTime"] = this.creationTime ? this.creationTime.toISOString() : <any>undefined;
@@ -19729,6 +19770,7 @@ export interface ITransportBoxDto {
     location?: string | undefined;
     isInTransit?: boolean;
     isInReserve?: boolean;
+    isInQuarantine?: boolean;
     isReceivable?: boolean;
     itemCount?: number;
     creationTime?: Date;
@@ -20085,6 +20127,7 @@ export enum TransportBoxState {
     Closed = "Closed",
     Error = "Error",
     Reserve = "Reserve",
+    Quarantine = "Quarantine",
 }
 
 export class CreateNewTransportBoxResponse extends BaseResponse implements ICreateNewTransportBoxResponse {

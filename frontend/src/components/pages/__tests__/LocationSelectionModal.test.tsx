@@ -112,7 +112,6 @@ describe("LocationSelectionModal", () => {
       expect(screen.getByText("Kumbal")).toBeInTheDocument();
       expect(screen.getByText("Relax")).toBeInTheDocument();
       expect(screen.getByText("Sklad Skla")).toBeInTheDocument();
-      expect(screen.getByText("Karantena")).toBeInTheDocument();
       expect(screen.getByText("Přesunout do rezervy")).toBeInTheDocument();
       expect(screen.getByText("Zrušit")).toBeInTheDocument();
     });
@@ -699,7 +698,6 @@ describe("LocationSelectionModal", () => {
       expect(screen.getByText("Kumbal")).toBeInTheDocument();
       expect(screen.getByText("Relax")).toBeInTheDocument();
       expect(screen.getByText("Sklad Skla")).toBeInTheDocument();
-      expect(screen.getByText("Karantena")).toBeInTheDocument();
     });
 
     it("should have correct values for location options", () => {
@@ -723,9 +721,6 @@ describe("LocationSelectionModal", () => {
       );
       expect(screen.getByRole("option", { name: /sklad skla/i })).toHaveValue(
         "SkladSkla",
-      );
-      expect(screen.getByRole("option", { name: /karantena/i })).toHaveValue(
-        "Karantena",
       );
     });
 

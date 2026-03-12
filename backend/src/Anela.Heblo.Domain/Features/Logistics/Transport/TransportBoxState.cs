@@ -11,5 +11,6 @@ public enum TransportBoxState
     Closed,
     Error,
 
-    Reserve
+    Reserve,
+    Quarantine
 }

@@ -44,6 +44,11 @@ public class TransportBox : Entity<int>
     public static Func<TransportBox, bool> IsInReserveFunc = IsInReservePredicate.Compile();
     public bool IsInReserve => IsInReserveFunc(this);
 
+    public static Expression<Func<TransportBox, bool>> IsInQuarantinePredicate =
+        b => b.State == TransportBoxState.Quarantine;
+    public static Func<TransportBox, bool> IsInQuarantineFunc = IsInQuarantinePredicate.Compile();
+    public bool IsInQuarantine => IsInQuarantineFunc(this);
+
     public TransportBoxStateNode TransitionNode => _transitions[State];
 
     public void Open(string boxCode, DateTime date, string userName)
@@ -76,10 +81,12 @@ public class TransportBox : Entity<int>
 
     public void RevertToOpened(DateTime date, string userName)
     {
-        // Revert transition from InTransit or Reserve back to Opened state
-        if (State != TransportBoxState.InTransit && State != TransportBoxState.Reserve)
+        if (State != TransportBoxState.InTransit
+            && State != TransportBoxState.Reserve
+            && State != TransportBoxState.Quarantine)
         {
-            throw new ValidationException($"Cannot revert to Opened from {State} state. Only InTransit and Reserve states can be reverted.");
+            throw new ValidationException(
+                $"Cannot revert to Opened from {State} state. Only InTransit, Reserve and Quarantine states can be reverted.");
         }
 
         if (string.IsNullOrEmpty(Code))
@@ -88,7 +95,8 @@ public class TransportBox : Entity<int>
         }
 
         Location = null;
-        ChangeState(TransportBoxState.Opened, date, userName, TransportBoxState.InTransit, TransportBoxState.Reserve);
+        ChangeState(TransportBoxState.Opened, date, userName,
+            TransportBoxState.InTransit, TransportBoxState.Reserve, TransportBoxState.Quarantine);
     }
 
 
@@ -154,11 +162,18 @@ public class TransportBox : Entity<int>
         ChangeState(TransportBoxState.Reserve, date, userName, TransportBoxState.Opened, TransportBoxState.Error);
     }
 
+    public void ToQuarantine(DateTime date, string userName)
+    {
+        Location = null;
+        ChangeState(TransportBoxState.Quarantine, date, userName, TransportBoxState.Opened);
+    }
+
     public void Receive(DateTime date, string userName, TransportBoxState receiveState = TransportBoxState.Stocked)
     {
         Location = null;
         DefaultReceiveState = receiveState;
-        ChangeState(TransportBoxState.Received, date, userName, TransportBoxState.InTransit, TransportBoxState.Reserve);
+        ChangeState(TransportBoxState.Received, date, userName,
+            TransportBoxState.InTransit, TransportBoxState.Reserve, TransportBoxState.Quarantine);
     }
 
 
@@ -233,10 +248,13 @@ public class TransportBox : Entity<int>
         newNode.AddTransition(new TransportBoxTransition(TransportBoxState.Closed, TransitionType.Previous, (box, time, userName) => box.Close(time, userName)));
         _transitions.Add(TransportBoxState.New, newNode);
 
-        // Opened → InTransit, Reserve, New (reset)
+        // Opened → InTransit, Reserve, Quarantine, New (reset)
         var openedNode = new TransportBoxStateNode();
         openedNode.AddTransition(new TransportBoxTransition(TransportBoxState.InTransit, TransitionType.Next, (box, time, userName) => box.ToTransit(time, userName)));
         openedNode.AddTransition(new TransportBoxTransition(TransportBoxState.Reserve, TransitionType.Next, (box, time, userName) => box.ToReserve(time, userName, box.Location!), condition: b => b.Location != null));
+        openedNode.AddTransition(new TransportBoxTransition(
+            TransportBoxState.Quarantine, TransitionType.Next,
+            (box, time, userName) => box.ToQuarantine(time, userName)));
         openedNode.AddTransition(new TransportBoxTransition(TransportBoxState.New, TransitionType.Previous, (box, time, userName) => box.Reset(time, userName)));
         _transitions.Add(TransportBoxState.Opened, openedNode);
 
@@ -251,6 +269,16 @@ public class TransportBox : Entity<int>
         reserveNode.AddTransition(new TransportBoxTransition(TransportBoxState.Received, TransitionType.Next, (box, time, userName) => box.Receive(time, userName)));
         reserveNode.AddTransition(new TransportBoxTransition(TransportBoxState.Opened, TransitionType.Previous, (box, time, userName) => box.RevertToOpened(time, userName)));
         _transitions.Add(TransportBoxState.Reserve, reserveNode);
+
+        // Quarantine → Received, Opened (revert)
+        var quarantineNode = new TransportBoxStateNode();
+        quarantineNode.AddTransition(new TransportBoxTransition(
+            TransportBoxState.Received, TransitionType.Next,
+            (box, time, userName) => box.Receive(time, userName)));
+        quarantineNode.AddTransition(new TransportBoxTransition(
+            TransportBoxState.Opened, TransitionType.Previous,
+            (box, time, userName) => box.RevertToOpened(time, userName)));
+        _transitions.Add(TransportBoxState.Quarantine, quarantineNode);
 
         // Received → Stocked, Closed
         var receivedNode = new TransportBoxStateNode();

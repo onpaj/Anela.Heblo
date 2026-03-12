@@ -4,6 +4,5 @@ public enum TransportBoxLocation
 {
     Kumbal,
     Relax,
-    SkladSkla,
-    Karantena
+    SkladSkla
 }
