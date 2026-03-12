@@ -24,6 +24,7 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     // Data load timestamps - stored in cache with same expiration as data
     DateTime? TransportLoadDate { get; }
     DateTime? ReserveLoadDate { get; }
+    DateTime? QuarantineLoadDate { get; }
     DateTime? OrderedLoadDate { get; }
     DateTime? PlannedLoadDate { get; }
     DateTime? SalesLoadDate { get; }

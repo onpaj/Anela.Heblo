@@ -24,5 +24,5 @@ echo "Port: 3000"
 echo "API URL: http://localhost:5000"
 echo ""
 
-# Start the frontend
-npm start
+# Start the frontend with mock authentication
+REACT_APP_USE_MOCK_AUTH=true npm start

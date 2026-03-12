@@ -32,6 +32,7 @@ export enum ManufacturingStockSortBy {
   ProductName = "ProductName",
   CurrentStock = "CurrentStock",
   Reserve = "Reserve",
+  Quarantine = "Quarantine",
   Planned = "Planned",
   SalesInPeriod = "SalesInPeriod",
   DailySales = "DailySales",
@@ -59,6 +60,7 @@ export interface ManufacturingStockItemDto {
   transportStock: number;
   primaryStockSource: string;
   reserve: number;
+  quarantine: number;
   planned: number;
   salesInPeriod: number;
   dailySalesRate: number;

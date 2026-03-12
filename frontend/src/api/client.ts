@@ -226,8 +226,12 @@ export const getAuthenticatedApiClient = (
 
       const headers: Record<string, string> = {
         ...((init?.headers as Record<string, string>) || {}),
-        "Content-Type": "application/json",
       };
+
+      // Do not set Content-Type for FormData — browser sets it automatically with the correct multipart boundary
+      if (!(init?.body instanceof FormData)) {
+        headers["Content-Type"] = "application/json";
+      }
 
       // Handle E2E authentication with special header
       if (isE2ETestMode()) {
@@ -391,6 +395,7 @@ export const QUERY_KEYS = {
   departments: ["departments"] as const,
   stockUpOperations: ["stock-up-operations"] as const,
   recurringJobs: ["recurring-jobs"] as const,
+  knowledgeBase: ["knowledge-base"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

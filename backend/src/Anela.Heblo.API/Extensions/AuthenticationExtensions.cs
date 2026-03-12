@@ -105,6 +105,10 @@ public static class AuthenticationExtensions
                 .RequireAuthenticatedUser()
                 .RequireRole(AuthorizationConstants.Roles.HebloUser)
                 .Build();
+
+            options.AddPolicy(AuthorizationConstants.Policies.KnowledgeBaseUpload, policy =>
+                policy.RequireAuthenticatedUser()
+                      .RequireRole(AuthorizationConstants.Roles.KnowledgeBaseManager));
         });
     }
 }

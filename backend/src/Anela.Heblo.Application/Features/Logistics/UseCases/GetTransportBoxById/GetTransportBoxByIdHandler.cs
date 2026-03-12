@@ -41,6 +41,7 @@ public class GetTransportBoxByIdHandler : IRequestHandler<GetTransportBoxByIdReq
             Location = transportBox.Location,
             IsInTransit = transportBox.IsInTransit,
             IsInReserve = transportBox.IsInReserve,
+            IsInQuarantine = transportBox.IsInQuarantine,
             ItemCount = transportBox.Items.Count,
             Items = transportBox.Items.Select(item => new TransportBoxItemDto
             {
@@ -84,6 +85,7 @@ public class GetTransportBoxByIdHandler : IRequestHandler<GetTransportBoxByIdReq
             TransportBoxState.Received => "Přijatý",
             TransportBoxState.Stocked => "Naskladněný",
             TransportBoxState.Reserve => "V rezervě",
+            TransportBoxState.Quarantine => "V karanténě",
             TransportBoxState.Closed => "Uzavřený",
             TransportBoxState.Error => "Chyba",
             _ => state.ToString()

@@ -35,6 +35,8 @@ public class ManufacturingStockItemDto
 
     public double Reserve { get; set; }
 
+    public double Quarantine { get; set; }
+
     public double Planned { get; set; }
 
     public double SalesInPeriod { get; set; }

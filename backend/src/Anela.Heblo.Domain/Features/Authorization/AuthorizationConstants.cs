@@ -34,5 +34,21 @@ public static class AuthorizationConstants
         /// Base role required for application access
         /// </summary>
         public const string HebloUser = "heblo_user";
+
+        /// <summary>
+        /// Role required for managing the Knowledge Base (upload, delete documents)
+        /// </summary>
+        public const string KnowledgeBaseManager = "knowledge_base_manager";
+    }
+
+    /// <summary>
+    /// Authorization policy names
+    /// </summary>
+    public static class Policies
+    {
+        /// <summary>
+        /// Policy required for uploading and deleting Knowledge Base documents
+        /// </summary>
+        public const string KnowledgeBaseUpload = "KnowledgeBaseUpload";
     }
 }

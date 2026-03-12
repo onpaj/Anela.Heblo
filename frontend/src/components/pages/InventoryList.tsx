@@ -241,6 +241,14 @@ const InventoryList: React.FC = () => {
     navigate(`/logistics/transport-boxes?productCode=${encodeURIComponent(productCode)}&state=Reserve`);
   };
 
+  // Handler for clicking quarantine quantity badge
+  const handleQuarantineClick = (event: React.MouseEvent, productCode: string | undefined) => {
+    event.stopPropagation(); // Prevent row click from triggering
+    if (!productCode) return; // Guard against undefined productCode
+    // Navigate to TransportBoxList with pre-filled filters
+    navigate(`/logistics/transport-boxes?productCode=${encodeURIComponent(productCode)}&state=Quarantine`);
+  };
+
   // Sortable header component
   const SortableHeader: React.FC<{
     column: string;
@@ -431,6 +439,7 @@ const InventoryList: React.FC = () => {
                 <SortableHeader column="available">Skladem</SortableHeader>
                 <SortableHeader column="transport">Transport</SortableHeader>
                 <SortableHeader column="reserve">Rezerva</SortableHeader>
+                <SortableHeader column="quarantine">Karanténa</SortableHeader>
                 <th
                   scope="col"
                   className="px-6 py-4 text-center text-sm font-medium text-gray-500 uppercase tracking-wider"
@@ -445,6 +454,7 @@ const InventoryList: React.FC = () => {
                 const available = Math.round((item.stock?.eshop || 0) * 100) / 100;
                 const transport = Math.round((item.stock?.transport || 0) * 100) / 100;
                 const reserve = Math.round((item.stock?.reserve || 0) * 100) / 100;
+                const quarantine = Math.round((item.stock?.quarantine || 0) * 100) / 100;
                 const total = Math.round(((item.stock?.available || 0) + (item.stock?.reserve || 0)) * 100) / 100;
 
                 return (
@@ -510,12 +520,25 @@ const InventoryList: React.FC = () => {
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap text-center">
                       {reserve > 0 ? (
-                        <span 
+                        <span
                           className="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold bg-amber-100 text-amber-800 justify-center inventory-badge hover:bg-amber-200 hover:text-amber-900"
                           onClick={(e) => handleReserveClick(e, item.productCode)}
                           title="Klikněte pro zobrazení rezervy"
                         >
                           {reserve}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-base">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-5 whitespace-nowrap text-center">
+                      {quarantine > 0 ? (
+                        <span
+                          className="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold bg-orange-100 text-orange-800 justify-center inventory-badge hover:bg-orange-200 hover:text-orange-900"
+                          onClick={(e) => handleQuarantineClick(e, item.productCode)}
+                          title="Klikněte pro zobrazení karantény"
+                        >
+                          {quarantine}
                         </span>
                       ) : (
                         <span className="text-gray-400 text-base">-</span>

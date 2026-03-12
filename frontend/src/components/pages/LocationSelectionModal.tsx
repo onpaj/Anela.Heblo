@@ -15,7 +15,6 @@ export const LOCATIONS = [
   { value: "Kumbal", label: "Kumbal" },
   { value: "Relax", label: "Relax" },
   { value: "SkladSkla", label: "Sklad Skla" },
-  { value: "Karantena", label: "Karantena" },
 ];
 
 // LocalStorage key for storing last selected location

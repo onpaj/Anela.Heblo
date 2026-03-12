@@ -427,6 +427,72 @@ public class CatalogRepositoryTests
         product.EshopPrice.Should().BeNull("No Eshop prices available");
     }
 
+    [Fact]
+    public async Task RefreshReserveData_WithQuarantineBoxes_PopulatesQuarantineStock()
+    {
+        // Arrange
+        SetupEmptyMocks();
+
+        // Ensure the product exists in catalog
+        _erpStockClientMock.Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ErpStock>
+            {
+                new ErpStock { ProductCode = "TEST001", ProductName = "Test Product", ProductId = 1, Stock = 0 }
+            });
+        await _repository.RefreshErpStockData(CancellationToken.None);
+
+        // Create a transport box in Quarantine state with an item
+        var quarantineBox = new TransportBox();
+        quarantineBox.Open("B001", DateTime.UtcNow, "user");
+        quarantineBox.ToQuarantine(DateTime.UtcNow, "user");
+        var itemsField = typeof(TransportBox).GetField("_items",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        var item = (TransportBoxItem)Activator.CreateInstance(
+            typeof(TransportBoxItem), "TEST001", "Test Product", 15.0, DateTime.UtcNow, "user")!;
+        ((List<TransportBoxItem>)itemsField.GetValue(quarantineBox)!).Add(item);
+
+        // Use SetupSequence: 1st call (reserve) returns empty, 2nd call (quarantine) returns the box
+        _transportBoxRepositoryMock
+            .SetupSequence(x => x.FindAsync(
+                It.IsAny<System.Linq.Expressions.Expression<System.Func<TransportBox, bool>>>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TransportBox>())
+            .ReturnsAsync(new List<TransportBox> { quarantineBox });
+
+        // Act
+        await _repository.RefreshReserveData(CancellationToken.None);
+        var products = await _repository.GetAllAsync(CancellationToken.None);
+
+        // Assert
+        var product = products.FirstOrDefault(p => p.ProductCode == "TEST001");
+        product.Should().NotBeNull();
+        product!.Stock.Quarantine.Should().Be(15);
+    }
+
+    [Fact]
+    public async Task QuarantineLoadDate_IsNullBeforeRefresh_AndSetAfterRefresh()
+    {
+        // Arrange
+        SetupEmptyMocks();
+        _repository.QuarantineLoadDate.Should().BeNull(); // before any refresh
+
+        // Use SetupSequence to handle both FindAsync calls (reserve + quarantine)
+        _transportBoxRepositoryMock
+            .SetupSequence(x => x.FindAsync(
+                It.IsAny<System.Linq.Expressions.Expression<System.Func<TransportBox, bool>>>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TransportBox>())
+            .ReturnsAsync(new List<TransportBox>());
+
+        // Act
+        await _repository.RefreshReserveData(CancellationToken.None);
+
+        // Assert
+        _repository.QuarantineLoadDate.Should().NotBeNull();
+    }
+
     private void SetupEmptyMocks()
     {
         _salesClientMock.Setup(x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
