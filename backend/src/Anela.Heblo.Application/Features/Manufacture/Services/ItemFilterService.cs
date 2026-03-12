@@ -38,6 +38,7 @@ public class ItemFilterService : IItemFilterService
             ManufacturingStockSortBy.ProductName => items.OrderBy(i => i.Name),
             ManufacturingStockSortBy.CurrentStock => items.OrderBy(i => i.CurrentStock),
             ManufacturingStockSortBy.Reserve => items.OrderBy(i => i.Reserve),
+            ManufacturingStockSortBy.Quarantine => items.OrderBy(i => i.Quarantine),
             ManufacturingStockSortBy.Planned => items.OrderBy(i => i.Planned),
             ManufacturingStockSortBy.SalesInPeriod => items.OrderBy(i => i.SalesInPeriod),
             ManufacturingStockSortBy.DailySales => items.OrderBy(i => i.DailySalesRate),

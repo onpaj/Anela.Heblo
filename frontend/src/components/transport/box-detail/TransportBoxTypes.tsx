@@ -74,6 +74,7 @@ export const stateLabels: Record<string, string> = {
   Received: "Přijatý",
   Stocked: "Naskladněný",
   Reserve: "V rezervě",
+  Quarantine: "V karanténě",
   Closed: "Uzavřený",
   Error: "Chyba",
 };
@@ -85,6 +86,7 @@ export const stateColors: Record<string, string> = {
   Received: "bg-purple-100 text-purple-800",
   Stocked: "bg-green-100 text-green-800",
   Reserve: "bg-indigo-100 text-indigo-800",
+  Quarantine: "bg-orange-100 text-orange-800",
   Closed: "bg-gray-100 text-gray-800",
   Error: "bg-red-100 text-red-800",
 };

@@ -66,6 +66,7 @@ public enum ManufacturingStockSortBy
     ProductName,
     CurrentStock,
     Reserve,
+    Quarantine,
     Planned,
     SalesInPeriod,
     DailySales,
