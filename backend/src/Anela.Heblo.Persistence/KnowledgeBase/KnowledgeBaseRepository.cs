@@ -14,10 +14,10 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
         _context = context;
     }
 
-    public async Task AddDocumentAsync(KnowledgeBaseDocument document, CancellationToken ct = default)
+    public Task AddDocumentAsync(KnowledgeBaseDocument document, CancellationToken ct = default)
     {
         _context.KnowledgeBaseDocuments.Add(document);
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     public async Task AddChunksAsync(IEnumerable<KnowledgeBaseChunk> chunks, CancellationToken ct = default)
