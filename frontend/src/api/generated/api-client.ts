@@ -3292,6 +3292,192 @@ export class ApiClient {
         return Promise.resolve<CreateJournalTagResponse>(null as any);
     }
 
+    knowledgeBase_GetDocuments(): Promise<GetDocumentsResponse> {
+        let url_ = this.baseUrl + "/api/KnowledgeBase/documents";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processKnowledgeBase_GetDocuments(_response);
+        });
+    }
+
+    protected processKnowledgeBase_GetDocuments(response: Response): Promise<GetDocumentsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetDocumentsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetDocumentsResponse>(null as any);
+    }
+
+    knowledgeBase_Search(request: SearchDocumentsRequest): Promise<SearchDocumentsResponse> {
+        let url_ = this.baseUrl + "/api/KnowledgeBase/search";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processKnowledgeBase_Search(_response);
+        });
+    }
+
+    protected processKnowledgeBase_Search(response: Response): Promise<SearchDocumentsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SearchDocumentsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SearchDocumentsResponse>(null as any);
+    }
+
+    knowledgeBase_Ask(request: AskQuestionRequest): Promise<AskQuestionResponse> {
+        let url_ = this.baseUrl + "/api/KnowledgeBase/ask";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processKnowledgeBase_Ask(_response);
+        });
+    }
+
+    protected processKnowledgeBase_Ask(response: Response): Promise<AskQuestionResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AskQuestionResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AskQuestionResponse>(null as any);
+    }
+
+    knowledgeBase_DeleteDocument(id: string): Promise<DeleteDocumentResponse> {
+        let url_ = this.baseUrl + "/api/KnowledgeBase/documents/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processKnowledgeBase_DeleteDocument(_response);
+        });
+    }
+
+    protected processKnowledgeBase_DeleteDocument(response: Response): Promise<DeleteDocumentResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteDocumentResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteDocumentResponse>(null as any);
+    }
+
+    knowledgeBase_UploadDocument(file: FileParameter | null | undefined): Promise<UploadDocumentResponse> {
+        let url_ = this.baseUrl + "/api/KnowledgeBase/documents/upload";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file !== null && file !== undefined)
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processKnowledgeBase_UploadDocument(_response);
+        });
+    }
+
+    protected processKnowledgeBase_UploadDocument(response: Response): Promise<UploadDocumentResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UploadDocumentResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UploadDocumentResponse>(null as any);
+    }
+
     logistics_GetAvailableGiftPackages(salesCoefficient: number | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<GetAvailableGiftPackagesResponse> {
         let url_ = this.baseUrl + "/api/logistics/gift-packages/available?";
         if (salesCoefficient === null)
@@ -4294,7 +4480,7 @@ export class ApiClient {
         return Promise.resolve<GetStockTakingHistoryResponse>(null as any);
     }
 
-    manufacturingStockAnalysis_GetStockAnalysis(timePeriod: TimePeriodFilter | undefined, customFromDate: Date | null | undefined, customToDate: Date | null | undefined, productFamily: string | null | undefined, criticalItemsOnly: boolean | undefined, majorItemsOnly: boolean | undefined, adequateItemsOnly: boolean | undefined, unconfiguredOnly: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: ManufacturingStockSortBy | undefined, sortDescending: boolean | undefined, salesMultiplier: number | undefined): Promise<GetManufacturingStockAnalysisResponse> {
+    manufacturingStockAnalysis_GetStockAnalysis(timePeriod: TimePeriodFilter | undefined, customFromDate: Date | null | undefined, customToDate: Date | null | undefined, productFamily: string | null | undefined, criticalItemsOnly: boolean | undefined, majorItemsOnly: boolean | undefined, adequateItemsOnly: boolean | undefined, unconfiguredOnly: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: ManufacturingStockSortBy | undefined, sortDescending: boolean | undefined, salesMultiplier: number | undefined, isExport: boolean | undefined): Promise<GetManufacturingStockAnalysisResponse> {
         let url_ = this.baseUrl + "/api/manufacturing-stock-analysis?";
         if (timePeriod === null)
             throw new Error("The parameter 'timePeriod' cannot be null.");
@@ -4344,6 +4530,10 @@ export class ApiClient {
             throw new Error("The parameter 'salesMultiplier' cannot be null.");
         else if (salesMultiplier !== undefined)
             url_ += "SalesMultiplier=" + encodeURIComponent("" + salesMultiplier) + "&";
+        if (isExport === null)
+            throw new Error("The parameter 'isExport' cannot be null.");
+        else if (isExport !== undefined)
+            url_ += "IsExport=" + encodeURIComponent("" + isExport) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -5081,7 +5271,7 @@ export class ApiClient {
         return Promise.resolve<RecalculatePurchasePriceResponse>(null as any);
     }
 
-    purchaseStockAnalysis_GetStockAnalysis(fromDate: Date | null | undefined, toDate: Date | null | undefined, stockStatus: StockStatusFilter | undefined, onlyConfigured: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: StockAnalysisSortBy | undefined, sortDescending: boolean | undefined): Promise<GetPurchaseStockAnalysisResponse> {
+    purchaseStockAnalysis_GetStockAnalysis(fromDate: Date | null | undefined, toDate: Date | null | undefined, stockStatus: StockStatusFilter | undefined, onlyConfigured: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: StockAnalysisSortBy | undefined, sortDescending: boolean | undefined, isExport: boolean | undefined): Promise<GetPurchaseStockAnalysisResponse> {
         let url_ = this.baseUrl + "/api/purchase-stock-analysis?";
         if (fromDate !== undefined && fromDate !== null)
             url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
@@ -5113,6 +5303,10 @@ export class ApiClient {
             throw new Error("The parameter 'sortDescending' cannot be null.");
         else if (sortDescending !== undefined)
             url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        if (isExport === null)
+            throw new Error("The parameter 'isExport' cannot be null.");
+        else if (isExport !== undefined)
+            url_ += "IsExport=" + encodeURIComponent("" + isExport) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -12431,6 +12625,433 @@ export interface ICreateJournalTagRequest {
     color?: string;
 }
 
+export class GetDocumentsResponse extends BaseResponse implements IGetDocumentsResponse {
+    documents?: DocumentSummary[];
+
+    constructor(data?: IGetDocumentsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["documents"])) {
+                this.documents = [] as any;
+                for (let item of _data["documents"])
+                    this.documents!.push(DocumentSummary.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetDocumentsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetDocumentsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.documents)) {
+            data["documents"] = [];
+            for (let item of this.documents)
+                data["documents"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetDocumentsResponse extends IBaseResponse {
+    documents?: DocumentSummary[];
+}
+
+export class DocumentSummary implements IDocumentSummary {
+    id?: string;
+    filename?: string;
+    status?: string;
+    contentType?: string;
+    createdAt?: Date;
+    indexedAt?: Date | undefined;
+
+    constructor(data?: IDocumentSummary) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.filename = _data["filename"];
+            this.status = _data["status"];
+            this.contentType = _data["contentType"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.indexedAt = _data["indexedAt"] ? new Date(_data["indexedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): DocumentSummary {
+        data = typeof data === 'object' ? data : {};
+        let result = new DocumentSummary();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["filename"] = this.filename;
+        data["status"] = this.status;
+        data["contentType"] = this.contentType;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["indexedAt"] = this.indexedAt ? this.indexedAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IDocumentSummary {
+    id?: string;
+    filename?: string;
+    status?: string;
+    contentType?: string;
+    createdAt?: Date;
+    indexedAt?: Date | undefined;
+}
+
+export class SearchDocumentsResponse extends BaseResponse implements ISearchDocumentsResponse {
+    chunks?: ChunkResult[];
+
+    constructor(data?: ISearchDocumentsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["chunks"])) {
+                this.chunks = [] as any;
+                for (let item of _data["chunks"])
+                    this.chunks!.push(ChunkResult.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): SearchDocumentsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SearchDocumentsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.chunks)) {
+            data["chunks"] = [];
+            for (let item of this.chunks)
+                data["chunks"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISearchDocumentsResponse extends IBaseResponse {
+    chunks?: ChunkResult[];
+}
+
+export class ChunkResult implements IChunkResult {
+    chunkId?: string;
+    documentId?: string;
+    content?: string;
+    score?: number;
+    sourceFilename?: string;
+    sourcePath?: string;
+
+    constructor(data?: IChunkResult) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.chunkId = _data["chunkId"];
+            this.documentId = _data["documentId"];
+            this.content = _data["content"];
+            this.score = _data["score"];
+            this.sourceFilename = _data["sourceFilename"];
+            this.sourcePath = _data["sourcePath"];
+        }
+    }
+
+    static fromJS(data: any): ChunkResult {
+        data = typeof data === 'object' ? data : {};
+        let result = new ChunkResult();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["chunkId"] = this.chunkId;
+        data["documentId"] = this.documentId;
+        data["content"] = this.content;
+        data["score"] = this.score;
+        data["sourceFilename"] = this.sourceFilename;
+        data["sourcePath"] = this.sourcePath;
+        return data;
+    }
+}
+
+export interface IChunkResult {
+    chunkId?: string;
+    documentId?: string;
+    content?: string;
+    score?: number;
+    sourceFilename?: string;
+    sourcePath?: string;
+}
+
+export class SearchDocumentsRequest implements ISearchDocumentsRequest {
+    query!: string;
+    topK?: number;
+
+    constructor(data?: ISearchDocumentsRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.query = _data["query"];
+            this.topK = _data["topK"];
+        }
+    }
+
+    static fromJS(data: any): SearchDocumentsRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SearchDocumentsRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["query"] = this.query;
+        data["topK"] = this.topK;
+        return data;
+    }
+}
+
+export interface ISearchDocumentsRequest {
+    query: string;
+    topK?: number;
+}
+
+export class AskQuestionResponse extends BaseResponse implements IAskQuestionResponse {
+    answer?: string;
+    sources?: SourceReference[];
+
+    constructor(data?: IAskQuestionResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.answer = _data["answer"];
+            if (Array.isArray(_data["sources"])) {
+                this.sources = [] as any;
+                for (let item of _data["sources"])
+                    this.sources!.push(SourceReference.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): AskQuestionResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new AskQuestionResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["answer"] = this.answer;
+        if (Array.isArray(this.sources)) {
+            data["sources"] = [];
+            for (let item of this.sources)
+                data["sources"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IAskQuestionResponse extends IBaseResponse {
+    answer?: string;
+    sources?: SourceReference[];
+}
+
+export class SourceReference implements ISourceReference {
+    documentId?: string;
+    filename?: string;
+    excerpt?: string;
+    score?: number;
+
+    constructor(data?: ISourceReference) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.documentId = _data["documentId"];
+            this.filename = _data["filename"];
+            this.excerpt = _data["excerpt"];
+            this.score = _data["score"];
+        }
+    }
+
+    static fromJS(data: any): SourceReference {
+        data = typeof data === 'object' ? data : {};
+        let result = new SourceReference();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["documentId"] = this.documentId;
+        data["filename"] = this.filename;
+        data["excerpt"] = this.excerpt;
+        data["score"] = this.score;
+        return data;
+    }
+}
+
+export interface ISourceReference {
+    documentId?: string;
+    filename?: string;
+    excerpt?: string;
+    score?: number;
+}
+
+export class AskQuestionRequest implements IAskQuestionRequest {
+    question!: string;
+    topK?: number;
+
+    constructor(data?: IAskQuestionRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.question = _data["question"];
+            this.topK = _data["topK"];
+        }
+    }
+
+    static fromJS(data: any): AskQuestionRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AskQuestionRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["question"] = this.question;
+        data["topK"] = this.topK;
+        return data;
+    }
+}
+
+export interface IAskQuestionRequest {
+    question: string;
+    topK?: number;
+}
+
+export class DeleteDocumentResponse extends BaseResponse implements IDeleteDocumentResponse {
+
+    constructor(data?: IDeleteDocumentResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteDocumentResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteDocumentResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteDocumentResponse extends IBaseResponse {
+}
+
+export class UploadDocumentResponse extends BaseResponse implements IUploadDocumentResponse {
+    document?: DocumentSummary | undefined;
+
+    constructor(data?: IUploadDocumentResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.document = _data["document"] ? DocumentSummary.fromJS(_data["document"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): UploadDocumentResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UploadDocumentResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["document"] = this.document ? this.document.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUploadDocumentResponse extends IBaseResponse {
+    document?: DocumentSummary | undefined;
+}
+
 export class GetAvailableGiftPackagesResponse extends BaseResponse implements IGetAvailableGiftPackagesResponse {
     giftPackages?: GiftPackageDto[];
 
@@ -16259,6 +16880,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
     transportStock?: number;
     primaryStockSource?: string;
     reserve?: number;
+    quarantine?: number;
     planned?: number;
     salesInPeriod?: number;
     dailySalesRate?: number;
@@ -16291,6 +16913,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
             this.transportStock = _data["transportStock"];
             this.primaryStockSource = _data["primaryStockSource"];
             this.reserve = _data["reserve"];
+            this.quarantine = _data["quarantine"];
             this.planned = _data["planned"];
             this.salesInPeriod = _data["salesInPeriod"];
             this.dailySalesRate = _data["dailySalesRate"];
@@ -16323,6 +16946,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
         data["transportStock"] = this.transportStock;
         data["primaryStockSource"] = this.primaryStockSource;
         data["reserve"] = this.reserve;
+        data["quarantine"] = this.quarantine;
         data["planned"] = this.planned;
         data["salesInPeriod"] = this.salesInPeriod;
         data["dailySalesRate"] = this.dailySalesRate;
@@ -16348,6 +16972,7 @@ export interface IManufacturingStockItemDto {
     transportStock?: number;
     primaryStockSource?: string;
     reserve?: number;
+    quarantine?: number;
     planned?: number;
     salesInPeriod?: number;
     dailySalesRate?: number;
@@ -16458,6 +17083,7 @@ export enum ManufacturingStockSortBy {
     ProductName = "ProductName",
     CurrentStock = "CurrentStock",
     Reserve = "Reserve",
+    Quarantine = "Quarantine",
     Planned = "Planned",
     SalesInPeriod = "SalesInPeriod",
     DailySales = "DailySales",
@@ -20427,6 +21053,11 @@ function formatDate(d: Date) {
     return d.getFullYear() + '-' + 
         (d.getMonth() < 9 ? ('0' + (d.getMonth()+1)) : (d.getMonth()+1)) + '-' +
         (d.getDate() < 10 ? ('0' + d.getDate()) : d.getDate());
+}
+
+export interface FileParameter {
+    data: any;
+    fileName: string;
 }
 
 export interface FileResponse {

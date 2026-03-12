@@ -47,6 +47,8 @@ public class GetManufacturingStockAnalysisRequest : IRequest<GetManufacturingSto
     /// Range: 0.1 to 3.0, default 1.0.
     /// </summary>
     public double SalesMultiplier { get; set; } = 1.0;
+
+    public bool IsExport { get; set; } = false;
 }
 
 public enum TimePeriodFilter

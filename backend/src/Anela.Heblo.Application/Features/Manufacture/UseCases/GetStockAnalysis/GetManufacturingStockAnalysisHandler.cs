@@ -80,10 +80,12 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
 
         // 5. Apply pagination
         var totalCount = sortedItems.Count;
-        var pagedItems = sortedItems
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
-            .ToList();
+        var pagedItems = request.IsExport
+            ? sortedItems
+            : sortedItems
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToList();
 
         // 6. Calculate summary from all items
         var summary = _filterService.CalculateSummary(allAnalysisItems, fromDate, toDate, productFamilies);

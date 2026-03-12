@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Search,
   RefreshCw,
@@ -29,6 +29,8 @@ import {
   getTimePeriodDisplayText,
 } from "../../api/hooks/useManufacturingStockAnalysis";
 import { getAuthenticatedApiClient } from "../../api/client";
+import { exportToXlsx } from "../../utils/exportToXlsx";
+import { useToast } from "../../contexts/ToastContext";
 import CatalogDetail from "./CatalogDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { usePlanningList } from "../../contexts/PlanningListContext";
@@ -89,6 +91,9 @@ const ManufacturingStockAnalysis: React.FC = () => {
   const [loadingSubgrids, setLoadingSubgrids] = useState<Set<string>>(
     new Set(),
   );
+  const [isExporting, setIsExporting] = useState(false);
+
+  const { showError } = useToast();
 
   // Query for stock analysis data
   const { data, isLoading, error, isRefetching, refetch } =
@@ -163,11 +168,80 @@ const ManufacturingStockAnalysis: React.FC = () => {
     }
   };
 
-  // Export functionality (placeholder)
-  const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log("Export to CSV");
-  };
+  // Export functionality
+  const handleExport = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const apiClient = await getAuthenticatedApiClient();
+      const relativeUrl = `/api/manufacturing-stock-analysis`;
+      const params = new URLSearchParams();
+
+      if (filters.timePeriod && filters.timePeriod !== TimePeriodFilter.PreviousQuarter) {
+        params.append("timePeriod", filters.timePeriod);
+      }
+      if (filters.customFromDate)
+        params.append("customFromDate", filters.customFromDate.toISOString().split("T")[0]);
+      if (filters.customToDate)
+        params.append("customToDate", filters.customToDate.toISOString().split("T")[0]);
+      if (filters.productFamily)
+        params.append("productFamily", filters.productFamily);
+      if (filters.criticalItemsOnly) params.append("criticalItemsOnly", "true");
+      if (filters.majorItemsOnly) params.append("majorItemsOnly", "true");
+      if (filters.adequateItemsOnly) params.append("adequateItemsOnly", "true");
+      if (filters.unconfiguredOnly) params.append("unconfiguredOnly", "true");
+      if (filters.searchTerm) params.append("searchTerm", filters.searchTerm);
+      if (filters.sortBy) params.append("sortBy", filters.sortBy);
+      if (filters.sortDescending !== undefined)
+        params.append("sortDescending", filters.sortDescending.toString());
+      if (filters.salesMultiplier !== undefined && filters.salesMultiplier !== 1.0)
+        params.append("salesMultiplier", filters.salesMultiplier.toString());
+      params.append("isExport", "true");
+
+      const queryString = params.toString();
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}${queryString ? `?${queryString}` : ""}`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const today = new Date().toISOString().split("T")[0];
+      exportToXlsx(
+        result.items ?? [],
+        [
+          { header: "Kód", value: (row: any) => row.code },
+          { header: "Název", value: (row: any) => row.name },
+          { header: "Sklad aktuální", value: (row: any) => row.currentStock },
+          { header: "Sklad ERP", value: (row: any) => row.erpStock },
+          { header: "Sklad E-shop", value: (row: any) => row.eshopStock },
+          { header: "Sklad transport", value: (row: any) => row.transportStock },
+          { header: "Primární zdroj skladu", value: (row: any) => row.primaryStockSource },
+          { header: "Rezervace", value: (row: any) => row.reserve },
+          { header: "Plánováno", value: (row: any) => row.planned },
+          { header: "Prodeje v období", value: (row: any) => row.salesInPeriod },
+          { header: "Denní prodeje", value: (row: any) => row.dailySalesRate },
+          { header: "Optimální dny (nastavení)", value: (row: any) => row.optimalDaysSetup },
+          { header: "Dní skladu", value: (row: any) => row.stockDaysAvailable },
+          { header: "Minimální sklad", value: (row: any) => row.minimumStock },
+          { header: "Přebytečné (%)", value: (row: any) => row.overstockPercentage },
+          { header: "Velikost dávky", value: (row: any) => row.batchSize },
+          { header: "Produktová rodina", value: (row: any) => row.productFamily },
+          { header: "Závažnost", value: (row: any) => row.severity },
+          { header: "Nakonfigurováno", value: (row: any) => row.isConfigured },
+        ],
+        `manufacturing-stock-analysis-${today}.xlsx`,
+      );
+    } catch {
+      showError("Export selhal", "Nepodařilo se stáhnout data pro export.");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [filters, showError]);
 
   // Planning list functionality
   const isInPlanningList = (productCode: string) => {
@@ -834,9 +908,14 @@ const ManufacturingStockAnalysis: React.FC = () => {
               </button>
               <button
                 onClick={handleExport}
-                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                disabled={isExporting}
+                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >
-                <Download className="h-3 w-3 mr-1" />
+                {isExporting ? (
+                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Download className="h-3 w-3 mr-1" />
+                )}
                 {isControlsCollapsed ? "" : "Export"}
               </button>
 
