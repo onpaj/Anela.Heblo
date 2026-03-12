@@ -1,7 +1,7 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using MediatR;
+using Microsoft.Extensions.AI;
 using Moq;
 using Xunit;
 
@@ -10,7 +10,7 @@ namespace Anela.Heblo.Tests.KnowledgeBase.UseCases;
 public class AskQuestionHandlerTests
 {
     private readonly Mock<IMediator> _mediator = new();
-    private readonly Mock<IAnswerService> _claude = new();
+    private readonly Mock<IChatClient> _chatClient = new();
 
     [Fact]
     public async Task Handle_ReturnsAnswerWithSources()
@@ -35,14 +35,15 @@ public class AskQuestionHandlerTests
             .Setup(m => m.Send(It.IsAny<SearchDocumentsRequest>(), default))
             .ReturnsAsync(searchResponse);
 
-        _claude
-            .Setup(c => c.GenerateAnswerAsync(
-                "Max phenoxyethanol?",
-                It.IsAny<IEnumerable<string>>(),
+        var chatResponse = new ChatResponse([new ChatMessage(ChatRole.Assistant, "The maximum allowed concentration is 1.0%.")]);
+        _chatClient
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
                 default))
-            .ReturnsAsync("The maximum allowed concentration is 1.0%.");
+            .ReturnsAsync(chatResponse);
 
-        var handler = new AskQuestionHandler(_mediator.Object, _claude.Object);
+        var handler = new AskQuestionHandler(_mediator.Object, _chatClient.Object);
         var result = await handler.Handle(
             new AskQuestionRequest { Question = "Max phenoxyethanol?", TopK = 5 },
             default);

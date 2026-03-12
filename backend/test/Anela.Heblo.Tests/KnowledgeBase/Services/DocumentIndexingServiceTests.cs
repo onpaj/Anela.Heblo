@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -10,7 +11,7 @@ namespace Anela.Heblo.Tests.KnowledgeBase.Services;
 public class DocumentIndexingServiceTests
 {
     private readonly Mock<IDocumentTextExtractor> _pdfExtractor;
-    private readonly Mock<IEmbeddingService> _embeddingService;
+    private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddingGenerator;
     private readonly Mock<IKnowledgeBaseRepository> _repository;
     private readonly DocumentIndexingService _service;
 
@@ -21,9 +22,13 @@ public class DocumentIndexingServiceTests
         _pdfExtractor.Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("word1 word2 word3");
 
-        _embeddingService = new Mock<IEmbeddingService>();
-        _embeddingService.Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new float[] { 0.1f, 0.2f, 0.3f });
+        _embeddingGenerator = new Mock<IEmbeddingGenerator<string, Embedding<float>>>();
+        var floats = new float[] { 0.1f, 0.2f, 0.3f };
+        var embeddingVector = new ReadOnlyMemory<float>(floats);
+        var generatedEmbeddings = new GeneratedEmbeddings<Embedding<float>>([new Embedding<float>(embeddingVector)]);
+        _embeddingGenerator
+            .Setup(e => e.GenerateAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<EmbeddingGenerationOptions?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(generatedEmbeddings);
 
         _repository = new Mock<IKnowledgeBaseRepository>();
 
@@ -32,7 +37,7 @@ public class DocumentIndexingServiceTests
 
         _service = new DocumentIndexingService(
             new[] { _pdfExtractor.Object },
-            _embeddingService.Object,
+            _embeddingGenerator.Object,
             chunker,
             _repository.Object);
     }
@@ -46,7 +51,7 @@ public class DocumentIndexingServiceTests
         await _service.IndexChunksAsync(content, "application/pdf", doc, CancellationToken.None);
 
         _pdfExtractor.Verify(e => e.ExtractTextAsync(content, It.IsAny<CancellationToken>()), Times.Once);
-        _embeddingService.Verify(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+        _embeddingGenerator.Verify(e => e.GenerateAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<EmbeddingGenerationOptions?>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
         _repository.Verify(r => r.AddChunksAsync(It.IsAny<IEnumerable<KnowledgeBaseChunk>>(), It.IsAny<CancellationToken>()), Times.Once);
 
         Assert.Equal(DocumentStatus.Indexed, doc.Status);

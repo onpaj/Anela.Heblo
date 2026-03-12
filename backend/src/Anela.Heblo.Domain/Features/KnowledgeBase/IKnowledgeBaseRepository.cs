@@ -14,4 +14,5 @@ public interface IKnowledgeBaseRepository
     Task DeleteDocumentAsync(Guid documentId, CancellationToken ct = default);
     Task UpdateDocumentSourcePathAsync(Guid documentId, string newSourcePath, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
+    Task SaveQuestionLogAsync(KnowledgeBaseQuestionLog log, CancellationToken ct = default);
 }
