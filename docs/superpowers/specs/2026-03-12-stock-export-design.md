@@ -18,6 +18,7 @@ Export behaviour:
 - **XLSX format only** (no CSV option)
 - **All columns** included, in the same order as the table
 - Filename includes page name and date: `purchase-stock-analysis-2026-03-12.xlsx` / `manufacturing-stock-analysis-2026-03-12.xlsx`
+- No row-count guard needed — datasets are hundreds of rows, well within in-memory limits
 
 ---
 
@@ -30,8 +31,8 @@ Export behaviour:
 When `Export = true`, the handler bypasses pagination (`Skip`/`Take`) and returns all matching records. Response DTO is unchanged.
 
 **Affected request classes:**
-- `GetPurchaseStockAnalysisRequest` — add `bool Export = false`
-- `GetManufacturingStockAnalysisRequest` — add `bool Export = false`
+- `GetPurchaseStockAnalysisRequest` — add `bool Export = false` (add last to minimise generated client churn)
+- `GetManufacturingStockAnalysisRequest` — add `bool Export = false` (add last)
 
 **Affected handlers:**
 - `GetPurchaseStockAnalysisHandler` — skip pagination when `Export == true`
@@ -39,7 +40,7 @@ When `Export = true`, the handler bypasses pagination (`Skip`/`Take`) and return
 
 Example request:
 ```
-GET /api/purchase-stock-analysis?export=true&fromDate=2025-01-01&severity=Critical
+GET /api/purchase-stock-analysis?export=true&fromDate=2025-01-01&stockStatus=Critical
 ```
 
 The OpenAPI TypeScript client regenerates automatically on next build, exposing the `export` param to the frontend.
@@ -53,32 +54,55 @@ The OpenAPI TypeScript client regenerates automatically on next build, exposing 
 ```typescript
 exportToXlsx<T>(
   rows: T[],
-  columns: { key: keyof T; header: string }[],
+  columns: { header: string; value: (row: T) => unknown }[],
   filename: string
 ): void
 ```
 
-- Uses the `xlsx` (SheetJS) npm package
+- Uses the `xlsx` (SheetJS) npm package — `npm install xlsx`
 - Creates a single-sheet workbook
-- Maps column definitions to header row + data rows
+- Maps column definitions to header row + data rows using the `value` accessor (supports nested fields like `row.lastPurchase?.supplierName`)
 - Triggers browser file download via `XLSX.writeFile`
-
-**Install:** `npm install xlsx` in the frontend package.
+- Commit both `package.json` and `package-lock.json`
 
 ---
 
 ### 3. Frontend — Export Button Wiring (per page)
 
-Each page implements the export flow independently, calling the shared utility.
+The export is a **one-time imperative API call** (not a React Query `useQuery`). Each page calls the API directly with current filter state + `export: true`, then passes the result to `exportToXlsx`.
 
 **Flow on button click:**
 1. Set `isExporting = true` (shows spinner on button)
-2. Call existing API hook/function with current filter state + `export: true`
-3. Pass returned rows + column definitions + filename to `exportToXlsx()`
+2. Call the API directly with current filter state + `export: true` (see per-page details below)
+3. Pass returned items + column definitions + filename to `exportToXlsx()`
 4. Trigger browser download
 5. Set `isExporting = false`
 
 **Error handling:** On failure, set `isExporting = false` and surface an error toast (using the existing toast pattern in the codebase).
+
+#### PurchaseStockAnalysis — generated client
+
+Uses the generated API client method. After OpenAPI regeneration, `export` appears as the last positional argument:
+
+```typescript
+const apiClient = getAuthenticatedApiClient();
+const result = await apiClient.purchaseStockAnalysis_GetStockAnalysis(
+  filters.fromDate ?? null,
+  filters.toDate ?? null,
+  filters.stockStatus,
+  filters.onlyConfigured,
+  filters.searchTerm ?? null,
+  undefined, // pageNumber — skipped on export
+  undefined, // pageSize — skipped on export
+  filters.sortBy,
+  filters.sortDescending,
+  true,       // export
+);
+```
+
+#### ManufacturingStockAnalysis — manual URLSearchParams fetch
+
+Uses the existing manual fetch pattern from `useManufacturingStockAnalysis.ts`. Add `params.append('export', 'true')` to the URLSearchParams builder and omit pagination params. Reuse the same `baseUrl` + absolute URL construction pattern already in the hook.
 
 ---
 
@@ -86,52 +110,54 @@ Each page implements the export flow independently, calling the shared utility.
 
 #### PurchaseStockAnalysis — `StockAnalysisItemDto`
 
-| Column Header (CZ) | DTO field |
+| Column Header (CZ) | Accessor |
 |---|---|
-| Kód produktu | `productCode` |
-| Název produktu | `productName` |
-| Typ produktu | `productType` |
-| Dostupný sklad | `availableStock` |
-| Objednané | `orderedStock` |
-| Efektivní sklad | `effectiveStock` |
-| Min. úroveň skladu | `minStockLevel` |
-| Optimální sklad | `optimalStockLevel` |
-| Spotřeba v období | `consumptionInPeriod` |
-| Denní spotřeba | `dailyConsumption` |
-| Dní do vyčerpání | `daysUntilStockout` |
-| Efektivita skladu (%) | `stockEfficiencyPercentage` |
-| Závažnost | `severity` |
-| Poslední nákup – datum | `lastPurchase.date` |
-| Poslední nákup – dodavatel | `lastPurchase.supplier` |
-| Poslední nákup – množství | `lastPurchase.amount` |
-| Poslední nákup – cena | `lastPurchase.price` |
-| Dodavatel | `supplier` |
-| Doporučené objednací množství | `recommendedOrderQuantity` |
-| Nakonfigurováno | `isConfigured` |
+| Kód produktu | `row.productCode` |
+| Název produktu | `row.productName` |
+| Typ produktu | `row.productType` |
+| Dostupný sklad | `row.availableStock` |
+| Objednané | `row.orderedStock` |
+| Efektivní sklad | `row.effectiveStock` |
+| Min. úroveň skladu | `row.minStockLevel` |
+| Optimální sklad | `row.optimalStockLevel` |
+| Spotřeba v období | `row.consumptionInPeriod` |
+| Denní spotřeba | `row.dailyConsumption` |
+| Dní do vyčerpání | `row.daysUntilStockout` |
+| Efektivita skladu (%) | `row.stockEfficiencyPercentage` |
+| Závažnost | `row.severity` |
+| Min. objednací množství | `row.minimalOrderQuantity` |
+| Poslední nákup – datum | `row.lastPurchase?.date` |
+| Poslední nákup – dodavatel | `row.lastPurchase?.supplierName` |
+| Poslední nákup – množství | `row.lastPurchase?.amount` |
+| Poslední nákup – jedn. cena | `row.lastPurchase?.unitPrice` |
+| Poslední nákup – celk. cena | `row.lastPurchase?.totalPrice` |
+| Dodavatel | `row.supplier` |
+| Doporučené objednací množství | `row.recommendedOrderQuantity` |
+| Nakonfigurováno | `row.isConfigured` |
 
 #### ManufacturingStockAnalysis — `ManufacturingStockItemDto`
 
-| Column Header (CZ) | DTO field |
+| Column Header (CZ) | Accessor |
 |---|---|
-| Kód | `code` |
-| Název | `name` |
-| Sklad aktuální | `currentStock` |
-| Sklad ERP | `erpStock` |
-| Sklad E-shop | `eshopStock` |
-| Sklad transport | `transportStock` |
-| Primární zdroj skladu | `primaryStockSource` |
-| Rezervace | `reserve` |
-| Plánováno | `planned` |
-| Prodeje v období | `salesInPeriod` |
-| Denní prodeje | `dailySalesRate` |
-| Optimální dny (nastavení) | `optimalDaysSetup` |
-| Dní skladu | `stockDaysAvailable` |
-| Minimální sklad | `minimumStock` |
-| Přebytečné (%) | `overstockPercentage` |
-| Velikost dávky | `batchSize` |
-| Produktová rodina | `productFamily` |
-| Závažnost | `severity` |
-| Nakonfigurováno | `isConfigured` |
+| Kód | `row.code` |
+| Název | `row.name` |
+| Sklad aktuální | `row.currentStock` |
+| Sklad ERP | `row.erpStock` |
+| Sklad E-shop | `row.eshopStock` |
+| Sklad transport | `row.transportStock` |
+| Primární zdroj skladu | `row.primaryStockSource` |
+| Rezervace | `row.reserve` |
+| Plánováno | `row.planned` |
+| Prodeje v období | `row.salesInPeriod` |
+| Denní prodeje | `row.dailySalesRate` |
+| Optimální dny (nastavení) | `row.optimalDaysSetup` |
+| Dní skladu | `row.stockDaysAvailable` |
+| Minimální sklad | `row.minimumStock` |
+| Přebytečné (%) | `row.overstockPercentage` |
+| Velikost dávky | `row.batchSize` |
+| Produktová rodina | `row.productFamily` |
+| Závažnost | `row.severity` |
+| Nakonfigurováno | `row.isConfigured` |
 
 ---
 
@@ -146,6 +172,19 @@ Date is the current local date at time of export.
 
 ---
 
+## Testing
+
+**Backend — extend existing handler tests:**
+- `GetPurchaseStockAnalysisHandlerTests` — add case: `Export = true` bypasses pagination, all filtered items returned
+- `GetManufacturingStockAnalysisHandlerTests` — same
+
+**Frontend — extend existing component tests:**
+- `PurchaseStockAnalysis.test.tsx` — export button sets loading state, calls API with `export=true`, calls `exportToXlsx` with correct filename and all rows
+- `ManufacturingStockAnalysis.test.tsx` — same
+- `exportToXlsx.test.ts` — unit tests: correct headers, data rows, nested accessor works, browser download triggered
+
+---
+
 ## Files to Create / Modify
 
 ### New files
@@ -153,15 +192,15 @@ Date is the current local date at time of export.
 
 ### Modified files
 **Backend:**
-- `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/GetPurchaseStockAnalysis/GetPurchaseStockAnalysisRequest.cs` — add `bool Export`
-- `backend/src/Anela.Heblo.Application/Features/Purchase/UseCases/GetPurchaseStockAnalysis/GetPurchaseStockAnalysisHandler.cs` — skip pagination when `Export == true`
-- `backend/src/Anela.Heblo.Application/Features/Manufacture/UseCases/GetStockAnalysis/GetManufacturingStockAnalysisRequest.cs` — add `bool Export`
-- `backend/src/Anela.Heblo.Application/Features/Manufacture/UseCases/GetStockAnalysis/GetManufacturingStockAnalysisHandler.cs` — skip pagination when `Export == true`
+- `GetPurchaseStockAnalysisRequest.cs` — add `bool Export = false`
+- `GetPurchaseStockAnalysisHandler.cs` — skip pagination when `Export == true`
+- `GetManufacturingStockAnalysisRequest.cs` — add `bool Export = false`
+- `GetManufacturingStockAnalysisHandler.cs` — skip pagination when `Export == true`
 
 **Frontend:**
-- `frontend/package.json` — add `xlsx` dependency
-- `frontend/src/components/pages/PurchaseStockAnalysis.tsx` — wire export button
-- `frontend/src/components/pages/ManufacturingStockAnalysis.tsx` — wire export button
+- `frontend/package.json` + `frontend/package-lock.json` — add `xlsx` dependency
+- `frontend/src/components/pages/PurchaseStockAnalysis.tsx` — wire export button (generated client)
+- `frontend/src/components/pages/ManufacturingStockAnalysis.tsx` — wire export button (manual fetch)
 
 ---
 
