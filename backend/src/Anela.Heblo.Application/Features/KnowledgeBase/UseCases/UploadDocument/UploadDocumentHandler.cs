@@ -11,31 +11,26 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
 {
     private readonly IKnowledgeBaseRepository _repository;
     private readonly IEnumerable<IDocumentTextExtractor> _extractors;
-    private readonly DocumentChunker _chunker;
-    private readonly IEmbeddingService _embeddingService;
+    private readonly IDocumentIndexingService _indexingService;
 
     public UploadDocumentHandler(
         IKnowledgeBaseRepository repository,
         IEnumerable<IDocumentTextExtractor> extractors,
-        DocumentChunker chunker,
-        IEmbeddingService embeddingService)
+        IDocumentIndexingService indexingService)
     {
         _repository = repository;
         _extractors = extractors;
-        _chunker = chunker;
-        _embeddingService = embeddingService;
+        _indexingService = indexingService;
     }
 
     public async Task<UploadDocumentResponse> Handle(
         UploadDocumentRequest request,
         CancellationToken cancellationToken)
     {
-        // Buffer stream for hashing and text extraction
         using var ms = new MemoryStream();
         await request.FileStream.CopyToAsync(ms, cancellationToken);
         var fileBytes = ms.ToArray();
 
-        // Deduplicate by SHA-256 content hash
         var hash = Convert.ToHexString(SHA256.HashData(fileBytes));
         var existing = await _repository.GetDocumentByHashAsync(hash, cancellationToken);
         if (existing != null)
@@ -43,12 +38,10 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
             return new UploadDocumentResponse { Document = MapToSummary(existing) };
         }
 
-        // Resolve content type — browsers/OS may send application/octet-stream for known formats
         var contentType = ResolveContentType(request.ContentType, request.Filename);
 
         // Validate extractor availability before persisting anything
-        var extractor = _extractors.FirstOrDefault(e => e.CanHandle(contentType));
-        if (extractor == null)
+        if (!_extractors.Any(e => e.CanHandle(contentType)))
         {
             return new UploadDocumentResponse
             {
@@ -57,7 +50,6 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
             };
         }
 
-        // Create document record in "processing" state
         var doc = new KnowledgeBaseDocument
         {
             Id = Guid.NewGuid(),
@@ -73,29 +65,7 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
 
         try
         {
-            var text = await extractor.ExtractTextAsync(fileBytes, cancellationToken);
-
-            // Chunk text
-            var chunkTexts = _chunker.Chunk(text);
-
-            // Embed each chunk and create chunk entities
-            var chunks = new List<KnowledgeBaseChunk>();
-            for (var i = 0; i < chunkTexts.Count; i++)
-            {
-                var embedding = await _embeddingService.GenerateEmbeddingAsync(chunkTexts[i], cancellationToken);
-                chunks.Add(new KnowledgeBaseChunk
-                {
-                    Id = Guid.NewGuid(),
-                    DocumentId = doc.Id,
-                    ChunkIndex = i,
-                    Content = chunkTexts[i],
-                    Embedding = embedding,
-                });
-            }
-
-            await _repository.AddChunksAsync(chunks, cancellationToken);
-            doc.Status = DocumentStatus.Indexed;
-            doc.IndexedAt = DateTime.UtcNow;
+            await _indexingService.IndexChunksAsync(fileBytes, contentType, doc, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
         }
         catch

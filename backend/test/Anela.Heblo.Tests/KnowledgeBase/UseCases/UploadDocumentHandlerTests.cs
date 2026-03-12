@@ -84,7 +84,7 @@ public class UploadDocumentHandlerTests
         var result = await CreateHandler().Handle(request, CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.Equal(DocumentStatus.Indexed, result.Document!.Status);
+        Assert.Equal("indexed", result.Document!.Status);
         Assert.Equal("guide.pdf", result.Document.Filename);
         _repository.Verify(
             r => r.AddDocumentAsync(It.IsAny<KnowledgeBaseDocument>(), It.IsAny<CancellationToken>()),
@@ -119,7 +119,7 @@ public class UploadDocumentHandlerTests
         var result = await CreateHandler().Handle(request, CancellationToken.None);
 
         Assert.True(result.Success);
-        Assert.Equal(DocumentStatus.Indexed, result.Document!.Status);
+        Assert.Equal("indexed", result.Document!.Status);
         Assert.Equal("text/plain", result.Document.ContentType);
     }
 
