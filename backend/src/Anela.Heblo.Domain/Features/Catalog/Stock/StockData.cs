@@ -8,6 +8,7 @@ public record StockData
     public decimal Erp { get; set; }
     public decimal Transport { get; set; }
     public decimal Reserve { get; set; }
+    public decimal Quarantine { get; set; }
     public decimal Ordered { get; set; }
     public decimal Planned { get; set; }
 
@@ -18,7 +19,7 @@ public record StockData
     /// <summary>
     /// Total stock including both available stock and reserve stock
     /// </summary>
-    public decimal Total => Available + Reserve;
+    public decimal Total => Available + Reserve + Quarantine;
 
     /// <summary>
     /// Effective stock including both available and ordered stock for purchase planning
