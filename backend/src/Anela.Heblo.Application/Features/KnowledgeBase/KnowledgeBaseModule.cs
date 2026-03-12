@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtractors;
 using Anela.Heblo.Domain.Features.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,11 +14,9 @@ public static class KnowledgeBaseModule
         services.Configure<KnowledgeBaseOptions>(configuration.GetSection("KnowledgeBase"));
 
         // Register application services
-        services.AddScoped<IEmbeddingService, OpenAiEmbeddingService>();
         services.AddScoped<IDocumentTextExtractor, PdfTextExtractor>();
         services.AddScoped<IDocumentTextExtractor, WordDocumentExtractor>();
         services.AddScoped<IDocumentTextExtractor, PlainTextExtractor>();
-        services.AddScoped<IClaudeService, AnthropicClaudeService>();
         services.AddScoped<DocumentChunker>();
 
         // IKnowledgeBaseRepository is registered in PersistenceModule (real EF Core implementation)

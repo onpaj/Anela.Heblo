@@ -10,7 +10,7 @@ namespace Anela.Heblo.Tests.KnowledgeBase.UseCases;
 public class AskQuestionHandlerTests
 {
     private readonly Mock<IMediator> _mediator = new();
-    private readonly Mock<IClaudeService> _claude = new();
+    private readonly Mock<IAnswerService> _claude = new();
 
     [Fact]
     public async Task Handle_ReturnsAnswerWithSources()

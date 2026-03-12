@@ -1,26 +1,23 @@
-using Microsoft.Extensions.Configuration;
+using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenAI.Embeddings;
 using Polly;
 using Polly.Retry;
 
-namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
+namespace Anela.Heblo.Adapters.OpenAI;
 
 public class OpenAiEmbeddingService : IEmbeddingService
 {
-    private readonly KnowledgeBaseOptions _options;
-    private readonly IConfiguration _configuration;
+    private readonly OpenAiEmbeddingOptions _options;
     private readonly ResiliencePipeline _pipeline;
     private readonly ILogger<OpenAiEmbeddingService> _logger;
 
     public OpenAiEmbeddingService(
-        IOptions<KnowledgeBaseOptions> options,
-        IConfiguration configuration,
+        IOptions<OpenAiEmbeddingOptions> options,
         ILogger<OpenAiEmbeddingService> logger)
     {
         _options = options.Value;
-        _configuration = configuration;
         _logger = logger;
         _pipeline = new ResiliencePipelineBuilder()
             .AddRetry(new RetryStrategyOptions
@@ -35,10 +32,10 @@ public class OpenAiEmbeddingService : IEmbeddingService
 
     public async Task<float[]> GenerateEmbeddingAsync(string text, CancellationToken ct = default)
     {
-        var apiKey = _configuration["OpenAI:ApiKey"]
-            ?? throw new InvalidOperationException("OpenAI:ApiKey is not configured.");
+        if (string.IsNullOrEmpty(_options.ApiKey))
+            throw new InvalidOperationException("OpenAI:ApiKey is not configured.");
 
-        var client = new EmbeddingClient(_options.EmbeddingModel, apiKey);
+        var client = new EmbeddingClient(_options.EmbeddingModel, _options.ApiKey);
 
         _logger.LogDebug("Generating embedding for {CharCount} characters", text.Length);
         var result = await _pipeline.ExecuteAsync(

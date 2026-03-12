@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using UglyToad.PdfPig;
 
-namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
+namespace Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtractors;
 
 public class PdfTextExtractor : IDocumentTextExtractor
 {

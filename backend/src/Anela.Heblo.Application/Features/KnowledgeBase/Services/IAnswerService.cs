@@ -1,6 +1,6 @@
 namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
 
-public interface IClaudeService
+public interface IAnswerService
 {
     Task<string> GenerateAnswerAsync(
         string question,

@@ -7,9 +7,9 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestionResponse>
 {
     private readonly IMediator _mediator;
-    private readonly IClaudeService _claude;
+    private readonly IAnswerService _claude;
 
-    public AskQuestionHandler(IMediator mediator, IClaudeService claude)
+    public AskQuestionHandler(IMediator mediator, IAnswerService claude)
     {
         _mediator = mediator;
         _claude = claude;

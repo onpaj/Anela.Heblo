@@ -1,5 +1,6 @@
 using System.Text;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtractors;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Anela.Heblo.Tests.KnowledgeBase.Services;
