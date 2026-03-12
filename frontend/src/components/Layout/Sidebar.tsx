@@ -17,6 +17,7 @@ import {
   Users,
   ExternalLink,
   FileText,
+  Database,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
 import { useAuth } from "../../auth/useAuth";
@@ -273,6 +274,13 @@ const Sidebar: React.FC<SidebarProps> = ({
           onClick: openHangfireDashboard,
         }
       ],
+    },
+    {
+      id: 'knowledgebase',
+      name: 'Knowledgebase',
+      href: '/knowledge-base',
+      icon: Database,
+      type: 'single' as const,
     },
   ];
 

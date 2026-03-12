@@ -34,6 +34,7 @@ public class MockAuthenticationHandler : AuthenticationHandler<MockAuthenticatio
             new Claim("tid", "11111111-1111-1111-1111-111111111111"), // Tenant ID
             new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.FinanceReader), // Finance reader role for testing
             new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.HebloUser), // Base role for application access
+            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.KnowledgeBaseManager), // Knowledge Base management role
             new Claim("scp", "access_as_user"), // Scopes
             // Add permission claims for testing
             new Claim("permission", "FinancialOverview.View")
