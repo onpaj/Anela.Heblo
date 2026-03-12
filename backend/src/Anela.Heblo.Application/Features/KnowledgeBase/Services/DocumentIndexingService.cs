@@ -1,22 +1,23 @@
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Microsoft.Extensions.AI;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
 
 public class DocumentIndexingService : IDocumentIndexingService
 {
     private readonly IEnumerable<IDocumentTextExtractor> _extractors;
-    private readonly IEmbeddingService _embeddingService;
+    private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddingGenerator;
     private readonly DocumentChunker _chunker;
     private readonly IKnowledgeBaseRepository _repository;
 
     public DocumentIndexingService(
         IEnumerable<IDocumentTextExtractor> extractors,
-        IEmbeddingService embeddingService,
+        IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator,
         DocumentChunker chunker,
         IKnowledgeBaseRepository repository)
     {
         _extractors = extractors;
-        _embeddingService = embeddingService;
+        _embeddingGenerator = embeddingGenerator;
         _chunker = chunker;
         _repository = repository;
     }
@@ -36,14 +37,16 @@ public class DocumentIndexingService : IDocumentIndexingService
         var chunks = new List<KnowledgeBaseChunk>();
         for (var i = 0; i < chunkTexts.Count; i++)
         {
-            var embedding = await _embeddingService.GenerateEmbeddingAsync(chunkTexts[i], ct);
+            var embeddings = await _embeddingGenerator.GenerateAsync(
+                [chunkTexts[i]],
+                cancellationToken: ct);
             chunks.Add(new KnowledgeBaseChunk
             {
                 Id = Guid.NewGuid(),
                 DocumentId = document.Id,
                 ChunkIndex = i,
                 Content = chunkTexts[i],
-                Embedding = embedding,
+                Embedding = embeddings[0].Vector.ToArray(),
             });
         }
 

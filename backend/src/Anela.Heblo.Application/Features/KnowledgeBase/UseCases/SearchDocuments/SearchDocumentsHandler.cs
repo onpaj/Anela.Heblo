@@ -1,17 +1,19 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using MediatR;
+using Microsoft.Extensions.AI;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 
 public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, SearchDocumentsResponse>
 {
-    private readonly IEmbeddingService _embeddingService;
+    private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddingGenerator;
     private readonly IKnowledgeBaseRepository _repository;
 
-    public SearchDocumentsHandler(IEmbeddingService embeddingService, IKnowledgeBaseRepository repository)
+    public SearchDocumentsHandler(
+        IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator,
+        IKnowledgeBaseRepository repository)
     {
-        _embeddingService = embeddingService;
+        _embeddingGenerator = embeddingGenerator;
         _repository = repository;
     }
 
@@ -19,7 +21,10 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
         SearchDocumentsRequest request,
         CancellationToken cancellationToken)
     {
-        var queryEmbedding = await _embeddingService.GenerateEmbeddingAsync(request.Query, cancellationToken);
+        var embeddings = await _embeddingGenerator.GenerateAsync(
+            [request.Query],
+            cancellationToken: cancellationToken);
+        var queryEmbedding = embeddings[0].Vector.ToArray();
         var results = await _repository.SearchSimilarAsync(queryEmbedding, request.TopK, cancellationToken);
 
         return new SearchDocumentsResponse

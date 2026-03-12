@@ -148,4 +148,10 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
     {
         await _context.SaveChangesAsync(ct);
     }
+
+    public async Task SaveQuestionLogAsync(KnowledgeBaseQuestionLog log, CancellationToken ct = default)
+    {
+        _context.KnowledgeBaseQuestionLogs.Add(log);
+        await _context.SaveChangesAsync(ct);
+    }
 }

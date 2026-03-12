@@ -1,6 +1,6 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Microsoft.Extensions.AI;
 using Moq;
 using Xunit;
 
@@ -8,16 +8,22 @@ namespace Anela.Heblo.Tests.KnowledgeBase.UseCases;
 
 public class SearchDocumentsHandlerTests
 {
-    private readonly Mock<IEmbeddingService> _embeddingService = new();
+    private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddingGenerator = new();
     private readonly Mock<IKnowledgeBaseRepository> _repository = new();
 
     [Fact]
     public async Task Handle_ReturnsChunksOrderedByScore()
     {
         var queryEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
-        _embeddingService
-            .Setup(s => s.GenerateEmbeddingAsync("phenoxyethanol concentration", default))
-            .ReturnsAsync(queryEmbedding);
+        var embeddingVector = new ReadOnlyMemory<float>(queryEmbedding);
+        var generatedEmbeddings = new GeneratedEmbeddings<Embedding<float>>([new Embedding<float>(embeddingVector)]);
+
+        _embeddingGenerator
+            .Setup(s => s.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                default))
+            .ReturnsAsync(generatedEmbeddings);
 
         var chunk = new KnowledgeBaseChunk
         {
@@ -30,10 +36,10 @@ public class SearchDocumentsHandlerTests
         };
 
         _repository
-            .Setup(r => r.SearchSimilarAsync(queryEmbedding, 5, default))
+            .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
             .ReturnsAsync([(chunk, 0.95)]);
 
-        var handler = new SearchDocumentsHandler(_embeddingService.Object, _repository.Object);
+        var handler = new SearchDocumentsHandler(_embeddingGenerator.Object, _repository.Object);
         var result = await handler.Handle(
             new SearchDocumentsRequest { Query = "phenoxyethanol concentration", TopK = 5 },
             default);

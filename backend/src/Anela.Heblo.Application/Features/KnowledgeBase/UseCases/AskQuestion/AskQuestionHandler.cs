@@ -1,18 +1,23 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using MediatR;
+using Microsoft.Extensions.AI;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 
 public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestionResponse>
 {
-    private readonly IMediator _mediator;
-    private readonly IAnswerService _answerService;
+    private const string SystemPrompt =
+        "You are an expert assistant for a cosmetics manufacturing company. " +
+        "Answer based strictly on the provided context. " +
+        "If the answer cannot be found in the context, say so explicitly.";
 
-    public AskQuestionHandler(IMediator mediator, IAnswerService answerService)
+    private readonly IMediator _mediator;
+    private readonly IChatClient _chatClient;
+
+    public AskQuestionHandler(IMediator mediator, IChatClient chatClient)
     {
         _mediator = mediator;
-        _answerService = answerService;
+        _chatClient = chatClient;
     }
 
     public async Task<AskQuestionResponse> Handle(
@@ -23,12 +28,17 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
             new SearchDocumentsRequest { Query = request.Question, TopK = request.TopK },
             cancellationToken);
 
-        var contextChunks = searchResult.Chunks.Select(c => c.Content);
+        var context = string.Join("\n\n---\n\n", searchResult.Chunks.Select(c => c.Content));
+        var userContent = context + "\n\n" + request.Question;
 
-        var answer = await _answerService.GenerateAnswerAsync(
-            request.Question,
-            contextChunks,
-            cancellationToken);
+        var messages = new List<ChatMessage>
+        {
+            new(ChatRole.System, SystemPrompt),
+            new(ChatRole.User, userContent)
+        };
+
+        var response = await _chatClient.GetResponseAsync(messages, cancellationToken: cancellationToken);
+        var answer = response.Text ?? string.Empty;
 
         return new AskQuestionResponse
         {

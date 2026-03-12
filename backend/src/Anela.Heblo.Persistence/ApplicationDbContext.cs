@@ -76,6 +76,7 @@ public class ApplicationDbContext : DbContext
     // Knowledge Base module
     public DbSet<KnowledgeBaseDocument> KnowledgeBaseDocuments { get; set; } = null!;
     public DbSet<KnowledgeBaseChunk> KnowledgeBaseChunks { get; set; } = null!;
+    public DbSet<KnowledgeBaseQuestionLog> KnowledgeBaseQuestionLogs { get; set; } = null!;
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
