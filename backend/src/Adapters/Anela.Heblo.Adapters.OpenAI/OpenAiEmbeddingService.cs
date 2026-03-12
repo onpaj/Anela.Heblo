@@ -9,8 +9,17 @@ namespace Anela.Heblo.Adapters.OpenAI;
 
 public class OpenAiEmbeddingService : IEmbeddingService
 {
+    private static readonly ResiliencePipeline Pipeline = new ResiliencePipelineBuilder()
+        .AddRetry(new RetryStrategyOptions
+        {
+            MaxRetryAttempts = 3,
+            Delay = TimeSpan.FromSeconds(2),
+            BackoffType = DelayBackoffType.Exponential,
+            ShouldHandle = new PredicateBuilder().Handle<HttpRequestException>()
+        })
+        .Build();
+
     private readonly OpenAiEmbeddingOptions _options;
-    private readonly ResiliencePipeline _pipeline;
     private readonly ILogger<OpenAiEmbeddingService> _logger;
 
     public OpenAiEmbeddingService(
@@ -19,15 +28,6 @@ public class OpenAiEmbeddingService : IEmbeddingService
     {
         _options = options.Value;
         _logger = logger;
-        _pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new RetryStrategyOptions
-            {
-                MaxRetryAttempts = 3,
-                Delay = TimeSpan.FromSeconds(2),
-                BackoffType = DelayBackoffType.Exponential,
-                ShouldHandle = new PredicateBuilder().Handle<HttpRequestException>()
-            })
-            .Build();
     }
 
     public async Task<float[]> GenerateEmbeddingAsync(string text, CancellationToken ct = default)
@@ -38,7 +38,7 @@ public class OpenAiEmbeddingService : IEmbeddingService
         var client = new EmbeddingClient(_options.EmbeddingModel, _options.ApiKey);
 
         _logger.LogDebug("Generating embedding for {CharCount} characters", text.Length);
-        var result = await _pipeline.ExecuteAsync(
+        var result = await Pipeline.ExecuteAsync(
             async token => await client.GenerateEmbeddingAsync(text, cancellationToken: token),
             ct);
         return result.Value.ToFloats().ToArray();

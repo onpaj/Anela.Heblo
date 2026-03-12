@@ -12,9 +12,18 @@ namespace Anela.Heblo.Adapters.Anthropic;
 
 public class AnthropicClaudeService : IAnswerService
 {
+    private static readonly ResiliencePipeline Pipeline = new ResiliencePipelineBuilder()
+        .AddRetry(new RetryStrategyOptions
+        {
+            MaxRetryAttempts = 3,
+            Delay = TimeSpan.FromSeconds(2),
+            BackoffType = DelayBackoffType.Exponential,
+            ShouldHandle = new PredicateBuilder().Handle<HttpRequestException>()
+        })
+        .Build();
+
     private readonly AnthropicOptions _options;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ResiliencePipeline _pipeline;
     private readonly ILogger<AnthropicClaudeService> _logger;
 
     public AnthropicClaudeService(
@@ -25,15 +34,6 @@ public class AnthropicClaudeService : IAnswerService
         _options = options.Value;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new RetryStrategyOptions
-            {
-                MaxRetryAttempts = 3,
-                Delay = TimeSpan.FromSeconds(2),
-                BackoffType = DelayBackoffType.Exponential,
-                ShouldHandle = new PredicateBuilder().Handle<HttpRequestException>()
-            })
-            .Build();
     }
 
     public async Task<string> GenerateAnswerAsync(
@@ -73,10 +73,10 @@ public class AnthropicClaudeService : IAnswerService
             }
         };
 
-        var response = await _pipeline.ExecuteAsync(async token =>
+        var response = await Pipeline.ExecuteAsync(async token =>
         {
             using var client = _httpClientFactory.CreateClient("Anthropic");
-            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages");
+            using var request = new HttpRequestMessage(HttpMethod.Post, _options.MessagesUrl);
             request.Headers.Add("x-api-key", _options.ApiKey);
             request.Headers.Add("anthropic-version", "2023-06-01");
             request.Content = new StringContent(
