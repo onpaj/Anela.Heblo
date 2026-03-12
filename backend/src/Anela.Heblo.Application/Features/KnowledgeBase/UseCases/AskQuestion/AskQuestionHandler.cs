@@ -7,12 +7,12 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestionResponse>
 {
     private readonly IMediator _mediator;
-    private readonly IAnswerService _claude;
+    private readonly IAnswerService _answerService;
 
-    public AskQuestionHandler(IMediator mediator, IAnswerService claude)
+    public AskQuestionHandler(IMediator mediator, IAnswerService answerService)
     {
         _mediator = mediator;
-        _claude = claude;
+        _answerService = answerService;
     }
 
     public async Task<AskQuestionResponse> Handle(
@@ -25,7 +25,7 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
 
         var contextChunks = searchResult.Chunks.Select(c => c.Content);
 
-        var answer = await _claude.GenerateAnswerAsync(
+        var answer = await _answerService.GenerateAnswerAsync(
             request.Question,
             contextChunks,
             cancellationToken);
