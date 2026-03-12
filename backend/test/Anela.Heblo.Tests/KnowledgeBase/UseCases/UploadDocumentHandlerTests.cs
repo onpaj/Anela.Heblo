@@ -1,9 +1,7 @@
-using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.UploadDocument;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
-using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -12,21 +10,23 @@ namespace Anela.Heblo.Tests.KnowledgeBase.UseCases;
 public class UploadDocumentHandlerTests
 {
     private readonly Mock<IDocumentTextExtractor> _extractor = new();
-    private readonly Mock<IEmbeddingService> _embedding = new();
     private readonly Mock<IKnowledgeBaseRepository> _repository = new();
-    private readonly DocumentChunker _chunker;
+    private readonly Mock<IDocumentIndexingService> _indexingService = new();
 
     public UploadDocumentHandlerTests()
     {
-        _chunker = new DocumentChunker(Options.Create(new KnowledgeBaseOptions
-        {
-            ChunkSize = 5,
-            ChunkOverlapTokens = 1
-        }));
+        // Simulate DocumentIndexingService side-effect: sets status to Indexed
+        _indexingService
+            .Setup(s => s.IndexChunksAsync(It.IsAny<byte[]>(), It.IsAny<string>(), It.IsAny<KnowledgeBaseDocument>(), It.IsAny<CancellationToken>()))
+            .Callback<byte[], string, KnowledgeBaseDocument, CancellationToken>((_, _, doc, _) =>
+            {
+                doc.Status = DocumentStatus.Indexed;
+                doc.IndexedAt = DateTime.UtcNow;
+            });
     }
 
     private UploadDocumentHandler CreateHandler() =>
-        new(_repository.Object, new[] { _extractor.Object }, _chunker, _embedding.Object);
+        new(_repository.Object, new[] { _extractor.Object }, _indexingService.Object);
 
     [Fact]
     public async Task Handle_WhenDocumentAlreadyExistsByHash_ReturnExistingWithoutReindexing()
@@ -68,11 +68,6 @@ public class UploadDocumentHandlerTests
                    .ReturnsAsync((KnowledgeBaseDocument?)null);
 
         _extractor.Setup(e => e.CanHandle("application/pdf")).Returns(true);
-        _extractor.Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
-                  .ReturnsAsync("word1 word2 word3 word4 word5 word6 word7 word8 word9 word10");
-
-        _embedding.Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                  .ReturnsAsync(new float[] { 0.1f, 0.2f, 0.3f });
 
         var request = new UploadDocumentRequest
         {
@@ -89,10 +84,8 @@ public class UploadDocumentHandlerTests
         _repository.Verify(
             r => r.AddDocumentAsync(It.IsAny<KnowledgeBaseDocument>(), It.IsAny<CancellationToken>()),
             Times.Once);
-        _repository.Verify(
-            r => r.AddChunksAsync(
-                It.Is<IEnumerable<KnowledgeBaseChunk>>(chunks => chunks.Any()),
-                It.IsAny<CancellationToken>()),
+        _indexingService.Verify(
+            s => s.IndexChunksAsync(It.IsAny<byte[]>(), "application/pdf", It.IsAny<KnowledgeBaseDocument>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -103,11 +96,6 @@ public class UploadDocumentHandlerTests
                    .ReturnsAsync((KnowledgeBaseDocument?)null);
 
         _extractor.Setup(e => e.CanHandle("text/plain")).Returns(true);
-        _extractor.Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
-                  .ReturnsAsync("word1 word2 word3");
-
-        _embedding.Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                  .ReturnsAsync(new float[] { 0.1f });
 
         var request = new UploadDocumentRequest
         {
@@ -131,11 +119,6 @@ public class UploadDocumentHandlerTests
 
         const string docxContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         _extractor.Setup(e => e.CanHandle(docxContentType)).Returns(true);
-        _extractor.Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
-                  .ReturnsAsync("word1 word2 word3");
-
-        _embedding.Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                  .ReturnsAsync(new float[] { 0.1f });
 
         var request = new UploadDocumentRequest
         {
