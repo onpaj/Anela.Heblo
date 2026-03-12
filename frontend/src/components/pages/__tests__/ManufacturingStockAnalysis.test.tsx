@@ -4,6 +4,7 @@ import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PlanningListProvider } from "../../../contexts/PlanningListContext";
+import { ToastProvider } from "../../../contexts/ToastContext";
 import ManufacturingStockAnalysis from "../ManufacturingStockAnalysis";
 // Importing for type information only
 // import { useManufacturingStockAnalysisQuery } from '../../../api/hooks/useManufacturingStockAnalysis';
@@ -80,11 +81,13 @@ const createWrapper = () => {
 
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <PlanningListProvider>
-          {children}
-        </PlanningListProvider>
-      </BrowserRouter>
+      <ToastProvider>
+        <BrowserRouter>
+          <PlanningListProvider>
+            {children}
+          </PlanningListProvider>
+        </BrowserRouter>
+      </ToastProvider>
     </QueryClientProvider>
   );
 };
