@@ -40,4 +40,15 @@ public static class AuthorizationConstants
         /// </summary>
         public const string KnowledgeBaseManager = "knowledge_base_manager";
     }
+
+    /// <summary>
+    /// Authorization policy names
+    /// </summary>
+    public static class Policies
+    {
+        /// <summary>
+        /// Policy required for uploading and deleting Knowledge Base documents
+        /// </summary>
+        public const string KnowledgeBaseUpload = "KnowledgeBaseUpload";
+    }
 }
