@@ -61,6 +61,7 @@ export const usePurchaseStockAnalysisQuery = (
         request.pageSize,
         request.sortBy,
         request.sortDescending,
+        undefined, // isExport — false by default for regular queries
       );
     },
     staleTime: 1000 * 60 * 2, // 2 minutes (shorter than purchase orders since stock data changes more frequently)

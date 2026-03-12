@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Search,
   RefreshCw,
@@ -26,6 +26,9 @@ import {
   formatCurrency,
 } from "../../api/hooks/usePurchaseStockAnalysis";
 import { StockSeverity } from "../../api/generated/api-client";
+import { getAuthenticatedApiClient } from "../../api/client";
+import { exportToXlsx } from "../../utils/exportToXlsx";
+import { useToast } from "../../contexts/ToastContext";
 import CatalogDetail from "./CatalogDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { usePurchasePlanningList } from "../../contexts/PurchasePlanningListContext";
@@ -69,6 +72,9 @@ const PurchaseStockAnalysis: React.FC = () => {
 
   // State for collapsible sections
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const { showError } = useToast();
 
   // Query for stock analysis data
   const { data, isLoading, error, isRefetching, refetch } =
@@ -114,11 +120,59 @@ const PurchaseStockAnalysis: React.FC = () => {
     }));
   };
 
-  // Export functionality (placeholder)
-  const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log("Export to CSV");
-  };
+  // Export functionality
+  const handleExport = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const apiClient = await getAuthenticatedApiClient();
+      const result = await apiClient.purchaseStockAnalysis_GetStockAnalysis(
+        filters.fromDate ?? null,
+        filters.toDate ?? null,
+        filters.stockStatus,
+        filters.onlyConfigured,
+        filters.searchTerm ?? null,
+        undefined, // pageNumber — skipped on export
+        undefined, // pageSize — skipped on export
+        filters.sortBy,
+        filters.sortDescending,
+        true, // isExport
+      );
+
+      const today = new Date().toISOString().split("T")[0];
+      exportToXlsx(
+        result.items ?? [],
+        [
+          { header: "Kód produktu", value: (row) => row.productCode },
+          { header: "Název produktu", value: (row) => row.productName },
+          { header: "Typ produktu", value: (row) => row.productType },
+          { header: "Dostupný sklad", value: (row) => row.availableStock },
+          { header: "Objednané", value: (row) => row.orderedStock },
+          { header: "Efektivní sklad", value: (row) => row.effectiveStock },
+          { header: "Min. úroveň skladu", value: (row) => row.minStockLevel },
+          { header: "Optimální sklad", value: (row) => row.optimalStockLevel },
+          { header: "Spotřeba v období", value: (row) => row.consumptionInPeriod },
+          { header: "Denní spotřeba", value: (row) => row.dailyConsumption },
+          { header: "Dní do vyčerpání", value: (row) => row.daysUntilStockout },
+          { header: "Efektivita skladu (%)", value: (row) => row.stockEfficiencyPercentage },
+          { header: "Závažnost", value: (row) => row.severity },
+          { header: "Min. objednací množství", value: (row) => row.minimalOrderQuantity },
+          { header: "Poslední nákup – datum", value: (row) => row.lastPurchase?.date },
+          { header: "Poslední nákup – dodavatel", value: (row) => row.lastPurchase?.supplierName },
+          { header: "Poslední nákup – množství", value: (row) => row.lastPurchase?.amount },
+          { header: "Poslední nákup – jedn. cena", value: (row) => row.lastPurchase?.unitPrice },
+          { header: "Poslední nákup – celk. cena", value: (row) => row.lastPurchase?.totalPrice },
+          { header: "Dodavatel", value: (row) => row.supplier },
+          { header: "Doporučené objednací množství", value: (row) => row.recommendedOrderQuantity },
+          { header: "Nakonfigurováno", value: (row) => row.isConfigured },
+        ],
+        `purchase-stock-analysis-${today}.xlsx`,
+      );
+    } catch {
+      showError("Export selhal", "Nepodařilo se stáhnout data pro export.");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [filters, showError]);
 
   // Quick date range selectors
   const handleQuickDateRange = (
@@ -489,9 +543,14 @@ const PurchaseStockAnalysis: React.FC = () => {
               </button>
               <button
                 onClick={handleExport}
-                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                disabled={isExporting}
+                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >
-                <Download className="h-3 w-3 mr-1" />
+                {isExporting ? (
+                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Download className="h-3 w-3 mr-1" />
+                )}
                 {isControlsCollapsed ? "" : "Export"}
               </button>
 
