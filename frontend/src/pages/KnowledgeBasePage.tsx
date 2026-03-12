@@ -46,7 +46,7 @@ const KnowledgeBasePage: React.FC = () => {
         {activeTab === 'search' && <KnowledgeBaseSearchAskTab />}
         {activeTab === 'documents' && <KnowledgeBaseDocumentsTab canDelete={canUpload} />}
         {activeTab === 'upload' && canUpload && (
-          <KnowledgeBaseUploadTab onUploadSuccess={() => setActiveTab('documents')} />
+          <KnowledgeBaseUploadTab />
         )}
       </div>
     </div>
