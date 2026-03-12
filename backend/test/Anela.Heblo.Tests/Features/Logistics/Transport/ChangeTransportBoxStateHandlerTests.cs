@@ -246,6 +246,91 @@ public class ChangeTransportBoxStateHandlerTests
         result.UpdatedBox.Should().BeNull();
     }
 
+    [Fact]
+    public async Task Handle_OpenedToQuarantine_NoLocationRequired_ReturnsSuccess()
+    {
+        // Arrange — box in Opened state
+        var box = CreateTestBox(TransportBoxState.Opened);
+        _repositoryMock.Setup(x => x.GetByIdWithDetailsAsync(1)).ReturnsAsync(box);
+        _repositoryMock.Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _repositoryMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetTransportBoxByIdResponse { TransportBox = new Anela.Heblo.Application.Features.Logistics.Contracts.TransportBoxDto() });
+
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = TransportBoxState.Quarantine
+            // Location intentionally omitted
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_OpenedToQuarantine_DoesNotCreateStockUpOperations()
+    {
+        // Arrange
+        var box = CreateTestBoxWithItems(TransportBoxState.Opened);
+        _repositoryMock.Setup(x => x.GetByIdWithDetailsAsync(1)).ReturnsAsync(box);
+        _repositoryMock.Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _repositoryMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetTransportBoxByIdResponse { TransportBox = new Anela.Heblo.Application.Features.Logistics.Contracts.TransportBoxDto() });
+
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = TransportBoxState.Quarantine
+        };
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert — no stock operations created (that only happens on Received)
+        _stockUpProcessingServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_QuarantineToReceived_CreatesStockUpOperations()
+    {
+        // Arrange — box in Quarantine state with items
+        var box = CreateTestBoxWithItems(TransportBoxState.Quarantine);
+        _repositoryMock.Setup(x => x.GetByIdWithDetailsAsync(1)).ReturnsAsync(box);
+        _repositoryMock.Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _repositoryMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetTransportBoxByIdResponse { TransportBox = new Anela.Heblo.Application.Features.Logistics.Contracts.TransportBoxDto() });
+
+        var request = new ChangeTransportBoxStateRequest
+        {
+            BoxId = 1,
+            NewState = TransportBoxState.Received
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _stockUpProcessingServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
     private TransportBox CreateTestBox(TransportBoxState state)
     {
         var box = new TransportBox();
