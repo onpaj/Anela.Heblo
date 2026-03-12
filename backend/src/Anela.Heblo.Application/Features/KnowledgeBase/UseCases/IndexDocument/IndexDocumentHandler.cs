@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.IndexDocument;
 
@@ -19,13 +18,13 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest>
         IEmbeddingService embeddingService,
         DocumentChunker chunker,
         IKnowledgeBaseRepository repository,
-        ILogger<IndexDocumentHandler>? logger = null)
+        ILogger<IndexDocumentHandler> logger)
     {
         _extractors = extractors;
         _embeddingService = embeddingService;
         _chunker = chunker;
         _repository = repository;
-        _logger = logger ?? NullLogger<IndexDocumentHandler>.Instance;
+        _logger = logger;
     }
 
     public async Task Handle(IndexDocumentRequest request, CancellationToken cancellationToken)

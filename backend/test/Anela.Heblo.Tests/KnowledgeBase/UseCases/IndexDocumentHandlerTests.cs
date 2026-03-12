@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.IndexDocument;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -39,7 +40,7 @@ public class IndexDocumentHandlerTests
         _repository.Setup(r => r.AddDocumentAsync(It.IsAny<KnowledgeBaseDocument>(), default))
             .Callback<KnowledgeBaseDocument, CancellationToken>((doc, _) => savedDoc = doc);
 
-        var handler = new IndexDocumentHandler(new[] { _extractor.Object }, _embedding.Object, _chunker, _repository.Object);
+        var handler = new IndexDocumentHandler(new[] { _extractor.Object }, _embedding.Object, _chunker, _repository.Object, NullLogger<IndexDocumentHandler>.Instance);
 
         await handler.Handle(new IndexDocumentRequest
         {
@@ -64,7 +65,7 @@ public class IndexDocumentHandlerTests
     {
         _extractor.Setup(e => e.CanHandle("image/png")).Returns(false);
 
-        var handler = new IndexDocumentHandler(new[] { _extractor.Object }, _embedding.Object, _chunker, _repository.Object);
+        var handler = new IndexDocumentHandler(new[] { _extractor.Object }, _embedding.Object, _chunker, _repository.Object, NullLogger<IndexDocumentHandler>.Instance);
 
         await Assert.ThrowsAsync<NotSupportedException>(() =>
             handler.Handle(new IndexDocumentRequest
@@ -91,7 +92,7 @@ public class IndexDocumentHandlerTests
 
         _extractor.Setup(e => e.CanHandle("application/unknown")).Returns(false);
 
-        var handler = new IndexDocumentHandler(new[] { _extractor.Object }, _embedding.Object, _chunker, _repository.Object);
+        var handler = new IndexDocumentHandler(new[] { _extractor.Object }, _embedding.Object, _chunker, _repository.Object, NullLogger<IndexDocumentHandler>.Instance);
 
         await Assert.ThrowsAsync<NotSupportedException>(() =>
             handler.Handle(request, CancellationToken.None));
