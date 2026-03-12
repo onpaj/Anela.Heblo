@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using MediatR;
 
@@ -42,13 +43,27 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
             return new UploadDocumentResponse { Document = MapToSummary(existing) };
         }
 
+        // Resolve content type — browsers/OS may send application/octet-stream for known formats
+        var contentType = ResolveContentType(request.ContentType, request.Filename);
+
+        // Validate extractor availability before persisting anything
+        var extractor = _extractors.FirstOrDefault(e => e.CanHandle(contentType));
+        if (extractor == null)
+        {
+            return new UploadDocumentResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.UnsupportedFileType,
+            };
+        }
+
         // Create document record in "processing" state
         var doc = new KnowledgeBaseDocument
         {
             Id = Guid.NewGuid(),
             Filename = request.Filename,
             SourcePath = $"upload/{Guid.NewGuid()}/{request.Filename}",
-            ContentType = request.ContentType,
+            ContentType = contentType,
             ContentHash = hash,
             Status = DocumentStatus.Processing,
             CreatedAt = DateTime.UtcNow,
@@ -58,10 +73,6 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
 
         try
         {
-            // Select extractor by content type
-            var extractor = _extractors.FirstOrDefault(e => e.CanHandle(request.ContentType))
-                ?? throw new NotSupportedException($"Content type '{request.ContentType}' is not supported.");
-
             var text = await extractor.ExtractTextAsync(fileBytes, cancellationToken);
 
             // Chunk text
@@ -107,4 +118,21 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
             CreatedAt = doc.CreatedAt,
             IndexedAt = doc.IndexedAt,
         };
+
+    /// <summary>
+    /// Resolves the effective content type, falling back to file extension when the browser
+    /// reports a generic type (application/octet-stream) for drag-and-drop uploads.
+    /// </summary>
+    private static string ResolveContentType(string contentType, string filename) =>
+        string.IsNullOrEmpty(contentType) || contentType.Equals("application/octet-stream", StringComparison.OrdinalIgnoreCase)
+            ? Path.GetExtension(filename).ToLowerInvariant() switch
+            {
+                ".pdf" => "application/pdf",
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".doc" => "application/msword",
+                ".txt" => "text/plain",
+                ".md" => "text/markdown",
+                _ => contentType
+            }
+            : contentType;
 }

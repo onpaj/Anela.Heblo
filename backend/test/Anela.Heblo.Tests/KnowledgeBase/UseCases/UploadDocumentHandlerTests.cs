@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.UploadDocument;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -93,5 +94,83 @@ public class UploadDocumentHandlerTests
                 It.Is<IEnumerable<KnowledgeBaseChunk>>(chunks => chunks.Any()),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_OctetStreamWithTxtExtension_ResolvesToTextPlainAndIndexes()
+    {
+        _repository.Setup(r => r.GetDocumentByHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                   .ReturnsAsync((KnowledgeBaseDocument?)null);
+
+        _extractor.Setup(e => e.CanHandle("text/plain")).Returns(true);
+        _extractor.Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+                  .ReturnsAsync("word1 word2 word3");
+
+        _embedding.Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                  .ReturnsAsync(new float[] { 0.1f });
+
+        var request = new UploadDocumentRequest
+        {
+            FileStream = new MemoryStream("plain text"u8.ToArray()),
+            Filename = "readme.txt",
+            ContentType = "application/octet-stream", // browser drag-and-drop may send this
+        };
+
+        var result = await CreateHandler().Handle(request, CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal(DocumentStatus.Indexed, result.Document!.Status);
+        Assert.Equal("text/plain", result.Document.ContentType);
+    }
+
+    [Fact]
+    public async Task Handle_OctetStreamWithDocxExtension_ResolvesToDocxContentType()
+    {
+        _repository.Setup(r => r.GetDocumentByHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                   .ReturnsAsync((KnowledgeBaseDocument?)null);
+
+        const string docxContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        _extractor.Setup(e => e.CanHandle(docxContentType)).Returns(true);
+        _extractor.Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+                  .ReturnsAsync("word1 word2 word3");
+
+        _embedding.Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                  .ReturnsAsync(new float[] { 0.1f });
+
+        var request = new UploadDocumentRequest
+        {
+            FileStream = new MemoryStream("docx bytes"u8.ToArray()),
+            Filename = "document.docx",
+            ContentType = "application/octet-stream",
+        };
+
+        var result = await CreateHandler().Handle(request, CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal(docxContentType, result.Document!.ContentType);
+    }
+
+    [Fact]
+    public async Task Handle_UnsupportedFileType_ReturnsUnsupportedFileTypeErrorWithoutThrowing()
+    {
+        _repository.Setup(r => r.GetDocumentByHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                   .ReturnsAsync((KnowledgeBaseDocument?)null);
+
+        _extractor.Setup(e => e.CanHandle(It.IsAny<string>())).Returns(false);
+
+        var request = new UploadDocumentRequest
+        {
+            FileStream = new MemoryStream("binary"u8.ToArray()),
+            Filename = "archive.zip",
+            ContentType = "application/zip",
+        };
+
+        var result = await CreateHandler().Handle(request, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.UnsupportedFileType, result.ErrorCode);
+        _repository.Verify(
+            r => r.AddDocumentAsync(It.IsAny<KnowledgeBaseDocument>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }
