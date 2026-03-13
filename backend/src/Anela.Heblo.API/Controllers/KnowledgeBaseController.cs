@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.DeleteDocument;
+using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocumentContentTypes;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SubmitFeedback;
@@ -24,9 +25,33 @@ public class KnowledgeBaseController : BaseApiController
     }
 
     [HttpGet("documents")]
-    public async Task<ActionResult<GetDocumentsResponse>> GetDocuments(CancellationToken ct)
+    public async Task<ActionResult<GetDocumentsResponse>> GetDocuments(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string sortBy = "CreatedAt",
+        [FromQuery] bool sortDescending = true,
+        [FromQuery] string? filenameFilter = null,
+        [FromQuery] string? statusFilter = null,
+        [FromQuery] string? contentTypeFilter = null,
+        CancellationToken ct = default)
     {
-        var result = await _mediator.Send(new GetDocumentsRequest(), ct);
+        var result = await _mediator.Send(new GetDocumentsRequest
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            SortBy = sortBy,
+            SortDescending = sortDescending,
+            FilenameFilter = filenameFilter,
+            StatusFilter = statusFilter,
+            ContentTypeFilter = contentTypeFilter,
+        }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("documents/content-types")]
+    public async Task<ActionResult<GetDocumentContentTypesResponse>> GetDocumentContentTypes(CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetDocumentContentTypesRequest(), ct);
         return HandleResponse(result);
     }
 

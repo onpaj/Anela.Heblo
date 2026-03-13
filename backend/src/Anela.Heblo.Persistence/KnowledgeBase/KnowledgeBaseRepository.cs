@@ -48,10 +48,58 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
         }
     }
 
-    public async Task<List<KnowledgeBaseDocument>> GetAllDocumentsAsync(CancellationToken ct = default)
+    public async Task<(List<KnowledgeBaseDocument> Documents, int TotalCount)> GetDocumentsPagedAsync(
+        string? filenameFilter,
+        DocumentStatus? statusFilter,
+        string? contentTypeFilter,
+        string sortBy,
+        bool sortDescending,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var query = _context.KnowledgeBaseDocuments.AsQueryable();
+
+        if (!string.IsNullOrEmpty(filenameFilter))
+            query = query.Where(d => EF.Functions.Like(d.Filename, $"%{filenameFilter}%"));
+
+        if (statusFilter.HasValue)
+            query = query.Where(d => d.Status == statusFilter.Value);
+
+        if (!string.IsNullOrEmpty(contentTypeFilter))
+            query = query.Where(d => d.ContentType == contentTypeFilter);
+
+        query = sortBy switch
+        {
+            "Filename" => sortDescending
+                ? query.OrderByDescending(d => d.Filename)
+                : query.OrderBy(d => d.Filename),
+            "Status" => sortDescending
+                ? query.OrderByDescending(d => d.Status)
+                : query.OrderBy(d => d.Status),
+            "IndexedAt" => sortDescending
+                ? query.OrderByDescending(d => d.IndexedAt)
+                : query.OrderBy(d => d.IndexedAt),
+            _ => sortDescending
+                ? query.OrderByDescending(d => d.CreatedAt)
+                : query.OrderBy(d => d.CreatedAt),
+        };
+
+        var totalCount = await query.CountAsync(ct);
+        var documents = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return (documents, totalCount);
+    }
+
+    public async Task<List<string>> GetDistinctContentTypesAsync(CancellationToken ct = default)
     {
         return await _context.KnowledgeBaseDocuments
-            .OrderByDescending(d => d.CreatedAt)
+            .Select(d => d.ContentType)
+            .Distinct()
+            .OrderBy(ct => ct)
             .ToListAsync(ct);
     }
 
