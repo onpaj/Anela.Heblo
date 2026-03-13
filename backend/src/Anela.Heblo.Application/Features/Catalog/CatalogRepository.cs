@@ -120,6 +120,9 @@ public class CatalogRepository : ICatalogRepository
     {
         var reserveData = await GetProductsInReserve(ct);
         CachedInReserveData = reserveData;
+
+        var quarantineData = await GetProductsInQuarantine(ct);
+        CachedInQuarantineData = quarantineData;
     }
 
     public async Task RefreshOrderedData(CancellationToken ct)
@@ -377,6 +380,7 @@ public class CatalogRepository : ICatalogRepository
 
             product.Stock.Transport = CachedInTransportData.ContainsKey(product.ProductCode) ? CachedInTransportData[product.ProductCode] : 0;
             product.Stock.Reserve = CachedInReserveData.ContainsKey(product.ProductCode) ? CachedInReserveData[product.ProductCode] : 0;
+            product.Stock.Quarantine = CachedInQuarantineData.ContainsKey(product.ProductCode) ? CachedInQuarantineData[product.ProductCode] : 0;
             product.Stock.Ordered = CachedOrderedData.ContainsKey(product.ProductCode) ? CachedOrderedData[product.ProductCode] : 0;
             product.Stock.Planned = CachedPlannedData.ContainsKey(product.ProductCode) ? CachedPlannedData[product.ProductCode] : 0;
 
@@ -577,6 +581,17 @@ public class CatalogRepository : ICatalogRepository
         }
     }
 
+    private IDictionary<string, int> CachedInQuarantineData
+    {
+        get => _cache.Get<Dictionary<string, int>>(nameof(CachedInQuarantineData)) ?? new Dictionary<string, int>();
+        set
+        {
+            _cache.Set(nameof(CachedInQuarantineData), value);
+            InvalidateSourceData(nameof(CachedInQuarantineData));
+            SetLoadDateInCache(nameof(CachedInQuarantineData));
+        }
+    }
+
     private IDictionary<string, decimal> CachedOrderedData
     {
         get => _cache.Get<Dictionary<string, decimal>>(nameof(CachedOrderedData)) ?? new Dictionary<string, decimal>();
@@ -720,6 +735,7 @@ public class CatalogRepository : ICatalogRepository
     // Data load timestamps - stored in cache with same expiration as data
     public DateTime? TransportLoadDate => GetLoadDateFromCache(nameof(CachedInTransportData));
     public DateTime? ReserveLoadDate => GetLoadDateFromCache(nameof(CachedInReserveData));
+    public DateTime? QuarantineLoadDate => GetLoadDateFromCache(nameof(CachedInQuarantineData));
     public DateTime? OrderedLoadDate => GetLoadDateFromCache(nameof(CachedOrderedData));
     public DateTime? PlannedLoadDate => GetLoadDateFromCache(nameof(CachedPlannedData));
     public DateTime? SalesLoadDate => GetLoadDateFromCache(nameof(CachedSalesData));
@@ -754,6 +770,7 @@ public class CatalogRepository : ICatalogRepository
             {
                 TransportLoadDate,
                 ReserveLoadDate,
+                QuarantineLoadDate,
                 OrderedLoadDate,
                 PlannedLoadDate,
                 SalesLoadDate,
@@ -821,6 +838,14 @@ public class CatalogRepository : ICatalogRepository
     private async Task<Dictionary<string, int>> GetProductsInReserve(CancellationToken ct)
     {
         var boxes = await _transportBoxRepository.FindAsync(TransportBox.IsInReservePredicate, includeDetails: true, cancellationToken: ct);
+        return boxes.SelectMany(s => s.Items)
+            .GroupBy(g => g.ProductCode)
+            .ToDictionary(k => k.Key, v => v.Sum(s => (int)s.Amount));
+    }
+
+    private async Task<Dictionary<string, int>> GetProductsInQuarantine(CancellationToken ct)
+    {
+        var boxes = await _transportBoxRepository.FindAsync(TransportBox.IsInQuarantinePredicate, includeDetails: true, cancellationToken: ct);
         return boxes.SelectMany(s => s.Items)
             .GroupBy(g => g.ProductCode)
             .ToDictionary(k => k.Key, v => v.Sum(s => (int)s.Amount));

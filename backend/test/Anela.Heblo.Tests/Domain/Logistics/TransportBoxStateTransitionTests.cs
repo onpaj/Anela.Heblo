@@ -459,4 +459,104 @@ public class TransportBoxStateTransitionTests
 
         act.Should().Throw<ValidationException>();
     }
+
+    [Fact]
+    public void ToQuarantine_FromOpened_SetsStateToQuarantine()
+    {
+        var box = new TransportBox();
+        box.Open("B001", DateTime.UtcNow, "user");
+
+        box.ToQuarantine(DateTime.UtcNow, "user");
+
+        box.State.Should().Be(TransportBoxState.Quarantine);
+    }
+
+    [Fact]
+    public void ToQuarantine_ClearsLocation()
+    {
+        var box = new TransportBox();
+        box.Open("B001", DateTime.UtcNow, "user");
+        box.Location = "SkladSkla"; // stale value from a prior operation
+
+        box.ToQuarantine(DateTime.UtcNow, "user");
+
+        box.Location.Should().BeNull();
+    }
+
+    [Fact]
+    public void ToQuarantine_FromNew_ThrowsValidationException()
+    {
+        var box = new TransportBox(); // State is New
+
+        var act = () => box.ToQuarantine(DateTime.UtcNow, "user");
+
+        act.Should().Throw<ValidationException>();
+    }
+
+    [Fact]
+    public void IsInQuarantine_WhenQuarantine_ReturnsTrue()
+    {
+        var box = new TransportBox();
+        box.Open("B001", DateTime.UtcNow, "user");
+        box.ToQuarantine(DateTime.UtcNow, "user");
+
+        box.IsInQuarantine.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsInQuarantine_WhenNotQuarantine_ReturnsFalse()
+    {
+        var box = new TransportBox();
+        box.Open("B001", DateTime.UtcNow, "user");
+
+        box.IsInQuarantine.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Receive_FromQuarantine_Succeeds()
+    {
+        var box = new TransportBox();
+        box.Open("B001", DateTime.UtcNow, "user");
+        box.ToQuarantine(DateTime.UtcNow, "user");
+
+        box.Receive(DateTime.UtcNow, "user");
+
+        box.State.Should().Be(TransportBoxState.Received);
+    }
+
+    [Fact]
+    public void RevertToOpened_FromQuarantine_Succeeds()
+    {
+        var box = new TransportBox();
+        box.Open("B001", DateTime.UtcNow, "user");
+        box.ToQuarantine(DateTime.UtcNow, "user");
+
+        box.RevertToOpened(DateTime.UtcNow, "user");
+
+        box.State.Should().Be(TransportBoxState.Opened);
+    }
+
+    [Fact]
+    public void TransitionNode_FromQuarantine_HasReceivedAndOpenedTransitions()
+    {
+        var box = new TransportBox();
+        box.Open("B001", DateTime.UtcNow, "user");
+        box.ToQuarantine(DateTime.UtcNow, "user");
+
+        var transitions = box.TransitionNode.GetAllTransitions().Select(t => t.NewState).ToList();
+
+        transitions.Should().Contain(TransportBoxState.Received);
+        transitions.Should().Contain(TransportBoxState.Opened);
+    }
+
+    [Fact]
+    public void TransitionNode_FromOpened_HasQuarantineTransition()
+    {
+        var box = new TransportBox();
+        box.Open("B001", DateTime.UtcNow, "user");
+
+        var transitions = box.TransitionNode.GetAllTransitions().Select(t => t.NewState).ToList();
+
+        transitions.Should().Contain(TransportBoxState.Quarantine);
+    }
 }

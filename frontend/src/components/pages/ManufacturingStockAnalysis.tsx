@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Search,
   RefreshCw,
@@ -29,10 +29,33 @@ import {
   getTimePeriodDisplayText,
 } from "../../api/hooks/useManufacturingStockAnalysis";
 import { getAuthenticatedApiClient } from "../../api/client";
+import { exportToXlsx } from "../../utils/exportToXlsx";
+import { useToast } from "../../contexts/ToastContext";
 import CatalogDetail from "./CatalogDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { usePlanningList } from "../../contexts/PlanningListContext";
 import PlanningListPanel from "../common/PlanningListPanel";
+
+const SALES_MULTIPLIER_COOKIE = "manufacturing-stock-sales-multiplier";
+
+const getCookie = (name: string): string | null => {
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`));
+  return match ? match.split("=")[1] : null;
+};
+
+const setCookie = (name: string, value: string): void => {
+  document.cookie = `${name}=${value}; path=/; max-age=31536000`;
+};
+
+const readSalesMultiplierCookie = (): number => {
+  const raw = getCookie(SALES_MULTIPLIER_COOKIE);
+  if (raw === null) return 1.0;
+  const parsed = parseFloat(raw);
+  if (isNaN(parsed) || parsed < 0.1 || parsed > 3.0) return 1.0;
+  return parsed;
+};
 
 const ManufacturingStockAnalysis: React.FC = () => {
   // State for filters
@@ -48,6 +71,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
     pageSize: 20,
     sortBy: ManufacturingStockSortBy.OverstockPercentage,
     sortDescending: false,
+    salesMultiplier: readSalesMultiplierCookie(),
   });
 
   // State for product detail modal
@@ -67,6 +91,9 @@ const ManufacturingStockAnalysis: React.FC = () => {
   const [loadingSubgrids, setLoadingSubgrids] = useState<Set<string>>(
     new Set(),
   );
+  const [isExporting, setIsExporting] = useState(false);
+
+  const { showError } = useToast();
 
   // Query for stock analysis data
   const { data, isLoading, error, isRefetching, refetch } =
@@ -88,6 +115,17 @@ const ManufacturingStockAnalysis: React.FC = () => {
     newFilters: Partial<GetManufacturingStockAnalysisRequest>,
   ) => {
     setFilters((prev) => ({ ...prev, ...newFilters, pageNumber: 1 }));
+  };
+
+  // Handler for sales multiplier change
+  const handleSalesMultiplierChange = (delta: number) => {
+    setFilters((prev) => {
+      const current = prev.salesMultiplier ?? 1.0;
+      const next = Math.round((current + delta) * 10) / 10;
+      const clamped = Math.min(3.0, Math.max(0.1, next));
+      setCookie(SALES_MULTIPLIER_COOKIE, clamped.toString());
+      return { ...prev, salesMultiplier: clamped, pageNumber: 1 };
+    });
   };
 
   // Handler for pagination
@@ -130,11 +168,80 @@ const ManufacturingStockAnalysis: React.FC = () => {
     }
   };
 
-  // Export functionality (placeholder)
-  const handleExport = () => {
-    // TODO: Implement export functionality
-    console.log("Export to CSV");
-  };
+  // Export functionality
+  const handleExport = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const apiClient = await getAuthenticatedApiClient();
+      const relativeUrl = `/api/manufacturing-stock-analysis`;
+      const params = new URLSearchParams();
+
+      if (filters.timePeriod && filters.timePeriod !== TimePeriodFilter.PreviousQuarter) {
+        params.append("timePeriod", filters.timePeriod);
+      }
+      if (filters.customFromDate)
+        params.append("customFromDate", filters.customFromDate.toISOString().split("T")[0]);
+      if (filters.customToDate)
+        params.append("customToDate", filters.customToDate.toISOString().split("T")[0]);
+      if (filters.productFamily)
+        params.append("productFamily", filters.productFamily);
+      if (filters.criticalItemsOnly) params.append("criticalItemsOnly", "true");
+      if (filters.majorItemsOnly) params.append("majorItemsOnly", "true");
+      if (filters.adequateItemsOnly) params.append("adequateItemsOnly", "true");
+      if (filters.unconfiguredOnly) params.append("unconfiguredOnly", "true");
+      if (filters.searchTerm) params.append("searchTerm", filters.searchTerm);
+      if (filters.sortBy) params.append("sortBy", filters.sortBy);
+      if (filters.sortDescending !== undefined)
+        params.append("sortDescending", filters.sortDescending.toString());
+      if (filters.salesMultiplier !== undefined && filters.salesMultiplier !== 1.0)
+        params.append("salesMultiplier", filters.salesMultiplier.toString());
+      params.append("isExport", "true");
+
+      const queryString = params.toString();
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}${queryString ? `?${queryString}` : ""}`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const today = new Date().toISOString().split("T")[0];
+      exportToXlsx(
+        result.items ?? [],
+        [
+          { header: "Kód", value: (row: any) => row.code },
+          { header: "Název", value: (row: any) => row.name },
+          { header: "Sklad aktuální", value: (row: any) => row.currentStock },
+          { header: "Sklad ERP", value: (row: any) => row.erpStock },
+          { header: "Sklad E-shop", value: (row: any) => row.eshopStock },
+          { header: "Sklad transport", value: (row: any) => row.transportStock },
+          { header: "Primární zdroj skladu", value: (row: any) => row.primaryStockSource },
+          { header: "Rezervace", value: (row: any) => row.reserve },
+          { header: "Plánováno", value: (row: any) => row.planned },
+          { header: "Prodeje v období", value: (row: any) => row.salesInPeriod },
+          { header: "Denní prodeje", value: (row: any) => row.dailySalesRate },
+          { header: "Optimální dny (nastavení)", value: (row: any) => row.optimalDaysSetup },
+          { header: "Dní skladu", value: (row: any) => row.stockDaysAvailable },
+          { header: "Minimální sklad", value: (row: any) => row.minimumStock },
+          { header: "Přebytečné (%)", value: (row: any) => row.overstockPercentage },
+          { header: "Velikost dávky", value: (row: any) => row.batchSize },
+          { header: "Produktová rodina", value: (row: any) => row.productFamily },
+          { header: "Závažnost", value: (row: any) => row.severity },
+          { header: "Nakonfigurováno", value: (row: any) => row.isConfigured },
+        ],
+        `manufacturing-stock-analysis-${today}.xlsx`,
+      );
+    } catch {
+      showError("Export selhal", "Nepodařilo se stáhnout data pro export.");
+    } finally {
+      setIsExporting(false);
+    }
+  }, [filters, showError]);
 
   // Planning list functionality
   const isInPlanningList = (productCode: string) => {
@@ -425,6 +532,20 @@ const ManufacturingStockAnalysis: React.FC = () => {
               {(subItem.reserve || 0) > 0 ? (
                 <div className="font-medium">
                   {formatNumber(subItem.reserve, 0)}
+                </div>
+              ) : (
+                <span className="text-gray-400">—</span>
+              )}
+            </td>
+
+            {/* Quarantine Stock */}
+            <td
+              className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-700"
+              style={{ minWidth: "90px", width: "10%" }}
+            >
+              {(subItem.quarantine || 0) > 0 ? (
+                <div className="font-medium text-orange-700">
+                  {formatNumber(subItem.quarantine, 0)}
                 </div>
               ) : (
                 <span className="text-gray-400">—</span>
@@ -737,6 +858,43 @@ const ManufacturingStockAnalysis: React.FC = () => {
                 </>
               )}
 
+              {/* Sales multiplier control - always visible */}
+              <div
+                className="flex items-center border border-gray-300 rounded-md shadow-sm bg-white"
+                title="Násobitel denních prodejů pro simulaci poptávky"
+              >
+                <button
+                  onClick={() => handleSalesMultiplierChange(-0.1)}
+                  disabled={(filters.salesMultiplier ?? 1.0) <= 0.1}
+                  className="px-1.5 py-1 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40 rounded-l-md"
+                  aria-label="Snížit násobitel"
+                >
+                  −
+                </button>
+                <span
+                  className={`px-1.5 py-1 text-xs min-w-[2.5rem] text-center ${
+                    (filters.salesMultiplier ?? 1.0) !== 1.0
+                      ? "text-indigo-600 font-semibold"
+                      : "text-gray-700"
+                  }`}
+                  title={
+                    (filters.salesMultiplier ?? 1.0) !== 1.0
+                      ? "Prodejní násobitel aktivní"
+                      : undefined
+                  }
+                >
+                  {((filters.salesMultiplier ?? 1.0).toFixed(1))}x
+                </span>
+                <button
+                  onClick={() => handleSalesMultiplierChange(0.1)}
+                  disabled={(filters.salesMultiplier ?? 1.0) >= 3.0}
+                  className="px-1.5 py-1 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-40 rounded-r-md"
+                  aria-label="Zvýšit násobitel"
+                >
+                  +
+                </button>
+              </div>
+
               {/* Action buttons - always visible */}
               <button
                 onClick={() => refetch()}
@@ -750,9 +908,14 @@ const ManufacturingStockAnalysis: React.FC = () => {
               </button>
               <button
                 onClick={handleExport}
-                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50"
+                disabled={isExporting}
+                className="flex items-center px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
               >
-                <Download className="h-3 w-3 mr-1" />
+                {isExporting ? (
+                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Download className="h-3 w-3 mr-1" />
+                )}
                 {isControlsCollapsed ? "" : "Export"}
               </button>
 
@@ -1083,6 +1246,13 @@ const ManufacturingStockAnalysis: React.FC = () => {
                     Rezerv
                   </SortableHeader>
                   <SortableHeader
+                    column={ManufacturingStockSortBy.Quarantine}
+                    className="text-right"
+                    style={{ minWidth: "60px", width: "10%" }}
+                  >
+                    Karant.
+                  </SortableHeader>
+                  <SortableHeader
                     column={ManufacturingStockSortBy.Planned}
                     className="text-right"
                     style={{ minWidth: "60px", width: "10%" }}
@@ -1259,6 +1429,20 @@ const ManufacturingStockAnalysis: React.FC = () => {
                           {(item.reserve || 0) > 0 ? (
                             <div className="font-bold">
                               {formatNumber(item.reserve, 0)}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+
+                        {/* Quarantine Stock */}
+                        <td
+                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
+                          style={{ minWidth: "60px", width: "10%" }}
+                        >
+                          {(item.quarantine || 0) > 0 ? (
+                            <div className="font-bold text-orange-700">
+                              {formatNumber(item.quarantine, 0)}
                             </div>
                           ) : (
                             <span className="text-gray-400">—</span>

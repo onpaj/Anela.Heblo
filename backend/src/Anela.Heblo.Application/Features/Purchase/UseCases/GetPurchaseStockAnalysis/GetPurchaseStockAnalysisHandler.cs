@@ -70,10 +70,12 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
         analysisItems = SortItems(analysisItems, request.SortBy, request.SortDescending);
 
         var totalCount = analysisItems.Count;
-        var pagedItems = analysisItems
-            .Skip((request.PageNumber - 1) * request.PageSize)
-            .Take(request.PageSize)
-            .ToList();
+        var pagedItems = request.IsExport
+            ? analysisItems
+            : analysisItems
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToList();
 
         // Calculate summary from ALL items, not filtered ones
         var summary = CalculateSummary(allAnalysisItems, fromDate, toDate);

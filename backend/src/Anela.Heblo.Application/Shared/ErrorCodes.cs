@@ -200,6 +200,12 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.InternalServerError)]
     RecurringJobUpdateFailed = 1902,
 
+    // KnowledgeBase module errors (20XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    KnowledgeBaseFeedbackLogNotFound = 2001,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    KnowledgeBaseFeedbackAlreadySubmitted = 2002,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
