@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Filter, Search } from 'lucide-react';
 import {
   useKnowledgeBaseDocumentsQuery,
   useKnowledgeBaseContentTypesQuery,
@@ -216,7 +216,7 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
     const isActive = sortBy === column;
     return (
       <th
-        className="px-4 py-2 text-left font-medium text-gray-500 cursor-pointer hover:bg-gray-100 select-none"
+        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
         onClick={() => handleSort(column)}
       >
         <div className="flex items-center space-x-1">
@@ -251,58 +251,80 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
   return (
     <>
       {/* Filter bar */}
-      <div className="flex flex-wrap gap-2 mb-3 items-center">
-        <input
-          type="text"
-          value={filenameInput}
-          onChange={(e) => setFilenameInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleApplyFilters()}
-          placeholder="Název souboru…"
-          className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 w-48"
-        />
+      <div className="bg-white shadow rounded-lg p-4 mb-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="flex items-center">
+              <Filter className="h-4 w-4 text-gray-400 mr-2" />
+              <span className="text-sm font-medium text-gray-900">Filtry:</span>
+            </div>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value);
-            setPageNumber(1);
-          }}
-          className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
-        >
-          <option value="">Vše (stav)</option>
-          <option value="indexed">Indexováno</option>
-          <option value="processing">Zpracovává se</option>
-          <option value="failed">Selhalo</option>
-        </select>
+            <div className="flex-1 max-w-xs">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={filenameInput}
+                  onChange={(e) => setFilenameInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleApplyFilters()}
+                  placeholder="Název souboru..."
+                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 pr-3 py-2 sm:text-sm border-gray-300 rounded-md"
+                />
+              </div>
+            </div>
 
-        <select
-          value={contentTypeFilter}
-          onChange={(e) => {
-            setContentTypeFilter(e.target.value);
-            setPageNumber(1);
-          }}
-          className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
-        >
-          <option value="">Vše (typ)</option>
-          {(contentTypesData?.contentTypes ?? []).map((ct) => (
-            <option key={ct} value={ct}>
-              {ct}
-            </option>
-          ))}
-        </select>
+            <div className="flex-1 max-w-xs">
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPageNumber(1);
+                }}
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              >
+                <option value="">Vše (stav)</option>
+                <option value="indexed">Indexováno</option>
+                <option value="processing">Zpracovává se</option>
+                <option value="failed">Selhalo</option>
+              </select>
+            </div>
 
-        <button
-          onClick={handleApplyFilters}
-          className="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700"
-        >
-          Použít
-        </button>
-        <button
-          onClick={handleClearFilters}
-          className="px-3 py-1.5 text-sm rounded border border-gray-300 hover:bg-gray-50"
-        >
-          Vymazat
-        </button>
+            <div className="flex-1 max-w-xs">
+              <select
+                value={contentTypeFilter}
+                onChange={(e) => {
+                  setContentTypeFilter(e.target.value);
+                  setPageNumber(1);
+                }}
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              >
+                <option value="">Vše (typ)</option>
+                {(contentTypesData?.contentTypes ?? []).map((ct) => (
+                  <option key={ct} value={ct}>
+                    {ct}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleApplyFilters}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-sm"
+            >
+              Filtrovat
+            </button>
+            <button
+              onClick={handleClearFilters}
+              className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 text-sm"
+            >
+              Vymazat
+            </button>
+          </div>
+        </div>
       </div>
 
       {documents.length === 0 ? (
@@ -317,30 +339,30 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
                 <tr>
                   <SortableHeader column="Filename">Soubor</SortableHeader>
                   <SortableHeader column="Status">Stav</SortableHeader>
-                  <th className="px-4 py-2 text-left font-medium text-gray-500">Typ</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typ</th>
                   <SortableHeader column="CreatedAt">Vytvořeno</SortableHeader>
                   <SortableHeader column="IndexedAt">Indexováno</SortableHeader>
-                  {canDelete && <th className="px-4 py-2" />}
+                  {canDelete && <th className="px-6 py-3" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {documents.map((doc) => (
                   <tr key={doc.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 font-medium">{doc.filename}</td>
-                    <td className="px-4 py-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{doc.filename}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <StatusBadge status={doc.status} />
                     </td>
-                    <td className="px-4 py-2 text-gray-500">{doc.contentType}</td>
-                    <td className="px-4 py-2 text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{doc.contentType}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(doc.createdAt).toLocaleDateString('cs-CZ')}
                     </td>
-                    <td className="px-4 py-2 text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {doc.indexedAt
                         ? new Date(doc.indexedAt).toLocaleDateString('cs-CZ')
                         : '–'}
                     </td>
                     {canDelete && (
-                      <td className="px-4 py-2 text-right">
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
                         <button
                           onClick={() => setPendingDelete(doc)}
                           title="Smazat dokument"
@@ -357,44 +379,93 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
           </div>
 
           {/* Pagination footer */}
-          <div className="flex items-center justify-between mt-3 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-gray-500">Zobrazit:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(parseInt(e.target.value, 10));
-                  setPageNumber(1);
-                }}
-                className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
-              <span className="text-gray-500">celkem {data?.totalCount ?? 0} záznamů</span>
-            </div>
-
-            <div className="flex items-center gap-1">
+          <div className="bg-white px-3 py-2 flex items-center justify-between border-t border-gray-200 text-xs">
+            <div className="flex-1 flex justify-between sm:hidden">
               <button
                 onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
                 disabled={pageNumber <= 1}
-                className="p-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ChevronLeft className="w-4 h-4" />
+                Předchozí
               </button>
-
-              <span className="px-2 text-gray-700">
-                {pageNumber} / {totalPages}
-              </span>
-
               <button
                 onClick={() => setPageNumber((p) => Math.min(totalPages, p + 1))}
                 disabled={pageNumber >= totalPages}
-                className="p-1 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="ml-2 relative inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ChevronRight className="w-4 h-4" />
+                Další
               </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div className="flex items-center space-x-3">
+                <p className="text-xs text-gray-600">
+                  {Math.min((pageNumber - 1) * pageSize + 1, data?.totalCount ?? 0)}–
+                  {Math.min(pageNumber * pageSize, data?.totalCount ?? 0)} z {data?.totalCount ?? 0}
+                </p>
+                <div className="flex items-center space-x-1">
+                  <span className="text-xs text-gray-600">Zobrazit:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => {
+                      setPageSize(parseInt(e.target.value, 10));
+                      setPageNumber(1);
+                    }}
+                    className="border border-gray-300 rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <nav
+                  className="relative z-0 inline-flex rounded shadow-sm -space-x-px"
+                  aria-label="Pagination"
+                >
+                  <button
+                    onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
+                    disabled={pageNumber <= 1}
+                    className="relative inline-flex items-center px-1 py-1 rounded-l border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-3 w-3" />
+                  </button>
+
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                    let pageNum: number;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (pageNumber <= 3) {
+                      pageNum = i + 1;
+                    } else if (pageNumber >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = pageNumber - 2 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPageNumber(pageNum)}
+                        className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
+                          pageNum === pageNumber
+                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    onClick={() => setPageNumber((p) => Math.min(totalPages, p + 1))}
+                    disabled={pageNumber >= totalPages}
+                    className="relative inline-flex items-center px-1 py-1 rounded-r border border-gray-300 bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-3 w-3" />
+                  </button>
+                </nav>
+              </div>
             </div>
           </div>
         </>
