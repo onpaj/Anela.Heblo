@@ -43,11 +43,12 @@ public class QuestionLoggingBehavior : IPipelineBehavior<AskQuestionRequest, Ask
                 TopK = request.TopK,
                 SourceCount = response.Sources.Count,
                 DurationMs = sw.ElapsedMilliseconds,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = DateTimeOffset.UtcNow,
                 UserId = currentUser.Id
             };
 
             await _repository.SaveQuestionLogAsync(log, cancellationToken);
+            response.Id = log.Id;
         }
         catch (Exception ex)
         {

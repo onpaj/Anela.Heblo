@@ -19,5 +19,8 @@ public class KnowledgeBaseQuestionLogConfiguration : IEntityTypeConfiguration<Kn
         builder.Property(x => x.DurationMs).IsRequired();
         builder.Property(x => x.CreatedAt).IsRequired();
         builder.Property(x => x.UserId).IsRequired(false);
+        builder.Property(x => x.PrecisionScore).IsRequired(false);
+        builder.Property(x => x.StyleScore).IsRequired(false);
+        builder.Property(x => x.FeedbackComment).IsRequired(false).HasColumnType("text");
     }
 }

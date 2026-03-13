@@ -154,4 +154,10 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
         _context.KnowledgeBaseQuestionLogs.Add(log);
         await _context.SaveChangesAsync(ct);
     }
+
+    public async Task<KnowledgeBaseQuestionLog?> GetQuestionLogByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _context.KnowledgeBaseQuestionLogs
+            .FirstOrDefaultAsync(l => l.Id == id, ct);
+    }
 }
