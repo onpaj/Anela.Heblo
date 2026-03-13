@@ -8,7 +8,7 @@ public class KnowledgeBaseQuestionLog
     public int TopK { get; set; }
     public int SourceCount { get; set; }
     public long DurationMs { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
     public string? UserId { get; set; }
     public int? PrecisionScore { get; set; }
     public int? StyleScore { get; set; }
