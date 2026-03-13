@@ -14,7 +14,7 @@ namespace Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufac
 
 public class GiftPackageManufactureService : IGiftPackageManufactureService
 {
-    private readonly IManufactureRepository _manufactureRepository;
+    private readonly IManufactureClient _manufactureClient;
     private readonly IGiftPackageManufactureRepository _giftPackageRepository;
     private readonly ICatalogRepository _catalogRepository;
     private readonly ICurrentUserService _currentUserService;
@@ -24,7 +24,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
     private readonly ILogger<GiftPackageManufactureService> _logger;
 
     public GiftPackageManufactureService(
-        IManufactureRepository manufactureRepository,
+        IManufactureClient manufactureClient,
         IGiftPackageManufactureRepository giftPackageRepository,
         ICatalogRepository catalogRepository,
         ICurrentUserService currentUserService,
@@ -33,7 +33,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         TimeProvider timeProvider,
         ILogger<GiftPackageManufactureService> logger)
     {
-        _manufactureRepository = manufactureRepository;
+        _manufactureClient = manufactureClient;
         _giftPackageRepository = giftPackageRepository;
         _catalogRepository = catalogRepository;
         _currentUserService = currentUserService;
@@ -149,7 +149,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         };
 
         // Load BOM (Bill of Materials) from manufacture repository
-        var productParts = await _manufactureRepository.GetSetPartsAsync(giftPackageCode, cancellationToken);
+        var productParts = await _manufactureClient.GetSetPartsAsync(giftPackageCode, cancellationToken);
 
         // Map ProductPart objects to GiftPackageIngredientDto with stock data
         var ingredients = new List<GiftPackageIngredientDto>();
