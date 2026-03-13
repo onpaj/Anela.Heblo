@@ -26,8 +26,10 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
         {
             { new Tuple<TransportBoxState, TransportBoxState>(TransportBoxState.New, TransportBoxState.Opened), h => h.HandleNewToOpened },
             { new Tuple<TransportBoxState, TransportBoxState>(TransportBoxState.Opened, TransportBoxState.Reserve), h => h.HandleOpenToReserve },
+            { new Tuple<TransportBoxState, TransportBoxState>(TransportBoxState.Opened, TransportBoxState.Quarantine), h => h.HandleOpenToQuarantine },
             { new Tuple<TransportBoxState, TransportBoxState>(TransportBoxState.InTransit, TransportBoxState.Received), h => h.HandleReceived },
             { new Tuple<TransportBoxState, TransportBoxState>(TransportBoxState.Reserve, TransportBoxState.Received), h => h.HandleReceived },
+            { new Tuple<TransportBoxState, TransportBoxState>(TransportBoxState.Quarantine, TransportBoxState.Received), h => h.HandleReceived },
         };
 
 
@@ -189,6 +191,14 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
             await _repository.UpdateAsync(s, cancellationToken);
         }
 
+        return null;
+    }
+
+    private async Task<ChangeTransportBoxStateResponse?> HandleOpenToQuarantine(
+        TransportBox box, ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
+    {
+        // No location required for Quarantine — ToQuarantine() clears Location = null
+        await Task.CompletedTask;
         return null;
     }
 

@@ -1,9 +1,10 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PlanningListProvider } from "../../../contexts/PlanningListContext";
+import { ToastProvider } from "../../../contexts/ToastContext";
 import ManufacturingStockAnalysis from "../ManufacturingStockAnalysis";
 // Importing for type information only
 // import { useManufacturingStockAnalysisQuery } from '../../../api/hooks/useManufacturingStockAnalysis';
@@ -80,11 +81,13 @@ const createWrapper = () => {
 
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <PlanningListProvider>
-          {children}
-        </PlanningListProvider>
-      </BrowserRouter>
+      <ToastProvider>
+        <BrowserRouter>
+          <PlanningListProvider>
+            {children}
+          </PlanningListProvider>
+        </BrowserRouter>
+      </ToastProvider>
     </QueryClientProvider>
   );
 };
@@ -392,5 +395,120 @@ describe("ManufacturingStockAnalysis", () => {
     expect(screen.getByText("Test Product 1")).toBeInTheDocument(); // Product name
     expect(screen.getByText("PROD002")).toBeInTheDocument(); // Product code
     expect(screen.getByText("Test Product 2")).toBeInTheDocument(); // Product name
+  });
+
+  it("renders sales multiplier control with default value 1.0x", () => {
+    // Clear cookie to ensure default
+    document.cookie =
+      "manufacturing-stock-sales-multiplier=; max-age=0; path=/";
+
+    mockUseManufacturingStockAnalysisQuery.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    render(<ManufacturingStockAnalysis />, { wrapper: createWrapper() });
+
+    expect(screen.getByText("1.0x")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /snížit násobitel/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /zvýšit násobitel/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("increases sales multiplier when plus button is clicked", () => {
+    document.cookie =
+      "manufacturing-stock-sales-multiplier=; max-age=0; path=/";
+
+    mockUseManufacturingStockAnalysisQuery.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    render(<ManufacturingStockAnalysis />, { wrapper: createWrapper() });
+
+    const plusButton = screen.getByRole("button", { name: /zvýšit násobitel/i });
+    fireEvent.click(plusButton);
+
+    expect(screen.getByText("1.1x")).toBeInTheDocument();
+  });
+
+  it("decreases sales multiplier when minus button is clicked", () => {
+    document.cookie =
+      "manufacturing-stock-sales-multiplier=2.0; path=/; max-age=31536000";
+
+    mockUseManufacturingStockAnalysisQuery.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    render(<ManufacturingStockAnalysis />, { wrapper: createWrapper() });
+
+    const minusButton = screen.getByRole("button", {
+      name: /snížit násobitel/i,
+    });
+    fireEvent.click(minusButton);
+
+    expect(screen.getByText("1.9x")).toBeInTheDocument();
+  });
+
+  it("disables minus button at minimum value 0.1", () => {
+    document.cookie =
+      "manufacturing-stock-sales-multiplier=0.1; path=/; max-age=31536000";
+
+    mockUseManufacturingStockAnalysisQuery.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    render(<ManufacturingStockAnalysis />, { wrapper: createWrapper() });
+
+    const minusButton = screen.getByRole("button", {
+      name: /snížit násobitel/i,
+    });
+    expect(minusButton).toBeDisabled();
+  });
+
+  it("disables plus button at maximum value 3.0", () => {
+    document.cookie =
+      "manufacturing-stock-sales-multiplier=3.0; path=/; max-age=31536000";
+
+    mockUseManufacturingStockAnalysisQuery.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    render(<ManufacturingStockAnalysis />, { wrapper: createWrapper() });
+
+    const plusButton = screen.getByRole("button", { name: /zvýšit násobitel/i });
+    expect(plusButton).toBeDisabled();
+  });
+
+  it("reads initial sales multiplier from cookie", () => {
+    document.cookie =
+      "manufacturing-stock-sales-multiplier=1.5; path=/; max-age=31536000";
+
+    mockUseManufacturingStockAnalysisQuery.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    render(<ManufacturingStockAnalysis />, { wrapper: createWrapper() });
+
+    expect(screen.getByText("1.5x")).toBeInTheDocument();
   });
 });

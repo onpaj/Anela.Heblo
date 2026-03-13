@@ -194,6 +194,61 @@ public class GetManufacturingStockAnalysisHandlerTests
         };
     }
 
+    [Fact]
+    public async Task Handle_ExportTrue_BypassesPaginationAndReturnsAllFilteredItems()
+    {
+        // Arrange — 25 items, PageSize = 5 → without export only 5 would be returned
+        var catalogItems = Enumerable.Range(1, 25)
+            .Select(i => new CatalogAggregate
+            {
+                ProductCode = $"PRD{i:D3}",
+                ProductName = $"Product {i}",
+                Type = ProductType.Product,
+                Stock = new StockData { Erp = i * 10m },
+                Properties = new CatalogProperties { OptimalStockDaysSetup = 30 }
+            })
+            .ToList();
+
+        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriod(It.IsAny<TimePeriodFilter>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            .Returns((DateTime.Today.AddDays(-30), DateTime.Today));
+
+        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<List<CatalogSaleRecord>>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns(1.0);
+        _consumptionCalculatorMock.Setup(x => x.CalculateStockDaysAvailable(It.IsAny<decimal>(), It.IsAny<double>()))
+            .Returns(20.0);
+        _severityCalculatorMock.Setup(x => x.CalculateOverstockPercentage(It.IsAny<double>(), It.IsAny<int>())).Returns(0.0);
+        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<CatalogAggregate>(), It.IsAny<double>(), It.IsAny<double>())).Returns(ManufacturingStockSeverity.Adequate);
+        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<ManufactureHistoryRecord>>(), It.IsAny<int>())).Returns(false);
+        _mapperMock.Setup(x => x.MapToDto(It.IsAny<CatalogAggregate>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
+            .Returns((CatalogAggregate item, ManufacturingStockSeverity sev, double dr, double sp, double sd, double op, bool ip) =>
+                new ManufacturingStockItemDto { Code = item.ProductCode, Name = item.ProductName });
+        _filterServiceMock.Setup(x => x.FilterItems(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<GetManufacturingStockAnalysisRequest>()))
+            .Returns((List<ManufacturingStockItemDto> items, GetManufacturingStockAnalysisRequest req) => items);
+        _filterServiceMock.Setup(x => x.SortItems(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<ManufacturingStockSortBy>(), It.IsAny<bool>()))
+            .Returns((List<ManufacturingStockItemDto> items, ManufacturingStockSortBy sortBy, bool desc) => items);
+        _filterServiceMock.Setup(x => x.CalculateSummary(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<List<string>>()))
+            .Returns(new ManufacturingStockSummaryDto());
+
+        var request = new GetManufacturingStockAnalysisRequest
+        {
+            PageNumber = 1,
+            PageSize = 5,
+            IsExport = true
+        };
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Should().NotBeNull();
+        response.Success.Should().BeTrue();
+        response.Items.Count.Should().Be(25, "IsExport=true should return all items, ignoring PageSize");
+        response.TotalCount.Should().Be(25);
+    }
+
     private ManufacturingStockSummaryDto CreateTestSummary()
     {
         return new ManufacturingStockSummaryDto
@@ -292,5 +347,115 @@ public class GetManufacturingStockAnalysisHandlerTests
             x => x.CalculateStockDaysAvailable(135m, 5.0),
             Times.Once,
             "Should call CalculateStockDaysAvailable with total stock including reserve");
+    }
+
+    [Fact]
+    public async Task Handle_SalesMultiplierDefault_PassesUnmodifiedDailyRateToCalculations()
+    {
+        // Arrange
+        var request = new GetManufacturingStockAnalysisRequest
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            SalesMultiplier = 1.0
+        };
+
+        var catalogItems = CreateTestCatalogItems();
+
+        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriod(It.IsAny<TimePeriodFilter>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            .Returns((DateTime.Today.AddDays(-30), DateTime.Today));
+
+        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        double capturedDailyRate = 0;
+
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<List<CatalogSaleRecord>>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns(5.0);
+
+        _consumptionCalculatorMock.Setup(x => x.CalculateStockDaysAvailable(It.IsAny<decimal>(), It.IsAny<double>()))
+            .Callback<decimal, double>((stock, rate) => capturedDailyRate = rate)
+            .Returns(20.0);
+
+        _severityCalculatorMock.Setup(x => x.CalculateOverstockPercentage(It.IsAny<double>(), It.IsAny<int>())).Returns(0.0);
+        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<CatalogAggregate>(), It.IsAny<double>(), It.IsAny<double>())).Returns(ManufacturingStockSeverity.Adequate);
+        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<ManufactureHistoryRecord>>(), It.IsAny<int>())).Returns(false);
+        _mapperMock.Setup(x => x.MapToDto(It.IsAny<CatalogAggregate>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
+            .Returns(new ManufacturingStockItemDto { Code = "PRD001" });
+        _filterServiceMock.Setup(x => x.FilterItems(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<GetManufacturingStockAnalysisRequest>()))
+            .Returns((List<ManufacturingStockItemDto> items, GetManufacturingStockAnalysisRequest req) => items);
+        _filterServiceMock.Setup(x => x.SortItems(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<ManufacturingStockSortBy>(), It.IsAny<bool>()))
+            .Returns((List<ManufacturingStockItemDto> items, ManufacturingStockSortBy sortBy, bool desc) => items);
+        _filterServiceMock.Setup(x => x.CalculateSummary(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<List<string>>()))
+            .Returns(new ManufacturingStockSummaryDto());
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert - multiplier of 1.0 should not change the daily rate (5.0 * 1.0 = 5.0)
+        capturedDailyRate.Should().Be(5.0, "SalesMultiplier=1.0 should not alter the daily sales rate");
+    }
+
+    [Fact]
+    public async Task Handle_SalesMultiplierTwo_DoublesDailyRateAndSalesInPeriod()
+    {
+        // Arrange
+        var request = new GetManufacturingStockAnalysisRequest
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            SalesMultiplier = 2.0
+        };
+
+        var catalogItems = new List<CatalogAggregate>
+        {
+            new CatalogAggregate
+            {
+                ProductCode = "PRD001",
+                ProductName = "Product 1",
+                Type = ProductType.Product,
+                Stock = new StockData { Erp = 100m },
+                Properties = new CatalogProperties { OptimalStockDaysSetup = 30 }
+            }
+        };
+
+        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriod(It.IsAny<TimePeriodFilter>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            .Returns((DateTime.Today.AddDays(-30), DateTime.Today));
+
+        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        double capturedDailyRate = 0;
+
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<List<CatalogSaleRecord>>(), It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .Returns(5.0);
+
+        _consumptionCalculatorMock.Setup(x => x.CalculateStockDaysAvailable(It.IsAny<decimal>(), It.IsAny<double>()))
+            .Callback<decimal, double>((stock, rate) => capturedDailyRate = rate)
+            .Returns(10.0);
+
+        _severityCalculatorMock.Setup(x => x.CalculateOverstockPercentage(It.IsAny<double>(), It.IsAny<int>())).Returns(0.0);
+        _severityCalculatorMock.Setup(x => x.CalculateSeverity(It.IsAny<CatalogAggregate>(), It.IsAny<double>(), It.IsAny<double>())).Returns(ManufacturingStockSeverity.Critical);
+        _productionAnalyzerMock.Setup(x => x.IsInActiveProduction(It.IsAny<IEnumerable<ManufactureHistoryRecord>>(), It.IsAny<int>())).Returns(false);
+        _mapperMock.Setup(x => x.MapToDto(It.IsAny<CatalogAggregate>(), It.IsAny<ManufacturingStockSeverity>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
+            .Returns(new ManufacturingStockItemDto { Code = "PRD001" });
+        _filterServiceMock.Setup(x => x.FilterItems(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<GetManufacturingStockAnalysisRequest>()))
+            .Returns((List<ManufacturingStockItemDto> items, GetManufacturingStockAnalysisRequest req) => items);
+        _filterServiceMock.Setup(x => x.SortItems(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<ManufacturingStockSortBy>(), It.IsAny<bool>()))
+            .Returns((List<ManufacturingStockItemDto> items, ManufacturingStockSortBy sortBy, bool desc) => items);
+        _filterServiceMock.Setup(x => x.CalculateSummary(It.IsAny<List<ManufacturingStockItemDto>>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<List<string>>()))
+            .Returns(new ManufacturingStockSummaryDto());
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert - multiplier of 2.0 should double the rate from 5.0 to 10.0
+        capturedDailyRate.Should().Be(10.0, "SalesMultiplier=2.0 should double the daily sales rate (5.0 * 2.0 = 10.0)");
+
+        // Verify CalculateStockDaysAvailable was called with the doubled rate
+        _consumptionCalculatorMock.Verify(
+            x => x.CalculateStockDaysAvailable(It.IsAny<decimal>(), 10.0),
+            Times.Once,
+            "Should call CalculateStockDaysAvailable with doubled rate");
     }
 }

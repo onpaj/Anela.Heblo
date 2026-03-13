@@ -58,6 +58,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `CalculateBatchByIngredient` - Calculate batch by ingredient quantity
 - `CalculateBatchPlan` - Calculate batch plan for multiple products
 
+**Knowledge Base Tools (2):**
+- `SearchKnowledgeBase` - Semantic search over ingested documents, returns ranked chunks with source references
+- `AskKnowledgeBase` - AI-generated answer grounded in company documents, returns prose answer with cited sources
+
 **Implementation:**
 - Tool classes: `backend/src/Anela.Heblo.API/MCP/Tools/`
 - Registration: `McpModule.cs` (AddMcpServer + WithHttpTransport + WithTools)
@@ -67,7 +71,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Testing:**
 - Test location: `backend/test/Anela.Heblo.Tests/MCP/Tools/`
-- Total tests: 26 (comprehensive coverage including parameter mapping, JSON serialization, and error handling)
+- Total tests: 29 (comprehensive coverage including parameter mapping, JSON serialization, and error handling)
 - See existing test files for examples of MCP tool testing patterns
 
 **Status:** ✅ Active - MCP server running on /mcp endpoint using official ModelContextProtocol.AspNetCore SDK

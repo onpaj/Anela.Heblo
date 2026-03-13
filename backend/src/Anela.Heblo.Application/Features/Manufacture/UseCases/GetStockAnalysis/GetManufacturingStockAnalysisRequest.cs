@@ -41,6 +41,14 @@ public class GetManufacturingStockAnalysisRequest : IRequest<GetManufacturingSto
     public ManufacturingStockSortBy SortBy { get; set; } = ManufacturingStockSortBy.StockDaysAvailable;
 
     public bool SortDescending { get; set; } = false;
+
+    /// <summary>
+    /// Multiplier applied to daily sales rate for demand forecasting.
+    /// Range: 0.1 to 3.0, default 1.0.
+    /// </summary>
+    public double SalesMultiplier { get; set; } = 1.0;
+
+    public bool IsExport { get; set; } = false;
 }
 
 public enum TimePeriodFilter
@@ -58,6 +66,7 @@ public enum ManufacturingStockSortBy
     ProductName,
     CurrentStock,
     Reserve,
+    Quarantine,
     Planned,
     SalesInPeriod,
     DailySales,

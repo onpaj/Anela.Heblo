@@ -40,6 +40,7 @@ const stateLabels: Record<string, string> = {
   Received: "Přijatý",
   Stocked: "Naskladněný",
   Reserve: "V rezervě",
+  Quarantine: "V karanténě",
   Closed: "Uzavřený",
   Error: "Chyba",
 };
@@ -51,6 +52,7 @@ const stateColors: Record<string, string> = {
   Received: "bg-purple-100 text-purple-800",
   Stocked: "bg-green-100 text-green-800",
   Reserve: "bg-indigo-100 text-indigo-800",
+  Quarantine: "bg-orange-100 text-orange-800",
   Closed: "bg-gray-100 text-gray-800",
   Error: "bg-red-100 text-red-800",
 };
@@ -380,6 +382,12 @@ const TransportBoxList: React.FC = () => {
                             activeClass =
                               "bg-emerald-50 ring-1 ring-emerald-300";
                             break;
+                          case "Quarantine":
+                            colorClass =
+                              count === 0 ? "text-gray-400" : "text-orange-600";
+                            hoverClass = "hover:bg-orange-50";
+                            activeClass = "bg-orange-50 ring-1 ring-orange-300";
+                            break;
                           default:
                             colorClass =
                               count === 0 ? "text-gray-400" : "text-gray-600";
@@ -529,6 +537,11 @@ const TransportBoxList: React.FC = () => {
                         iconColor = "text-cyan-500";
                         hoverColor = "hover:bg-cyan-50";
                         activeColor = "bg-cyan-50 ring-1 ring-cyan-300";
+                        break;
+                      case "Quarantine":
+                        iconColor = "text-orange-500";
+                        hoverColor = "hover:bg-orange-50";
+                        activeColor = "bg-orange-50 ring-1 ring-orange-300";
                         break;
                       case "Closed":
                         iconColor = "text-gray-500";

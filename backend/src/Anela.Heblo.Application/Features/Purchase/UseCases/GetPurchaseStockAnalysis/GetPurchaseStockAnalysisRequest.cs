@@ -23,6 +23,8 @@ public class GetPurchaseStockAnalysisRequest : IRequest<GetPurchaseStockAnalysis
     public StockAnalysisSortBy SortBy { get; set; } = StockAnalysisSortBy.StockEfficiency;
 
     public bool SortDescending { get; set; } = false;
+
+    public bool IsExport { get; set; } = false;
 }
 
 public enum StockStatusFilter

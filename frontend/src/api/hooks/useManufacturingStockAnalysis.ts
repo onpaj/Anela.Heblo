@@ -16,6 +16,7 @@ export interface GetManufacturingStockAnalysisRequest {
   pageSize?: number;
   sortBy?: ManufacturingStockSortBy;
   sortDescending?: boolean;
+  salesMultiplier?: number;
 }
 
 export enum TimePeriodFilter {
@@ -31,6 +32,7 @@ export enum ManufacturingStockSortBy {
   ProductName = "ProductName",
   CurrentStock = "CurrentStock",
   Reserve = "Reserve",
+  Quarantine = "Quarantine",
   Planned = "Planned",
   SalesInPeriod = "SalesInPeriod",
   DailySales = "DailySales",
@@ -58,6 +60,7 @@ export interface ManufacturingStockItemDto {
   transportStock: number;
   primaryStockSource: string;
   reserve: number;
+  quarantine: number;
   planned: number;
   salesInPeriod: number;
   dailySalesRate: number;
@@ -142,6 +145,8 @@ export const useManufacturingStockAnalysisQuery = (
       if (request.sortBy) params.append("sortBy", request.sortBy);
       if (request.sortDescending !== undefined)
         params.append("sortDescending", request.sortDescending.toString());
+      if (request.salesMultiplier !== undefined && request.salesMultiplier !== 1.0)
+        params.append("salesMultiplier", request.salesMultiplier.toString());
 
       const queryString = params.toString();
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}${queryString ? `?${queryString}` : ""}`;

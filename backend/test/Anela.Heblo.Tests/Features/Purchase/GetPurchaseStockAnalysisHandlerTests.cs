@@ -325,6 +325,27 @@ public class GetPurchaseStockAnalysisHandlerTests
         };
     }
 
+    [Fact]
+    public async Task Handle_ExportTrue_BypassesPaginationAndReturnsAllFilteredItems()
+    {
+        var catalogItems = CreateManyTestCatalogItems(25);
+        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        var request = new GetPurchaseStockAnalysisRequest
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            IsExport = true
+        };
+
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        response.Should().NotBeNull();
+        response.Items.Count.Should().Be(25, "IsExport=true should return all items, ignoring PageSize");
+        response.TotalCount.Should().Be(25);
+    }
+
     private List<CatalogAggregate> CreateManyTestCatalogItems(int count)
     {
         var items = new List<CatalogAggregate>();
