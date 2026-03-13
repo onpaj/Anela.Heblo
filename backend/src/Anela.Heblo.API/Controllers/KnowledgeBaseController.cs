@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.DeleteDocument;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
+using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SubmitFeedback;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.UploadDocument;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
@@ -52,6 +53,15 @@ public class KnowledgeBaseController : BaseApiController
     public async Task<ActionResult<DeleteDocumentResponse>> DeleteDocument(Guid id, CancellationToken ct)
     {
         var result = await _mediator.Send(new DeleteDocumentRequest { DocumentId = id }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("feedback")]
+    public async Task<ActionResult<SubmitFeedbackResponse>> SubmitFeedback(
+        [FromBody] SubmitFeedbackRequest request,
+        CancellationToken ct)
+    {
+        var result = await _mediator.Send(request, ct);
         return HandleResponse(result);
     }
 

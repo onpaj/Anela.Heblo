@@ -48,6 +48,7 @@ public class QuestionLoggingBehavior : IPipelineBehavior<AskQuestionRequest, Ask
             };
 
             await _repository.SaveQuestionLogAsync(log, cancellationToken);
+            response.Id = log.Id;
         }
         catch (Exception ex)
         {

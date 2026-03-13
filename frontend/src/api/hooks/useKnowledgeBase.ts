@@ -43,8 +43,20 @@ export interface SourceReference {
 
 export interface AskQuestionResponse {
   success: boolean;
+  id: string | null;
   answer: string;
   sources: SourceReference[];
+}
+
+export interface SubmitFeedbackRequest {
+  logId: string;
+  precisionScore: number;
+  styleScore: number;
+  comment?: string;
+}
+
+export interface SubmitFeedbackResult {
+  alreadySubmitted?: true;
 }
 
 export interface DeleteDocumentResponse {
@@ -199,6 +211,35 @@ export const useDeleteKnowledgeBaseDocumentMutation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: knowledgeBaseKeys.documents() });
+    },
+  });
+};
+
+/**
+ * Submit precision and style feedback for a Knowledge Base Ask response.
+ * Returns { alreadySubmitted: true } on 409 instead of throwing.
+ */
+export const useSubmitFeedbackMutation = () => {
+  return useMutation({
+    mutationFn: async (payload: SubmitFeedbackRequest): Promise<SubmitFeedbackResult> => {
+      const apiClient = getAuthenticatedApiClient();
+      const fullUrl = `${(apiClient as any).baseUrl}/api/knowledgebase/feedback`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.status === 409) {
+        return { alreadySubmitted: true };
+      }
+
+      if (!response.ok) {
+        throw new Error(`Submit feedback failed: ${response.status}`);
+      }
+
+      return {};
     },
   });
 };
