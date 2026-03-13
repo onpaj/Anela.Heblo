@@ -4,7 +4,16 @@ public interface IKnowledgeBaseRepository
 {
     Task AddDocumentAsync(KnowledgeBaseDocument document, CancellationToken ct = default);
     Task AddChunksAsync(IEnumerable<KnowledgeBaseChunk> chunks, CancellationToken ct = default);
-    Task<List<KnowledgeBaseDocument>> GetAllDocumentsAsync(CancellationToken ct = default);
+    Task<(List<KnowledgeBaseDocument> Documents, int TotalCount)> GetDocumentsPagedAsync(
+        string? filenameFilter,
+        DocumentStatus? statusFilter,
+        string? contentTypeFilter,
+        string sortBy,
+        bool sortDescending,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
+    Task<List<string>> GetDistinctContentTypesAsync(CancellationToken ct = default);
     Task<List<(KnowledgeBaseChunk Chunk, double Score)>> SearchSimilarAsync(
         float[] queryEmbedding,
         int topK,

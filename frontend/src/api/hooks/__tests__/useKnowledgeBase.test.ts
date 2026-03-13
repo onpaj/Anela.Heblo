@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import {
   useKnowledgeBaseDocumentsQuery,
+  useKnowledgeBaseContentTypesQuery,
   useKnowledgeBaseSearchMutation,
   useKnowledgeBaseAskMutation,
   useDeleteKnowledgeBaseDocumentMutation,
@@ -75,7 +76,7 @@ describe('useKnowledgeBase hooks', () => {
   });
 
   describe('useKnowledgeBaseDocumentsQuery', () => {
-    it('fetches documents and returns correct shape', async () => {
+    it('fetches documents with no params and returns correct shape', async () => {
       const mockData = {
         success: true,
         documents: [
@@ -88,6 +89,10 @@ describe('useKnowledgeBase hooks', () => {
             indexedAt: '2026-03-01T10:05:00Z',
           },
         ],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 20,
+        totalPages: 1,
       };
       mockHttp.fetch.mockResolvedValue(mockFetchResponse(mockData));
 
@@ -103,6 +108,59 @@ describe('useKnowledgeBase hooks', () => {
       );
       expect(result.current.data?.documents).toHaveLength(1);
       expect(result.current.data?.documents[0].filename).toBe('safety-data.pdf');
+      expect(result.current.data?.totalCount).toBe(1);
+    });
+
+    it('builds URL with all filter params', async () => {
+      const mockData = { success: true, documents: [], totalCount: 0, pageNumber: 1, pageSize: 10, totalPages: 0 };
+      mockHttp.fetch.mockResolvedValue(mockFetchResponse(mockData));
+
+      const { result } = renderHook(
+        () =>
+          useKnowledgeBaseDocumentsQuery({
+            pageNumber: 2,
+            pageSize: 10,
+            sortBy: 'Filename',
+            sortDescending: false,
+            filenameFilter: 'report',
+            statusFilter: 'indexed',
+            contentTypeFilter: 'application/pdf',
+          }),
+        { wrapper: createWrapper },
+      );
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      const calledUrl: string = mockHttp.fetch.mock.calls[0][0];
+      expect(calledUrl).toContain('pageNumber=2');
+      expect(calledUrl).toContain('pageSize=10');
+      expect(calledUrl).toContain('sortBy=Filename');
+      expect(calledUrl).toContain('sortDescending=false');
+      expect(calledUrl).toContain('filenameFilter=report');
+      expect(calledUrl).toContain('statusFilter=indexed');
+      expect(calledUrl).toContain('contentTypeFilter=application%2Fpdf');
+    });
+  });
+
+  describe('useKnowledgeBaseContentTypesQuery', () => {
+    it('fetches content types from correct endpoint', async () => {
+      const mockData = {
+        success: true,
+        contentTypes: ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      };
+      mockHttp.fetch.mockResolvedValue(mockFetchResponse(mockData));
+
+      const { result } = renderHook(() => useKnowledgeBaseContentTypesQuery(), {
+        wrapper: createWrapper,
+      });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(mockHttp.fetch).toHaveBeenCalledWith(
+        'http://localhost:5001/api/knowledgebase/documents/content-types',
+        expect.objectContaining({ method: 'GET' }),
+      );
+      expect(result.current.data?.contentTypes).toHaveLength(2);
     });
   });
 

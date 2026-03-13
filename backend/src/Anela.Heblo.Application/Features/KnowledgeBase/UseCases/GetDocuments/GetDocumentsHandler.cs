@@ -5,6 +5,9 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
 
 public class GetDocumentsHandler : IRequestHandler<GetDocumentsRequest, GetDocumentsResponse>
 {
+    private static readonly int[] AllowedPageSizes = [10, 20, 50];
+    private static readonly string[] AllowedSortColumns = ["Filename", "Status", "CreatedAt", "IndexedAt"];
+
     private readonly IKnowledgeBaseRepository _repository;
 
     public GetDocumentsHandler(IKnowledgeBaseRepository repository)
@@ -16,7 +19,26 @@ public class GetDocumentsHandler : IRequestHandler<GetDocumentsRequest, GetDocum
         GetDocumentsRequest request,
         CancellationToken cancellationToken)
     {
-        var docs = await _repository.GetAllDocumentsAsync(cancellationToken);
+        var pageNumber = Math.Max(1, request.PageNumber);
+        var pageSize = AllowedPageSizes.Contains(request.PageSize) ? request.PageSize : 20;
+        var sortBy = AllowedSortColumns.Contains(request.SortBy) ? request.SortBy : "CreatedAt";
+
+        DocumentStatus? statusFilter = null;
+        if (!string.IsNullOrEmpty(request.StatusFilter) &&
+            Enum.TryParse<DocumentStatus>(request.StatusFilter, ignoreCase: true, out var parsed))
+        {
+            statusFilter = parsed;
+        }
+
+        var (docs, totalCount) = await _repository.GetDocumentsPagedAsync(
+            request.FilenameFilter,
+            statusFilter,
+            request.ContentTypeFilter,
+            sortBy,
+            request.SortDescending,
+            pageNumber,
+            pageSize,
+            cancellationToken);
 
         return new GetDocumentsResponse
         {
@@ -28,7 +50,10 @@ public class GetDocumentsHandler : IRequestHandler<GetDocumentsRequest, GetDocum
                 ContentType = d.ContentType,
                 CreatedAt = d.CreatedAt,
                 IndexedAt = d.IndexedAt
-            }).ToList()
+            }).ToList(),
+            TotalCount = totalCount,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
         };
     }
 }
