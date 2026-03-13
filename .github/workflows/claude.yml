@@ -3,6 +3,10 @@ name: Claude Code
 on:
   workflow_dispatch:
     inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: number
       reason:
         description: 'Reason for manual run'
         required: false
@@ -37,11 +41,18 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Build review prompt
+        id: prompt
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "value=Please perform a thorough code review of PR #${{ inputs.pr_number }}. Review the changes for correctness, architecture alignment, security issues, and adherence to project conventions. Leave inline comments on specific lines where relevant, and provide an overall summary review." >> $GITHUB_OUTPUT
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          direct_prompt: ${{ steps.prompt.outputs.value }}
 
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
