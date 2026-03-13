@@ -36,10 +36,10 @@ internal sealed class ConsumptionItem
 
 public class FlexiManufactureClient : IManufactureClient
 {
-    private const string WarehouseDocumentType_OutboundMaterial = "VYROBA-POLOTOVAR";
-    private const string WarehouseDocumentType_InboundSemiProduct = "VYROBA-POLOTOVAR";
-    private const string WarehouseDocumentType_OutboundSemiProduct = "VYROBA-VYDEJ-POLOT";
-    private const string WarehouseDocumentType_InboundProduct = "VYROBA-PRODUKT";
+    private const string WarehouseDocumentType_OutboundMaterial = "V-VYDEJ-MATERIAL";
+    private const string WarehouseDocumentType_InboundSemiProduct = "V-PRIJEM-POLOTOVAR";
+    private const string WarehouseDocumentType_OutboundSemiProduct = "V-VYDEJ-POLOTOVAR";
+    private const string WarehouseDocumentType_InboundProduct = "V-PRIJEM-VYROBEK";
     
     
     private const string WarehouseCodeSemiProduct = "POLOTOVARY";
@@ -364,9 +364,7 @@ public class FlexiManufactureClient : IManufactureClient
             var documentType = GetConsumptionDocumentType(warehouseId);
 
             // For products, include product code and name in note (format: "ProductCode - ProductName")
-            var note = request.ManufactureType == ErpManufactureType.Product && request.Items.Count == 1
-                ? $"{request.Items[0].ProductCode} - {request.Items[0].ProductName}"
-                : request.ManufactureInternalNumber;
+            var note = CreateDescription(request);
 
             var consumptionRequest = new StockItemsMovementUpsertRequestFlexiDto
             {
@@ -374,10 +372,10 @@ public class FlexiManufactureClient : IManufactureClient
                 AccountingDate = request.Date,
                 IssueDate = request.Date,
                 StockItems = stockMovementItems,
-                Description = request.ManufactureOrderCode,
+                Description = note,
                 DocumentTypeCode = documentType,
                 StockMovementDirection = StockMovementDirection.Out,
-                Note = note,
+                Note = request.ManufactureOrderCode,
                 WarehouseId = warehouseId.ToString()
             };
 
@@ -394,7 +392,8 @@ public class FlexiManufactureClient : IManufactureClient
         return Math.Round(totalConsumptionCost, 4);
     }
 
-    
+   
+
 
     private async Task SubmitProductionMovementAsync(
         SubmitManufactureClientRequest request,
@@ -421,21 +420,19 @@ public class FlexiManufactureClient : IManufactureClient
             UnitPrice = manufacturedUnitPrice
         }).ToList();
 
-        // For products, include product code and name in note (format: "ProductCode - ProductName")
-        var note = request.ManufactureType == ErpManufactureType.Product && request.Items.Count == 1
-            ? $"{request.Items[0].ProductCode} - {request.Items[0].ProductName}"
-            : request.ManufactureInternalNumber;
-
+        
+        var note = CreateDescription(request);
+        
         var productionRequest = new StockItemsMovementUpsertRequestFlexiDto
         {
             CreatedBy = request.CreatedBy,
             AccountingDate = request.Date,
             IssueDate = request.Date,
             StockItems = productMovementItems,
-            Description = request.ManufactureOrderCode,
+            Description = note,
             DocumentTypeCode = documentType,
             StockMovementDirection = StockMovementDirection.In,
-            Note = note,
+            Note = request.ManufactureOrderCode,
             WarehouseId = productWarehouseId.ToString()
         };
 
@@ -494,14 +491,15 @@ public class FlexiManufactureClient : IManufactureClient
             }
 
             var documentType = GetConsumptionDocumentType(warehouseId);
-
+            var note = CreateDescription(request);
+            
             var consumptionRequest = new StockItemsMovementUpsertRequestFlexiDto
             {
                 CreatedBy = request.CreatedBy,
                 AccountingDate = request.Date,
                 IssueDate = request.Date,
                 StockItems = stockMovementItems,
-                Description = request.ManufactureOrderCode,
+                Description = note,
                 DocumentTypeCode = documentType,
                 StockMovementDirection = StockMovementDirection.Out,
                 Note = request.ManufactureInternalNumber,
@@ -550,14 +548,14 @@ public class FlexiManufactureClient : IManufactureClient
         }
 
         var documentType = GetProductionDocumentType(request.ManufactureType);
-        
+        var note = CreateDescription(request);
         var productionRequest = new StockItemsMovementUpsertRequestFlexiDto
         {
             CreatedBy = request.CreatedBy,
             AccountingDate = request.Date,
             IssueDate = request.Date,
             StockItems = productMovementItems,
-            Description = request.ManufactureOrderCode,
+            Description = note,
             DocumentTypeCode = documentType,
             StockMovementDirection = StockMovementDirection.In,
             Note = request.ManufactureInternalNumber,
@@ -673,6 +671,7 @@ public class FlexiManufactureClient : IManufactureClient
                 totalAmountToDiscard, availableLots.Count, request.ProductCode);
 
             // Step 4: Create stock movement for discard (stock reduction)
+            var note = CreateDescription(request);
             string? movementReference;
             try
             {
@@ -682,7 +681,7 @@ public class FlexiManufactureClient : IManufactureClient
                     AccountingDate = _timeProvider.GetLocalNow().DateTime,
                     IssueDate = _timeProvider.GetLocalNow().DateTime,
                     StockItems = stockMovementItems,
-                    Description = request.ManufactureOrderCode,
+                    Description = note,
                     DocumentTypeCode = WarehouseDocumentType_OutboundSemiProduct,
                     StockMovementDirection = StockMovementDirection.Out,
                     Note = request.ManufactureOrderCode,
@@ -751,6 +750,8 @@ public class FlexiManufactureClient : IManufactureClient
             };
         }
     }
+
+
 
     public async Task<ManufactureTemplate> GetManufactureTemplateAsync(string id, CancellationToken cancellationToken = default)
     {
@@ -904,10 +905,22 @@ public class FlexiManufactureClient : IManufactureClient
     {
         var documentType = warehouseId switch
         {
-            FlexiStockClient.SemiProductsWarehouseId => WarehouseDocumentType_OutboundMaterial,
-            FlexiStockClient.ProductsWarehouseId => WarehouseDocumentType_OutboundSemiProduct,
+            FlexiStockClient.SemiProductsWarehouseId => WarehouseDocumentType_OutboundSemiProduct,
+            FlexiStockClient.MaterialWarehouseId => WarehouseDocumentType_OutboundMaterial,
             _ => throw new InvalidOperationException("Unknown warehouse for consumption movement for warehouseId " + warehouseId)
         };
         return documentType;
+    }
+    
+    private static string CreateDescription(SubmitManufactureClientRequest request)
+    {
+        return request.ManufactureType == ErpManufactureType.Product && request.Items.Count == 1
+            ? $"{request.Items[0].ProductCode} - {request.Items[0].ProductName}"
+            : request.ManufactureInternalNumber;
+    }
+    
+    private static string CreateDescription(DiscardResidualSemiProductRequest request)
+    {
+        return $"{request.ProductCode} - {request.ProductName}";
     }
 }
