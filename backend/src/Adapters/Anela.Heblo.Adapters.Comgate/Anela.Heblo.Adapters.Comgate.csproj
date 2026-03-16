@@ -17,6 +17,7 @@
   
     
     <ItemGroup>
+      <PackageReference Include="AutoMapper" Version="15.1.1" />
       <ProjectReference Include="..\..\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
     </ItemGroup>
 
