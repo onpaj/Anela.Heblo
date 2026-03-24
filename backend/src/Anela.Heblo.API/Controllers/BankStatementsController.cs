@@ -31,10 +31,10 @@ public class BankStatementsController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Importing bank statements for account {AccountName} on {StatementDate}",
-                request.AccountName, request.StatementDate);
+            _logger.LogInformation("Importing bank statements for account {AccountName} from {DateFrom} to {DateTo}",
+                request.AccountName, request.DateFrom, request.DateTo);
 
-            var importRequest = new ImportBankStatementRequest(request.AccountName, request.StatementDate);
+            var importRequest = new ImportBankStatementRequest(request.AccountName, request.DateFrom, request.DateTo);
             var response = await _mediator.Send(importRequest);
 
             var result = new BankStatementImportResultDto

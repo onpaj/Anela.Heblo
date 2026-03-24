@@ -6,11 +6,13 @@ namespace Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 public class ImportBankStatementRequest : IRequest<ImportBankStatementResponse>
 {
     public string AccountName { get; set; } = null!;
-    public DateTime StatementDate { get; set; }
+    public DateTime DateFrom { get; set; }
+    public DateTime DateTo { get; set; }
 
-    public ImportBankStatementRequest(string accountName, DateTime statementDate)
+    public ImportBankStatementRequest(string accountName, DateTime dateFrom, DateTime dateTo)
     {
         AccountName = accountName;
-        StatementDate = statementDate;
+        DateFrom = dateFrom;
+        DateTo = dateTo;
     }
 }

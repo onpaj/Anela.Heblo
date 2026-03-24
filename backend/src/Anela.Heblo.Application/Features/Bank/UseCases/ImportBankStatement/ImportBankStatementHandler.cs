@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Anela.Heblo.Application.Features.Bank.Contracts;
+using Anela.Heblo.Application.Features.Bank.Infrastructure;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Shared;
 using AutoMapper;
@@ -11,7 +12,7 @@ namespace Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 
 public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementRequest, ImportBankStatementResponse>
 {
-    private readonly IBankClient _comgateClient;
+    private readonly IBankClientFactory _factory;
     private readonly IBankStatementImportService _bankStatementImportService;
     private readonly IBankStatementImportRepository _repository;
     private readonly BankAccountSettings _bankSettings;
@@ -19,14 +20,14 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
     private readonly ILogger<ImportBankStatementHandler> _logger;
 
     public ImportBankStatementHandler(
-        IBankClient comgateClient,
+        IBankClientFactory factory,
         IBankStatementImportService bankStatementImportService,
         IBankStatementImportRepository repository,
         IOptions<BankAccountSettings> bankSettings,
         IMapper mapper,
         ILogger<ImportBankStatementHandler> logger)
     {
-        _comgateClient = comgateClient ?? throw new ArgumentNullException(nameof(comgateClient));
+        _factory = factory ?? throw new ArgumentNullException(nameof(factory));
         _bankStatementImportService = bankStatementImportService ?? throw new ArgumentNullException(nameof(bankStatementImportService));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _bankSettings = bankSettings.Value ?? throw new ArgumentNullException(nameof(bankSettings));
@@ -39,10 +40,9 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
         var totalSw = Stopwatch.StartNew();
 
         _logger.LogInformation(
-            "Bank import START - Account: {AccountName}, Date: {StatementDate}",
-            request.AccountName, request.StatementDate);
+            "Bank import START - Account: {AccountName}, DateFrom: {DateFrom}, DateTo: {DateTo}",
+            request.AccountName, request.DateFrom, request.DateTo);
 
-        // Validate account configuration
         var accountSetting = _bankSettings.Accounts?.SingleOrDefault(a => a.Name == request.AccountName);
         if (accountSetting == null)
         {
@@ -54,18 +54,20 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
                 "Bank import FAILED - Account not found: {AccountName}. Available accounts: {AvailableAccounts}",
                 request.AccountName, availableAccounts);
 
-            throw new ArgumentException($"Account name {request.AccountName} not found in {BankAccountSettings.ConfigurationKey} configuration. Available accounts: {availableAccounts}");
+            throw new ArgumentException(
+                $"Account name {request.AccountName} not found in {BankAccountSettings.ConfigurationKey} configuration. Available accounts: {availableAccounts}");
         }
 
-        _logger.LogInformation(
-            "Account config resolved - Account: {AccountName}, FlexiBeeId: {FlexiBeeId}, AccountNumber: {AccountNumber}",
-            request.AccountName, accountSetting.FlexiBeeId, accountSetting.AccountNumber);
-
-        // Get statements from Comgate
-        var statements = await _comgateClient.GetStatementsAsync(accountSetting.AccountNumber, request.StatementDate);
+        var client = _factory.GetClient(accountSetting);
 
         _logger.LogInformation(
-            "Comgate returned {StatementCount} statements for processing - Account: {AccountName}",
+            "Account config resolved - Account: {AccountName}, Provider: {Provider}, FlexiBeeId: {FlexiBeeId}",
+            request.AccountName, accountSetting.Provider, accountSetting.FlexiBeeId);
+
+        var statements = await client.GetStatementsAsync(accountSetting.AccountNumber, request.DateFrom, request.DateTo);
+
+        _logger.LogInformation(
+            "Bank client returned {StatementCount} statements - Account: {AccountName}",
             statements.Count, request.AccountName);
 
         var imports = new List<BankStatementImportDto>();
@@ -76,22 +78,16 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
             {
                 _logger.LogInformation("Processing statement {StatementId}", statement.StatementId);
 
-                // Get ABO data from Comgate
-                var aboData = await _comgateClient.GetStatementAsync(statement.StatementId);
+                var aboData = await client.GetStatementAsync(statement.StatementId);
+                var import = new BankStatementImport(statement.StatementId, statement.Date);
 
-                // Create bank statement import entity
-                var import = new BankStatementImport(statement.StatementId, request.StatementDate);
-
-                // Import statement to accounting system
                 var importResult = await _bankStatementImportService.ImportStatementAsync(accountSetting.FlexiBeeId, aboData.Data);
 
-                // Set properties directly
                 import.Account = accountSetting.AccountNumber;
-                import.Currency = request.AccountName.EndsWith("EUR") ? CurrencyCode.EUR : CurrencyCode.CZK;
+                import.Currency = accountSetting.Currency;
                 import.ItemCount = aboData.ItemCount;
                 import.ImportResult = importResult.IsSuccess ? ImportStatus.Success : importResult.ErrorMessage ?? ImportStatus.UnknownError;
 
-                // Save to database
                 var savedImport = await _repository.AddAsync(import);
                 imports.Add(_mapper.Map<BankStatementImportDto>(savedImport));
 
@@ -102,10 +98,9 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
             {
                 _logger.LogError(ex, "Error processing statement {StatementId}", statement.StatementId);
 
-                // Create failed import record
-                var failedImport = new BankStatementImport(statement.StatementId, request.StatementDate);
+                var failedImport = new BankStatementImport(statement.StatementId, statement.Date);
                 failedImport.Account = accountSetting.AccountNumber;
-                failedImport.Currency = request.AccountName.EndsWith("EUR") ? CurrencyCode.EUR : CurrencyCode.CZK;
+                failedImport.Currency = accountSetting.Currency;
                 failedImport.ImportResult = $"{ImportStatus.ProcessingError}: {ex.Message}";
 
                 var savedFailedImport = await _repository.AddAsync(failedImport);

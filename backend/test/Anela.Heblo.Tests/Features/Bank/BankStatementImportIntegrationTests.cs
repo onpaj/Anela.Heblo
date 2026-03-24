@@ -26,7 +26,9 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
     public async Task ImportBankStatement_WithValidCZKAccount_ReturnsSuccess()
     {
         // Arrange
-        var request = new ImportBankStatementRequest("CZK", DateTime.Today);
+        var dateFrom = DateTime.Today;
+        var dateTo = DateTime.Today;
+        var request = new ImportBankStatementRequest("CZK", dateFrom, dateTo);
 
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -46,7 +48,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
             ItemCount = 2
         };
 
-        _factory.MockBankClient.Setup(x => x.GetStatementsAsync("123456789", request.StatementDate))
+        _factory.MockBankClient.Setup(x => x.GetStatementsAsync("123456789", dateFrom, dateTo))
             .ReturnsAsync(new[] { statement });
         _factory.MockBankClient.Setup(x => x.GetStatementAsync("T12345"))
             .ReturnsAsync(aboData);
@@ -77,7 +79,9 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
     public async Task ImportBankStatement_WithValidEURAccount_ReturnsSuccess()
     {
         // Arrange
-        var request = new ImportBankStatementRequest("EUR", DateTime.Today);
+        var dateFrom = DateTime.Today;
+        var dateTo = DateTime.Today;
+        var request = new ImportBankStatementRequest("EUR", dateFrom, dateTo);
 
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -97,7 +101,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
             ItemCount = 1
         };
 
-        _factory.MockBankClient.Setup(x => x.GetStatementsAsync("987654321", request.StatementDate))
+        _factory.MockBankClient.Setup(x => x.GetStatementsAsync("987654321", dateFrom, dateTo))
             .ReturnsAsync(new[] { statement });
         _factory.MockBankClient.Setup(x => x.GetStatementAsync("T67890"))
             .ReturnsAsync(aboData);
@@ -125,7 +129,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
     public async Task ImportBankStatement_WithInvalidAccount_ReturnsBadRequest()
     {
         // Arrange
-        var request = new ImportBankStatementRequest("INVALID", DateTime.Today);
+        var request = new ImportBankStatementRequest("INVALID", DateTime.Today, DateTime.Today);
 
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -141,7 +145,9 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
     public async Task ImportBankStatement_WithMultipleStatements_ProcessesAll()
     {
         // Arrange
-        var request = new ImportBankStatementRequest("CZK", DateTime.Today);
+        var dateFrom = DateTime.Today;
+        var dateTo = DateTime.Today;
+        var request = new ImportBankStatementRequest("CZK", dateFrom, dateTo);
 
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -152,7 +158,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
         var aboData1 = new BankStatementData { StatementId = "T001", Data = "Header\nTx1", ItemCount = 1 };
         var aboData2 = new BankStatementData { StatementId = "T002", Data = "Header\nTx2", ItemCount = 1 };
 
-        _factory.MockBankClient.Setup(x => x.GetStatementsAsync("123456789", request.StatementDate))
+        _factory.MockBankClient.Setup(x => x.GetStatementsAsync("123456789", dateFrom, dateTo))
             .ReturnsAsync(new[] { statement1, statement2 });
         _factory.MockBankClient.Setup(x => x.GetStatementAsync("T001"))
             .ReturnsAsync(aboData1);
@@ -185,7 +191,9 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
     public async Task ImportBankStatement_WithPartialFailure_ReturnsPartialResults()
     {
         // Arrange
-        var request = new ImportBankStatementRequest("CZK", DateTime.Today);
+        var dateFrom = DateTime.Today;
+        var dateTo = DateTime.Today;
+        var request = new ImportBankStatementRequest("CZK", dateFrom, dateTo);
 
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -195,7 +203,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
 
         var successAbo = new BankStatementData { StatementId = "T-SUCCESS", Data = "Header\nSuccess", ItemCount = 1 };
 
-        _factory.MockBankClient.Setup(x => x.GetStatementsAsync("123456789", request.StatementDate))
+        _factory.MockBankClient.Setup(x => x.GetStatementsAsync("123456789", dateFrom, dateTo))
             .ReturnsAsync(new[] { successStatement, failStatement });
         _factory.MockBankClient.Setup(x => x.GetStatementAsync("T-SUCCESS"))
             .ReturnsAsync(successAbo);
@@ -245,7 +253,9 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
     public async Task ImportBankStatement_DatabasePersistence_SavesImportRecord()
     {
         // Arrange
-        var request = new ImportBankStatementRequest("CZK", DateTime.Today);
+        var dateFrom = DateTime.Today;
+        var dateTo = DateTime.Today;
+        var request = new ImportBankStatementRequest("CZK", dateFrom, dateTo);
 
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -264,7 +274,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
             ItemCount = 1
         };
 
-        _factory.MockBankClient.Setup(x => x.GetStatementsAsync("123456789", request.StatementDate))
+        _factory.MockBankClient.Setup(x => x.GetStatementsAsync("123456789", dateFrom, dateTo))
             .ReturnsAsync(new[] { statement });
         _factory.MockBankClient.Setup(x => x.GetStatementAsync("T-PERSIST"))
             .ReturnsAsync(aboData);
@@ -328,13 +338,15 @@ public class BankStatementImportTestFactory : HebloWebApplicationFactory
                 {
                     Name = "CZK",
                     AccountNumber = "123456789",
-                    FlexiBeeId = 1
+                    FlexiBeeId = 1,
+                    Currency = CurrencyCode.CZK
                 },
                 new BankAccountConfiguration
                 {
                     Name = "EUR",
                     AccountNumber = "987654321",
-                    FlexiBeeId = 2
+                    FlexiBeeId = 2,
+                    Currency = CurrencyCode.EUR
                 }
             };
         });
