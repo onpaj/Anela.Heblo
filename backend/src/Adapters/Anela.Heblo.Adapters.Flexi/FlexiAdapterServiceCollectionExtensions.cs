@@ -60,7 +60,6 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddScoped<IProductPriceErpClient, FlexiProductPriceErpClient>();
         services.AddSingleton<IPurchaseHistoryClient, FlexiPurchaseHistoryQueryClient>();
 
-        services.AddScoped<IManufactureRepository, FlexiManufactureRepository>();
         services.AddSingleton<IManufactureHistoryClient, FlexiManufactureHistoryClient>();
 
         services.AddSingleton<ISupplierRepository, FlexiSupplierRepository>();

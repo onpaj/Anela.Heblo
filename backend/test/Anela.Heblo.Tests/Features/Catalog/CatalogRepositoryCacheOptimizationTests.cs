@@ -35,7 +35,7 @@ public class CatalogRepositoryCacheOptimizationTests
     private readonly Mock<IProductPriceErpClient> _productPriceErpClientMock;
     private readonly Mock<ITransportBoxRepository> _transportBoxRepositoryMock;
     private readonly Mock<IStockTakingRepository> _stockTakingRepositoryMock;
-    private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
+    private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<IPurchaseOrderRepository> _purchaseOrderRepositoryMock;
     private readonly Mock<IManufactureOrderRepository> _manufactureOrderRepositoryMock;
     private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
@@ -65,7 +65,7 @@ public class CatalogRepositoryCacheOptimizationTests
         _productPriceErpClientMock = new Mock<IProductPriceErpClient>();
         _transportBoxRepositoryMock = new Mock<ITransportBoxRepository>();
         _stockTakingRepositoryMock = new Mock<IStockTakingRepository>();
-        _manufactureRepositoryMock = new Mock<IManufactureRepository>();
+        _manufactureClientMock = new Mock<IManufactureClient>();
         _purchaseOrderRepositoryMock = new Mock<IPurchaseOrderRepository>();
         _manufactureOrderRepositoryMock = new Mock<IManufactureOrderRepository>();
         _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
@@ -127,7 +127,7 @@ public class CatalogRepositoryCacheOptimizationTests
             _productPriceErpClientMock.Object,
             _transportBoxRepositoryMock.Object,
             _stockTakingRepositoryMock.Object,
-            _manufactureRepositoryMock.Object,
+            _manufactureClientMock.Object,
             _purchaseOrderRepositoryMock.Object,
             _manufactureOrderRepositoryMock.Object,
             _manufactureHistoryClientMock.Object,
@@ -176,7 +176,7 @@ public class CatalogRepositoryCacheOptimizationTests
         _productPriceErpClientMock.Setup(x => x.GetAllAsync(It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ProductPriceErp>());
 
-        _manufactureRepositoryMock.Setup(x => x.FindByIngredientAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.FindByIngredientAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureTemplate>());
 
         _manufactureDifficultyRepositoryMock.Setup(x => x.ListAsync(It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))

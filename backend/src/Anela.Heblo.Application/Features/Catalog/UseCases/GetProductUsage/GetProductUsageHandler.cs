@@ -7,21 +7,21 @@ namespace Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
 
 public class GetProductUsageHandler : IRequestHandler<GetProductUsageRequest, GetProductUsageResponse>
 {
-    private readonly IManufactureRepository _manufactureRepository;
+    private readonly IManufactureClient _manufactureClient;
     private readonly ICatalogRepository _catalogRepository;
 
     public GetProductUsageHandler(
-        IManufactureRepository manufactureRepository,
+        IManufactureClient manufactureClient,
         ICatalogRepository catalogRepository)
     {
-        _manufactureRepository = manufactureRepository;
+        _manufactureClient = manufactureClient;
         _catalogRepository = catalogRepository;
     }
 
     public async Task<GetProductUsageResponse> Handle(GetProductUsageRequest request, CancellationToken cancellationToken)
     {
         // Get manufacture templates
-        var manufactureTemplates = await _manufactureRepository.FindByIngredientAsync(request.ProductCode, cancellationToken);
+        var manufactureTemplates = await _manufactureClient.FindByIngredientAsync(request.ProductCode, cancellationToken);
 
         // Apply MMQ scaling if configured
         foreach (var template in manufactureTemplates)

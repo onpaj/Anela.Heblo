@@ -9,15 +9,15 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 
 public class CalculateBatchBySizeHandlerTests
 {
-    private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
+    private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly CalculatedBatchSizeHandler _handler;
 
     public CalculateBatchBySizeHandlerTests()
     {
-        _manufactureRepositoryMock = new Mock<IManufactureRepository>();
+        _manufactureClientMock = new Mock<IManufactureClient>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
-        _handler = new CalculatedBatchSizeHandler(_manufactureRepositoryMock.Object, _catalogRepositoryMock.Object);
+        _handler = new CalculatedBatchSizeHandler(_manufactureClientMock.Object, _catalogRepositoryMock.Object);
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class CalculateBatchBySizeHandlerTests
             MinimalManufactureQuantity = 100.0
         };
 
-        _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
@@ -100,7 +100,7 @@ public class CalculateBatchBySizeHandlerTests
     {
         // Arrange
         const string productCode = "NONEXISTENT";
-        _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ManufactureTemplate?)null);
 
         var request = new CalculatedBatchSizeRequest
@@ -130,7 +130,7 @@ public class CalculateBatchBySizeHandlerTests
             Ingredients = new List<Ingredient>()
         };
 
-        _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
@@ -170,7 +170,7 @@ public class CalculateBatchBySizeHandlerTests
             MinimalManufactureQuantity = 100.0
         };
 
-        _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
@@ -219,7 +219,7 @@ public class CalculateBatchBySizeHandlerTests
             MinimalManufactureQuantity = 200.0
         };
 
-        _manufactureRepositoryMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
