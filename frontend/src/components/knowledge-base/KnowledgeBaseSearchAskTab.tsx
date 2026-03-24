@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { Search, ChevronDown, ChevronUp } from 'lucide-react';
-import { useKnowledgeBaseAskMutation, SourceReference } from '../../api/hooks/useKnowledgeBase';
+import {
+  useKnowledgeBaseAskMutation,
+  useSubmitFeedbackMutation,
+  SourceReference,
+} from '../../api/hooks/useKnowledgeBase';
 
 const SourceAccordion: React.FC<{ sources: SourceReference[] }> = ({ sources }) => {
   const [open, setOpen] = useState(false);
@@ -30,6 +34,115 @@ const SourceAccordion: React.FC<{ sources: SourceReference[] }> = ({ sources }) 
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+const SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+const ScoreRow: React.FC<{
+  label: string;
+  value: number | null;
+  onChange: (v: number) => void;
+}> = ({ label, value, onChange }) => (
+  <div className="space-y-1">
+    <span className="text-sm font-medium text-gray-700">{label}</span>
+    <div className="flex gap-1 flex-wrap">
+      {SCORES.map((s) => (
+        <label key={s} className="cursor-pointer">
+          <input
+            type="radio"
+            name={label}
+            value={s}
+            checked={value === s}
+            onChange={() => onChange(s)}
+            className="sr-only"
+          />
+          <span
+            className={`inline-flex items-center justify-center w-8 h-8 rounded text-sm font-medium border ${
+              value === s
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            {s}
+          </span>
+        </label>
+      ))}
+    </div>
+  </div>
+);
+
+type FeedbackState = 'idle' | 'submitted' | 'alreadySubmitted';
+
+const FeedbackForm: React.FC<{ logId: string }> = ({ logId }) => {
+  const [precisionScore, setPrecisionScore] = useState<number | null>(null);
+  const [styleScore, setStyleScore] = useState<number | null>(null);
+  const [comment, setComment] = useState('');
+  const [feedbackState, setFeedbackState] = useState<FeedbackState>('idle');
+  const submitFeedback = useSubmitFeedbackMutation();
+
+  if (feedbackState === 'submitted') {
+    return (
+      <div className="border border-gray-200 rounded-lg p-4 text-sm text-green-700 bg-green-50">
+        Děkujeme za vaši zpětnou vazbu.
+      </div>
+    );
+  }
+
+  if (feedbackState === 'alreadySubmitted') {
+    return (
+      <div className="border border-gray-200 rounded-lg p-4 text-sm text-gray-600 bg-gray-50">
+        Zpětná vazba již byla odeslána.
+      </div>
+    );
+  }
+
+  const canSubmit = precisionScore !== null && styleScore !== null;
+
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    submitFeedback.mutate(
+      {
+        logId,
+        precisionScore: precisionScore!,
+        styleScore: styleScore!,
+        comment: comment.trim() || undefined,
+      },
+      {
+        onSuccess: (result) => {
+          if (result.alreadySubmitted) {
+            setFeedbackState('alreadySubmitted');
+          } else {
+            setFeedbackState('submitted');
+          }
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+      <p className="text-sm font-medium text-gray-700">Ohodnoťte odpověď</p>
+      <ScoreRow label="Přesnost" value={precisionScore} onChange={setPrecisionScore} />
+      <ScoreRow label="Styl" value={styleScore} onChange={setStyleScore} />
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Volitelný komentář..."
+        rows={2}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+      />
+      {submitFeedback.isError && (
+        <p className="text-red-600 text-sm">Odeslání selhalo. Zkuste to znovu.</p>
+      )}
+      <button
+        onClick={handleSubmit}
+        disabled={!canSubmit || submitFeedback.isPending}
+        className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+      >
+        Odeslat zpětnou vazbu
+      </button>
     </div>
   );
 };
@@ -88,6 +201,7 @@ const KnowledgeBaseSearchAskTab: React.FC = () => {
             <p className="text-sm text-gray-800 whitespace-pre-wrap">{ask.data.answer}</p>
           </div>
           <SourceAccordion sources={ask.data.sources} />
+          {ask.data.id && <FeedbackForm logId={ask.data.id} />}
         </div>
       )}
     </div>

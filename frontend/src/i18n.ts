@@ -187,6 +187,10 @@ const resources = {
         RecurringJobNotFound: "Opakovaná úloha nenalezena",
         RecurringJobUpdateFailed: "Aktualizace opakované úlohy selhala",
 
+        // KnowledgeBase module errors
+        KnowledgeBaseFeedbackLogNotFound: "Záznam zpětné vazby nenalezen",
+        KnowledgeBaseFeedbackAlreadySubmitted: "Zpětná vazba již byla odeslána",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",

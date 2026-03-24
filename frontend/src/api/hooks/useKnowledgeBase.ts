@@ -15,9 +15,28 @@ export interface DocumentSummary {
   indexedAt: string | null;
 }
 
+export interface GetDocumentsParams {
+  pageNumber?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDescending?: boolean;
+  filenameFilter?: string;
+  statusFilter?: string;
+  contentTypeFilter?: string;
+}
+
 export interface GetDocumentsResponse {
   success: boolean;
   documents: DocumentSummary[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface GetDocumentContentTypesResponse {
+  success: boolean;
+  contentTypes: string[];
 }
 
 export interface ChunkResult {
@@ -43,8 +62,20 @@ export interface SourceReference {
 
 export interface AskQuestionResponse {
   success: boolean;
+  id: string | null;
   answer: string;
   sources: SourceReference[];
+}
+
+export interface SubmitFeedbackRequest {
+  logId: string;
+  precisionScore: number;
+  styleScore: number;
+  comment?: string;
+}
+
+export interface SubmitFeedbackResult {
+  alreadySubmitted?: true;
 }
 
 export interface DeleteDocumentResponse {
@@ -82,20 +113,37 @@ export const useKnowledgeBaseUploadPermission = (): boolean => {
 
 export const knowledgeBaseKeys = {
   all: [...QUERY_KEYS.knowledgeBase] as const,
-  documents: () => [...QUERY_KEYS.knowledgeBase, 'documents'] as const,
+  documents: (params?: GetDocumentsParams) =>
+    [...QUERY_KEYS.knowledgeBase, 'documents', params ?? {}] as const,
+  contentTypes: () => [...QUERY_KEYS.knowledgeBase, 'content-types'] as const,
 };
 
 // ---- Hooks ----
 
 /**
- * Fetch all indexed knowledge base documents.
+ * Fetch paginated, filtered, sorted knowledge base documents.
  */
-export const useKnowledgeBaseDocumentsQuery = () => {
+export const useKnowledgeBaseDocumentsQuery = (params: GetDocumentsParams = {}) => {
   return useQuery({
-    queryKey: knowledgeBaseKeys.documents(),
+    queryKey: knowledgeBaseKeys.documents(params),
     queryFn: async (): Promise<GetDocumentsResponse> => {
       const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = '/api/knowledgebase/documents';
+      const searchParams = new URLSearchParams();
+
+      if (params.pageNumber !== undefined)
+        searchParams.append('pageNumber', params.pageNumber.toString());
+      if (params.pageSize !== undefined)
+        searchParams.append('pageSize', params.pageSize.toString());
+      if (params.sortBy) searchParams.append('sortBy', params.sortBy);
+      if (params.sortDescending !== undefined)
+        searchParams.append('sortDescending', params.sortDescending.toString());
+      if (params.filenameFilter) searchParams.append('filenameFilter', params.filenameFilter);
+      if (params.statusFilter) searchParams.append('statusFilter', params.statusFilter);
+      if (params.contentTypeFilter)
+        searchParams.append('contentTypeFilter', params.contentTypeFilter);
+
+      const query = searchParams.toString();
+      const relativeUrl = `/api/knowledgebase/documents${query ? `?${query}` : ''}`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
 
       const response = await (apiClient as any).http.fetch(fullUrl, {
@@ -109,6 +157,34 @@ export const useKnowledgeBaseDocumentsQuery = () => {
 
       return response.json();
     },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+};
+
+/**
+ * Fetch distinct content types for the filter dropdown.
+ */
+export const useKnowledgeBaseContentTypesQuery = () => {
+  return useQuery({
+    queryKey: knowledgeBaseKeys.contentTypes(),
+    queryFn: async (): Promise<GetDocumentContentTypesResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const fullUrl = `${(apiClient as any).baseUrl}/api/knowledgebase/documents/content-types`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch content types: ${response.status}`);
+      }
+
+      return response.json();
+    },
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 };
 
@@ -198,7 +274,36 @@ export const useDeleteKnowledgeBaseDocumentMutation = () => {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: knowledgeBaseKeys.documents() });
+      queryClient.invalidateQueries({ queryKey: knowledgeBaseKeys.all });
+    },
+  });
+};
+
+/**
+ * Submit precision and style feedback for a Knowledge Base Ask response.
+ * Returns { alreadySubmitted: true } on 409 instead of throwing.
+ */
+export const useSubmitFeedbackMutation = () => {
+  return useMutation({
+    mutationFn: async (payload: SubmitFeedbackRequest): Promise<SubmitFeedbackResult> => {
+      const apiClient = getAuthenticatedApiClient();
+      const fullUrl = `${(apiClient as any).baseUrl}/api/knowledgebase/feedback`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.status === 409) {
+        return { alreadySubmitted: true };
+      }
+
+      if (!response.ok) {
+        throw new Error(`Submit feedback failed: ${response.status}`);
+      }
+
+      return {};
     },
   });
 };
@@ -232,7 +337,7 @@ export const useUploadKnowledgeBaseDocumentMutation = () => {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: knowledgeBaseKeys.documents() });
+      queryClient.invalidateQueries({ queryKey: knowledgeBaseKeys.all });
     },
   });
 };

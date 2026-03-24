@@ -15,6 +15,7 @@ public class AskQuestionRequest : IRequest<AskQuestionResponse>
 
 public class AskQuestionResponse : BaseResponse
 {
+    public Guid? Id { get; set; }
     public string Answer { get; set; } = string.Empty;
     public List<SourceReference> Sources { get; set; } = [];
 }

@@ -63,7 +63,7 @@ public class KnowledgeBaseControllerTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.GetDocuments(CancellationToken.None);
+        var result = await _controller.GetDocuments(ct: CancellationToken.None);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);

@@ -67,4 +67,44 @@ public class QuestionLoggingBehaviorTests
 
         Assert.Equal("answer", result.Answer);
     }
+
+    [Fact]
+    public async Task Handle_WhenLogSaved_SetsResponseIdToLogId()
+    {
+        _userService.Setup(s => s.GetCurrentUser()).Returns(new CurrentUser("user-1", "Test User", null, true));
+
+        var request = new AskQuestionRequest { Question = "Test?", TopK = 5 };
+        var expectedResponse = new AskQuestionResponse { Answer = "answer", Sources = [] };
+
+        KnowledgeBaseQuestionLog? capturedLog = null;
+        _repository
+            .Setup(r => r.SaveQuestionLogAsync(It.IsAny<KnowledgeBaseQuestionLog>(), It.IsAny<CancellationToken>()))
+            .Callback<KnowledgeBaseQuestionLog, CancellationToken>((log, _) => capturedLog = log)
+            .Returns(Task.CompletedTask);
+
+        var behavior = CreateBehavior();
+        var result = await behavior.Handle(request, () => Task.FromResult(expectedResponse), default);
+
+        Assert.NotNull(capturedLog);
+        Assert.Equal(capturedLog.Id, result.Id);
+        Assert.NotEqual(Guid.Empty, result.Id);
+    }
+
+    [Fact]
+    public async Task Handle_WhenDbWriteFails_ResponseIdRemainsNull()
+    {
+        _userService.Setup(s => s.GetCurrentUser()).Returns(new CurrentUser("user-1", "Test User", null, true));
+
+        _repository
+            .Setup(r => r.SaveQuestionLogAsync(It.IsAny<KnowledgeBaseQuestionLog>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("DB error"));
+
+        var request = new AskQuestionRequest { Question = "Test?", TopK = 5 };
+        var expectedResponse = new AskQuestionResponse { Answer = "answer", Sources = [] };
+
+        var behavior = CreateBehavior();
+        var result = await behavior.Handle(request, () => Task.FromResult(expectedResponse), default);
+
+        Assert.Null(result.Id);
+    }
 }
