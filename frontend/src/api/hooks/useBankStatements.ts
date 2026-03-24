@@ -176,74 +176,49 @@ export const useBankStatementImport = () => {
   });
 };
 
-// Account mapping interface for display purposes
+// Account option interface for display purposes
 export interface AccountOption {
-  value: string; // The account name that backend expects (e.g., "ComgateCZK")
-  label: string; // Display text (Account Name (Account Number))
-  accountNumber: string; // The actual account number (e.g., "2301495165/2010")
-  accountName: string; // The account name (e.g., "ComgateCZK")
+  value: string;       // Account name used by the backend (e.g., "ShoptetPay-CZK")
+  label: string;       // Display text (e.g., "ShoptetPay-CZK (ShoptetPay)")
+  accountNumber: string;
+  provider: string;
+  currency: string;
 }
 
-// Account mapping - maps account numbers to account names that backend expects
-const getAccountNameFromNumber = (accountNumber: string): string => {
-  const accountMappings: Record<string, string> = {
-    // Map account numbers to the account names that backend expects
-    '2301495165/2010': 'ComgateCZK',
-    '2501837465/2010': 'ComgateEUR',
-  };
+interface BankAccountDto {
+  name: string;
+  accountNumber: string;
+  provider: string;
+  currency: string;
+}
 
-  return accountMappings[accountNumber] || accountNumber;
-};
-
-// Get display name for UI
-const getAccountDisplayName = (accountNumber: string): string => {
-  const accountName = getAccountNameFromNumber(accountNumber);
-  return `${accountName} (${accountNumber})`;
-};
-
-// Get unique accounts from existing bank statements (for account selection)
+// Get configured bank accounts from the backend
 export const useBankStatementAccounts = () => {
   return useQuery({
     queryKey: [...QUERY_KEYS.bankStatements, 'accounts'],
     queryFn: async (): Promise<AccountOption[]> => {
       const apiClient = await getAuthenticatedApiClient();
-      
-      // Get all bank statements to extract unique account names
-      const relativeUrl = `/api/bank-statements?take=1000`; // Get a large number to capture all accounts
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      
+      const fullUrl = `${(apiClient as any).baseUrl}/api/bank-statements/accounts`;
+
       const response = await (apiClient as any).http.fetch(fullUrl, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data: GetBankStatementListResponse = await response.json();
-      
-      // Extract unique account numbers
-      const uniqueAccounts = new Set(data.items.map(item => item.account));
-      const accountNumbers = Array.from(uniqueAccounts);
-      
-      // Convert to AccountOption objects with display names
-      const accountOptions: AccountOption[] = accountNumbers.map(accountNumber => {
-        const accountName = getAccountNameFromNumber(accountNumber);
-        const displayName = getAccountDisplayName(accountNumber);
-        
-        return {
-          value: accountName, // Use account name for API calls, not account number
-          label: displayName,
-          accountNumber: accountNumber,
-          accountName: accountName
-        };
-      });
-      
-      return accountOptions.sort((a, b) => a.label.localeCompare(b.label));
+      const data: BankAccountDto[] = await response.json();
+
+      return data.map(a => ({
+        value: a.name,
+        label: `${a.name} (${a.provider})`,
+        accountNumber: a.accountNumber,
+        provider: a.provider,
+        currency: a.currency,
+      }));
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000,
   });
 };
