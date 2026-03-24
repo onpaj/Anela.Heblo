@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Comgate;
+using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Xcc.Abo;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -36,6 +37,13 @@ public class ComgateBankClientTests
 
         // Assert
         Assert.NotNull(client);
+    }
+
+    [Fact]
+    public void Provider_ReturnsComgate()
+    {
+        var client = new ComgateBankClient(_httpClient, _optionsMock.Object, _loggerMock.Object);
+        Assert.Equal(BankClientProvider.Comgate, client.Provider);
     }
 
     [Fact]

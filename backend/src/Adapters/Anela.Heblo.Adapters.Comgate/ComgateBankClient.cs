@@ -28,6 +28,9 @@ public class ComgateBankClient : IBankClient
         _settings = options.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
+
+    public BankClientProvider Provider => BankClientProvider.Comgate;
+
     public async Task<BankStatementData> GetStatementAsync(string transferId)
     {
         var url = string.Format(GetStatementUrlTemplate, _settings.MerchantId, _settings.Secret, transferId);
@@ -82,64 +85,65 @@ public class ComgateBankClient : IBankClient
         }
     }
 
-    public async Task<IList<BankStatementHeader>> GetStatementsAsync(string accountNumber, DateTime requestStatementDate)
+    public async Task<IList<BankStatementHeader>> GetStatementsAsync(string accountNumber, DateTime dateFrom, DateTime dateTo)
     {
-        var url = string.Format(GetStatementsUrlTemplate, _settings.MerchantId, _settings.Secret, requestStatementDate.Date.ToString("yyyy-MM-dd"));
-        var anonymizedUrl = AnonymizeUrl(url);
+        var results = new List<BankStatementHeader>();
 
-        _logger.LogInformation(
-            "Comgate API: Fetching statements list - Account: {AccountNumber}, Date: {StatementDate}, URL: {Url}",
-            accountNumber, requestStatementDate.Date.ToString("yyyy-MM-dd"), anonymizedUrl);
-
-        var sw = Stopwatch.StartNew();
-        try
+        for (var date = dateFrom.Date; date <= dateTo.Date; date = date.AddDays(1))
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, url);
-            var response = await _httpClient.SendAsync(request);
-
-            sw.Stop();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError(
-                    "Comgate API: HTTP request failed - StatusCode: {StatusCode}, Account: {AccountNumber}, Duration: {Duration}ms",
-                    response.StatusCode, accountNumber, sw.ElapsedMilliseconds);
-            }
-
-            response.EnsureSuccessStatusCode();
-
-            var result = await response.Content.ReadAsAsync<List<ComgateStatementHeader>>();
-
-            var filteredResults = result.Where(w => w.AccountCounterParty == accountNumber).ToList();
+            var url = string.Format(GetStatementsUrlTemplate, _settings.MerchantId, _settings.Secret, date.ToString("yyyy-MM-dd"));
+            var anonymizedUrl = AnonymizeUrl(url);
 
             _logger.LogInformation(
-                "Comgate API: Statements list fetched successfully - Account: {AccountNumber}, Total: {TotalCount}, Filtered: {FilteredCount}, Duration: {Duration}ms",
-                accountNumber, result.Count, filteredResults.Count, sw.ElapsedMilliseconds);
+                "Comgate API: Fetching statements list - Account: {AccountNumber}, Date: {StatementDate}, URL: {Url}",
+                accountNumber, date.ToString("yyyy-MM-dd"), anonymizedUrl);
 
-            return filteredResults
-                .Select(s => new BankStatementHeader()
+            var sw = Stopwatch.StartNew();
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Post, url);
+                var response = await _httpClient.SendAsync(request);
+
+                sw.Stop();
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    StatementId = s.TransferId,
-                    Date = DateTime.ParseExact(s.TransferDate, "yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    Account = s.AccountCounterParty
-                }).ToList();
+                    _logger.LogError(
+                        "Comgate API: HTTP request failed - StatusCode: {StatusCode}, Account: {AccountNumber}, Date: {Date}, Duration: {Duration}ms",
+                        response.StatusCode, accountNumber, date.ToString("yyyy-MM-dd"), sw.ElapsedMilliseconds);
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                var dayResults = await response.Content.ReadAsAsync<List<ComgateStatementHeader>>();
+
+                var filtered = dayResults
+                    .Where(w => w.AccountCounterParty == accountNumber)
+                    .Select(s => new BankStatementHeader
+                    {
+                        StatementId = s.TransferId,
+                        Date = DateTime.ParseExact(s.TransferDate, "yyyy-MM-dd", CultureInfo.InvariantCulture),
+                        Account = s.AccountCounterParty
+                    })
+                    .ToList();
+
+                _logger.LogInformation(
+                    "Comgate API: Statements fetched for {Date} - Account: {AccountNumber}, Count: {Count}, Duration: {Duration}ms",
+                    date.ToString("yyyy-MM-dd"), accountNumber, filtered.Count, sw.ElapsedMilliseconds);
+
+                results.AddRange(filtered);
+            }
+            catch (HttpRequestException ex)
+            {
+                sw.Stop();
+                _logger.LogError(ex,
+                    "Comgate API: HTTP request failed - Account: {AccountNumber}, Date: {Date}, URL: {Url}, Duration: {Duration}ms",
+                    accountNumber, date.ToString("yyyy-MM-dd"), anonymizedUrl, sw.ElapsedMilliseconds);
+                throw;
+            }
         }
-        catch (HttpRequestException ex)
-        {
-            sw.Stop();
-            _logger.LogError(ex,
-                "Comgate API: HTTP request failed - Account: {AccountNumber}, URL: {Url}, Duration: {Duration}ms, Error: {ErrorMessage}",
-                accountNumber, anonymizedUrl, sw.ElapsedMilliseconds, ex.Message);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            sw.Stop();
-            _logger.LogError(ex,
-                "Comgate API: Failed to fetch statements list - Account: {AccountNumber}, Duration: {Duration}ms, Error: {ErrorMessage}",
-                accountNumber, sw.ElapsedMilliseconds, ex.Message);
-            throw;
-        }
+
+        return results;
     }
 
     /// <summary>
