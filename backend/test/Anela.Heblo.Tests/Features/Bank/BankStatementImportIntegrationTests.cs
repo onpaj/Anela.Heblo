@@ -28,7 +28,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
         // Arrange
         var dateFrom = DateTime.Today;
         var dateTo = DateTime.Today;
-        var request = new ImportBankStatementRequest("CZK", dateFrom, dateTo);
+        var request = new ImportBankStatementRequest("ComgateCZK", dateFrom, dateTo);
 
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -81,7 +81,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
         // Arrange
         var dateFrom = DateTime.Today;
         var dateTo = DateTime.Today;
-        var request = new ImportBankStatementRequest("EUR", dateFrom, dateTo);
+        var request = new ImportBankStatementRequest("ComgateEUR", dateFrom, dateTo);
 
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -147,7 +147,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
         // Arrange
         var dateFrom = DateTime.Today;
         var dateTo = DateTime.Today;
-        var request = new ImportBankStatementRequest("CZK", dateFrom, dateTo);
+        var request = new ImportBankStatementRequest("ComgateCZK", dateFrom, dateTo);
 
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -193,7 +193,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
         // Arrange
         var dateFrom = DateTime.Today;
         var dateTo = DateTime.Today;
-        var request = new ImportBankStatementRequest("CZK", dateFrom, dateTo);
+        var request = new ImportBankStatementRequest("ComgateCZK", dateFrom, dateTo);
 
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -255,7 +255,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
         // Arrange
         var dateFrom = DateTime.Today;
         var dateTo = DateTime.Today;
-        var request = new ImportBankStatementRequest("CZK", dateFrom, dateTo);
+        var request = new ImportBankStatementRequest("ComgateCZK", dateFrom, dateTo);
 
         var json = JsonSerializer.Serialize(request);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -336,14 +336,16 @@ public class BankStatementImportTestFactory : HebloWebApplicationFactory
             {
                 new BankAccountConfiguration
                 {
-                    Name = "CZK",
+                    Name = "ComgateCZK",
+                    Provider = BankClientProvider.Comgate,
                     AccountNumber = "123456789",
                     FlexiBeeId = 1,
                     Currency = CurrencyCode.CZK
                 },
                 new BankAccountConfiguration
                 {
-                    Name = "EUR",
+                    Name = "ComgateEUR",
+                    Provider = BankClientProvider.Comgate,
                     AccountNumber = "987654321",
                     FlexiBeeId = 2,
                     Currency = CurrencyCode.EUR
