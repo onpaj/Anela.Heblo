@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Comgate;
+using Anela.Heblo.Xcc.Abo;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
