@@ -3,6 +3,7 @@ using Anela.Heblo.Adapters.Comgate;
 using Anela.Heblo.Adapters.Flexi;
 using Anela.Heblo.Adapters.OpenAI;
 using Anela.Heblo.Adapters.Shoptet;
+using Anela.Heblo.Adapters.ShoptetApi;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application;
@@ -51,6 +52,7 @@ public partial class Program
         builder.Services.AddFlexiAdapter(builder.Configuration);
         builder.Services.AddShoptetAdapter(builder.Configuration);
         builder.Services.AddComgateAdapter(builder.Configuration);
+        builder.Services.AddShoptetApiAdapter(builder.Configuration);
         builder.Services.AddAnthropicAdapter(builder.Configuration);
         builder.Services.AddOpenAiAdapter(builder.Configuration);
 
