@@ -135,6 +135,40 @@ public class MockBlobStorageService : IBlobStorageService
         _containers.Clear();
     }
 
+    public async Task<IReadOnlyList<BlobItemInfo>> ListBlobsAsync(string containerName, string? prefix, CancellationToken cancellationToken = default)
+    {
+        if (!_containers.ContainsKey(containerName))
+        {
+            return new List<BlobItemInfo>().AsReadOnly();
+        }
+
+        var blobs = _containers[containerName]
+            .Values
+            .Where(b => prefix == null || b.BlobName.StartsWith(prefix))
+            .Select(b => new BlobItemInfo
+            {
+                Name = b.BlobName,
+                FileName = Path.GetFileName(b.BlobName),
+                CreatedOn = new DateTimeOffset(b.CreatedAt)
+            })
+            .ToList()
+            .AsReadOnly();
+
+        return blobs;
+    }
+
+    public async Task<Stream> DownloadAsync(string containerName, string blobName, CancellationToken cancellationToken = default)
+    {
+        if (!_containers.ContainsKey(containerName) || !_containers[containerName].ContainsKey(blobName))
+        {
+            throw new InvalidOperationException($"Blob {blobName} not found in container {containerName}");
+        }
+
+        // Return mock binary data as a stream
+        var content = System.Text.Encoding.UTF8.GetBytes($"Mock content for {blobName}");
+        return new MemoryStream(content);
+    }
+
     private static string GetContentTypeFromUrl(string url)
     {
         var extension = Path.GetExtension(new Uri(url).LocalPath).ToLowerInvariant();
