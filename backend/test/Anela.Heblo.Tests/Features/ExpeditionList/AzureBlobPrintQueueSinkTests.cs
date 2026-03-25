@@ -19,7 +19,11 @@ public class AzureBlobPrintQueueSinkTests : IDisposable
             .Setup(x => x.GetBlobClient(It.IsAny<string>()))
             .Returns(_blobClient.Object);
         _containerClient
-            .Setup(x => x.CreateIfNotExistsAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.CreateIfNotExistsAsync(
+                It.IsAny<PublicAccessType>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<BlobContainerEncryptionScopeOptions>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(Mock.Of<Azure.Response<BlobContainerInfo>>());
         _blobClient
             .Setup(x => x.UploadAsync(
@@ -99,6 +103,9 @@ public class AzureBlobPrintQueueSinkTests : IDisposable
             It.IsAny<bool>(),
             It.IsAny<CancellationToken>()), Times.Never);
         _containerClient.Verify(x => x.CreateIfNotExistsAsync(
+            It.IsAny<PublicAccessType>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<BlobContainerEncryptionScopeOptions>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
 }

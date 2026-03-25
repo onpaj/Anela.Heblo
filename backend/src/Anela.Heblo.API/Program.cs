@@ -1,8 +1,10 @@
 using Anela.Heblo.Adapters.Anthropic;
+using Anela.Heblo.Adapters.Azure;
 using Anela.Heblo.Adapters.Comgate;
 using Anela.Heblo.Adapters.Flexi;
 using Anela.Heblo.Adapters.OpenAI;
 using Anela.Heblo.Adapters.Shoptet;
+using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application;
@@ -53,6 +55,13 @@ public partial class Program
         builder.Services.AddComgateAdapter(builder.Configuration);
         builder.Services.AddAnthropicAdapter(builder.Configuration);
         builder.Services.AddOpenAiAdapter(builder.Configuration);
+
+        // Print queue sink — config-driven
+        var printSink = builder.Configuration["ExpeditionList:PrintSink"];
+        if (printSink == "AzureBlob")
+            builder.Services.AddAzurePrintQueueSink(builder.Configuration);
+        else
+            builder.Services.AddScoped<IPrintQueueSink, FileSystemPrintQueueSink>();
 
         // MCP server
         builder.Services.AddMcpServices();
