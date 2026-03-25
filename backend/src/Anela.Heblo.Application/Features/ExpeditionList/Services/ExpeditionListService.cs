@@ -12,6 +12,7 @@ public class ExpeditionListService : IExpeditionListService
     private readonly ISendGridClient _emailSender;
     private readonly TimeProvider _clock;
     private readonly IOptions<PrintPickingListOptions> _options;
+    private readonly IPrintQueueSink _printQueueSink;
     private readonly ILogger<ExpeditionListService> _logger;
 
     public ExpeditionListService(
@@ -19,12 +20,14 @@ public class ExpeditionListService : IExpeditionListService
         ISendGridClient emailSender,
         TimeProvider clock,
         IOptions<PrintPickingListOptions> options,
+        IPrintQueueSink printQueueSink,
         ILogger<ExpeditionListService> logger)
     {
         _pickingListSource = pickingListSource;
         _emailSender = emailSender;
         _clock = clock;
         _options = options;
+        _printQueueSink = printQueueSink;
         _logger = logger;
     }
 
@@ -45,7 +48,7 @@ public class ExpeditionListService : IExpeditionListService
 
         if (request.SendToPrinter)
         {
-            await SendToPrinter(result);
+            await _printQueueSink.SendAsync(result.ExportedFiles, cancellationToken);
             _logger.LogDebug("Sent to print queue");
         }
 
@@ -60,32 +63,6 @@ public class ExpeditionListService : IExpeditionListService
         {
             if (File.Exists(f))
                 File.Delete(f);
-        }
-
-        return Task.CompletedTask;
-    }
-
-    private Task SendToPrinter(PrintPickingListResult result)
-    {
-        var folder = _options.Value.PrintQueueFolder;
-        if (string.IsNullOrWhiteSpace(folder))
-        {
-            _logger.LogWarning("PrintQueueFolder is not configured. Skipping printer queue copy.");
-            return Task.CompletedTask;
-        }
-
-        Directory.CreateDirectory(folder);
-
-        foreach (var f in result.ExportedFiles)
-        {
-            var fileName = Path.GetFileName(f);
-            if (string.IsNullOrEmpty(fileName))
-            {
-                _logger.LogWarning("Skipping file with invalid path: {FilePath}", f);
-                continue;
-            }
-
-            File.Copy(f, Path.Combine(folder, fileName));
         }
 
         return Task.CompletedTask;
