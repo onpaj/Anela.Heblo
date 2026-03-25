@@ -12,4 +12,5 @@ public class PrintPickingListOptions
     public int DesiredStateId { get; set; } = 26;
     public bool SendToPrinterByDefault { get; set; } = false;
     public bool ChangeOrderStateByDefault { get; set; } = true;
+    public string PrintSink { get; set; } = "FileSystem"; // "FileSystem" | "AzureBlob"
 }
