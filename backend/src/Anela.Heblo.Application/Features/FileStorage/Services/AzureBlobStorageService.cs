@@ -145,6 +145,52 @@ public class AzureBlobStorageService : IBlobStorageService
         }
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<BlobItemInfo>> ListBlobsAsync(string containerName, string? prefix, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+            var items = new List<BlobItemInfo>();
+
+            await foreach (var blob in containerClient.GetBlobsAsync(prefix: prefix, cancellationToken: cancellationToken))
+            {
+                items.Add(new BlobItemInfo
+                {
+                    Name = blob.Name,
+                    FileName = Path.GetFileName(blob.Name),
+                    CreatedOn = blob.Properties.CreatedOn,
+                    ContentLength = blob.Properties.ContentLength
+                });
+            }
+
+            return items.AsReadOnly();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing blobs in container {ContainerName} with prefix {Prefix}", containerName, prefix);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<Stream> DownloadAsync(string containerName, string blobName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Downloading blob {BlobName} from container {ContainerName}", blobName, containerName);
+            var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+            var blobClient = containerClient.GetBlobClient(blobName);
+            var download = await blobClient.DownloadStreamingAsync(cancellationToken: cancellationToken);
+            return download.Value.Content;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error downloading blob {BlobName} from container {ContainerName}", blobName, containerName);
+            throw;
+        }
+    }
+
     private async Task<BlobContainerClient> GetOrCreateContainerAsync(string containerName, CancellationToken cancellationToken = default)
     {
         var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
