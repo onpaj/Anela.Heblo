@@ -34,10 +34,13 @@ public class PrintPickingListScenario
     {
         // Make sure dir exists
         Directory.CreateDirectory(_options.PdfTmpFolder);
-
+        
         using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-
-        await using var browser = await _browserFactory.CreateAsync(playwright);
+     
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
+        {
+            Headless = _options.Headless,
+        });
         var page = await browser.NewPageAsync();
         await InitPage(page, browser);
 
@@ -54,8 +57,8 @@ public class PrintPickingListScenario
 
         var exportList = new List<string>();
         var totalCount = 0;
-
-
+        
+        
         foreach (var shipping in shippings)
         {
             int found;
@@ -63,13 +66,13 @@ public class PrintPickingListScenario
             do
             {
                 // Select top x for print
-                await page.GotoAsync($"{_options.ShopEntryUrl}prehled-objednavek/{sourceStateId}/?f[shippingId]={shipping.Id}");
+                await page.GotoAsync($"{_options.ShopEntryUrl}/prehled-objednavek/{sourceStateId}/?f[shippingId]={shipping.Id}");
                 found = await SelectTopX(page, shipping.Id, shipping.PageSize);
 
                 if (found > 0)
                 {
                     // Print them to PDF
-                    var filename = $"{_timeProvider.GetFilenameTimestamp()}_{shipping.Carrier.ToString()}_{shipping.Id.ToString()}_{pageCounter++.ToString().PadLeft(2, '0')}.pdf";
+                    var filename = $"{DateTime.Now.ToString("yyyy-MM-ddTHHmmss")}_{shipping.Carrier.ToString()}_{shipping.Id.ToString()}_{pageCounter++.ToString().PadLeft(2, '0')}.pdf";
                     var result = await PrintSelected(page, filename);
                     _logger.LogDebug("Finished print to file {Filename} for shipping={ShippingId}", filename, shipping.Id);
 
@@ -77,18 +80,18 @@ public class PrintPickingListScenario
                     {
                         // Select them again (so far no other way around)
                         found = await SelectTopX(page, shipping.Id, shipping.PageSize);
-
+                        
                         // Change states
                         result = await ChangeStateSelected(page, desiredStateId.Value);
                         _logger.LogDebug("Changing state to {DesiredState} for shipping={ShippingId}", desiredStateId, shipping.Id);
                     }
                     if (!result)
                         throw new Exception();
-
+                    
                     exportList.Add(GetAbsolutePath(filename));
                     totalCount += found;
                 }
-
+                
             } while (found >= maxPageSize);
         }
 
@@ -111,7 +114,7 @@ public class PrintPickingListScenario
                 await HandlePrintRequest(response, browser);
             }
         };
-
+        
         // Disable print dialog
         await page.RouteAsync("**/MassPrint/*", RewritePrintDialog);
 
@@ -149,7 +152,7 @@ public class PrintPickingListScenario
         await page.ClickAsync("text=Funkce");
         await page.ClickAsync(".massAction__submenuHeader:has-text('Stav')");
         await page.ClickAsync($"a[rel='massStatusChange|{desiredStateId}']");
-
+        
         await page.WaitForSelectorAsync(".systemMessage.systemMessage--success .systemMessage__text");
 
         return true;
@@ -166,7 +169,7 @@ public class PrintPickingListScenario
         });
 
         semaphore = new TaskCompletionSource<bool>();
-
+        
         await page.ClickAsync("text=Expedice");
         await page.WaitForResponseAsync(r => true, new PageWaitForResponseOptions() { Timeout = 30000 });
 
@@ -189,8 +192,8 @@ public class PrintPickingListScenario
 
         return false;
     }
-
-
+    
+    
     private async Task HandlePrintRequest(IResponse response, IBrowser browser)
     {
         _logger.LogDebug("Printing export page {Url}", response.Request.Url);
@@ -201,14 +204,14 @@ public class PrintPickingListScenario
         await newPage.SetContentAsync(body);
 
         var filenameHeader = response.Request.Headers.SingleOrDefault(s => s.Key == ExportFileNameHeaderName);
-
+        
         await newPage.PdfAsync(new PagePdfOptions() { Path = GetAbsolutePath(filenameHeader.Value) });
 
         await newPage.CloseAsync();
         _logger.LogDebug("Page {Url} extracted to {FileName}", response.Request.Url, filenameHeader.Value);
         semaphore.SetResult(true);
     }
-
+    
     private async Task RewritePrintDialog(IRoute route)
     {
         var response = await route.FetchAsync();
