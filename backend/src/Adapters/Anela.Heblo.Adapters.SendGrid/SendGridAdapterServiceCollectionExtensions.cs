@@ -15,7 +15,10 @@ public static class SendGridAdapterServiceCollectionExtensions
             configuration.GetSection(SendGridOptions.ConfigurationKey));
 
         var apiKey = configuration[$"{SendGridOptions.ConfigurationKey}:ApiKey"];
-        services.AddSingleton<ISendGridClient>(new SendGridClient(apiKey ?? string.Empty));
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new InvalidOperationException($"SendGrid API key is not configured. Set '{SendGridOptions.ConfigurationKey}:ApiKey' in configuration.");
+
+        services.AddSingleton<ISendGridClient>(new SendGridClient(apiKey));
 
         services.AddSingleton<IEmailSender, SendGridEmailSender>();
 
