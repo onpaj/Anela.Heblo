@@ -141,10 +141,10 @@ Thin bridge between `IPrintQueueSink` (ExpeditionList concern) and `ICupsPrintin
 **Constructor:**
 
 ```csharp
-public CupsPrintQueueSink(
-    ICupsPrintingService cupsPrintingService,
-    ILogger<CupsPrintQueueSink> logger)
+public CupsPrintQueueSink(ICupsPrintingService cupsPrintingService)
 ```
+
+No logger parameter — the sink is a pure pass-through with no error handling or logging of its own. Errors propagate unchanged.
 
 **Behavior of `SendAsync`:**
 - Iterates `filePaths` sequentially
