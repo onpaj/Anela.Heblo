@@ -11,15 +11,15 @@ public class CalculateBatchPlanHandlerTests
 {
     private readonly Mock<IBatchPlanningService> _batchPlanningServiceMock;
     private readonly CalculateBatchPlanHandler _handler;
-    private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
+    private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
 
     public CalculateBatchPlanHandlerTests()
     {
         _batchPlanningServiceMock = new Mock<IBatchPlanningService>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
-        _manufactureRepositoryMock = new Mock<IManufactureRepository>();
-        _handler = new CalculateBatchPlanHandler(_batchPlanningServiceMock.Object, _catalogRepositoryMock.Object, _manufactureRepositoryMock.Object);
+        _manufactureClientMock = new Mock<IManufactureClient>();
+        _handler = new CalculateBatchPlanHandler(_batchPlanningServiceMock.Object, _catalogRepositoryMock.Object, _manufactureClientMock.Object);
     }
 
     [Fact]

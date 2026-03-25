@@ -17,7 +17,7 @@ namespace Anela.Heblo.Tests.Features.Logistics;
 
 public class GiftPackageManufactureServiceTests
 {
-    private readonly Mock<IManufactureRepository> _manufactureRepositoryMock;
+    private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<IGiftPackageManufactureRepository> _giftPackageRepositoryMock;
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
@@ -30,7 +30,7 @@ public class GiftPackageManufactureServiceTests
 
     public GiftPackageManufactureServiceTests()
     {
-        _manufactureRepositoryMock = new Mock<IManufactureRepository>();
+        _manufactureClientMock = new Mock<IManufactureClient>();
         _giftPackageRepositoryMock = new Mock<IGiftPackageManufactureRepository>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
@@ -43,7 +43,7 @@ public class GiftPackageManufactureServiceTests
             .Returns(new DateTimeOffset(_testDateTime, TimeSpan.Zero));
 
         _service = new GiftPackageManufactureService(
-            _manufactureRepositoryMock.Object,
+            _manufactureClientMock.Object,
             _giftPackageRepositoryMock.Object,
             _catalogRepositoryMock.Object,
             _currentUserServiceMock.Object,
@@ -131,7 +131,7 @@ public class GiftPackageManufactureServiceTests
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureRepositoryMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
 
         // Setup catalog repository to return ingredient products
@@ -202,7 +202,7 @@ public class GiftPackageManufactureServiceTests
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureRepositoryMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
 
         // Setup catalog repository to return ingredient products
@@ -323,7 +323,7 @@ public class GiftPackageManufactureServiceTests
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureRepositoryMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
+        _manufactureClientMock.Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTestProductParts());
 
         // Setup catalog repository to return ingredient products
