@@ -22,10 +22,14 @@ public class AzureBlobPrintQueueSink : IPrintQueueSink
 
     public async Task SendAsync(IEnumerable<string> filePaths, CancellationToken cancellationToken = default)
     {
+        var files = filePaths.ToList();
+        if (files.Count == 0)
+            return;
+
         await _containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
         var datePrefix = _clock.GetLocalNow().ToString("yyyy-MM-dd");
 
-        foreach (var filePath in filePaths)
+        foreach (var filePath in files)
         {
             var fileName = Path.GetFileName(filePath);
             if (string.IsNullOrEmpty(fileName))
