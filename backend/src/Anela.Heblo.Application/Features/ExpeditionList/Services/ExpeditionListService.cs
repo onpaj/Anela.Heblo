@@ -41,8 +41,15 @@ public class ExpeditionListService : IExpeditionListService
 
         if (emailList != null && emailList.Any())
         {
-            await SendEmailCopy(result, emailList);
-            _logger.LogDebug("Copy sent by email");
+            try
+            {
+                await SendEmailCopy(result, emailList);
+                _logger.LogDebug("Copy sent by email");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send email copy — continuing with print and cleanup");
+            }
         }
 
         if (request.SendToPrinter)
