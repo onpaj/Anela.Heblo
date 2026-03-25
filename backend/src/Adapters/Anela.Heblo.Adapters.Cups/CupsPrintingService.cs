@@ -37,6 +37,9 @@ public class CupsPrintingService : ICupsPrintingService
             throw new InvalidOperationException(
                 "No printer name provided and CupsOptions.PrinterName is not configured.");
 
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ArgumentException("File path must not be null or empty.", nameof(filePath));
+
         using var fileStream = File.OpenRead(filePath);
 
         var request = new PrintJobRequest
@@ -44,7 +47,7 @@ public class CupsPrintingService : ICupsPrintingService
             Document = fileStream,
             OperationAttributes = new PrintJobOperationAttributes
             {
-                PrinterUri = new Uri($"{opts.ServerUrl}/printers/{resolvedPrinter}"),
+                PrinterUri = new Uri($"{opts.ServerUrl.TrimEnd('/')}/printers/{resolvedPrinter}"),
                 DocumentFormat = "application/pdf"
             }
         };
