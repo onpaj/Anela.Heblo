@@ -36,7 +36,7 @@ The new `CombinedPrintQueueSink` is a **thin combinator** that delegates to both
 **Location:** `backend/src/Anela.Heblo.API/Features/ExpeditionList/CombinedPrintQueueSink.cs`
 
 - Implements `IPrintQueueSink`
-- Constructor takes `AzureBlobPrintQueueSink` and `CupsPrintQueueSink` as direct concrete dependencies (not `IPrintQueueSink`) to avoid ambiguity
+- Constructor takes two `IPrintQueueSink` dependencies resolved via ASP.NET Core 8 **keyed services** (`[FromKeyedServices("azure")]` and `[FromKeyedServices("cups")]`). This avoids concrete-type injection: `AzureBlobPrintQueueSink.SendAsync` and `CupsPrintQueueSink.SendAsync` are not declared `virtual`, so Moq cannot mock them. Using `IPrintQueueSink` keeps the constructor directly testable with `Mock<IPrintQueueSink>`.
 - Calls Azure first, then CUPS
 - No exception handling — both failures propagate to the caller
 - `internal sealed` — not part of any public API
@@ -53,15 +53,15 @@ public async Task SendAsync(IEnumerable<string> filePaths, CancellationToken can
 
 ### `Program.cs` — `"Combined"` switch case
 
-Calls the existing extension methods to register all required infrastructure (Azure blob client, CUPS HTTP client, auth handler, printing service, etc.). Those methods also register their respective sinks as `IPrintQueueSink`, but that binding is irrelevant here — we subsequently add two **separate concrete-type registrations** (`AddScoped<AzureBlobPrintQueueSink>()`, `AddScoped<CupsPrintQueueSink>()`) that allow `CombinedPrintQueueSink` to receive each sink directly via constructor injection. These concrete-type registrations are independent DI descriptors (keyed by the concrete type, not the interface); they resolve correctly because all constructor dependencies (`BlobContainerClient`, `ICupsPrintingService`, etc.) are already registered by the preceding extension methods. Finally, `CombinedPrintQueueSink` is registered as `IPrintQueueSink` — ASP.NET Core resolves the **last** `IPrintQueueSink` registration when a single instance is requested, so this is the one `ExpeditionListService` receives.
+Calls the existing extension methods to register all required infrastructure (Azure blob client, CUPS HTTP client, auth handler, printing service, etc.). Those methods also register their respective sinks as non-keyed `IPrintQueueSink` as a side effect — those bindings are unused in the Combined case. Then adds two **keyed** registrations so `CombinedPrintQueueSink` can resolve each sink by name. Finally registers `CombinedPrintQueueSink` as the non-keyed `IPrintQueueSink` — ASP.NET Core resolves the last non-keyed registration for single-instance injection, so this is the one `ExpeditionListService` receives.
 
 ```csharp
 case "Combined":
-    builder.Services.AddAzurePrintQueueSink(builder.Configuration);   // registers Azure infra
-    builder.Services.AddCupsAdapter(builder.Configuration);            // registers CUPS infra
-    builder.Services.AddScoped<AzureBlobPrintQueueSink>();             // concrete-type entry for DI into CombinedPrintQueueSink
-    builder.Services.AddScoped<CupsPrintQueueSink>();                  // concrete-type entry for DI into CombinedPrintQueueSink
-    builder.Services.AddScoped<IPrintQueueSink, CombinedPrintQueueSink>(); // last IPrintQueueSink registration — wins
+    builder.Services.AddAzurePrintQueueSink(builder.Configuration);   // registers Azure infra (+ unused non-keyed IPrintQueueSink)
+    builder.Services.AddCupsAdapter(builder.Configuration);            // registers CUPS infra (+ unused non-keyed IPrintQueueSink)
+    builder.Services.AddKeyedScoped<IPrintQueueSink, AzureBlobPrintQueueSink>("azure");
+    builder.Services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
+    builder.Services.AddScoped<IPrintQueueSink, CombinedPrintQueueSink>(); // last non-keyed registration — wins
     break;
 ```
 
