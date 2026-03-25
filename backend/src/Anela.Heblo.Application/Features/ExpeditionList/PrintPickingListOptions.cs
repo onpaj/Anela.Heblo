@@ -6,7 +6,6 @@ public class PrintPickingListOptions
 
     public string EmailSender { get; set; } = string.Empty;
     public string PrintQueueFolder { get; set; } = string.Empty;
-    public string SendGridApiKey { get; set; } = string.Empty;
     public List<string> DefaultEmailRecipients { get; set; } = new();
     public int SourceStateId { get; set; } = -2;
     public int DesiredStateId { get; set; } = 26;
