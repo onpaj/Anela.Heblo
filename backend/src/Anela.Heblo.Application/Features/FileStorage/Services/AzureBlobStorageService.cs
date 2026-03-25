@@ -181,8 +181,11 @@ public class AzureBlobStorageService : IBlobStorageService
             _logger.LogInformation("Downloading blob {BlobName} from container {ContainerName}", blobName, containerName);
             var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
             var blobClient = containerClient.GetBlobClient(blobName);
+            var memoryStream = new MemoryStream();
             var download = await blobClient.DownloadStreamingAsync(cancellationToken: cancellationToken);
-            return download.Value.Content;
+            await download.Value.Content.CopyToAsync(memoryStream, cancellationToken);
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            return memoryStream;
         }
         catch (Exception ex)
         {
