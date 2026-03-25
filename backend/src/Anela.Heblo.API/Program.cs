@@ -1,14 +1,9 @@
 using Anela.Heblo.Adapters.Anthropic;
 using Anela.Heblo.Adapters.Azure;
-using Anela.Heblo.Adapters.Azure.Features.ExpeditionList;
 using Anela.Heblo.Adapters.Comgate;
-using Anela.Heblo.Adapters.Cups;
-using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 using Anela.Heblo.Adapters.Flexi;
 using Anela.Heblo.Adapters.OpenAI;
 using Anela.Heblo.Adapters.Shoptet;
-using Anela.Heblo.API.Features.ExpeditionList;
-using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application;
@@ -61,29 +56,7 @@ public partial class Program
         builder.Services.AddOpenAiAdapter(builder.Configuration);
 
         // Print queue sink — valid values: "FileSystem" (default), "AzureBlob", "Cups", "Combined"
-        var printSink = builder.Configuration["ExpeditionList:PrintSink"];
-        switch (printSink)
-        {
-            case "AzureBlob":
-                builder.Services.AddAzurePrintQueueSink(builder.Configuration);
-                break;
-            case "Cups":
-                builder.Services.AddCupsAdapter(builder.Configuration);
-                break;
-            case "Combined":
-                // AddAzurePrintQueueSink and AddCupsAdapter each also register a non-keyed
-                // IPrintQueueSink as a side effect; those bindings are unused here — the
-                // last non-keyed registration (CombinedPrintQueueSink below) wins.
-                builder.Services.AddAzurePrintQueueSink(builder.Configuration);
-                builder.Services.AddCupsAdapter(builder.Configuration);
-                builder.Services.AddKeyedScoped<IPrintQueueSink, AzureBlobPrintQueueSink>("azure");
-                builder.Services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
-                builder.Services.AddScoped<IPrintQueueSink, CombinedPrintQueueSink>();
-                break;
-            default: // "FileSystem" or unset
-                builder.Services.AddScoped<IPrintQueueSink, FileSystemPrintQueueSink>();
-                break;
-        }
+        builder.Services.AddPrintQueueSink(builder.Configuration);
 
         // MCP server
         builder.Services.AddMcpServices();
