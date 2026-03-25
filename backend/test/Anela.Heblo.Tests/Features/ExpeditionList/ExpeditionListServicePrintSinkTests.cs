@@ -1,10 +1,10 @@
 using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Xcc.Services.Email;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
-using SendGrid;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.ExpeditionList;
@@ -12,7 +12,7 @@ namespace Anela.Heblo.Tests.Features.ExpeditionList;
 public class ExpeditionListServicePrintSinkTests
 {
     private readonly Mock<IPickingListSource> _pickingListSource = new();
-    private readonly Mock<ISendGridClient> _emailSender = new();
+    private readonly Mock<IEmailSender> _emailSender = new();
     private readonly Mock<IPrintQueueSink> _printQueueSink = new();
 
     private ExpeditionListService CreateService() => new ExpeditionListService(
