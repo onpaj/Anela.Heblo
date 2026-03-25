@@ -396,6 +396,7 @@ export const QUERY_KEYS = {
   stockUpOperations: ["stock-up-operations"] as const,
   recurringJobs: ["recurring-jobs"] as const,
   knowledgeBase: ["knowledge-base"] as const,
+  expeditionListArchive: ["expedition-list-archive"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,
