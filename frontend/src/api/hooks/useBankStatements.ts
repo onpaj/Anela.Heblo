@@ -139,7 +139,8 @@ export const useBankStatementsList = (
 
 export interface BankImportRequest {
   accountName: string;
-  statementDate: string;
+  dateFrom: string;
+  dateTo: string;
 }
 
 export interface BankStatementImportResult {

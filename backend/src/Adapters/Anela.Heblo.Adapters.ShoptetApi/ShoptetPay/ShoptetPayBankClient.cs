@@ -27,16 +27,25 @@ public class ShoptetPayBankClient : IBankClient
 
     public async Task<IList<BankStatementHeader>> GetStatementsAsync(string accountNumber, DateTime dateFrom, DateTime dateTo)
     {
-        var url = $"/v1/reports/payout?dateFrom={dateFrom:yyyy-MM-dd}&dateTo={dateTo:yyyy-MM-dd}&types=PAYOUT&limit=1000";
+        // Payout reports are periodic settlements (not daily) — expand to cover the full month range
+        // so reports with any overlap in the requested period are returned
+        var rangeFrom = new DateTime(dateFrom.Year, dateFrom.Month, 1);
+        var rangeTo = new DateTime(dateTo.Year, dateTo.Month, DateTime.DaysInMonth(dateTo.Year, dateTo.Month));
+
+        var url = $"/v1/reports/payout?dateFrom={rangeFrom:yyyy-MM-ddTHH:mm:ssZ}&dateTo={rangeTo:yyyy-MM-ddTHH:mm:ssZ}&limit=1000";
 
         _logger.LogInformation(
-            "ShoptetPay API: Fetching payout reports - DateFrom: {DateFrom}, DateTo: {DateTo}",
-            dateFrom.ToString("yyyy-MM-dd"), dateTo.ToString("yyyy-MM-dd"));
+            "ShoptetPay API: Fetching payout reports - DateFrom: {DateFrom}, DateTo: {DateTo} (expanded to full month range)",
+            rangeFrom.ToString("yyyy-MM-dd"), rangeTo.ToString("yyyy-MM-dd"));
 
         var response = await _httpClient.GetAsync(url);
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content.ReadFromJsonAsync<PayoutReportListResponse>()
+        var rawBody = await response.Content.ReadAsStringAsync();
+        _logger.LogInformation("ShoptetPay API: Raw response body: {Body}", rawBody);
+
+        var result = System.Text.Json.JsonSerializer.Deserialize<PayoutReportListResponse>(rawBody,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })
             ?? new PayoutReportListResponse();
 
         _logger.LogInformation(

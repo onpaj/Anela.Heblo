@@ -126,7 +126,8 @@ const ImportTab: React.FC = () => {
       // Single import request for the selected date
       await importMutation.mutateAsync({
         accountName: selectedAccount,
-        statementDate: importDate,
+        dateFrom: importDate,
+        dateTo: importDate,
       });
 
       // Show success message
