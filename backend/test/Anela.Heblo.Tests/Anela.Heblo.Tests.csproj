@@ -32,6 +32,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Anela.Heblo.API\Anela.Heblo.API.csproj" />
     <ProjectReference Include="..\..\src\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
+    <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Azure\Anela.Heblo.Adapters.Azure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
