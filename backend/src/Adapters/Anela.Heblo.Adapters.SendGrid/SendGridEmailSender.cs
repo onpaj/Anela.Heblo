@@ -35,9 +35,13 @@ public class SendGridEmailSender : IEmailSender
 
         var response = await _client.SendEmailAsync(msg, cancellationToken);
 
-        _logger.LogDebug(
-            "SendGrid response {StatusCode}: {Body}",
-            response.StatusCode,
-            await response.Body.ReadAsStringAsync(cancellationToken));
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Body.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("SendGrid failed with {StatusCode}: {Error}", response.StatusCode, errorBody);
+            throw new InvalidOperationException($"Email sending failed: {response.StatusCode}");
+        }
+
+        _logger.LogDebug("SendGrid response {StatusCode}", response.StatusCode);
     }
 }
