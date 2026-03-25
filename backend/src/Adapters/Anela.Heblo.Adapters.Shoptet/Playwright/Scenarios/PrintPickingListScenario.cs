@@ -37,7 +37,10 @@ public class PrintPickingListScenario
 
         using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
 
-        await using var browser = await _browserFactory.CreateAsync(playwright);
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
+        {
+            Headless = _options.Headless,
+        });
         var page = await browser.NewPageAsync();
         await InitPage(page, browser);
 
@@ -63,13 +66,13 @@ public class PrintPickingListScenario
             do
             {
                 // Select top x for print
-                await page.GotoAsync($"{_options.ShopEntryUrl}prehled-objednavek/{sourceStateId}/?f[shippingId]={shipping.Id}");
+                await page.GotoAsync($"{_options.ShopEntryUrl}/prehled-objednavek/{sourceStateId}/?f[shippingId]={shipping.Id}");
                 found = await SelectTopX(page, shipping.Id, shipping.PageSize);
 
                 if (found > 0)
                 {
                     // Print them to PDF
-                    var filename = $"{_timeProvider.GetFilenameTimestamp()}_{shipping.Carrier.ToString()}_{shipping.Id.ToString()}_{pageCounter++.ToString().PadLeft(2, '0')}.pdf";
+                    var filename = $"{DateTime.Now.ToString("yyyy-MM-ddTHHmmss")}_{shipping.Carrier.ToString()}_{shipping.Id.ToString()}_{pageCounter++.ToString().PadLeft(2, '0')}.pdf";
                     var result = await PrintSelected(page, filename);
                     _logger.LogDebug("Finished print to file {Filename} for shipping={ShippingId}", filename, shipping.Id);
 
