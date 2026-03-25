@@ -5,7 +5,7 @@
 
 ## Summary
 
-Add a `CupsPrintQueueSink` that implements the existing `IPrintQueueSink` interface by delegating to a new generic `ICupsPrintingService`. The CUPS adapter is isolated from ExpeditionList concerns: the generic `ICupsPrintingService` / `CupsPrintingService` live at the adapter root; the `CupsPrintQueueSink` bridge lives under `Features/ExpeditionList/`. Communication uses SharpIpp 2.x over HTTP with Basic authentication to a CUPS server running in Azure, reachable via Tailscale.
+Add a `CupsPrintQueueSink` that implements the existing `IPrintQueueSink` interface by delegating to a new generic `ICupsPrintingService`. The CUPS adapter is isolated from ExpeditionList concerns: the generic `ICupsPrintingService` / `CupsPrintingService` live at the adapter root; the `CupsPrintQueueSink` bridge lives under `Features/ExpeditionList/`. Communication uses **SharpIppNext** 3.x (NuGet: `SharpIppNext`) over HTTP with Basic authentication to a CUPS server running in Azure, reachable via Tailscale. Note: the original `SharpIpp` package is unmaintained (v0.10.0); `SharpIppNext` is the actively maintained fork.
 
 ---
 
@@ -39,7 +39,7 @@ The project must be added to the solution file. The test project `Anela.Heblo.Te
     <RootNamespace>Anela.Heblo.Adapters.Cups</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="SharpIpp" Version="2.*" />
+    <PackageReference Include="SharpIppNext" Version="3.*" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
   </ItemGroup>
@@ -124,8 +124,11 @@ public CupsPrintingService(
 - Fail fast with `InvalidOperationException` if both are null/empty (before any I/O)
 - Fail fast with `InvalidOperationException` if `CupsOptions.ServerUrl` is null/empty
 - Opens the file via `File.OpenRead(filePath)` (streaming, consistent with `AzureBlobPrintQueueSink`; async file I/O is not required given single-PDF payload sizes); `FileNotFoundException` propagates unchanged if the file does not exist
-- Creates an IPP `PrintDocumentRequest` with `document-format: application/pdf`, the file stream as document content, and printer URI `{ServerUrl}/printers/{resolvedPrinterName}`
-- Sends via `ISharpIppClient.PrintDocumentAsync(...)`
+- Creates a `PrintJobRequest` (`SharpIpp.Models.Requests`) with:
+  - `Document = fileStream`
+  - `OperationAttributes.PrinterUri = new Uri($"{ServerUrl}/printers/{resolvedPrinterName}")`
+  - `OperationAttributes.DocumentFormat = "application/pdf"`
+- Sends via `ISharpIppClient.PrintJobAsync(request, cancellationToken)`
 - Checks `response.StatusCode != IppStatusCode.SuccessfulOk` — throws `InvalidOperationException` including the status code value in the message
 - Logs the returned IPP job ID at Debug level on success
 
@@ -157,7 +160,7 @@ ExpeditionListService
   → IPrintQueueSink (injected)
     → CupsPrintQueueSink (implements IPrintQueueSink)
       → ICupsPrintingService (injected)
-        → CupsPrintingService → ISharpIppClient (SharpIpp 2.x)
+        → CupsPrintingService → ISharpIppClient (SharpIppNext 3.x)
 ```
 
 ---
@@ -226,9 +229,9 @@ switch (printSink)
 ## Testing
 
 **`CupsPrintingServiceTests`** (unit, in `Anela.Heblo.Tests`):
-- Mocks `ISharpIppClient` (interface provided by SharpIpp 2.x)
-- Verifies printer URI construction: `{ServerUrl}/printers/{printerName}`
-- Verifies `document-format: application/pdf` in the IPP request
+- Mocks `ISharpIppClient` (interface from `SharpIppNext`, namespace `SharpIpp`)
+- Verifies `PrintJobRequest.OperationAttributes.PrinterUri` is `{ServerUrl}/printers/{resolvedPrinterName}`
+- Verifies `PrintJobRequest.OperationAttributes.DocumentFormat` is `"application/pdf"`
 - Verifies fallback to `CupsOptions.PrinterName` when `printerName` parameter is `null`
 - Verifies `InvalidOperationException` when `ServerUrl` is empty
 - Verifies `InvalidOperationException` when both `printerName` parameter and `CupsOptions.PrinterName` are empty (covers both `null` and `""` cases)
