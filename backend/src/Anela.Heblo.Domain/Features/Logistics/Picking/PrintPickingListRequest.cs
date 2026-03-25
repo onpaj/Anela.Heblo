@@ -12,7 +12,7 @@ public class PrintPickingListRequest
     public IList<Carriers> Carriers { get; set; } = new List<Carriers>();
     public int SourceStateId { get; set; } = DefaultSourceStateId;
     public int DesiredStateId { get; set; } = DefaultDesiredStateId;
-    public bool ChangeOrderState { get; set; } = false;
+    public bool ChangeOrderState { get; set; }
 
     public static IList<Carriers> DefaultCarriers { get; set; } = new List<Carriers>()
     {
@@ -22,5 +22,5 @@ public class PrintPickingListRequest
         Logistics.Carriers.Osobak
     };
 
-    public bool SendToPrinter { get; set; } = false;
+    public bool SendToPrinter { get; set; }
 }
