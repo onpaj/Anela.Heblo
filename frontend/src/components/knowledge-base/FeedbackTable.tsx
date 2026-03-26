@@ -7,7 +7,6 @@ interface FeedbackTableProps {
   pageNumber: number;
   pageSize: number;
   totalPages: number;
-  selectedId: string | null;
   onSelect: (log: FeedbackLogSummary) => void;
   onPageChange: (page: number) => void;
 }
@@ -32,7 +31,6 @@ const FeedbackTable: React.FC<FeedbackTableProps> = ({
   pageNumber,
   pageSize,
   totalPages,
-  selectedId,
   onSelect,
   onPageChange,
 }) => {
@@ -84,11 +82,7 @@ const FeedbackTable: React.FC<FeedbackTableProps> = ({
               <tr
                 key={log.id}
                 onClick={() => onSelect(log)}
-                className={`cursor-pointer transition-colors ${
-                  log.id === selectedId
-                    ? 'bg-blue-50 hover:bg-blue-100'
-                    : 'hover:bg-gray-50'
-                }`}
+                className="cursor-pointer transition-colors hover:bg-gray-50"
               >
                 <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                   {formatDate(log.createdAt)}
