@@ -30,7 +30,7 @@ public class PrintPickingListScenario
         _timeProvider = timeProvider;
     }
 
-    public async Task<PrintPickingListResult> RunAsync(List<Shipping> shippings, int maxPageSize, int? sourceStateId = null, int? desiredStateId = null)
+    public async Task<PrintPickingListResult> RunAsync(List<Shipping> shippings, int maxPageSize, int? sourceStateId = null)
     {
         // Make sure dir exists
         Directory.CreateDirectory(_options.PdfTmpFolder);
@@ -56,50 +56,89 @@ public class PrintPickingListScenario
         _logger.LogDebug("Login successful");
 
         var exportList = new List<string>();
+        var allOrderIds = new List<int>();
         var totalCount = 0;
-
 
         foreach (var shipping in shippings)
         {
-            int found;
+            List<int> selectedOrderIds;
             var pageCounter = 0;
             do
             {
                 // Select top x for print
                 await page.GotoAsync($"{_options.ShopEntryUrl}/prehled-objednavek/{sourceStateId}/?f[shippingId]={shipping.Id}");
-                found = await SelectTopX(page, shipping.Id, shipping.PageSize);
+                selectedOrderIds = await SelectTopX(page, shipping.Id, shipping.PageSize);
 
-                if (found > 0)
+                if (selectedOrderIds.Count > 0)
                 {
                     // Print them to PDF
                     var filename = $"{DateTime.Now.ToString("yyyy-MM-ddTHHmmss")}_{shipping.Carrier.ToString()}_{shipping.Id.ToString()}_{pageCounter++.ToString().PadLeft(2, '0')}.pdf";
-                    var result = await PrintSelected(page, filename);
+                    var printed = await PrintSelected(page, filename);
                     _logger.LogDebug("Finished print to file {Filename} for shipping={ShippingId}", filename, shipping.Id);
 
-                    if (result && desiredStateId != null)
-                    {
-                        // Select them again (so far no other way around)
-                        found = await SelectTopX(page, shipping.Id, shipping.PageSize);
-
-                        // Change states
-                        result = await ChangeStateSelected(page, desiredStateId.Value);
-                        _logger.LogDebug("Changing state to {DesiredState} for shipping={ShippingId}", desiredStateId, shipping.Id);
-                    }
-                    if (!result)
+                    if (!printed)
                         throw new Exception();
 
                     exportList.Add(GetAbsolutePath(filename));
-                    totalCount += found;
+                    allOrderIds.AddRange(selectedOrderIds);
+                    totalCount += selectedOrderIds.Count;
                 }
 
-            } while (found >= maxPageSize);
+            } while (selectedOrderIds.Count >= maxPageSize);
         }
 
         return new PrintPickingListResult()
         {
             ExportedFiles = exportList,
             TotalCount = totalCount,
+            OrderIds = allOrderIds,
         };
+    }
+
+    public async Task ChangeOrderStateAsync(IList<int> orderIds, int sourceStateId, int desiredStateId)
+    {
+        if (orderIds.Count == 0)
+            return;
+
+        using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
+
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
+        {
+            Headless = _options.Headless,
+        });
+        var page = await browser.NewPageAsync();
+        page.SetDefaultTimeout(300000);
+
+        page.Dialog += async (_, dialog) =>
+        {
+            await dialog.AcceptAsync();
+        };
+
+        await page.GotoAsync(_options.ShopEntryUrl);
+        await page.WaitForLoadStateAsync();
+
+        await page.ClickAsync("[placeholder='E-mail']");
+        await page.FillAsync("[placeholder='E-mail']", _options.Login);
+        await page.PressAsync("[placeholder='E-mail']", "Tab");
+        await page.FillAsync("[placeholder='Vaše heslo']", _options.Password);
+        await page.ClickAsync("role=button >> text=Přihlášení");
+
+        _logger.LogDebug("Login for state change successful");
+
+        await page.GotoAsync($"{_options.ShopEntryUrl}/prehled-objednavek/{sourceStateId}/");
+        await page.WaitForSelectorAsync(".pageGrid__footer.footer");
+
+        foreach (var orderId in orderIds)
+        {
+            var checkbox = await page.QuerySelectorAsync($"input[value='{orderId}']");
+            if (checkbox != null)
+                await checkbox.CheckAsync();
+            else
+                _logger.LogWarning("Could not find checkbox for orderId={OrderId} on state change page", orderId);
+        }
+
+        await ChangeStateSelected(page, desiredStateId);
+        _logger.LogDebug("Changed state of {Count} orders to {DesiredState}", orderIds.Count, desiredStateId);
     }
 
     private async Task InitPage(IPage page, IBrowser browser)
@@ -126,26 +165,37 @@ public class PrintPickingListScenario
         };
     }
 
-    private async Task<int> SelectTopX(IPage page, int shippingId, int pageSize)
+    private async Task<List<int>> SelectTopX(IPage page, int shippingId, int pageSize)
     {
-        var found = 0;
-        // await page.WaitForSelectorAsync("div.pagination__founds strong");
         await page.WaitForSelectorAsync(".pageGrid__footer.footer");
-
 
         _logger.LogDebug("Listing orders for shipping {ShippingId}", shippingId);
 
+        var orderIds = new List<int>();
         for (int i = 0; i < pageSize; i++)
         {
-            if (await CheckIfPresent(page, $"input[name=\"orderId[{i}]\"]"))
-                found++;
+            var orderId = await CheckAndGetOrderId(page, $"input[name=\"orderId[{i}]\"]");
+            if (orderId.HasValue)
+                orderIds.Add(orderId.Value);
         }
 
-        _logger.LogDebug("Found {OrderCount} for shipping={ShippingId}", found, shippingId);
+        _logger.LogDebug("Found {OrderCount} for shipping={ShippingId}", orderIds.Count, shippingId);
 
-        return found;
+        return orderIds;
     }
 
+    private async Task<int?> CheckAndGetOrderId(IPage page, string locator)
+    {
+        var elementHandle = await page.QuerySelectorAsync(locator);
+        if (elementHandle != null)
+        {
+            var value = await elementHandle.GetAttributeAsync("value");
+            await elementHandle.CheckAsync();
+            return int.TryParse(value, out var id) ? id : null;
+        }
+
+        return null;
+    }
 
     private async Task<bool> ChangeStateSelected(IPage page, int desiredStateId)
     {
@@ -177,20 +227,6 @@ public class PrintPickingListScenario
 
         await page.ReloadAsync();
         return true;
-    }
-
-
-    private async Task<bool> CheckIfPresent(IPage page, string locator)
-    {
-        var elementHandle = await page.QuerySelectorAsync(locator);
-        if (elementHandle != null)
-        {
-            // Element found, proceed with your actions, for example:
-            await elementHandle.CheckAsync();
-            return true;
-        }
-
-        return false;
     }
 
 

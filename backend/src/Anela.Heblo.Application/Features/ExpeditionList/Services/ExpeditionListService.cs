@@ -39,26 +39,30 @@ public class ExpeditionListService : IExpeditionListService
         var result = await _pickingListSource.CreatePickingList(request, cancellationToken);
         _logger.LogDebug("Expedition list generated");
 
-        if (emailList != null && emailList.Any())
+        try
         {
-            try
+            if (emailList != null && emailList.Any())
             {
                 await SendEmailCopy(result, emailList);
                 _logger.LogDebug("Copy sent by email");
             }
-            catch (Exception ex)
+
+            if (request.SendToPrinter)
             {
-                _logger.LogError(ex, "Failed to send email copy — continuing with print and cleanup");
+                await _printQueueSink.SendAsync(result.ExportedFiles, cancellationToken);
+                _logger.LogDebug("Sent to print queue");
+            }
+
+            if (request.ChangeOrderState)
+            {
+                await _pickingListSource.ChangeOrderState(result.OrderIds, request.SourceStateId, request.DesiredStateId, cancellationToken);
+                _logger.LogDebug("Order state changed to {DesiredStateId}", request.DesiredStateId);
             }
         }
-
-        if (request.SendToPrinter)
+        finally
         {
-            await _printQueueSink.SendAsync(result.ExportedFiles, cancellationToken);
-            _logger.LogDebug("Sent to print queue");
+            await Cleanup(result);
         }
-
-        await Cleanup(result);
 
         return result;
     }

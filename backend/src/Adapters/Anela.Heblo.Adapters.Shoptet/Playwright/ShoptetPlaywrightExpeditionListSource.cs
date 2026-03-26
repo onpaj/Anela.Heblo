@@ -44,25 +44,25 @@ public class ShoptetPlaywrightExpeditionListSource : IPickingListSource
     private readonly List<Shipping> ShippingList = new()
     {
         new Shipping { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY", Id = ZASILKOVNA_DO_RUKY },
-        new Shipping { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT", Id = ZASILKOVNA_ZPOINT}, 
+        new Shipping { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT", Id = ZASILKOVNA_ZPOINT},
         new Shipping { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_SK", Id = ZASILKOVNA_DO_RUKY_SK },
         new Shipping { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_CHLAZENY", Id = ZASILKOVNA_DO_RUKY_CHLAZENY },
         new Shipping { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT_CHLAZENY", Id = ZASILKOVNA_ZPOINT_CHLAZENY },
         new Shipping { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_SK_CHLAZENY", Id = ZASILKOVNA_DO_RUKY_SK_CHLAZENY },
         new Shipping { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT_ZDARMA", Id = ZASILKOVNA_ZPOINT_ZDARMA },
         new Shipping { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT_CHLAZENY_ZDARMA", Id = ZASILKOVNA_ZPOINT_CHLAZENY_ZDARMA },
-        
+
         new Shipping { Carrier = Carriers.PPL, Name = "PPL_DO_RUKY", Id = PPL_DO_RUKY},
         new Shipping { Carrier = Carriers.PPL, Name = "PPL_PARCELSHOP", Id = PPL_PARCELSHOP},
         new Shipping { Carrier = Carriers.PPL, Name = "PPL_EXPORT", Id = PPL_EXPORT },
         new Shipping { Carrier = Carriers.PPL, Name = "PPL_DO_RUKY_CHLAZENY", Id = PPL_DO_RUKY_CHLAZENY },
         new Shipping { Carrier = Carriers.PPL, Name = "PPL_PARCELSHOP_CHLAZENY", Id = PPL_PARCELSHOP_CHLAZENY },
         new Shipping { Carrier = Carriers.PPL, Name = "PPL_EXPORT_CHLAZENY", Id = PPL_EXPORT_CHLAZENY },
-        
+
         new Shipping { Carrier = Carriers.GLS, Name = "GLS_DO_RUKY", Id = GLS_DO_RUKY},
         new Shipping { Carrier = Carriers.GLS, Name = "GLS_EXPORT", Id = GLS_EXPORT },
         new Shipping { Carrier = Carriers.GLS, Name = "GLS_PARCELSHOP", Id = GLS_PARCELSHOP },
-        
+
         new Shipping { Carrier = Carriers.Osobak, Name = "OSOBAK", Id = OSOBAK, PageSize = 1}
     };
 
@@ -79,8 +79,13 @@ public class ShoptetPlaywrightExpeditionListSource : IPickingListSource
         if (request.Carriers.Any())
             shippings = shippings.Where(w => request.Carriers.Contains(w.Carrier)).ToList();
 
-        var result = await _printScenario.RunAsync(shippings, sourceStateId: request.SourceStateId, desiredStateId: request.ChangeOrderState ? request.DesiredStateId : null, maxPageSize: shippings.Max(m => m.PageSize));
+        var result = await _printScenario.RunAsync(shippings, sourceStateId: request.SourceStateId, maxPageSize: shippings.Max(m => m.PageSize));
 
         return result;
+    }
+
+    public async Task ChangeOrderState(IList<int> orderIds, int sourceStateId, int desiredStateId, CancellationToken cancellationToken = default)
+    {
+        await _printScenario.ChangeOrderStateAsync(orderIds, sourceStateId, desiredStateId);
     }
 }
