@@ -8,7 +8,7 @@ import {
 import FeedbackStatsBar from '../components/knowledge-base/FeedbackStatsBar';
 import FeedbackFilters from '../components/knowledge-base/FeedbackFilters';
 import FeedbackTable from '../components/knowledge-base/FeedbackTable';
-import FeedbackDetailPanel from '../components/knowledge-base/FeedbackDetailPanel';
+import FeedbackDetailModal from '../components/knowledge-base/FeedbackDetailModal';
 
 const defaultParams: GetFeedbackListParams = {
   pageNumber: 1,
@@ -47,50 +47,44 @@ const KnowledgeBaseFeedbackPage: React.FC = () => {
         <h1 className="text-2xl font-semibold text-gray-900">Feedback</h1>
       </div>
 
-      {/* Main content area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left column: stats + filters + table */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {/* Stats */}
-          {data?.stats && <FeedbackStatsBar stats={data.stats} />}
+      {/* Main content */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        {/* Stats */}
+        {data?.stats && <FeedbackStatsBar stats={data.stats} />}
 
-          {/* Filters */}
-          <FeedbackFilters params={params} onParamsChange={handleParamsChange} />
+        {/* Filters */}
+        <FeedbackFilters params={params} onParamsChange={handleParamsChange} />
 
-          {/* Loading / error / table */}
-          {isLoading && (
-            <div className="flex items-center justify-center h-32 text-sm text-gray-500">
-              Načítám…
-            </div>
-          )}
-
-          {isError && (
-            <div className="flex items-center justify-center h-32 text-sm text-red-600">
-              Nepodařilo se načíst záznamy. Zkuste to znovu.
-            </div>
-          )}
-
-          {data && !isLoading && (
-            <FeedbackTable
-              logs={data.logs}
-              totalCount={data.totalCount}
-              pageNumber={data.pageNumber}
-              pageSize={data.pageSize}
-              totalPages={data.totalPages}
-              selectedId={selectedLog?.id ?? null}
-              onSelect={handleSelect}
-              onPageChange={handlePageChange}
-            />
-          )}
-        </div>
-
-        {/* Right column: detail panel */}
-        {selectedLog && (
-          <div className="w-96 flex-shrink-0 overflow-y-auto border-l border-gray-200">
-            <FeedbackDetailPanel log={selectedLog} onClose={handleClosePanel} />
+        {/* Loading / error / table */}
+        {isLoading && (
+          <div className="flex items-center justify-center h-32 text-sm text-gray-500">
+            Načítám…
           </div>
         )}
+
+        {isError && (
+          <div className="flex items-center justify-center h-32 text-sm text-red-600">
+            Nepodařilo se načíst záznamy. Zkuste to znovu.
+          </div>
+        )}
+
+        {data && !isLoading && (
+          <FeedbackTable
+            logs={data.logs}
+            totalCount={data.totalCount}
+            pageNumber={data.pageNumber}
+            pageSize={data.pageSize}
+            totalPages={data.totalPages}
+            onSelect={handleSelect}
+            onPageChange={handlePageChange}
+          />
+        )}
       </div>
+
+      {/* Detail modal */}
+      {selectedLog && (
+        <FeedbackDetailModal log={selectedLog} onClose={handleClosePanel} />
+      )}
     </div>
   );
 };
