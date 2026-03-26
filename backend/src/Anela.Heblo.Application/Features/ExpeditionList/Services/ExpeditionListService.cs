@@ -36,27 +36,33 @@ public class ExpeditionListService : IExpeditionListService
         CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("Generating new expedition list");
-        var result = await _pickingListSource.CreatePickingList(request, cancellationToken);
-        _logger.LogDebug("Expedition list generated");
 
-        if (emailList != null && emailList.Any())
+        // Build a per-batch callback that handles upload/email/printer for each printed batch.
+        // State change in Shoptet happens inside CreatePickingList only after this callback succeeds,
+        // ensuring orders are never moved to the new state when a downstream action fails.
+        Func<IList<string>, Task>? batchCallback = null;
+
+        if (request.SendToPrinter || (emailList != null && emailList.Any()))
         {
-            try
+            batchCallback = async files =>
             {
-                await SendEmailCopy(result, emailList);
-                _logger.LogDebug("Copy sent by email");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send email copy — continuing with print and cleanup");
-            }
+                if (request.SendToPrinter)
+                {
+                    await _printQueueSink.SendAsync(files, cancellationToken);
+                    _logger.LogDebug("Batch sent to print queue");
+                }
+
+                if (emailList != null && emailList.Any())
+                {
+                    await SendEmailCopy(files, emailList);
+                    _logger.LogDebug("Batch email copy sent");
+                }
+            };
         }
 
-        if (request.SendToPrinter)
-        {
-            await _printQueueSink.SendAsync(result.ExportedFiles, cancellationToken);
-            _logger.LogDebug("Sent to print queue");
-        }
+        var result = await _pickingListSource.CreatePickingList(request, batchCallback, cancellationToken);
+
+        _logger.LogDebug("Expedition list complete — {Total} orders processed", result.TotalCount);
 
         await Cleanup(result);
 
@@ -74,7 +80,7 @@ public class ExpeditionListService : IExpeditionListService
         return Task.CompletedTask;
     }
 
-    private async Task SendEmailCopy(PrintPickingListResult result, IEnumerable<string> emailRecipients)
+    private async Task SendEmailCopy(IList<string> files, IEnumerable<string> emailRecipients)
     {
         var now = _clock.GetLocalNow();
         var message = new EmailMessage
@@ -85,14 +91,11 @@ public class ExpeditionListService : IExpeditionListService
 <strong>Expedice vygenerovana {now:yyyy-MM-dd HH:mm:ss}</strong></br>
 </br>
 </br>
-<strong>Celkem {result.TotalCount} zakazek</strong></br>
-</br>
-</br>
 ",
             To = emailRecipients.ToList()
         };
 
-        foreach (var a in result.ExportedFiles)
+        foreach (var a in files)
         {
             var bytes = await File.ReadAllBytesAsync(a);
             message.Attachments.Add(new EmailAttachment
