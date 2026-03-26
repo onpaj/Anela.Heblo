@@ -7,7 +7,6 @@ namespace Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExp
 
 public class GetExpeditionListsByDateHandler : IRequestHandler<GetExpeditionListsByDateRequest, GetExpeditionListsByDateResponse>
 {
-    private const string ContainerName = "expedition-lists";
     private readonly IBlobStorageService _blobStorageService;
     private readonly ILogger<GetExpeditionListsByDateHandler> _logger;
 
@@ -22,7 +21,7 @@ public class GetExpeditionListsByDateHandler : IRequestHandler<GetExpeditionList
         _logger.LogDebug("Fetching expedition lists for date {Date}", request.Date);
 
         var prefix = $"{request.Date}/";
-        var blobs = await _blobStorageService.ListBlobsAsync(ContainerName, prefix, cancellationToken);
+        var blobs = await _blobStorageService.ListBlobsAsync(ExpeditionListArchiveConstants.ContainerName, prefix, cancellationToken);
 
         var items = blobs
             .Select(b => new ExpeditionListItemDto
