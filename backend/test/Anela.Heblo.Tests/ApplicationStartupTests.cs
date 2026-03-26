@@ -14,6 +14,7 @@ namespace Anela.Heblo.Tests;
 /// <summary>
 /// Integration tests to verify application startup and dependency resolution
 /// </summary>
+[Collection("WebApp")]
 public class ApplicationStartupTests : IClassFixture<HebloWebApplicationFactory>
 {
     private readonly HebloWebApplicationFactory _factory;
