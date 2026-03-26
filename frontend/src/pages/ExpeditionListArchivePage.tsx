@@ -59,7 +59,12 @@ const ExpeditionListArchivePage: React.FC = () => {
       await reprintMutation.mutateAsync({ blobPath: reprintConfirm.blobPath });
       showSuccess("Přetisk odeslán", `${reprintConfirm.fileName} byl odeslán na tiskárnu.`);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Nepodařilo se odeslat na tisk.";
+      const msg =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'object' && err !== null && 'message' in err
+            ? String((err as { message: unknown }).message)
+            : 'Nepodařilo se odeslat na tisk.';
       showError("Chyba tisku", msg);
     } finally {
       setReprintConfirm(null);
