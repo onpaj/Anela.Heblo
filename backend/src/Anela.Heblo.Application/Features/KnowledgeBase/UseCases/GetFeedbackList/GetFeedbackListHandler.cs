@@ -23,7 +23,7 @@ public class GetFeedbackListHandler : IRequestHandler<GetFeedbackListRequest, Ge
         var pageSize = AllowedPageSizes.Contains(request.PageSize) ? request.PageSize : 20;
         var sortBy = AllowedSortColumns.Contains(request.SortBy) ? request.SortBy : "CreatedAt";
 
-        var logsTask = _repository.GetFeedbackLogsPagedAsync(
+        var (logs, totalCount) = await _repository.GetFeedbackLogsPagedAsync(
             request.HasFeedback,
             request.UserId,
             sortBy,
@@ -32,12 +32,7 @@ public class GetFeedbackListHandler : IRequestHandler<GetFeedbackListRequest, Ge
             pageSize,
             cancellationToken);
 
-        var statsTask = _repository.GetFeedbackStatsAsync(cancellationToken);
-
-        await Task.WhenAll(logsTask, statsTask);
-
-        var (logs, totalCount) = await logsTask;
-        var stats = await statsTask;
+        var stats = await _repository.GetFeedbackStatsAsync(cancellationToken);
 
         return new GetFeedbackListResponse
         {
