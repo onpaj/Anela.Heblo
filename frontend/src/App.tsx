@@ -36,6 +36,7 @@ import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
+import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -411,6 +412,10 @@ function App() {
                         <Route
                           path="/logistics/packing-materials"
                           element={<PackingMaterialsPage />}
+                        />
+                        <Route
+                          path="/logistics/expedition-archive"
+                          element={<ExpeditionListArchivePage />}
                         />
                         <Route
                           path="/automation/invoice-import-statistics"
