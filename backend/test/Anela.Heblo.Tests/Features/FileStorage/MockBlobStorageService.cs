@@ -135,6 +135,38 @@ public class MockBlobStorageService : IBlobStorageService
         _containers.Clear();
     }
 
+    public Task<IReadOnlyList<BlobItemInfo>> ListBlobsAsync(string containerName, string? prefix = null, CancellationToken cancellationToken = default)
+    {
+        if (!_containers.ContainsKey(containerName))
+        {
+            return Task.FromResult<IReadOnlyList<BlobItemInfo>>(new List<BlobItemInfo>());
+        }
+
+        var blobs = _containers[containerName]
+            .Where(kvp => prefix == null || kvp.Key.StartsWith(prefix))
+            .Select(kvp => new BlobItemInfo
+            {
+                Name = kvp.Key,
+                FileName = Path.GetFileName(kvp.Key),
+                CreatedOn = kvp.Value.CreatedAt,
+                ContentLength = kvp.Value.Size
+            })
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<BlobItemInfo>>(blobs);
+    }
+
+    public Task<Stream> DownloadAsync(string containerName, string blobName, CancellationToken cancellationToken = default)
+    {
+        if (_simulateErrors)
+        {
+            throw new InvalidOperationException("Simulated download error");
+        }
+
+        Stream stream = new MemoryStream(new byte[] { 0x25, 0x50, 0x44, 0x46 }); // %PDF magic bytes
+        return Task.FromResult(stream);
+    }
+
     private static string GetContentTypeFromUrl(string url)
     {
         var extension = Path.GetExtension(new Uri(url).LocalPath).ToLowerInvariant();

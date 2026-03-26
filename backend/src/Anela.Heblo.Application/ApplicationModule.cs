@@ -9,6 +9,7 @@ using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.InvoiceClassification;
 using Anela.Heblo.Application.Features.Invoices;
 using Anela.Heblo.Application.Features.ExpeditionList;
+using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
@@ -62,6 +63,7 @@ public static class ApplicationModule
         services.AddInvoicesModule();
         services.AddKnowledgeBaseModule(configuration);
         services.AddExpeditionListModule(configuration);
+        services.AddExpeditionListArchiveModule(configuration);
         // services.AddOrdersModule();
 
         return services;

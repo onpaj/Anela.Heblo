@@ -51,4 +51,14 @@ public interface IBlobStorageService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if blob exists, false otherwise</returns>
     Task<bool> ExistsAsync(string containerName, string blobName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists blobs in a container, optionally filtered by prefix
+    /// </summary>
+    Task<IReadOnlyList<BlobItemInfo>> ListBlobsAsync(string containerName, string? prefix = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Downloads a blob as a stream
+    /// </summary>
+    Task<Stream> DownloadAsync(string containerName, string blobName, CancellationToken cancellationToken = default);
 }

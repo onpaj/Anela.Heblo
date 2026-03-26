@@ -145,6 +145,35 @@ public class AzureBlobStorageService : IBlobStorageService
         }
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<BlobItemInfo>> ListBlobsAsync(string containerName, string? prefix = null, CancellationToken cancellationToken = default)
+    {
+        var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+        var blobs = new List<BlobItemInfo>();
+
+        await foreach (var blobItem in containerClient.GetBlobsAsync(prefix: prefix, cancellationToken: cancellationToken))
+        {
+            blobs.Add(new BlobItemInfo
+            {
+                Name = blobItem.Name,
+                FileName = Path.GetFileName(blobItem.Name),
+                CreatedOn = blobItem.Properties.CreatedOn,
+                ContentLength = blobItem.Properties.ContentLength,
+            });
+        }
+
+        return blobs;
+    }
+
+    /// <inheritdoc />
+    public async Task<Stream> DownloadAsync(string containerName, string blobName, CancellationToken cancellationToken = default)
+    {
+        var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+        var blobClient = containerClient.GetBlobClient(blobName);
+        var response = await blobClient.DownloadStreamingAsync(cancellationToken: cancellationToken);
+        return response.Value.Content;
+    }
+
     private async Task<BlobContainerClient> GetOrCreateContainerAsync(string containerName, CancellationToken cancellationToken = default)
     {
         var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
