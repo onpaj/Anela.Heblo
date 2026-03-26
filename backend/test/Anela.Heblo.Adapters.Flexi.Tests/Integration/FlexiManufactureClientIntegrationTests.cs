@@ -9,6 +9,7 @@ using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
 namespace Anela.Heblo.Adapters.Flexi.Tests.Integration;
 
 [Collection("FlexiIntegration")]
+[Trait("Category", "Integration")]
 public class FlexiManufactureClientIntegrationTests : IClassFixture<FlexiIntegrationTestFixture>
 {
     private readonly FlexiIntegrationTestFixture _fixture;
