@@ -21,7 +21,7 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
         DisplayName = "Knowledge Base Ingestion",
         Description = "Polls OneDrive inbox folder and ingests new documents into the knowledge base vector store",
         CronExpression = "*/15 * * * *",
-        DefaultIsEnabled = true
+        DefaultIsEnabled = false
     };
 
     public KnowledgeBaseIngestionJob(
