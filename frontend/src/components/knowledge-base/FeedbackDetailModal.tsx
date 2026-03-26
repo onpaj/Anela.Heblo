@@ -1,6 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { FeedbackLogSummary } from '../../api/hooks/useKnowledgeBase';
+import { formatDateTime } from '../../utils/formatters';
 
 interface FeedbackDetailModalProps {
   log: FeedbackLogSummary;
@@ -23,14 +24,13 @@ const ScoreDots: React.FC<{ score: number | null; max?: number }> = ({ score, ma
 };
 
 const FeedbackDetailModal: React.FC<FeedbackDetailModalProps> = ({ log, onClose }) => {
-  const formatDate = (iso: string) =>
-    new Date(iso).toLocaleString('cs-CZ', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -52,7 +52,7 @@ const FeedbackDetailModal: React.FC<FeedbackDetailModalProps> = ({ log, onClose 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Datum</p>
-              <p className="text-gray-900">{formatDate(log.createdAt)}</p>
+              <p className="text-gray-900">{formatDateTime(log.createdAt)}</p>
             </div>
             {log.userId && (
               <div>
