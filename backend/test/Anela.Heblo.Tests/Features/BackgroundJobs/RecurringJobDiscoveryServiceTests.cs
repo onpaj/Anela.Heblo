@@ -42,8 +42,7 @@ public class RecurringJobDiscoveryServiceTests : IDisposable
         // Arrange
         var hangfireOptions = Options.Create(new HangfireOptions
         {
-            SchedulerEnabled = true,
-            QueueName = "test-queue"
+            SchedulerEnabled = true
         });
 
         var service = new RecurringJobDiscoveryService(
@@ -74,8 +73,7 @@ public class RecurringJobDiscoveryServiceTests : IDisposable
         // Arrange
         var hangfireOptions = Options.Create(new HangfireOptions
         {
-            SchedulerEnabled = false,
-            QueueName = "test-queue"
+            SchedulerEnabled = false
         });
 
         var service = new RecurringJobDiscoveryService(
