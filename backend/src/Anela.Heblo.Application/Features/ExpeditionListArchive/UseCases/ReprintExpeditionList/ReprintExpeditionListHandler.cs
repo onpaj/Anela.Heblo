@@ -1,14 +1,12 @@
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
-using System.Text.RegularExpressions;
 
 namespace Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
 
 public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionListRequest, ReprintExpeditionListResponse>
 {
     private const string ContainerName = "expedition-lists";
-    private static readonly Regex ValidBlobPathPattern = new(@"^\d{4}-\d{2}-\d{2}/[^/]+\.pdf$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private readonly IBlobStorageService _blobStorageService;
     private readonly IPrintQueueSink _cupsSink;
 
@@ -20,7 +18,7 @@ public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionLis
 
     public async Task<ReprintExpeditionListResponse> Handle(ReprintExpeditionListRequest request, CancellationToken cancellationToken)
     {
-        if (!IsValidBlobPath(request.BlobPath))
+        if (!BlobPathValidator.IsValid(request.BlobPath))
         {
             return ReprintExpeditionListResponse.Fail("Invalid blob path.");
         }
@@ -47,21 +45,6 @@ public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionLis
         {
             DeleteTempFile(tempFile);
         }
-    }
-
-    private static bool IsValidBlobPath(string blobPath)
-    {
-        if (string.IsNullOrWhiteSpace(blobPath))
-            return false;
-
-        if (blobPath.Contains(".."))
-            return false;
-
-        if (!ValidBlobPathPattern.IsMatch(blobPath))
-            return false;
-
-        var datePart = blobPath.Split('/')[0];
-        return DateOnly.TryParseExact(datePart, "yyyy-MM-dd", out _);
     }
 
     private static void DeleteTempFile(string path)
