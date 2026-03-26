@@ -31,11 +31,6 @@ public class RecurringJobMetadata
     public bool DefaultIsEnabled { get; init; } = true;
 
     /// <summary>
-    /// Queue name for job execution
-    /// </summary>
-    public string QueueName { get; init; } = "heblo";
-
-    /// <summary>
     /// Timezone for cron expression (defaults to Europe/Prague)
     /// </summary>
     public string TimeZoneId { get; init; } = "Europe/Prague";

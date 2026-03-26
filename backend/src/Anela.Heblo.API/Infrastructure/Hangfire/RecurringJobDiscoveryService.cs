@@ -75,12 +75,11 @@ public class RecurringJobDiscoveryService : IHostedService
                     {
                         metadata.JobName,
                         metadata.CronExpression,
-                        metadata.TimeZoneId,
-                        metadata.QueueName
+                        metadata.TimeZoneId
                     });
 
-                    _logger.LogInformation("Registered recurring job: {JobName} ({JobType}) with schedule {Cron} in queue {Queue}",
-                        metadata.JobName, jobType.Name, metadata.CronExpression, metadata.QueueName);
+                    _logger.LogInformation("Registered recurring job: {JobName} ({JobType}) with schedule {Cron}",
+                        metadata.JobName, jobType.Name, metadata.CronExpression);
                 }
                 catch (Exception ex)
                 {
@@ -116,14 +115,12 @@ public class RecurringJobDiscoveryService : IHostedService
     private static void RegisterRecurringJobInternal<TJob>(
         string jobName,
         string cronExpression,
-        string timeZoneId,
-        string queueName) where TJob : IRecurringJob
+        string timeZoneId) where TJob : IRecurringJob
     {
         RecurringJob.AddOrUpdate<TJob>(
             jobName,
             job => job.ExecuteAsync(default),
             cronExpression,
-            TimeZoneInfo.FindSystemTimeZoneById(timeZoneId),
-            queueName);
+            TimeZoneInfo.FindSystemTimeZoneById(timeZoneId));
     }
 }

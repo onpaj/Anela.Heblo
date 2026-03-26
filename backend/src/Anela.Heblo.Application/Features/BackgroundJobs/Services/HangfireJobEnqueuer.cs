@@ -2,7 +2,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Hangfire;
-using Hangfire.Storage;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.BackgroundJobs.Services;
@@ -62,14 +61,11 @@ public class HangfireJobEnqueuer : IHangfireJobEnqueuer
         // Create lambda: (TJob job) => job.ExecuteAsync(cancellationToken)
         var lambda = CreateExecutionExpression(jobType, executeMethod, cancellationToken);
 
-        // Get queue name from job metadata
-        var queueName = job.Metadata.QueueName;
-
         // Invoke our wrapper method which calls Hangfire API via injected client
-        var jobId = (string?)genericMethod.Invoke(this, new object[] { queueName, lambda });
+        var jobId = (string?)genericMethod.Invoke(this, new object[] { lambda });
 
-        _logger.LogInformation("Job {JobType} enqueued to queue '{QueueName}' with Hangfire job ID: {JobId}",
-            jobType.Name, queueName, jobId);
+        _logger.LogInformation("Job {JobType} enqueued with Hangfire job ID: {JobId}",
+            jobType.Name, jobId);
 
         return jobId;
     }
@@ -78,29 +74,14 @@ public class HangfireJobEnqueuer : IHangfireJobEnqueuer
     /// Internal generic wrapper method that calls IBackgroundJobClient.Enqueue API.
     /// This provides design-time validation that the Hangfire API exists and has correct signature.
     /// If Hangfire API changes, we'll get a compile error instead of runtime failure.
-    /// Handles both storage types: PostgreSQL (supports queue parameter) and MemoryStorage (does not).
     /// </summary>
     /// <typeparam name="T">The job type (must implement IRecurringJob)</typeparam>
-    /// <param name="queueName">Queue name from job metadata</param>
     /// <param name="methodCall">Expression representing the job execution</param>
     /// <returns>Hangfire job ID</returns>
-    private string EnqueueJobInternal<T>(string queueName, Expression<Func<T, Task>> methodCall)
+    private string EnqueueJobInternal<T>(Expression<Func<T, Task>> methodCall)
         where T : IRecurringJob
     {
-        // Check if current storage supports queue property (PostgreSQL does, MemoryStorage doesn't)
-        var supportsQueueProperty = JobStorage.Current.HasFeature(JobStorageFeatures.JobQueueProperty);
-
-        if (supportsQueueProperty)
-        {
-            // Production: PostgreSQL storage - use queue parameter
-            return _backgroundJobClient.Enqueue(queueName, methodCall);
-        }
-        else
-        {
-            // Tests: MemoryStorage - cannot use queue parameter, uses default queue
-            // MemoryStorage throws NotSupportedException if queue parameter is provided
-            return _backgroundJobClient.Enqueue(methodCall);
-        }
+        return _backgroundJobClient.Enqueue(methodCall);
     }
 
     /// <summary>
