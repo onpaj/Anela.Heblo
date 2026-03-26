@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { FileText, Printer, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileText, Printer, ExternalLink, ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { getAuthenticatedApiClient } from "../api/client";
 import {
   useExpeditionDates,
   useExpeditionListsByDate,
   useReprintExpeditionList,
+  useRunExpeditionListPrintFix,
   getExpeditionListDownloadUrl,
   ExpeditionListItemDto,
 } from "../api/hooks/useExpeditionListArchive";
+import { useTriggerRecurringJobMutation } from "../api/hooks/useRecurringJobs";
 import { useToast } from "../contexts/ToastContext";
 
 const PAGE_SIZE = 20;
@@ -38,6 +41,8 @@ const ExpeditionListArchivePage: React.FC = () => {
   const { data: datesData, isLoading: datesLoading } = useExpeditionDates(page, PAGE_SIZE);
   const { data: itemsData, isLoading: itemsLoading } = useExpeditionListsByDate(selectedDate);
   const reprintMutation = useReprintExpeditionList();
+  const triggerJobMutation = useTriggerRecurringJobMutation();
+  const runFixMutation = useRunExpeditionListPrintFix();
 
   // Auto-select the first (most recent) date when dates load
   useEffect(() => {
@@ -48,9 +53,40 @@ const ExpeditionListArchivePage: React.FC = () => {
 
   const totalPages = datesData ? Math.ceil(datesData.totalCount / PAGE_SIZE) : 0;
 
-  const handleOpen = (item: ExpeditionListItemDto) => {
+  const handleOpen = async (item: ExpeditionListItemDto) => {
     const url = getExpeditionListDownloadUrl(item.blobPath);
-    window.open(url, "_blank", "noopener,noreferrer");
+    const apiClient = getAuthenticatedApiClient();
+    try {
+      const response = await (apiClient as any).http.fetch(url, { method: 'GET' });
+      if (!response.ok) {
+        showError('Chyba', `Nepodařilo se otevřít soubor (${response.status}).`);
+        return;
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch {
+      showError('Chyba', 'Nepodařilo se otevřít soubor.');
+    }
+  };
+
+  const handleRunJob = async () => {
+    try {
+      await triggerJobMutation.mutateAsync('print-picking-list');
+      showSuccess('Spuštěno', 'Tisk expedičního listu byl spuštěn.');
+    } catch {
+      showError('Chyba', 'Nepodařilo se spustit tisk expedičního listu.');
+    }
+  };
+
+  const handleRunFix = async () => {
+    try {
+      const result = await runFixMutation.mutateAsync();
+      showSuccess('Spuštěno', `Tisk oprav dokončen. Celkem objednávek: ${result.totalCount}.`);
+    } catch {
+      showError('Chyba', 'Nepodařilo se spustit tisk oprav.');
+    }
   };
 
   const handleReprintConfirm = async () => {
@@ -73,7 +109,35 @@ const ExpeditionListArchivePage: React.FC = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">Archiv expedičních listů</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900">Archiv expedičních listů</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRunFix}
+            disabled={runFixMutation.isPending}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors"
+          >
+            {runFixMutation.isPending ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+            ) : (
+              <Play size={14} />
+            )}
+            Spustit tisk oprav
+          </button>
+          <button
+            onClick={handleRunJob}
+            disabled={triggerJobMutation.isPending}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+          >
+            {triggerJobMutation.isPending ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+            ) : (
+              <Play size={14} />
+            )}
+            Spustit tisk
+          </button>
+        </div>
+      </div>
 
       <div className="flex gap-6">
         {/* Date list sidebar */}
