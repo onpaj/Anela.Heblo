@@ -118,6 +118,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Bankovní výpisy",
           href: "/customer/bank-statements-overview",
         },
+        {
+          id: "archiv-expedic-zakaznicke",
+          name: "Expedice",
+          href: "/logistics/expedition-archive",
+        },
       ],
     },
     {
@@ -227,11 +232,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "sledovani-materialu",
           name: "Sledování materiálů",
           href: "/logistics/packing-materials",
-        },
-        {
-          id: "archiv-expedic",
-          name: "Archiv expedic",
-          href: "/logistics/expedition-archive",
         },
       ],
     },
