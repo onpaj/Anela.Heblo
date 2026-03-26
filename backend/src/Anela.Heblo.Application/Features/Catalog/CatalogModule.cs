@@ -85,7 +85,7 @@ public static class CatalogModule
         });
 
         // Register AutoMapper for catalog mappings
-        services.AddAutoMapper(typeof(CatalogModule));
+        services.AddAutoMapper(cfg => { }, typeof(CatalogModule));
 
         // Register FluentValidation validators for catalog requests
         services.AddScoped<IValidator<GetCatalogDetailRequest>, GetCatalogDetailRequestValidator>();
