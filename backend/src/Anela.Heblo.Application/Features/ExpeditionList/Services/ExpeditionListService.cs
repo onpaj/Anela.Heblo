@@ -1,15 +1,14 @@
 using Anela.Heblo.Domain.Features.Logistics.Picking;
+using Anela.Heblo.Xcc.Services.Email;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using SendGrid;
-using SendGrid.Helpers.Mail;
 
 namespace Anela.Heblo.Application.Features.ExpeditionList.Services;
 
 public class ExpeditionListService : IExpeditionListService
 {
     private readonly IPickingListSource _pickingListSource;
-    private readonly ISendGridClient _emailSender;
+    private readonly IEmailSender _emailSender;
     private readonly TimeProvider _clock;
     private readonly IOptions<PrintPickingListOptions> _options;
     private readonly IPrintQueueSink _printQueueSink;
@@ -17,7 +16,7 @@ public class ExpeditionListService : IExpeditionListService
 
     public ExpeditionListService(
         IPickingListSource pickingListSource,
-        ISendGridClient emailSender,
+        IEmailSender emailSender,
         TimeProvider clock,
         IOptions<PrintPickingListOptions> options,
         IPrintQueueSink printQueueSink,
@@ -42,8 +41,15 @@ public class ExpeditionListService : IExpeditionListService
 
         if (emailList != null && emailList.Any())
         {
-            await SendEmailCopy(result, emailList);
-            _logger.LogDebug("Copy sent by email");
+            try
+            {
+                await SendEmailCopy(result, emailList);
+                _logger.LogDebug("Copy sent by email");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send email copy — continuing with print and cleanup");
+            }
         }
 
         if (request.SendToPrinter)
@@ -71,9 +77,9 @@ public class ExpeditionListService : IExpeditionListService
     private async Task SendEmailCopy(PrintPickingListResult result, IEnumerable<string> emailRecipients)
     {
         var now = _clock.GetLocalNow();
-        var msg = new SendGridMessage()
+        var message = new EmailMessage
         {
-            From = new EmailAddress(_options.Value.EmailSender),
+            From = _options.Value.EmailSender,
             Subject = $"Expedice {now:yyyy-MM-dd}",
             HtmlContent = $@"
 <strong>Expedice vygenerovana {now:yyyy-MM-dd HH:mm:ss}</strong></br>
@@ -83,20 +89,21 @@ public class ExpeditionListService : IExpeditionListService
 </br>
 </br>
 ",
+            To = emailRecipients.ToList()
         };
-
-        msg.AddTos(emailRecipients.Select(s => new EmailAddress(s)).ToList());
 
         foreach (var a in result.ExportedFiles)
         {
             var bytes = await File.ReadAllBytesAsync(a);
-            var b64 = Convert.ToBase64String(bytes);
-            msg.AddAttachment(Path.GetFileName(a), b64, "pdf");
+            message.Attachments.Add(new EmailAttachment
+            {
+                FileName = Path.GetFileName(a),
+                Content = Convert.ToBase64String(bytes),
+                ContentType = "application/pdf"
+            });
         }
 
-        var response = await _emailSender.SendEmailAsync(msg);
-        _logger.LogDebug("Sent email with result {SendGridStatusCode}: {SendGridMessage}",
-            response.StatusCode,
-            await response.Body.ReadAsStringAsync());
+        await _emailSender.SendEmailAsync(message);
+        _logger.LogDebug("Sent email copy");
     }
 }

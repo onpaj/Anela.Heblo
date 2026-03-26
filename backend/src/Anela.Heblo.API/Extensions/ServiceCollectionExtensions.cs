@@ -283,12 +283,9 @@ public static class ServiceCollectionExtensions
                 }));
         }
 
-        // Always add Hangfire server with Heblo queue - NEVER allow fallback to Default queue
         services.AddHangfireServer(options =>
         {
-            // Configure server options - ALWAYS only process Heblo queue
             options.WorkerCount = hangfireOptions.WorkerCount;
-            options.Queues = new[] { hangfireOptions.QueueName };
         });
 
         // Register Hangfire dashboard authorization filter
