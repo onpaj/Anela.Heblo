@@ -12,4 +12,6 @@ public class PrintPickingListOptions
     public bool SendToPrinterByDefault { get; set; } = false;
     public bool ChangeOrderStateByDefault { get; set; } = true;
     public string PrintSink { get; set; } = "FileSystem"; // "FileSystem" | "AzureBlob" | "Cups"
+    public string BlobConnectionString { get; set; } = string.Empty;
+    public string BlobContainerName { get; set; } = "expedition-lists";
 }

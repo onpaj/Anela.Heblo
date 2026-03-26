@@ -341,6 +341,7 @@ public static class ServiceCollectionExtensions
                 break;
             case "Cups":
                 services.AddCupsAdapter(configuration);
+                services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
                 break;
             case "Combined":
                 // AddAzurePrintQueueSink and AddCupsAdapter each also register a non-keyed
