@@ -11,6 +11,9 @@ using Anela.Heblo.API;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.API.Infrastructure.Authentication;
 using Microsoft.Extensions.Hosting;
+using Hangfire;
+using Hangfire.Common;
+using Hangfire.States;
 
 namespace Anela.Heblo.Tests.Common;
 
@@ -68,6 +71,29 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
             // These are needed for E2ETestController controller resolution tests
             services.AddScoped<IServicePrincipalTokenValidator, MockServicePrincipalTokenValidator>();
             services.AddScoped<IE2ESessionService, MockE2ESessionService>();
+
+            // Remove Hangfire background server – it sets Hangfire's static LogProvider.CurrentLogProvider
+            // to this factory's ILoggerFactory. When multiple factories run in parallel and one disposes
+            // its ILoggerFactory, the stale static reference causes ObjectDisposedException when
+            // another factory's tests try to resolve services that touch Hangfire's log provider.
+            var hangfireServerDescriptors = services
+                .Where(d => d.ServiceType == typeof(IHostedService) &&
+                            d.ImplementationType?.Name.Contains("BackgroundJobServer") == true)
+                .ToList();
+            foreach (var d in hangfireServerDescriptors)
+            {
+                services.Remove(d);
+            }
+
+            // Replace IBackgroundJobClient with a no-op mock to prevent Hangfire's global state
+            // (JobStorage.Current, LogProvider.CurrentLogProvider) from being touched during DI resolution.
+            var backgroundJobClientDescriptor = services.FirstOrDefault(
+                d => d.ServiceType == typeof(IBackgroundJobClient));
+            if (backgroundJobClientDescriptor != null)
+            {
+                services.Remove(backgroundJobClientDescriptor);
+            }
+            services.AddSingleton<IBackgroundJobClient>(new MockBackgroundJobClient());
 
             // Apply any additional service configuration from derived classes
             ConfigureTestServices(services);
@@ -152,4 +178,17 @@ public class MockE2ESessionService : IE2ESessionService
             new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, "test@anela-heblo.com")
         };
     }
+}
+
+/// <summary>
+/// No-op implementation of IBackgroundJobClient for test environments.
+/// Replaces Hangfire's real client to prevent Hangfire's static LogProvider.CurrentLogProvider
+/// from being set to a factory-specific ILoggerFactory that may be disposed while other
+/// test factories are still running (parallel test class execution).
+/// </summary>
+public class MockBackgroundJobClient : IBackgroundJobClient
+{
+    public string Create(Job job, IState state) => "mock-job-id";
+
+    public bool ChangeState(string jobId, IState state, string expectedStateName) => true;
 }
