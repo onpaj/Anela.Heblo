@@ -181,16 +181,46 @@ public class AzureBlobStorageService : IBlobStorageService
             _logger.LogInformation("Downloading blob {BlobName} from container {ContainerName}", blobName, containerName);
             var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
             var blobClient = containerClient.GetBlobClient(blobName);
-            var memoryStream = new MemoryStream();
             var download = await blobClient.DownloadStreamingAsync(cancellationToken: cancellationToken);
-            await download.Value.Content.CopyToAsync(memoryStream, cancellationToken);
-            memoryStream.Seek(0, SeekOrigin.Begin);
-            return memoryStream;
+            return new BlobDownloadStream(download.Value.Content, download.Value);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error downloading blob {BlobName} from container {ContainerName}", blobName, containerName);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Wraps a blob streaming download to ensure the underlying Azure SDK response is disposed
+    /// together with the content stream, preventing connection leaks.
+    /// </summary>
+    private sealed class BlobDownloadStream(Stream content, IDisposable owner) : Stream
+    {
+        public override bool CanRead => content.CanRead;
+        public override bool CanSeek => content.CanSeek;
+        public override bool CanWrite => content.CanWrite;
+        public override long Length => content.Length;
+        public override long Position { get => content.Position; set => content.Position = value; }
+        public override void Flush() => content.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => content.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => content.Seek(offset, origin);
+        public override void SetLength(long value) => content.SetLength(value);
+        public override void Write(byte[] buffer, int offset, int count) => content.Write(buffer, offset, count);
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            content.ReadAsync(buffer, offset, count, cancellationToken);
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+            content.ReadAsync(buffer, cancellationToken);
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                content.Dispose();
+                owner.Dispose();
+            }
+
+            base.Dispose(disposing);
         }
     }
 
