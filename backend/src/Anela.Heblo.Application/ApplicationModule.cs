@@ -38,7 +38,7 @@ public static class ApplicationModule
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApplicationModule).Assembly));
 
         // Register AutoMapper
-        services.AddAutoMapper(typeof(ApplicationModule).Assembly);
+        services.AddAutoMapper(cfg => { }, typeof(ApplicationModule).Assembly);
 
         // Background refresh system, hydration, and service readiness tracking are handled by XCC module
 

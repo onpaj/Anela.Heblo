@@ -7,7 +7,7 @@ public static class BankModule
     public static IServiceCollection AddBankModule(this IServiceCollection services)
     {
         // Register AutoMapper profile
-        services.AddAutoMapper(typeof(BankMappingProfile));
+        services.AddAutoMapper(cfg => { }, typeof(BankMappingProfile));
 
         return services;
     }
