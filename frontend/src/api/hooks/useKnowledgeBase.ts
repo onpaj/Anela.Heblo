@@ -87,6 +87,47 @@ export interface UploadDocumentResponse {
   document: DocumentSummary | null;
 }
 
+export interface FeedbackLogSummary {
+  id: string;
+  question: string;
+  answer: string;
+  topK: number;
+  sourceCount: number;
+  durationMs: number;
+  createdAt: string;
+  userId: string | null;
+  precisionScore: number | null;
+  styleScore: number | null;
+  feedbackComment: string | null;
+  hasFeedback: boolean;
+}
+
+export interface FeedbackStatsDto {
+  totalQuestions: number;
+  totalWithFeedback: number;
+  avgPrecisionScore: number | null;
+  avgStyleScore: number | null;
+}
+
+export interface GetFeedbackListParams {
+  pageNumber?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDescending?: boolean;
+  hasFeedback?: boolean;
+  userId?: string;
+}
+
+export interface GetFeedbackListResponse {
+  success: boolean;
+  logs: FeedbackLogSummary[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  stats: FeedbackStatsDto;
+}
+
 // ---- Permission hooks ----
 
 /**
@@ -116,6 +157,8 @@ export const knowledgeBaseKeys = {
   documents: (params?: GetDocumentsParams) =>
     [...QUERY_KEYS.knowledgeBase, 'documents', params ?? {}] as const,
   contentTypes: () => [...QUERY_KEYS.knowledgeBase, 'content-types'] as const,
+  feedbackList: (params?: GetFeedbackListParams) =>
+    [...QUERY_KEYS.knowledgeBase, 'feedback-list', params ?? {}] as const,
 };
 
 // ---- Hooks ----
@@ -339,5 +382,47 @@ export const useUploadKnowledgeBaseDocumentMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: knowledgeBaseKeys.all });
     },
+  });
+};
+
+/**
+ * Fetch paginated, filtered, sorted feedback logs for the Feedback Browser.
+ * Only accessible to knowledge_base_manager role.
+ */
+export const useKnowledgeBaseFeedbackListQuery = (params: GetFeedbackListParams = {}) => {
+  return useQuery({
+    queryKey: knowledgeBaseKeys.feedbackList(params),
+    queryFn: async (): Promise<GetFeedbackListResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const searchParams = new URLSearchParams();
+
+      if (params.pageNumber !== undefined)
+        searchParams.append('pageNumber', params.pageNumber.toString());
+      if (params.pageSize !== undefined)
+        searchParams.append('pageSize', params.pageSize.toString());
+      if (params.sortBy) searchParams.append('sortBy', params.sortBy);
+      if (params.sortDescending !== undefined)
+        searchParams.append('sortDescending', params.sortDescending.toString());
+      if (params.hasFeedback !== undefined)
+        searchParams.append('hasFeedback', params.hasFeedback.toString());
+      if (params.userId) searchParams.append('userId', params.userId);
+
+      const query = searchParams.toString();
+      const relativeUrl = `/api/knowledgebase/feedback/list${query ? `?${query}` : ''}`;
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch feedback list: ${response.status}`);
+      }
+
+      return response.json();
+    },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 };

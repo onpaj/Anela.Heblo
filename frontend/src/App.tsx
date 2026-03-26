@@ -35,6 +35,7 @@ import PackingMaterialsPage from "./pages/PackingMaterialsPage";
 import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
+import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
@@ -444,6 +445,10 @@ function App() {
                         <Route
                           path="/knowledge-base"
                           element={<KnowledgeBasePage />}
+                        />
+                        <Route
+                          path="/knowledge-base/feedback"
+                          element={<KnowledgeBaseFeedbackPage />}
                         />
                       </Routes>
                     </Layout>
