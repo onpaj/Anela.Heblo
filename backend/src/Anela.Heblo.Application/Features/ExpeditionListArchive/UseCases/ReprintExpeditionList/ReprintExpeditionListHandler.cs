@@ -30,8 +30,7 @@ public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionLis
 
         _logger.LogInformation("Reprinting expedition list: {BlobPath}", request.BlobPath);
 
-        var tempFile = Path.GetTempFileName();
-        var pdfTempFile = Path.ChangeExtension(tempFile, ".pdf");
+        var pdfTempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.pdf");
 
         try
         {
@@ -47,7 +46,6 @@ public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionLis
         }
         finally
         {
-            if (File.Exists(tempFile)) File.Delete(tempFile);
             if (File.Exists(pdfTempFile)) File.Delete(pdfTempFile);
         }
     }
