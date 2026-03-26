@@ -16,6 +16,11 @@ public class GetExpeditionListsByDateHandler : IRequestHandler<GetExpeditionList
 
     public async Task<GetExpeditionListsByDateResponse> Handle(GetExpeditionListsByDateRequest request, CancellationToken cancellationToken)
     {
+        if (!DateOnly.TryParseExact(request.Date, "yyyy-MM-dd", out _))
+        {
+            return new GetExpeditionListsByDateResponse { Items = new List<ExpeditionListItemDto>() };
+        }
+
         var blobs = await _blobStorageService.ListBlobsAsync(ContainerName, request.Date, cancellationToken);
 
         var items = blobs

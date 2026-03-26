@@ -129,5 +129,6 @@ export const useReprintExpeditionList = () => {
 export const getExpeditionListDownloadUrl = (blobPath: string): string => {
   const apiClient = getAuthenticatedApiClient();
   const baseUrl = (apiClient as any).baseUrl;
-  return `${baseUrl}/api/expedition-list-archive/download/${encodeURIComponent(blobPath)}`;
+  const encodedPath = blobPath.split("/").map(encodeURIComponent).join("/");
+  return `${baseUrl}/api/expedition-list-archive/download/${encodedPath}`;
 };
