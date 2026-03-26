@@ -23,14 +23,28 @@ public class ExpeditionListServicePrintSinkTests
         _printQueueSink.Object,
         NullLogger<ExpeditionListService>.Instance);
 
+    private void SetupSourceInvokingCallback(IList<string> filesToPassToCallback)
+    {
+        _pickingListSource
+            .Setup(x => x.CreatePickingList(
+                It.IsAny<PrintPickingListRequest>(),
+                It.IsAny<Func<IList<string>, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(
+                async (PrintPickingListRequest req, Func<IList<string>, Task>? cb, CancellationToken ct) =>
+                {
+                    if (cb != null)
+                        await cb(filesToPassToCallback);
+                    return new PrintPickingListResult { ExportedFiles = new List<string>(), TotalCount = 1 };
+                });
+    }
+
     [Fact]
     public async Task PrintPickingListAsync_SendToPrinterTrue_CallsSink()
     {
         // Arrange
-        var files = new List<string> { "/tmp/order1.pdf" };
-        _pickingListSource
-            .Setup(x => x.CreatePickingList(It.IsAny<PrintPickingListRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PrintPickingListResult { ExportedFiles = files, TotalCount = 1 });
+        var batchFiles = new List<string>();
+        SetupSourceInvokingCallback(batchFiles);
 
         var request = new PrintPickingListRequest { SendToPrinter = true };
         var svc = CreateService();
@@ -39,17 +53,21 @@ public class ExpeditionListServicePrintSinkTests
         await svc.PrintPickingListAsync(request);
 
         // Assert
-        _printQueueSink.Verify(x => x.SendAsync(files, It.IsAny<CancellationToken>()), Times.Once);
+        _printQueueSink.Verify(
+            x => x.SendAsync(batchFiles, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
     public async Task PrintPickingListAsync_SendToPrinterFalse_DoesNotCallSink()
     {
         // Arrange
-        var files = new List<string> { "/tmp/order1.pdf" };
         _pickingListSource
-            .Setup(x => x.CreatePickingList(It.IsAny<PrintPickingListRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PrintPickingListResult { ExportedFiles = files, TotalCount = 1 });
+            .Setup(x => x.CreatePickingList(
+                It.IsAny<PrintPickingListRequest>(),
+                It.IsAny<Func<IList<string>, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PrintPickingListResult { ExportedFiles = new List<string>(), TotalCount = 1 });
 
         var request = new PrintPickingListRequest { SendToPrinter = false };
         var svc = CreateService();
@@ -58,6 +76,8 @@ public class ExpeditionListServicePrintSinkTests
         await svc.PrintPickingListAsync(request);
 
         // Assert
-        _printQueueSink.Verify(x => x.SendAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _printQueueSink.Verify(
+            x => x.SendAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

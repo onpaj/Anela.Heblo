@@ -30,7 +30,12 @@ public class PrintPickingListScenario
         _timeProvider = timeProvider;
     }
 
-    public async Task<PrintPickingListResult> RunAsync(List<Shipping> shippings, int maxPageSize, int? sourceStateId = null)
+    public async Task<PrintPickingListResult> RunAsync(
+        List<Shipping> shippings,
+        int maxPageSize,
+        int? sourceStateId = null,
+        int? desiredStateId = null,
+        Func<IList<string>, Task>? onBatchFilesReady = null)
     {
         // Make sure dir exists
         Directory.CreateDirectory(_options.PdfTmpFolder);
@@ -65,21 +70,41 @@ public class PrintPickingListScenario
             var pageCounter = 0;
             do
             {
-                // Select top x for print
-                await page.GotoAsync($"{_options.ShopEntryUrl}/prehled-objednavek/{sourceStateId}/?f[shippingId]={shipping.Id}");
+                // Navigate to source state page for this shipping and select top X
+                await page.GotoAsync(
+                    $"{_options.ShopEntryUrl}/prehled-objednavek/{sourceStateId}/?f[shippingId]={shipping.Id}");
                 selectedOrderIds = await SelectTopX(page, shipping.Id, shipping.PageSize);
 
                 if (selectedOrderIds.Count > 0)
                 {
-                    // Print them to PDF
-                    var filename = $"{DateTime.Now.ToString("yyyy-MM-ddTHHmmss")}_{shipping.Carrier.ToString()}_{shipping.Id.ToString()}_{pageCounter++.ToString().PadLeft(2, '0')}.pdf";
-                    var printed = await PrintSelected(page, filename);
-                    _logger.LogDebug("Finished print to file {Filename} for shipping={ShippingId}", filename, shipping.Id);
+                    // Print selected orders to PDF
+                    var filename =
+                        $"{DateTime.Now.ToString("yyyy-MM-ddTHHmmss")}_{shipping.Carrier.ToString()}_{shipping.Id.ToString()}_{pageCounter++.ToString().PadLeft(2, '0')}.pdf";
+                    var filePath = GetAbsolutePath(filename);
 
-                    if (!printed)
-                        throw new Exception();
+                    await PrintSelected(page, filename);
+                    _logger.LogDebug(
+                        "Finished print to file {Filename} for shipping={ShippingId}", filename, shipping.Id);
 
-                    exportList.Add(GetAbsolutePath(filename));
+                    // Invoke per-batch callback (upload to blob, send email, send to printer).
+                    // If callback throws, the exception propagates and state change is skipped for this batch.
+                    if (onBatchFilesReady != null)
+                        await onBatchFilesReady(new[] { filePath });
+
+                    // Re-select the same orders (they are still in source state after PrintSelected reload)
+                    // and change their state now that all downstream actions have succeeded.
+                    if (desiredStateId != null)
+                    {
+                        selectedOrderIds = await SelectTopX(page, shipping.Id, shipping.PageSize);
+                        await ChangeStateSelected(page, desiredStateId.Value);
+                        _logger.LogDebug(
+                            "Changed state to {DesiredState} for {Count} orders (shipping={ShippingId})",
+                            desiredStateId,
+                            selectedOrderIds.Count,
+                            shipping.Id);
+                    }
+
+                    exportList.Add(filePath);
                     allOrderIds.AddRange(selectedOrderIds);
                     totalCount += selectedOrderIds.Count;
                 }
@@ -93,52 +118,6 @@ public class PrintPickingListScenario
             TotalCount = totalCount,
             OrderIds = allOrderIds,
         };
-    }
-
-    public async Task ChangeOrderStateAsync(IList<int> orderIds, int sourceStateId, int desiredStateId)
-    {
-        if (orderIds.Count == 0)
-            return;
-
-        using var playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-
-        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions()
-        {
-            Headless = _options.Headless,
-        });
-        var page = await browser.NewPageAsync();
-        page.SetDefaultTimeout(300000);
-
-        page.Dialog += async (_, dialog) =>
-        {
-            await dialog.AcceptAsync();
-        };
-
-        await page.GotoAsync(_options.ShopEntryUrl);
-        await page.WaitForLoadStateAsync();
-
-        await page.ClickAsync("[placeholder='E-mail']");
-        await page.FillAsync("[placeholder='E-mail']", _options.Login);
-        await page.PressAsync("[placeholder='E-mail']", "Tab");
-        await page.FillAsync("[placeholder='Vaše heslo']", _options.Password);
-        await page.ClickAsync("role=button >> text=Přihlášení");
-
-        _logger.LogDebug("Login for state change successful");
-
-        await page.GotoAsync($"{_options.ShopEntryUrl}/prehled-objednavek/{sourceStateId}/");
-        await page.WaitForSelectorAsync(".pageGrid__footer.footer");
-
-        foreach (var orderId in orderIds)
-        {
-            var checkbox = await page.QuerySelectorAsync($"input[value='{orderId}']");
-            if (checkbox != null)
-                await checkbox.CheckAsync();
-            else
-                _logger.LogWarning("Could not find checkbox for orderId={OrderId} on state change page", orderId);
-        }
-
-        await ChangeStateSelected(page, desiredStateId);
-        _logger.LogDebug("Changed state of {Count} orders to {DesiredState}", orderIds.Count, desiredStateId);
     }
 
     private async Task InitPage(IPage page, IBrowser browser)

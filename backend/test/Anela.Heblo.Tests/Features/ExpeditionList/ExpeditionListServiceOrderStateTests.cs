@@ -15,9 +15,6 @@ public class ExpeditionListServiceOrderStateTests
     private readonly Mock<IEmailSender> _emailSender = new();
     private readonly Mock<IPrintQueueSink> _printQueueSink = new();
 
-    private static readonly List<int> DefaultOrderIds = new() { 1001, 1002 };
-    private static readonly List<string> DefaultFiles = new();
-
     private ExpeditionListService CreateService() => new ExpeditionListService(
         _pickingListSource.Object,
         _emailSender.Object,
@@ -26,154 +23,134 @@ public class ExpeditionListServiceOrderStateTests
         _printQueueSink.Object,
         NullLogger<ExpeditionListService>.Instance);
 
-    private void SetupPickingListSource()
+    /// <summary>
+    /// Sets up the source mock to invoke the callback with the given files, simulating
+    /// per-batch processing inside PrintPickingListScenario.
+    /// </summary>
+    private void SetupSourceInvokingCallback(IList<string> filesToPassToCallback)
     {
         _pickingListSource
-            .Setup(x => x.CreatePickingList(It.IsAny<PrintPickingListRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PrintPickingListResult
-            {
-                ExportedFiles = DefaultFiles,
-                TotalCount = 2,
-                OrderIds = DefaultOrderIds,
-            });
+            .Setup(x => x.CreatePickingList(
+                It.IsAny<PrintPickingListRequest>(),
+                It.IsAny<Func<IList<string>, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(
+                async (PrintPickingListRequest req, Func<IList<string>, Task>? cb, CancellationToken ct) =>
+                {
+                    if (cb != null)
+                        await cb(filesToPassToCallback);
+                    return new PrintPickingListResult { ExportedFiles = new List<string>(), TotalCount = 1 };
+                });
     }
 
     [Fact]
-    public async Task PrintPickingListAsync_WhenEmailThrows_StateChangeIsNotCalled()
+    public async Task PrintPickingListAsync_WhenEmailThrows_ExceptionPropagates()
     {
-        // Arrange
-        SetupPickingListSource();
+        // Arrange — callback invokes email, email throws
+        SetupSourceInvokingCallback(new List<string>());
         _emailSender
             .Setup(x => x.SendEmailAsync(It.IsAny<EmailMessage>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("SMTP failure"));
 
-        var request = new PrintPickingListRequest
-        {
-            ChangeOrderState = true,
-            SendToPrinter = false,
-        };
+        var request = new PrintPickingListRequest { ChangeOrderState = true, SendToPrinter = false };
         var svc = CreateService();
 
-        // Act
+        // Act & Assert — the exception must NOT be silently swallowed
         await Assert.ThrowsAsync<Exception>(() =>
             svc.PrintPickingListAsync(request, emailList: new[] { "user@example.com" }));
-
-        // Assert
-        _pickingListSource.Verify(
-            x => x.ChangeOrderState(It.IsAny<IList<int>>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
     }
 
     [Fact]
-    public async Task PrintPickingListAsync_WhenPrintQueueThrows_StateChangeIsNotCalled()
+    public async Task PrintPickingListAsync_WhenPrinterThrows_ExceptionPropagates()
     {
-        // Arrange
-        SetupPickingListSource();
+        // Arrange — callback invokes printer, printer throws
+        SetupSourceInvokingCallback(new List<string>());
         _printQueueSink
             .Setup(x => x.SendAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Print queue failure"));
 
-        var request = new PrintPickingListRequest
-        {
-            ChangeOrderState = true,
-            SendToPrinter = true,
-        };
+        var request = new PrintPickingListRequest { ChangeOrderState = true, SendToPrinter = true };
         var svc = CreateService();
 
-        // Act
+        // Act & Assert
         await Assert.ThrowsAsync<Exception>(() => svc.PrintPickingListAsync(request));
-
-        // Assert
-        _pickingListSource.Verify(
-            x => x.ChangeOrderState(It.IsAny<IList<int>>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
     }
 
     [Fact]
-    public async Task PrintPickingListAsync_WhenAllSucceed_StateChangeIsCalledLast()
+    public async Task PrintPickingListAsync_WhenAllSucceed_PrinterCalledBeforeEmail()
     {
         // Arrange
-        SetupPickingListSource();
         var callOrder = new List<string>();
+        SetupSourceInvokingCallback(new List<string>());
+
+        _printQueueSink
+            .Setup(x => x.SendAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("printer"))
+            .Returns(Task.CompletedTask);
 
         _emailSender
             .Setup(x => x.SendEmailAsync(It.IsAny<EmailMessage>(), It.IsAny<CancellationToken>()))
             .Callback(() => callOrder.Add("email"))
             .Returns(Task.CompletedTask);
 
-        _printQueueSink
-            .Setup(x => x.SendAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .Callback(() => callOrder.Add("print"))
-            .Returns(Task.CompletedTask);
-
-        _pickingListSource
-            .Setup(x => x.ChangeOrderState(It.IsAny<IList<int>>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .Callback(() => callOrder.Add("stateChange"))
-            .Returns(Task.CompletedTask);
-
-        var request = new PrintPickingListRequest
-        {
-            ChangeOrderState = true,
-            SendToPrinter = true,
-        };
+        var request = new PrintPickingListRequest { ChangeOrderState = true, SendToPrinter = true };
         var svc = CreateService();
 
         // Act
         await svc.PrintPickingListAsync(request, emailList: new[] { "user@example.com" });
 
-        // Assert: state change called after email and print
-        Assert.Equal(new[] { "email", "print", "stateChange" }, callOrder);
-        _pickingListSource.Verify(
-            x => x.ChangeOrderState(DefaultOrderIds, request.SourceStateId, request.DesiredStateId, It.IsAny<CancellationToken>()),
-            Times.Once);
+        // Assert
+        Assert.Equal(new[] { "printer", "email" }, callOrder);
     }
 
     [Fact]
-    public async Task PrintPickingListAsync_WhenChangeOrderStateFalse_StateChangeIsNotCalled()
+    public async Task PrintPickingListAsync_WhenNeitherPrinterNorEmail_NullCallbackPassedToSource()
     {
         // Arrange
-        SetupPickingListSource();
+        Func<IList<string>, Task>? capturedCallback = null;
+        _pickingListSource
+            .Setup(x => x.CreatePickingList(
+                It.IsAny<PrintPickingListRequest>(),
+                It.IsAny<Func<IList<string>, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .Callback(
+                (PrintPickingListRequest req, Func<IList<string>, Task>? cb, CancellationToken ct) =>
+                    capturedCallback = cb)
+            .ReturnsAsync(new PrintPickingListResult { ExportedFiles = new List<string>() });
 
-        var request = new PrintPickingListRequest { ChangeOrderState = false };
+        var request = new PrintPickingListRequest { SendToPrinter = false };
+        var svc = CreateService();
+
+        // Act
+        await svc.PrintPickingListAsync(request, emailList: null);
+
+        // Assert — no callback built when there's nothing to do per batch
+        Assert.Null(capturedCallback);
+    }
+
+    [Fact]
+    public async Task PrintPickingListAsync_CleanupRunsAfterSuccess()
+    {
+        // Arrange — real temp file so cleanup can verify deletion
+        var tmpFile = Path.GetTempFileName();
+        _pickingListSource
+            .Setup(x => x.CreatePickingList(
+                It.IsAny<PrintPickingListRequest>(),
+                It.IsAny<Func<IList<string>, Task>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PrintPickingListResult
+            {
+                ExportedFiles = new[] { tmpFile },
+                TotalCount = 1,
+            });
+
+        var request = new PrintPickingListRequest { SendToPrinter = false };
         var svc = CreateService();
 
         // Act
         await svc.PrintPickingListAsync(request);
 
         // Assert
-        _pickingListSource.Verify(
-            x => x.ChangeOrderState(It.IsAny<IList<int>>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task PrintPickingListAsync_WhenStateChangeFails_CleanupStillRuns()
-    {
-        // Arrange
-        SetupPickingListSource();
-
-        // Write a real temp file so cleanup can actually delete it
-        var tmpFile = Path.GetTempFileName();
-        _pickingListSource
-            .Setup(x => x.CreatePickingList(It.IsAny<PrintPickingListRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new PrintPickingListResult
-            {
-                ExportedFiles = new[] { tmpFile },
-                TotalCount = 1,
-                OrderIds = DefaultOrderIds,
-            });
-
-        _pickingListSource
-            .Setup(x => x.ChangeOrderState(It.IsAny<IList<int>>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new Exception("State change failure"));
-
-        var request = new PrintPickingListRequest { ChangeOrderState = true };
-        var svc = CreateService();
-
-        // Act
-        await Assert.ThrowsAsync<Exception>(() => svc.PrintPickingListAsync(request));
-
-        // Assert: temp file was deleted despite state change failure
         Assert.False(File.Exists(tmpFile));
     }
 }
