@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.DeleteDocument;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocumentContentTypes;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
+using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetFeedbackList;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SubmitFeedback;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.UploadDocument;
@@ -78,6 +79,29 @@ public class KnowledgeBaseController : BaseApiController
     public async Task<ActionResult<DeleteDocumentResponse>> DeleteDocument(Guid id, CancellationToken ct)
     {
         var result = await _mediator.Send(new DeleteDocumentRequest { DocumentId = id }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("feedback/list")]
+    [Authorize(Policy = AuthorizationConstants.Policies.KnowledgeBaseUpload)]
+    public async Task<ActionResult<GetFeedbackListResponse>> GetFeedbackList(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string sortBy = "CreatedAt",
+        [FromQuery] bool sortDescending = true,
+        [FromQuery] bool? hasFeedback = null,
+        [FromQuery] string? userId = null,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetFeedbackListRequest
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            SortBy = sortBy,
+            SortDescending = sortDescending,
+            HasFeedback = hasFeedback,
+            UserId = userId,
+        }, ct);
         return HandleResponse(result);
     }
 

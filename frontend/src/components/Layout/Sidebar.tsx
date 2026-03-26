@@ -278,9 +278,18 @@ const Sidebar: React.FC<SidebarProps> = ({
     {
       id: 'knowledgebase',
       name: 'Knowledgebase',
-      href: '/knowledge-base',
       icon: Database,
-      type: 'single' as const,
+      type: 'section' as const,
+      items: [
+        {
+          id: 'kb-poradenstvi',
+          name: 'Poradenství',
+          href: '/knowledge-base',
+        },
+        ...(hasRole('knowledge_base_manager')
+          ? [{ id: 'kb-feedback', name: 'Feedback', href: '/knowledge-base/feedback' }]
+          : []),
+      ],
     },
   ];
 

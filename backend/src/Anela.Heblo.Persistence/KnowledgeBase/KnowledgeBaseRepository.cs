@@ -208,4 +208,72 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
         return await _context.KnowledgeBaseQuestionLogs
             .FirstOrDefaultAsync(l => l.Id == id, ct);
     }
+
+    public async Task<(List<KnowledgeBaseQuestionLog> Logs, int TotalCount)> GetFeedbackLogsPagedAsync(
+        bool? hasFeedback,
+        string? userId,
+        string sortBy,
+        bool sortDescending,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var query = _context.KnowledgeBaseQuestionLogs.AsQueryable();
+
+        if (hasFeedback.HasValue)
+        {
+            query = hasFeedback.Value
+                ? query.Where(l => l.PrecisionScore != null || l.StyleScore != null)
+                : query.Where(l => l.PrecisionScore == null && l.StyleScore == null);
+        }
+
+        if (!string.IsNullOrEmpty(userId))
+            query = query.Where(l => l.UserId == userId);
+
+        query = sortBy switch
+        {
+            "PrecisionScore" => sortDescending
+                ? query.OrderByDescending(l => l.PrecisionScore)
+                : query.OrderBy(l => l.PrecisionScore),
+            "StyleScore" => sortDescending
+                ? query.OrderByDescending(l => l.StyleScore)
+                : query.OrderBy(l => l.StyleScore),
+            _ => sortDescending
+                ? query.OrderByDescending(l => l.CreatedAt)
+                : query.OrderBy(l => l.CreatedAt),
+        };
+
+        var totalCount = await query.CountAsync(ct);
+        var logs = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return (logs, totalCount);
+    }
+
+    public async Task<FeedbackAggregateStats> GetFeedbackStatsAsync(CancellationToken ct = default)
+    {
+        var totalQuestions = await _context.KnowledgeBaseQuestionLogs.CountAsync(ct);
+
+        var withFeedback = await _context.KnowledgeBaseQuestionLogs
+            .Where(l => l.PrecisionScore != null || l.StyleScore != null)
+            .ToListAsync(ct);
+
+        double? avgPrecision = withFeedback.Count > 0
+            ? withFeedback.Where(l => l.PrecisionScore != null).Average(l => (double?)l.PrecisionScore)
+            : null;
+
+        double? avgStyle = withFeedback.Count > 0
+            ? withFeedback.Where(l => l.StyleScore != null).Average(l => (double?)l.StyleScore)
+            : null;
+
+        return new FeedbackAggregateStats
+        {
+            TotalQuestions = totalQuestions,
+            TotalWithFeedback = withFeedback.Count,
+            AvgPrecisionScore = avgPrecision.HasValue ? Math.Round(avgPrecision.Value, 1) : null,
+            AvgStyleScore = avgStyle.HasValue ? Math.Round(avgStyle.Value, 1) : null,
+        };
+    }
 }
