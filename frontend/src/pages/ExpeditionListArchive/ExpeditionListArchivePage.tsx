@@ -12,6 +12,7 @@ import {
   useExpeditionDates,
   useExpeditionListsByDate,
   useReprintExpeditionList,
+  getExpeditionListDownloadUrl,
   ExpeditionListItemDto,
 } from "../../api/hooks/useExpeditionListArchive";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
@@ -50,6 +51,7 @@ const ExpeditionListArchivePage: React.FC = () => {
     getTodayString(),
   );
   const [hasAutoSelectedDate, setHasAutoSelectedDate] = useState(false);
+  const [downloadingBlobPath, setDownloadingBlobPath] = useState<string | null>(null);
 
   const {
     data: datesData,
@@ -84,6 +86,12 @@ const ExpeditionListArchivePage: React.FC = () => {
 
     setHasAutoSelectedDate(true);
   }, [datesData, hasAutoSelectedDate]);
+
+  const handleDownload = (item: ExpeditionListItemDto) => {
+    setDownloadingBlobPath(item.blobPath);
+    window.open(getExpeditionListDownloadUrl(item.blobPath), "_blank");
+    setTimeout(() => setDownloadingBlobPath(null), 1500);
+  };
 
   const handleReprint = async (item: ExpeditionListItemDto) => {
     const confirmed = window.confirm(
@@ -289,16 +297,15 @@ const ExpeditionListArchivePage: React.FC = () => {
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() =>
-                              window.open(
-                                "/api/expedition-list-archive/download/" +
-                                  item.blobPath,
-                                "_blank",
-                              )
-                            }
-                            className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded hover:bg-indigo-100 transition-colors"
+                            onClick={() => handleDownload(item)}
+                            disabled={downloadingBlobPath === item.blobPath}
+                            className="inline-flex items-center px-2.5 py-1 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
-                            <ExternalLink className="h-3 w-3 mr-1" />
+                            {downloadingBlobPath === item.blobPath ? (
+                              <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                            )}
                             Otevrit
                           </button>
                           <button

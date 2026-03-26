@@ -1,6 +1,11 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
 
+export const getExpeditionListDownloadUrl = (blobPath: string): string => {
+  const apiClient = getAuthenticatedApiClient();
+  return `${(apiClient as any).baseUrl}/api/expedition-list-archive/download/${blobPath}`;
+};
+
 export interface ExpeditionListItemDto {
   fileName: string;
   blobPath: string;
