@@ -1,5 +1,6 @@
 // backend/src/Adapters/Anela.Heblo.Adapters.Azure/AzureAdapterModule.cs
 using Anela.Heblo.Adapters.Azure.Features.ExpeditionList;
+using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
@@ -14,13 +15,10 @@ public static class AzureAdapterModule
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.Configure<AzureBlobPrintQueueOptions>(
-            configuration.GetSection(AzureBlobPrintQueueOptions.ConfigurationKey));
-
         services.AddSingleton(provider =>
         {
-            var options = provider.GetRequiredService<IOptions<AzureBlobPrintQueueOptions>>().Value;
-            return new BlobContainerClient(options.ConnectionString, options.ContainerName);
+            var options = provider.GetRequiredService<IOptions<PrintPickingListOptions>>().Value;
+            return new BlobContainerClient(options.BlobConnectionString, options.BlobContainerName);
         });
 
         services.AddScoped<IPrintQueueSink, AzureBlobPrintQueueSink>();
