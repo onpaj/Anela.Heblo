@@ -66,6 +66,7 @@
     </ItemGroup>
     <ItemGroup>
       <Folder Include="Infrastructure\" />
+      <Folder Include="PDFPrints\" />
     </ItemGroup>
 
     <!-- Manual target to generate TypeScript client for frontend -->

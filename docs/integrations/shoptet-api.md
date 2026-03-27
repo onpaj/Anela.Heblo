@@ -25,6 +25,7 @@ These two are **completely unrelated** — do not confuse them.
 - **Premium private access:** Direct API token in `Authorization: Bearer {token}` header.
 - The project uses **premium private access** via `ShoptetPaySettings.ApiToken`.
 - No sandbox/test environment is documented. All API calls hit the live store configured by the token.
+- **Header name:** `Shoptet-Private-API-Token: <token>` — NOT `Authorization: Bearer`. Using Bearer returns 401.
 
 ---
 
@@ -73,15 +74,14 @@ Statuses are store-specific (configured in Shoptet admin). Retrievable via `GET 
 }
 ```
 
-**Optional suppress flags (critical for test seeding):**
-```json
-{
-  "suppressProductChecking": true,
-  "suppressStockMovements": true,
-  "suppressDocumentGeneration": true,
-  "suppressEmailSending": true
-}
-```
+**Additional required fields (discovered via integration testing):**
+
+- `phone` — required, must be in international format (e.g. `+420725191660`). Omitting it returns 422.
+- When `paymentMethodGuid` is provided, `items` MUST include at least one item with `"itemType": "billing"`.
+- When `shippingGuid` is provided, `items` MUST include at least one item with `"itemType": "shipping"`.
+- Product items (`"itemType": "product"`) require a real, existing variant-level `code` in the store catalog. The API validates the code against the catalog — there is no suppress flag to bypass this via REST. Use a known real variant code (e.g. `OCH001030` — "Ochráním zadečky, 30ml" in the Anela test store).
+
+**suppress* flags do NOT work via REST.** Do not include `suppressProductChecking`, `suppressEmailSending`, `suppressStockMovements`, or `suppressDocumentGeneration` — the API returns 422 for unknown fields.
 
 **Address fields** (both `billingAddress` and `deliveryAddress`):
 `company`, `fullName`, `street`, `houseNumber`, `city`, `district`, `additional`, `zip`, `regionName`, `regionShortcut`, `companyId`, `vatId`, `taxId` — all max 255 chars.
@@ -93,11 +93,14 @@ Statuses are store-specific (configured in Shoptet admin). Retrievable via `GET 
   "code": "string (max 64)",
   "name": "string (max 250)",
   "variantName": "string (max 128)",
-  "vatRate": 21,
-  "itemPriceWithVat": 100.0,
-  "quantity": 1
+  "vatRate": "21",
+  "itemPriceWithVat": "100.00",
+  "amount": "1"
 }
 ```
+
+**IMPORTANT — numeric fields must be JSON strings.** `vatRate`, `itemPriceWithVat`, and `amount` must be sent as strings (e.g. `"21"`, `"1.00"`, `"1"`), not JSON numbers. Sending them as numbers returns 422. The correct field name for quantity is `amount` (not `quantity`).
+
 
 ### 3.4 Shipping Methods
 
@@ -143,9 +146,12 @@ Defined in `PrintPickingListOptions` and `ShoptetPlaywrightExpeditionListSource`
 | ID | Name |
 |---|---|
 | -2 | Vyřizuje se (Processing) — source state for picking list |
-| 26 | Balí se (Packing) |
-| 55 | K Expedici (Ready to ship) — desired state after picking |
-| 73 | Fix source state (`FixSourceStateId`) |
+| 26 | Balí se (Packing) — PACK seed state; `PrintPickingListOptions.DesiredStateId` |
+| 70 | Předáno přepravci (Handed to carrier) — EXP seed state |
+| 73 | Oprava-robot — Fix source state (`FixSourceStateId`) |
+
+> **Note:** Status 55 ("K Expedici") referenced in `ShoptetPlaywrightExpeditionListSource.DesiredStateId` does **not exist** in the store (confirmed via `GET /api/eshop?include=orderStatuses`). Seeding EXP-category orders uses status 70 instead.
+> Custom status IDs for the hydration test are configurable: `Shoptet:StatusId:EXP` and `Shoptet:StatusId:PACK` in user secrets.
 
 ### 3.5 GET /api/orders — Filtering Parameters
 
@@ -154,8 +160,12 @@ Defined in `PrintPickingListOptions` and `ShoptetPlaywrightExpeditionListSource`
 - `payment` — filter by payment method
 - Date range filters
 - `code` — order code
+- `page`, `itemsPerPage` — pagination; **max `itemsPerPage` is 50** (not 100; passing 100 is rejected)
 
 Optional `include` sections: `notes`, `images`, `shippingDetails`, `stockLocation`, `surchargeParameters`, `productFlags`
+
+**Fields in list response:** `code`, `guid`, `creationTime`, `changeTime`, `company`, `fullName`, `email`, `phone`, `remark`, `cashDeskOrder`, `customerGuid`, `paid`, `status`, `source`, `price`, `paymentMethod`, `shipping`, `adminUrl`, `salesChannelGuid`. **`externalCode` is NOT included.** Use `GET /api/orders/{code}` (single detail) to get `externalCode`.
+
 
 ---
 
@@ -203,9 +213,58 @@ Location: `backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/`
 ## 6. Test Environment Notes
 
 - **No official Shoptet sandbox.** Test env is a real Shoptet store configured with test credentials.
-- `suppressEmailSending=true`, `suppressStockMovements=true`, `suppressDocumentGeneration=true` MUST be used when creating test orders to avoid side effects.
+- **`suppress*` flags are NOT supported by the REST API.** `suppressEmailSending`, `suppressStockMovements`, `suppressDocumentGeneration`, `suppressProductChecking` only exist in the Shoptet admin UI import flow — the REST `POST /api/orders` endpoint rejects them with 422. Do not include them in the request body.
 - `shippingGuid` and `paymentMethodGuid` values are **store-specific** — must be discovered at runtime via `GET /api/eshop?include=shippingMethods,paymentMethods` or configured per environment.
 - Orders created for testing should use a recognizable `externalCode` prefix (e.g. `TEST-`) to allow cleanup.
+
+---
+
+### Test Environment Hydration (issue #444)
+
+- **Seeding endpoint:** `POST /api/orders` — creates orders with minimal valid payload.
+- **Status update endpoint:** `PATCH /api/orders/{code}/status` — body shape `{"data":{"statusId":<int>}}`. Note: the property is `statusId` (flat integer), NOT `{"status":{"id":x}}` — verified against Shoptet OpenAPI spec (`additionalProperties: false` schema).
+- **Delete endpoint:** `DELETE /api/orders/{code}`.
+- **ExternalCode filter does NOT exist.** `GET /api/orders?externalCode={code}` returns 400 "Unsupported query parameters". There is no server-side filter by externalCode.
+- **ExternalCode is NOT in the list response.** `GET /api/orders` (paginated list) does NOT include the `externalCode` field for each order. The field is only available via `GET /api/orders/{code}` (single order detail). The list response DOES include `email`, which can be used as a pre-filter to narrow down candidates before fetching details.
+- **Guard 1:** Config key `Shoptet:IsTestEnvironment` must be `true` before any hydration call.
+- **Guard 2:** `Shoptet:BaseUrl` must not contain `"anela"` (case-insensitive) to prevent running against production.
+- **ShippingGuidMap:** Numeric shipping IDs (21, 6) map to UUIDs stored in user secrets under `Shoptet:ShippingGuidMap:{id}`. See mapping procedure and known GUIDs below.
+- **StatusId:** Custom status IDs for EXP and PACK seed categories are store-specific and stored in user secrets under `Shoptet:StatusId:EXP` and `Shoptet:StatusId:PACK`. Discover available IDs via `GET /api/eshop?include=orderStatuses`.
+- **Default order status on create:** New orders do not land in the target state — always call `PATCH /status` immediately after `POST /api/orders`.
+- **ExternalCode uniqueness:** The API enforces uniqueness on `externalCode`. If you try to create an order with a duplicate externalCode you get 422 "already imported". Note: after `DELETE /api/orders/{code}`, the externalCode appears to remain reserved — the order may persist in a deleted/hidden state.
+
+### Shipping ID → GUID mapping procedure
+
+The picking-list URL filter uses a **numeric shipping ID** (`?f[shippingId]={id}`), while `POST /api/orders` requires a **GUID**. These must be mapped manually per store.
+
+**Discovery command:**
+```bash
+curl -s -H "Shoptet-Private-API-Token: <token>" \
+  "https://api.myshoptet.com/api/eshop?include=shippingMethods" \
+  | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for m in data['data']['shippingMethods']['retail']['methods']:
+    print(f\"guid={m['guid']}  name={m['name']}\")
+"
+```
+
+Note: the response **does not include numeric IDs** — match by method name against the constants in `ShoptetPlaywrightExpeditionListSource.cs`.
+
+**Known mappings — production store (780175.myshoptet.com / Anela.cz):**
+
+| Numeric ID | Constant | Method name | GUID |
+|---|---|---|---|
+| 21 | `ZASILKOVNA_DO_RUKY` | Zásilkovna (do ruky) | `f6610d4d-578d-11e9-beb1-002590dad85e` |
+| 6 | `PPL_DO_RUKY` | PPL (do ruky) | `2ec88ea7-3fb0-11e2-a723-705ab6a2ba75` |
+
+**Payment method used for seeding:**
+
+| Method name | GUID |
+|---|---|
+| Platba převodem | `6f2c8e36-3faf-11e2-a723-705ab6a2ba75` |
+
+These values are stored in `~/.microsoft/usersecrets/anela-heblo-adapters-shoptet-tests/secrets.json` under `Shoptet:ShippingGuidMap:21`, `Shoptet:ShippingGuidMap:6`, and `Shoptet:PaymentMethodGuid`.
 
 ---
 
@@ -213,3 +272,5 @@ Location: `backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/`
 
 - **ShoptetApi Adapter F1** (ShoptetPay payout downloads): `docs/superpowers/specs/2026-03-24-shoptet-api-adapter-f1-design.md`
 - **ShoptetApi Adapter F1 Implementation Plan**: `docs/superpowers/plans/2026-03-24-shoptet-api-f1.md`
+- **Test Environment Hydration Design** (issue #444): `docs/superpowers/specs/2026-03-27-shoptet-test-env-hydration-design.md`
+- **Test Environment Hydration Implementation Plan**: `docs/superpowers/plans/2026-03-27-shoptet-test-env-hydration.md`

@@ -1,8 +1,10 @@
+using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
 using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.ExpeditionListArchive;
 
@@ -19,7 +21,8 @@ public static class ExpeditionListArchiveModule
             var blobStorage = provider.GetRequiredService<IBlobStorageService>();
             var cupsSink = provider.GetKeyedService<IPrintQueueSink>("cups")
                 ?? provider.GetRequiredService<IPrintQueueSink>();
-            return new ReprintExpeditionListHandler(blobStorage, cupsSink);
+            var options = provider.GetRequiredService<IOptions<PrintPickingListOptions>>();
+            return new ReprintExpeditionListHandler(blobStorage, cupsSink, options);
         });
 
         return services;

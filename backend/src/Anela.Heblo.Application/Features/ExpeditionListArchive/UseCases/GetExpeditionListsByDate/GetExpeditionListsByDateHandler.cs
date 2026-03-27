@@ -1,17 +1,20 @@
+using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionListsByDate;
 
 public class GetExpeditionListsByDateHandler : IRequestHandler<GetExpeditionListsByDateRequest, GetExpeditionListsByDateResponse>
 {
-    private const string ContainerName = "expedition-lists";
     private readonly IBlobStorageService _blobStorageService;
+    private readonly string _containerName;
 
-    public GetExpeditionListsByDateHandler(IBlobStorageService blobStorageService)
+    public GetExpeditionListsByDateHandler(IBlobStorageService blobStorageService, IOptions<PrintPickingListOptions> options)
     {
         _blobStorageService = blobStorageService;
+        _containerName = options.Value.BlobContainerName;
     }
 
     public async Task<GetExpeditionListsByDateResponse> Handle(GetExpeditionListsByDateRequest request, CancellationToken cancellationToken)
@@ -21,7 +24,7 @@ public class GetExpeditionListsByDateHandler : IRequestHandler<GetExpeditionList
             return new GetExpeditionListsByDateResponse { Items = new List<ExpeditionListItemDto>() };
         }
 
-        var blobs = await _blobStorageService.ListBlobsAsync(ContainerName, request.Date, cancellationToken);
+        var blobs = await _blobStorageService.ListBlobsAsync(_containerName, request.Date, cancellationToken);
 
         var items = blobs
             .Where(b => b.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
