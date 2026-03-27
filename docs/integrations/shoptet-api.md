@@ -209,7 +209,22 @@ Location: `backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/`
 
 ---
 
+### Test Environment Hydration (issue #444)
+
+- **Seeding endpoint:** `POST /api/orders` — creates orders with minimal valid payload.
+- **Status update endpoint:** `PATCH /api/orders/{code}/status` — body shape `{"data":{"status":{"id":<int>}}}`.
+- **Delete endpoint:** `DELETE /api/orders/{code}`.
+- **ExternalCode filter:** `GET /api/orders?externalCode={code}` — returns matching orders in `data.orders[]`.
+- **Guard 1:** Config key `Shoptet:IsTestEnvironment` must be `true` before any hydration call.
+- **Guard 2:** `Shoptet:BaseUrl` must not contain `"anela"` (case-insensitive) to prevent running against production.
+- **ShippingGuidMap:** Numeric shipping IDs (21, 6) map to UUIDs stored in user secrets under `Shoptet:ShippingGuidMap:{id}`. Discover via `GET /api/eshop?include=shippingMethods`.
+- **Default order status on create:** New orders do not land in the target state — always call `PATCH /status` immediately after `POST /api/orders`.
+
+---
+
 ## 7. Design Documents
 
 - **ShoptetApi Adapter F1** (ShoptetPay payout downloads): `docs/superpowers/specs/2026-03-24-shoptet-api-adapter-f1-design.md`
 - **ShoptetApi Adapter F1 Implementation Plan**: `docs/superpowers/plans/2026-03-24-shoptet-api-f1.md`
+- **Test Environment Hydration Design** (issue #444): `docs/superpowers/specs/2026-03-27-shoptet-test-env-hydration-design.md`
+- **Test Environment Hydration Implementation Plan**: `docs/superpowers/plans/2026-03-27-shoptet-test-env-hydration.md`
