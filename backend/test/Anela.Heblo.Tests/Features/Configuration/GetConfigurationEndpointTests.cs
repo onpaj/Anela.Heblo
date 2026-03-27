@@ -8,6 +8,7 @@ namespace Anela.Heblo.Tests.Features.Configuration;
 /// <summary>
 /// Integration tests for GetConfigurationEndpoint
 /// </summary>
+[Collection("WebApp")]
 public class GetConfigurationEndpointTests : IClassFixture<HebloWebApplicationFactory>
 {
     private readonly HebloWebApplicationFactory _factory;

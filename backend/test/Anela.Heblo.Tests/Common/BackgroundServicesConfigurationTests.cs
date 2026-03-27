@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Common;
 
+[Collection("WebApp")]
 public class BackgroundServicesConfigurationTests : IClassFixture<HebloWebApplicationFactory>
 {
     private readonly HebloWebApplicationFactory _factory;

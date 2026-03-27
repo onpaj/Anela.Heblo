@@ -101,6 +101,7 @@ Statuses are store-specific (configured in Shoptet admin). Retrievable via `GET 
 
 **IMPORTANT — numeric fields must be JSON strings.** `vatRate`, `itemPriceWithVat`, and `amount` must be sent as strings (e.g. `"21"`, `"1.00"`, `"1"`), not JSON numbers. Sending them as numbers returns 422. The correct field name for quantity is `amount` (not `quantity`).
 
+
 ### 3.4 Shipping Methods
 
 - Identified by `shippingGuid` (store-specific GUID, not portable between stores).
@@ -164,6 +165,7 @@ Defined in `PrintPickingListOptions` and `ShoptetPlaywrightExpeditionListSource`
 Optional `include` sections: `notes`, `images`, `shippingDetails`, `stockLocation`, `surchargeParameters`, `productFlags`
 
 **Fields in list response:** `code`, `guid`, `creationTime`, `changeTime`, `company`, `fullName`, `email`, `phone`, `remark`, `cashDeskOrder`, `customerGuid`, `paid`, `status`, `source`, `price`, `paymentMethod`, `shipping`, `adminUrl`, `salesChannelGuid`. **`externalCode` is NOT included.** Use `GET /api/orders/{code}` (single detail) to get `externalCode`.
+
 
 ---
 
