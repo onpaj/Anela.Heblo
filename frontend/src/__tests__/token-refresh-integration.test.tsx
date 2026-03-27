@@ -165,7 +165,7 @@ describe("Token Refresh Integration Tests", () => {
         account: mockAccount,
         forceRefresh,
       });
-      return response.accessToken;
+      return { token: response.accessToken, expiresOn: null };
     });
   });
 
@@ -225,7 +225,7 @@ describe("Token Refresh Integration Tests", () => {
           account: mockAccount,
           forceRefresh,
         });
-        return response.accessToken;
+        return { token: response.accessToken, expiresOn: null };
       });
 
       render(
@@ -281,10 +281,10 @@ describe("Token Refresh Integration Tests", () => {
       });
 
       await waitFor(() => {
-        // Verify redirect was triggered
+        // Verify silent SSO redirect was attempted first
         expect(mockMsalInstance.loginRedirect).toHaveBeenCalledWith(
           expect.objectContaining({
-            prompt: "select_account",
+            prompt: "none",
           })
         );
       });

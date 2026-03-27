@@ -140,7 +140,7 @@ describe("useAuth - Enhanced Token Refresh", () => {
       expect(apiClient.clearTokenCache).toHaveBeenCalled();
       expect(mockInstance.loginRedirect).toHaveBeenCalledWith({
         scopes: ["User.Read", "openid", "profile"],
-        prompt: "select_account",
+        prompt: "none",
       });
     });
 
