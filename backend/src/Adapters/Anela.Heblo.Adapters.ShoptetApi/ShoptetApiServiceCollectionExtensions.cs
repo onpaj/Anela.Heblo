@@ -1,4 +1,3 @@
-using System.Net.Http.Headers;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,8 +18,7 @@ public static class ShoptetApiServiceCollectionExtensions
         {
             var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
             client.BaseAddress = new Uri(settings.BaseUrl);
-            client.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", settings.ApiToken);
+            client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
         });
 
         return services;

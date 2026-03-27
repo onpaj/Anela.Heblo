@@ -2,10 +2,16 @@ using System.Text.Json.Serialization;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 
+// The Shoptet REST API wraps the order body in {"data": {...}}.
+// ShoptetOrderClient.CreateOrderAsync wraps this in the envelope before posting.
 public class CreateOrderRequest
 {
     [JsonPropertyName("email")]
     public string Email { get; set; } = null!;
+
+    // Required. Must be in international format e.g. "+420725191660".
+    [JsonPropertyName("phone")]
+    public string Phone { get; set; } = null!;
 
     [JsonPropertyName("externalCode")]
     public string ExternalCode { get; set; } = null!;
@@ -24,18 +30,6 @@ public class CreateOrderRequest
 
     [JsonPropertyName("items")]
     public List<OrderItem> Items { get; set; } = new();
-
-    [JsonPropertyName("suppressEmailSending")]
-    public bool SuppressEmailSending { get; set; } = true;
-
-    [JsonPropertyName("suppressStockMovements")]
-    public bool SuppressStockMovements { get; set; } = true;
-
-    [JsonPropertyName("suppressDocumentGeneration")]
-    public bool SuppressDocumentGeneration { get; set; } = true;
-
-    [JsonPropertyName("suppressProductChecking")]
-    public bool SuppressProductChecking { get; set; } = true;
 }
 
 public class OrderCurrency
@@ -62,20 +56,23 @@ public class OrderAddress
 public class OrderItem
 {
     [JsonPropertyName("itemType")]
-    public string ItemType { get; set; } = "product";
+    public string ItemType { get; set; } = null!;
 
+    // Required for product/service types. Omit for billing/shipping items.
     [JsonPropertyName("code")]
-    public string Code { get; set; } = null!;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Code { get; set; }
 
     [JsonPropertyName("name")]
     public string Name { get; set; } = null!;
 
+    // Shoptet requires numeric fields as strings (not JSON numbers).
     [JsonPropertyName("vatRate")]
-    public decimal VatRate { get; set; }
+    public string VatRate { get; set; } = null!;
 
     [JsonPropertyName("itemPriceWithVat")]
-    public decimal ItemPriceWithVat { get; set; }
+    public string ItemPriceWithVat { get; set; } = null!;
 
-    [JsonPropertyName("quantity")]
-    public int Quantity { get; set; }
+    [JsonPropertyName("amount")]
+    public string Amount { get; set; } = null!;
 }

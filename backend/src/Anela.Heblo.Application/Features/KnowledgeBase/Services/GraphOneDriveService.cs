@@ -40,7 +40,7 @@ public class GraphOneDriveService : IOneDriveService
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-        var encodedPath = Uri.EscapeDataString(_options.OneDriveInboxPath.TrimStart('/'));
+        var encodedPath = string.Join("/", _options.OneDriveInboxPath.TrimStart('/').Split('/').Select(Uri.EscapeDataString));
         var url = $"{GraphBaseUrl}/users/{Uri.EscapeDataString(_options.OneDriveUserId)}/drive/root:/{encodedPath}:/children?$filter=file ne null";
 
         var request = CreateRequest(HttpMethod.Get, url, token);

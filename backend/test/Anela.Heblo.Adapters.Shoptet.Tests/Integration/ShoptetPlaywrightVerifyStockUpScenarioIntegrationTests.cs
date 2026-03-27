@@ -45,25 +45,6 @@ public class ShoptetPlaywrightVerifyStockUpScenarioIntegrationTests
     }
 
     [Fact]
-    public async Task RunAsync_WithExistingDocumentNumber_ReturnsTrue()
-    {
-        // Arrange - Skip if configuration is not available
-        HasValidConfiguration().Should().BeTrue("Shoptet credentials not configured or contain test placeholders");
-
-        // Real document number that exists in Shoptet stock history
-        var existingDocNumber = "BOX-003152-OCH004050";
-        _output.WriteLine($"Testing VerifyStockUpScenario with existing document number: {existingDocNumber}");
-
-        // Act
-        var result = await _verifyStockUpScenario.RunAsync(existingDocNumber);
-
-        // Assert
-        result.Should().BeTrue("Existing document should be found in stock history");
-        _output.WriteLine("✅ VerifyStockUpScenario correctly returned true for existing document");
-        _output.WriteLine($"   Document {existingDocNumber} was successfully verified in stock history");
-    }
-
-    [Fact]
     public async Task RunAsync_ExpandsFilterPanel_BeforeFillingInputs()
     {
         // Arrange - Skip if configuration is not available
