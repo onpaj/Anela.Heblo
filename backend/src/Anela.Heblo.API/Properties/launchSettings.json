@@ -44,7 +44,20 @@
       "executablePath": "dotnet",
       "commandLineArgs": "test ../../test/Anela.Heblo.Adapters.Shoptet.Tests/Anela.Heblo.Adapters.Shoptet.Tests.csproj --filter \"FullyQualifiedName~HydrateTestEnvironment\"",
       "workingDirectory": "$(ProjectDir)",
-      "launchBrowser": false
+      "launchBrowser": false,
+      "environmentVariables": {
+        "SHOPTET_HYDRATE": "1"
+      }
+    },
+    "Purge Shoptet Test Orders": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "commandLineArgs": "test ../../test/Anela.Heblo.Adapters.Shoptet.Tests/Anela.Heblo.Adapters.Shoptet.Tests.csproj --filter \"FullyQualifiedName~PurgeTestOrders\"",
+      "workingDirectory": "$(ProjectDir)",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "SHOPTET_HYDRATE": "1"
+      }
     },
     "Generate Frontend Client": {
       "commandName": "Executable",

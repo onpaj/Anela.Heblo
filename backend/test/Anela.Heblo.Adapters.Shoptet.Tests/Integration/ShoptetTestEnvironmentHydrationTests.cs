@@ -119,6 +119,9 @@ public class ShoptetTestEnvironmentHydrationTests
     [Fact]
     public async Task HydrateTestEnvironment()
     {
+        if (Environment.GetEnvironmentVariable("SHOPTET_HYDRATE") != "1")
+            return;
+
         AssertTestEnvironment(_configuration);
 
         var ct = new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token;
@@ -229,6 +232,9 @@ public class ShoptetTestEnvironmentHydrationTests
     [Fact]
     public async Task PurgeTestOrders()
     {
+        if (Environment.GetEnvironmentVariable("SHOPTET_HYDRATE") != "1")
+            return;
+
         AssertTestEnvironment(_configuration);
 
         var ct = new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token;
