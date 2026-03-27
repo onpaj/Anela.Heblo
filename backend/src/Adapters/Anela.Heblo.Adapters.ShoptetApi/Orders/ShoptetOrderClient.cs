@@ -1,4 +1,3 @@
-using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
@@ -20,46 +19,40 @@ public class ShoptetOrderClient
     }
 
     /// <summary>
-    /// Find a single order by its exact externalCode.
-    /// Returns null when not found.
-    /// </summary>
-    public async Task<OrderSummary?> FindByExternalCodeAsync(string externalCode, CancellationToken ct = default)
-    {
-        var response = await _http.GetAsync(
-            $"/api/orders?externalCode={Uri.EscapeDataString(externalCode)}", ct);
-
-        if (response.StatusCode == HttpStatusCode.NotFound)
-            return null;
-
-        response.EnsureSuccessStatusCode();
-
-        var result = await response.Content.ReadFromJsonAsync<OrderListResponse>(JsonOptions, ct);
-        return result?.Data.Orders.FirstOrDefault(o => o.ExternalCode == externalCode);
-    }
-
-    /// <summary>
     /// List all orders whose externalCode starts with the given prefix.
-    /// Paginates automatically.
+    /// Because externalCode is not returned by the list endpoint, this method fetches
+    /// the single-order detail for each candidate. Pass emailFilter to narrow candidates
+    /// before issuing detail requests (the list endpoint does include email).
+    /// Paginates automatically (API max is 50 items per page).
     /// </summary>
-    public async Task<List<OrderSummary>> ListByExternalCodePrefixAsync(string prefix, CancellationToken ct = default)
+    public async Task<List<OrderSummary>> ListByExternalCodePrefixAsync(
+        string prefix,
+        string? emailFilter = null,
+        CancellationToken ct = default)
     {
         var result = new List<OrderSummary>();
         var page = 1;
 
         while (true)
         {
-            var response = await _http.GetAsync($"/api/orders?page={page}&itemsPerPage=100", ct);
+            var response = await _http.GetAsync($"/api/orders?page={page}&itemsPerPage=50", ct);
             response.EnsureSuccessStatusCode();
 
             var data = await response.Content.ReadFromJsonAsync<OrderListResponse>(JsonOptions, ct);
             if (data == null)
                 break;
 
-            var matching = data.Data.Orders
-                .Where(o => o.ExternalCode?.StartsWith(prefix, StringComparison.Ordinal) == true)
-                .ToList();
+            IEnumerable<OrderSummary> candidates = data.Data.Orders;
 
-            result.AddRange(matching);
+            if (emailFilter != null)
+                candidates = candidates.Where(o => string.Equals(o.Email, emailFilter, StringComparison.OrdinalIgnoreCase));
+
+            foreach (var summary in candidates)
+            {
+                var detail = await GetOrderDetailAsync(summary.Code, ct);
+                if (detail.ExternalCode?.StartsWith(prefix, StringComparison.Ordinal) == true)
+                    result.Add(detail);
+            }
 
             if (page >= data.Data.Paginator.PageCount)
                 break;
@@ -71,11 +64,26 @@ public class ShoptetOrderClient
     }
 
     /// <summary>
+    /// Get a single order by its Shoptet order code. Returns the full order summary
+    /// including externalCode, which is not available in the list endpoint.
+    /// </summary>
+    public async Task<OrderSummary> GetOrderDetailAsync(string code, CancellationToken ct = default)
+    {
+        var response = await _http.GetAsync($"/api/orders/{code}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var data = await response.Content.ReadFromJsonAsync<CreateOrderResponse>(JsonOptions, ct);
+        return data!.Data.Order;
+    }
+
+    /// <summary>
     /// Create a new order. Returns the created order code.
     /// </summary>
     public async Task<string> CreateOrderAsync(CreateOrderRequest request, CancellationToken ct = default)
     {
-        var response = await _http.PostAsJsonAsync("/api/orders", request, JsonOptions, ct);
+        // Shoptet REST API requires the body wrapped in {"data": {...}}
+        var envelope = new { data = request };
+        var response = await _http.PostAsJsonAsync("/api/orders", envelope, JsonOptions, ct);
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<CreateOrderResponse>(JsonOptions, ct);
@@ -89,14 +97,16 @@ public class ShoptetOrderClient
     {
         var body = new UpdateStatusRequest
         {
-            Data = new UpdateStatusData
-            {
-                Status = new UpdateStatusValue { Id = statusId },
-            },
+            Data = new UpdateStatusData { StatusId = statusId },
         };
 
         var response = await _http.PatchAsJsonAsync($"/api/orders/{orderCode}/status", body, JsonOptions, ct);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException(
+                $"PATCH /api/orders/{orderCode}/status returned {(int)response.StatusCode}: {errorBody}");
+        }
     }
 
     /// <summary>

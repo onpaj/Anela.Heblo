@@ -25,6 +25,9 @@ public class OrderSummary
     [JsonPropertyName("externalCode")]
     public string? ExternalCode { get; set; }
 
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
     [JsonPropertyName("status")]
     public OrderStatusSummary Status { get; set; } = new();
 }

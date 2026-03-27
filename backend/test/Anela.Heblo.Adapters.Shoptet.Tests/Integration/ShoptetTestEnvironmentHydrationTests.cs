@@ -20,7 +20,8 @@ public class ShoptetTestEnvironmentHydrationTests
     // Shipping IDs match ShoptetPlaywrightExpeditionListSource constants.
     // The GUIDs for these IDs must be set in appsettings / user secrets
     // under Shoptet:ShippingGuidMap:21 and Shoptet:ShippingGuidMap:6.
-    private static readonly IReadOnlyList<OrderDefinition> SeedCatalog = BuildSeedCatalog();
+    // Custom status IDs are store-specific — configure under Shoptet:StatusId:EXP and Shoptet:StatusId:PACK.
+    private readonly IReadOnlyList<OrderDefinition> _seedCatalog;
 
     private record OrderDefinition(string ExternalCode, int ShippingId, int TargetState);
 
@@ -32,6 +33,17 @@ public class ShoptetTestEnvironmentHydrationTests
         _configuration = fixture.Configuration;
         _client = fixture.ServiceProvider.GetRequiredService<ShoptetOrderClient>();
         _output = output;
+
+        var expStatusId = _configuration.GetValue<int?>("Shoptet:StatusId:EXP")
+            ?? throw new InvalidOperationException(
+                "Missing Shoptet:StatusId:EXP in configuration. "
+                    + "Add it to user secrets — use GET /api/eshop?include=orderStatuses to discover valid IDs.");
+        var packStatusId = _configuration.GetValue<int?>("Shoptet:StatusId:PACK")
+            ?? throw new InvalidOperationException(
+                "Missing Shoptet:StatusId:PACK in configuration. "
+                    + "Add it to user secrets — use GET /api/eshop?include=orderStatuses to discover valid IDs.");
+
+        _seedCatalog = BuildSeedCatalog(expStatusId, packStatusId);
     }
 
     // ── Guard tests ───────────────────────────────────────────────────────────
@@ -101,11 +113,20 @@ public class ShoptetTestEnvironmentHydrationTests
         var ct = new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token;
         var paymentGuid = _configuration["Shoptet:PaymentMethodGuid"]!;
 
+        // Pre-fetch all existing TEST- orders in one paginated call to avoid
+        // per-order API lookups (externalCode filter is not supported by the API).
+        var existingOrders = await _client.ListByExternalCodePrefixAsync("TEST-", "test-seed@heblo.test", ct);
+        var existingByExternalCode = existingOrders
+            .Where(o => o.ExternalCode != null)
+            .ToDictionary(o => o.ExternalCode!, StringComparer.Ordinal);
+
+        _output.WriteLine($"Found {existingOrders.Count} existing TEST- orders.");
+
         int created = 0,
             reset = 0,
             skipped = 0;
 
-        foreach (var definition in SeedCatalog)
+        foreach (var definition in _seedCatalog)
         {
             var shippingGuid =
                 _configuration[$"Shoptet:ShippingGuidMap:{definition.ShippingId}"]
@@ -113,13 +134,15 @@ public class ShoptetTestEnvironmentHydrationTests
                     $"Missing ShippingGuidMap entry for shippingId={definition.ShippingId}. "
                         + "Add it to user secrets under Shoptet:ShippingGuidMap:{id}.");
 
-            var existing = await _client.FindByExternalCodeAsync(definition.ExternalCode, ct);
+            existingByExternalCode.TryGetValue(definition.ExternalCode, out var existing);
 
             if (existing is null)
             {
+                var shippingName = definition.ShippingId == 21 ? "Zásilkovna (do ruky)" : "PPL (do ruky)";
                 var request = new CreateOrderRequest
                 {
                     Email = "test-seed@heblo.test",
+                    Phone = "+420725191660",
                     ExternalCode = definition.ExternalCode,
                     ShippingGuid = shippingGuid,
                     PaymentMethodGuid = paymentGuid,
@@ -127,20 +150,38 @@ public class ShoptetTestEnvironmentHydrationTests
                     BillingAddress = new OrderAddress
                     {
                         FullName = "Test Heblo",
-                        Street = "Testovací 1",
+                        Street = "Testovaci 1",
                         City = "Praha",
                         Zip = "10000",
                     },
                     Items = new List<OrderItem>
                     {
+                        // OCH001030 is a real product variant code required by the Shoptet API.
+                        // suppressProductChecking is not supported via REST.
                         new OrderItem
                         {
                             ItemType = "product",
-                            Code = "TEST-ITEM",
+                            Code = "OCH001030",
                             Name = "Test product",
-                            VatRate = 21,
-                            ItemPriceWithVat = 1.00m,
-                            Quantity = 1,
+                            VatRate = "21",
+                            ItemPriceWithVat = "1.00",
+                            Amount = "1",
+                        },
+                        new OrderItem
+                        {
+                            ItemType = "billing",
+                            Name = "Platba prevod",
+                            VatRate = "0",
+                            ItemPriceWithVat = "0.00",
+                            Amount = "1",
+                        },
+                        new OrderItem
+                        {
+                            ItemType = "shipping",
+                            Name = shippingName,
+                            VatRate = "0",
+                            ItemPriceWithVat = "0.00",
+                            Amount = "1",
                         },
                     },
                 };
@@ -169,7 +210,7 @@ public class ShoptetTestEnvironmentHydrationTests
         }
 
         _output.WriteLine($"\nDone — created={created} reset={reset} skipped={skipped}");
-        (created + reset + skipped).Should().Be(SeedCatalog.Count);
+        (created + reset + skipped).Should().Be(_seedCatalog.Count);
     }
 
     // ── Purge ─────────────────────────────────────────────────────────────────
@@ -180,7 +221,7 @@ public class ShoptetTestEnvironmentHydrationTests
         AssertTestEnvironment(_configuration);
 
         var ct = new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token;
-        var orders = await _client.ListByExternalCodePrefixAsync("TEST-", ct);
+        var orders = await _client.ListByExternalCodePrefixAsync("TEST-", "test-seed@heblo.test", ct);
 
         foreach (var order in orders)
         {
@@ -209,7 +250,7 @@ public class ShoptetTestEnvironmentHydrationTests
 
     // ── Seed catalog ──────────────────────────────────────────────────────────
 
-    private static IReadOnlyList<OrderDefinition> BuildSeedCatalog()
+    private static IReadOnlyList<OrderDefinition> BuildSeedCatalog(int expStatusId, int packStatusId)
     {
         var catalog = new List<OrderDefinition>();
 
@@ -217,17 +258,17 @@ public class ShoptetTestEnvironmentHydrationTests
         for (int i = 1; i <= 9; i++)
             catalog.Add(new($"TEST-ZAK-21-INIT-{i:D2}", 21, -2));
         for (int i = 1; i <= 2; i++)
-            catalog.Add(new($"TEST-ZAK-21-EXP-{i:D2}", 21, 55));
+            catalog.Add(new($"TEST-ZAK-21-EXP-{i:D2}", 21, expStatusId));
         for (int i = 1; i <= 2; i++)
-            catalog.Add(new($"TEST-ZAK-21-PACK-{i:D2}", 21, 26));
+            catalog.Add(new($"TEST-ZAK-21-PACK-{i:D2}", 21, packStatusId));
 
         // Shipping 6 — PPL_DO_RUKY
         for (int i = 1; i <= 9; i++)
             catalog.Add(new($"TEST-PPL-6-INIT-{i:D2}", 6, -2));
         for (int i = 1; i <= 2; i++)
-            catalog.Add(new($"TEST-PPL-6-EXP-{i:D2}", 6, 55));
+            catalog.Add(new($"TEST-PPL-6-EXP-{i:D2}", 6, expStatusId));
         for (int i = 1; i <= 2; i++)
-            catalog.Add(new($"TEST-PPL-6-PACK-{i:D2}", 6, 26));
+            catalog.Add(new($"TEST-PPL-6-PACK-{i:D2}", 6, packStatusId));
 
         return catalog;
     }

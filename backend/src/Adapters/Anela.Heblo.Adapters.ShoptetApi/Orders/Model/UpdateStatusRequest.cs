@@ -10,12 +10,7 @@ public class UpdateStatusRequest
 
 public class UpdateStatusData
 {
-    [JsonPropertyName("status")]
-    public UpdateStatusValue Status { get; set; } = new();
-}
-
-public class UpdateStatusValue
-{
-    [JsonPropertyName("id")]
-    public int Id { get; set; }
+    // Flat integer, NOT a nested {status:{id:x}} — verified against Shoptet OpenAPI spec.
+    [JsonPropertyName("statusId")]
+    public int StatusId { get; set; }
 }
