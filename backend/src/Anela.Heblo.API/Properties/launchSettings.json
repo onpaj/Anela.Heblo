@@ -39,6 +39,13 @@
         "ASPNETCORE_ENVIRONMENT": "Test"
       }
     },
+    "Hydrate Shoptet Test Environment": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "commandLineArgs": "test ../../test/Anela.Heblo.Adapters.Shoptet.Tests/Anela.Heblo.Adapters.Shoptet.Tests.csproj --filter \"FullyQualifiedName~HydrateTestEnvironment\"",
+      "workingDirectory": "$(ProjectDir)",
+      "launchBrowser": false
+    },
     "Generate Frontend Client": {
       "commandName": "Executable",
       "executablePath": "dotnet",
