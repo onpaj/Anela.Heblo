@@ -119,26 +119,26 @@ export const useAuth = () => {
       
       if (error instanceof InteractionRequiredAuthError) {
         console.log("🔐 Interaction required - redirecting to login...");
-        
+
         // Clear token cache before redirect
         clearTokenCache();
-        
+
         // Clear stored user info to ensure clean state
         UserStorage.clearUserInfo();
-        
+
         try {
-          // Use redirect for better UX in SPA (no popup blocking issues)
+          // Attempt silent SSO first; only show account picker if SSO itself fails
           await instance.loginRedirect({
             ...loginRedirectRequest,
-            prompt: "select_account", // Show account picker to handle expired sessions
+            prompt: "none",
           });
-          
+
           // This won't be reached due to redirect, but return null for type safety
           return null;
         } catch (redirectError) {
-          console.error("❌ Login redirect failed:", redirectError);
-          
-          // Fallback to popup if redirect fails
+          console.error("❌ Silent SSO redirect failed, falling back to account picker:", redirectError);
+
+          // Fallback to popup with account picker if silent SSO redirect fails
           try {
             console.log("🔐 Fallback to popup login...");
             const popupResponse = await instance.loginPopup({

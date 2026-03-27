@@ -40,8 +40,8 @@ public class FlexiManufactureClient : IManufactureClient
     private const string WarehouseDocumentType_InboundSemiProduct = "V-PRIJEM-POLOTOVAR";
     private const string WarehouseDocumentType_OutboundSemiProduct = "V-VYDEJ-POLOTOVAR";
     private const string WarehouseDocumentType_InboundProduct = "V-PRIJEM-VYROBEK";
-    
-    
+
+
     private const string WarehouseCodeSemiProduct = "POLOTOVARY";
     private const string WarehouseCodeProduct = "ZBOZI";
 
@@ -392,7 +392,7 @@ public class FlexiManufactureClient : IManufactureClient
         return Math.Round(totalConsumptionCost, 4);
     }
 
-   
+
 
 
     private async Task SubmitProductionMovementAsync(
@@ -405,7 +405,7 @@ public class FlexiManufactureClient : IManufactureClient
             : FlexiStockClient.ProductsWarehouseId;
 
         var documentType = GetProductionDocumentType(request.ManufactureType);
-        
+
         var totalManufacturedAmount = request.Items.Sum(i => (double)i.Amount);
         var manufacturedUnitPrice = totalManufacturedAmount > 0 ? totalConsumptionCost / totalManufacturedAmount : 0;
 
@@ -420,9 +420,9 @@ public class FlexiManufactureClient : IManufactureClient
             UnitPrice = manufacturedUnitPrice
         }).ToList();
 
-        
+
         var note = CreateDescription(request);
-        
+
         var productionRequest = new StockItemsMovementUpsertRequestFlexiDto
         {
             CreatedBy = request.CreatedBy,
@@ -492,7 +492,7 @@ public class FlexiManufactureClient : IManufactureClient
 
             var documentType = GetConsumptionDocumentType(warehouseId);
             var note = CreateDescription(request);
-            
+
             var consumptionRequest = new StockItemsMovementUpsertRequestFlexiDto
             {
                 CreatedBy = request.CreatedBy,
@@ -889,7 +889,7 @@ public class FlexiManufactureClient : IManufactureClient
             WarehouseCode = request.ManufactureType == ErpManufactureType.SemiProduct ? WarehouseCodeSemiProduct : WarehouseCodeProduct,
         };
     }
-    
+
     private static string GetProductionDocumentType(ErpManufactureType manufactureType)
     {
         var documentType = manufactureType switch
@@ -900,7 +900,7 @@ public class FlexiManufactureClient : IManufactureClient
         };
         return documentType;
     }
-    
+
     private static string GetConsumptionDocumentType(int warehouseId)
     {
         var documentType = warehouseId switch
@@ -911,14 +911,14 @@ public class FlexiManufactureClient : IManufactureClient
         };
         return documentType;
     }
-    
+
     private static string CreateDescription(SubmitManufactureClientRequest request)
     {
         return request.ManufactureType == ErpManufactureType.Product && request.Items.Count == 1
             ? $"{request.Items[0].ProductCode} - {request.Items[0].ProductName}"
             : request.ManufactureInternalNumber;
     }
-    
+
     private static string CreateDescription(DiscardResidualSemiProductRequest request)
     {
         return $"{request.ProductCode} - {request.ProductName}";
