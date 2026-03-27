@@ -42,7 +42,7 @@ import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
 import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
-import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache } from "./api/client";
+import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
 import { UserStorage } from "./auth/userStorage";
 import { apiRequest } from "./auth/msalConfig";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
@@ -98,7 +98,7 @@ function App() {
             clientCapabilities: ["CP1"],
           },
           cache: {
-            cacheLocation: "sessionStorage" as const,
+            cacheLocation: "localStorage" as const,
             storeAuthStateInCookie: false,
           },
           system: {
@@ -120,13 +120,14 @@ function App() {
         // Set global token provider for API client
         if (isE2ETestMode()) {
           console.log("🧪 Setting up E2E test authentication token provider");
-          setGlobalTokenProvider(async () => {
+          setGlobalTokenProvider(async (): Promise<TokenResult | null> => {
             console.log("🎫 Providing E2E test token");
-            return getE2EAccessToken();
+            const token = getE2EAccessToken();
+            return token ? { token, expiresOn: null } : null;
           });
         } else if (!appConfig.useMockAuth) {
           console.log("🔐 Setting up enhanced real authentication token provider");
-          setGlobalTokenProvider(async (forceRefresh: boolean = false) => {
+          setGlobalTokenProvider(async (forceRefresh: boolean = false): Promise<TokenResult | null> => {
             try {
               const accounts = instance.getAllAccounts();
               if (accounts.length === 0) {
@@ -136,24 +137,24 @@ function App() {
 
               const account = accounts[0];
               console.log("🔐 Attempting silent token acquisition...");
-              
+
               const response = await instance.acquireTokenSilent({
                 ...apiRequest,
                 account: account,
-                forceRefresh, // Support force refresh
+                forceRefresh,
               });
 
               console.log("✅ Silent token acquisition successful in global provider");
-              return response.accessToken;
+              return { token: response.accessToken, expiresOn: response.expiresOn };
             } catch (error) {
               console.log("⚠️ Silent token acquisition failed in global provider:", error);
-              
+
               if (error instanceof InteractionRequiredAuthError) {
                 console.log("🔐 Interaction required - clearing cache and triggering redirect...");
-                
+
                 // Clear token cache before redirect
                 clearTokenCache();
-                
+
                 // Note: We can't perform redirect here as this is called from API client
                 // The 401 interceptor will handle the redirect
                 console.log("🔐 Returning null - 401 interceptor will handle redirect");
@@ -189,16 +190,23 @@ function App() {
             UserStorage.clearUserInfo();
             clearTokenCache();
 
-            // Use the MSAL instance to perform login redirect
+            // Attempt silent SSO first — if Azure AD has a valid session the user won't see any UI.
+            // Only fall back to select_account if the silent attempt itself fails.
             instance.loginRedirect({
               ...apiRequest,
-              prompt: "select_account", // Show account picker for expired sessions
-            }).catch((error) => {
-              console.error("❌ Automatic login redirect failed:", error);
-              isRedirecting = false;
+              prompt: "none",
+            }).catch(() => {
+              console.warn("🔐 Silent SSO redirect failed, falling back to account picker");
+              instance.loginRedirect({
+                ...apiRequest,
+                prompt: "select_account",
+              }).catch((error) => {
+                console.error("❌ Automatic login redirect failed:", error);
+                isRedirecting = false;
 
-              // Fallback: redirect to root and let normal auth flow handle it
-              window.location.href = "/";
+                // Fallback: redirect to root and let normal auth flow handle it
+                window.location.href = "/";
+              });
             });
           });
         } else {
