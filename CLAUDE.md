@@ -30,6 +30,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### MCP & Integration
 - **🔌 MCP Server**: See "MCP Server" section below - 15 tools across Catalog, Manufacturing, and Batch Planning
+- **🛒 Shoptet API**: `docs/integrations/shoptet-api.md` - All findings about Shoptet REST API (orders, statuses, shipping, ShoptetPay, test seeding)
 
 ## MCP Server
 
@@ -346,6 +347,19 @@ import { TestCatalogItems } from '../fixtures/test-data';
 - NO implementation without consultation
 - NO architectural deviations without approval
 - MANDATORY documentation updates when implementation changes
+
+### 9. Shoptet API Knowledge Base
+
+**MANDATORY**: Any new finding about the Shoptet REST API MUST be documented in `docs/integrations/shoptet-api.md` before being used in code or tests.
+
+This includes:
+- New endpoints used or discovered
+- Order status values and their meaning
+- Shipping/payment method GUIDs per environment
+- Quirks, gotchas, or undocumented behaviors
+- Test environment constraints or workarounds
+
+**Why:** Shoptet has no sandbox — everything runs against a live store. Undocumented assumptions cause data corruption or flaky tests.
 
 ## Testing Strategy
 
