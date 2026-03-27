@@ -25,6 +25,17 @@ public class ShoptetTestEnvironmentHydrationTests
 
     private record OrderDefinition(string ExternalCode, int ShippingId, int TargetState);
 
+    private static readonly string[] CustomerNames =
+    [
+        "Jana Nováková", "Petr Svoboda", "Lucie Dvořáčková", "Tomáš Procházka",
+        "Martina Horáčková", "Ondřej Blažek", "Eva Kopecká", "Jakub Krejčí",
+        "Zuzana Pokorná", "Martin Vlček", "Tereza Marková", "Michal Hájek",
+        "Lenka Pospíšilová", "David Fiala", "Alena Veselá", "Radek Mašek",
+        "Petra Novotná", "Lukáš Beneš", "Simona Růžičková", "Pavel Malý",
+        "Kristýna Šimková", "Josef Kratochvíl", "Barbora Sedláčková", "Filip Čermák",
+        "Monika Poláková", "Vojtěch Liška",
+    ];
+
     public ShoptetTestEnvironmentHydrationTests(
         ShoptetIntegrationTestFixture fixture,
         ITestOutputHelper output)
@@ -126,7 +137,7 @@ public class ShoptetTestEnvironmentHydrationTests
             reset = 0,
             skipped = 0;
 
-        foreach (var definition in _seedCatalog)
+        foreach (var (definition, idx) in _seedCatalog.Select((d, i) => (d, i)))
         {
             var shippingGuid =
                 _configuration[$"Shoptet:ShippingGuidMap:{definition.ShippingId}"]
@@ -149,7 +160,7 @@ public class ShoptetTestEnvironmentHydrationTests
                     Currency = new OrderCurrency { Code = "CZK" },
                     BillingAddress = new OrderAddress
                     {
-                        FullName = "Test Heblo",
+                        FullName = CustomerNames[idx % CustomerNames.Length],
                         Street = "Testovaci 1",
                         City = "Praha",
                         Zip = "10000",
