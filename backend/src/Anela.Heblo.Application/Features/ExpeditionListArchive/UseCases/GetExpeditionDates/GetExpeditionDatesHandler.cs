@@ -1,21 +1,24 @@
+using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionDates;
 
 public class GetExpeditionDatesHandler : IRequestHandler<GetExpeditionDatesRequest, GetExpeditionDatesResponse>
 {
-    private const string ContainerName = "expedition-lists";
     private readonly IBlobStorageService _blobStorageService;
+    private readonly string _containerName;
 
-    public GetExpeditionDatesHandler(IBlobStorageService blobStorageService)
+    public GetExpeditionDatesHandler(IBlobStorageService blobStorageService, IOptions<PrintPickingListOptions> options)
     {
         _blobStorageService = blobStorageService;
+        _containerName = options.Value.BlobContainerName;
     }
 
     public async Task<GetExpeditionDatesResponse> Handle(GetExpeditionDatesRequest request, CancellationToken cancellationToken)
     {
-        var blobs = await _blobStorageService.ListBlobsAsync(ContainerName, null, cancellationToken);
+        var blobs = await _blobStorageService.ListBlobsAsync(_containerName, null, cancellationToken);
 
         var dates = blobs
             .Select(b => b.Name.Split('/')[0])
