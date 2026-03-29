@@ -6,7 +6,9 @@ using Microsoft.Extensions.Options;
 namespace Anela.Heblo.API.Infrastructure.Hangfire;
 
 /// <summary>
-/// Automatically discovers and registers all IRecurringJob implementations with Hangfire
+/// Automatically discovers and registers all IRecurringJob implementations with Hangfire.
+/// Uses DB-stored CRON expressions (seeded from metadata on first run) so runtime
+/// changes survive application restarts.
 /// </summary>
 public class RecurringJobDiscoveryService : IHostedService
 {
@@ -27,40 +29,57 @@ public class RecurringJobDiscoveryService : IHostedService
         _hangfireOptions = hangfireOptions.Value;
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting recurring job discovery in {Environment} with SchedulerEnabled={SchedulerEnabled}",
+        _logger.LogInformation(
+            "Starting recurring job discovery in {Environment} with SchedulerEnabled={SchedulerEnabled}",
             _environment.EnvironmentName, _hangfireOptions.SchedulerEnabled);
 
         if (!_hangfireOptions.SchedulerEnabled)
         {
-            _logger.LogInformation("Hangfire scheduler disabled via configuration (SchedulerEnabled=false). No recurring jobs will be registered.");
-            return Task.CompletedTask;
+            _logger.LogInformation(
+                "Hangfire scheduler disabled via configuration (SchedulerEnabled=false). No recurring jobs will be registered.");
+            return;
         }
 
         try
         {
-            // Discover all IRecurringJob implementations via DI
             using var scope = _serviceProvider.CreateScope();
-            var jobs = scope.ServiceProvider.GetServices<IRecurringJob>();
+            var jobs = scope.ServiceProvider.GetServices<IRecurringJob>().ToList();
 
-            var jobList = jobs.ToList();
-            if (jobList.Count == 0)
+            if (jobs.Count == 0)
             {
-                _logger.LogWarning("No IRecurringJob implementations found. Ensure jobs are registered in DI container.");
-                return Task.CompletedTask;
+                _logger.LogWarning(
+                    "No IRecurringJob implementations found. Ensure jobs are registered in DI container.");
+                return;
             }
 
-            foreach (var job in jobList)
+            // Load all DB configs once — seeding guarantees records exist for all registered jobs
+            var repository = scope.ServiceProvider.GetRequiredService<IRecurringJobConfigurationRepository>();
+            var dbConfigs = await repository.GetAllAsync(cancellationToken);
+            var configByJobName = dbConfigs.ToDictionary(c => c.JobName, c => c);
+
+            foreach (var job in jobs)
             {
                 var metadata = job.Metadata;
                 var jobType = job.GetType();
 
                 try
                 {
-                    // Call the generic helper method using reflection
+                    // Prefer DB CRON (runtime override); fall back to metadata default
+                    var cronSource = "metadata";
+                    var cronExpression = metadata.CronExpression;
+
+                    if (configByJobName.TryGetValue(metadata.JobName, out var dbConfig))
+                    {
+                        cronExpression = dbConfig.CronExpression;
+                        cronSource = "DB";
+                    }
+
                     var registerMethod = typeof(RecurringJobDiscoveryService)
-                        .GetMethod(nameof(RegisterRecurringJobInternal), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+                        .GetMethod(
+                            nameof(RegisterRecurringJobInternal),
+                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 
                     if (registerMethod == null)
                     {
@@ -69,37 +88,36 @@ public class RecurringJobDiscoveryService : IHostedService
                     }
 
                     var genericRegisterMethod = registerMethod.MakeGenericMethod(jobType);
-
-                    // Invoke the helper method with properly typed parameters
                     genericRegisterMethod.Invoke(null, new object[]
                     {
                         metadata.JobName,
-                        metadata.CronExpression,
+                        cronExpression,
                         metadata.TimeZoneId
                     });
 
-                    _logger.LogInformation("Registered recurring job: {JobName} ({JobType}) with schedule {Cron}",
-                        metadata.JobName, jobType.Name, metadata.CronExpression);
+                    _logger.LogInformation(
+                        "Registered recurring job: {JobName} ({JobType}) with schedule {Cron} (from {CronSource})",
+                        metadata.JobName, jobType.Name, cronExpression, cronSource);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to register recurring job {JobName} ({JobType})",
+                    _logger.LogError(ex,
+                        "Failed to register recurring job {JobName} ({JobType})",
                         metadata.JobName, jobType.Name);
                 }
             }
 
-            _logger.LogInformation("Successfully registered {Count} recurring jobs in {Environment} environment",
-                jobList.Count, _environment.EnvironmentName);
+            _logger.LogInformation(
+                "Successfully registered {Count} recurring jobs in {Environment} environment",
+                jobs.Count, _environment.EnvironmentName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to register recurring jobs in {Environment} environment. Application startup will continue, but background jobs will not be scheduled.",
+            _logger.LogError(ex,
+                "Failed to register recurring jobs in {Environment} environment. " +
+                "Application startup will continue, but background jobs will not be scheduled.",
                 _environment.EnvironmentName);
-            // Don't throw - let application start even if Hangfire job registration fails
-            // This allows the application to be functional even with Hangfire issues
         }
-
-        return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
@@ -108,10 +126,6 @@ public class RecurringJobDiscoveryService : IHostedService
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Generic helper method that calls Hangfire's AddOrUpdate with proper static typing.
-    /// This avoids complex reflection to find the correct overload method.
-    /// </summary>
     private static void RegisterRecurringJobInternal<TJob>(
         string jobName,
         string cronExpression,

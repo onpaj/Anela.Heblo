@@ -33,6 +33,9 @@ public class RecurringJobDiscoveryServiceTests : IDisposable
         services.AddScoped<IRecurringJob, TestAsyncRecurringJob>();
         services.AddScoped<TestAsyncRecurringJob>();
 
+        // Register stub repository that returns empty config list (tests metadata fallback)
+        services.AddSingleton<IRecurringJobConfigurationRepository, StubRecurringJobConfigurationRepository>();
+
         _serviceProvider = services.BuildServiceProvider();
     }
 
@@ -131,5 +134,20 @@ public class RecurringJobDiscoveryServiceTests : IDisposable
         {
             return Task.CompletedTask;
         }
+    }
+
+    private class StubRecurringJobConfigurationRepository : IRecurringJobConfigurationRepository
+    {
+        public Task<List<RecurringJobConfiguration>> GetAllAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(new List<RecurringJobConfiguration>());
+
+        public Task<RecurringJobConfiguration?> GetByJobNameAsync(string jobName, CancellationToken cancellationToken = default)
+            => Task.FromResult<RecurringJobConfiguration?>(null);
+
+        public Task UpdateAsync(RecurringJobConfiguration configuration, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task SeedDefaultConfigurationsAsync(IEnumerable<IRecurringJob> jobs, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
     }
 }
