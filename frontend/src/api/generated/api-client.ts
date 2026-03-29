@@ -1983,6 +1983,198 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    expeditionListArchive_GetDates(page: number | undefined, pageSize: number | undefined): Promise<GetExpeditionDatesResponse> {
+        let url_ = this.baseUrl + "/api/expedition-list-archive/dates?";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processExpeditionListArchive_GetDates(_response);
+        });
+    }
+
+    protected processExpeditionListArchive_GetDates(response: Response): Promise<GetExpeditionDatesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetExpeditionDatesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetExpeditionDatesResponse>(null as any);
+    }
+
+    expeditionListArchive_GetByDate(date: string): Promise<GetExpeditionListsByDateResponse> {
+        let url_ = this.baseUrl + "/api/expedition-list-archive/{date}";
+        if (date === undefined || date === null)
+            throw new Error("The parameter 'date' must be defined.");
+        url_ = url_.replace("{date}", encodeURIComponent("" + date));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processExpeditionListArchive_GetByDate(_response);
+        });
+    }
+
+    protected processExpeditionListArchive_GetByDate(response: Response): Promise<GetExpeditionListsByDateResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetExpeditionListsByDateResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetExpeditionListsByDateResponse>(null as any);
+    }
+
+    expeditionListArchive_Download(blobPath: string): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/expedition-list-archive/download/{blobPath}";
+        if (blobPath === undefined || blobPath === null)
+            throw new Error("The parameter 'blobPath' must be defined.");
+        url_ = url_.replace("{blobPath}", encodeURIComponent("" + blobPath));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processExpeditionListArchive_Download(_response);
+        });
+    }
+
+    protected processExpeditionListArchive_Download(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    expeditionListArchive_RunFix(): Promise<RunExpeditionListPrintFixResponse> {
+        let url_ = this.baseUrl + "/api/expedition-list-archive/run-fix";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processExpeditionListArchive_RunFix(_response);
+        });
+    }
+
+    protected processExpeditionListArchive_RunFix(response: Response): Promise<RunExpeditionListPrintFixResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RunExpeditionListPrintFixResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RunExpeditionListPrintFixResponse>(null as any);
+    }
+
+    expeditionListArchive_Reprint(request: ReprintExpeditionListRequest): Promise<ReprintExpeditionListResponse> {
+        let url_ = this.baseUrl + "/api/expedition-list-archive/reprint";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processExpeditionListArchive_Reprint(_response);
+        });
+    }
+
+    protected processExpeditionListArchive_Reprint(response: Response): Promise<ReprintExpeditionListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ReprintExpeditionListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReprintExpeditionListResponse>(null as any);
+    }
+
     fileStorage_DownloadFromUrl(request: DownloadFromUrlRequest): Promise<DownloadFromUrlResponse> {
         let url_ = this.baseUrl + "/api/FileStorage/download";
         url_ = url_.replace(/[?&]$/, "");
@@ -3292,8 +3484,30 @@ export class ApiClient {
         return Promise.resolve<CreateJournalTagResponse>(null as any);
     }
 
-    knowledgeBase_GetDocuments(): Promise<GetDocumentsResponse> {
-        let url_ = this.baseUrl + "/api/KnowledgeBase/documents";
+    knowledgeBase_GetDocuments(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined, filenameFilter: string | null | undefined, statusFilter: string | null | undefined, contentTypeFilter: string | null | undefined): Promise<GetDocumentsResponse> {
+        let url_ = this.baseUrl + "/api/KnowledgeBase/documents?";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy === null)
+            throw new Error("The parameter 'sortBy' cannot be null.");
+        else if (sortBy !== undefined)
+            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "sortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        if (filenameFilter !== undefined && filenameFilter !== null)
+            url_ += "filenameFilter=" + encodeURIComponent("" + filenameFilter) + "&";
+        if (statusFilter !== undefined && statusFilter !== null)
+            url_ += "statusFilter=" + encodeURIComponent("" + statusFilter) + "&";
+        if (contentTypeFilter !== undefined && contentTypeFilter !== null)
+            url_ += "contentTypeFilter=" + encodeURIComponent("" + contentTypeFilter) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -3324,6 +3538,40 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetDocumentsResponse>(null as any);
+    }
+
+    knowledgeBase_GetDocumentContentTypes(): Promise<GetDocumentContentTypesResponse> {
+        let url_ = this.baseUrl + "/api/KnowledgeBase/documents/content-types";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processKnowledgeBase_GetDocumentContentTypes(_response);
+        });
+    }
+
+    protected processKnowledgeBase_GetDocumentContentTypes(response: Response): Promise<GetDocumentContentTypesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetDocumentContentTypesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetDocumentContentTypesResponse>(null as any);
     }
 
     knowledgeBase_Search(request: SearchDocumentsRequest): Promise<SearchDocumentsResponse> {
@@ -3437,6 +3685,98 @@ export class ApiClient {
             });
         }
         return Promise.resolve<DeleteDocumentResponse>(null as any);
+    }
+
+    knowledgeBase_GetFeedbackList(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined, hasFeedback: boolean | null | undefined, userId: string | null | undefined): Promise<GetFeedbackListResponse> {
+        let url_ = this.baseUrl + "/api/KnowledgeBase/feedback/list?";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy === null)
+            throw new Error("The parameter 'sortBy' cannot be null.");
+        else if (sortBy !== undefined)
+            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "sortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        if (hasFeedback !== undefined && hasFeedback !== null)
+            url_ += "hasFeedback=" + encodeURIComponent("" + hasFeedback) + "&";
+        if (userId !== undefined && userId !== null)
+            url_ += "userId=" + encodeURIComponent("" + userId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processKnowledgeBase_GetFeedbackList(_response);
+        });
+    }
+
+    protected processKnowledgeBase_GetFeedbackList(response: Response): Promise<GetFeedbackListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetFeedbackListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetFeedbackListResponse>(null as any);
+    }
+
+    knowledgeBase_SubmitFeedback(request: SubmitFeedbackRequest): Promise<SubmitFeedbackResponse> {
+        let url_ = this.baseUrl + "/api/KnowledgeBase/feedback";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processKnowledgeBase_SubmitFeedback(_response);
+        });
+    }
+
+    protected processKnowledgeBase_SubmitFeedback(response: Response): Promise<SubmitFeedbackResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SubmitFeedbackResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SubmitFeedbackResponse>(null as any);
     }
 
     knowledgeBase_UploadDocument(file: FileParameter | null | undefined): Promise<UploadDocumentResponse> {
@@ -5442,6 +5782,68 @@ export class ApiClient {
         return Promise.resolve<UpdateRecurringJobStatusResponse>(null as any);
     }
 
+    recurringJobs_UpdateJobCron(jobName: string, request: UpdateJobCronRequestBody): Promise<UpdateRecurringJobCronResponse> {
+        let url_ = this.baseUrl + "/api/RecurringJobs/{jobName}/cron";
+        if (jobName === undefined || jobName === null)
+            throw new Error("The parameter 'jobName' must be defined.");
+        url_ = url_.replace("{jobName}", encodeURIComponent("" + jobName));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processRecurringJobs_UpdateJobCron(_response);
+        });
+    }
+
+    protected processRecurringJobs_UpdateJobCron(response: Response): Promise<UpdateRecurringJobCronResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateRecurringJobCronResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateRecurringJobCronResponse>(null as any);
+    }
+
     recurringJobs_TriggerJob(jobName: string): Promise<TriggerRecurringJobResponse> {
         let url_ = this.baseUrl + "/api/RecurringJobs/{jobName}/trigger";
         if (jobName === undefined || jobName === null)
@@ -6638,6 +7040,9 @@ export enum ErrorCodes {
     UnsupportedFileType = "UnsupportedFileType",
     RecurringJobNotFound = "RecurringJobNotFound",
     RecurringJobUpdateFailed = "RecurringJobUpdateFailed",
+    InvalidCronExpression = "InvalidCronExpression",
+    KnowledgeBaseFeedbackLogNotFound = "KnowledgeBaseFeedbackLogNotFound",
+    KnowledgeBaseFeedbackAlreadySubmitted = "KnowledgeBaseFeedbackAlreadySubmitted",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -9277,6 +9682,8 @@ export class Ingredient implements IIngredient {
     originalAmount?: number;
     price?: number;
     productType?: ProductType;
+    hasLots?: boolean;
+    hasExpiration?: boolean;
 
     constructor(data?: IIngredient) {
         if (data) {
@@ -9296,6 +9703,8 @@ export class Ingredient implements IIngredient {
             this.originalAmount = _data["originalAmount"];
             this.price = _data["price"];
             this.productType = _data["productType"];
+            this.hasLots = _data["hasLots"];
+            this.hasExpiration = _data["hasExpiration"];
         }
     }
 
@@ -9315,6 +9724,8 @@ export class Ingredient implements IIngredient {
         data["originalAmount"] = this.originalAmount;
         data["price"] = this.price;
         data["productType"] = this.productType;
+        data["hasLots"] = this.hasLots;
+        data["hasExpiration"] = this.hasExpiration;
         return data;
     }
 }
@@ -9327,6 +9738,8 @@ export interface IIngredient {
     originalAmount?: number;
     price?: number;
     productType?: ProductType;
+    hasLots?: boolean;
+    hasExpiration?: boolean;
 }
 
 export enum ManufactureType {
@@ -9978,6 +10391,254 @@ export class Department implements IDepartment {
 export interface IDepartment {
     id?: string;
     name?: string;
+}
+
+export class GetExpeditionDatesResponse extends BaseResponse implements IGetExpeditionDatesResponse {
+    dates?: string[];
+    totalCount?: number;
+    page?: number;
+    pageSize?: number;
+
+    constructor(data?: IGetExpeditionDatesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["dates"])) {
+                this.dates = [] as any;
+                for (let item of _data["dates"])
+                    this.dates!.push(item);
+            }
+            this.totalCount = _data["totalCount"];
+            this.page = _data["page"];
+            this.pageSize = _data["pageSize"];
+        }
+    }
+
+    static override fromJS(data: any): GetExpeditionDatesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetExpeditionDatesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.dates)) {
+            data["dates"] = [];
+            for (let item of this.dates)
+                data["dates"].push(item);
+        }
+        data["totalCount"] = this.totalCount;
+        data["page"] = this.page;
+        data["pageSize"] = this.pageSize;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetExpeditionDatesResponse extends IBaseResponse {
+    dates?: string[];
+    totalCount?: number;
+    page?: number;
+    pageSize?: number;
+}
+
+export class GetExpeditionListsByDateResponse extends BaseResponse implements IGetExpeditionListsByDateResponse {
+    items?: ExpeditionListItemDto[];
+
+    constructor(data?: IGetExpeditionListsByDateResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ExpeditionListItemDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetExpeditionListsByDateResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetExpeditionListsByDateResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetExpeditionListsByDateResponse extends IBaseResponse {
+    items?: ExpeditionListItemDto[];
+}
+
+export class ExpeditionListItemDto implements IExpeditionListItemDto {
+    blobPath?: string;
+    fileName?: string;
+    createdOn?: Date | undefined;
+    contentLength?: number | undefined;
+
+    constructor(data?: IExpeditionListItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.blobPath = _data["blobPath"];
+            this.fileName = _data["fileName"];
+            this.createdOn = _data["createdOn"] ? new Date(_data["createdOn"].toString()) : <any>undefined;
+            this.contentLength = _data["contentLength"];
+        }
+    }
+
+    static fromJS(data: any): ExpeditionListItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ExpeditionListItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["blobPath"] = this.blobPath;
+        data["fileName"] = this.fileName;
+        data["createdOn"] = this.createdOn ? this.createdOn.toISOString() : <any>undefined;
+        data["contentLength"] = this.contentLength;
+        return data;
+    }
+}
+
+export interface IExpeditionListItemDto {
+    blobPath?: string;
+    fileName?: string;
+    createdOn?: Date | undefined;
+    contentLength?: number | undefined;
+}
+
+export class RunExpeditionListPrintFixResponse extends BaseResponse implements IRunExpeditionListPrintFixResponse {
+    totalCount?: number;
+    errorMessage?: string | undefined;
+
+    constructor(data?: IRunExpeditionListPrintFixResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.totalCount = _data["totalCount"];
+            this.errorMessage = _data["errorMessage"];
+        }
+    }
+
+    static override fromJS(data: any): RunExpeditionListPrintFixResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RunExpeditionListPrintFixResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalCount"] = this.totalCount;
+        data["errorMessage"] = this.errorMessage;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRunExpeditionListPrintFixResponse extends IBaseResponse {
+    totalCount?: number;
+    errorMessage?: string | undefined;
+}
+
+export class ReprintExpeditionListResponse extends BaseResponse implements IReprintExpeditionListResponse {
+    errorMessage?: string | undefined;
+
+    constructor(data?: IReprintExpeditionListResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.errorMessage = _data["errorMessage"];
+        }
+    }
+
+    static override fromJS(data: any): ReprintExpeditionListResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReprintExpeditionListResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["errorMessage"] = this.errorMessage;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IReprintExpeditionListResponse extends IBaseResponse {
+    errorMessage?: string | undefined;
+}
+
+export class ReprintExpeditionListRequest implements IReprintExpeditionListRequest {
+    blobPath?: string;
+
+    constructor(data?: IReprintExpeditionListRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.blobPath = _data["blobPath"];
+        }
+    }
+
+    static fromJS(data: any): ReprintExpeditionListRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReprintExpeditionListRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["blobPath"] = this.blobPath;
+        return data;
+    }
+}
+
+export interface IReprintExpeditionListRequest {
+    blobPath?: string;
 }
 
 export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFromUrlResponse {
@@ -12627,6 +13288,10 @@ export interface ICreateJournalTagRequest {
 
 export class GetDocumentsResponse extends BaseResponse implements IGetDocumentsResponse {
     documents?: DocumentSummary[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
 
     constructor(data?: IGetDocumentsResponse) {
         super(data);
@@ -12640,6 +13305,10 @@ export class GetDocumentsResponse extends BaseResponse implements IGetDocumentsR
                 for (let item of _data["documents"])
                     this.documents!.push(DocumentSummary.fromJS(item));
             }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
         }
     }
 
@@ -12657,6 +13326,10 @@ export class GetDocumentsResponse extends BaseResponse implements IGetDocumentsR
             for (let item of this.documents)
                 data["documents"].push(item.toJSON());
         }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
         super.toJSON(data);
         return data;
     }
@@ -12664,6 +13337,10 @@ export class GetDocumentsResponse extends BaseResponse implements IGetDocumentsR
 
 export interface IGetDocumentsResponse extends IBaseResponse {
     documents?: DocumentSummary[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
 }
 
 export class DocumentSummary implements IDocumentSummary {
@@ -12720,6 +13397,47 @@ export interface IDocumentSummary {
     contentType?: string;
     createdAt?: Date;
     indexedAt?: Date | undefined;
+}
+
+export class GetDocumentContentTypesResponse extends BaseResponse implements IGetDocumentContentTypesResponse {
+    contentTypes?: string[];
+
+    constructor(data?: IGetDocumentContentTypesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["contentTypes"])) {
+                this.contentTypes = [] as any;
+                for (let item of _data["contentTypes"])
+                    this.contentTypes!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetDocumentContentTypesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetDocumentContentTypesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.contentTypes)) {
+            data["contentTypes"] = [];
+            for (let item of this.contentTypes)
+                data["contentTypes"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetDocumentContentTypesResponse extends IBaseResponse {
+    contentTypes?: string[];
 }
 
 export class SearchDocumentsResponse extends BaseResponse implements ISearchDocumentsResponse {
@@ -12860,6 +13578,7 @@ export interface ISearchDocumentsRequest {
 }
 
 export class AskQuestionResponse extends BaseResponse implements IAskQuestionResponse {
+    id?: string | undefined;
     answer?: string;
     sources?: SourceReference[];
 
@@ -12870,6 +13589,7 @@ export class AskQuestionResponse extends BaseResponse implements IAskQuestionRes
     override init(_data?: any) {
         super.init(_data);
         if (_data) {
+            this.id = _data["id"];
             this.answer = _data["answer"];
             if (Array.isArray(_data["sources"])) {
                 this.sources = [] as any;
@@ -12888,6 +13608,7 @@ export class AskQuestionResponse extends BaseResponse implements IAskQuestionRes
 
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
         data["answer"] = this.answer;
         if (Array.isArray(this.sources)) {
             data["sources"] = [];
@@ -12900,6 +13621,7 @@ export class AskQuestionResponse extends BaseResponse implements IAskQuestionRes
 }
 
 export interface IAskQuestionResponse extends IBaseResponse {
+    id?: string | undefined;
     answer?: string;
     sources?: SourceReference[];
 }
@@ -13017,6 +13739,270 @@ export class DeleteDocumentResponse extends BaseResponse implements IDeleteDocum
 }
 
 export interface IDeleteDocumentResponse extends IBaseResponse {
+}
+
+export class GetFeedbackListResponse extends BaseResponse implements IGetFeedbackListResponse {
+    logs?: FeedbackLogSummary[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+    stats?: FeedbackStatsDto;
+
+    constructor(data?: IGetFeedbackListResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["logs"])) {
+                this.logs = [] as any;
+                for (let item of _data["logs"])
+                    this.logs!.push(FeedbackLogSummary.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+            this.stats = _data["stats"] ? FeedbackStatsDto.fromJS(_data["stats"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetFeedbackListResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetFeedbackListResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.logs)) {
+            data["logs"] = [];
+            for (let item of this.logs)
+                data["logs"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        data["stats"] = this.stats ? this.stats.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetFeedbackListResponse extends IBaseResponse {
+    logs?: FeedbackLogSummary[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+    stats?: FeedbackStatsDto;
+}
+
+export class FeedbackLogSummary implements IFeedbackLogSummary {
+    id?: string;
+    question?: string;
+    answer?: string;
+    topK?: number;
+    sourceCount?: number;
+    durationMs?: number;
+    createdAt?: Date;
+    userId?: string | undefined;
+    precisionScore?: number | undefined;
+    styleScore?: number | undefined;
+    feedbackComment?: string | undefined;
+    hasFeedback?: boolean;
+
+    constructor(data?: IFeedbackLogSummary) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.question = _data["question"];
+            this.answer = _data["answer"];
+            this.topK = _data["topK"];
+            this.sourceCount = _data["sourceCount"];
+            this.durationMs = _data["durationMs"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.userId = _data["userId"];
+            this.precisionScore = _data["precisionScore"];
+            this.styleScore = _data["styleScore"];
+            this.feedbackComment = _data["feedbackComment"];
+            this.hasFeedback = _data["hasFeedback"];
+        }
+    }
+
+    static fromJS(data: any): FeedbackLogSummary {
+        data = typeof data === 'object' ? data : {};
+        let result = new FeedbackLogSummary();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["question"] = this.question;
+        data["answer"] = this.answer;
+        data["topK"] = this.topK;
+        data["sourceCount"] = this.sourceCount;
+        data["durationMs"] = this.durationMs;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["userId"] = this.userId;
+        data["precisionScore"] = this.precisionScore;
+        data["styleScore"] = this.styleScore;
+        data["feedbackComment"] = this.feedbackComment;
+        data["hasFeedback"] = this.hasFeedback;
+        return data;
+    }
+}
+
+export interface IFeedbackLogSummary {
+    id?: string;
+    question?: string;
+    answer?: string;
+    topK?: number;
+    sourceCount?: number;
+    durationMs?: number;
+    createdAt?: Date;
+    userId?: string | undefined;
+    precisionScore?: number | undefined;
+    styleScore?: number | undefined;
+    feedbackComment?: string | undefined;
+    hasFeedback?: boolean;
+}
+
+export class FeedbackStatsDto implements IFeedbackStatsDto {
+    totalQuestions?: number;
+    totalWithFeedback?: number;
+    avgPrecisionScore?: number | undefined;
+    avgStyleScore?: number | undefined;
+
+    constructor(data?: IFeedbackStatsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalQuestions = _data["totalQuestions"];
+            this.totalWithFeedback = _data["totalWithFeedback"];
+            this.avgPrecisionScore = _data["avgPrecisionScore"];
+            this.avgStyleScore = _data["avgStyleScore"];
+        }
+    }
+
+    static fromJS(data: any): FeedbackStatsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new FeedbackStatsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalQuestions"] = this.totalQuestions;
+        data["totalWithFeedback"] = this.totalWithFeedback;
+        data["avgPrecisionScore"] = this.avgPrecisionScore;
+        data["avgStyleScore"] = this.avgStyleScore;
+        return data;
+    }
+}
+
+export interface IFeedbackStatsDto {
+    totalQuestions?: number;
+    totalWithFeedback?: number;
+    avgPrecisionScore?: number | undefined;
+    avgStyleScore?: number | undefined;
+}
+
+export class SubmitFeedbackResponse extends BaseResponse implements ISubmitFeedbackResponse {
+
+    constructor(data?: ISubmitFeedbackResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): SubmitFeedbackResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitFeedbackResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISubmitFeedbackResponse extends IBaseResponse {
+}
+
+export class SubmitFeedbackRequest implements ISubmitFeedbackRequest {
+    logId?: string;
+    precisionScore?: number;
+    styleScore?: number;
+    comment?: string | undefined;
+
+    constructor(data?: ISubmitFeedbackRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.logId = _data["logId"];
+            this.precisionScore = _data["precisionScore"];
+            this.styleScore = _data["styleScore"];
+            this.comment = _data["comment"];
+        }
+    }
+
+    static fromJS(data: any): SubmitFeedbackRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitFeedbackRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["logId"] = this.logId;
+        data["precisionScore"] = this.precisionScore;
+        data["styleScore"] = this.styleScore;
+        data["comment"] = this.comment;
+        return data;
+    }
+}
+
+export interface ISubmitFeedbackRequest {
+    logId?: string;
+    precisionScore?: number;
+    styleScore?: number;
+    comment?: string | undefined;
 }
 
 export class UploadDocumentResponse extends BaseResponse implements IUploadDocumentResponse {
@@ -19717,6 +20703,87 @@ export class UpdateJobStatusRequestBody implements IUpdateJobStatusRequestBody {
 
 export interface IUpdateJobStatusRequestBody {
     isEnabled?: boolean;
+}
+
+export class UpdateRecurringJobCronResponse extends BaseResponse implements IUpdateRecurringJobCronResponse {
+    jobName?: string;
+    cronExpression?: string;
+    lastModifiedAt?: Date;
+    lastModifiedBy?: string;
+
+    constructor(data?: IUpdateRecurringJobCronResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.jobName = _data["jobName"];
+            this.cronExpression = _data["cronExpression"];
+            this.lastModifiedAt = _data["lastModifiedAt"] ? new Date(_data["lastModifiedAt"].toString()) : <any>undefined;
+            this.lastModifiedBy = _data["lastModifiedBy"];
+        }
+    }
+
+    static override fromJS(data: any): UpdateRecurringJobCronResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateRecurringJobCronResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["jobName"] = this.jobName;
+        data["cronExpression"] = this.cronExpression;
+        data["lastModifiedAt"] = this.lastModifiedAt ? this.lastModifiedAt.toISOString() : <any>undefined;
+        data["lastModifiedBy"] = this.lastModifiedBy;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateRecurringJobCronResponse extends IBaseResponse {
+    jobName?: string;
+    cronExpression?: string;
+    lastModifiedAt?: Date;
+    lastModifiedBy?: string;
+}
+
+export class UpdateJobCronRequestBody implements IUpdateJobCronRequestBody {
+    cronExpression?: string;
+
+    constructor(data?: IUpdateJobCronRequestBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.cronExpression = _data["cronExpression"];
+        }
+    }
+
+    static fromJS(data: any): UpdateJobCronRequestBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateJobCronRequestBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["cronExpression"] = this.cronExpression;
+        return data;
+    }
+}
+
+export interface IUpdateJobCronRequestBody {
+    cronExpression?: string;
 }
 
 export class TriggerRecurringJobResponse extends BaseResponse implements ITriggerRecurringJobResponse {
