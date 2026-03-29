@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.BackgroundJobs.Contracts;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.GetRecurringJobsList;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.UpdateRecurringJobStatus;
+using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.UpdateRecurringJobCron;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.TriggerRecurringJob;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -65,6 +66,32 @@ public class RecurringJobsController : BaseApiController
     }
 
     /// <summary>
+    /// Update the CRON schedule of a recurring job
+    /// </summary>
+    /// <param name="jobName">The name of the job to update</param>
+    /// <param name="request">The CRON update request containing the new expression</param>
+    /// <returns>Updated job information with new CRON expression</returns>
+    [HttpPut("{jobName}/cron")]
+    [ProducesResponseType(typeof(UpdateRecurringJobCronResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UpdateRecurringJobCronResponse>> UpdateJobCron(
+        string jobName,
+        [FromBody] UpdateJobCronRequestBody request)
+    {
+        var mediatrRequest = new UpdateRecurringJobCronRequest
+        {
+            JobName = jobName,
+            CronExpression = request.CronExpression
+        };
+
+        var response = await _mediator.Send(mediatrRequest);
+
+        return HandleResponse(response);
+    }
+
+    /// <summary>
     /// Manually trigger a recurring job to run immediately
     /// </summary>
     /// <param name="jobName">The name of the job to trigger</param>
@@ -103,4 +130,15 @@ public class UpdateJobStatusRequestBody
     /// Whether the job should be enabled
     /// </summary>
     public bool IsEnabled { get; set; }
+}
+
+/// <summary>
+/// Request body for updating recurring job CRON expression
+/// </summary>
+public class UpdateJobCronRequestBody
+{
+    /// <summary>
+    /// The new CRON expression (e.g. "0 3 * * *")
+    /// </summary>
+    public string CronExpression { get; set; } = string.Empty;
 }
