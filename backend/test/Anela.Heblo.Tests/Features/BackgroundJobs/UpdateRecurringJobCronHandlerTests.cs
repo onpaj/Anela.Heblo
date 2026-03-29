@@ -57,11 +57,6 @@ public class UpdateRecurringJobCronHandlerTests
     [Fact]
     public async Task Handle_WhenCronExpressionInvalid_ReturnsBadRequest()
     {
-        var job = CreateTestJob("my-job", "0 2 * * *");
-        _repositoryMock
-            .Setup(r => r.GetByJobNameAsync("my-job", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(job);
-
         var request = new UpdateRecurringJobCronRequest
         {
             JobName = "my-job",
@@ -81,11 +76,6 @@ public class UpdateRecurringJobCronHandlerTests
     [InlineData("   ")]
     public async Task Handle_WhenCronExpressionEmpty_ReturnsBadRequest(string emptyCron)
     {
-        var job = CreateTestJob("my-job", "0 2 * * *");
-        _repositoryMock
-            .Setup(r => r.GetByJobNameAsync("my-job", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(job);
-
         var request = new UpdateRecurringJobCronRequest
         {
             JobName = "my-job",

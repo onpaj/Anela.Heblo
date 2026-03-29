@@ -59,25 +59,42 @@ public class UpdateRecurringJobCronHandler : IRequestHandler<UpdateRecurringJobC
                 new Dictionary<string, string> { { "JobName", request.JobName } });
         }
 
-        var currentUser = _currentUserService.GetCurrentUser();
-        var modifiedBy = currentUser.Name ?? "System";
-
-        job.UpdateCronExpression(request.CronExpression, modifiedBy);
-        await _repository.UpdateAsync(job, cancellationToken);
-
-        _scheduler.UpdateCronSchedule(job.JobName, job.CronExpression);
-
-        _logger.LogInformation(
-            "CRON expression for {JobName} updated to {CronExpression} by {ModifiedBy}",
-            job.JobName, job.CronExpression, modifiedBy);
-
-        return new UpdateRecurringJobCronResponse
+        try
         {
-            JobName = job.JobName,
-            CronExpression = job.CronExpression,
-            LastModifiedAt = job.LastModifiedAt,
-            LastModifiedBy = job.LastModifiedBy
-        };
+            var currentUser = _currentUserService.GetCurrentUser();
+            var modifiedBy = currentUser.Name ?? "System";
+
+            job.UpdateCronExpression(request.CronExpression, modifiedBy);
+            await _repository.UpdateAsync(job, cancellationToken);
+
+            _scheduler.UpdateCronSchedule(job.JobName, job.CronExpression);
+
+            _logger.LogInformation(
+                "CRON expression for {JobName} updated to {CronExpression} by {ModifiedBy}",
+                job.JobName, job.CronExpression, modifiedBy);
+
+            return new UpdateRecurringJobCronResponse
+            {
+                JobName = job.JobName,
+                CronExpression = job.CronExpression,
+                LastModifiedAt = job.LastModifiedAt,
+                LastModifiedBy = job.LastModifiedBy
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error updating CRON expression for {JobName}",
+                request.JobName);
+            return new UpdateRecurringJobCronResponse(
+                ErrorCodes.RecurringJobUpdateFailed,
+                new Dictionary<string, string>
+                {
+                    { "JobName", request.JobName },
+                    { "Message", ex.Message }
+                });
+        }
     }
 
     private static bool IsValidCronExpression(string cronExpression)
