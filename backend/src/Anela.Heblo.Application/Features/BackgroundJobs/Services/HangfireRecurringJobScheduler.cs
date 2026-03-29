@@ -25,6 +25,9 @@ public class HangfireRecurringJobScheduler : IHangfireRecurringJobScheduler
 
     public void UpdateCronSchedule(string jobName, string cronExpression)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(jobName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(cronExpression);
+
         using var scope = _serviceProvider.CreateScope();
         var jobs = scope.ServiceProvider.GetServices<IRecurringJob>().ToList();
         var job = jobs.FirstOrDefault(j => j.Metadata.JobName == jobName);
@@ -46,7 +49,19 @@ public class HangfireRecurringJobScheduler : IHangfireRecurringJobScheduler
         }
 
         var genericMethod = registerMethod.MakeGenericMethod(jobType);
-        genericMethod.Invoke(null, new object[] { jobName, cronExpression, job.Metadata.TimeZoneId });
+
+        try
+        {
+            genericMethod.Invoke(null, new object[] { jobName, cronExpression, job.Metadata.TimeZoneId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Failed to update live Hangfire schedule for {JobName}. " +
+                "TimeZone '{TimeZoneId}' may be invalid or unsupported on this host.",
+                jobName, job.Metadata.TimeZoneId);
+            return;
+        }
 
         _logger.LogInformation(
             "Live Hangfire schedule updated for {JobName} → {CronExpression}",
