@@ -31,6 +31,11 @@ public class KnowledgeBaseDocumentConfiguration : IEntityTypeConfiguration<Knowl
                 v => v.ToString().ToLowerInvariant(),
                 v => Enum.Parse<DocumentStatus>(v, true));
 
+        builder.Property(e => e.DocumentType)
+            .IsRequired()
+            .HasDefaultValue(DocumentType.KnowledgeBase)
+            .HasConversion<int>();
+
         builder.Property(e => e.CreatedAt)
             .HasColumnType("timestamp without time zone");
 
