@@ -22,7 +22,7 @@ public class KnowledgeBaseOptions
     public List<string> PreprocessorPatterns { get; set; } =
     [
         @"Vítejte ve světě Anela.*?Napište nám, jsme tu pro Vás!",
-        @"(?m)^datum:\s+\S+\s+zákazník:\s+\S+",
+        @"^datum:\s+\S+\s+zákazník:\s+\S+",
         @"Zákazník-\d+:?\s*"
     ];
 

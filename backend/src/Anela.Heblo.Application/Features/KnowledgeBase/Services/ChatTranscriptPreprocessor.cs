@@ -5,6 +5,9 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
 
 public class ChatTranscriptPreprocessor
 {
+    private static readonly Regex ExcessiveBlankLines =
+        new(@"\n{3,}", RegexOptions.Compiled);
+
     private readonly IReadOnlyList<Regex> _patterns;
 
     public ChatTranscriptPreprocessor(IOptions<KnowledgeBaseOptions> options)
@@ -25,7 +28,7 @@ public class ChatTranscriptPreprocessor
             text = pattern.Replace(text, string.Empty);
         }
 
-        text = Regex.Replace(text, @"\n{3,}", "\n\n");
+        text = ExcessiveBlankLines.Replace(text, "\n\n");
 
         return text.Trim();
     }
