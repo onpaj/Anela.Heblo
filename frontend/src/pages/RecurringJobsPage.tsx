@@ -201,6 +201,9 @@ const RecurringJobsPage: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Last Modified
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Next Run
+                </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
@@ -283,6 +286,11 @@ const RecurringJobsPage: React.FC = () => {
                         {job.lastModifiedBy}
                       </div>
                     )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {job.nextRunAt
+                      ? formatDate(job.nextRunAt)
+                      : '—'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <button
