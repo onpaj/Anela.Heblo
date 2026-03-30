@@ -23,18 +23,21 @@ public class ConversationIndexingStrategy : IIndexingStrategy
         string cleanText, Guid documentId, CancellationToken ct)
     {
         var topics = await _summarizer.SummarizeTopicsAsync(cleanText, ct);
-        var chunks = new List<KnowledgeBaseChunk>();
+        if (topics.Count == 0)
+            return [];
+
+        var embeddings = await _embeddingGenerator.GenerateAsync(topics, cancellationToken: ct);
+        var chunks = new List<KnowledgeBaseChunk>(topics.Count);
 
         for (var i = 0; i < topics.Count; i++)
         {
-            var embeddings = await _embeddingGenerator.GenerateAsync([topics[i]], cancellationToken: ct);
             chunks.Add(new KnowledgeBaseChunk
             {
                 Id = Guid.NewGuid(),
                 DocumentId = documentId,
                 ChunkIndex = i,
                 Content = cleanText,
-                Embedding = embeddings[0].Vector.ToArray(),
+                Embedding = embeddings[i].Vector.ToArray(),
             });
         }
 

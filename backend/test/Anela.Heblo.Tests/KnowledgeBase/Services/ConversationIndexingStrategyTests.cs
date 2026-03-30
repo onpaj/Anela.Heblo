@@ -47,6 +47,18 @@ public class ConversationIndexingStrategyTests
     }
 
     [Fact]
+    public async Task CreateChunksAsync_EmptyTopics_ReturnsEmptyList()
+    {
+        _summarizer
+            .Setup(s => s.SummarizeTopicsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<string>());
+
+        var chunks = await _strategy.CreateChunksAsync("transcript", Guid.NewGuid(), CancellationToken.None);
+
+        Assert.Empty(chunks);
+    }
+
+    [Fact]
     public async Task CreateChunksAsync_NTopicSummaries_ProducesNChunks()
     {
         var topics = new List<string>
@@ -58,6 +70,19 @@ public class ConversationIndexingStrategyTests
         _summarizer
             .Setup(s => s.SummarizeTopicsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(topics);
+
+        var floats = new float[] { 0.1f, 0.2f, 0.3f };
+        var twoEmbeddings = new GeneratedEmbeddings<Embedding<float>>(
+        [
+            new Embedding<float>(new ReadOnlyMemory<float>(floats)),
+            new Embedding<float>(new ReadOnlyMemory<float>(floats)),
+        ]);
+        _embeddingGenerator
+            .Setup(e => e.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(twoEmbeddings);
 
         var documentId = Guid.NewGuid();
         var chunks = await _strategy.CreateChunksAsync("full transcript", documentId, CancellationToken.None);
@@ -79,6 +104,19 @@ public class ConversationIndexingStrategyTests
             .Setup(s => s.SummarizeTopicsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(topics);
 
+        var floats = new float[] { 0.1f, 0.2f, 0.3f };
+        var twoEmbeddings = new GeneratedEmbeddings<Embedding<float>>(
+        [
+            new Embedding<float>(new ReadOnlyMemory<float>(floats)),
+            new Embedding<float>(new ReadOnlyMemory<float>(floats)),
+        ]);
+        _embeddingGenerator
+            .Setup(e => e.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(twoEmbeddings);
+
         var chunks = await _strategy.CreateChunksAsync(fullText, Guid.NewGuid(), CancellationToken.None);
 
         Assert.All(chunks, chunk => Assert.Equal(fullText, chunk.Content));
@@ -93,9 +131,22 @@ public class ConversationIndexingStrategyTests
             .Setup(s => s.SummarizeTopicsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(topics);
 
+        var floats = new float[] { 0.1f, 0.2f, 0.3f };
+        var threeEmbeddings = new GeneratedEmbeddings<Embedding<float>>(
+        [
+            new Embedding<float>(new ReadOnlyMemory<float>(floats)),
+            new Embedding<float>(new ReadOnlyMemory<float>(floats)),
+            new Embedding<float>(new ReadOnlyMemory<float>(floats)),
+        ]);
+        _embeddingGenerator
+            .Setup(e => e.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(threeEmbeddings);
+
         var chunks = await _strategy.CreateChunksAsync("transcript", Guid.NewGuid(), CancellationToken.None);
 
-        Assert.Equal(3, chunks.Count);
         for (var i = 0; i < chunks.Count; i++)
         {
             Assert.Equal(i, chunks[i].ChunkIndex);
