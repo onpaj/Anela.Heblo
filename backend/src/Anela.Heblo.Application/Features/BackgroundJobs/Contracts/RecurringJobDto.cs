@@ -9,4 +9,5 @@ public class RecurringJobDto
     public bool IsEnabled { get; set; }
     public DateTime LastModifiedAt { get; set; }
     public string LastModifiedBy { get; set; } = string.Empty;
+    public DateTime? NextRunAt { get; set; }
 }
