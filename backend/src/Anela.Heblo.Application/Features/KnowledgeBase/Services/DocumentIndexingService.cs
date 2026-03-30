@@ -39,6 +39,7 @@ public class DocumentIndexingService : IDocumentIndexingService
         var chunks = await strategy.CreateChunksAsync(text, document.Id, ct);
         await _repository.AddChunksAsync(chunks, ct);
 
+        // Caller is responsible for persisting this entity change (e.g. _repository.UpdateAsync or EF change tracking).
         document.Status = DocumentStatus.Indexed;
         document.IndexedAt = DateTime.UtcNow;
     }
