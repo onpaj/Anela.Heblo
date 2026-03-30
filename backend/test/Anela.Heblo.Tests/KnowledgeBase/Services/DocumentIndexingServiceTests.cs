@@ -74,6 +74,9 @@ public class DocumentIndexingServiceTests
         _repository.Verify(
             r => r.AddChunksAsync(It.IsAny<IEnumerable<KnowledgeBaseChunk>>(), It.IsAny<CancellationToken>()),
             Times.Once);
+        _summarizer.Verify(
+            s => s.SummarizeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.AtLeastOnce);
 
         Assert.Equal(DocumentStatus.Indexed, doc.Status);
         Assert.NotNull(doc.IndexedAt);
