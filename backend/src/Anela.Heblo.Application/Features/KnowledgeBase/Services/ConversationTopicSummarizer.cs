@@ -17,6 +17,9 @@ public class ConversationTopicSummarizer : IConversationTopicSummarizer
     public async Task<IReadOnlyList<string>> SummarizeTopicsAsync(
         string fullText, CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(fullText))
+            return [];
+
         if (!_options.SummarizationEnabled)
             return [fullText];
 
