@@ -106,7 +106,7 @@ public class KnowledgeBaseControllerTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.UploadDocument(mockFile.Object, CancellationToken.None);
+        var result = await _controller.UploadDocument(mockFile.Object, "KnowledgeBase", CancellationToken.None);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -124,7 +124,7 @@ public class KnowledgeBaseControllerTests
     public async Task UploadDocument_WithNullFile_Returns400()
     {
         // Act
-        var result = await _controller.UploadDocument(null!, CancellationToken.None);
+        var result = await _controller.UploadDocument(null!, "KnowledgeBase", CancellationToken.None);
 
         // Assert
         Assert.IsType<BadRequestObjectResult>(result.Result);
