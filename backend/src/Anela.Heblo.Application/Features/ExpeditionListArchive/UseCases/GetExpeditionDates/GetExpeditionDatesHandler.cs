@@ -22,7 +22,7 @@ public class GetExpeditionDatesHandler : IRequestHandler<GetExpeditionDatesReque
 
         var dates = blobs
             .Select(b => b.Name.Split('/')[0])
-            .Where(d => IsValidDatePrefix(d))
+            .Where(IsValidDatePrefix)
             .Distinct()
             .OrderByDescending(d => d)
             .ToList();
