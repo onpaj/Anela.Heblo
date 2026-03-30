@@ -155,6 +155,7 @@ public class GetRecurringJobsListHandlerTests
 
         var expectedNextRun = new DateTime(2026, 3, 30, 13, 0, 0, DateTimeKind.Utc);
         result.Jobs[0].NextRunAt.Should().Be(expectedNextRun);
+        result.Jobs[0].NextRunAt!.Value.Kind.Should().Be(DateTimeKind.Utc);
     }
 
     [Fact]
@@ -197,6 +198,7 @@ public class GetRecurringJobsListHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         result.Jobs[0].NextRunAt.Should().Be(new DateTime(2026, 3, 30, 13, 0, 0, DateTimeKind.Utc));
+        result.Jobs[0].NextRunAt!.Value.Kind.Should().Be(DateTimeKind.Utc);
         result.Jobs[1].NextRunAt.Should().BeNull();
     }
 

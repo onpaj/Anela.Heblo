@@ -47,7 +47,9 @@ public class GetRecurringJobsListHandler : IRequestHandler<GetRecurringJobsListR
 
             try
             {
-                dto.NextRunAt = CrontabSchedule.Parse(dto.CronExpression).GetNextOccurrence(utcNow);
+                dto.NextRunAt = DateTime.SpecifyKind(
+                    CrontabSchedule.Parse(dto.CronExpression).GetNextOccurrence(utcNow),
+                    DateTimeKind.Utc);
             }
             catch (CrontabException ex)
             {
