@@ -2,8 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 import {
   UpdateJobStatusRequestBody,
+  UpdateJobCronRequestBody,
   type RecurringJobDto,
   type UpdateRecurringJobStatusResponse,
+  type UpdateRecurringJobCronResponse,
   type TriggerRecurringJobResponse
 } from '../generated/api-client';
 
@@ -55,6 +57,31 @@ export const useUpdateRecurringJobStatusMutation = () => {
 };
 
 /**
+ * Hook to update recurring job CRON expression
+ * Uses generated API client method: recurringJobs_UpdateJobCron
+ */
+export const useUpdateRecurringJobCronMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      jobName,
+      cronExpression
+    }: {
+      jobName: string;
+      cronExpression: string;
+    }): Promise<UpdateRecurringJobCronResponse> => {
+      const client = getAuthenticatedApiClient();
+      const request = new UpdateJobCronRequestBody({ cronExpression });
+      return await client.recurringJobs_UpdateJobCron(jobName, request);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: recurringJobsKeys.list() });
+    },
+  });
+};
+
+/**
  * Hook to trigger a recurring job manually
  * Uses generated API client method: recurringJobs_TriggerJob
  */
@@ -74,4 +101,4 @@ export const useTriggerRecurringJobMutation = () => {
 };
 
 // Re-export types for convenience
-export type { RecurringJobDto, UpdateRecurringJobStatusResponse, TriggerRecurringJobResponse };
+export type { RecurringJobDto, UpdateRecurringJobStatusResponse, UpdateRecurringJobCronResponse, TriggerRecurringJobResponse };
