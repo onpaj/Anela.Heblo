@@ -19,6 +19,11 @@ public class KnowledgeBaseChunkConfiguration : IEntityTypeConfiguration<Knowledg
             .IsRequired()
             .HasDefaultValue(string.Empty);
 
+        builder.Property(e => e.DocumentType)
+            .IsRequired()
+            .HasDefaultValue(DocumentType.KnowledgeBase)
+            .HasConversion<int>();
+
         builder.Property(e => e.ChunkIndex)
             .IsRequired();
 

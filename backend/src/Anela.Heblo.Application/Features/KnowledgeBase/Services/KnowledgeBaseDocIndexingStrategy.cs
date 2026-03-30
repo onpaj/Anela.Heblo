@@ -39,6 +39,7 @@ public class KnowledgeBaseDocIndexingStrategy : IIndexingStrategy
                 ChunkIndex = i,
                 Content = chunkTexts[i],
                 Summary = summary,
+                DocumentType = DocumentType.KnowledgeBase,
                 Embedding = embeddings[0].Vector.ToArray(),
             });
         }

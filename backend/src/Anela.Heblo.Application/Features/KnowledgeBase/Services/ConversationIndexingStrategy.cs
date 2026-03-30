@@ -38,6 +38,7 @@ public class ConversationIndexingStrategy : IIndexingStrategy
                 ChunkIndex = i,
                 Content = cleanText,
                 Summary = topics[i],
+                DocumentType = DocumentType.Conversation,
                 Embedding = embeddings[i].Vector.ToArray(),
             });
         }
