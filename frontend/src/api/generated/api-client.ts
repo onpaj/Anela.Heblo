@@ -20572,6 +20572,7 @@ export class RecurringJobDto implements IRecurringJobDto {
     isEnabled?: boolean;
     lastModifiedAt?: Date;
     lastModifiedBy?: string;
+    nextRunAt?: Date | undefined;
 
     constructor(data?: IRecurringJobDto) {
         if (data) {
@@ -20591,6 +20592,7 @@ export class RecurringJobDto implements IRecurringJobDto {
             this.isEnabled = _data["isEnabled"];
             this.lastModifiedAt = _data["lastModifiedAt"] ? new Date(_data["lastModifiedAt"].toString()) : <any>undefined;
             this.lastModifiedBy = _data["lastModifiedBy"];
+            this.nextRunAt = _data["nextRunAt"] ? new Date(_data["nextRunAt"].toString()) : <any>undefined;
         }
     }
 
@@ -20610,6 +20612,7 @@ export class RecurringJobDto implements IRecurringJobDto {
         data["isEnabled"] = this.isEnabled;
         data["lastModifiedAt"] = this.lastModifiedAt ? this.lastModifiedAt.toISOString() : <any>undefined;
         data["lastModifiedBy"] = this.lastModifiedBy;
+        data["nextRunAt"] = this.nextRunAt ? this.nextRunAt.toISOString() : <any>undefined;
         return data;
     }
 }
@@ -20622,6 +20625,7 @@ export interface IRecurringJobDto {
     isEnabled?: boolean;
     lastModifiedAt?: Date;
     lastModifiedBy?: string;
+    nextRunAt?: Date | undefined;
 }
 
 export class UpdateRecurringJobStatusResponse extends BaseResponse implements IUpdateRecurringJobStatusResponse {
@@ -20751,7 +20755,7 @@ export interface IUpdateRecurringJobCronResponse extends IBaseResponse {
 }
 
 export class UpdateJobCronRequestBody implements IUpdateJobCronRequestBody {
-    cronExpression?: string;
+    cronExpression!: string;
 
     constructor(data?: IUpdateJobCronRequestBody) {
         if (data) {
@@ -20783,7 +20787,7 @@ export class UpdateJobCronRequestBody implements IUpdateJobCronRequestBody {
 }
 
 export interface IUpdateJobCronRequestBody {
-    cronExpression?: string;
+    cronExpression: string;
 }
 
 export class TriggerRecurringJobResponse extends BaseResponse implements ITriggerRecurringJobResponse {
