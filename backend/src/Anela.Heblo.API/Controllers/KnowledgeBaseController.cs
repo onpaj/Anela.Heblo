@@ -125,9 +125,8 @@ public class KnowledgeBaseController : BaseApiController
         if (file is null)
             return BadRequest(new UploadDocumentResponse { Success = false });
 
-        var parsedDocumentType = Enum.TryParse<DocumentType>(documentType, ignoreCase: true, out var dt)
-            ? dt
-            : DocumentType.KnowledgeBase;
+        if (!Enum.TryParse<DocumentType>(documentType, ignoreCase: true, out var parsedDocumentType))
+            return BadRequest(new UploadDocumentResponse { Success = false });
 
         await using var stream = file.OpenReadStream();
         var request = new UploadDocumentRequest
