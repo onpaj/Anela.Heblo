@@ -36,6 +36,22 @@ public class ChunkSummarizerTests
     }
 
     [Fact]
+    public async Task SummarizeAsync_EmptyChunkText_ReturnsEmptyWithoutCallingLlm()
+    {
+        var summarizer = Create();
+
+        var result = await summarizer.SummarizeAsync(string.Empty);
+
+        Assert.Equal(string.Empty, result);
+        _chatClient.Verify(
+            c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task SummarizeAsync_WhenDisabled_ReturnsChunkTextWithoutCallingLlm()
     {
         var options = new KnowledgeBaseOptions { SummarizationEnabled = false };

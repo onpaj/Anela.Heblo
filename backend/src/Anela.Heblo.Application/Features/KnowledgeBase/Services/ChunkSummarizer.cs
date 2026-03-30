@@ -16,7 +16,7 @@ public class ChunkSummarizer : IChunkSummarizer
 
     public async Task<string> SummarizeAsync(string chunkText, CancellationToken ct = default)
     {
-        if (!_options.SummarizationEnabled)
+        if (!_options.SummarizationEnabled || string.IsNullOrWhiteSpace(chunkText))
             return chunkText;
 
         var messages = new List<ChatMessage>
