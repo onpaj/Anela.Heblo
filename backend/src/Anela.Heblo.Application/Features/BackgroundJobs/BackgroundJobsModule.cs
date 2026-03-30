@@ -16,7 +16,7 @@ public static class BackgroundJobsModule
 
         // Register Hangfire job enqueuer
         services.AddScoped<IHangfireJobEnqueuer, HangfireJobEnqueuer>();
-        services.AddScoped<IHangfireRecurringJobScheduler, HangfireRecurringJobScheduler>();
+        services.AddSingleton<IHangfireRecurringJobScheduler, HangfireRecurringJobScheduler>();
 
         return services;
     }

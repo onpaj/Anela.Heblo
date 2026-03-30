@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.BackgroundJobs.Contracts;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.GetRecurringJobsList;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.UpdateRecurringJobStatus;
@@ -140,5 +141,6 @@ public class UpdateJobCronRequestBody
     /// <summary>
     /// The new CRON expression (e.g. "0 3 * * *")
     /// </summary>
+    [Required]
     public string CronExpression { get; set; } = string.Empty;
 }
