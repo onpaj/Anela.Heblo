@@ -199,4 +199,39 @@ public class GetRecurringJobsListHandlerTests
         result.Jobs[0].NextRunAt.Should().Be(new DateTime(2026, 3, 30, 13, 0, 0, DateTimeKind.Utc));
         result.Jobs[1].NextRunAt.Should().BeNull();
     }
+
+    [Fact]
+    public async Task Handle_WhenCronExpressionIsInvalid_SetsNextRunAtToNullAndLogsWarning()
+    {
+        // Arrange — "NOT_A_CRON" is syntactically invalid and will cause CrontabSchedule.Parse to throw
+        var request = new GetRecurringJobsListRequest();
+        var jobs = new List<RecurringJobConfiguration>
+        {
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "NOT_A_CRON", true, "User1")
+        };
+        var jobDtos = new List<RecurringJobDto>
+        {
+            new RecurringJobDto { JobName = "Job1", CronExpression = "NOT_A_CRON", IsEnabled = true }
+        };
+        _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
+        _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert — fallback to null, not an exception
+        result.Jobs[0].NextRunAt.Should().BeNull();
+
+        // Warning logged with job name and expression
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString()!.Contains("NOT_A_CRON") &&
+                    v.ToString()!.Contains("Job1")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
 }
