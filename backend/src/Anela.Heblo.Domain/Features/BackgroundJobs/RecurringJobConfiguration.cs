@@ -109,4 +109,16 @@ public class RecurringJobConfiguration : Entity<string>
         LastModifiedAt = DateTime.UtcNow;
         LastModifiedBy = modifiedBy;
     }
+
+    public void UpdateCronExpression(string cronExpression, string modifiedBy)
+    {
+        if (string.IsNullOrWhiteSpace(cronExpression))
+            throw new ValidationException("CronExpression is required");
+        if (string.IsNullOrWhiteSpace(modifiedBy))
+            throw new ValidationException("ModifiedBy is required");
+
+        CronExpression = cronExpression;
+        LastModifiedAt = DateTime.UtcNow;
+        LastModifiedBy = modifiedBy;
+    }
 }

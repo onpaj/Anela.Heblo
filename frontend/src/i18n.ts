@@ -186,6 +186,7 @@ const resources = {
         // BackgroundJobs module errors
         RecurringJobNotFound: "Opakovaná úloha nenalezena",
         RecurringJobUpdateFailed: "Aktualizace opakované úlohy selhala",
+        InvalidCronExpression: "Neplatný výraz CRON",
 
         // KnowledgeBase module errors
         KnowledgeBaseFeedbackLogNotFound: "Záznam zpětné vazby nenalezen",
