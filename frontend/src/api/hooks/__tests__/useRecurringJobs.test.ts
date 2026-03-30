@@ -94,7 +94,7 @@ describe('useRecurringJobsQuery', () => {
   });
 
   it('returns nextRunAt for enabled jobs and null for disabled jobs', async () => {
-    const enabledNextRun = '2026-03-30T13:00:00Z';
+    const enabledNextRun = new Date('2026-03-30T13:00:00Z');
     mockApiClient.recurringJobs_GetRecurringJobs.mockResolvedValue({
       success: true,
       jobs: [
@@ -128,7 +128,7 @@ describe('useRecurringJobsQuery', () => {
     });
 
     expect(result.current.data).toHaveLength(2);
-    expect(result.current.data![0].nextRunAt).toBe(enabledNextRun);
+    expect(result.current.data![0].nextRunAt).toEqual(enabledNextRun);
     expect(result.current.data![1].nextRunAt).toBeNull();
   });
 });
