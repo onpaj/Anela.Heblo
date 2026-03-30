@@ -9,17 +9,23 @@ public class DocumentIndexingService : IDocumentIndexingService
     private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddingGenerator;
     private readonly DocumentChunker _chunker;
     private readonly IKnowledgeBaseRepository _repository;
+    private readonly ChatTranscriptPreprocessor _preprocessor;
+    private readonly IChunkSummarizer _summarizer;
 
     public DocumentIndexingService(
         IEnumerable<IDocumentTextExtractor> extractors,
         IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator,
         DocumentChunker chunker,
-        IKnowledgeBaseRepository repository)
+        IKnowledgeBaseRepository repository,
+        ChatTranscriptPreprocessor preprocessor,
+        IChunkSummarizer summarizer)
     {
         _extractors = extractors;
         _embeddingGenerator = embeddingGenerator;
         _chunker = chunker;
         _repository = repository;
+        _preprocessor = preprocessor;
+        _summarizer = summarizer;
     }
 
     public async Task IndexChunksAsync(
@@ -32,13 +38,15 @@ public class DocumentIndexingService : IDocumentIndexingService
             ?? throw new NotSupportedException($"Content type '{contentType}' is not supported.");
 
         var text = await extractor.ExtractTextAsync(content, ct);
+        text = _preprocessor.Clean(text);
         var chunkTexts = _chunker.Chunk(text);
 
         var chunks = new List<KnowledgeBaseChunk>();
         for (var i = 0; i < chunkTexts.Count; i++)
         {
+            var summary = await _summarizer.SummarizeAsync(chunkTexts[i], ct);
             var embeddings = await _embeddingGenerator.GenerateAsync(
-                [chunkTexts[i]],
+                [summary],
                 cancellationToken: ct);
             chunks.Add(new KnowledgeBaseChunk
             {
