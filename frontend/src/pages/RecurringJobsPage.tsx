@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { Clock, RefreshCw, AlertCircle, ToggleLeft, ToggleRight, Play } from 'lucide-react';
-import { useRecurringJobsQuery, useUpdateRecurringJobStatusMutation, useTriggerRecurringJobMutation, RecurringJobDto } from '../api/hooks/useRecurringJobs';
+import { Clock, RefreshCw, AlertCircle, ToggleLeft, ToggleRight, Play, Pencil, Check, X } from 'lucide-react';
+import { useRecurringJobsQuery, useUpdateRecurringJobStatusMutation, useTriggerRecurringJobMutation, useUpdateRecurringJobCronMutation, RecurringJobDto } from '../api/hooks/useRecurringJobs';
 import { LoadingIndicator } from '../components/ui/LoadingIndicator';
 import ConfirmTriggerJobDialog from '../components/dialogs/ConfirmTriggerJobDialog';
 
@@ -12,6 +12,10 @@ const RecurringJobsPage: React.FC = () => {
   const [triggeringJobName, setTriggeringJobName] = useState<string | null>(null);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<RecurringJobDto | null>(null);
+  const updateCron = useUpdateRecurringJobCronMutation();
+  const [editingCronJobName, setEditingCronJobName] = useState<string | null>(null);
+  const [editingCronValue, setEditingCronValue] = useState<string>('');
+  const [cronEditError, setCronEditError] = useState<string | null>(null);
 
   const handleToggle = async (job: RecurringJobDto) => {
     if (!job.jobName) return;
@@ -53,6 +57,36 @@ const RecurringJobsPage: React.FC = () => {
   const handleCancelTrigger = () => {
     setConfirmDialogOpen(false);
     setSelectedJob(null);
+  };
+
+  const handleEditCron = (job: RecurringJobDto) => {
+    setEditingCronJobName(job.jobName || null);
+    setEditingCronValue(job.cronExpression || '');
+    setCronEditError(null);
+  };
+
+  const handleCancelCronEdit = () => {
+    setEditingCronJobName(null);
+    setEditingCronValue('');
+    setCronEditError(null);
+  };
+
+  const handleSaveCron = async (job: RecurringJobDto) => {
+    if (!job.jobName) return;
+    setCronEditError(null);
+
+    try {
+      await updateCron.mutateAsync({
+        jobName: job.jobName,
+        cronExpression: editingCronValue
+      });
+      setEditingCronJobName(null);
+      setEditingCronValue('');
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Chyba při ukládání CRON výrazu';
+      setCronEditError(message);
+    }
   };
 
   const formatDate = useCallback((date?: string | Date | null) => {
@@ -184,8 +218,61 @@ const RecurringJobsPage: React.FC = () => {
                   <td className="px-6 py-4 text-sm text-gray-700 max-w-xs">
                     {job.description || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
-                    {job.cronExpression || '-'}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {editingCronJobName === job.jobName ? (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={editingCronValue}
+                            onChange={(e) => setEditingCronValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveCron(job);
+                              if (e.key === 'Escape') handleCancelCronEdit();
+                            }}
+                            className="font-mono text-xs border border-gray-300 rounded px-2 py-1 w-32 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            autoFocus
+                            aria-label="CRON výraz"
+                          />
+                          <button
+                            onClick={() => handleSaveCron(job)}
+                            disabled={updateCron.isPending}
+                            aria-label="Uložit CRON výraz"
+                            className="text-green-600 hover:text-green-800 disabled:opacity-50"
+                            title="Uložit"
+                          >
+                            {updateCron.isPending ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
+                          </button>
+                          <button
+                            onClick={handleCancelCronEdit}
+                            aria-label="Zrušit úpravu CRON výrazu"
+                            className="text-gray-400 hover:text-gray-600"
+                            title="Zrušit"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                        {cronEditError && (
+                          <span className="text-xs text-red-600">{cronEditError}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 group">
+                        <span className="font-mono">{job.cronExpression || '-'}</span>
+                        <button
+                          onClick={() => handleEditCron(job)}
+                          aria-label={`Upravit CRON výraz pro ${job.displayName || job.jobName}`}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600"
+                          title="Upravit CRON"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
