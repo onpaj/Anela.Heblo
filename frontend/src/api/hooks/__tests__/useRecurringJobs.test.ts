@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useUpdateRecurringJobCronMutation } from '../useRecurringJobs';
+import { useUpdateRecurringJobCronMutation, useRecurringJobsQuery } from '../useRecurringJobs';
 import * as clientModule from '../../client';
 
 jest.mock('../../client', () => ({
@@ -80,5 +80,55 @@ describe('useUpdateRecurringJobCronMutation', () => {
         });
       })
     ).rejects.toThrow('Invalid CRON');
+  });
+});
+
+describe('useRecurringJobsQuery', () => {
+  const mockApiClient = {
+    recurringJobs_GetRecurringJobs: jest.fn(),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetAuthenticatedApiClient.mockReturnValue(mockApiClient as any);
+  });
+
+  it('returns nextRunAt for enabled jobs and null for disabled jobs', async () => {
+    const enabledNextRun = '2026-03-30T13:00:00Z';
+    mockApiClient.recurringJobs_GetRecurringJobs.mockResolvedValue({
+      success: true,
+      jobs: [
+        {
+          jobName: 'job-enabled',
+          displayName: 'Enabled Job',
+          cronExpression: '0 13 * * *',
+          isEnabled: true,
+          nextRunAt: enabledNextRun,
+          lastModifiedAt: '2026-01-01T00:00:00Z',
+          lastModifiedBy: 'user',
+        },
+        {
+          jobName: 'job-disabled',
+          displayName: 'Disabled Job',
+          cronExpression: '0 3 * * *',
+          isEnabled: false,
+          nextRunAt: null,
+          lastModifiedAt: '2026-01-01T00:00:00Z',
+          lastModifiedBy: 'user',
+        },
+      ],
+    });
+
+    const { result } = renderHook(() => useRecurringJobsQuery(), {
+      wrapper: createWrapper,
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(result.current.data).toHaveLength(2);
+    expect(result.current.data![0].nextRunAt).toBe(enabledNextRun);
+    expect(result.current.data![1].nextRunAt).toBeNull();
   });
 });
