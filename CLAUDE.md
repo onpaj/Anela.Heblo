@@ -423,3 +423,14 @@ See `docs/development/setup.md` for detailed development commands and setup inst
 - Backend follows Clean Architecture with Vertical Slice organization
 - To run Playwright tests: Always use `./scripts/run-playwright-tests.sh` script
 - Validate builds before claiming completion
+
+## Memory
+
+Cross-session knowledge lives in `memory/`. Read relevant files at the start of each session. Write new learnings, decisions, and patterns during the session.
+
+- `memory/decisions/` — architectural and library choices with reasoning
+- `memory/patterns/` — confirmed implementation patterns for this codebase
+- `memory/gotchas/` — bugs, edge cases, and hard-won lessons
+- `memory/context/` — current project state, active work, pending decisions
+
+Update `memory/context/state.md` at the end of significant sessions with: current branch, what was completed, what is pending, any blockers.
