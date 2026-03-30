@@ -82,6 +82,8 @@ export interface DeleteDocumentResponse {
   success: boolean;
 }
 
+export type DocumentType = 'KnowledgeBase' | 'Conversation';
+
 export interface UploadDocumentResponse {
   success: boolean;
   document: DocumentSummary | null;
@@ -360,12 +362,19 @@ export const useUploadKnowledgeBaseDocumentMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (file: File): Promise<UploadDocumentResponse> => {
+    mutationFn: async ({
+      file,
+      documentType,
+    }: {
+      file: File;
+      documentType: DocumentType;
+    }): Promise<UploadDocumentResponse> => {
       const apiClient = getAuthenticatedApiClient();
       const fullUrl = `${(apiClient as any).baseUrl}/api/knowledgebase/documents/upload`;
 
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('documentType', documentType);
 
       // Do NOT set Content-Type header — browser sets it with multipart boundary automatically
       const response = await (apiClient as any).http.fetch(fullUrl, {

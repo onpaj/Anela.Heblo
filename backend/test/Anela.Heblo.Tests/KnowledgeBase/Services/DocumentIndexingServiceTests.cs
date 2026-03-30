@@ -1,7 +1,6 @@
 using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -11,73 +10,96 @@ namespace Anela.Heblo.Tests.KnowledgeBase.Services;
 public class DocumentIndexingServiceTests
 {
     private readonly Mock<IDocumentTextExtractor> _pdfExtractor;
-    private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddingGenerator;
     private readonly Mock<IKnowledgeBaseRepository> _repository;
-    private readonly Mock<IChunkSummarizer> _summarizer;
-    private readonly GeneratedEmbeddings<Embedding<float>> _generatedEmbeddings;
+    private readonly Mock<IIndexingStrategy> _kbStrategy;
+    private readonly Mock<IIndexingStrategy> _conversationStrategy;
     private readonly DocumentIndexingService _service;
+    private readonly KnowledgeBaseOptions _options;
 
     public DocumentIndexingServiceTests()
     {
         _pdfExtractor = new Mock<IDocumentTextExtractor>();
         _pdfExtractor.Setup(e => e.CanHandle("application/pdf")).Returns(true);
-        _pdfExtractor.Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+        _pdfExtractor
+            .Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("word1 word2 word3");
-
-        var floats = new float[] { 0.1f, 0.2f, 0.3f };
-        _generatedEmbeddings = new GeneratedEmbeddings<Embedding<float>>(
-            [new Embedding<float>(new ReadOnlyMemory<float>(floats))]);
-
-        _embeddingGenerator = new Mock<IEmbeddingGenerator<string, Embedding<float>>>();
-        _embeddingGenerator
-            .Setup(e => e.GenerateAsync(
-                It.IsAny<IEnumerable<string>>(),
-                It.IsAny<EmbeddingGenerationOptions?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(_generatedEmbeddings);
 
         _repository = new Mock<IKnowledgeBaseRepository>();
 
-        _summarizer = new Mock<IChunkSummarizer>();
-        _summarizer
-            .Setup(s => s.SummarizeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string text, CancellationToken _) => text);
+        _kbStrategy = new Mock<IIndexingStrategy>();
+        _kbStrategy.Setup(s => s.Supports(DocumentType.KnowledgeBase)).Returns(true);
+        _kbStrategy.Setup(s => s.Supports(DocumentType.Conversation)).Returns(false);
+        _kbStrategy
+            .Setup(s => s.CreateChunksAsync(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<KnowledgeBaseChunk>
+            {
+                new() { Id = Guid.NewGuid(), DocumentId = Guid.NewGuid(), ChunkIndex = 0, Content = "chunk", Embedding = [0.1f] }
+            });
 
-        var options = Options.Create(new KnowledgeBaseOptions { ChunkSize = 512, ChunkOverlapTokens = 50 });
-        var chunker = new DocumentChunker(options);
-        var preprocessor = new ChatTranscriptPreprocessor(options);
+        _conversationStrategy = new Mock<IIndexingStrategy>();
+        _conversationStrategy.Setup(s => s.Supports(DocumentType.Conversation)).Returns(true);
+        _conversationStrategy.Setup(s => s.Supports(DocumentType.KnowledgeBase)).Returns(false);
+        _conversationStrategy
+            .Setup(s => s.CreateChunksAsync(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<KnowledgeBaseChunk>
+            {
+                new() { Id = Guid.NewGuid(), DocumentId = Guid.NewGuid(), ChunkIndex = 0, Content = "chunk", Embedding = [0.1f] }
+            });
+
+        _options = new KnowledgeBaseOptions();
+        var preprocessor = new ChatTranscriptPreprocessor(Options.Create(_options));
 
         _service = new DocumentIndexingService(
             new[] { _pdfExtractor.Object },
-            _embeddingGenerator.Object,
-            chunker,
             _repository.Object,
             preprocessor,
-            _summarizer.Object);
+            new[] { _kbStrategy.Object, _conversationStrategy.Object });
     }
 
     [Fact]
-    public async Task IndexChunksAsync_CallsExtractorAndEmbedder_AndAddsChunks()
+    public async Task IndexChunksAsync_KnowledgeBaseDocument_UsesKbStrategy()
     {
-        var doc = new KnowledgeBaseDocument { Id = Guid.NewGuid() };
-        var content = new byte[] { 0x25, 0x50, 0x44, 0x46 };
+        var doc = new KnowledgeBaseDocument { Id = Guid.NewGuid(), DocumentType = DocumentType.KnowledgeBase };
 
-        await _service.IndexChunksAsync(content, "application/pdf", doc, CancellationToken.None);
+        await _service.IndexChunksAsync([], "application/pdf", doc, CancellationToken.None);
 
-        _pdfExtractor.Verify(e => e.ExtractTextAsync(content, It.IsAny<CancellationToken>()), Times.Once);
-        _embeddingGenerator.Verify(
-            e => e.GenerateAsync(
-                It.IsAny<IEnumerable<string>>(),
-                It.IsAny<EmbeddingGenerationOptions?>(),
-                It.IsAny<CancellationToken>()),
-            Times.AtLeastOnce);
+        _kbStrategy.Verify(
+            s => s.CreateChunksAsync(It.IsAny<string>(), doc.Id, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _conversationStrategy.Verify(
+            s => s.CreateChunksAsync(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task IndexChunksAsync_ConversationDocument_UsesConversationStrategy()
+    {
+        _pdfExtractor
+            .Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("conversation text");
+
+        var doc = new KnowledgeBaseDocument { Id = Guid.NewGuid(), DocumentType = DocumentType.Conversation };
+
+        await _service.IndexChunksAsync([], "application/pdf", doc, CancellationToken.None);
+
+        _conversationStrategy.Verify(
+            s => s.CreateChunksAsync(It.IsAny<string>(), doc.Id, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _kbStrategy.Verify(
+            s => s.CreateChunksAsync(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task IndexChunksAsync_ChunksPersistedAndStatusSetToIndexed()
+    {
+        var doc = new KnowledgeBaseDocument { Id = Guid.NewGuid(), DocumentType = DocumentType.KnowledgeBase };
+
+        await _service.IndexChunksAsync([], "application/pdf", doc, CancellationToken.None);
+
         _repository.Verify(
             r => r.AddChunksAsync(It.IsAny<IEnumerable<KnowledgeBaseChunk>>(), It.IsAny<CancellationToken>()),
             Times.Once);
-        _summarizer.Verify(
-            s => s.SummarizeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.AtLeastOnce);
-
         Assert.Equal(DocumentStatus.Indexed, doc.Status);
         Assert.NotNull(doc.IndexedAt);
     }
@@ -92,64 +114,7 @@ public class DocumentIndexingServiceTests
     }
 
     [Fact]
-    public async Task IndexChunksAsync_EmbeddingIsGeneratedFromSummary()
-    {
-        const string summary = "Problém zákazníka: akné";
-
-        _summarizer
-            .Setup(s => s.SummarizeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(summary);
-
-        string? capturedEmbeddingInput = null;
-        _embeddingGenerator
-            .Setup(e => e.GenerateAsync(
-                It.IsAny<IEnumerable<string>>(),
-                It.IsAny<EmbeddingGenerationOptions?>(),
-                It.IsAny<CancellationToken>()))
-            .Callback<IEnumerable<string>, EmbeddingGenerationOptions?, CancellationToken>(
-                (texts, _, _) => capturedEmbeddingInput = texts.First())
-            .ReturnsAsync(_generatedEmbeddings);
-
-        var doc = new KnowledgeBaseDocument { Id = Guid.NewGuid() };
-        await _service.IndexChunksAsync([], "application/pdf", doc, CancellationToken.None);
-
-        Assert.Equal(summary, capturedEmbeddingInput);
-    }
-
-    [Fact]
-    public async Task IndexChunksAsync_ChunkContentIsFullCleanText_NotSummary()
-    {
-        const string extractedText = "word1 word2 word3";
-        const string summary = "Problém zákazníka: suchá pleť";
-
-        _pdfExtractor
-            .Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(extractedText);
-        _summarizer
-            .Setup(s => s.SummarizeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(summary);
-
-        IEnumerable<KnowledgeBaseChunk>? savedChunks = null;
-        _repository
-            .Setup(r => r.AddChunksAsync(
-                It.IsAny<IEnumerable<KnowledgeBaseChunk>>(),
-                It.IsAny<CancellationToken>()))
-            .Callback<IEnumerable<KnowledgeBaseChunk>, CancellationToken>(
-                (chunks, _) => savedChunks = chunks.ToList());
-
-        var doc = new KnowledgeBaseDocument { Id = Guid.NewGuid() };
-        await _service.IndexChunksAsync([], "application/pdf", doc, CancellationToken.None);
-
-        Assert.NotNull(savedChunks);
-        Assert.All(savedChunks!, chunk =>
-        {
-            Assert.Equal(extractedText, chunk.Content);
-            Assert.DoesNotContain(summary, chunk.Content);
-        });
-    }
-
-    [Fact]
-    public async Task IndexChunksAsync_StripsBoilerplateBeforeChunking()
+    public async Task IndexChunksAsync_PreprocessorStripsBoilerplateBeforeStrategy()
     {
         const string boilerplateText =
             "datum: 04.11.2025 zákazník: Zákazník-0001\nAnela: bisabolol je vhodný pro citlivou pleť";
@@ -158,18 +123,16 @@ public class DocumentIndexingServiceTests
             .Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(boilerplateText);
 
-        IEnumerable<KnowledgeBaseChunk>? savedChunks = null;
-        _repository
-            .Setup(r => r.AddChunksAsync(
-                It.IsAny<IEnumerable<KnowledgeBaseChunk>>(),
-                It.IsAny<CancellationToken>()))
-            .Callback<IEnumerable<KnowledgeBaseChunk>, CancellationToken>(
-                (chunks, _) => savedChunks = chunks.ToList());
+        string? capturedCleanText = null;
+        _kbStrategy
+            .Setup(s => s.CreateChunksAsync(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Callback<string, Guid, CancellationToken>((text, _, _) => capturedCleanText = text)
+            .ReturnsAsync(new List<KnowledgeBaseChunk>());
 
-        var doc = new KnowledgeBaseDocument { Id = Guid.NewGuid() };
+        var doc = new KnowledgeBaseDocument { Id = Guid.NewGuid(), DocumentType = DocumentType.KnowledgeBase };
         await _service.IndexChunksAsync([], "application/pdf", doc, CancellationToken.None);
 
-        Assert.NotNull(savedChunks);
-        Assert.All(savedChunks!, chunk => Assert.DoesNotContain("datum:", chunk.Content));
+        Assert.NotNull(capturedCleanText);
+        Assert.DoesNotContain("datum:", capturedCleanText);
     }
 }

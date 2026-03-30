@@ -23,6 +23,9 @@ public static class KnowledgeBaseModule
         services.AddScoped<DocumentChunker>();
         services.AddScoped<ChatTranscriptPreprocessor>();
         services.AddScoped<IChunkSummarizer, ChunkSummarizer>();
+        services.AddScoped<IConversationTopicSummarizer, ConversationTopicSummarizer>();
+        services.AddScoped<IIndexingStrategy, KnowledgeBaseDocIndexingStrategy>();
+        services.AddScoped<IIndexingStrategy, ConversationIndexingStrategy>();
         services.AddScoped<IDocumentIndexingService, DocumentIndexingService>();
 
         // IKnowledgeBaseRepository is registered in PersistenceModule (real EF Core implementation)

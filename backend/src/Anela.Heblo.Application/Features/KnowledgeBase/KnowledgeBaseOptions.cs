@@ -48,4 +48,29 @@ public class KnowledgeBaseOptions
 
         Text:
         """;
+
+    /// <summary>
+    /// Prompt used by ConversationTopicSummarizer. Instructs the LLM to segment
+    /// the full transcript by topic and return keyword blocks separated by TopicDelimiter.
+    /// The full transcript text is appended after a newline.
+    /// </summary>
+    public string TopicSummarizationPrompt { get; set; } =
+        """
+        Jsi asistent analyzující zákaznický chat kosmetické firmy Anela.
+        Rozděl konverzaci do tematických bloků. Pro každý blok vypiš klíčová data.
+        Každý blok začni značkou [TOPIC] na samostatném řádku (vynech kategorie bez obsahu):
+
+        [TOPIC]
+        Produkty: <názvy produktů>
+        Ingredience: <účinné látky, složky>
+        Problém zákazníka: <kožní potíže, dotazy>
+        Doporučení: <rady, způsob použití>
+
+        Konverzace:
+        """;
+
+    /// <summary>
+    /// Delimiter used to split the LLM response into individual topic summaries.
+    /// </summary>
+    public string TopicDelimiter { get; set; } = "[TOPIC]";
 }

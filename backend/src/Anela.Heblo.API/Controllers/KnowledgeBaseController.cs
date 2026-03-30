@@ -7,6 +7,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SubmitFeedback;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.UploadDocument;
 using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Domain.Features.KnowledgeBase;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -118,9 +119,13 @@ public class KnowledgeBaseController : BaseApiController
     [Authorize(Policy = AuthorizationConstants.Policies.KnowledgeBaseUpload)]
     public async Task<ActionResult<UploadDocumentResponse>> UploadDocument(
         IFormFile file,
-        CancellationToken ct)
+        [FromForm] string documentType = "KnowledgeBase",
+        CancellationToken ct = default)
     {
         if (file is null)
+            return BadRequest(new UploadDocumentResponse { Success = false });
+
+        if (!Enum.TryParse<DocumentType>(documentType, ignoreCase: true, out var parsedDocumentType))
             return BadRequest(new UploadDocumentResponse { Success = false });
 
         await using var stream = file.OpenReadStream();
@@ -130,6 +135,7 @@ public class KnowledgeBaseController : BaseApiController
             Filename = file.FileName,
             ContentType = file.ContentType,
             FileSizeBytes = file.Length,
+            DocumentType = parsedDocumentType,
         };
         var result = await _mediator.Send(request, ct);
         return HandleResponse(result);

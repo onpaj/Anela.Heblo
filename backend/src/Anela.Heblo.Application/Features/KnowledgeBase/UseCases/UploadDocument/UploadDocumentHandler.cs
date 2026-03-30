@@ -58,6 +58,7 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
             ContentType = contentType,
             ContentHash = hash,
             Status = DocumentStatus.Processing,
+            DocumentType = request.DocumentType,
             CreatedAt = DateTime.UtcNow,
         };
         await _repository.AddDocumentAsync(doc, cancellationToken);
