@@ -196,8 +196,7 @@ public class GetRecurringJobsListHandlerTests
 
         var result = await _handler.Handle(request, CancellationToken.None);
 
-        result.Jobs[0].NextRunAt.Should().NotBeNull();
-        result.Jobs[0].NextRunAt.Should().BeAfter(FixedUtcNow.UtcDateTime);
+        result.Jobs[0].NextRunAt.Should().Be(new DateTime(2026, 3, 30, 13, 0, 0, DateTimeKind.Utc));
         result.Jobs[1].NextRunAt.Should().BeNull();
     }
 }

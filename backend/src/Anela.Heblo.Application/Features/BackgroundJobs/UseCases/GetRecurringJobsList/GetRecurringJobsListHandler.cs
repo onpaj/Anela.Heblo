@@ -4,6 +4,7 @@ using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using NCrontab.Advanced;
+using NCrontab.Advanced.Exceptions;
 
 namespace Anela.Heblo.Application.Features.BackgroundJobs.UseCases.GetRecurringJobsList;
 
@@ -36,11 +37,24 @@ public class GetRecurringJobsListHandler : IRequestHandler<GetRecurringJobsListR
         var jobDtos = _mapper.Map<List<RecurringJobDto>>(jobs);
 
         var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
-        for (var i = 0; i < jobDtos.Count; i++)
+        foreach (var dto in jobDtos)
         {
-            jobDtos[i].NextRunAt = jobs[i].IsEnabled
-                ? CrontabSchedule.Parse(jobs[i].CronExpression).GetNextOccurrence(utcNow)
-                : null;
+            if (!dto.IsEnabled)
+            {
+                dto.NextRunAt = null;
+                continue;
+            }
+
+            try
+            {
+                dto.NextRunAt = CrontabSchedule.Parse(dto.CronExpression).GetNextOccurrence(utcNow);
+            }
+            catch (CrontabException ex)
+            {
+                _logger.LogWarning(ex, "Invalid CRON expression '{CronExpression}' for job '{JobName}', NextRunAt will be null",
+                    dto.CronExpression, dto.JobName);
+                dto.NextRunAt = null;
+            }
         }
 
         _logger.LogInformation("Retrieved {Count} recurring jobs", jobDtos.Count);
