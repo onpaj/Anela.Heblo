@@ -133,6 +133,24 @@ public class KnowledgeBaseControllerTests
     }
 
     [Fact]
+    public async Task UploadDocument_WithInvalidDocumentType_Returns400()
+    {
+        // Arrange
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(f => f.OpenReadStream()).Returns(new MemoryStream());
+        mockFile.Setup(f => f.FileName).Returns("guide.pdf");
+        mockFile.Setup(f => f.ContentType).Returns("application/pdf");
+        mockFile.Setup(f => f.Length).Returns(10);
+
+        // Act
+        var result = await _controller.UploadDocument(mockFile.Object, "InvalidValue", CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        _mockMediator.Verify(m => m.Send(It.IsAny<UploadDocumentRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task DeleteDocument_WithValidId_Returns200()
     {
         // Arrange
