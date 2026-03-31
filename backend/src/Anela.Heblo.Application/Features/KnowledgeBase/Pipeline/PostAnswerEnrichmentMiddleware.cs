@@ -1,21 +1,45 @@
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.AI;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 
-/// <summary>
-/// Pass-through M.E.AI middleware. Extension point for future product code and eshop URL enrichment.
-/// </summary>
 public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
 {
-    public PostAnswerEnrichmentMiddleware(IChatClient inner)
+    private static readonly Regex ProductCodePattern = new(@"\(([A-Z0-9]+)\)", RegexOptions.Compiled);
+    private readonly IProductEnrichmentCache _cache;
+
+    public PostAnswerEnrichmentMiddleware(IChatClient inner, IProductEnrichmentCache cache)
         : base(inner)
     {
+        _cache = cache;
     }
 
-    // Pass-through — enrichment logic to be added in a future issue
-    public override Task<ChatResponse> GetResponseAsync(
+    public override async Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> chatMessages,
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
-        => base.GetResponseAsync(chatMessages, options, cancellationToken);
+    {
+        var response = await base.GetResponseAsync(chatMessages, options, cancellationToken);
+        var rawText = response.Text ?? string.Empty;
+
+        if (string.IsNullOrEmpty(rawText))
+            return response;
+
+        var lookup = await _cache.GetProductLookupAsync(cancellationToken);
+        var enriched = ProductCodePattern.Replace(rawText, match =>
+        {
+            var code = match.Groups[1].Value;
+            if (!lookup.TryGetValue(code, out var entry))
+                return match.Value;
+
+            return string.IsNullOrEmpty(entry.Url)
+                ? $"{entry.ProductName} ({code})"
+                : $"[{entry.ProductName} ({code})]({entry.Url})";
+        });
+
+        if (enriched == rawText)
+            return response;
+
+        return new ChatResponse([new ChatMessage(ChatRole.Assistant, enriched)]);
+    }
 }
