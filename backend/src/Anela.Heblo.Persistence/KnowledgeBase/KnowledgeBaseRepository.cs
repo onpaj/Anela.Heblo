@@ -187,6 +187,13 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             .ExecuteDeleteAsync(ct);
     }
 
+    public async Task<KnowledgeBaseChunk?> GetChunkByIdAsync(Guid chunkId, CancellationToken ct = default)
+    {
+        return await _context.KnowledgeBaseChunks
+            .Include(c => c.Document)
+            .FirstOrDefaultAsync(c => c.Id == chunkId, ct);
+    }
+
     public async Task UpdateDocumentSourcePathAsync(Guid documentId, string newSourcePath, CancellationToken ct = default)
     {
         await _context.KnowledgeBaseDocuments
