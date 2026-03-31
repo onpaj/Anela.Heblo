@@ -207,6 +207,8 @@ public enum ErrorCodes
     KnowledgeBaseFeedbackLogNotFound = 2001,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     KnowledgeBaseFeedbackAlreadySubmitted = 2002,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    KnowledgeBaseChunkNotFound = 2003,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
