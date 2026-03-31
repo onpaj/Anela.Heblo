@@ -9,6 +9,14 @@ public class KnowledgeBaseOptions
     public int MaxRetrievedChunks { get; set; } = 5;
 
     /// <summary>
+    /// Minimum cosine similarity score [0–1] for a chunk to be included in results.
+    /// Chunks below this threshold are discarded even if they are in the top-K.
+    /// Default 0.60 is intentionally below current observed average so nothing is
+    /// removed until pipeline improvements push good results up and noisy ones down.
+    /// </summary>
+    public double MinSimilarityScore { get; set; } = 0.60;
+
+    /// <summary>
     /// UPN or object ID of the OneDrive user account used for ingestion (app-only access).
     /// Example: "service@anela.cz" or a GUID object ID.
     /// </summary>
