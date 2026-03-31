@@ -14,13 +14,6 @@ public class KnowledgeBaseOptions
     /// <summary>Max tokens cap forwarded to the Anthropic API for every KB chat call.</summary>
     public int ChatMaxTokens { get; set; } = 1024;
 
-    /// <summary>
-    /// Model ID used for query expansion (HyDE). A lite/fast model is sufficient —
-    /// the task is purely mechanical (rewrite short informal question into structured template).
-    /// Defaults to claude-haiku-4-5 to minimise latency and cost.
-    /// </summary>
-    public string QueryExpansionModel { get; set; } = "claude-haiku-4-5-20251001";
-
     public string OneDriveInboxPath { get; set; } = "/KnowledgeBase/Inbox";
     public string OneDriveArchivedPath { get; set; } = "/KnowledgeBase/Archived";
     public int ChunkSize { get; set; } = 512;
