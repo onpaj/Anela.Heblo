@@ -141,8 +141,8 @@ public class KnowledgeBaseOptions
         """;
 
     /// <summary>
-    /// System prompt used by AskQuestionHandler. Supports {context} and {query} placeholders.
-    /// {context} is replaced with retrieved chunks; {query} is replaced with the user's question.
+    /// System prompt used by AskQuestionHandler. Supports {context}, {products} and {query} placeholders.
+    /// {context} is replaced with retrieved chunks; {products} with the product table; {query} with the user's question.
     /// </summary>
     public string AskQuestionSystemPrompt { get; set; } =
         """
@@ -158,9 +158,14 @@ public class KnowledgeBaseOptions
         - Zohledni typ pleti a potíže zákazníka
         - Odpovídej v češtině, přátelsky ale odborně
         - Pokud kontext obsahuje více podobných případů, syntetizuj je
+        - Pokud zmiňuješ produkt Anela, nahraď celý název produktu jeho kódem
+          v závorce (např. (AKL001)). Použij pouze kódy z přiloženého seznamu produktů.
 
         Kontext z podobných konverzací:
         {context}
+
+        Produkty Anela (CODE | Název):
+        {products}
 
         Dotaz zákazníka:
         {query}

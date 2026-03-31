@@ -44,6 +44,8 @@ public static class KnowledgeBaseModule
             services.AddScoped<IOneDriveService, GraphOneDriveService>();
         }
 
+        services.AddSingleton<IProductEnrichmentCache, ProductEnrichmentCache>();
+
         // Register QuestionLoggingBehavior scoped to KB (not global like ValidationBehavior)
         services.AddScoped<IPipelineBehavior<AskQuestionRequest, AskQuestionResponse>, QuestionLoggingBehavior>();
 
