@@ -10,23 +10,30 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
     private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddingGenerator;
     private readonly IKnowledgeBaseRepository _repository;
     private readonly KnowledgeBaseOptions _options;
+    private readonly IChatClient _chatClient;
 
     public SearchDocumentsHandler(
         IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator,
         IKnowledgeBaseRepository repository,
-        IOptions<KnowledgeBaseOptions> options)
+        IOptions<KnowledgeBaseOptions> options,
+        IChatClient chatClient)
     {
         _embeddingGenerator = embeddingGenerator;
         _repository = repository;
         _options = options.Value;
+        _chatClient = chatClient;
     }
 
     public async Task<SearchDocumentsResponse> Handle(
         SearchDocumentsRequest request,
         CancellationToken cancellationToken)
     {
+        var queryToEmbed = _options.QueryExpansionEnabled
+            ? await ExpandQueryAsync(request.Query, cancellationToken)
+            : request.Query;
+
         var embeddings = await _embeddingGenerator.GenerateAsync(
-            [request.Query],
+            [queryToEmbed],
             cancellationToken: cancellationToken);
         var queryEmbedding = embeddings[0].Vector.ToArray();
         var results = await _repository.SearchSimilarAsync(queryEmbedding, request.TopK, cancellationToken);
@@ -47,5 +54,17 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
                 SourcePath = r.Chunk.Document.SourcePath
             }).ToList()
         };
+    }
+
+    private async Task<string> ExpandQueryAsync(string query, CancellationToken cancellationToken)
+    {
+        var messages = new List<ChatMessage>
+        {
+            new(ChatRole.User, _options.QueryExpansionPrompt + "\n" + query)
+        };
+
+        var chatOptions = new ChatOptions { ModelId = _options.QueryExpansionModel };
+        var response = await _chatClient.GetResponseAsync(messages, chatOptions, cancellationToken);
+        return string.IsNullOrWhiteSpace(response.Text) ? query : response.Text;
     }
 }

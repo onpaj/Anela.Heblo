@@ -11,7 +11,12 @@ public static class AnthropicAdapterServiceCollectionExtensions
 {
     public static IServiceCollection AddAnthropicAdapter(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<AnthropicOptions>(configuration.GetSection(AnthropicOptions.SectionKey));
+        services.Configure<AnthropicOptions>(opts =>
+        {
+            opts.ApiKey = configuration["Anthropic:ApiKey"] ?? "";
+            opts.Model = configuration["KnowledgeBase:ChatModel"] ?? opts.Model;
+            opts.MaxTokens = configuration.GetValue("KnowledgeBase:ChatMaxTokens", opts.MaxTokens);
+        });
         services.AddHttpClient("Anthropic");
 
         services.AddChatClient(sp =>

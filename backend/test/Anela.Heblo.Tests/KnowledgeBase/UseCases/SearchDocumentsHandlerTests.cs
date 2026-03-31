@@ -12,11 +12,17 @@ public class SearchDocumentsHandlerTests
 {
     private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddingGenerator = new();
     private readonly Mock<IKnowledgeBaseRepository> _repository = new();
+    private readonly Mock<IChatClient> _chatClient = new();
 
-    private SearchDocumentsHandler CreateHandler(double minScore = 0.60)
+    private SearchDocumentsHandler CreateHandler(double minScore = 0.60, bool queryExpansionEnabled = false)
     {
-        var options = Options.Create(new KnowledgeBaseOptions { MinSimilarityScore = minScore });
-        return new SearchDocumentsHandler(_embeddingGenerator.Object, _repository.Object, options);
+        var options = Options.Create(new KnowledgeBaseOptions
+        {
+            MinSimilarityScore = minScore,
+            QueryExpansionEnabled = queryExpansionEnabled,
+            QueryExpansionPrompt = "Expand:"
+        });
+        return new SearchDocumentsHandler(_embeddingGenerator.Object, _repository.Object, options, _chatClient.Object);
     }
 
     private void SetupEmbeddingGenerator()
@@ -40,6 +46,17 @@ public class SearchDocumentsHandlerTests
         Embedding = [0.1f, 0.2f, 0.3f],
         Document = new KnowledgeBaseDocument { Filename = "doc.pdf", SourcePath = "/inbox/doc.pdf" }
     };
+
+    private void SetupChatClient(string expandedText)
+    {
+        var chatResponse = new ChatResponse([new ChatMessage(ChatRole.Assistant, expandedText)]);
+        _chatClient
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                default))
+            .ReturnsAsync(chatResponse);
+    }
 
     [Fact]
     public async Task Handle_ReturnsChunksOrderedByScore()
@@ -100,5 +117,101 @@ public class SearchDocumentsHandlerTests
         Assert.Equal("Good relevant content", result.Chunks[0].Content);
         Assert.Equal(0.80, result.Chunks[0].Score);
         Assert.Equal(1, result.BelowThresholdCount);
+    }
+
+    [Fact]
+    public async Task Handle_QueryExpansionEnabled_EmbedExpandedQuery()
+    {
+        const string expandedQuery = "Problém: popraskané ruce\nKontext: suchá kůže";
+        SetupEmbeddingGenerator();
+        SetupChatClient(expandedQuery);
+
+        _repository
+            .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
+            .ReturnsAsync([]);
+
+        string? capturedEmbeddingInput = null;
+        _embeddingGenerator
+            .Setup(s => s.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                default))
+            .Callback<IEnumerable<string>, EmbeddingGenerationOptions?, CancellationToken>(
+                (texts, _, _) => capturedEmbeddingInput = texts.First())
+            .ReturnsAsync(new GeneratedEmbeddings<Embedding<float>>(
+                [new Embedding<float>(new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f }))]));
+
+        await CreateHandler(queryExpansionEnabled: true).Handle(
+            new SearchDocumentsRequest { Query = "poradis neco na popraskane ruce?", TopK = 5 },
+            default);
+
+        Assert.Equal(expandedQuery, capturedEmbeddingInput);
+    }
+
+    [Fact]
+    public async Task Handle_QueryExpansionDisabled_EmbedRawQuery()
+    {
+        const string rawQuery = "poradis neco na popraskane ruce?";
+        SetupEmbeddingGenerator();
+
+        _repository
+            .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
+            .ReturnsAsync([]);
+
+        string? capturedEmbeddingInput = null;
+        _embeddingGenerator
+            .Setup(s => s.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                default))
+            .Callback<IEnumerable<string>, EmbeddingGenerationOptions?, CancellationToken>(
+                (texts, _, _) => capturedEmbeddingInput = texts.First())
+            .ReturnsAsync(new GeneratedEmbeddings<Embedding<float>>(
+                [new Embedding<float>(new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f }))]));
+
+        await CreateHandler(queryExpansionEnabled: false).Handle(
+            new SearchDocumentsRequest { Query = rawQuery, TopK = 5 },
+            default);
+
+        Assert.Equal(rawQuery, capturedEmbeddingInput);
+        _chatClient.Verify(
+            c => c.GetResponseAsync(It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), default),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_QueryExpansionEnabled_LlmReturnsEmpty_FallsBackToRawQuery()
+    {
+        const string rawQuery = "popraskane ruce?";
+        SetupEmbeddingGenerator();
+
+        var emptyResponse = new ChatResponse([new ChatMessage(ChatRole.Assistant, "   ")]);
+        _chatClient
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                default))
+            .ReturnsAsync(emptyResponse);
+
+        _repository
+            .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
+            .ReturnsAsync([]);
+
+        string? capturedEmbeddingInput = null;
+        _embeddingGenerator
+            .Setup(s => s.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                default))
+            .Callback<IEnumerable<string>, EmbeddingGenerationOptions?, CancellationToken>(
+                (texts, _, _) => capturedEmbeddingInput = texts.First())
+            .ReturnsAsync(new GeneratedEmbeddings<Embedding<float>>(
+                [new Embedding<float>(new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f }))]));
+
+        await CreateHandler(queryExpansionEnabled: true).Handle(
+            new SearchDocumentsRequest { Query = rawQuery, TopK = 5 },
+            default);
+
+        Assert.Equal(rawQuery, capturedEmbeddingInput);
     }
 }

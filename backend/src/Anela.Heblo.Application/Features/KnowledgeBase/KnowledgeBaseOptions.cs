@@ -2,6 +2,18 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase;
 
 public class KnowledgeBaseOptions
 {
+    /// <summary>OpenAI embedding model used to vectorise chunks and queries.</summary>
+    public string EmbeddingModel { get; set; } = "text-embedding-3-large";
+
+    /// <summary>Dimension count of the chosen embedding model (must match the DB column width).</summary>
+    public int EmbeddingDimensions { get; set; } = 1536;
+
+    /// <summary>Anthropic model used for AskQuestion answers and chunk/topic summarisation.</summary>
+    public string ChatModel { get; set; } = "claude-sonnet-4-6";
+
+    /// <summary>Max tokens cap forwarded to the Anthropic API for every KB chat call.</summary>
+    public int ChatMaxTokens { get; set; } = 1024;
+
     public string OneDriveInboxPath { get; set; } = "/KnowledgeBase/Inbox";
     public string OneDriveArchivedPath { get; set; } = "/KnowledgeBase/Archived";
     public int ChunkSize { get; set; } = 512;
@@ -89,6 +101,38 @@ public class KnowledgeBaseOptions
     /// Delimiter used to split the LLM response into individual topic summaries.
     /// </summary>
     public string TopicDelimiter { get; set; } = "[TOPIC]";
+
+    /// <summary>
+    /// When true, user queries are rewritten into the structured summary format used
+    /// by stored embeddings before calling the embedding model (HyDE variant).
+    /// Set to false to skip the LLM call and embed the raw query directly.
+    /// </summary>
+    public bool QueryExpansionEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Model ID used for query expansion. A lite/fast model is sufficient — the task
+    /// is purely mechanical (rewrite short informal question into structured template).
+    /// Defaults to claude-haiku-4-5 to minimise latency and cost.
+    /// </summary>
+    public string QueryExpansionModel { get; set; } = "claude-haiku-4-5-20251001";
+
+    /// <summary>
+    /// Prompt prepended to the user query when requesting query expansion.
+    /// The raw query is appended after a newline.
+    /// </summary>
+    public string QueryExpansionPrompt { get; set; } =
+        """
+        Jsi asistent kosmetické firmy Anela. Přepiš zákazníkův dotaz do strukturovaného
+        formátu vhodného pro sémantické vyhledávání v databázi zákaznických konverzací.
+        Vypiš POUZE relevantní položky (vynech kategorie bez obsahu):
+
+        Problém: <co zákazník řeší, formuluj jako zákazníkův dotaz>
+        Kontext: <typ pleti, stávající rutina, situace>
+        Doporučení: <co by mohlo být doporučeno>
+        Ingredience: <účinné látky, složky>
+
+        Dotaz:
+        """;
 
     /// <summary>
     /// System prompt used by AskQuestionHandler. Supports {context} and {query} placeholders.
