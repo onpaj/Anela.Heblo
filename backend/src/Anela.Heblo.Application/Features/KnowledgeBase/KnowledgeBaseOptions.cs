@@ -59,7 +59,8 @@ public class KnowledgeBaseOptions
         """
         Jsi asistent analyzující zákaznický chat kosmetické firmy Anela.
         Rozděl konverzaci do tematických bloků. Pro každý blok vypiš klíčová data.
-        Každý blok začni značkou [TOPIC] na samostatném řádku (vynech kategorie bez obsahu):
+        Odpověz POUZE bloky níže – žádný nadpis, žádný úvod, žádný závěr.
+        Každý blok začni PŘESNĚ značkou [TOPIC] na samostatném řádku (vynech kategorie bez obsahu):
 
         [TOPIC]
         Produkty: <názvy produktů>
