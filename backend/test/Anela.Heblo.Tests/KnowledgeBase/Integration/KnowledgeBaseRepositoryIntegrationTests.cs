@@ -60,22 +60,25 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
             CREATE SCHEMA IF NOT EXISTS dbo;
 
             CREATE TABLE IF NOT EXISTS dbo."KnowledgeBaseDocuments" (
-                "Id"          uuid NOT NULL PRIMARY KEY,
-                "Filename"    varchar(500) NOT NULL,
-                "SourcePath"  varchar(1000) NOT NULL UNIQUE,
-                "ContentType" varchar(100) NOT NULL,
-                "ContentHash" varchar(64) NOT NULL UNIQUE,
-                "Status"      varchar(50) NOT NULL,
-                "CreatedAt"   timestamp NOT NULL,
-                "IndexedAt"   timestamp NULL
+                "Id"           uuid NOT NULL PRIMARY KEY,
+                "Filename"     varchar(500) NOT NULL,
+                "SourcePath"   varchar(1000) NOT NULL UNIQUE,
+                "ContentType"  varchar(100) NOT NULL,
+                "ContentHash"  varchar(64) NOT NULL UNIQUE,
+                "Status"       varchar(50) NOT NULL,
+                "DocumentType" integer NOT NULL DEFAULT 0,
+                "CreatedAt"    timestamp NOT NULL,
+                "IndexedAt"    timestamp NULL
             );
 
             CREATE TABLE IF NOT EXISTS dbo."KnowledgeBaseChunks" (
-                "Id"          uuid NOT NULL PRIMARY KEY,
-                "DocumentId"  uuid NOT NULL REFERENCES dbo."KnowledgeBaseDocuments"("Id") ON DELETE CASCADE,
-                "ChunkIndex"  integer NOT NULL,
-                "Content"     text NOT NULL,
-                "Embedding"   vector(3)
+                "Id"           uuid NOT NULL PRIMARY KEY,
+                "DocumentId"   uuid NOT NULL REFERENCES dbo."KnowledgeBaseDocuments"("Id") ON DELETE CASCADE,
+                "ChunkIndex"   integer NOT NULL,
+                "Content"      text NOT NULL DEFAULT '',
+                "Summary"      text NOT NULL DEFAULT '',
+                "DocumentType" integer NOT NULL DEFAULT 0,
+                "Embedding"    vector(3)
             );
 
             CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding
@@ -98,6 +101,34 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
             CreatedAt = DateTime.UtcNow,
             IndexedAt = DateTime.UtcNow
         };
+
+    [Fact]
+    public async Task AddChunksAsync_PersistsSummaryAndDocumentType()
+    {
+        var doc = MakeDocument("summary-test.pdf", "deadbeef004");
+        await _repository.AddDocumentAsync(doc);
+        await _repository.SaveChangesAsync();
+
+        var chunk = new KnowledgeBaseChunk
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = doc.Id,
+            ChunkIndex = 0,
+            Content = "Full transcript text",
+            Summary = "Produkty: Sérum ABC\nProblém zákazníka: akné",
+            DocumentType = DocumentType.Conversation,
+            Embedding = [0.1f, 0.2f, 0.3f]
+        };
+
+        await _repository.AddChunksAsync([chunk]);
+
+        var stored = await _context.KnowledgeBaseChunks
+            .FirstAsync(c => c.Id == chunk.Id);
+
+        Assert.Equal("Produkty: Sérum ABC\nProblém zákazníka: akné", stored.Summary);
+        Assert.Equal(DocumentType.Conversation, stored.DocumentType);
+        Assert.Equal("Full transcript text", stored.Content);
+    }
 
     [Fact]
     public async Task AddDocumentAndChunks_ThenRetrieveByHash()
