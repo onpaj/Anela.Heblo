@@ -39,14 +39,17 @@ public class KnowledgeBaseOptions
     /// </summary>
     public string SummarizationPrompt { get; set; } =
         """
-        Jsi asistent extrahující klíčová data z úryvku zákaznického chatu kosmetické firmy Anela.
-        Z textu vypiš POUZE relevantní položky v tomto formátu (vynech kategorie bez obsahu):
-
+        Jsi asistent extrahující klíčová data z úryvku zákaznického chatu 
+        kosmetické firmy Anela. Extrahuj data vhodná pro sémantické vyhledávání.
+        Vypiš POUZE relevantní položky v tomto formátu (vynech kategorie bez obsahu):
+        
+        Problém: <co zákazník řeší, formuluj jako zákazníkův dotaz>
+        Kontext: <typ pleti, stávající rutina, situace>
+        Doporučení: <co bylo doporučeno a proč>
         Produkty: <názvy produktů>
         Ingredience: <účinné látky, složky>
-        Problém zákazníka: <kožní potíže, dotazy>
-        Doporučení: <rady, způsob použití>
-
+        Výsledek: <vyřešeno | nevyřešeno | eskalováno>
+        
         Text:
         """;
 
@@ -58,16 +61,19 @@ public class KnowledgeBaseOptions
     public string TopicSummarizationPrompt { get; set; } =
         """
         Jsi asistent analyzující zákaznický chat kosmetické firmy Anela.
-        Rozděl konverzaci do tematických bloků. Pro každý blok vypiš klíčová data.
+        Rozděl konverzaci do tematických bloků. Pro každý blok vypiš klíčová data
+        vhodná pro sémantické vyhledávání.
         Odpověz POUZE bloky níže – žádný nadpis, žádný úvod, žádný závěr.
         Každý blok začni PŘESNĚ značkou [TOPIC] na samostatném řádku (vynech kategorie bez obsahu):
-
+        
         [TOPIC]
+        Problém: <co zákazník řeší, formuluj jako zákazníkův dotaz>
+        Kontext: <typ pleti, stávající rutina, situace>
+        Doporučení: <co bylo doporučeno a proč>
         Produkty: <názvy produktů>
         Ingredience: <účinné látky, složky>
-        Problém zákazníka: <kožní potíže, dotazy>
-        Doporučení: <rady, způsob použití>
-
+        Výsledek: <vyřešeno | nevyřešeno | eskalováno>
+        
         Konverzace:
         """;
 
@@ -75,4 +81,30 @@ public class KnowledgeBaseOptions
     /// Delimiter used to split the LLM response into individual topic summaries.
     /// </summary>
     public string TopicDelimiter { get; set; } = "[TOPIC]";
+
+    /// <summary>
+    /// System prompt used by AskQuestionHandler. Supports {context} and {query} placeholders.
+    /// {context} is replaced with retrieved chunks; {query} is replaced with the user's question.
+    /// </summary>
+    public string AskQuestionSystemPrompt { get; set; } =
+        """
+        Jsi odborná poradkyně kosmetické firmy Anela. Odpovídáš zákazníkům
+        na dotazy o péči o pleť a produktech Anela.
+
+        Odpovídej výhradně na základě poskytnutého kontextu z předchozích
+        konverzací. Pokud kontext neobsahuje relevantní informaci, řekni to
+        přímo – nevymýšlej doporučení.
+
+        Při odpovědi:
+        - Doporučuj konkrétní produkty Anela, pokud jsou v kontextu zmíněny
+        - Zohledni typ pleti a potíže zákazníka
+        - Odpovídej v češtině, přátelsky ale odborně
+        - Pokud kontext obsahuje více podobných případů, syntetizuj je
+
+        Kontext z podobných konverzací:
+        {context}
+
+        Dotaz zákazníka:
+        {query}
+        """;
 }
