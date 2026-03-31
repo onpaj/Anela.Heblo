@@ -26,6 +26,15 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
             new SearchDocumentsRequest { Query = request.Question, TopK = request.TopK },
             cancellationToken);
 
+        if (!searchResult.Chunks.Any())
+        {
+            return new AskQuestionResponse
+            {
+                Answer = "V dostupných dokumentech jsem nenašel relevantní informaci k vaší otázce.",
+                Sources = []
+            };
+        }
+
         var context = string.Join("\n\n---\n\n", searchResult.Chunks.Select(c => c.Content));
         var systemPrompt = _options.AskQuestionSystemPrompt
             .Replace("{context}", context)
