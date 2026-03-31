@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.DeleteDocument;
+using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetChunkDetail;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocumentContentTypes;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetFeedbackList;
@@ -63,6 +64,13 @@ public class KnowledgeBaseController : BaseApiController
         CancellationToken ct)
     {
         var result = await _mediator.Send(request, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("chunks/{id:guid}")]
+    public async Task<ActionResult<GetChunkDetailResponse>> GetChunkDetail(Guid id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetChunkDetailRequest { ChunkId = id }, ct);
         return HandleResponse(result);
     }
 
