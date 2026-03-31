@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using MediatR;
 using Microsoft.Extensions.AI;
@@ -10,12 +11,18 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
     private readonly IMediator _mediator;
     private readonly IChatClient _chatClient;
     private readonly KnowledgeBaseOptions _options;
+    private readonly IProductEnrichmentCache _enrichmentCache;
 
-    public AskQuestionHandler(IMediator mediator, IChatClient chatClient, IOptions<KnowledgeBaseOptions> options)
+    public AskQuestionHandler(
+        IMediator mediator,
+        IChatClient chatClient,
+        IOptions<KnowledgeBaseOptions> options,
+        IProductEnrichmentCache enrichmentCache)
     {
         _mediator = mediator;
         _chatClient = chatClient;
         _options = options.Value;
+        _enrichmentCache = enrichmentCache;
     }
 
     public async Task<AskQuestionResponse> Handle(
@@ -36,8 +43,15 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
         }
 
         var context = string.Join("\n\n---\n\n", searchResult.Chunks.Select(c => c.Content));
+
+        var productLookup = await _enrichmentCache.GetProductLookupAsync(cancellationToken);
+        var productTable = productLookup.Any()
+            ? string.Join("\n", productLookup.Values.Select(p => $"{p.ProductCode} | {p.ProductName}"))
+            : string.Empty;
+
         var systemPrompt = _options.AskQuestionSystemPrompt
             .Replace("{context}", context)
+            .Replace("{products}", productTable)
             .Replace("{query}", request.Question);
 
         var messages = new List<ChatMessage>
