@@ -264,6 +264,7 @@ jobs:
     name: 🐳 Build & Push Docker Image
     runs-on: ubuntu-latest
     needs: [frontend-tests, backend-tests]
+    if: github.actor != 'dependabot[bot]'
     outputs:
       image-tag: ${{ steps.meta.outputs.tags }}
       version: ${{ steps.version.outputs.version }}
@@ -335,6 +336,7 @@ jobs:
     name: 🚀 Auto-deploy to Staging
     runs-on: ubuntu-latest
     needs: [build-and-push]
+    if: github.actor != 'dependabot[bot]'
     outputs:
       webapp-hostname: ${{ steps.deploy.outputs.hostname }}
     steps:
