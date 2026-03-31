@@ -63,7 +63,8 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
             new(ChatRole.User, _options.QueryExpansionPrompt + "\n" + query)
         };
 
-        var response = await _chatClient.GetResponseAsync(messages, cancellationToken: cancellationToken);
+        var chatOptions = new ChatOptions { ModelId = _options.QueryExpansionModel };
+        var response = await _chatClient.GetResponseAsync(messages, chatOptions, cancellationToken);
         return string.IsNullOrWhiteSpace(response.Text) ? query : response.Text;
     }
 }
