@@ -2,6 +2,18 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase;
 
 public class KnowledgeBaseOptions
 {
+    /// <summary>OpenAI embedding model used to vectorise chunks and queries.</summary>
+    public string EmbeddingModel { get; set; } = "text-embedding-3-large";
+
+    /// <summary>Dimension count of the chosen embedding model (must match the DB column width).</summary>
+    public int EmbeddingDimensions { get; set; } = 1536;
+
+    /// <summary>Anthropic model used for AskQuestion answers and chunk/topic summarisation.</summary>
+    public string ChatModel { get; set; } = "claude-sonnet-4-6";
+
+    /// <summary>Max tokens cap forwarded to the Anthropic API for every KB chat call.</summary>
+    public int ChatMaxTokens { get; set; } = 1024;
+
     public string OneDriveInboxPath { get; set; } = "/KnowledgeBase/Inbox";
     public string OneDriveArchivedPath { get; set; } = "/KnowledgeBase/Archived";
     public int ChunkSize { get; set; } = 512;
