@@ -117,7 +117,7 @@ public class DocumentIndexingServiceTests
     public async Task IndexChunksAsync_PreprocessorStripsBoilerplateBeforeStrategy()
     {
         const string boilerplateText =
-            "datum: 04.11.2025 zákazník: Zákazník-0001\nAnela: bisabolol je vhodný pro citlivou pleť";
+            "datum: 04.11.2025 02:31\nzákazník: Zákazník-0001\nAnela: bisabolol je vhodný pro citlivou pleť";
 
         _pdfExtractor
             .Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
