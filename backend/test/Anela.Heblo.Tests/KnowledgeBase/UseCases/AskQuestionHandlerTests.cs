@@ -1,7 +1,9 @@
+using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using MediatR;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -43,7 +45,8 @@ public class AskQuestionHandlerTests
                 default))
             .ReturnsAsync(chatResponse);
 
-        var handler = new AskQuestionHandler(_mediator.Object, _chatClient.Object);
+        var options = Options.Create(new KnowledgeBaseOptions());
+        var handler = new AskQuestionHandler(_mediator.Object, _chatClient.Object, options);
         var result = await handler.Handle(
             new AskQuestionRequest { Question = "Max phenoxyethanol?", TopK = 5 },
             default);

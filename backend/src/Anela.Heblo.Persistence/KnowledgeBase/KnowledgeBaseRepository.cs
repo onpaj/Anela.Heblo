@@ -33,8 +33,8 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             var embedding = new Vector(chunk.Embedding);
             await using var cmd = new NpgsqlCommand(
                 """
-                INSERT INTO dbo."KnowledgeBaseChunks" ("Id", "DocumentId", "ChunkIndex", "Content", "Embedding")
-                VALUES (@id, @documentId, @chunkIndex, @content, @embedding)
+                INSERT INTO dbo."KnowledgeBaseChunks" ("Id", "DocumentId", "ChunkIndex", "Content", "Summary", "DocumentType", "Embedding")
+                VALUES (@id, @documentId, @chunkIndex, @content, @summary, @documentType, @embedding)
                 """,
                 connection);
 
@@ -42,6 +42,8 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             cmd.Parameters.AddWithValue("documentId", chunk.DocumentId);
             cmd.Parameters.AddWithValue("chunkIndex", chunk.ChunkIndex);
             cmd.Parameters.AddWithValue("content", chunk.Content);
+            cmd.Parameters.AddWithValue("summary", chunk.Summary);
+            cmd.Parameters.AddWithValue("documentType", (int)chunk.DocumentType);
             cmd.Parameters.AddWithValue("embedding", embedding);
 
             await cmd.ExecuteNonQueryAsync(ct);

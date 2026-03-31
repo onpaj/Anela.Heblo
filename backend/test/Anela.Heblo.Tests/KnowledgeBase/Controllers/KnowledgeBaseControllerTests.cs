@@ -106,7 +106,7 @@ public class KnowledgeBaseControllerTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.UploadDocument(mockFile.Object, CancellationToken.None);
+        var result = await _controller.UploadDocument(mockFile.Object, "KnowledgeBase", CancellationToken.None);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -124,11 +124,29 @@ public class KnowledgeBaseControllerTests
     public async Task UploadDocument_WithNullFile_Returns400()
     {
         // Act
-        var result = await _controller.UploadDocument(null!, CancellationToken.None);
+        var result = await _controller.UploadDocument(null!, "KnowledgeBase", CancellationToken.None);
 
         // Assert
         Assert.IsType<BadRequestObjectResult>(result.Result);
 
+        _mockMediator.Verify(m => m.Send(It.IsAny<UploadDocumentRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UploadDocument_WithInvalidDocumentType_Returns400()
+    {
+        // Arrange
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(f => f.OpenReadStream()).Returns(new MemoryStream());
+        mockFile.Setup(f => f.FileName).Returns("guide.pdf");
+        mockFile.Setup(f => f.ContentType).Returns("application/pdf");
+        mockFile.Setup(f => f.Length).Returns(10);
+
+        // Act
+        var result = await _controller.UploadDocument(mockFile.Object, "InvalidValue", CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result.Result);
         _mockMediator.Verify(m => m.Send(It.IsAny<UploadDocumentRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
