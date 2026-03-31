@@ -193,6 +193,39 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task GetChunkByIdAsync_ReturnsChunkWithDocument_WhenExists()
+    {
+        var doc = MakeDocument("chunk-detail-test.pdf", "deadbeef005");
+        await _repository.AddDocumentAsync(doc);
+        await _repository.SaveChangesAsync();
+
+        var chunk = new KnowledgeBaseChunk
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = doc.Id,
+            ChunkIndex = 0,
+            Content = "Chunk content for detail test",
+            Embedding = [0.1f, 0.2f, 0.3f]
+        };
+
+        await _repository.AddChunksAsync([chunk]);
+
+        var result = await _repository.GetChunkByIdAsync(chunk.Id);
+
+        Assert.NotNull(result);
+        Assert.NotNull(result!.Document);
+        Assert.Equal("chunk-detail-test.pdf", result.Document!.Filename);
+    }
+
+    [Fact]
+    public async Task GetChunkByIdAsync_ReturnsNull_WhenNotExists()
+    {
+        var result = await _repository.GetChunkByIdAsync(Guid.NewGuid());
+
+        Assert.Null(result);
+    }
+
+    [Fact]
     public async Task DeleteDocumentAsync_CascadesToChunks()
     {
         var doc = MakeDocument("delete-test.pdf", "deadbeef003");

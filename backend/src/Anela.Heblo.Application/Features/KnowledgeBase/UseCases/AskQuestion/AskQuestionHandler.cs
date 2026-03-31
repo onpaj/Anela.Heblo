@@ -54,6 +54,7 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
             Answer = answer,
             Sources = searchResult.Chunks.Select(c => new SourceReference
             {
+                ChunkId = c.ChunkId,
                 DocumentId = c.DocumentId,
                 Filename = c.SourceFilename,
                 Excerpt = c.Content[..Math.Min(200, c.Content.Length)],

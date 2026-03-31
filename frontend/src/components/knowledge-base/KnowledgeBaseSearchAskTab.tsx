@@ -5,9 +5,15 @@ import {
   useSubmitFeedbackMutation,
   SourceReference,
 } from '../../api/hooks/useKnowledgeBase';
+import ChunkDetailModal from './ChunkDetailModal';
 
-const SourceAccordion: React.FC<{ sources: SourceReference[] }> = ({ sources }) => {
-  const [open, setOpen] = useState(false);
+interface SourceAccordionProps {
+  sources: SourceReference[];
+  onViewSource: (chunkId: string, score: number) => void;
+}
+
+const SourceAccordion: React.FC<SourceAccordionProps> = ({ sources, onViewSource }) => {
+  const [open, setOpen] = useState(true);
   if (sources.length === 0) return null;
 
   return (
@@ -22,7 +28,15 @@ const SourceAccordion: React.FC<{ sources: SourceReference[] }> = ({ sources }) 
       {open && (
         <div className="divide-y divide-gray-100">
           {sources.map((src) => (
-            <div key={src.documentId} className="px-4 py-3 space-y-1">
+            <div
+              key={src.chunkId}
+              className="px-4 py-3 space-y-1 cursor-pointer hover:bg-gray-50"
+              onClick={() => onViewSource(src.chunkId, src.score)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && onViewSource(src.chunkId, src.score)}
+              aria-label={`Zobrazit zdroj ${src.filename}`}
+            >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">{src.filename}</span>
                 <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-gray-100 text-gray-600">
@@ -149,7 +163,19 @@ const FeedbackForm: React.FC<{ logId: string }> = ({ logId }) => {
 
 const KnowledgeBaseSearchAskTab: React.FC = () => {
   const [query, setQuery] = useState('');
+  const [selectedChunkId, setSelectedChunkId] = useState<string | null>(null);
+  const [selectedScore, setSelectedScore] = useState<number | undefined>(undefined);
   const ask = useKnowledgeBaseAskMutation();
+
+  const handleViewSource = (chunkId: string, score: number) => {
+    setSelectedChunkId(chunkId);
+    setSelectedScore(score);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedChunkId(null);
+    setSelectedScore(undefined);
+  };
 
   const handleSubmit = () => {
     if (query.trim()) ask.mutate({ question: query.trim() });
@@ -200,9 +226,17 @@ const KnowledgeBaseSearchAskTab: React.FC = () => {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-gray-800 whitespace-pre-wrap">{ask.data.answer}</p>
           </div>
-          <SourceAccordion sources={ask.data.sources} />
+          <SourceAccordion sources={ask.data.sources} onViewSource={handleViewSource} />
           {ask.data.id && <FeedbackForm logId={ask.data.id} />}
         </div>
+      )}
+
+      {selectedChunkId && (
+        <ChunkDetailModal
+          chunkId={selectedChunkId}
+          score={selectedScore}
+          onClose={handleCloseModal}
+        />
       )}
     </div>
   );

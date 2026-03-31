@@ -13,6 +13,7 @@ export interface DocumentSummary {
   contentType: string;
   createdAt: string;
   indexedAt: string | null;
+  firstChunkId: string | null;
 }
 
 export interface GetDocumentsParams {
@@ -54,6 +55,7 @@ export interface SearchDocumentsResponse {
 }
 
 export interface SourceReference {
+  chunkId: string;
   documentId: string;
   filename: string;
   excerpt: string;
@@ -111,6 +113,29 @@ export interface FeedbackStatsDto {
   avgStyleScore: number | null;
 }
 
+export interface ChunkDetail {
+  chunkId: string;
+  documentId: string;
+  filename: string;
+  documentType: 'KnowledgeBase' | 'Conversation';
+  indexedAt: string | null;
+  chunkIndex: number;
+  summary: string;
+  content: string;
+}
+
+export interface GetChunkDetailResponse {
+  success: boolean;
+  chunkId: string;
+  documentId: string;
+  filename: string;
+  documentType: 'KnowledgeBase' | 'Conversation';
+  indexedAt: string | null;
+  chunkIndex: number;
+  summary: string;
+  content: string;
+}
+
 export interface GetFeedbackListParams {
   pageNumber?: number;
   pageSize?: number;
@@ -161,6 +186,8 @@ export const knowledgeBaseKeys = {
   contentTypes: () => [...QUERY_KEYS.knowledgeBase, 'content-types'] as const,
   feedbackList: (params?: GetFeedbackListParams) =>
     [...QUERY_KEYS.knowledgeBase, 'feedback-list', params ?? {}] as const,
+  chunkDetail: (chunkId: string) =>
+    [...QUERY_KEYS.knowledgeBase, 'chunk-detail', chunkId] as const,
 };
 
 // ---- Hooks ----
@@ -261,6 +288,34 @@ export const useKnowledgeBaseSearchMutation = () => {
 
       return response.json();
     },
+  });
+};
+
+/**
+ * Fetch full chunk content and document metadata by chunk ID.
+ * Only fires when chunkId is non-null.
+ */
+export const useChunkDetailQuery = (chunkId: string | null) => {
+  return useQuery({
+    queryKey: knowledgeBaseKeys.chunkDetail(chunkId ?? ''),
+    queryFn: async (): Promise<GetChunkDetailResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const fullUrl = `${(apiClient as any).baseUrl}/api/knowledgebase/chunks/${chunkId}`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch chunk detail: ${response.status}`);
+      }
+
+      return response.json();
+    },
+    enabled: !!chunkId,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 };
 
