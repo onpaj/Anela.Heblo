@@ -12,7 +12,7 @@ interface SourceAccordionProps {
 }
 
 const SourceAccordion: React.FC<SourceAccordionProps> = ({ sources, onViewSource }) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
 
   if (sources.length === 0) return null;
 
