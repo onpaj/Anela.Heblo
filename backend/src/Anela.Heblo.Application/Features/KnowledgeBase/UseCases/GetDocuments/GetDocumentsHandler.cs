@@ -40,6 +40,9 @@ public class GetDocumentsHandler : IRequestHandler<GetDocumentsRequest, GetDocum
             pageSize,
             cancellationToken);
 
+        var docIds = docs.Select(d => d.Id).ToList();
+        var firstChunkMap = await _repository.GetFirstChunkIdsByDocumentIdsAsync(docIds, cancellationToken);
+
         return new GetDocumentsResponse
         {
             Documents = docs.Select(d => new DocumentSummary
@@ -49,7 +52,8 @@ public class GetDocumentsHandler : IRequestHandler<GetDocumentsRequest, GetDocum
                 Status = d.Status.ToString().ToLowerInvariant(),
                 ContentType = d.ContentType,
                 CreatedAt = d.CreatedAt,
-                IndexedAt = d.IndexedAt
+                IndexedAt = d.IndexedAt,
+                FirstChunkId = firstChunkMap.TryGetValue(d.Id, out var chunkId) ? chunkId : null,
             }).ToList(),
             TotalCount = totalCount,
             PageNumber = pageNumber,

@@ -13,6 +13,7 @@ export interface DocumentSummary {
   contentType: string;
   createdAt: string;
   indexedAt: string | null;
+  firstChunkId: string | null;
 }
 
 export interface GetDocumentsParams {

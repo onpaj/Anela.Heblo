@@ -194,6 +194,18 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             .FirstOrDefaultAsync(c => c.Id == chunkId, ct);
     }
 
+    public async Task<Dictionary<Guid, Guid>> GetFirstChunkIdsByDocumentIdsAsync(
+        IEnumerable<Guid> documentIds,
+        CancellationToken ct = default)
+    {
+        var ids = documentIds.ToList();
+        return await _context.KnowledgeBaseChunks
+            .Where(c => ids.Contains(c.DocumentId))
+            .GroupBy(c => c.DocumentId)
+            .Select(g => new { DocumentId = g.Key, ChunkId = g.OrderBy(c => c.ChunkIndex).First().Id })
+            .ToDictionaryAsync(x => x.DocumentId, x => x.ChunkId, ct);
+    }
+
     public async Task UpdateDocumentSourcePathAsync(Guid documentId, string newSourcePath, CancellationToken ct = default)
     {
         await _context.KnowledgeBaseDocuments

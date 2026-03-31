@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   useKnowledgeBaseAskMutation,
   useSubmitFeedbackMutation,
@@ -28,22 +28,20 @@ const SourceAccordion: React.FC<SourceAccordionProps> = ({ sources, onViewSource
       {open && (
         <div className="divide-y divide-gray-100">
           {sources.map((src) => (
-            <div key={src.chunkId} className="px-4 py-3 space-y-1">
+            <div
+              key={src.chunkId}
+              className="px-4 py-3 space-y-1 cursor-pointer hover:bg-gray-50"
+              onClick={() => onViewSource(src.chunkId, src.score)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && onViewSource(src.chunkId, src.score)}
+              aria-label={`Zobrazit zdroj ${src.filename}`}
+            >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">{src.filename}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-gray-100 text-gray-600">
-                    {Math.round(src.score * 100)}%
-                  </span>
-                  <button
-                    onClick={() => onViewSource(src.chunkId, src.score)}
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                    aria-label={`Zobrazit zdroj ${src.filename}`}
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    Zobrazit zdroj
-                  </button>
-                </div>
+                <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-gray-100 text-gray-600">
+                  {Math.round(src.score * 100)}%
+                </span>
               </div>
               <p className="text-xs text-gray-500 italic line-clamp-3">{src.excerpt}</p>
             </div>
