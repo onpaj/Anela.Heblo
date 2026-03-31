@@ -30,7 +30,7 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
         {
             return new AskQuestionResponse
             {
-                Answer = "V dostupných dokumentech jsem nenašel relevantní informaci k vaší otázce.",
+                Answer = "V dostupných dokumentech jsem nenašla relevantní informaci k vaší otázce.",
                 Sources = []
             };
         }

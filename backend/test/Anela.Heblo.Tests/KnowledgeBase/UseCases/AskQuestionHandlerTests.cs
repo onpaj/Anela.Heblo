@@ -68,7 +68,7 @@ public class AskQuestionHandlerTests
             new AskQuestionRequest { Question = "Co mi poradis na akne?", TopK = 5 },
             default);
 
-        Assert.Equal("V dostupných dokumentech jsem nenašel relevantní informaci k vaší otázce.", result.Answer);
+        Assert.Equal("V dostupných dokumentech jsem nenašla relevantní informaci k vaší otázce.", result.Answer);
         Assert.Empty(result.Sources);
         _chatClient.Verify(c => c.GetResponseAsync(
             It.IsAny<IEnumerable<ChatMessage>>(),
