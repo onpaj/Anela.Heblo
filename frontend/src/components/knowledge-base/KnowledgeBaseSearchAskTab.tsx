@@ -52,7 +52,7 @@ const SourceAccordion: React.FC<SourceAccordionProps> = ({ sources, onViewSource
   );
 };
 
-const SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const SCORES = [1, 2, 3, 4, 5];
 
 const ScoreRow: React.FC<{
   label: string;
