@@ -50,8 +50,9 @@ public class OpenAiEmbeddingGenerator : IEmbeddingGenerator<string, Embedding<fl
 
         foreach (var input in inputList)
         {
+            var embeddingOptions = new global::OpenAI.Embeddings.EmbeddingGenerationOptions { Dimensions = _options.EmbeddingDimensions };
             var result = await Pipeline.ExecuteAsync(
-                async token => await client.GenerateEmbeddingAsync(input, cancellationToken: token),
+                async token => await client.GenerateEmbeddingAsync(input, embeddingOptions, cancellationToken: token),
                 cancellationToken);
 
             var floats = result.Value.ToFloats();

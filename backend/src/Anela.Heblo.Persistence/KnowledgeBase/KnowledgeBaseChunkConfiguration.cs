@@ -27,7 +27,7 @@ public class KnowledgeBaseChunkConfiguration : IEntityTypeConfiguration<Knowledg
         builder.Property(e => e.ChunkIndex)
             .IsRequired();
 
-        // Embedding column is managed via raw SQL migration (vector(3072) type)
+        // Embedding column is managed via raw SQL migration (vector(1536) type)
         builder.Ignore(e => e.Embedding);
 
         builder.HasIndex(e => e.DocumentId);
