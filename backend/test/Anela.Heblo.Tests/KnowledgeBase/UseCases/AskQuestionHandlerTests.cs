@@ -162,5 +162,7 @@ public class AskQuestionHandlerTests
         var systemMessage = capturedMessages!.First(m => m.Role == ChatRole.System).Text!;
         Assert.DoesNotContain("{products}", systemMessage);
         Assert.DoesNotContain("AKL001", systemMessage);
+        Assert.Contains("Kontext:", systemMessage);
+        Assert.Contains("Dotaz:", systemMessage);
     }
 }
