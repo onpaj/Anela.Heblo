@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useUpdateRecurringJobCronMutation, useRecurringJobsQuery } from '../useRecurringJobs';
@@ -123,11 +123,10 @@ describe('useRecurringJobsQuery', () => {
       wrapper: createWrapper,
     });
 
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0));
+    await waitFor(() => {
+      expect(result.current.data).toHaveLength(2);
     });
 
-    expect(result.current.data).toHaveLength(2);
     expect(result.current.data![0].nextRunAt).toEqual(enabledNextRun);
     expect(result.current.data![1].nextRunAt).toBeNull();
   });
