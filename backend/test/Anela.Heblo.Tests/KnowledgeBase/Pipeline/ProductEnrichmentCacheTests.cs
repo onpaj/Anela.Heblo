@@ -38,21 +38,36 @@ public class ProductEnrichmentCacheTests
     }
 
     [Fact]
-    public async Task GetProductLookupAsync_ReturnsOnlyProductAndGoodsTypes()
+    public async Task GetProductLookupAsync_PredicateFiltersToProductAndGoodsOnly()
     {
-        var product = new CatalogAggregate { ProductCode = "PRD001", ProductName = "Sérum ABC", Type = ProductType.Product };
-        var goods = new CatalogAggregate { ProductCode = "GDS001", ProductName = "Krém XYZ", Type = ProductType.Goods };
-        // FindAsync is called with a filter — we simulate it already filtered
-        SetupRepository(product, goods);
+        System.Linq.Expressions.Expression<Func<CatalogAggregate, bool>>? capturedPredicate = null;
+        _repository
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
+            .Callback<System.Linq.Expressions.Expression<Func<CatalogAggregate, bool>>, CancellationToken>(
+                (pred, _) => capturedPredicate = pred)
+            .ReturnsAsync(new[]
+            {
+                new CatalogAggregate { ProductCode = "PRD001", ProductName = "Sérum ABC", Type = ProductType.Product },
+                new CatalogAggregate { ProductCode = "GDS001", ProductName = "Krém XYZ", Type = ProductType.Goods }
+            });
 
         var cache = Create();
         var lookup = await cache.GetProductLookupAsync();
 
+        // Verify data mapping
         Assert.Equal(2, lookup.Count);
         Assert.True(lookup.ContainsKey("PRD001"));
-        Assert.True(lookup.ContainsKey("GDS001"));
         Assert.Equal("Sérum ABC", lookup["PRD001"].ProductName);
         Assert.Null(lookup["PRD001"].Url);
+
+        // Verify the predicate actually filters correctly
+        var compiled = capturedPredicate!.Compile();
+        Assert.True(compiled(new CatalogAggregate { Type = ProductType.Product }));
+        Assert.True(compiled(new CatalogAggregate { Type = ProductType.Goods }));
+        Assert.False(compiled(new CatalogAggregate { Type = ProductType.Material }));
+        Assert.False(compiled(new CatalogAggregate { Type = ProductType.SemiProduct }));
+        Assert.False(compiled(new CatalogAggregate { Type = ProductType.Set }));
+        Assert.False(compiled(new CatalogAggregate { Type = ProductType.UNDEFINED }));
     }
 
     [Fact]

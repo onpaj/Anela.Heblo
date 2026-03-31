@@ -3,6 +3,11 @@ using Microsoft.Extensions.AI;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 
+/// <summary>
+/// M.E.AI pipeline middleware that enriches KB answers by replacing (CODE) product annotations
+/// with inline references: [Name (CODE)](url) when a URL is present, or Name (CODE) otherwise.
+/// Product data is resolved from <see cref="IProductEnrichmentCache"/>.
+/// </summary>
 public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
 {
     private static readonly Regex ProductCodePattern = new(@"\(([A-Z0-9]+)\)", RegexOptions.Compiled);
@@ -40,6 +45,15 @@ public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
         if (enriched == rawText)
             return response;
 
-        return new ChatResponse([new ChatMessage(ChatRole.Assistant, enriched)]);
+        return new ChatResponse([new ChatMessage(ChatRole.Assistant, enriched)])
+        {
+            ResponseId = response.ResponseId,
+            ConversationId = response.ConversationId,
+            ModelId = response.ModelId,
+            CreatedAt = response.CreatedAt,
+            FinishReason = response.FinishReason,
+            Usage = response.Usage,
+            AdditionalProperties = response.AdditionalProperties,
+        };
     }
 }

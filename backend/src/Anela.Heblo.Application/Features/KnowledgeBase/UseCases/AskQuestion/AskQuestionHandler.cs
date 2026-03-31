@@ -45,7 +45,7 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
         var context = string.Join("\n\n---\n\n", searchResult.Chunks.Select(c => c.Content));
 
         var productLookup = await _enrichmentCache.GetProductLookupAsync(cancellationToken);
-        var productTable = string.Join("\n", productLookup.Values.Select(p => $"{p.ProductCode} | {p.ProductName}"));
+        var productTable = string.Join("\n", productLookup.Values.OrderBy(p => p.ProductCode).Select(p => $"{p.ProductCode} | {p.ProductName}"));
 
         var systemPrompt = _options.AskQuestionSystemPrompt
             .Replace("{context}", context)
