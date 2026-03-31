@@ -103,6 +103,12 @@ public class KnowledgeBaseOptions
     public string TopicDelimiter { get; set; } = "[TOPIC]";
 
     /// <summary>
+    /// How long (in minutes) the in-memory product lookup cache is considered valid
+    /// before a fresh load from the catalog repository is triggered.
+    /// </summary>
+    public int ProductEnrichmentCacheTtlMinutes { get; set; } = 60;
+
+    /// <summary>
     /// When true, user queries are rewritten into the structured summary format used
     /// by stored embeddings before calling the embedding model (HyDE variant).
     /// Set to false to skip the LLM call and embed the raw query directly.
