@@ -486,7 +486,7 @@ public class FlexiManufactureClient : IManufactureClient
                     AmountIssued = consumptionItem.Amount,
                     LotNumber = consumptionItem.LotNumber,
                     Expiration = consumptionItem.Expiration?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-                    UnitPrice = unitPrice
+                    UnitPrice = unitPrice,
                 });
             }
 
@@ -502,7 +502,7 @@ public class FlexiManufactureClient : IManufactureClient
                 Description = note,
                 DocumentTypeCode = documentType,
                 StockMovementDirection = StockMovementDirection.Out,
-                Note = request.ManufactureInternalNumber,
+                Note = request.ManufactureOrderCode,
                 WarehouseId = warehouseId.ToString()
             };
 
@@ -558,7 +558,7 @@ public class FlexiManufactureClient : IManufactureClient
             Description = note,
             DocumentTypeCode = documentType,
             StockMovementDirection = StockMovementDirection.In,
-            Note = request.ManufactureInternalNumber,
+            Note = request.ManufactureOrderCode,
             WarehouseId = FlexiStockClient.ProductsWarehouseId.ToString()
         };
 

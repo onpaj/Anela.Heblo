@@ -7,6 +7,10 @@
     <RootNamespace>Anela.Heblo.Adapters.Flexi</RootNamespace>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugType>full</DebugType>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="15.1.3" />
     <PackageReference Include="Rem.FlexiBeeSDK.Client" Version="0.1.122" />
