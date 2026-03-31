@@ -28,7 +28,7 @@ public class ChatTranscriptPreprocessorTests
     public void Clean_RemovesMetadataHeader()
     {
         var preprocessor = Create();
-        var input = "datum: 04.11.2025 zákazník: Zákazník-0364\nAnela: Jak Vám mohu pomoci?";
+        var input = "datum: 04.11.2025 02:31\nzákazník: Zákazník-0364\nAnela: Jak Vám mohu pomoci?";
 
         var result = preprocessor.Clean(input);
 
@@ -53,7 +53,8 @@ public class ChatTranscriptPreprocessorTests
     {
         var preprocessor = Create();
         var input =
-            "datum: 04.11.2025 zákazník: Zákazník-0364\n" +
+            "datum: 04.11.2025 02:31\n" +
+            "zákazník: Zákazník-0364\n" +
             "Anela: Vítejte ve světě Anela 🌿🌿 Rádi Vám poradíme s péčí o pleť i s potížemi, které Vás trápí. Napište nám, jsme tu pro Vás!\n" +
             "Zákazník-0364: mám akné";
 
