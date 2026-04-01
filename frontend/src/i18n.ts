@@ -193,6 +193,10 @@ const resources = {
         KnowledgeBaseFeedbackAlreadySubmitted: "Zpětná vazba již byla odeslána",
         KnowledgeBaseChunkNotFound: "Fragment znalostní báze nebyl nalezen (ID: {id})",
 
+        // ShoptetOrders module errors
+        ShoptetOrderInvalidSourceState: "Objednávku nelze zablokovat – není ve povoleném stavu",
+        ShoptetOrderNotFound: "Objednávka nebyla nalezena",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",
