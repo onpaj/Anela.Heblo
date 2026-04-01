@@ -75,13 +75,15 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
                         DocumentType = mapping.DocumentType
                     }, cancellationToken);
 
+                    await _oneDrive.MoveToArchivedAsync(mapping.DriveId, file.Id, file.Name, mapping.ArchivedPath, cancellationToken);
+
                     if (result.WasDuplicate)
                     {
+                        _logger.LogInformation("Duplicate {Filename} archived to prevent reprocessing", file.Name);
                         skipped++;
                     }
                     else
                     {
-                        await _oneDrive.MoveToArchivedAsync(mapping.DriveId, file.Id, file.Name, mapping.ArchivedPath, cancellationToken);
                         _logger.LogInformation("Indexed and archived {Filename} as {DocumentType}", file.Name, mapping.DocumentType);
                         indexed++;
                     }

@@ -100,6 +100,6 @@ public class KnowledgeBaseIngestionJobTests
         await job.ExecuteAsync();
 
         _mediator.Verify(m => m.Send(It.IsAny<IndexDocumentRequest>(), default), Times.Once);
-        _oneDrive.Verify(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), default), Times.Never);
+        _oneDrive.Verify(s => s.MoveToArchivedAsync("drive-kb", "id-1", "doc.pdf", "/KnowledgeBase/Archived", default), Times.Once);
     }
 }
