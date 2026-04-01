@@ -5,6 +5,7 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactur
 public class SubmitManufactureResponse : BaseResponse
 {
     public string? ManufactureId { get; set; }
+    public string? UserMessage { get; set; }
 
     public SubmitManufactureResponse() : base() { }
 

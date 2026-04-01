@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.DashboardTiles;
+using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Persistence.Manufacture;
@@ -44,6 +45,15 @@ public static class ManufactureModule
         services.RegisterTile<TodayProductionTile>();
         services.RegisterTile<NextDayProductionTile>();
         services.RegisterTile<ManualActionRequiredTile>();
+
+        // Register manufacture error transformation
+        services.Scan(scan => scan
+            .FromAssemblyOf<IManufactureErrorFilter>()
+            .AddClasses(c => c.AssignableTo<IManufactureErrorFilter>()
+                .InNamespaces("Anela.Heblo.Application.Features.Manufacture.ErrorFilters.Filters"))
+            .AsImplementedInterfaces()
+            .WithTransientLifetime());
+        services.AddTransient<IManufactureErrorTransformer, ManufactureErrorTransformer>();
 
         return services;
     }
