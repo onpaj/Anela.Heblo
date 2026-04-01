@@ -41,7 +41,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddFlexiBee(configuration);
 
         // Configure AutoMapper
-        services.AddAutoMapper(typeof(FlexiAdapterServiceCollectionExtensions));
+        services.AddAutoMapper(cfg => { }, typeof(FlexiAdapterServiceCollectionExtensions));
 
         // Add memory cache for FlexiProductPriceErpClient
         services.AddMemoryCache();
@@ -60,7 +60,6 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddScoped<IProductPriceErpClient, FlexiProductPriceErpClient>();
         services.AddSingleton<IPurchaseHistoryClient, FlexiPurchaseHistoryQueryClient>();
 
-        services.AddScoped<IManufactureRepository, FlexiManufactureRepository>();
         services.AddSingleton<IManufactureHistoryClient, FlexiManufactureHistoryClient>();
 
         services.AddSingleton<ISupplierRepository, FlexiSupplierRepository>();

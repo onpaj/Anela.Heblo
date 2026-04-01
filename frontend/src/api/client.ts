@@ -12,10 +12,19 @@ let globalToastHandler: ((title: string, message?: string) => void) | null =
   null;
 
 /**
+ * Token result returned by the global token provider, including the actual expiry
+ * so the client cache can align with the real token lifetime.
+ */
+export interface TokenResult {
+  token: string;
+  expiresOn: Date | null;
+}
+
+/**
  * Global token provider for API client
  * This will be set by the App component after MSAL is initialized
  */
-let globalTokenProvider: ((forceRefresh?: boolean) => Promise<string | null>) | null = null;
+let globalTokenProvider: ((forceRefresh?: boolean) => Promise<TokenResult | null>) | null = null;
 
 /**
  * Global authentication redirect handler
@@ -48,7 +57,7 @@ const isCachedTokenValid = (): boolean => {
  * This should be called from App component after MSAL initialization
  */
 export const setGlobalTokenProvider = (
-  provider: (forceRefresh?: boolean) => Promise<string | null>,
+  provider: (forceRefresh?: boolean) => Promise<TokenResult | null>,
 ) => {
   globalTokenProvider = provider;
 };
@@ -123,14 +132,16 @@ const getAuthHeader = async (): Promise<string | null> => {
 
     try {
       console.log("🔐 Acquiring new authentication token...");
-      const token = await globalTokenProvider();
-      if (token) {
-        // Cache the token (MSAL tokens typically expire in 1 hour)
-        const expiresAt = Date.now() + 55 * 60 * 1000; // 55 minutes from now
-        tokenCache = { token, expiresAt };
+      const result = await globalTokenProvider();
+      if (result) {
+        const bufferMs = 5 * 60 * 1000; // 5 minutes safety buffer
+        const expiresAt = result.expiresOn
+          ? result.expiresOn.getTime() - bufferMs
+          : Date.now() + 55 * 60 * 1000; // fallback: assume 1h token minus buffer
+        tokenCache = { token: result.token, expiresAt };
 
         console.log("✅ New authentication token acquired and cached");
-        return `Bearer ${token}`;
+        return `Bearer ${result.token}`;
       } else {
         console.warn(
           "⚠️  No authentication token available - user may need to login",
@@ -396,6 +407,7 @@ export const QUERY_KEYS = {
   stockUpOperations: ["stock-up-operations"] as const,
   recurringJobs: ["recurring-jobs"] as const,
   knowledgeBase: ["knowledge-base"] as const,
+  expeditionListArchive: ["expedition-list-archive"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

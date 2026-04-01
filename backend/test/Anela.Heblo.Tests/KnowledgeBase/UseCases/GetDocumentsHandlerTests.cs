@@ -29,7 +29,8 @@ public class GetDocumentsHandlerTests
 
     private void SetupRepository(
         List<KnowledgeBaseDocument> docs,
-        int totalCount = -1)
+        int totalCount = -1,
+        Dictionary<Guid, Guid>? firstChunkMap = null)
     {
         _repository
             .Setup(r => r.GetDocumentsPagedAsync(
@@ -42,6 +43,12 @@ public class GetDocumentsHandlerTests
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((docs, totalCount < 0 ? docs.Count : totalCount));
+
+        _repository
+            .Setup(r => r.GetFirstChunkIdsByDocumentIdsAsync(
+                It.IsAny<IEnumerable<Guid>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(firstChunkMap ?? new Dictionary<Guid, Guid>());
     }
 
     [Fact]
@@ -133,6 +140,9 @@ public class GetDocumentsHandlerTests
             .Callback<string?, DocumentStatus?, string?, string, bool, int, int, CancellationToken>(
                 (_, _, _, sortBy, _, _, _, _) => capturedSortBy = sortBy)
             .ReturnsAsync((new List<KnowledgeBaseDocument>(), 0));
+        _repository
+            .Setup(r => r.GetFirstChunkIdsByDocumentIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, Guid>());
 
         var handler = new GetDocumentsHandler(_repository.Object);
         await handler.Handle(new GetDocumentsRequest { SortBy = requested }, default);
@@ -161,6 +171,9 @@ public class GetDocumentsHandlerTests
             .Callback<string?, DocumentStatus?, string?, string, bool, int, int, CancellationToken>(
                 (_, status, _, _, _, _, _, _) => capturedStatus = status)
             .ReturnsAsync((new List<KnowledgeBaseDocument>(), 0));
+        _repository
+            .Setup(r => r.GetFirstChunkIdsByDocumentIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, Guid>());
 
         var handler = new GetDocumentsHandler(_repository.Object);
         await handler.Handle(new GetDocumentsRequest { StatusFilter = statusString }, default);
@@ -188,11 +201,39 @@ public class GetDocumentsHandlerTests
             .Callback<string?, DocumentStatus?, string?, string, bool, int, int, CancellationToken>(
                 (_, status, _, _, _, _, _, _) => capturedStatus = status)
             .ReturnsAsync((new List<KnowledgeBaseDocument>(), 0));
+        _repository
+            .Setup(r => r.GetFirstChunkIdsByDocumentIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, Guid>());
 
         var handler = new GetDocumentsHandler(_repository.Object);
         await handler.Handle(new GetDocumentsRequest { StatusFilter = statusString }, default);
 
         Assert.Null(capturedStatus);
+    }
+
+    [Fact]
+    public async Task Handle_PopulatesFirstChunkId_WhenChunkExists()
+    {
+        var doc = MakeDoc("chat.txt", DocumentStatus.Indexed);
+        var chunkId = Guid.NewGuid();
+        SetupRepository([doc], firstChunkMap: new Dictionary<Guid, Guid> { [doc.Id] = chunkId });
+
+        var handler = new GetDocumentsHandler(_repository.Object);
+        var result = await handler.Handle(new GetDocumentsRequest(), default);
+
+        Assert.Equal(chunkId, result.Documents[0].FirstChunkId);
+    }
+
+    [Fact]
+    public async Task Handle_FirstChunkIdIsNull_WhenNoChunkExists()
+    {
+        var doc = MakeDoc("processing.txt", DocumentStatus.Processing);
+        SetupRepository([doc]);
+
+        var handler = new GetDocumentsHandler(_repository.Object);
+        var result = await handler.Handle(new GetDocumentsRequest(), default);
+
+        Assert.Null(result.Documents[0].FirstChunkId);
     }
 
     [Fact]
@@ -241,6 +282,9 @@ public class GetDocumentsHandlerTests
                     capturedPageSize = ps;
                 })
             .ReturnsAsync((new List<KnowledgeBaseDocument>(), 0));
+        _repository
+            .Setup(r => r.GetFirstChunkIdsByDocumentIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, Guid>());
 
         var handler = new GetDocumentsHandler(_repository.Object);
         await handler.Handle(new GetDocumentsRequest

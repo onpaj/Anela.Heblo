@@ -1,4 +1,6 @@
 using Anela.Heblo.Adapters.Anthropic;
+using Anela.Heblo.Adapters.Azure;
+using Anela.Heblo.Adapters.SendGrid;
 using Anela.Heblo.Adapters.Comgate;
 using Anela.Heblo.Adapters.Flexi;
 using Anela.Heblo.Adapters.OpenAI;
@@ -55,6 +57,10 @@ public partial class Program
         builder.Services.AddShoptetApiAdapter(builder.Configuration);
         builder.Services.AddAnthropicAdapter(builder.Configuration);
         builder.Services.AddOpenAiAdapter(builder.Configuration);
+        builder.Services.AddSendGridAdapter(builder.Configuration);
+
+        // Print queue sink — valid values: "FileSystem" (default), "AzureBlob", "Cups", "Combined"
+        builder.Services.AddPrintQueueSink(builder.Configuration);
 
         // MCP server
         builder.Services.AddMcpServices();

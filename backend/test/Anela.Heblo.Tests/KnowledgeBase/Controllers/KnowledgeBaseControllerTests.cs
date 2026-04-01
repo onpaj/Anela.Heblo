@@ -1,8 +1,10 @@
 using Anela.Heblo.API.Controllers;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.DeleteDocument;
+using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetChunkDetail;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.UploadDocument;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.KnowledgeBase;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -106,7 +108,7 @@ public class KnowledgeBaseControllerTests
             .ReturnsAsync(expectedResponse);
 
         // Act
-        var result = await _controller.UploadDocument(mockFile.Object, CancellationToken.None);
+        var result = await _controller.UploadDocument(mockFile.Object, "KnowledgeBase", CancellationToken.None);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -124,11 +126,29 @@ public class KnowledgeBaseControllerTests
     public async Task UploadDocument_WithNullFile_Returns400()
     {
         // Act
-        var result = await _controller.UploadDocument(null!, CancellationToken.None);
+        var result = await _controller.UploadDocument(null!, "KnowledgeBase", CancellationToken.None);
 
         // Assert
         Assert.IsType<BadRequestObjectResult>(result.Result);
 
+        _mockMediator.Verify(m => m.Send(It.IsAny<UploadDocumentRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UploadDocument_WithInvalidDocumentType_Returns400()
+    {
+        // Arrange
+        var mockFile = new Mock<IFormFile>();
+        mockFile.Setup(f => f.OpenReadStream()).Returns(new MemoryStream());
+        mockFile.Setup(f => f.FileName).Returns("guide.pdf");
+        mockFile.Setup(f => f.ContentType).Returns("application/pdf");
+        mockFile.Setup(f => f.Length).Returns(10);
+
+        // Act
+        var result = await _controller.UploadDocument(mockFile.Object, "InvalidValue", CancellationToken.None);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result.Result);
         _mockMediator.Verify(m => m.Send(It.IsAny<UploadDocumentRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -155,6 +175,57 @@ public class KnowledgeBaseControllerTests
         _mockMediator.Verify(m => m.Send(
             It.Is<DeleteDocumentRequest>(r => r.DocumentId == docId),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetChunkDetail_Returns200_WithChunkDetail()
+    {
+        // Arrange
+        var chunkId = Guid.NewGuid();
+        var expectedResponse = new GetChunkDetailResponse
+        {
+            Success = true,
+            ChunkId = chunkId,
+            DocumentId = Guid.NewGuid(),
+            Filename = "conversation-2024.txt",
+            DocumentType = DocumentType.Conversation,
+            IndexedAt = DateTime.UtcNow,
+            ChunkIndex = 0,
+            Summary = "summary text",
+            Content = "full conversation text",
+        };
+
+        _mockMediator
+            .Setup(m => m.Send(It.Is<GetChunkDetailRequest>(r => r.ChunkId == chunkId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _controller.GetChunkDetail(chunkId, default);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        var response = Assert.IsType<GetChunkDetailResponse>(okResult.Value);
+        Assert.True(response.Success);
+        Assert.Equal(chunkId, response.ChunkId);
+        Assert.Equal("conversation-2024.txt", response.Filename);
+    }
+
+    [Fact]
+    public async Task GetChunkDetail_Returns404_WhenChunkNotFound()
+    {
+        // Arrange
+        var chunkId = Guid.NewGuid();
+        var notFoundResponse = new GetChunkDetailResponse(ErrorCodes.KnowledgeBaseChunkNotFound);
+
+        _mockMediator
+            .Setup(m => m.Send(It.Is<GetChunkDetailRequest>(r => r.ChunkId == chunkId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(notFoundResponse);
+
+        // Act
+        var result = await _controller.GetChunkDetail(chunkId, default);
+
+        // Assert
+        Assert.IsType<NotFoundObjectResult>(result.Result);
     }
 
     [Fact]

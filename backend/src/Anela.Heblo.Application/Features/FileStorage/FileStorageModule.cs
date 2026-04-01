@@ -13,7 +13,7 @@ public static class FileStorageModule
         // MediatR handlers are automatically registered by AddMediatR scan
 
         // Register Azure Blob Storage client
-        var connectionString = configuration.GetConnectionString("AzureStorage");
+        var connectionString = configuration["ExpeditionList:BlobConnectionString"];
         if (!string.IsNullOrEmpty(connectionString))
         {
             services.AddSingleton<BlobServiceClient>(provider => new BlobServiceClient(connectionString));
@@ -21,8 +21,7 @@ public static class FileStorageModule
         else
         {
             // For development, use Azure Storage Emulator
-            var emulatorConnectionString = "UseDevelopmentStorage=true";
-            services.AddSingleton<BlobServiceClient>(provider => new BlobServiceClient(emulatorConnectionString));
+            services.AddSingleton<BlobServiceClient>(provider => new BlobServiceClient("UseDevelopmentStorage=true"));
         }
 
         // Register HTTP client for file downloads

@@ -32,6 +32,7 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest>
             SourcePath = request.SourcePath,
             ContentType = request.ContentType,
             ContentHash = request.ContentHash,
+            DocumentType = request.DocumentType,
             Status = DocumentStatus.Processing,
             CreatedAt = DateTime.UtcNow
         };

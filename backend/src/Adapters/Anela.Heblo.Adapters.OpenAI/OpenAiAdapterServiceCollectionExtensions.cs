@@ -10,7 +10,12 @@ public static class OpenAiAdapterServiceCollectionExtensions
 {
     public static IServiceCollection AddOpenAiAdapter(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<OpenAiEmbeddingOptions>(configuration.GetSection(OpenAiEmbeddingOptions.SectionKey));
+        services.Configure<OpenAiEmbeddingOptions>(opts =>
+        {
+            opts.ApiKey = configuration["OpenAI:ApiKey"] ?? "";
+            opts.EmbeddingModel = configuration["KnowledgeBase:EmbeddingModel"] ?? opts.EmbeddingModel;
+            opts.EmbeddingDimensions = configuration.GetValue("KnowledgeBase:EmbeddingDimensions", opts.EmbeddingDimensions);
+        });
 
         services.AddEmbeddingGenerator<string, Embedding<float>>(sp =>
             new OpenAiEmbeddingGenerator(

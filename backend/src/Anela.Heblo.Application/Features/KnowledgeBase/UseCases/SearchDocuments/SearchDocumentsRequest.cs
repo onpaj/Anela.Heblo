@@ -16,6 +16,9 @@ public class SearchDocumentsRequest : IRequest<SearchDocumentsResponse>
 public class SearchDocumentsResponse : BaseResponse
 {
     public List<ChunkResult> Chunks { get; set; } = [];
+
+    /// <summary>Number of top-K chunks discarded by the similarity threshold.</summary>
+    public int BelowThresholdCount { get; set; }
 }
 
 public class ChunkResult

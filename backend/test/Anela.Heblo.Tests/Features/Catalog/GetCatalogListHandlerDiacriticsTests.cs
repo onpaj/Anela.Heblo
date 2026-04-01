@@ -10,6 +10,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogList;
 using Anela.Heblo.Domain.Features.Catalog;
 using AutoMapper;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -31,7 +32,7 @@ public class GetCatalogListHandlerDiacriticsTests
         var config = new MapperConfiguration(cfg =>
         {
             cfg.AddProfile<CatalogMappingProfile>();
-        });
+        }, NullLoggerFactory.Instance);
         _mapper = config.CreateMapper();
 
         _handler = new GetCatalogListHandler(_repositoryMock.Object, _mapper);

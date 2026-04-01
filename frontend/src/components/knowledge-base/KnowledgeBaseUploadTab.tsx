@@ -1,6 +1,9 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Upload, X, FileText } from 'lucide-react';
-import { useUploadKnowledgeBaseDocumentMutation } from '../../api/hooks/useKnowledgeBase';
+import {
+  DocumentType,
+  useUploadKnowledgeBaseDocumentMutation,
+} from '../../api/hooks/useKnowledgeBase';
 
 const ACCEPTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md'];
 const ACCEPTED_ATTR = ACCEPTED_EXTENSIONS.join(',');
@@ -10,12 +13,19 @@ const isAcceptedFile = (file: File): boolean => {
   return ACCEPTED_EXTENSIONS.some(ext => lower.endsWith(ext));
 };
 
+const defaultDocumentType = (file: File): DocumentType => {
+  const lower = file.name.toLowerCase();
+  if (lower.endsWith('.txt') || lower.endsWith('.md')) return 'Conversation';
+  return 'KnowledgeBase';
+};
+
 type FileStatus = 'waiting' | 'uploading' | 'done' | 'error';
 
 const KnowledgeBaseUploadTab: React.FC = () => {
   const [dragOver, setDragOver] = useState(false);
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [fileStatuses, setFileStatuses] = useState<Record<string, FileStatus>>({});
+  const [fileDocumentTypes, setFileDocumentTypes] = useState<Record<string, DocumentType>>({});
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const upload = useUploadKnowledgeBaseDocumentMutation();
@@ -28,6 +38,15 @@ const KnowledgeBaseUploadTab: React.FC = () => {
       const newFiles = accepted.filter(f => !existingNames.has(f.name));
       return [...prev, ...newFiles];
     });
+    setFileDocumentTypes(prev => {
+      const next = { ...prev };
+      for (const file of accepted) {
+        if (!next[file.name]) {
+          next[file.name] = defaultDocumentType(file);
+        }
+      }
+      return next;
+    });
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -38,7 +57,6 @@ const KnowledgeBaseUploadTab: React.FC = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     addFiles(e.target.files);
-    // Reset input so the same file can be re-selected after removal
     e.target.value = '';
   };
 
@@ -49,18 +67,29 @@ const KnowledgeBaseUploadTab: React.FC = () => {
       delete next[fileName];
       return next;
     });
+    setFileDocumentTypes(prev => {
+      const next = { ...prev };
+      delete next[fileName];
+      return next;
+    });
+  };
+
+  const handleDocumentTypeChange = (fileName: string, value: DocumentType) => {
+    setFileDocumentTypes(prev => ({ ...prev, [fileName]: value }));
   };
 
   const handleUpload = async () => {
     setIsUploading(true);
-
     const filesToProcess = queuedFiles.filter(f => fileStatuses[f.name] !== 'done');
     const outcomes: Record<string, 'done' | 'error'> = {};
 
     for (const file of filesToProcess) {
       setFileStatuses(prev => ({ ...prev, [file.name]: 'uploading' }));
       try {
-        await upload.mutateAsync(file);
+        await upload.mutateAsync({
+          file,
+          documentType: fileDocumentTypes[file.name] ?? 'KnowledgeBase',
+        });
         outcomes[file.name] = 'done';
         setFileStatuses(prev => ({ ...prev, [file.name]: 'done' }));
       } catch {
@@ -70,13 +99,13 @@ const KnowledgeBaseUploadTab: React.FC = () => {
     }
 
     setIsUploading(false);
-
     setQueuedFiles(prev => prev.filter(f => outcomes[f.name] !== 'done'));
   };
 
   const handleCancelAll = () => {
     setQueuedFiles([]);
     setFileStatuses({});
+    setFileDocumentTypes({});
   };
 
   const pendingCount = queuedFiles.filter(f => fileStatuses[f.name] !== 'done').length;
@@ -97,6 +126,7 @@ const KnowledgeBaseUploadTab: React.FC = () => {
   return (
     <div className="space-y-4 max-w-lg">
       <div
+        data-testid="drop-zone"
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
@@ -125,12 +155,21 @@ const KnowledgeBaseUploadTab: React.FC = () => {
       {queuedFiles.length > 0 && (
         <div className="border border-gray-200 rounded-xl divide-y divide-gray-100">
           {queuedFiles.map(file => (
-            <div key={file.name} className="flex items-center justify-between px-4 py-3">
+            <div key={file.name} className="flex items-center justify-between px-4 py-3 gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <FileText className="w-4 h-4 text-gray-400 shrink-0" />
                 <span className="text-sm text-gray-700 truncate">{file.name}</span>
               </div>
-              <div className="flex items-center gap-3 shrink-0 ml-4">
+              <div className="flex items-center gap-2 shrink-0 ml-2">
+                <select
+                  value={fileDocumentTypes[file.name] ?? 'KnowledgeBase'}
+                  onChange={(e) => handleDocumentTypeChange(file.name, e.target.value as DocumentType)}
+                  disabled={isUploading}
+                  className="text-xs border border-gray-200 rounded px-1 py-0.5 bg-white disabled:opacity-50"
+                >
+                  <option value="KnowledgeBase">Znalostní báze</option>
+                  <option value="Conversation">Konverzace</option>
+                </select>
                 {statusLabel(fileStatuses[file.name])}
                 <button
                   onClick={() => handleRemoveFile(file.name)}

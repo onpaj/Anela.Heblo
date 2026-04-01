@@ -51,7 +51,7 @@ describe("API Client - Token Refresh & 401 Interceptor", () => {
     setGlobalToastHandler(mockToastHandler);
     
     // Mock successful token by default
-    mockTokenProvider.mockResolvedValue("valid-access-token");
+    mockTokenProvider.mockResolvedValue({ token: "valid-access-token", expiresOn: null });
   });
 
   describe("Token Authentication", () => {
@@ -307,7 +307,7 @@ describe("API Client - Token Refresh & 401 Interceptor", () => {
       global.fetch = jest.fn().mockResolvedValue(mockResponse);
 
       // Mock token provider that supports forceRefresh
-      const enhancedTokenProvider = jest.fn().mockResolvedValue("refreshed-token");
+      const enhancedTokenProvider = jest.fn().mockResolvedValue({ token: "refreshed-token", expiresOn: null });
       setGlobalTokenProvider(enhancedTokenProvider);
 
       // Get client to ensure it's initialized with the token provider

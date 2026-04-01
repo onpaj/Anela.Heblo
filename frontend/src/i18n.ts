@@ -186,10 +186,12 @@ const resources = {
         // BackgroundJobs module errors
         RecurringJobNotFound: "Opakovaná úloha nenalezena",
         RecurringJobUpdateFailed: "Aktualizace opakované úlohy selhala",
+        InvalidCronExpression: "Neplatný výraz CRON",
 
         // KnowledgeBase module errors
         KnowledgeBaseFeedbackLogNotFound: "Záznam zpětné vazby nenalezen",
         KnowledgeBaseFeedbackAlreadySubmitted: "Zpětná vazba již byla odeslána",
+        KnowledgeBaseChunkNotFound: "Fragment znalostní báze nebyl nalezen (ID: {id})",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",

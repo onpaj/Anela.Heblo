@@ -5,18 +5,18 @@ namespace Anela.Heblo.Application.Features.Catalog.UseCases.GetProductCompositio
 
 public class GetProductCompositionHandler : IRequestHandler<GetProductCompositionRequest, GetProductCompositionResponse>
 {
-    private readonly IManufactureRepository _manufactureRepository;
+    private readonly IManufactureClient _manufactureClient;
 
-    public GetProductCompositionHandler(IManufactureRepository manufactureRepository)
+    public GetProductCompositionHandler(IManufactureClient manufactureClient)
     {
-        _manufactureRepository = manufactureRepository;
+        _manufactureClient = manufactureClient;
     }
 
     public async Task<GetProductCompositionResponse> Handle(
         GetProductCompositionRequest request,
         CancellationToken cancellationToken)
     {
-        var template = await _manufactureRepository.GetManufactureTemplateAsync(
+        var template = await _manufactureClient.GetManufactureTemplateAsync(
             request.ProductCode,
             cancellationToken);
 

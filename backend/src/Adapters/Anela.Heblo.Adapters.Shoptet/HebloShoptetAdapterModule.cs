@@ -27,7 +27,7 @@ public static class ShoptetAdapterServiceCollectionExtensions
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         // Configure AutoMapper
-        services.AddAutoMapper(typeof(ShoptetAdapterServiceCollectionExtensions));
+        services.AddAutoMapper(cfg => { }, typeof(ShoptetAdapterServiceCollectionExtensions));
 
         services.AddHttpClient();
         services.AddSingleton<IIssuedInvoiceParser, XmlIssuedInvoiceParser>();

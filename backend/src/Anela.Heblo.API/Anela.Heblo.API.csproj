@@ -51,6 +51,9 @@
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.ShoptetApi\Anela.Heblo.Adapters.ShoptetApi.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Anthropic\Anela.Heblo.Adapters.Anthropic.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.OpenAI\Anela.Heblo.Adapters.OpenAI.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Azure\Anela.Heblo.Adapters.Azure.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Cups\Anela.Heblo.Adapters.Cups.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.SendGrid\Anela.Heblo.Adapters.SendGrid.csproj" />
         <ProjectReference Include="..\Anela.Heblo.Persistence\Anela.Heblo.Persistence.csproj" />
         <ProjectReference Include="..\Anela.Heblo.Xcc\Anela.Heblo.Xcc.csproj" />
     </ItemGroup>
@@ -64,6 +67,7 @@
     </ItemGroup>
     <ItemGroup>
       <Folder Include="Infrastructure\" />
+      <Folder Include="PDFPrints\" />
     </ItemGroup>
 
     <!-- Manual target to generate TypeScript client for frontend -->

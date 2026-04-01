@@ -7,6 +7,7 @@ import {
   useDeleteKnowledgeBaseDocumentMutation,
   DocumentSummary,
 } from '../../api/hooks/useKnowledgeBase';
+import ChunkDetailModal from './ChunkDetailModal';
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const colorMap: Record<string, string> = {
@@ -88,6 +89,7 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
   const [filenameInput, setFilenameInput] = useState(getInitialFilenameFilter);
 
   const [pendingDelete, setPendingDelete] = useState<DocumentSummary | null>(null);
+  const [selectedChunkId, setSelectedChunkId] = useState<string | null>(null);
 
   const { data, isLoading, error } = useKnowledgeBaseDocumentsQuery({
     pageNumber,
@@ -347,7 +349,11 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-gray-50">
+                  <tr
+                    key={doc.id}
+                    className={`hover:bg-gray-50 ${doc.firstChunkId ? 'cursor-pointer' : ''}`}
+                    onClick={() => doc.firstChunkId && setSelectedChunkId(doc.firstChunkId)}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{doc.filename}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <StatusBadge status={doc.status} />
@@ -364,7 +370,7 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
                     {canDelete && (
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <button
-                          onClick={() => setPendingDelete(doc)}
+                          onClick={(e) => { e.stopPropagation(); setPendingDelete(doc); }}
                           title="Smazat dokument"
                           className="text-gray-400 hover:text-red-600 transition-colors"
                         >
@@ -476,6 +482,13 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
           document={pendingDelete}
           onConfirm={handleDeleteConfirm}
           onCancel={() => setPendingDelete(null)}
+        />
+      )}
+
+      {selectedChunkId && (
+        <ChunkDetailModal
+          chunkId={selectedChunkId}
+          onClose={() => setSelectedChunkId(null)}
         />
       )}
     </>

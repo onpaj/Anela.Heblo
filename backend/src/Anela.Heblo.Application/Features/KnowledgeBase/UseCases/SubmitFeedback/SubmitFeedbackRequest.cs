@@ -8,10 +8,10 @@ public class SubmitFeedbackRequest : IRequest<SubmitFeedbackResponse>
 {
     public Guid LogId { get; set; }
 
-    [Range(1, 10)]
+    [Range(1, 5)]
     public int PrecisionScore { get; set; }
 
-    [Range(1, 10)]
+    [Range(1, 5)]
     public int StyleScore { get; set; }
 
     public string? Comment { get; set; }

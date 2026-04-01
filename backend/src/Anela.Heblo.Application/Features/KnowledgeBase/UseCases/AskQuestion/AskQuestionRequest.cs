@@ -22,6 +22,7 @@ public class AskQuestionResponse : BaseResponse
 
 public class SourceReference
 {
+    public Guid ChunkId { get; set; }
     public Guid DocumentId { get; set; }
     public string Filename { get; set; } = string.Empty;
     public string Excerpt { get; set; } = string.Empty;

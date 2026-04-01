@@ -11,4 +11,5 @@ public class SubmitManufactureClientRequest
 
     public string? LotNumber { get; set; }
     public DateOnly? ExpirationDate { get; set; }
+    public bool ValidateIngredientStock { get; set; } = false;
 }

@@ -502,22 +502,23 @@ jobs:
           # Initial wait for container startup (increased from 30s to 60s)
           sleep 60
 
-          # Health check with retries (increased from 10 to 20 attempts with 15s intervals = 5 minutes total)
+          # Liveness check with retries - uses /health/live to avoid waiting for background service hydration
+          # (increased from 10 to 20 attempts with 15s intervals = 5 minutes total)
           MAX_ATTEMPTS=20
           ATTEMPT=1
 
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            echo "🔍 Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+            echo "🔍 Liveness check attempt $ATTEMPT/$MAX_ATTEMPTS..."
 
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health || echo "000")
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health/live || echo "000")
 
             if [ "$HTTP_CODE" = "200" ]; then
-              echo "✅ Deployment is ready! (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+              echo "✅ Deployment is live! (attempt $ATTEMPT/$MAX_ATTEMPTS)"
               break
             fi
 
             if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-              echo "❌ Deployment failed to become ready after $MAX_ATTEMPTS attempts"
+              echo "❌ Deployment failed to become live after $MAX_ATTEMPTS attempts"
               echo "Last HTTP status code: $HTTP_CODE"
               exit 1
             fi
@@ -612,22 +613,23 @@ jobs:
           # Initial wait for container startup (increased from 30s to 60s)
           sleep 60
 
-          # Health check with retries (increased from 10 to 20 attempts with 15s intervals = 5 minutes total)
+          # Liveness check with retries - uses /health/live to avoid waiting for background service hydration
+          # (increased from 10 to 20 attempts with 15s intervals = 5 minutes total)
           MAX_ATTEMPTS=20
           ATTEMPT=1
 
           while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            echo "🔍 Health check attempt $ATTEMPT/$MAX_ATTEMPTS..."
+            echo "🔍 Liveness check attempt $ATTEMPT/$MAX_ATTEMPTS..."
 
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health || echo "000")
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health/live || echo "000")
 
             if [ "$HTTP_CODE" = "200" ]; then
-              echo "✅ Deployment is ready! (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+              echo "✅ Deployment is live! (attempt $ATTEMPT/$MAX_ATTEMPTS)"
               break
             fi
 
             if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-              echo "❌ Deployment failed to become ready after $MAX_ATTEMPTS attempts"
+              echo "❌ Deployment failed to become live after $MAX_ATTEMPTS attempts"
               echo "Last HTTP status code: $HTTP_CODE"
               exit 1
             fi
@@ -662,16 +664,6 @@ jobs:
             echo "✅ Liveness check passed (HTTP $HTTP_CODE)"
           else
             echo "❌ Liveness check failed (HTTP $HTTP_CODE)"
-            ALL_PASSED=false
-          fi
-
-          # Readiness check with timeout
-          echo "🔍 Testing /health/ready endpoint..."
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "https://$HOSTNAME/health/ready" || echo "000")
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Readiness check passed (HTTP $HTTP_CODE)"
-          else
-            echo "❌ Readiness check failed (HTTP $HTTP_CODE)"
             ALL_PASSED=false
           fi
 

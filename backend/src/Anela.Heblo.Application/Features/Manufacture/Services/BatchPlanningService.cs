@@ -9,18 +9,18 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 public class BatchPlanningService : IBatchPlanningService
 {
     private readonly ICatalogRepository _catalogRepository;
-    private readonly IManufactureRepository _manufactureRepository;
+    private readonly IManufactureClient _manufactureClient;
     private readonly IBatchDistributionCalculator _batchDistributionCalculator;
     private readonly ILogger<BatchPlanningService> _logger;
 
     public BatchPlanningService(
         ICatalogRepository catalogRepository,
-        IManufactureRepository manufactureRepository,
+        IManufactureClient manufactureClient,
         IBatchDistributionCalculator batchDistributionCalculator,
         ILogger<BatchPlanningService> logger)
     {
         _catalogRepository = catalogRepository;
-        _manufactureRepository = manufactureRepository;
+        _manufactureClient = manufactureClient;
         _batchDistributionCalculator = batchDistributionCalculator;
         _logger = logger;
     }
@@ -359,7 +359,7 @@ public class BatchPlanningService : IBatchPlanningService
         var availableVolume = request.TotalWeightToUse ?? (request.MmqMultiplier ?? 1.0) * semiproduct.MinimalManufactureQuantity;
 
         // 2. Find all products that use this semiproduct
-        var productTemplates = await _manufactureRepository.FindByIngredientAsync(request.ProductCode, cancellationToken);
+        var productTemplates = await _manufactureClient.FindByIngredientAsync(request.ProductCode, cancellationToken);
         if (productTemplates.Count == 0)
         {
             throw new ArgumentException($"No products found that use semiproduct '{request.ProductCode}'.");

@@ -199,12 +199,16 @@ public enum ErrorCodes
     RecurringJobNotFound = 1901,
     [HttpStatusCode(HttpStatusCode.InternalServerError)]
     RecurringJobUpdateFailed = 1902,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InvalidCronExpression = 1903,
 
     // KnowledgeBase module errors (20XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
     KnowledgeBaseFeedbackLogNotFound = 2001,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     KnowledgeBaseFeedbackAlreadySubmitted = 2002,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    KnowledgeBaseChunkNotFound = 2003,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

@@ -33,8 +33,8 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             var embedding = new Vector(chunk.Embedding);
             await using var cmd = new NpgsqlCommand(
                 """
-                INSERT INTO dbo."KnowledgeBaseChunks" ("Id", "DocumentId", "ChunkIndex", "Content", "Embedding")
-                VALUES (@id, @documentId, @chunkIndex, @content, @embedding)
+                INSERT INTO dbo."KnowledgeBaseChunks" ("Id", "DocumentId", "ChunkIndex", "Content", "Summary", "DocumentType", "Embedding")
+                VALUES (@id, @documentId, @chunkIndex, @content, @summary, @documentType, @embedding)
                 """,
                 connection);
 
@@ -42,6 +42,8 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             cmd.Parameters.AddWithValue("documentId", chunk.DocumentId);
             cmd.Parameters.AddWithValue("chunkIndex", chunk.ChunkIndex);
             cmd.Parameters.AddWithValue("content", chunk.Content);
+            cmd.Parameters.AddWithValue("summary", chunk.Summary);
+            cmd.Parameters.AddWithValue("documentType", (int)chunk.DocumentType);
             cmd.Parameters.AddWithValue("embedding", embedding);
 
             await cmd.ExecuteNonQueryAsync(ct);
@@ -185,6 +187,25 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             .ExecuteDeleteAsync(ct);
     }
 
+    public async Task<KnowledgeBaseChunk?> GetChunkByIdAsync(Guid chunkId, CancellationToken ct = default)
+    {
+        return await _context.KnowledgeBaseChunks
+            .Include(c => c.Document)
+            .FirstOrDefaultAsync(c => c.Id == chunkId, ct);
+    }
+
+    public async Task<Dictionary<Guid, Guid>> GetFirstChunkIdsByDocumentIdsAsync(
+        IEnumerable<Guid> documentIds,
+        CancellationToken ct = default)
+    {
+        var ids = documentIds.ToList();
+        return await _context.KnowledgeBaseChunks
+            .Where(c => ids.Contains(c.DocumentId))
+            .GroupBy(c => c.DocumentId)
+            .Select(g => new { DocumentId = g.Key, ChunkId = g.OrderBy(c => c.ChunkIndex).First().Id })
+            .ToDictionaryAsync(x => x.DocumentId, x => x.ChunkId, ct);
+    }
+
     public async Task UpdateDocumentSourcePathAsync(Guid documentId, string newSourcePath, CancellationToken ct = default)
     {
         await _context.KnowledgeBaseDocuments
@@ -207,5 +228,73 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
     {
         return await _context.KnowledgeBaseQuestionLogs
             .FirstOrDefaultAsync(l => l.Id == id, ct);
+    }
+
+    public async Task<(List<KnowledgeBaseQuestionLog> Logs, int TotalCount)> GetFeedbackLogsPagedAsync(
+        bool? hasFeedback,
+        string? userId,
+        string sortBy,
+        bool sortDescending,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var query = _context.KnowledgeBaseQuestionLogs.AsQueryable();
+
+        if (hasFeedback.HasValue)
+        {
+            query = hasFeedback.Value
+                ? query.Where(l => l.PrecisionScore != null || l.StyleScore != null)
+                : query.Where(l => l.PrecisionScore == null && l.StyleScore == null);
+        }
+
+        if (!string.IsNullOrEmpty(userId))
+            query = query.Where(l => l.UserId == userId);
+
+        query = sortBy switch
+        {
+            "PrecisionScore" => sortDescending
+                ? query.OrderByDescending(l => l.PrecisionScore)
+                : query.OrderBy(l => l.PrecisionScore),
+            "StyleScore" => sortDescending
+                ? query.OrderByDescending(l => l.StyleScore)
+                : query.OrderBy(l => l.StyleScore),
+            _ => sortDescending
+                ? query.OrderByDescending(l => l.CreatedAt)
+                : query.OrderBy(l => l.CreatedAt),
+        };
+
+        var totalCount = await query.CountAsync(ct);
+        var logs = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return (logs, totalCount);
+    }
+
+    public async Task<FeedbackAggregateStats> GetFeedbackStatsAsync(CancellationToken ct = default)
+    {
+        var totalQuestions = await _context.KnowledgeBaseQuestionLogs.CountAsync(ct);
+
+        var withFeedback = await _context.KnowledgeBaseQuestionLogs
+            .Where(l => l.PrecisionScore != null || l.StyleScore != null)
+            .ToListAsync(ct);
+
+        double? avgPrecision = withFeedback.Count > 0
+            ? withFeedback.Where(l => l.PrecisionScore != null).Average(l => (double?)l.PrecisionScore)
+            : null;
+
+        double? avgStyle = withFeedback.Count > 0
+            ? withFeedback.Where(l => l.StyleScore != null).Average(l => (double?)l.StyleScore)
+            : null;
+
+        return new FeedbackAggregateStats
+        {
+            TotalQuestions = totalQuestions,
+            TotalWithFeedback = withFeedback.Count,
+            AvgPrecisionScore = avgPrecision.HasValue ? Math.Round(avgPrecision.Value, 1) : null,
+            AvgStyleScore = avgStyle.HasValue ? Math.Round(avgStyle.Value, 1) : null,
+        };
     }
 }

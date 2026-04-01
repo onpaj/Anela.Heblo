@@ -15,15 +15,15 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 
 public class CalculatedBatchSizeHandlerLastStockTakingTests
 {
-    private readonly Mock<IManufactureRepository> _mockManufactureRepository;
+    private readonly Mock<IManufactureClient> _mockManufactureClient;
     private readonly Mock<ICatalogRepository> _mockCatalogRepository;
     private readonly CalculatedBatchSizeHandler _handler;
 
     public CalculatedBatchSizeHandlerLastStockTakingTests()
     {
-        _mockManufactureRepository = new Mock<IManufactureRepository>();
+        _mockManufactureClient = new Mock<IManufactureClient>();
         _mockCatalogRepository = new Mock<ICatalogRepository>();
-        _handler = new CalculatedBatchSizeHandler(_mockManufactureRepository.Object, _mockCatalogRepository.Object);
+        _handler = new CalculatedBatchSizeHandler(_mockManufactureClient.Object, _mockCatalogRepository.Object);
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             StockTakingHistory = new List<StockTakingRecord>() // No stock taking history
         };
 
-        _mockManufactureRepository
+        _mockManufactureClient
             .Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
 
@@ -170,7 +170,7 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             StockTakingHistory = new List<StockTakingRecord>() // No stock taking history
         };
 
-        _mockManufactureRepository
+        _mockManufactureClient
             .Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
 
@@ -230,7 +230,7 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             MinimalManufactureQuantity = 500.0
         };
 
-        _mockManufactureRepository
+        _mockManufactureClient
             .Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
 

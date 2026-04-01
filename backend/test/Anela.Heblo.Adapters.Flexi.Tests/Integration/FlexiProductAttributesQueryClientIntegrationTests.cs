@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Anela.Heblo.Adapters.Flexi.Tests.Integration;
 
 [Collection("FlexiIntegration")]
+[Trait("Category", "Integration")]
 public class FlexiProductAttributesQueryClientIntegrationTests : IClassFixture<FlexiIntegrationTestFixture>
 {
     private readonly FlexiIntegrationTestFixture _fixture;

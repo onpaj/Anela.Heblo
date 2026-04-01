@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, ExternalLink } from 'lucide-react';
 import {
   useKnowledgeBaseSearchMutation,
   ChunkResult,
 } from '../../api/hooks/useKnowledgeBase';
+import ChunkDetailModal from './ChunkDetailModal';
 
 const ScoreBadge: React.FC<{ score: number }> = ({ score }) => {
   const pct = Math.round(score * 100);
@@ -20,11 +21,26 @@ const ScoreBadge: React.FC<{ score: number }> = ({ score }) => {
   );
 };
 
-const ChunkCard: React.FC<{ chunk: ChunkResult }> = ({ chunk }) => (
+interface ChunkCardProps {
+  chunk: ChunkResult;
+  onViewSource: (chunkId: string, score: number) => void;
+}
+
+const ChunkCard: React.FC<ChunkCardProps> = ({ chunk, onViewSource }) => (
   <div className="border border-gray-200 rounded-lg p-4 space-y-2">
     <div className="flex items-center justify-between">
       <span className="text-sm font-medium text-gray-700">{chunk.sourceFilename}</span>
-      <ScoreBadge score={chunk.score} />
+      <div className="flex items-center gap-2">
+        <ScoreBadge score={chunk.score} />
+        <button
+          onClick={() => onViewSource(chunk.chunkId, chunk.score)}
+          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+          aria-label={`Zobrazit zdroj ${chunk.sourceFilename}`}
+        >
+          <ExternalLink className="w-3 h-3" />
+          Zobrazit zdroj
+        </button>
+      </div>
     </div>
     <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-5">{chunk.content}</p>
   </div>
@@ -32,6 +48,8 @@ const ChunkCard: React.FC<{ chunk: ChunkResult }> = ({ chunk }) => (
 
 const KnowledgeBaseSearchTab: React.FC = () => {
   const [query, setQuery] = useState('');
+  const [selectedChunkId, setSelectedChunkId] = useState<string | null>(null);
+  const [selectedScore, setSelectedScore] = useState<number | undefined>(undefined);
   const search = useKnowledgeBaseSearchMutation();
 
   const handleSearch = () => {
@@ -42,6 +60,16 @@ const KnowledgeBaseSearchTab: React.FC = () => {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSearch();
+  };
+
+  const handleViewSource = (chunkId: string, score: number) => {
+    setSelectedChunkId(chunkId);
+    setSelectedScore(score);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedChunkId(null);
+    setSelectedScore(undefined);
   };
 
   return (
@@ -85,10 +113,18 @@ const KnowledgeBaseSearchTab: React.FC = () => {
             </p>
           ) : (
             search.data.chunks.map((chunk) => (
-              <ChunkCard key={chunk.chunkId} chunk={chunk} />
+              <ChunkCard key={chunk.chunkId} chunk={chunk} onViewSource={handleViewSource} />
             ))
           )}
         </div>
+      )}
+
+      {selectedChunkId && (
+        <ChunkDetailModal
+          chunkId={selectedChunkId}
+          score={selectedScore}
+          onClose={handleCloseModal}
+        />
       )}
     </div>
   );

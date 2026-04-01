@@ -13,6 +13,7 @@ export interface DocumentSummary {
   contentType: string;
   createdAt: string;
   indexedAt: string | null;
+  firstChunkId: string | null;
 }
 
 export interface GetDocumentsParams {
@@ -54,6 +55,7 @@ export interface SearchDocumentsResponse {
 }
 
 export interface SourceReference {
+  chunkId: string;
   documentId: string;
   filename: string;
   excerpt: string;
@@ -82,9 +84,75 @@ export interface DeleteDocumentResponse {
   success: boolean;
 }
 
+export type DocumentType = 'KnowledgeBase' | 'Conversation';
+
 export interface UploadDocumentResponse {
   success: boolean;
   document: DocumentSummary | null;
+}
+
+export interface FeedbackLogSummary {
+  id: string;
+  question: string;
+  answer: string;
+  topK: number;
+  sourceCount: number;
+  durationMs: number;
+  createdAt: string;
+  userId: string | null;
+  precisionScore: number | null;
+  styleScore: number | null;
+  feedbackComment: string | null;
+  hasFeedback: boolean;
+}
+
+export interface FeedbackStatsDto {
+  totalQuestions: number;
+  totalWithFeedback: number;
+  avgPrecisionScore: number | null;
+  avgStyleScore: number | null;
+}
+
+export interface ChunkDetail {
+  chunkId: string;
+  documentId: string;
+  filename: string;
+  documentType: 'KnowledgeBase' | 'Conversation';
+  indexedAt: string | null;
+  chunkIndex: number;
+  summary: string;
+  content: string;
+}
+
+export interface GetChunkDetailResponse {
+  success: boolean;
+  chunkId: string;
+  documentId: string;
+  filename: string;
+  documentType: 'KnowledgeBase' | 'Conversation';
+  indexedAt: string | null;
+  chunkIndex: number;
+  summary: string;
+  content: string;
+}
+
+export interface GetFeedbackListParams {
+  pageNumber?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortDescending?: boolean;
+  hasFeedback?: boolean;
+  userId?: string;
+}
+
+export interface GetFeedbackListResponse {
+  success: boolean;
+  logs: FeedbackLogSummary[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  stats: FeedbackStatsDto;
 }
 
 // ---- Permission hooks ----
@@ -116,6 +184,10 @@ export const knowledgeBaseKeys = {
   documents: (params?: GetDocumentsParams) =>
     [...QUERY_KEYS.knowledgeBase, 'documents', params ?? {}] as const,
   contentTypes: () => [...QUERY_KEYS.knowledgeBase, 'content-types'] as const,
+  feedbackList: (params?: GetFeedbackListParams) =>
+    [...QUERY_KEYS.knowledgeBase, 'feedback-list', params ?? {}] as const,
+  chunkDetail: (chunkId: string) =>
+    [...QUERY_KEYS.knowledgeBase, 'chunk-detail', chunkId] as const,
 };
 
 // ---- Hooks ----
@@ -220,6 +292,34 @@ export const useKnowledgeBaseSearchMutation = () => {
 };
 
 /**
+ * Fetch full chunk content and document metadata by chunk ID.
+ * Only fires when chunkId is non-null.
+ */
+export const useChunkDetailQuery = (chunkId: string | null) => {
+  return useQuery({
+    queryKey: knowledgeBaseKeys.chunkDetail(chunkId ?? ''),
+    queryFn: async (): Promise<GetChunkDetailResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const fullUrl = `${(apiClient as any).baseUrl}/api/knowledgebase/chunks/${chunkId}`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch chunk detail: ${response.status}`);
+      }
+
+      return response.json();
+    },
+    enabled: !!chunkId,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+  });
+};
+
+/**
  * Ask a question grounded in the knowledge base.
  */
 export const useKnowledgeBaseAskMutation = () => {
@@ -317,12 +417,19 @@ export const useUploadKnowledgeBaseDocumentMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (file: File): Promise<UploadDocumentResponse> => {
+    mutationFn: async ({
+      file,
+      documentType,
+    }: {
+      file: File;
+      documentType: DocumentType;
+    }): Promise<UploadDocumentResponse> => {
       const apiClient = getAuthenticatedApiClient();
       const fullUrl = `${(apiClient as any).baseUrl}/api/knowledgebase/documents/upload`;
 
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('documentType', documentType);
 
       // Do NOT set Content-Type header — browser sets it with multipart boundary automatically
       const response = await (apiClient as any).http.fetch(fullUrl, {
@@ -339,5 +446,47 @@ export const useUploadKnowledgeBaseDocumentMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: knowledgeBaseKeys.all });
     },
+  });
+};
+
+/**
+ * Fetch paginated, filtered, sorted feedback logs for the Feedback Browser.
+ * Only accessible to knowledge_base_manager role.
+ */
+export const useKnowledgeBaseFeedbackListQuery = (params: GetFeedbackListParams = {}) => {
+  return useQuery({
+    queryKey: knowledgeBaseKeys.feedbackList(params),
+    queryFn: async (): Promise<GetFeedbackListResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const searchParams = new URLSearchParams();
+
+      if (params.pageNumber !== undefined)
+        searchParams.append('pageNumber', params.pageNumber.toString());
+      if (params.pageSize !== undefined)
+        searchParams.append('pageSize', params.pageSize.toString());
+      if (params.sortBy) searchParams.append('sortBy', params.sortBy);
+      if (params.sortDescending !== undefined)
+        searchParams.append('sortDescending', params.sortDescending.toString());
+      if (params.hasFeedback !== undefined)
+        searchParams.append('hasFeedback', params.hasFeedback.toString());
+      if (params.userId) searchParams.append('userId', params.userId);
+
+      const query = searchParams.toString();
+      const relativeUrl = `/api/knowledgebase/feedback/list${query ? `?${query}` : ''}`;
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch feedback list: ${response.status}`);
+      }
+
+      return response.json();
+    },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 };

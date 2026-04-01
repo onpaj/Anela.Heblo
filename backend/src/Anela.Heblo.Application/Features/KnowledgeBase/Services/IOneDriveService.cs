@@ -4,7 +4,7 @@ public record OneDriveFile(string Id, string Name, string ContentType, string Pa
 
 public interface IOneDriveService
 {
-    Task<List<OneDriveFile>> ListInboxFilesAsync(CancellationToken ct = default);
+    Task<List<OneDriveFile>> ListInboxFilesAsync(string inboxPath, CancellationToken ct = default);
     Task<byte[]> DownloadFileAsync(string fileId, CancellationToken ct = default);
-    Task MoveToArchivedAsync(string fileId, string filename, CancellationToken ct = default);
+    Task MoveToArchivedAsync(string fileId, string filename, string archivedPath, CancellationToken ct = default);
 }

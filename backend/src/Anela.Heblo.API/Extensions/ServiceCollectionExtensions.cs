@@ -13,6 +13,12 @@ using Hangfire.PostgreSql;
 using Anela.Heblo.API.Infrastructure.Hangfire;
 using Anela.Heblo.Xcc.Services;
 using Anela.Heblo.Xcc.Services.Dashboard;
+using Anela.Heblo.Adapters.Azure.Features.ExpeditionList;
+using Anela.Heblo.Adapters.Azure;
+using Anela.Heblo.Adapters.Cups;
+using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
+using Anela.Heblo.API.Features.ExpeditionList;
+using Anela.Heblo.Application.Features.ExpeditionList.Services;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -277,12 +283,9 @@ public static class ServiceCollectionExtensions
                 }));
         }
 
-        // Always add Hangfire server with Heblo queue - NEVER allow fallback to Default queue
         services.AddHangfireServer(options =>
         {
-            // Configure server options - ALWAYS only process Heblo queue
             options.WorkerCount = hangfireOptions.WorkerCount;
-            options.Queues = new[] { hangfireOptions.QueueName };
         });
 
         // Register Hangfire dashboard authorization filter
@@ -320,6 +323,40 @@ public static class ServiceCollectionExtensions
 
         // Register the discovery service that will register jobs with Hangfire on startup
         services.AddHostedService<RecurringJobDiscoveryService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the print queue sink based on the "ExpeditionList:PrintSink" configuration value.
+    /// Valid values: "FileSystem" (default), "AzureBlob", "Cups", "Combined".
+    /// </summary>
+    public static IServiceCollection AddPrintQueueSink(this IServiceCollection services, IConfiguration configuration)
+    {
+        var printSink = configuration["ExpeditionList:PrintSink"];
+        switch (printSink)
+        {
+            case "AzureBlob":
+                services.AddAzurePrintQueueSink(configuration);
+                break;
+            case "Cups":
+                services.AddCupsAdapter(configuration);
+                services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
+                break;
+            case "Combined":
+                // AddAzurePrintQueueSink and AddCupsAdapter each also register a non-keyed
+                // IPrintQueueSink as a side effect; those bindings are unused here — the
+                // last non-keyed registration (CombinedPrintQueueSink below) wins.
+                services.AddAzurePrintQueueSink(configuration);
+                services.AddCupsAdapter(configuration);
+                services.AddKeyedScoped<IPrintQueueSink, AzureBlobPrintQueueSink>("azure");
+                services.AddKeyedScoped<IPrintQueueSink, CupsPrintQueueSink>("cups");
+                services.AddScoped<IPrintQueueSink, CombinedPrintQueueSink>();
+                break;
+            default: // "FileSystem" or unset
+                services.AddScoped<IPrintQueueSink, FileSystemPrintQueueSink>();
+                break;
+        }
 
         return services;
     }

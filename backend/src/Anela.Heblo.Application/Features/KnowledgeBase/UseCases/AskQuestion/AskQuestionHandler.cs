@@ -1,23 +1,21 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using MediatR;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 
 public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestionResponse>
 {
-    private const string SystemPrompt =
-        "You are an expert assistant for a cosmetics manufacturing company. " +
-        "Answer based strictly on the provided context. " +
-        "If the answer cannot be found in the context, say so explicitly.";
-
     private readonly IMediator _mediator;
     private readonly IChatClient _chatClient;
+    private readonly KnowledgeBaseOptions _options;
 
-    public AskQuestionHandler(IMediator mediator, IChatClient chatClient)
+    public AskQuestionHandler(IMediator mediator, IChatClient chatClient, IOptions<KnowledgeBaseOptions> options)
     {
         _mediator = mediator;
         _chatClient = chatClient;
+        _options = options.Value;
     }
 
     public async Task<AskQuestionResponse> Handle(
@@ -28,13 +26,24 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
             new SearchDocumentsRequest { Query = request.Question, TopK = request.TopK },
             cancellationToken);
 
+        if (!searchResult.Chunks.Any())
+        {
+            return new AskQuestionResponse
+            {
+                Answer = "V dostupných dokumentech jsem nenašla relevantní informaci k vaší otázce.",
+                Sources = []
+            };
+        }
+
         var context = string.Join("\n\n---\n\n", searchResult.Chunks.Select(c => c.Content));
-        var userContent = context + "\n\n" + request.Question;
+        var systemPrompt = _options.AskQuestionSystemPrompt
+            .Replace("{context}", context)
+            .Replace("{query}", request.Question);
 
         var messages = new List<ChatMessage>
         {
-            new(ChatRole.System, SystemPrompt),
-            new(ChatRole.User, userContent)
+            new(ChatRole.System, systemPrompt),
+            new(ChatRole.User, request.Question)
         };
 
         var response = await _chatClient.GetResponseAsync(messages, cancellationToken: cancellationToken);
@@ -45,6 +54,7 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
             Answer = answer,
             Sources = searchResult.Chunks.Select(c => new SourceReference
             {
+                ChunkId = c.ChunkId,
                 DocumentId = c.DocumentId,
                 Filename = c.SourceFilename,
                 Excerpt = c.Content[..Math.Min(200, c.Content.Length)],

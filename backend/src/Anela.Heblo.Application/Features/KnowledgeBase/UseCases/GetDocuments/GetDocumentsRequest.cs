@@ -31,4 +31,5 @@ public class DocumentSummary
     public string ContentType { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime? IndexedAt { get; set; }
+    public Guid? FirstChunkId { get; set; }
 }
