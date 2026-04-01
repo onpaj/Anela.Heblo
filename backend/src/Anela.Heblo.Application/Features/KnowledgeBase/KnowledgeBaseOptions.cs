@@ -98,6 +98,12 @@ public class KnowledgeBaseOptions
     public string TopicDelimiter { get; set; } = "[TOPIC]";
 
     /// <summary>
+    /// How long (in minutes) the in-memory product lookup cache is considered valid
+    /// before a fresh load from the catalog repository is triggered.
+    /// </summary>
+    public int ProductEnrichmentCacheTtlMinutes { get; set; } = 60;
+
+    /// <summary>
     /// When true, user queries are rewritten into the structured summary format used
     /// by stored embeddings before calling the embedding model (HyDE variant).
     /// Set to false to skip the LLM call and embed the raw query directly.
@@ -130,8 +136,8 @@ public class KnowledgeBaseOptions
         """;
 
     /// <summary>
-    /// System prompt used by AskQuestionHandler. Supports {context} and {query} placeholders.
-    /// {context} is replaced with retrieved chunks; {query} is replaced with the user's question.
+    /// System prompt used by AskQuestionHandler. Supports {context}, {products} and {query} placeholders.
+    /// {context} is replaced with retrieved chunks; {products} with the product table; {query} with the user's question.
     /// </summary>
     public string AskQuestionSystemPrompt { get; set; } =
         """
@@ -147,9 +153,14 @@ public class KnowledgeBaseOptions
         - Zohledni typ pleti a potíže zákazníka
         - Odpovídej v češtině, přátelsky ale odborně
         - Pokud kontext obsahuje více podobných případů, syntetizuj je
+        - Pokud zmiňuješ produkt Anela, nahraď celý název produktu jeho kódem
+          v závorce (např. (AKL001)). Použij pouze kódy z přiloženého seznamu produktů.
 
         Kontext z podobných konverzací:
         {context}
+
+        Produkty Anela (CODE | Název):
+        {products}
 
         Dotaz zákazníka:
         {query}

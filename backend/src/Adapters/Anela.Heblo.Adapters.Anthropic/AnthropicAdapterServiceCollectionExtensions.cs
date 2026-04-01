@@ -25,7 +25,7 @@ public static class AnthropicAdapterServiceCollectionExtensions
                 sp.GetRequiredService<IHttpClientFactory>(),
                 sp.GetRequiredService<ILogger<AnthropicChatClient>>()))
             .UseLogging()
-            .Use(inner => new PostAnswerEnrichmentMiddleware(inner));
+            .Use((inner, sp) => new PostAnswerEnrichmentMiddleware(inner, sp.GetRequiredService<IProductEnrichmentCache>()));
 
         return services;
     }
