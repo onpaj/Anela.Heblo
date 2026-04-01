@@ -1,26 +1,22 @@
-using System.Security.Cryptography;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetDocuments;
+using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.IndexDocument;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.KnowledgeBase;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.UploadDocument;
 
 public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, UploadDocumentResponse>
 {
-    private readonly IKnowledgeBaseRepository _repository;
     private readonly IEnumerable<IDocumentTextExtractor> _extractors;
-    private readonly IDocumentIndexingService _indexingService;
+    private readonly IMediator _mediator;
 
     public UploadDocumentHandler(
-        IKnowledgeBaseRepository repository,
         IEnumerable<IDocumentTextExtractor> extractors,
-        IDocumentIndexingService indexingService)
+        IMediator mediator)
     {
-        _repository = repository;
         _extractors = extractors;
-        _indexingService = indexingService;
+        _mediator = mediator;
     }
 
     public async Task<UploadDocumentResponse> Handle(
@@ -31,16 +27,8 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
         await request.FileStream.CopyToAsync(ms, cancellationToken);
         var fileBytes = ms.ToArray();
 
-        var hash = Convert.ToHexString(SHA256.HashData(fileBytes));
-        var existing = await _repository.GetDocumentByHashAsync(hash, cancellationToken);
-        if (existing != null)
-        {
-            return new UploadDocumentResponse { Document = MapToSummary(existing) };
-        }
-
         var contentType = ResolveContentType(request.ContentType, request.Filename);
 
-        // Validate extractor availability before persisting anything
         if (!_extractors.Any(e => e.CanHandle(contentType)))
         {
             return new UploadDocumentResponse
@@ -50,44 +38,32 @@ public class UploadDocumentHandler : IRequestHandler<UploadDocumentRequest, Uplo
             };
         }
 
-        var doc = new KnowledgeBaseDocument
+        var sourcePath = $"upload/{Guid.NewGuid()}/{request.Filename}";
+
+        var indexResponse = await _mediator.Send(new IndexDocumentRequest
         {
-            Id = Guid.NewGuid(),
             Filename = request.Filename,
-            SourcePath = $"upload/{Guid.NewGuid()}/{request.Filename}",
+            SourcePath = sourcePath,
             ContentType = contentType,
-            ContentHash = hash,
-            Status = DocumentStatus.Processing,
+            Content = fileBytes,
             DocumentType = request.DocumentType,
-            CreatedAt = DateTime.UtcNow,
+        }, cancellationToken);
+
+        return new UploadDocumentResponse
+        {
+            Document = MapToSummary(indexResponse),
         };
-        await _repository.AddDocumentAsync(doc, cancellationToken);
-        await _repository.SaveChangesAsync(cancellationToken);
-
-        try
-        {
-            await _indexingService.IndexChunksAsync(fileBytes, contentType, doc, cancellationToken);
-            await _repository.SaveChangesAsync(cancellationToken);
-        }
-        catch
-        {
-            doc.Status = DocumentStatus.Failed;
-            await _repository.SaveChangesAsync(cancellationToken);
-            throw;
-        }
-
-        return new UploadDocumentResponse { Document = MapToSummary(doc) };
     }
 
-    private static DocumentSummary MapToSummary(KnowledgeBaseDocument doc) =>
+    private static DocumentSummary MapToSummary(IndexDocumentResponse response) =>
         new()
         {
-            Id = doc.Id,
-            Filename = doc.Filename,
-            Status = doc.Status.ToString().ToLowerInvariant(),
-            ContentType = doc.ContentType,
-            CreatedAt = doc.CreatedAt,
-            IndexedAt = doc.IndexedAt,
+            Id = response.DocumentId,
+            Filename = response.Filename,
+            Status = response.Status.ToString().ToLowerInvariant(),
+            ContentType = response.ContentType,
+            CreatedAt = response.CreatedAt,
+            IndexedAt = response.IndexedAt,
         };
 
     /// <summary>

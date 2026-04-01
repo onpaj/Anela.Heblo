@@ -11,7 +11,6 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure.Jobs;
 public class KnowledgeBaseIngestionJob : IRecurringJob
 {
     private readonly IOneDriveService _oneDrive;
-    private readonly IKnowledgeBaseRepository _repository;
     private readonly IMediator _mediator;
     private readonly IRecurringJobStatusChecker _statusChecker;
     private readonly KnowledgeBaseOptions _options;
@@ -28,14 +27,12 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
 
     public KnowledgeBaseIngestionJob(
         IOneDriveService oneDrive,
-        IKnowledgeBaseRepository repository,
         IMediator mediator,
         IRecurringJobStatusChecker statusChecker,
         IOptions<KnowledgeBaseOptions> options,
         ILogger<KnowledgeBaseIngestionJob> logger)
     {
         _oneDrive = oneDrive;
-        _repository = repository;
         _mediator = mediator;
         _statusChecker = statusChecker;
         _options = options.Value;
@@ -69,50 +66,25 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
                 {
                     var content = await _oneDrive.DownloadFileAsync(mapping.DriveId, file.Id, cancellationToken);
 
-                    var contentHash = Convert.ToHexString(
-                        System.Security.Cryptography.SHA256.HashData(content)).ToLowerInvariant();
-
-                    var existingDocument = await _repository.GetDocumentByHashAsync(contentHash, cancellationToken);
-                    if (existingDocument is not null)
-                    {
-                        if (existingDocument.SourcePath != file.Path)
-                        {
-                            _logger.LogInformation("File {Filename} moved, updating path from {OldPath} to {NewPath}",
-                                file.Name, existingDocument.SourcePath, file.Path);
-                            await _repository.UpdateDocumentSourcePathAsync(existingDocument.Id, file.Path, cancellationToken);
-                        }
-                        else
-                        {
-                            _logger.LogDebug("Skipping already-indexed file {Filename} (hash match)", file.Name);
-                        }
-
-                        skipped++;
-                        continue;
-                    }
-
-                    var existingByPath = await _repository.GetDocumentBySourcePathAsync(file.Path, cancellationToken);
-                    if (existingByPath is not null)
-                    {
-                        _logger.LogInformation(
-                            "File {Filename} at {Path} has new content (hash changed). Deleting old document {Id} before re-indexing.",
-                            file.Name, file.Path, existingByPath.Id);
-                        await _repository.DeleteDocumentAsync(existingByPath.Id, cancellationToken);
-                    }
-
-                    await _mediator.Send(new IndexDocumentRequest
+                    var result = await _mediator.Send(new IndexDocumentRequest
                     {
                         Filename = file.Name,
                         SourcePath = file.Path,
                         ContentType = file.ContentType,
                         Content = content,
-                        ContentHash = contentHash,
                         DocumentType = mapping.DocumentType
                     }, cancellationToken);
 
-                    await _oneDrive.MoveToArchivedAsync(mapping.DriveId, file.Id, file.Name, mapping.ArchivedPath, cancellationToken);
-
-                    _logger.LogInformation("Indexed and archived {Filename} as {DocumentType}", file.Name, mapping.DocumentType);
-                    indexed++;
+                    if (result.WasDuplicate)
+                    {
+                        skipped++;
+                    }
+                    else
+                    {
+                        await _oneDrive.MoveToArchivedAsync(mapping.DriveId, file.Id, file.Name, mapping.ArchivedPath, cancellationToken);
+                        _logger.LogInformation("Indexed and archived {Filename} as {DocumentType}", file.Name, mapping.DocumentType);
+                        indexed++;
+                    }
                 }
                 catch (NotSupportedException ex)
                 {
