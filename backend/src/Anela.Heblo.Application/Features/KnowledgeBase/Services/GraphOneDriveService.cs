@@ -88,14 +88,15 @@ public class GraphOneDriveService : IOneDriveService
         var resolver = new GraphFolderResolver(client, token, _cache, _logger);
         var folderItemId = await resolver.GetOrCreateFolderIdAsync(driveId, archivedPath, ct);
 
-        var body = JsonSerializer.Serialize(new
+        // @microsoft.graph.conflictBehavior=replace: replace any existing file with the same name
+        // in the archive folder. Without this, Graph returns 409 Conflict and the file stays in
+        // the inbox indefinitely (exception is swallowed by the ingestion job's catch block).
+        var bodyObj = new Dictionary<string, object>
         {
-            parentReference = new
-            {
-                driveId,
-                id = folderItemId
-            }
-        });
+            ["parentReference"] = new { driveId, id = folderItemId },
+            ["@microsoft.graph.conflictBehavior"] = "replace"
+        };
+        var body = JsonSerializer.Serialize(bodyObj);
 
         var url = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{fileId}";
         var request = GraphApiHelpers.CreateRequest(HttpMethod.Patch, url, token);
