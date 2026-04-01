@@ -9,7 +9,6 @@ public static class BankModule
 {
     public static IServiceCollection AddBankModule(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddAutoMapper(typeof(BankMappingProfile));
         services.AddTransient<IBankClientFactory, BankClientFactory>();
         services.Configure<BankAccountSettings>(configuration.GetSection(BankAccountSettings.ConfigurationKey));
 

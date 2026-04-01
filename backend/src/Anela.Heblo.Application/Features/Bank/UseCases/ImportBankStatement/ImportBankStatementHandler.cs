@@ -83,7 +83,7 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
 
                 var importResult = await _bankStatementImportService.ImportStatementAsync(accountSetting.FlexiBeeId, aboData.Data);
 
-                import.Account = accountSetting.AccountNumber;
+                import.Account = accountSetting.Name;
                 import.Currency = accountSetting.Currency;
                 import.ItemCount = aboData.ItemCount;
                 import.ImportResult = importResult.IsSuccess ? ImportStatus.Success : importResult.ErrorMessage ?? ImportStatus.UnknownError;
@@ -99,7 +99,7 @@ public class ImportBankStatementHandler : IRequestHandler<ImportBankStatementReq
                 _logger.LogError(ex, "Error processing statement {StatementId}", statement.StatementId);
 
                 var failedImport = new BankStatementImport(statement.StatementId, statement.Date);
-                failedImport.Account = accountSetting.AccountNumber;
+                failedImport.Account = accountSetting.Name;
                 failedImport.Currency = accountSetting.Currency;
                 failedImport.ImportResult = $"{ImportStatus.ProcessingError}: {ex.Message}";
 

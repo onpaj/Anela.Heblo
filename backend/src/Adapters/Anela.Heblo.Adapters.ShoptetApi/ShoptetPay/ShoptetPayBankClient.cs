@@ -27,16 +27,14 @@ public class ShoptetPayBankClient : IBankClient
 
     public async Task<IList<BankStatementHeader>> GetStatementsAsync(string accountNumber, DateTime dateFrom, DateTime dateTo)
     {
-        // Payout reports are periodic settlements (not daily) — expand to cover the full month range
-        // so reports with any overlap in the requested period are returned
-        var rangeFrom = new DateTime(dateFrom.Year, dateFrom.Month, 1);
-        var rangeTo = new DateTime(dateTo.Year, dateTo.Month, DateTime.DaysInMonth(dateTo.Year, dateTo.Month));
+        var rangeFrom = dateFrom.Date;
+        var rangeTo = dateTo.Date.AddDays(1);
 
         var url = $"/v1/reports/payout?dateFrom={rangeFrom:yyyy-MM-ddTHH:mm:ssZ}&dateTo={rangeTo:yyyy-MM-ddTHH:mm:ssZ}&limit=1000";
 
         _logger.LogInformation(
-            "ShoptetPay API: Fetching payout reports - DateFrom: {DateFrom}, DateTo: {DateTo} (expanded to full month range)",
-            rangeFrom.ToString("yyyy-MM-dd"), rangeTo.ToString("yyyy-MM-dd"));
+            "ShoptetPay API: Fetching payout reports - DateFrom: {DateFrom}, DateTo: {DateTo}",
+            rangeFrom.ToString("yyyy-MM-dd"), rangeTo.ToString("yyyy-MM-dd HH:mm:ss"));
 
         var response = await _httpClient.GetAsync(url);
         response.EnsureSuccessStatusCode();
@@ -50,9 +48,9 @@ public class ShoptetPayBankClient : IBankClient
 
         _logger.LogInformation(
             "ShoptetPay API: Received {Count} payout reports (total: {Total})",
-            result.Data.Count, result.Total);
+            result.Items.Count, result.Count);
 
-        return result.Data.Select(r => new BankStatementHeader
+        return result.Items.Select(r => new BankStatementHeader
         {
             StatementId = r.Id,
             Date = r.DateTo,
