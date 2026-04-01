@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtractors;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
-using Anela.Heblo.Domain.Features.Configuration;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,18 +29,24 @@ public static class KnowledgeBaseModule
 
         // IKnowledgeBaseRepository is registered in PersistenceModule (real EF Core implementation)
 
-        // OneDrive service — use mock in mock auth mode (no ITokenAcquisition available)
-        var useMockAuth = configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, defaultValue: false);
-        var bypassJwtValidation = configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, defaultValue: false);
+        // OneDrive service — use real Graph service only when SharePoint drives are configured
+        // AND real authentication is active. Mock auth has no Azure AD token so Graph calls
+        // would fail; MockOneDriveService is used in those environments instead.
+        var kbOptions = new KnowledgeBaseOptions();
+        configuration.GetSection("KnowledgeBase").Bind(kbOptions);
+        var sharePointConfigured = kbOptions.OneDriveFolderMappings.Any(m => !string.IsNullOrWhiteSpace(m.DriveId));
+        var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
+        var bypassJwtValidation = configuration.GetValue<bool>("BypassJwtValidation", false);
 
-        if (useMockAuth || bypassJwtValidation)
+        if (sharePointConfigured && !useMockAuth && !bypassJwtValidation)
         {
-            services.AddScoped<IOneDriveService, MockOneDriveService>();
+            services.AddHttpClient("MicrosoftGraph");
+            services.AddMemoryCache();
+            services.AddScoped<IOneDriveService, GraphOneDriveService>();
         }
         else
         {
-            services.AddHttpClient("MicrosoftGraph");
-            services.AddScoped<IOneDriveService, GraphOneDriveService>();
+            services.AddScoped<IOneDriveService, MockOneDriveService>();
         }
 
         // Register QuestionLoggingBehavior scoped to KB (not global like ValidationBehavior)

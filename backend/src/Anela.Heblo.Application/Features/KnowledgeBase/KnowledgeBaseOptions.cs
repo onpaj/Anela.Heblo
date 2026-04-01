@@ -16,11 +16,7 @@ public class KnowledgeBaseOptions
     /// <summary>Max tokens cap forwarded to the Anthropic API for every KB chat call.</summary>
     public int ChatMaxTokens { get; set; } = 1024;
 
-    public List<OneDriveFolderMapping> OneDriveFolderMappings { get; set; } =
-    [
-        new() { InboxPath = "/KnowledgeBase/Inbox", ArchivedPath = "/KnowledgeBase/Archived", DocumentType = DocumentType.KnowledgeBase },
-        new() { InboxPath = "/Conversation/Inbox",   ArchivedPath = "/Conversation/Archived",  DocumentType = DocumentType.Conversation  }
-    ];
+    public List<OneDriveFolderMapping> OneDriveFolderMappings { get; set; } = [];
     public int ChunkSize { get; set; } = 512;
     public int ChunkOverlapTokens { get; set; } = 50;
     public int MaxRetrievedChunks { get; set; } = 5;
@@ -32,12 +28,6 @@ public class KnowledgeBaseOptions
     /// removed until pipeline improvements push good results up and noisy ones down.
     /// </summary>
     public double MinSimilarityScore { get; set; } = 0.60;
-
-    /// <summary>
-    /// UPN or object ID of the OneDrive user account used for ingestion (app-only access).
-    /// Example: "service@anela.cz" or a GUID object ID.
-    /// </summary>
-    public string OneDriveUserId { get; set; } = string.Empty;
 
     /// <summary>
     /// Regex patterns stripped from documents before chunking.
