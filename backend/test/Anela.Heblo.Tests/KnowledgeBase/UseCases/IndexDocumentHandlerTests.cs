@@ -77,4 +77,25 @@ public class IndexDocumentHandlerTests
         await Assert.ThrowsAsync<NotSupportedException>(() =>
             CreateHandler().Handle(request, CancellationToken.None));
     }
+
+    [Fact]
+    public async Task Handle_SetsDocumentTypeFromRequest()
+    {
+        KnowledgeBaseDocument? savedDoc = null;
+        _repository.Setup(r => r.AddDocumentAsync(It.IsAny<KnowledgeBaseDocument>(), default))
+            .Callback<KnowledgeBaseDocument, CancellationToken>((doc, _) => savedDoc = doc);
+
+        await CreateHandler().Handle(new IndexDocumentRequest
+        {
+            Filename = "chat.txt",
+            SourcePath = "/Conversation/Inbox/chat.txt",
+            ContentType = "text/plain",
+            Content = [1, 2, 3],
+            ContentHash = "abc123",
+            DocumentType = DocumentType.Conversation
+        }, default);
+
+        Assert.NotNull(savedDoc);
+        Assert.Equal(DocumentType.Conversation, savedDoc!.DocumentType);
+    }
 }

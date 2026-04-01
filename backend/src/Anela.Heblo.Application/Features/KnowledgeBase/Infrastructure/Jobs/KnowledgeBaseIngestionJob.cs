@@ -48,7 +48,7 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
 
         _logger.LogInformation("Starting {JobName}", Metadata.JobName);
 
-        var files = await _oneDrive.ListInboxFilesAsync(cancellationToken);
+        var files = await _oneDrive.ListInboxFilesAsync(string.Empty, cancellationToken);
         _logger.LogInformation("Found {Count} files in OneDrive inbox", files.Count);
 
         int indexed = 0;
@@ -102,7 +102,7 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
                     ContentHash = contentHash
                 }, cancellationToken);
 
-                await _oneDrive.MoveToArchivedAsync(file.Id, file.Name, cancellationToken);
+                await _oneDrive.MoveToArchivedAsync(file.Id, file.Name, string.Empty, cancellationToken);
 
                 _logger.LogInformation("Indexed and archived {Filename}", file.Name);
                 indexed++;
