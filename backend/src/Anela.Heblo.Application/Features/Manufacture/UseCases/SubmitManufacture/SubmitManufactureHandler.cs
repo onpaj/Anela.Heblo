@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
@@ -9,15 +10,18 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
 {
     private readonly IManufactureOrderRepository _manufactureOrderRepository;
     private readonly IManufactureClient _manufactureClient;
+    private readonly IManufactureErrorTransformer _errorTransformer;
     private readonly ILogger<SubmitManufactureHandler> _logger;
 
     public SubmitManufactureHandler(
         IManufactureOrderRepository manufactureOrderRepository,
         IManufactureClient manufactureClient,
+        IManufactureErrorTransformer errorTransformer,
         ILogger<SubmitManufactureHandler> logger)
     {
         _manufactureOrderRepository = manufactureOrderRepository;
         _manufactureClient = manufactureClient;
+        _errorTransformer = errorTransformer;
         _logger = logger;
     }
 
@@ -57,7 +61,10 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating manufacture for order {ManufactureOrderId}", request.ManufactureOrderNumber);
-            return new SubmitManufactureResponse(ex);
+            return new SubmitManufactureResponse(ex)
+            {
+                UserMessage = _errorTransformer.Transform(ex)
+            };
         }
     }
 }

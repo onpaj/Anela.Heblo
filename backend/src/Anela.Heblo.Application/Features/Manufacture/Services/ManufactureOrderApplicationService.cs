@@ -60,7 +60,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 orderId,
                 ManufactureOrderState.SemiProductManufactured,
                 changeReason ?? $"Potvrzeno skutečné množství polotovaru: {actualQuantity}",
-                submitManufactureResult.Success ? $"Vytvořena vydaná objednávka meziproduktu {submitManufactureResult.ManufactureId}" : submitManufactureResult.FullError(),
+                submitManufactureResult.Success ? $"Vytvořena vydaná objednávka meziproduktu {submitManufactureResult.ManufactureId}" : submitManufactureResult.UserMessage ?? submitManufactureResult.FullError(),
                 submitManufactureResult.ManufactureId,
                 productDocumentCode: null,
                 discardDocumentCode: null,
@@ -112,7 +112,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             // Step 2: Create manufacture via external client
             var submitManufactureResult = await CreateManufactureOrderInErp(orderId, updateResult.Order!, ErpManufactureType.Product, cancellationToken);
             if (!submitManufactureResult.Success)
-                orderNote = submitManufactureResult.FullError();
+                orderNote = submitManufactureResult.UserMessage ?? submitManufactureResult.FullError();
 
             DiscardResidualSemiProductResponse? discardResiduesResult = null;
             // Step 3: Dispose remaining semiproduct
