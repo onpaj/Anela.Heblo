@@ -48,6 +48,7 @@
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Comgate\Anela.Heblo.Adapters.Comgate.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Flexi\Anela.Heblo.Adapters.Flexi.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Shoptet\Anela.Heblo.Adapters.Shoptet.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.ShoptetApi\Anela.Heblo.Adapters.ShoptetApi.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Anthropic\Anela.Heblo.Adapters.Anthropic.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.OpenAI\Anela.Heblo.Adapters.OpenAI.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Azure\Anela.Heblo.Adapters.Azure.csproj" />

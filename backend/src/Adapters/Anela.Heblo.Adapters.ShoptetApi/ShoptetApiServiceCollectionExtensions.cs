@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
+using Anela.Heblo.Domain.Features.ShoptetOrders;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -14,7 +15,7 @@ public static class ShoptetApiServiceCollectionExtensions
         services.AddOptions<ShoptetApiSettings>()
             .Bind(configuration.GetSection(ShoptetApiSettings.ConfigurationKey));
 
-        services.AddHttpClient<ShoptetOrderClient>((sp, client) =>
+        services.AddHttpClient<IShoptetOrderClient, ShoptetOrderClient>((sp, client) =>
         {
             var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
             client.BaseAddress = new Uri(settings.BaseUrl);
