@@ -44,7 +44,7 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
 
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        if (!await _statusChecker.IsJobEnabledAsync(Metadata.JobName))
+        if (!await _statusChecker.IsJobEnabledAsync(Metadata.JobName, cancellationToken))
         {
             _logger.LogInformation("Job {JobName} is disabled. Skipping.", Metadata.JobName);
             return;
