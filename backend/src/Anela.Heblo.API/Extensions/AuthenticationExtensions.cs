@@ -46,9 +46,10 @@ public static class AuthenticationExtensions
 
         // Register ITokenAcquisition for outbound service-to-service calls (e.g. GraphOneDriveService).
         // Inbound requests are authenticated by the mock scheme above; outbound Graph calls still
-        // need app credentials. AddMicrosoftIdentityWebApiAuthentication registers ITokenAcquisition
-        // and the full MSAL stack without enforcing JWT validation on incoming requests.
-        services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
+        // need app credentials. The full MSAL stack is registered without affecting inbound auth.
+        services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd")
+            .EnableTokenAcquisitionToCallDownstreamApi()
+            .AddInMemoryTokenCaches();
 
         // Note: GraphService is now handled via MockGraphService in UserManagementModule
         // No need to register GraphServiceClient for mock authentication
