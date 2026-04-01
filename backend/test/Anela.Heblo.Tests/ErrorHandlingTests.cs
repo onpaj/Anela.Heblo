@@ -83,6 +83,7 @@ public class ErrorHandlingTests
         var fileStorageErrors = errorCodes.Where(code => code >= 1800 && code < 1900).ToList(); // 18XX range
         var backgroundJobsErrors = errorCodes.Where(code => code >= 1900 && code < 2000).ToList(); // 19XX range
         var knowledgeBaseErrors = errorCodes.Where(code => code >= 2000 && code < 2100).ToList(); // 20XX range
+        var shoptetOrdersErrors = errorCodes.Where(code => code >= 2100 && code < 2200).ToList(); // 21XX range
         var externalServiceErrors = errorCodes.Where(code => code >= 9000 && code < 9100).ToList(); // 90XX range
 
         // Ensure we have some errors in the expected categories
@@ -96,6 +97,7 @@ public class ErrorHandlingTests
         Assert.True(fileStorageErrors.Count > 0, "Should have file storage errors in 18XX range");
         Assert.True(backgroundJobsErrors.Count > 0, "Should have background jobs errors in 19XX range");
         Assert.True(knowledgeBaseErrors.Count > 0, "Should have knowledge base errors in 20XX range");
+        Assert.True(shoptetOrdersErrors.Count > 0, "Should have Shoptet orders errors in 21XX range");
         Assert.True(externalServiceErrors.Count > 0, "Should have external service errors in 90XX range");
 
         // Ensure all error codes fall into defined module ranges
@@ -103,7 +105,7 @@ public class ErrorHandlingTests
                               manufactureErrors.Count + catalogErrors.Count + transportErrors.Count +
                               configErrors.Count + journalErrors.Count + analyticsErrors.Count +
                               fileStorageErrors.Count + backgroundJobsErrors.Count + knowledgeBaseErrors.Count +
-                              externalServiceErrors.Count;
+                              shoptetOrdersErrors.Count + externalServiceErrors.Count;
 
         Assert.Equal(errorCodes.Count, categorizedCount);
     }

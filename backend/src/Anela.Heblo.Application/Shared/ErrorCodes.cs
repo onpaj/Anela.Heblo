@@ -210,6 +210,12 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.NotFound)]
     KnowledgeBaseChunkNotFound = 2003,
 
+    // ShoptetOrders module errors (21XX)
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShoptetOrderInvalidSourceState = 2101,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ShoptetOrderNotFound = 2102,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

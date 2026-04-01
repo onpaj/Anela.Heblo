@@ -1,10 +1,11 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
+using Anela.Heblo.Domain.Features.ShoptetOrders;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 
-public class ShoptetOrderClient
+public class ShoptetOrderClient : IShoptetOrderClient
 {
     private readonly HttpClient _http;
 
@@ -77,6 +78,15 @@ public class ShoptetOrderClient
     }
 
     /// <summary>
+    /// Get the current status ID for an order.
+    /// </summary>
+    public async Task<int> GetOrderStatusIdAsync(string orderCode, CancellationToken ct = default)
+    {
+        var detail = await GetOrderDetailAsync(orderCode, ct);
+        return detail.Status.Id;
+    }
+
+    /// <summary>
     /// Create a new order. Returns the created order code.
     /// </summary>
     public async Task<string> CreateOrderAsync(CreateOrderRequest request, CancellationToken ct = default)
@@ -106,6 +116,25 @@ public class ShoptetOrderClient
             var errorBody = await response.Content.ReadAsStringAsync(ct);
             throw new HttpRequestException(
                 $"PATCH /api/orders/{orderCode}/status returned {(int)response.StatusCode}: {errorBody}");
+        }
+    }
+
+    /// <summary>
+    /// Set the internal note on an existing order.
+    /// </summary>
+    public async Task SetInternalNoteAsync(string orderCode, string note, CancellationToken ct = default)
+    {
+        var body = new UpdateNotesRequest
+        {
+            Data = new UpdateNotesData { InternalNote = note },
+        };
+
+        var response = await _http.PatchAsJsonAsync($"/api/orders/{orderCode}/notes", body, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException(
+                $"PATCH /api/orders/{orderCode}/notes returned {(int)response.StatusCode}: {errorBody}");
         }
     }
 
