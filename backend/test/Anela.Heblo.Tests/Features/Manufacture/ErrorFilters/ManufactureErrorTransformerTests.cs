@@ -20,6 +20,14 @@ public class ManufactureErrorTransformerTests
     }
 
     [Fact]
+    public void Constructor_WithNullFilters_ThrowsArgumentNullException()
+    {
+        var act = () => new ManufactureErrorTransformer(null!);
+
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
     public void Transform_WhenFirstFilterMatches_ReturnsItsMessage()
     {
         var matchingFilter = new Mock<IManufactureErrorFilter>();

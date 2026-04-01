@@ -2,10 +2,12 @@ namespace Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
 
 public class ManufactureErrorTransformer : IManufactureErrorTransformer
 {
+    private const string FallbackMessage = "Při zpracování výroby došlo k neočekávané chybě. Technické detaily: ";
     private readonly IEnumerable<IManufactureErrorFilter> _filters;
 
     public ManufactureErrorTransformer(IEnumerable<IManufactureErrorFilter> filters)
     {
+        ArgumentNullException.ThrowIfNull(filters);
         _filters = filters;
     }
 
@@ -17,6 +19,6 @@ public class ManufactureErrorTransformer : IManufactureErrorTransformer
                 return filter.Transform(exception);
         }
 
-        return $"Při zpracování výroby došlo k neočekávané chybě. Technické detaily: {exception.Message}";
+        return $"{FallbackMessage}{exception.Message}";
     }
 }

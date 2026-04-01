@@ -49,7 +49,8 @@ public static class ManufactureModule
         // Register manufacture error transformation
         services.Scan(scan => scan
             .FromAssemblyOf<IManufactureErrorFilter>()
-            .AddClasses(c => c.AssignableTo<IManufactureErrorFilter>())
+            .AddClasses(c => c.AssignableTo<IManufactureErrorFilter>()
+                .InNamespaces("Anela.Heblo.Application.Features.Manufacture.ErrorFilters.Filters"))
             .AsImplementedInterfaces()
             .WithTransientLifetime());
         services.AddTransient<IManufactureErrorTransformer, ManufactureErrorTransformer>();
