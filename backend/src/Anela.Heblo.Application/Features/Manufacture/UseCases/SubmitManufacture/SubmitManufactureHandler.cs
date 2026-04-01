@@ -8,18 +8,15 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactur
 
 public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest, SubmitManufactureResponse>
 {
-    private readonly IManufactureOrderRepository _manufactureOrderRepository;
     private readonly IManufactureClient _manufactureClient;
     private readonly IManufactureErrorTransformer _errorTransformer;
     private readonly ILogger<SubmitManufactureHandler> _logger;
 
     public SubmitManufactureHandler(
-        IManufactureOrderRepository manufactureOrderRepository,
         IManufactureClient manufactureClient,
         IManufactureErrorTransformer errorTransformer,
         ILogger<SubmitManufactureHandler> logger)
     {
-        _manufactureOrderRepository = manufactureOrderRepository;
         _manufactureClient = manufactureClient;
         _errorTransformer = errorTransformer;
         _logger = logger;
