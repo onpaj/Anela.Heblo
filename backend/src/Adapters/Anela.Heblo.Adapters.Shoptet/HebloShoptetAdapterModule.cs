@@ -21,7 +21,7 @@ namespace Anela.Heblo.Adapters.Shoptet;
 
 public static class ShoptetAdapterServiceCollectionExtensions
 {
-    public static IServiceCollection AddShoptetAdapter(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddShoptetPlaywrightAdapter(this IServiceCollection services, IConfiguration configuration)
     {
         // Register code pages to support windows-1250 encoding used by Shoptet CSV exports
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Bank.Infrastructure;
 using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Shared;
@@ -11,6 +12,7 @@ namespace Anela.Heblo.Tests.Features.Bank;
 
 public class ImportBankStatementHandlerTests
 {
+    private readonly Mock<IBankClientFactory> _mockFactory;
     private readonly Mock<IBankClient> _mockBankClient;
     private readonly Mock<IBankStatementImportService> _mockImportService;
     private readonly Mock<IBankStatementImportRepository> _mockRepository;
@@ -21,6 +23,7 @@ public class ImportBankStatementHandlerTests
 
     public ImportBankStatementHandlerTests()
     {
+        _mockFactory = new Mock<IBankClientFactory>();
         _mockBankClient = new Mock<IBankClient>();
         _mockImportService = new Mock<IBankStatementImportService>();
         _mockRepository = new Mock<IBankStatementImportRepository>();
@@ -33,72 +36,42 @@ public class ImportBankStatementHandlerTests
             {
                 new BankAccountConfiguration
                 {
-                    Name = "CZK",
+                    Name = "ComgateCZK",
+                    Provider = BankClientProvider.Comgate,
                     AccountNumber = "123456789",
-                    FlexiBeeId = 1
+                    FlexiBeeId = 1,
+                    Currency = CurrencyCode.CZK
                 },
                 new BankAccountConfiguration
                 {
-                    Name = "EUR",
+                    Name = "ComgateEUR",
+                    Provider = BankClientProvider.Comgate,
                     AccountNumber = "987654321",
-                    FlexiBeeId = 2
+                    FlexiBeeId = 2,
+                    Currency = CurrencyCode.EUR
                 }
             }
         };
 
-        var optionsMock = new Mock<IOptions<BankAccountSettings>>();
-        optionsMock.Setup(x => x.Value).Returns(_bankSettings);
+        _mockFactory.Setup(x => x.GetClient(It.IsAny<BankAccountConfiguration>()))
+            .Returns(_mockBankClient.Object);
 
         _handler = new ImportBankStatementHandler(
-            _mockBankClient.Object,
+            _mockFactory.Object,
             _mockImportService.Object,
             _mockRepository.Object,
-            optionsMock.Object,
+            Options.Create(_bankSettings),
             _mockMapper.Object,
             _mockLogger.Object);
     }
 
     [Fact]
-    public void Constructor_WithValidParameters_CreatesInstance()
+    public void Constructor_WithNullFactory_ThrowsArgumentNullException()
     {
-        // Act & Assert
-        Assert.NotNull(_handler);
-    }
-
-    [Fact]
-    public void Constructor_WithNullBankClient_ThrowsArgumentNullException()
-    {
-        // Act & Assert
         Assert.Throws<ArgumentNullException>(() => new ImportBankStatementHandler(
             null!,
             _mockImportService.Object,
             _mockRepository.Object,
-            Options.Create(_bankSettings),
-            _mockMapper.Object,
-            _mockLogger.Object));
-    }
-
-    [Fact]
-    public void Constructor_WithNullImportService_ThrowsArgumentNullException()
-    {
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new ImportBankStatementHandler(
-            _mockBankClient.Object,
-            null!,
-            _mockRepository.Object,
-            Options.Create(_bankSettings),
-            _mockMapper.Object,
-            _mockLogger.Object));
-    }
-
-    [Fact]
-    public void Constructor_WithNullRepository_ThrowsArgumentNullException()
-    {
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new ImportBankStatementHandler(
-            _mockBankClient.Object,
-            _mockImportService.Object,
-            null!,
             Options.Create(_bankSettings),
             _mockMapper.Object,
             _mockLogger.Object));
@@ -107,10 +80,8 @@ public class ImportBankStatementHandlerTests
     [Fact]
     public async Task Handle_WithUnknownAccount_ThrowsArgumentException()
     {
-        // Arrange
-        var request = new ImportBankStatementRequest("UNKNOWN", DateTime.Today);
+        var request = new ImportBankStatementRequest("UNKNOWN", DateTime.Today, DateTime.Today);
 
-        // Act & Assert
         var exception = await Assert.ThrowsAsync<ArgumentException>(
             () => _handler.Handle(request, CancellationToken.None));
 
@@ -118,34 +89,18 @@ public class ImportBankStatementHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithValidCZKAccount_CallsBankClientWithCorrectParameters()
+    public async Task Handle_WithValidAccount_ResolvesClientViaFactory()
     {
-        // Arrange
-        var request = new ImportBankStatementRequest("CZK", DateTime.Today);
+        var dateFrom = DateTime.Today.AddDays(-1);
+        var dateTo = DateTime.Today;
+        var request = new ImportBankStatementRequest("ComgateCZK", dateFrom, dateTo);
 
-        _mockBankClient.Setup(x => x.GetStatementsAsync("123456789", DateTime.Today))
+        _mockBankClient.Setup(x => x.GetStatementsAsync("123456789", dateFrom, dateTo))
             .ReturnsAsync(new List<BankStatementHeader>());
 
-        // Act
         await _handler.Handle(request, CancellationToken.None);
 
-        // Assert
-        _mockBankClient.Verify(x => x.GetStatementsAsync("123456789", DateTime.Today), Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_WithValidEURAccount_CallsBankClientWithCorrectParameters()
-    {
-        // Arrange
-        var request = new ImportBankStatementRequest("EUR", DateTime.Today);
-
-        _mockBankClient.Setup(x => x.GetStatementsAsync("987654321", DateTime.Today))
-            .ReturnsAsync(new List<BankStatementHeader>());
-
-        // Act
-        await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        _mockBankClient.Verify(x => x.GetStatementsAsync("987654321", DateTime.Today), Times.Once);
+        _mockFactory.Verify(x => x.GetClient(It.Is<BankAccountConfiguration>(c => c.Name == "ComgateCZK")), Times.Once);
+        _mockBankClient.Verify(x => x.GetStatementsAsync("123456789", dateFrom, dateTo), Times.Once);
     }
 }

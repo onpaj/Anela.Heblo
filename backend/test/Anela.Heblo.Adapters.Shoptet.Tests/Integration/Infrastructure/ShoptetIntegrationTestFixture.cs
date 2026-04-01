@@ -24,7 +24,7 @@ public class ShoptetIntegrationTestFixture
 
         services.AddLogging(builder => builder.AddConsole());
 
-        services.AddShoptetAdapter(Configuration);
+        services.AddShoptetApiAdapter(Configuration);
         services.AddShoptetApiAdapter(Configuration);
         services.AddCrossCuttingServices();
         services.AddHttpClient();

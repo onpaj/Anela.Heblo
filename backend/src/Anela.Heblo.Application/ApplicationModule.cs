@@ -46,7 +46,7 @@ public static class ApplicationModule
         services.AddConfigurationModule();
         services.AddAnalyticsModule();
         services.AddBackgroundJobsModule();
-        services.AddBankModule();
+        services.AddBankModule(configuration);
         services.AddCatalogModule(configuration);
         services.AddDashboardModule();
         services.AddFileStorageModule(configuration);

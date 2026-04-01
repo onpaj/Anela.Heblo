@@ -5,24 +5,24 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Bank.Infrastructure.Jobs;
 
-public class ComgateCzkImportJob : IRecurringJob
+public class ShoptetPayImportJob : IRecurringJob
 {
     private readonly IMediator _mediator;
-    private readonly ILogger<ComgateCzkImportJob> _logger;
+    private readonly ILogger<ShoptetPayImportJob> _logger;
     private readonly IRecurringJobStatusChecker _statusChecker;
 
     public RecurringJobMetadata Metadata { get; } = new()
     {
-        JobName = "daily-comgate-czk-import",
-        DisplayName = "Daily Comgate CZK Import",
-        Description = "Imports Comgate CZK payment statements from previous day",
-        CronExpression = "30 4 * * *", // Daily at 4:30 AM
+        JobName = "daily-shoptetpay-czk-import",
+        DisplayName = "Daily ShoptetPay CZK Import",
+        Description = "Imports ShoptetPay CZK payment statements from previous day",
+        CronExpression = "50 4 * * *", // Daily at 4:50 AM
         DefaultIsEnabled = true
     };
 
-    public ComgateCzkImportJob(
+    public ShoptetPayImportJob(
         IMediator mediator,
-        ILogger<ComgateCzkImportJob> logger,
+        ILogger<ShoptetPayImportJob> logger,
         IRecurringJobStatusChecker statusChecker)
     {
         _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
@@ -32,7 +32,7 @@ public class ComgateCzkImportJob : IRecurringJob
 
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        if (!await _statusChecker.IsJobEnabledAsync(Metadata.JobName))
+        if (!await _statusChecker.IsJobEnabledAsync(Metadata.JobName, cancellationToken))
         {
             _logger.LogInformation("Job {JobName} is disabled. Skipping execution.", Metadata.JobName);
             return;
@@ -43,7 +43,7 @@ public class ComgateCzkImportJob : IRecurringJob
             _logger.LogInformation("Starting {JobName}", Metadata.JobName);
 
             var yesterday = DateTime.Today.AddDays(-1);
-            var request = new ImportBankStatementRequest("ComgateCZK", yesterday, yesterday);
+            var request = new ImportBankStatementRequest("ShoptetPay-CZK", yesterday, yesterday);
 
             var response = await _mediator.Send(request, cancellationToken);
 

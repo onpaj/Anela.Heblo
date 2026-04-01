@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using Anela.Heblo.Adapters.Comgate.Model;
 using Anela.Heblo.Domain.Features.Bank;
+using Anela.Heblo.Xcc.Abo;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -27,6 +28,9 @@ public class ComgateBankClient : IBankClient
         _settings = options.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
+
+    public BankClientProvider Provider => BankClientProvider.Comgate;
+
     public async Task<BankStatementData> GetStatementAsync(string transferId)
     {
         var url = string.Format(GetStatementUrlTemplate, _settings.MerchantId, _settings.Secret, transferId);
@@ -81,64 +85,65 @@ public class ComgateBankClient : IBankClient
         }
     }
 
-    public async Task<IList<BankStatementHeader>> GetStatementsAsync(string accountNumber, DateTime requestStatementDate)
+    public async Task<IList<BankStatementHeader>> GetStatementsAsync(string accountNumber, DateTime dateFrom, DateTime dateTo)
     {
-        var url = string.Format(GetStatementsUrlTemplate, _settings.MerchantId, _settings.Secret, requestStatementDate.Date.ToString("yyyy-MM-dd"));
-        var anonymizedUrl = AnonymizeUrl(url);
+        var results = new List<BankStatementHeader>();
 
-        _logger.LogInformation(
-            "Comgate API: Fetching statements list - Account: {AccountNumber}, Date: {StatementDate}, URL: {Url}",
-            accountNumber, requestStatementDate.Date.ToString("yyyy-MM-dd"), anonymizedUrl);
-
-        var sw = Stopwatch.StartNew();
-        try
+        for (var date = dateFrom.Date; date <= dateTo.Date; date = date.AddDays(1))
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, url);
-            var response = await _httpClient.SendAsync(request);
-
-            sw.Stop();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError(
-                    "Comgate API: HTTP request failed - StatusCode: {StatusCode}, Account: {AccountNumber}, Duration: {Duration}ms",
-                    response.StatusCode, accountNumber, sw.ElapsedMilliseconds);
-            }
-
-            response.EnsureSuccessStatusCode();
-
-            var result = await response.Content.ReadAsAsync<List<ComgateStatementHeader>>();
-
-            var filteredResults = result.Where(w => w.AccountCounterParty == accountNumber).ToList();
+            var url = string.Format(GetStatementsUrlTemplate, _settings.MerchantId, _settings.Secret, date.ToString("yyyy-MM-dd"));
+            var anonymizedUrl = AnonymizeUrl(url);
 
             _logger.LogInformation(
-                "Comgate API: Statements list fetched successfully - Account: {AccountNumber}, Total: {TotalCount}, Filtered: {FilteredCount}, Duration: {Duration}ms",
-                accountNumber, result.Count, filteredResults.Count, sw.ElapsedMilliseconds);
+                "Comgate API: Fetching statements list - Account: {AccountNumber}, Date: {StatementDate}, URL: {Url}",
+                accountNumber, date.ToString("yyyy-MM-dd"), anonymizedUrl);
 
-            return filteredResults
-                .Select(s => new BankStatementHeader()
+            var sw = Stopwatch.StartNew();
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Post, url);
+                var response = await _httpClient.SendAsync(request);
+
+                sw.Stop();
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    StatementId = s.TransferId,
-                    Date = DateTime.ParseExact(s.TransferDate, "yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    Account = s.AccountCounterParty
-                }).ToList();
+                    _logger.LogError(
+                        "Comgate API: HTTP request failed - StatusCode: {StatusCode}, Account: {AccountNumber}, Date: {Date}, Duration: {Duration}ms",
+                        response.StatusCode, accountNumber, date.ToString("yyyy-MM-dd"), sw.ElapsedMilliseconds);
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                var dayResults = await response.Content.ReadAsAsync<List<ComgateStatementHeader>>();
+
+                var filtered = dayResults
+                    .Where(w => w.AccountCounterParty == accountNumber)
+                    .Select(s => new BankStatementHeader
+                    {
+                        StatementId = s.TransferId,
+                        Date = DateTime.ParseExact(s.TransferDate, "yyyy-MM-dd", CultureInfo.InvariantCulture),
+                        Account = s.AccountCounterParty
+                    })
+                    .ToList();
+
+                _logger.LogInformation(
+                    "Comgate API: Statements fetched for {Date} - Account: {AccountNumber}, Count: {Count}, Duration: {Duration}ms",
+                    date.ToString("yyyy-MM-dd"), accountNumber, filtered.Count, sw.ElapsedMilliseconds);
+
+                results.AddRange(filtered);
+            }
+            catch (HttpRequestException ex)
+            {
+                sw.Stop();
+                _logger.LogError(ex,
+                    "Comgate API: HTTP request failed - Account: {AccountNumber}, Date: {Date}, URL: {Url}, Duration: {Duration}ms",
+                    accountNumber, date.ToString("yyyy-MM-dd"), anonymizedUrl, sw.ElapsedMilliseconds);
+                throw;
+            }
         }
-        catch (HttpRequestException ex)
-        {
-            sw.Stop();
-            _logger.LogError(ex,
-                "Comgate API: HTTP request failed - Account: {AccountNumber}, URL: {Url}, Duration: {Duration}ms, Error: {ErrorMessage}",
-                accountNumber, anonymizedUrl, sw.ElapsedMilliseconds, ex.Message);
-            throw;
-        }
-        catch (Exception ex)
-        {
-            sw.Stop();
-            _logger.LogError(ex,
-                "Comgate API: Failed to fetch statements list - Account: {AccountNumber}, Duration: {Duration}ms, Error: {ErrorMessage}",
-                accountNumber, sw.ElapsedMilliseconds, ex.Message);
-            throw;
-        }
+
+        return results;
     }
 
     /// <summary>
@@ -150,67 +155,5 @@ public class ComgateBankClient : IBankClient
             return url;
 
         return url.Replace(_settings.Secret, "***SECRET***");
-    }
-}
-
-
-// https://github.com/jakubzapletal/bank-statements/blob/master/Parser/ABOParser.php
-public class AboFile
-{
-    public AboHeader Header { get; set; }
-    public List<AboLine> Lines { get; set; } = new List<AboLine>();
-
-    public static AboFile Parse(string data)
-    {
-        var file = new AboFile()
-        {
-            Header = GetHeader(data),
-            Lines = GetLines(data)
-        };
-
-        return file;
-    }
-
-    private static List<AboLine> GetLines(string data)
-    {
-        var lines = data.Split(new[] { Environment.NewLine, "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-
-        // Skip header line and process transaction lines
-        return lines.Skip(1)
-            .Where(line => !string.IsNullOrWhiteSpace(line))
-            .Select(line => new AboLine(line))
-            .ToList();
-    }
-
-    private static AboHeader GetHeader(string data)
-    {
-        var lines = data.Split(new[] { Environment.NewLine, "\n", "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-        var firstLine = lines.FirstOrDefault() ?? string.Empty;
-
-        return new AboHeader(firstLine);
-    }
-}
-
-public class AboLine
-{
-    public string Raw { get; }
-
-    public AboLine(string rawLine)
-    {
-        Raw = rawLine ?? string.Empty;
-        // ABO format parsing can be implemented here if needed for detailed transaction analysis
-        // For now, we just store the raw line as FlexiBee will parse it
-    }
-}
-
-public class AboHeader
-{
-    public string Raw { get; }
-
-    public AboHeader(string headerLine = "")
-    {
-        Raw = headerLine;
-        // ABO header parsing can be implemented here if needed
-        // For now, we just store the raw header as FlexiBee will parse it
     }
 }
