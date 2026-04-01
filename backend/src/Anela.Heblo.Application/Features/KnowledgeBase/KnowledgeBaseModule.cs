@@ -41,6 +41,7 @@ public static class KnowledgeBaseModule
         if (sharePointConfigured && !useMockAuth && !bypassJwtValidation)
         {
             services.AddHttpClient("MicrosoftGraph");
+            services.AddMemoryCache();
             services.AddScoped<IOneDriveService, GraphOneDriveService>();
         }
         else
