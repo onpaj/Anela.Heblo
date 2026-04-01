@@ -15,7 +15,7 @@ public class ShoptetPayImportJob : IRecurringJob
     {
         JobName = "daily-shoptetpay-czk-import",
         DisplayName = "Daily ShoptetPay CZK Import",
-        Description = "Imports ShoptetPay CZK payment statements from previous day",
+        Description = "Imports ShoptetPay CZK payment statements from current day",
         CronExpression = "50 4 * * *", // Daily at 4:50 AM
         DefaultIsEnabled = true
     };
@@ -42,8 +42,8 @@ public class ShoptetPayImportJob : IRecurringJob
         {
             _logger.LogInformation("Starting {JobName}", Metadata.JobName);
 
-            var yesterday = DateTime.Today.AddDays(-1);
-            var request = new ImportBankStatementRequest("ShoptetPay-CZK", yesterday, yesterday);
+            var today = DateTime.Today;
+            var request = new ImportBankStatementRequest("ShoptetPay-CZK", today, today);
 
             var response = await _mediator.Send(request, cancellationToken);
 
