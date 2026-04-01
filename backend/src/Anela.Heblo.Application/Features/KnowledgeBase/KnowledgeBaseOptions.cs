@@ -165,10 +165,3 @@ public class KnowledgeBaseOptions
         {query}
         """;
 }
-
-public class OneDriveFolderMapping
-{
-    public string InboxPath { get; set; } = string.Empty;
-    public string ArchivedPath { get; set; } = string.Empty;
-    public DocumentType DocumentType { get; set; } = DocumentType.KnowledgeBase;
-}
