@@ -1,3 +1,5 @@
+using Anela.Heblo.Domain.Features.KnowledgeBase;
+
 namespace Anela.Heblo.Application.Features.KnowledgeBase;
 
 public class KnowledgeBaseOptions
@@ -14,8 +16,11 @@ public class KnowledgeBaseOptions
     /// <summary>Max tokens cap forwarded to the Anthropic API for every KB chat call.</summary>
     public int ChatMaxTokens { get; set; } = 1024;
 
-    public string OneDriveInboxPath { get; set; } = "/KnowledgeBase/Inbox";
-    public string OneDriveArchivedPath { get; set; } = "/KnowledgeBase/Archived";
+    public List<OneDriveFolderMapping> OneDriveFolderMappings { get; set; } =
+    [
+        new() { InboxPath = "/KnowledgeBase/Inbox", ArchivedPath = "/KnowledgeBase/Archived", DocumentType = DocumentType.KnowledgeBase },
+        new() { InboxPath = "/Conversation/Inbox",   ArchivedPath = "/Conversation/Archived",  DocumentType = DocumentType.Conversation  }
+    ];
     public int ChunkSize { get; set; } = 512;
     public int ChunkOverlapTokens { get; set; } = 50;
     public int MaxRetrievedChunks { get; set; } = 5;
@@ -159,4 +164,11 @@ public class KnowledgeBaseOptions
         Dotaz zákazníka:
         {query}
         """;
+}
+
+public class OneDriveFolderMapping
+{
+    public string InboxPath { get; set; } = string.Empty;
+    public string ArchivedPath { get; set; } = string.Empty;
+    public DocumentType DocumentType { get; set; } = DocumentType.KnowledgeBase;
 }
