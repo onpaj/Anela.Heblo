@@ -11,7 +11,6 @@ internal class GraphFolderResolver
     private readonly string _token;
     private readonly IMemoryCache _cache;
     private readonly ILogger _logger;
-    private const string GraphBaseUrl = "https://graph.microsoft.com/v1.0";
 
     internal GraphFolderResolver(HttpClient client, string token, IMemoryCache cache, ILogger logger)
     {
@@ -35,7 +34,7 @@ internal class GraphFolderResolver
     private async Task<string> ResolveOrCreateAsync(string driveId, string folderPath, CancellationToken ct)
     {
         var encodedPath = GraphApiHelpers.EncodePath(folderPath);
-        var getUrl = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:";
+        var getUrl = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:";
         var getResponse = await _client.SendAsync(GraphApiHelpers.CreateRequest(HttpMethod.Get, getUrl, _token), ct);
 
         if (getResponse.IsSuccessStatusCode)
@@ -69,7 +68,7 @@ internal class GraphFolderResolver
             folder = new { },
         });
 
-        var createUrl = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{parentId}/children";
+        var createUrl = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{parentId}/children";
         var createRequest = GraphApiHelpers.CreateRequest(HttpMethod.Post, createUrl, _token);
         createRequest.Content = new StringContent(body, Encoding.UTF8, "application/json");
         var createResponse = await _client.SendAsync(createRequest, ct);
@@ -86,7 +85,7 @@ internal class GraphFolderResolver
         if (_cache.TryGetValue(cacheKey, out string? cached))
             return cached!;
 
-        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root";
+        var url = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root";
         var response = await _client.SendAsync(GraphApiHelpers.CreateRequest(HttpMethod.Get, url, _token), ct);
         response.EnsureSuccessStatusCode();
 

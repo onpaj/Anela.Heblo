@@ -6,6 +6,8 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.Services;
 
 internal static class GraphApiHelpers
 {
+    internal const string GraphBaseUrl = "https://graph.microsoft.com/v1.0";
+
     internal static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true

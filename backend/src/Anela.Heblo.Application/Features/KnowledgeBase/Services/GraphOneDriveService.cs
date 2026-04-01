@@ -18,7 +18,6 @@ public class GraphOneDriveService : IOneDriveService
     private readonly IMemoryCache _cache;
     private readonly ILogger<GraphOneDriveService> _logger;
     private const string GraphScope = "https://graph.microsoft.com/.default";
-    private const string GraphBaseUrl = "https://graph.microsoft.com/v1.0";
 
     public GraphOneDriveService(
         ITokenAcquisition tokenAcquisition,
@@ -42,7 +41,7 @@ public class GraphOneDriveService : IOneDriveService
         var encodedPath = GraphApiHelpers.EncodePath(inboxPath);
         // Graph API does not support $filter on complex facet properties like 'file'.
         // Retrieve all children and skip folders (items without the 'file' facet) in code.
-        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:/children";
+        var url = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:/children";
 
         var request = GraphApiHelpers.CreateRequest(HttpMethod.Get, url, token);
         var response = await client.SendAsync(request, ct);
@@ -70,7 +69,7 @@ public class GraphOneDriveService : IOneDriveService
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{fileId}/content";
+        var url = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{fileId}/content";
         var request = GraphApiHelpers.CreateRequest(HttpMethod.Get, url, token);
         var response = await client.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
@@ -98,8 +97,8 @@ public class GraphOneDriveService : IOneDriveService
             }
         });
 
-        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{fileId}";
-        var request = GraphApiHelpers.CreateRequest(new HttpMethod("PATCH"), url, token);
+        var url = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{fileId}";
+        var request = GraphApiHelpers.CreateRequest(HttpMethod.Patch, url, token);
         request.Content = new StringContent(body, Encoding.UTF8, "application/json");
 
         var response = await client.SendAsync(request, ct);
