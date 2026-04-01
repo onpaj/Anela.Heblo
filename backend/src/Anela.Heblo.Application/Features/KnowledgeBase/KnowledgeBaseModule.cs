@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
-using Microsoft.Identity.Web;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtractors;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using MediatR;
@@ -34,9 +33,8 @@ public static class KnowledgeBaseModule
         var kbOptions = new KnowledgeBaseOptions();
         configuration.GetSection("KnowledgeBase").Bind(kbOptions);
         var sharePointConfigured = kbOptions.OneDriveFolderMappings.Any(m => !string.IsNullOrWhiteSpace(m.DriveId));
-        var tokenAcquisitionAvailable = services.Any(sd => sd.ServiceType == typeof(ITokenAcquisition));
 
-        if (sharePointConfigured && tokenAcquisitionAvailable)
+        if (sharePointConfigured)
         {
             services.AddHttpClient("MicrosoftGraph");
             services.AddScoped<IOneDriveService, GraphOneDriveService>();
