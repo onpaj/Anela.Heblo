@@ -37,7 +37,9 @@ public class GraphOneDriveService : IOneDriveService
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
         var encodedPath = string.Join("/", inboxPath.TrimStart('/').Split('/').Select(Uri.EscapeDataString));
-        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:/children?$filter=file%20ne%20null";
+        // Graph API does not support $filter on complex facet properties like 'file'.
+        // Retrieve all children and skip folders (items without the 'file' facet) in code.
+        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:/children";
 
         var request = CreateRequest(HttpMethod.Get, url, token);
         var response = await client.SendAsync(request, ct);
@@ -51,16 +53,17 @@ public class GraphOneDriveService : IOneDriveService
         {
             foreach (var item in value.EnumerateArray())
             {
+                // Skip folders — only items with the 'file' facet are actual files
+                if (!item.TryGetProperty("file", out var fileProp))
+                    continue;
+
                 var id = item.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? string.Empty : string.Empty;
                 var name = item.TryGetProperty("name", out var nameProp) ? nameProp.GetString() ?? string.Empty : string.Empty;
                 var webUrl = item.TryGetProperty("webUrl", out var urlProp) ? urlProp.GetString() ?? string.Empty : string.Empty;
                 var mimeType = "application/octet-stream";
 
-                if (item.TryGetProperty("file", out var fileProp) &&
-                    fileProp.TryGetProperty("mimeType", out var mimeProp))
-                {
+                if (fileProp.TryGetProperty("mimeType", out var mimeProp))
                     mimeType = mimeProp.GetString() ?? mimeType;
-                }
 
                 files.Add(new OneDriveFile(id, name, mimeType, webUrl));
             }
