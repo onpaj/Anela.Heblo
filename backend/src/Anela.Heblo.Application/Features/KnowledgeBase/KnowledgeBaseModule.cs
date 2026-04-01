@@ -1,8 +1,8 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Microsoft.Identity.Web;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtractors;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
-using Anela.Heblo.Domain.Features.Configuration;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,18 +30,20 @@ public static class KnowledgeBaseModule
 
         // IKnowledgeBaseRepository is registered in PersistenceModule (real EF Core implementation)
 
-        // OneDrive service — use mock in mock auth mode (no ITokenAcquisition available)
-        var useMockAuth = configuration.GetValue<bool>(ConfigurationConstants.USE_MOCK_AUTH, defaultValue: false);
-        var bypassJwtValidation = configuration.GetValue<bool>(ConfigurationConstants.BYPASS_JWT_VALIDATION, defaultValue: false);
+        // OneDrive service — use real Graph service when SharePoint drives are configured and auth is available
+        var kbOptions = new KnowledgeBaseOptions();
+        configuration.GetSection("KnowledgeBase").Bind(kbOptions);
+        var sharePointConfigured = kbOptions.OneDriveFolderMappings.Any(m => !string.IsNullOrWhiteSpace(m.DriveId));
+        var tokenAcquisitionAvailable = services.Any(sd => sd.ServiceType == typeof(ITokenAcquisition));
 
-        if (useMockAuth || bypassJwtValidation)
-        {
-            services.AddScoped<IOneDriveService, MockOneDriveService>();
-        }
-        else
+        if (sharePointConfigured && tokenAcquisitionAvailable)
         {
             services.AddHttpClient("MicrosoftGraph");
             services.AddScoped<IOneDriveService, GraphOneDriveService>();
+        }
+        else
+        {
+            services.AddScoped<IOneDriveService, MockOneDriveService>();
         }
 
         // Register QuestionLoggingBehavior scoped to KB (not global like ValidationBehavior)
