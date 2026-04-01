@@ -292,7 +292,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
                 .FirstOrDefault(bs => bs.TransferId == "T-PERSIST");
 
             Assert.NotNull(savedImport);
-            Assert.Equal("123456789", savedImport.Account);
+            Assert.Equal("ComgateCZK", savedImport.Account);
             Assert.Equal(CurrencyCode.CZK, savedImport.Currency);
             Assert.Equal(1, savedImport.ItemCount);
             Assert.Equal("OK", savedImport.ImportResult);
@@ -316,11 +316,11 @@ public class BankStatementImportTestFactory : HebloWebApplicationFactory
 
     protected override void ConfigureTestServices(IServiceCollection services)
     {
-        // Remove existing registrations
-        var bankClientDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IBankClient));
-        if (bankClientDescriptor != null)
+        // Remove all existing IBankClient registrations
+        var bankClientDescriptors = services.Where(d => d.ServiceType == typeof(IBankClient)).ToList();
+        foreach (var descriptor in bankClientDescriptors)
         {
-            services.Remove(bankClientDescriptor);
+            services.Remove(descriptor);
         }
 
         var importServiceDescriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IBankStatementImportService));
