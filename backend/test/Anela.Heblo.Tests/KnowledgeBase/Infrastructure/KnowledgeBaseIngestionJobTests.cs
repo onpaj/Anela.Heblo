@@ -35,10 +35,9 @@ public class KnowledgeBaseIngestionJobTests
     {
         OneDriveFolderMappings =
         [
-            new() { InboxPath = "/KnowledgeBase/Inbox", ArchivedPath = "/KnowledgeBase/Archived", DocumentType = DocumentType.KnowledgeBase },
-            new() { InboxPath = "/Conversation/Inbox",  ArchivedPath = "/Conversation/Archived",  DocumentType = DocumentType.Conversation  }
-        ],
-        OneDriveUserId = "user@test.com"
+            new() { InboxPath = "/KnowledgeBase/Inbox", ArchivedPath = "/KnowledgeBase/Archived", DocumentType = DocumentType.KnowledgeBase, DriveId = "drive-kb" },
+            new() { InboxPath = "/Conversation/Inbox",  ArchivedPath = "/Conversation/Archived",  DocumentType = DocumentType.Conversation,  DriveId = "drive-conv" }
+        ]
     };
 
     [Fact]
@@ -48,9 +47,9 @@ public class KnowledgeBaseIngestionJobTests
         var job = CreateJob(options);
 
         var kbFile = new OneDriveFile("id-kb-1", "manual.pdf", "application/pdf", "/KnowledgeBase/Inbox/manual.pdf");
-        _oneDrive.Setup(s => s.ListInboxFilesAsync("/KnowledgeBase/Inbox", default)).ReturnsAsync([kbFile]);
-        _oneDrive.Setup(s => s.ListInboxFilesAsync("/Conversation/Inbox", default)).ReturnsAsync([]);
-        _oneDrive.Setup(s => s.DownloadFileAsync("id-kb-1", default)).ReturnsAsync([1, 2, 3]);
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-kb", "/KnowledgeBase/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([kbFile]);
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-conv", "/Conversation/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _oneDrive.Setup(s => s.DownloadFileAsync("drive-kb", "id-kb-1", It.IsAny<CancellationToken>())).ReturnsAsync([1, 2, 3]);
         _repository.Setup(r => r.GetDocumentByHashAsync(It.IsAny<string>(), default)).ReturnsAsync((KnowledgeBaseDocument?)null);
         _repository.Setup(r => r.GetDocumentBySourcePathAsync(It.IsAny<string>(), default)).ReturnsAsync((KnowledgeBaseDocument?)null);
 
@@ -61,7 +60,7 @@ public class KnowledgeBaseIngestionJobTests
                 r.Filename == "manual.pdf" &&
                 r.DocumentType == DocumentType.KnowledgeBase),
             default), Times.Once);
-        _oneDrive.Verify(s => s.MoveToArchivedAsync("id-kb-1", "manual.pdf", "/KnowledgeBase/Archived", default), Times.Once);
+        _oneDrive.Verify(s => s.MoveToArchivedAsync("drive-kb", "id-kb-1", "manual.pdf", "/KnowledgeBase/Archived", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -71,9 +70,9 @@ public class KnowledgeBaseIngestionJobTests
         var job = CreateJob(options);
 
         var convFile = new OneDriveFile("id-conv-1", "chat.txt", "text/plain", "/Conversation/Inbox/chat.txt");
-        _oneDrive.Setup(s => s.ListInboxFilesAsync("/KnowledgeBase/Inbox", default)).ReturnsAsync([]);
-        _oneDrive.Setup(s => s.ListInboxFilesAsync("/Conversation/Inbox", default)).ReturnsAsync([convFile]);
-        _oneDrive.Setup(s => s.DownloadFileAsync("id-conv-1", default)).ReturnsAsync([4, 5, 6]);
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-kb", "/KnowledgeBase/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-conv", "/Conversation/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([convFile]);
+        _oneDrive.Setup(s => s.DownloadFileAsync("drive-conv", "id-conv-1", It.IsAny<CancellationToken>())).ReturnsAsync([4, 5, 6]);
         _repository.Setup(r => r.GetDocumentByHashAsync(It.IsAny<string>(), default)).ReturnsAsync((KnowledgeBaseDocument?)null);
         _repository.Setup(r => r.GetDocumentBySourcePathAsync(It.IsAny<string>(), default)).ReturnsAsync((KnowledgeBaseDocument?)null);
 
@@ -84,7 +83,7 @@ public class KnowledgeBaseIngestionJobTests
                 r.Filename == "chat.txt" &&
                 r.DocumentType == DocumentType.Conversation),
             default), Times.Once);
-        _oneDrive.Verify(s => s.MoveToArchivedAsync("id-conv-1", "chat.txt", "/Conversation/Archived", default), Times.Once);
+        _oneDrive.Verify(s => s.MoveToArchivedAsync("drive-conv", "id-conv-1", "chat.txt", "/Conversation/Archived", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -94,15 +93,15 @@ public class KnowledgeBaseIngestionJobTests
         var job = CreateJob(options);
 
         var file = new OneDriveFile("id-1", "doc.pdf", "application/pdf", "/KnowledgeBase/Inbox/doc.pdf");
-        _oneDrive.Setup(s => s.ListInboxFilesAsync("/KnowledgeBase/Inbox", default)).ReturnsAsync([file]);
-        _oneDrive.Setup(s => s.ListInboxFilesAsync("/Conversation/Inbox", default)).ReturnsAsync([]);
-        _oneDrive.Setup(s => s.DownloadFileAsync("id-1", default)).ReturnsAsync([1, 2, 3]);
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-kb", "/KnowledgeBase/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([file]);
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-conv", "/Conversation/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _oneDrive.Setup(s => s.DownloadFileAsync("drive-kb", "id-1", It.IsAny<CancellationToken>())).ReturnsAsync([1, 2, 3]);
         _repository.Setup(r => r.GetDocumentByHashAsync(It.IsAny<string>(), default))
             .ReturnsAsync(new KnowledgeBaseDocument { Id = Guid.NewGuid(), SourcePath = "/KnowledgeBase/Inbox/doc.pdf" });
 
         await job.ExecuteAsync();
 
         _mediator.Verify(m => m.Send(It.IsAny<IndexDocumentRequest>(), default), Times.Never);
-        _oneDrive.Verify(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), default), Times.Never);
+        _oneDrive.Verify(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), default), Times.Never);
     }
 }

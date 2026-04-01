@@ -60,14 +60,14 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
         {
             _logger.LogInformation("Polling {InboxPath} ({DocumentType})", mapping.InboxPath, mapping.DocumentType);
 
-            var files = await _oneDrive.ListInboxFilesAsync(mapping.InboxPath, cancellationToken);
+            var files = await _oneDrive.ListInboxFilesAsync(mapping.DriveId, mapping.InboxPath, cancellationToken);
             _logger.LogInformation("Found {Count} files in {InboxPath}", files.Count, mapping.InboxPath);
 
             foreach (var file in files)
             {
                 try
                 {
-                    var content = await _oneDrive.DownloadFileAsync(file.Id, cancellationToken);
+                    var content = await _oneDrive.DownloadFileAsync(mapping.DriveId, file.Id, cancellationToken);
 
                     var contentHash = Convert.ToHexString(
                         System.Security.Cryptography.SHA256.HashData(content)).ToLowerInvariant();
@@ -109,7 +109,7 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
                         DocumentType = mapping.DocumentType
                     }, cancellationToken);
 
-                    await _oneDrive.MoveToArchivedAsync(file.Id, file.Name, mapping.ArchivedPath, cancellationToken);
+                    await _oneDrive.MoveToArchivedAsync(mapping.DriveId, file.Id, file.Name, mapping.ArchivedPath, cancellationToken);
 
                     _logger.LogInformation("Indexed and archived {Filename} as {DocumentType}", file.Name, mapping.DocumentType);
                     indexed++;
