@@ -16,11 +16,7 @@ public class KnowledgeBaseOptions
     /// <summary>Max tokens cap forwarded to the Anthropic API for every KB chat call.</summary>
     public int ChatMaxTokens { get; set; } = 1024;
 
-    public List<OneDriveFolderMapping> OneDriveFolderMappings { get; set; } =
-    [
-        new() { InboxPath = "/KnowledgeBase/Inbox", ArchivedPath = "/KnowledgeBase/Archived", DocumentType = DocumentType.KnowledgeBase, DriveId = string.Empty },
-        new() { InboxPath = "/Conversation/Inbox",  ArchivedPath = "/Conversation/Archived",  DocumentType = DocumentType.Conversation,  DriveId = string.Empty }
-    ];
+    public List<OneDriveFolderMapping> OneDriveFolderMappings { get; set; } = [];
     public int ChunkSize { get; set; } = 512;
     public int ChunkOverlapTokens { get; set; } = 50;
     public int MaxRetrievedChunks { get; set; } = 5;

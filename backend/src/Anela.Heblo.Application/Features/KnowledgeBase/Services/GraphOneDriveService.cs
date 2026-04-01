@@ -37,7 +37,7 @@ public class GraphOneDriveService : IOneDriveService
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
         var encodedPath = string.Join("/", inboxPath.TrimStart('/').Split('/').Select(Uri.EscapeDataString));
-        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:/children?$filter=file ne null";
+        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:/children?$filter=file%20ne%20null";
 
         var request = CreateRequest(HttpMethod.Get, url, token);
         var response = await client.SendAsync(request, ct);
