@@ -120,21 +120,22 @@ public class ShoptetOrderClient : IShoptetOrderClient
     }
 
     /// <summary>
-    /// Set the internal note on an existing order.
+    /// Add a system remark to the order history (visible in admin under the History tab).
+    /// Uses POST /api/orders/{code}/history with type "system".
     /// </summary>
     public async Task SetInternalNoteAsync(string orderCode, string note, CancellationToken ct = default)
     {
-        var body = new UpdateNotesRequest
+        var body = new CreateOrderRemarkRequest
         {
-            Data = new UpdateNotesData { InternalNote = note },
+            Data = new CreateOrderRemarkData { Text = note, Type = "system" },
         };
 
-        var response = await _http.PatchAsJsonAsync($"/api/orders/{orderCode}/notes", body, JsonOptions, ct);
+        var response = await _http.PostAsJsonAsync($"/api/orders/{orderCode}/history", body, JsonOptions, ct);
         if (!response.IsSuccessStatusCode)
         {
             var errorBody = await response.Content.ReadAsStringAsync(ct);
             throw new HttpRequestException(
-                $"PATCH /api/orders/{orderCode}/notes returned {(int)response.StatusCode}: {errorBody}");
+                $"POST /api/orders/{orderCode}/history returned {(int)response.StatusCode}: {errorBody}");
         }
     }
 
