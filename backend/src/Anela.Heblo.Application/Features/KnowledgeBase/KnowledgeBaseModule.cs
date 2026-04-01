@@ -30,15 +30,19 @@ public static class KnowledgeBaseModule
 
         // IKnowledgeBaseRepository is registered in PersistenceModule (real EF Core implementation)
 
-        // OneDrive service — use real Graph service when SharePoint drives are configured and auth is available
+        // OneDrive service — use real Graph service only when SharePoint drives are configured
+        // AND real authentication is active. Mock auth has no Azure AD token so Graph calls
+        // would fail; MockOneDriveService is used in those environments instead.
         var kbOptions = new KnowledgeBaseOptions();
         configuration.GetSection("KnowledgeBase").Bind(kbOptions);
         var sharePointConfigured = kbOptions.OneDriveFolderMappings.Any(m => !string.IsNullOrWhiteSpace(m.DriveId));
-        var tokenAcquisitionAvailable = services.Any(sd => sd.ServiceType == typeof(ITokenAcquisition));
+        var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
+        var bypassJwtValidation = configuration.GetValue<bool>("BypassJwtValidation", false);
 
-        if (sharePointConfigured && tokenAcquisitionAvailable)
+        if (sharePointConfigured && !useMockAuth && !bypassJwtValidation)
         {
             services.AddHttpClient("MicrosoftGraph");
+            services.AddMemoryCache();
             services.AddScoped<IOneDriveService, GraphOneDriveService>();
         }
         else

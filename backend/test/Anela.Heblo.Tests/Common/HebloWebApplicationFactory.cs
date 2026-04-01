@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Anela.Heblo.API;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.API.Infrastructure.Authentication;
+using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Microsoft.Extensions.Hosting;
 using Hangfire;
 using Hangfire.Common;
@@ -94,6 +95,14 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
                 services.Remove(backgroundJobClientDescriptor);
             }
             services.AddSingleton<IBackgroundJobClient>(new MockBackgroundJobClient());
+
+            // Replace GraphOneDriveService with MockOneDriveService in tests.
+            // GraphOneDriveService requires ITokenAcquisition which is not available when
+            // mock authentication is active (UseMockAuth=true in appsettings.Test.json).
+            var oneDriveDescriptors = services.Where(s => s.ServiceType == typeof(IOneDriveService)).ToList();
+            foreach (var d in oneDriveDescriptors)
+                services.Remove(d);
+            services.AddScoped<IOneDriveService, MockOneDriveService>();
 
             // Apply any additional service configuration from derived classes
             ConfigureTestServices(services);

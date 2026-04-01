@@ -1,9 +1,12 @@
 using Anela.Heblo.Application.Features.Bank.Contracts;
 using Anela.Heblo.Application.Features.Bank.UseCases.GetBankStatementList;
 using Anela.Heblo.Application.Features.Bank.UseCases.ImportBankStatement;
+using Anela.Heblo.Domain.Features.Bank;
+using Anela.Heblo.Domain.Shared;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -14,11 +17,31 @@ public class BankStatementsController : BaseApiController
 {
     private readonly IMediator _mediator;
     private readonly ILogger<BankStatementsController> _logger;
+    private readonly BankAccountSettings _bankSettings;
 
-    public BankStatementsController(IMediator mediator, ILogger<BankStatementsController> logger)
+    public BankStatementsController(IMediator mediator, ILogger<BankStatementsController> logger, IOptions<BankAccountSettings> bankSettings)
     {
         _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _bankSettings = bankSettings.Value ?? throw new ArgumentNullException(nameof(bankSettings));
+    }
+
+    /// <summary>
+    /// Get list of configured bank accounts available for import
+    /// </summary>
+    [HttpGet("accounts")]
+    public ActionResult<IEnumerable<BankAccountDto>> GetAccounts()
+    {
+        var accounts = (_bankSettings.Accounts ?? [])
+            .Select(a => new BankAccountDto
+            {
+                Name = a.Name,
+                AccountNumber = a.AccountNumber,
+                Provider = a.Provider.ToString(),
+                Currency = a.Currency.ToString(),
+            });
+
+        return Ok(accounts);
     }
 
     /// <summary>
@@ -31,10 +54,10 @@ public class BankStatementsController : BaseApiController
     {
         try
         {
-            _logger.LogInformation("Importing bank statements for account {AccountName} on {StatementDate}",
-                request.AccountName, request.StatementDate);
+            _logger.LogInformation("Importing bank statements for account {AccountName} from {DateFrom} to {DateTo}",
+                request.AccountName, request.DateFrom, request.DateTo);
 
-            var importRequest = new ImportBankStatementRequest(request.AccountName, request.StatementDate);
+            var importRequest = new ImportBankStatementRequest(request.AccountName, request.DateFrom, request.DateTo);
             var response = await _mediator.Send(importRequest);
 
             var result = new BankStatementImportResultDto

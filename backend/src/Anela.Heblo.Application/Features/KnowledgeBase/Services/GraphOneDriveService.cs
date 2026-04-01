@@ -1,6 +1,6 @@
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 
@@ -15,17 +15,19 @@ public class GraphOneDriveService : IOneDriveService
 {
     private readonly ITokenAcquisition _tokenAcquisition;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<GraphOneDriveService> _logger;
     private const string GraphScope = "https://graph.microsoft.com/.default";
-    private const string GraphBaseUrl = "https://graph.microsoft.com/v1.0";
 
     public GraphOneDriveService(
         ITokenAcquisition tokenAcquisition,
         IHttpClientFactory httpClientFactory,
+        IMemoryCache cache,
         ILogger<GraphOneDriveService> logger)
     {
         _tokenAcquisition = tokenAcquisition;
         _httpClientFactory = httpClientFactory;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -36,34 +38,25 @@ public class GraphOneDriveService : IOneDriveService
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-        var encodedPath = string.Join("/", inboxPath.TrimStart('/').Split('/').Select(Uri.EscapeDataString));
-        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:/children?$filter=file%20ne%20null";
+        var encodedPath = GraphApiHelpers.EncodePath(inboxPath);
+        // Graph API does not support $filter on complex facet properties like 'file'.
+        // Retrieve all children and skip folders (items without the 'file' facet) in code.
+        var url = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:/children";
 
-        var request = CreateRequest(HttpMethod.Get, url, token);
+        var request = GraphApiHelpers.CreateRequest(HttpMethod.Get, url, token);
         var response = await client.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
 
-        var json = await response.Content.ReadAsStringAsync(ct);
-        using var doc = JsonDocument.Parse(json);
+        var result = await GraphApiHelpers.DeserializeAsync<GraphDriveItemCollection>(response, ct);
 
         var files = new List<OneDriveFile>();
-        if (doc.RootElement.TryGetProperty("value", out var value))
+        foreach (var item in result.Value)
         {
-            foreach (var item in value.EnumerateArray())
-            {
-                var id = item.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? string.Empty : string.Empty;
-                var name = item.TryGetProperty("name", out var nameProp) ? nameProp.GetString() ?? string.Empty : string.Empty;
-                var webUrl = item.TryGetProperty("webUrl", out var urlProp) ? urlProp.GetString() ?? string.Empty : string.Empty;
-                var mimeType = "application/octet-stream";
+            // Skip folders — only items with the 'file' facet are actual files
+            if (item.File is null)
+                continue;
 
-                if (item.TryGetProperty("file", out var fileProp) &&
-                    fileProp.TryGetProperty("mimeType", out var mimeProp))
-                {
-                    mimeType = mimeProp.GetString() ?? mimeType;
-                }
-
-                files.Add(new OneDriveFile(id, name, mimeType, webUrl));
-            }
+            files.Add(new OneDriveFile(item.Id, item.Name, item.File.MimeType, item.WebUrl));
         }
 
         return files;
@@ -76,8 +69,8 @@ public class GraphOneDriveService : IOneDriveService
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{fileId}/content";
-        var request = CreateRequest(HttpMethod.Get, url, token);
+        var url = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{fileId}/content";
+        var request = GraphApiHelpers.CreateRequest(HttpMethod.Get, url, token);
         var response = await client.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
 
@@ -91,28 +84,24 @@ public class GraphOneDriveService : IOneDriveService
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-        var archivedFolderPath = archivedPath.TrimStart('/');
+        // Graph requires the destination folder's item ID — path-based parentReference is not supported for SharePoint drives.
+        var resolver = new GraphFolderResolver(client, token, _cache, _logger);
+        var folderItemId = await resolver.GetOrCreateFolderIdAsync(driveId, archivedPath, ct);
+
         var body = JsonSerializer.Serialize(new
         {
             parentReference = new
             {
                 driveId,
-                path = $"/drive/root:/{archivedFolderPath}"
+                id = folderItemId
             }
         });
 
-        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{fileId}";
-        var request = CreateRequest(new HttpMethod("PATCH"), url, token);
+        var url = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{fileId}";
+        var request = GraphApiHelpers.CreateRequest(HttpMethod.Patch, url, token);
         request.Content = new StringContent(body, Encoding.UTF8, "application/json");
 
         var response = await client.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
-    }
-
-    private static HttpRequestMessage CreateRequest(HttpMethod method, string url, string token)
-    {
-        var request = new HttpRequestMessage(method, url);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        return request;
     }
 }

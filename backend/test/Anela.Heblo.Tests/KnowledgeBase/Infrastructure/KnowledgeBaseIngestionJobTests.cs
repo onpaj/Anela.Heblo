@@ -15,7 +15,6 @@ namespace Anela.Heblo.Tests.KnowledgeBase.Infrastructure;
 public class KnowledgeBaseIngestionJobTests
 {
     private readonly Mock<IOneDriveService> _oneDrive = new();
-    private readonly Mock<IKnowledgeBaseRepository> _repository = new();
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IRecurringJobStatusChecker> _statusChecker = new();
 
@@ -24,7 +23,6 @@ public class KnowledgeBaseIngestionJobTests
         _statusChecker.Setup(s => s.IsJobEnabledAsync("knowledge-base-ingestion", It.IsAny<CancellationToken>())).ReturnsAsync(true);
         return new KnowledgeBaseIngestionJob(
             _oneDrive.Object,
-            _repository.Object,
             _mediator.Object,
             _statusChecker.Object,
             Options.Create(options),
@@ -50,8 +48,8 @@ public class KnowledgeBaseIngestionJobTests
         _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-kb", "/KnowledgeBase/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([kbFile]);
         _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-conv", "/Conversation/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([]);
         _oneDrive.Setup(s => s.DownloadFileAsync("drive-kb", "id-kb-1", It.IsAny<CancellationToken>())).ReturnsAsync([1, 2, 3]);
-        _repository.Setup(r => r.GetDocumentByHashAsync(It.IsAny<string>(), default)).ReturnsAsync((KnowledgeBaseDocument?)null);
-        _repository.Setup(r => r.GetDocumentBySourcePathAsync(It.IsAny<string>(), default)).ReturnsAsync((KnowledgeBaseDocument?)null);
+        _mediator.Setup(m => m.Send(It.IsAny<IndexDocumentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IndexDocumentResponse { WasDuplicate = false });
 
         await job.ExecuteAsync();
 
@@ -73,8 +71,8 @@ public class KnowledgeBaseIngestionJobTests
         _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-kb", "/KnowledgeBase/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([]);
         _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-conv", "/Conversation/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([convFile]);
         _oneDrive.Setup(s => s.DownloadFileAsync("drive-conv", "id-conv-1", It.IsAny<CancellationToken>())).ReturnsAsync([4, 5, 6]);
-        _repository.Setup(r => r.GetDocumentByHashAsync(It.IsAny<string>(), default)).ReturnsAsync((KnowledgeBaseDocument?)null);
-        _repository.Setup(r => r.GetDocumentBySourcePathAsync(It.IsAny<string>(), default)).ReturnsAsync((KnowledgeBaseDocument?)null);
+        _mediator.Setup(m => m.Send(It.IsAny<IndexDocumentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IndexDocumentResponse { WasDuplicate = false });
 
         await job.ExecuteAsync();
 
@@ -96,12 +94,12 @@ public class KnowledgeBaseIngestionJobTests
         _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-kb", "/KnowledgeBase/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([file]);
         _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-conv", "/Conversation/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([]);
         _oneDrive.Setup(s => s.DownloadFileAsync("drive-kb", "id-1", It.IsAny<CancellationToken>())).ReturnsAsync([1, 2, 3]);
-        _repository.Setup(r => r.GetDocumentByHashAsync(It.IsAny<string>(), default))
-            .ReturnsAsync(new KnowledgeBaseDocument { Id = Guid.NewGuid(), SourcePath = "/KnowledgeBase/Inbox/doc.pdf" });
+        _mediator.Setup(m => m.Send(It.IsAny<IndexDocumentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IndexDocumentResponse { WasDuplicate = true });
 
         await job.ExecuteAsync();
 
-        _mediator.Verify(m => m.Send(It.IsAny<IndexDocumentRequest>(), default), Times.Never);
-        _oneDrive.Verify(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), default), Times.Never);
+        _mediator.Verify(m => m.Send(It.IsAny<IndexDocumentRequest>(), default), Times.Once);
+        _oneDrive.Verify(s => s.MoveToArchivedAsync("drive-kb", "id-1", "doc.pdf", "/KnowledgeBase/Archived", default), Times.Once);
     }
 }

@@ -8,5 +8,8 @@ public class BankImportRequestDto
     public string AccountName { get; set; } = null!;
 
     [Required]
-    public DateTime StatementDate { get; set; }
+    public DateTime DateFrom { get; set; }
+
+    [Required]
+    public DateTime DateTo { get; set; }
 }

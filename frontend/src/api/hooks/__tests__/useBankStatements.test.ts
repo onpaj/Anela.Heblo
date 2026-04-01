@@ -1,12 +1,11 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { useBankStatementAccounts, GetBankStatementListResponse } from '../useBankStatements';
+import { useBankStatementAccounts } from '../useBankStatements';
 import { getAuthenticatedApiClient } from '../../client';
 import { createMockApiClient, mockAuthenticatedApiClient, createQueryClientWrapper } from '../../testUtils';
 
-// Mock the API client
 jest.mock('../../client');
 
-describe('useBankStatements - Account Mapping Logic', () => {
+describe('useBankStatements - Account Listing', () => {
     let mockFetch: jest.Mock;
     let mockClient: any;
 
@@ -22,254 +21,113 @@ describe('useBankStatements - Account Mapping Logic', () => {
     });
 
     describe('useBankStatementAccounts', () => {
-        it('should map account number "2301495165/2010" to "ComgateCZK"', async () => {
-            // Arrange
-            const mockData: GetBankStatementListResponse = {
-                items: [
-                    {
-                        id: 1,
-                        transferId: 'T001',
-                        statementDate: '2024-01-01',
-                        importDate: '2024-01-02',
-                        account: '2301495165/2010',
-                        currency: 'CZK',
-                        itemCount: 10,
-                        importResult: 'Success'
-                    }
-                ],
-                totalCount: 1
-            };
-
+        it('should return Comgate CZK account from backend', async () => {
             mockFetch.mockResolvedValue({
                 ok: true,
-                json: () => Promise.resolve(mockData)
+                json: () => Promise.resolve([
+                    { name: 'ComgateCZK', accountNumber: '2301495165/2010', provider: 'Comgate', currency: 'CZK' }
+                ])
             });
 
             const { wrapper } = createQueryClientWrapper();
-
-            // Act
             const { result } = renderHook(() => useBankStatementAccounts(), { wrapper });
 
-            // Assert
-            await waitFor(() => {
-                expect(result.current.isSuccess).toBe(true);
-            });
+            await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-            const accounts = result.current.data;
+            const accounts = result.current.data!;
             expect(accounts).toHaveLength(1);
-            expect(accounts![0].accountNumber).toBe('2301495165/2010');
-            expect(accounts![0].accountName).toBe('ComgateCZK');
-            expect(accounts![0].value).toBe('ComgateCZK'); // Backend expects this value
-            expect(accounts![0].label).toBe('ComgateCZK (2301495165/2010)');
+            expect(accounts[0].value).toBe('ComgateCZK');
+            expect(accounts[0].label).toBe('ComgateCZK (Comgate)');
+            expect(accounts[0].accountNumber).toBe('2301495165/2010');
+            expect(accounts[0].provider).toBe('Comgate');
+            expect(accounts[0].currency).toBe('CZK');
         });
 
-        it('should map account number "2501837465/2010" to "ComgateEUR"', async () => {
-            // Arrange
-            const mockData: GetBankStatementListResponse = {
-                items: [
-                    {
-                        id: 2,
-                        transferId: 'T002',
-                        statementDate: '2024-01-01',
-                        importDate: '2024-01-02',
-                        account: '2501837465/2010',
-                        currency: 'EUR',
-                        itemCount: 5,
-                        importResult: 'Success'
-                    }
-                ],
-                totalCount: 1
-            };
-
+        it('should return ShoptetPay account from backend', async () => {
             mockFetch.mockResolvedValue({
                 ok: true,
-                json: () => Promise.resolve(mockData)
+                json: () => Promise.resolve([
+                    { name: 'ShoptetPay-CZK', accountNumber: '', provider: 'ShoptetPay', currency: 'CZK' }
+                ])
             });
 
             const { wrapper } = createQueryClientWrapper();
-
-            // Act
             const { result } = renderHook(() => useBankStatementAccounts(), { wrapper });
 
-            // Assert
-            await waitFor(() => {
-                expect(result.current.isSuccess).toBe(true);
-            });
+            await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-            const accounts = result.current.data;
+            const accounts = result.current.data!;
             expect(accounts).toHaveLength(1);
-            expect(accounts![0].accountNumber).toBe('2501837465/2010');
-            expect(accounts![0].accountName).toBe('ComgateEUR');
-            expect(accounts![0].value).toBe('ComgateEUR'); // Backend expects this value
-            expect(accounts![0].label).toBe('ComgateEUR (2501837465/2010)');
+            expect(accounts[0].value).toBe('ShoptetPay-CZK');
+            expect(accounts[0].label).toBe('ShoptetPay-CZK (ShoptetPay)');
+            expect(accounts[0].provider).toBe('ShoptetPay');
+            expect(accounts[0].currency).toBe('CZK');
         });
 
-        it('should use account number as fallback for unknown accounts', async () => {
-            // Arrange - Unknown account number
-            const unknownAccount = '9999999999/9999';
-            const mockData: GetBankStatementListResponse = {
-                items: [
-                    {
-                        id: 3,
-                        transferId: 'T003',
-                        statementDate: '2024-01-01',
-                        importDate: '2024-01-02',
-                        account: unknownAccount,
-                        currency: 'CZK',
-                        itemCount: 3,
-                        importResult: 'Success'
-                    }
-                ],
-                totalCount: 1
-            };
-
+        it('should return all configured accounts including ShoptetPay', async () => {
             mockFetch.mockResolvedValue({
                 ok: true,
-                json: () => Promise.resolve(mockData)
+                json: () => Promise.resolve([
+                    { name: 'ComgateCZK', accountNumber: '2301495165/2010', provider: 'Comgate', currency: 'CZK' },
+                    { name: 'ComgateEUR', accountNumber: '2501837465/2010', provider: 'Comgate', currency: 'EUR' },
+                    { name: 'ShoptetPay-CZK', accountNumber: '', provider: 'ShoptetPay', currency: 'CZK' },
+                ])
             });
 
             const { wrapper } = createQueryClientWrapper();
-
-            // Act
             const { result } = renderHook(() => useBankStatementAccounts(), { wrapper });
 
-            // Assert
-            await waitFor(() => {
-                expect(result.current.isSuccess).toBe(true);
-            });
+            await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-            const accounts = result.current.data;
-            expect(accounts).toHaveLength(1);
-            expect(accounts![0].accountNumber).toBe(unknownAccount);
-            expect(accounts![0].accountName).toBe(unknownAccount); // Falls back to account number
-            expect(accounts![0].value).toBe(unknownAccount); // Backend will receive account number
-            expect(accounts![0].label).toBe(`${unknownAccount} (${unknownAccount})`);
+            const accounts = result.current.data!;
+            expect(accounts).toHaveLength(3);
+
+            const names = accounts.map(a => a.value);
+            expect(names).toContain('ComgateCZK');
+            expect(names).toContain('ComgateEUR');
+            expect(names).toContain('ShoptetPay-CZK');
         });
 
-        it('should return correct AccountOption objects with all required properties', async () => {
-            // Arrange - Multiple accounts
-            const mockData: GetBankStatementListResponse = {
-                items: [
-                    {
-                        id: 1,
-                        transferId: 'T001',
-                        statementDate: '2024-01-01',
-                        importDate: '2024-01-02',
-                        account: '2301495165/2010',
-                        currency: 'CZK',
-                        itemCount: 10,
-                        importResult: 'Success'
-                    },
-                    {
-                        id: 2,
-                        transferId: 'T002',
-                        statementDate: '2024-01-01',
-                        importDate: '2024-01-02',
-                        account: '2501837465/2010',
-                        currency: 'EUR',
-                        itemCount: 5,
-                        importResult: 'Success'
-                    }
-                ],
-                totalCount: 2
-            };
-
+        it('should expose value and label for every account', async () => {
             mockFetch.mockResolvedValue({
                 ok: true,
-                json: () => Promise.resolve(mockData)
+                json: () => Promise.resolve([
+                    { name: 'ComgateCZK', accountNumber: '2301495165/2010', provider: 'Comgate', currency: 'CZK' },
+                    { name: 'ShoptetPay-CZK', accountNumber: '', provider: 'ShoptetPay', currency: 'CZK' },
+                ])
             });
 
             const { wrapper } = createQueryClientWrapper();
-
-            // Act
             const { result } = renderHook(() => useBankStatementAccounts(), { wrapper });
 
-            // Assert
-            await waitFor(() => {
-                expect(result.current.isSuccess).toBe(true);
-            });
+            await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-            const accounts = result.current.data;
-            expect(accounts).toHaveLength(2);
-
-            // Verify all accounts have required properties
-            accounts!.forEach(account => {
+            result.current.data!.forEach(account => {
                 expect(account).toHaveProperty('value');
                 expect(account).toHaveProperty('label');
                 expect(account).toHaveProperty('accountNumber');
-                expect(account).toHaveProperty('accountName');
-
-                // value and accountName should match
-                expect(account.value).toBe(account.accountName);
-
-                // label should contain both accountName and accountNumber
-                expect(account.label).toContain(account.accountName);
-                expect(account.label).toContain(account.accountNumber);
+                expect(account).toHaveProperty('provider');
+                expect(account).toHaveProperty('currency');
+                expect(account.label).toContain(account.value);
+                expect(account.label).toContain(account.provider);
             });
         });
 
-        it('should deduplicate accounts and sort by label', async () => {
-            // Arrange - Duplicate accounts
-            const mockData: GetBankStatementListResponse = {
-                items: [
-                    {
-                        id: 1,
-                        transferId: 'T001',
-                        statementDate: '2024-01-01',
-                        importDate: '2024-01-02',
-                        account: '2501837465/2010', // EUR
-                        currency: 'EUR',
-                        itemCount: 5,
-                        importResult: 'Success'
-                    },
-                    {
-                        id: 2,
-                        transferId: 'T002',
-                        statementDate: '2024-01-02',
-                        importDate: '2024-01-03',
-                        account: '2301495165/2010', // CZK
-                        currency: 'CZK',
-                        itemCount: 10,
-                        importResult: 'Success'
-                    },
-                    {
-                        id: 3,
-                        transferId: 'T003',
-                        statementDate: '2024-01-03',
-                        importDate: '2024-01-04',
-                        account: '2301495165/2010', // Duplicate CZK
-                        currency: 'CZK',
-                        itemCount: 7,
-                        importResult: 'Success'
-                    }
-                ],
-                totalCount: 3
-            };
-
+        it('should call /api/bank-statements/accounts endpoint', async () => {
             mockFetch.mockResolvedValue({
                 ok: true,
-                json: () => Promise.resolve(mockData)
+                json: () => Promise.resolve([])
             });
 
             const { wrapper } = createQueryClientWrapper();
-
-            // Act
             const { result } = renderHook(() => useBankStatementAccounts(), { wrapper });
 
-            // Assert
-            await waitFor(() => {
-                expect(result.current.isSuccess).toBe(true);
-            });
+            await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-            const accounts = result.current.data;
-
-            // Should have only 2 unique accounts despite 3 statements
-            expect(accounts).toHaveLength(2);
-
-            // Should be sorted alphabetically by label
-            // ComgateCZK comes before ComgateEUR
-            expect(accounts![0].accountName).toBe('ComgateCZK');
-            expect(accounts![1].accountName).toBe('ComgateEUR');
+            expect(mockFetch).toHaveBeenCalledWith(
+                expect.stringContaining('/api/bank-statements/accounts'),
+                expect.any(Object)
+            );
         });
     });
 });

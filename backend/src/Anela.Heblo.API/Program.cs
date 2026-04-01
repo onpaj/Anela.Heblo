@@ -52,8 +52,9 @@ public partial class Program
 
         // Adapters
         builder.Services.AddFlexiAdapter(builder.Configuration);
-        builder.Services.AddShoptetAdapter(builder.Configuration);
+        builder.Services.AddShoptetPlaywrightAdapter(builder.Configuration);
         builder.Services.AddShoptetApiAdapter(builder.Configuration);
+        builder.Services.AddShoptetPayAdapter(builder.Configuration);
         builder.Services.AddComgateAdapter(builder.Configuration);
         builder.Services.AddAnthropicAdapter(builder.Configuration);
         builder.Services.AddOpenAiAdapter(builder.Configuration);

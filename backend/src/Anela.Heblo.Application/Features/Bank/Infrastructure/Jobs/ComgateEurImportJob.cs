@@ -42,8 +42,8 @@ public class ComgateEurImportJob : IRecurringJob
         {
             _logger.LogInformation("Starting {JobName}", Metadata.JobName);
 
-            var yesterdayDate = DateTime.Today.AddDays(-1);
-            var request = new ImportBankStatementRequest("ComgateEUR", yesterdayDate);
+            var yesterday = DateTime.Today.AddDays(-1);
+            var request = new ImportBankStatementRequest("ComgateEUR", yesterday, yesterday);
 
             var response = await _mediator.Send(request, cancellationToken);
 

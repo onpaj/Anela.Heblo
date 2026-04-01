@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.ShoptetApi;
 
-public static class ShoptetApiServiceCollectionExtensions
+public static class ShoptetApiAdapterServiceCollectionExtensions
 {
     public static IServiceCollection AddShoptetApiAdapter(
         this IServiceCollection services,
