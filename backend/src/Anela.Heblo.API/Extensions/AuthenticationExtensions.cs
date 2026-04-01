@@ -25,7 +25,7 @@ public static class AuthenticationExtensions
         if (bypassJwtValidation || useMockAuth)
         {
             logger.LogInformation("Configuring Mock Authentication");
-            ConfigureMockAuthentication(services, builder);
+            ConfigureMockAuthentication(services);
         }
         else
         {
@@ -37,19 +37,12 @@ public static class AuthenticationExtensions
         return services;
     }
 
-    private static void ConfigureMockAuthentication(IServiceCollection services, WebApplicationBuilder builder)
+    private static void ConfigureMockAuthentication(IServiceCollection services)
     {
         // Mock authentication - can be used in any environment when UseMockAuth=true
         services.AddAuthentication(ConfigurationConstants.MOCK_AUTH_SCHEME)
             .AddScheme<MockAuthenticationSchemeOptions, MockAuthenticationHandler>(ConfigurationConstants.MOCK_AUTH_SCHEME, _ => { });
         ConfigureAuthorizationPolicies(services);
-
-        // Register ITokenAcquisition for outbound service-to-service calls (e.g. GraphOneDriveService).
-        // Inbound requests are authenticated by the mock scheme above; outbound Graph calls still
-        // need app credentials. The full MSAL stack is registered without affecting inbound auth.
-        services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd")
-            .EnableTokenAcquisitionToCallDownstreamApi()
-            .AddInMemoryTokenCaches();
 
         // Note: GraphService is now handled via MockGraphService in UserManagementModule
         // No need to register GraphServiceClient for mock authentication
