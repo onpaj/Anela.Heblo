@@ -42,6 +42,7 @@ These two are **completely unrelated** — do not confuse them.
 | `PATCH` | `/api/orders/{code}/head` | Update basic info (email, addresses) |
 | `PATCH` | `/api/orders/{code}/status` | Change status / mark paid / update payment method |
 | `PATCH` | `/api/orders/{code}/notes` | Update remarks and 6 custom fields |
+| `POST` | `/api/orders/{code}/history` | Add a remark to order history (type: `comment` or `system`) |
 | `PATCH` | `/api/orders/status-change` | Bulk status update for multiple orders |
 | `DELETE` | `/api/orders/{code}` | Delete order |
 | `POST` | `/api/orders/{code}/copy` | Duplicate order |
@@ -223,6 +224,7 @@ Location: `backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/`
 
 - **Seeding endpoint:** `POST /api/orders` — creates orders with minimal valid payload.
 - **Status update endpoint:** `PATCH /api/orders/{code}/status` — body shape `{"data":{"statusId":<int>}}`. Note: the property is `statusId` (flat integer), NOT `{"status":{"id":x}}` — verified against Shoptet OpenAPI spec (`additionalProperties: false` schema).
+- **Internal note / history remark:** `POST /api/orders/{code}/history` — body `{"data":{"text":"...","type":"system"}}`. The `type` field is either `"comment"` (visible to customer) or `"system"` (internal). `PATCH /api/orders/{code}/notes` is for updating the order's `remark` field and custom fields — it is NOT for writing history entries.
 - **Delete endpoint:** `DELETE /api/orders/{code}`.
 - **ExternalCode filter does NOT exist.** `GET /api/orders?externalCode={code}` returns 400 "Unsupported query parameters". There is no server-side filter by externalCode.
 - **ExternalCode is NOT in the list response.** `GET /api/orders` (paginated list) does NOT include the `externalCode` field for each order. The field is only available via `GET /api/orders/{code}` (single order detail). The list response DOES include `email`, which can be used as a pre-filter to narrow down candidates before fetching details.
