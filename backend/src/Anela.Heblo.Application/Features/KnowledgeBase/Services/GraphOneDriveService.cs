@@ -33,14 +33,14 @@ public class GraphOneDriveService : IOneDriveService
         _logger = logger;
     }
 
-    public async Task<List<OneDriveFile>> ListInboxFilesAsync(CancellationToken ct = default)
+    public async Task<List<OneDriveFile>> ListInboxFilesAsync(string inboxPath, CancellationToken ct = default)
     {
-        _logger.LogDebug("Listing files in OneDrive inbox: {Path}", _options.OneDriveInboxPath);
+        _logger.LogDebug("Listing files in OneDrive inbox: {Path}", inboxPath);
 
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-        var encodedPath = string.Join("/", _options.OneDriveInboxPath.TrimStart('/').Split('/').Select(Uri.EscapeDataString));
+        var encodedPath = string.Join("/", inboxPath.TrimStart('/').Split('/').Select(Uri.EscapeDataString));
         var url = $"{GraphBaseUrl}/users/{Uri.EscapeDataString(_options.OneDriveUserId)}/drive/root:/{encodedPath}:/children?$filter=file ne null";
 
         var request = CreateRequest(HttpMethod.Get, url, token);
@@ -88,14 +88,14 @@ public class GraphOneDriveService : IOneDriveService
         return await response.Content.ReadAsByteArrayAsync(ct);
     }
 
-    public async Task MoveToArchivedAsync(string fileId, string filename, CancellationToken ct = default)
+    public async Task MoveToArchivedAsync(string fileId, string filename, string archivedPath, CancellationToken ct = default)
     {
         _logger.LogDebug("Moving file {Filename} ({FileId}) to archived folder", filename, fileId);
 
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-        var archivedFolderPath = _options.OneDriveArchivedPath.TrimStart('/');
+        var archivedFolderPath = archivedPath.TrimStart('/');
         var body = JsonSerializer.Serialize(new
         {
             parentReference = new

@@ -15,9 +15,9 @@ public class MockOneDriveService : IOneDriveService
         _logger = logger;
     }
 
-    public Task<List<OneDriveFile>> ListInboxFilesAsync(CancellationToken ct = default)
+    public Task<List<OneDriveFile>> ListInboxFilesAsync(string inboxPath, CancellationToken ct = default)
     {
-        _logger.LogInformation("Mock OneDriveService: returning empty inbox file list");
+        _logger.LogInformation("Mock OneDriveService: returning empty inbox file list for {Path}", inboxPath);
         return Task.FromResult(new List<OneDriveFile>());
     }
 
@@ -27,9 +27,9 @@ public class MockOneDriveService : IOneDriveService
         return Task.FromResult(Array.Empty<byte>());
     }
 
-    public Task MoveToArchivedAsync(string fileId, string filename, CancellationToken ct = default)
+    public Task MoveToArchivedAsync(string fileId, string filename, string archivedPath, CancellationToken ct = default)
     {
-        _logger.LogInformation("Mock OneDriveService: simulated archive for file {Filename}", filename);
+        _logger.LogInformation("Mock OneDriveService: simulated archive for file {Filename} to {Path}", filename, archivedPath);
         return Task.CompletedTask;
     }
 }
