@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.DuplicateManufacture
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.ResolveManualAction;
 using Anela.Heblo.Application.Features.Manufacture.Services;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Anela.Heblo.Application.Shared;
 using Microsoft.AspNetCore.Mvc;

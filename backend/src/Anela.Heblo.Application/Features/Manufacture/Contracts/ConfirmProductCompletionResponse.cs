@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Shared;
 
-namespace Anela.Heblo.Application.Features.Manufacture.Services;
+namespace Anela.Heblo.Application.Features.Manufacture.Contracts;
 
 public class ConfirmProductCompletionResponse : BaseResponse
 {

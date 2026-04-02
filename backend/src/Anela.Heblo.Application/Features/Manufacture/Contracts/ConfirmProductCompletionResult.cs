@@ -1,6 +1,6 @@
 using Anela.Heblo.Domain.Features.Manufacture;
 
-namespace Anela.Heblo.Application.Features.Manufacture.Services;
+namespace Anela.Heblo.Application.Features.Manufacture.Contracts;
 
 public class ConfirmProductCompletionResult
 {

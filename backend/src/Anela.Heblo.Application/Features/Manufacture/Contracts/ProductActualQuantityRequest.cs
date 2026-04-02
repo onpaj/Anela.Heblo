@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Anela.Heblo.Application.Features.Manufacture.Services;
+namespace Anela.Heblo.Application.Features.Manufacture.Contracts;
 
 public class ProductActualQuantityRequest
 {

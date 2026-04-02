@@ -1,3 +1,5 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
+
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
 public interface IManufactureOrderApplicationService
