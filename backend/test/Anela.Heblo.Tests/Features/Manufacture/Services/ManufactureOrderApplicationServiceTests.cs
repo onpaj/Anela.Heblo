@@ -10,14 +10,14 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using DiscardResidualSemiProductRequest = Anela.Heblo.Application.Features.Manufacture.UseCases.DiscardResidualSemiProduct.DiscardResidualSemiProductRequest;
-using DiscardResidualSemiProductResponse = Anela.Heblo.Application.Features.Manufacture.UseCases.DiscardResidualSemiProduct.DiscardResidualSemiProductResponse;
 
 namespace Anela.Heblo.Tests.Features.Manufacture.Services;
 
 public class ManufactureOrderApplicationServiceTests
 {
     private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<IManufactureClient> _manufactureClientMock;
+    private readonly Mock<IResidueDistributionCalculator> _residueCalculatorMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<ManufactureOrderApplicationService>> _loggerMock;
@@ -32,6 +32,8 @@ public class ManufactureOrderApplicationServiceTests
     public ManufactureOrderApplicationServiceTests()
     {
         _mediatorMock = new Mock<IMediator>();
+        _manufactureClientMock = new Mock<IManufactureClient>();
+        _residueCalculatorMock = new Mock<IResidueDistributionCalculator>();
         _timeProviderMock = new Mock<TimeProvider>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<ManufactureOrderApplicationService>>();
@@ -47,6 +49,8 @@ public class ManufactureOrderApplicationServiceTests
 
         _service = new ManufactureOrderApplicationService(
             _mediatorMock.Object,
+            _manufactureClientMock.Object,
+            _residueCalculatorMock.Object,
             _timeProviderMock.Object,
             _currentUserServiceMock.Object,
             _loggerMock.Object,
@@ -179,29 +183,93 @@ public class ManufactureOrderApplicationServiceTests
     #region ConfirmProductCompletionAsync Tests
 
     [Fact]
-    public async Task ConfirmProductCompletionAsync_SuccessfulFlow_UpdatesStateAndSetsAllErpData()
+    public async Task ConfirmProductCompletionAsync_WithinThreshold_AutoProceeds_SubmitsAndUpdatesBoM()
     {
         // Arrange
         var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m }, { 2, 3.5m } };
         var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
         var submitManufactureResponse = CreateSuccessfulSubmitManufactureResponse("ERP_PRODUCT_456");
-        var discardResponse = CreateSuccessfulDiscardResponse("DISCARD_REF_789");
         var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
+        var distribution = CreateDistributionWithinThreshold();
 
-        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse, discardResponse);
+        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
+        _residueCalculatorMock
+            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(distribution);
 
         // Act
-        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, ValidChangeReason);
+        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, overrideConfirmed: false, ValidChangeReason);
 
         // Assert
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
+        result.RequiresConfirmation.Should().BeFalse();
         result.ErrorMessage.Should().BeNull();
 
         VerifyUpdateProductsCall(productQuantities);
         VerifySubmitManufactureCall(ErpManufactureType.Product);
-        VerifyDiscardResidueCall();
-        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_456", "DISCARD_REF_789", false);
+        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_456", null, false);
+        VerifyBoMUpdateCalledForEachProduct(distribution);
+    }
+
+    [Fact]
+    public async Task ConfirmProductCompletionAsync_OutsideThreshold_NotConfirmed_ReturnsNeedsConfirmation()
+    {
+        // Arrange
+        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m } };
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
+        var distribution = CreateDistributionOutsideThreshold();
+
+        _mediatorMock.Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updateOrderResponse);
+        _residueCalculatorMock
+            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(distribution);
+
+        // Act
+        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, overrideConfirmed: false, ValidChangeReason);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.RequiresConfirmation.Should().BeTrue();
+        result.Distribution.Should().NotBeNull();
+        result.Distribution!.IsWithinAllowedThreshold.Should().BeFalse();
+
+        VerifyNoSubmitManufactureCall();
+        VerifyNoUpdateStatusCall();
+        _manufactureClientMock.Verify(
+            x => x.UpdateBoMIngredientAmountAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task ConfirmProductCompletionAsync_OutsideThreshold_OverrideConfirmed_Proceeds()
+    {
+        // Arrange
+        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m } };
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
+        var submitManufactureResponse = CreateSuccessfulSubmitManufactureResponse("ERP_PRODUCT_789");
+        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
+        var distribution = CreateDistributionOutsideThreshold();
+
+        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
+        _residueCalculatorMock
+            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(distribution);
+
+        // Act
+        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, overrideConfirmed: true, ValidChangeReason);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Success.Should().BeTrue();
+        result.RequiresConfirmation.Should().BeFalse();
+        result.ErrorMessage.Should().BeNull();
+
+        VerifySubmitManufactureCall(ErpManufactureType.Product);
+        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_789", null, false);
+        VerifyBoMUpdateCalledForEachProduct(distribution);
     }
 
     [Fact]
@@ -212,8 +280,12 @@ public class ManufactureOrderApplicationServiceTests
         var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
         var submitManufactureResponse = CreateFailedSubmitManufactureResponse("ERP manufacture failed");
         var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
+        var distribution = CreateDistributionWithinThreshold();
 
         SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
+        _residueCalculatorMock
+            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(distribution);
 
         // Act
         var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, ValidChangeReason);
@@ -225,59 +297,10 @@ public class ManufactureOrderApplicationServiceTests
 
         VerifyUpdateProductsCall(productQuantities);
         VerifySubmitManufactureCall(ErpManufactureType.Product);
-        VerifyNoDiscardResidueCall(); // Discard not called when manufacture fails
         VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, null, null, true);
-    }
-
-    [Fact]
-    public async Task ConfirmProductCompletionAsync_DiscardResidueFailure_StillUpdatesState_SetsManualActionRequired()
-    {
-        // Arrange
-        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m } };
-        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
-        var submitManufactureResponse = CreateSuccessfulSubmitManufactureResponse("ERP_PRODUCT_456");
-        var discardResponse = CreateFailedDiscardResponse("Discard failed");
-        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
-
-        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse, discardResponse);
-
-        // Act
-        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, ValidChangeReason);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeTrue();
-        result.ErrorMessage.Should().BeNull();
-
-        VerifyUpdateProductsCall(productQuantities);
-        VerifySubmitManufactureCall(ErpManufactureType.Product);
-        VerifyDiscardResidueCall();
-        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_456", null, true);
-    }
-
-    [Fact]
-    public async Task ConfirmProductCompletionAsync_BothErpAndDiscardFailure_StillUpdatesState_SetsManualActionRequired()
-    {
-        // Arrange
-        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m } };
-        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
-        var submitManufactureResponse = CreateFailedSubmitManufactureResponse("ERP failed");
-        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
-
-        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
-
-        // Act
-        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, ValidChangeReason);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeTrue();
-        result.ErrorMessage.Should().BeNull();
-
-        VerifyUpdateProductsCall(productQuantities);
-        VerifySubmitManufactureCall(ErpManufactureType.Product);
-        VerifyNoDiscardResidueCall();
-        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, null, null, true);
+        _manufactureClientMock.Verify(
+            x => x.UpdateBoMIngredientAmountAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -300,7 +323,6 @@ public class ManufactureOrderApplicationServiceTests
 
         VerifyUpdateProductsCall(productQuantities);
         VerifyNoSubmitManufactureCall();
-        VerifyNoDiscardResidueCall();
         VerifyNoUpdateStatusCall();
     }
 
@@ -311,10 +333,13 @@ public class ManufactureOrderApplicationServiceTests
         var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m } };
         var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
         var submitManufactureResponse = CreateSuccessfulSubmitManufactureResponse("ERP_PRODUCT_456");
-        var discardResponse = CreateSuccessfulDiscardResponse("DISCARD_REF_789");
         var updateStatusResponse = CreateFailedUpdateStatusResponse("Status update failed");
+        var distribution = CreateDistributionWithinThreshold();
 
-        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse, discardResponse);
+        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
+        _residueCalculatorMock
+            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(distribution);
 
         // Act
         var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, ValidChangeReason);
@@ -326,8 +351,7 @@ public class ManufactureOrderApplicationServiceTests
 
         VerifyUpdateProductsCall(productQuantities);
         VerifySubmitManufactureCall(ErpManufactureType.Product);
-        VerifyDiscardResidueCall();
-        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_456", "DISCARD_REF_789", false);
+        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_456", null, false);
     }
 
     [Fact]
@@ -357,8 +381,7 @@ public class ManufactureOrderApplicationServiceTests
     private void SetupMediatorResponses(
         UpdateManufactureOrderResponse updateOrderResponse,
         SubmitManufactureResponse submitManufactureResponse,
-        UpdateManufactureOrderStatusResponse updateStatusResponse,
-        DiscardResidualSemiProductResponse? discardResponse = null)
+        UpdateManufactureOrderStatusResponse updateStatusResponse)
     {
         _mediatorMock.Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updateOrderResponse);
@@ -368,12 +391,6 @@ public class ManufactureOrderApplicationServiceTests
 
         _mediatorMock.Setup(x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updateStatusResponse);
-
-        if (discardResponse != null)
-        {
-            _mediatorMock.Setup(x => x.Send(It.IsAny<DiscardResidualSemiProductRequest>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(discardResponse);
-        }
     }
 
     private static UpdateManufactureOrderResponse CreateSuccessfulUpdateOrderResponse()
@@ -447,18 +464,52 @@ public class ManufactureOrderApplicationServiceTests
         };
     }
 
-    private static DiscardResidualSemiProductResponse CreateSuccessfulDiscardResponse(string stockMovementReference)
+    private static ResidueDistribution CreateDistributionWithinThreshold()
     {
-        return new DiscardResidualSemiProductResponse
+        return new ResidueDistribution
         {
-            Success = true,
-            StockMovementReference = stockMovementReference
+            IsWithinAllowedThreshold = true,
+            ActualSemiProductQuantity = 100m,
+            TheoreticalConsumption = 99m,
+            Difference = 1m,
+            DifferencePercentage = 1.0,
+            AllowedResiduePercentage = 5.0,
+            Products = new List<ProductConsumptionDistribution>
+            {
+                new ProductConsumptionDistribution
+                {
+                    ProductCode = "P001",
+                    ProductName = "Product 1",
+                    ActualPieces = 5m,
+                    AdjustedGramsPerUnit = 19.8m,
+                    AdjustedConsumption = 99m,
+                }
+            }
         };
     }
 
-    private static DiscardResidualSemiProductResponse CreateFailedDiscardResponse(string errorMessage)
+    private static ResidueDistribution CreateDistributionOutsideThreshold()
     {
-        return new DiscardResidualSemiProductResponse(ErrorCodes.InternalServerError, new Dictionary<string, string> { { "message", errorMessage } });
+        return new ResidueDistribution
+        {
+            IsWithinAllowedThreshold = false,
+            ActualSemiProductQuantity = 100m,
+            TheoreticalConsumption = 80m,
+            Difference = 20m,
+            DifferencePercentage = 25.0,
+            AllowedResiduePercentage = 5.0,
+            Products = new List<ProductConsumptionDistribution>
+            {
+                new ProductConsumptionDistribution
+                {
+                    ProductCode = "P001",
+                    ProductName = "Product 1",
+                    ActualPieces = 5m,
+                    AdjustedGramsPerUnit = 20m,
+                    AdjustedConsumption = 100m,
+                }
+            }
+        };
     }
 
     private void VerifyUpdateOrderCall()
@@ -520,18 +571,18 @@ public class ManufactureOrderApplicationServiceTests
             It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private void VerifyDiscardResidueCall()
+    private void VerifyBoMUpdateCalledForEachProduct(ResidueDistribution distribution)
     {
-        _mediatorMock.Verify(x => x.Send(
-            It.IsAny<DiscardResidualSemiProductRequest>(),
-            It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    private void VerifyNoDiscardResidueCall()
-    {
-        _mediatorMock.Verify(x => x.Send(
-            It.IsAny<DiscardResidualSemiProductRequest>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        foreach (var product in distribution.Products)
+        {
+            _manufactureClientMock.Verify(
+                x => x.UpdateBoMIngredientAmountAsync(
+                    product.ProductCode,
+                    It.IsAny<string>(),
+                    (double)product.AdjustedGramsPerUnit,
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
     }
 
     private void VerifyErrorLogged()
