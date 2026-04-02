@@ -1,4 +1,5 @@
 using Anela.Heblo.Xcc.Domain;
+using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 
 namespace Anela.Heblo.Xcc.Services.Dashboard;
@@ -7,14 +8,17 @@ public class DashboardService : IDashboardService
 {
     private readonly ITileRegistry _tileRegistry;
     private readonly IUserDashboardSettingsRepository _settingsRepository;
+    private readonly DashboardOptions _dashboardOptions;
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _userLocks = new();
 
     public DashboardService(
         ITileRegistry tileRegistry,
-        IUserDashboardSettingsRepository settingsRepository)
+        IUserDashboardSettingsRepository settingsRepository,
+        IOptions<DashboardOptions> dashboardOptions)
     {
         _tileRegistry = tileRegistry;
         _settingsRepository = settingsRepository;
+        _dashboardOptions = dashboardOptions.Value;
     }
 
     private static SemaphoreSlim GetUserLock(string userId)
@@ -122,59 +126,63 @@ public class DashboardService : IDashboardService
             .OrderBy(t => t.DisplayOrder)
             .ToList();
 
-        var result = new List<TileData>();
+        var results = new ConcurrentBag<(int Index, TileData Data)>();
 
-        foreach (var tileSettings in visibleTiles)
-        {
-            try
+        await Parallel.ForEachAsync(
+            visibleTiles.Select((tile, index) => (tile, index)),
+            new ParallelOptions { MaxDegreeOfParallelism = _dashboardOptions.MaxConcurrentTileLoads },
+            async (item, ct) =>
             {
-                var tile = _tileRegistry.GetTile(tileSettings.TileId);
-                if (tile == null)
+                var (tileSettings, index) = item;
+
+                try
                 {
-                    result.Add(new TileData
+                    var tile = _tileRegistry.GetTile(tileSettings.TileId);
+                    if (tile == null)
+                    {
+                        results.Add((index, new TileData
+                        {
+                            TileId = tileSettings.TileId,
+                            Title = "Error",
+                            Description = $"Tile '{tileSettings.TileId}' not found",
+                            Size = TileSize.Small,
+                            Category = TileCategory.Error,
+                            Data = new { Error = $"Tile '{tileSettings.TileId}' not found" }
+                        }));
+                        return;
+                    }
+
+                    // Load data using registry method that manages scope properly
+                    var data = await _tileRegistry.GetTileDataAsync(tileSettings.TileId, tileParameters);
+
+                    results.Add((index, new TileData
+                    {
+                        TileId = tile.GetTileId(),
+                        Title = tile.Title,
+                        Description = tile.Description,
+                        Size = tile.Size,
+                        Category = tile.Category,
+                        DefaultEnabled = tile.DefaultEnabled,
+                        AutoShow = tile.AutoShow,
+                        ComponentType = tile.ComponentType,
+                        RequiredPermissions = tile.RequiredPermissions,
+                        Data = data
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    results.Add((index, new TileData
                     {
                         TileId = tileSettings.TileId,
                         Title = "Error",
-                        Description = $"Tile '{tileSettings.TileId}' not found",
+                        Description = $"Failed to load tile: {ex.Message}",
                         Size = TileSize.Small,
                         Category = TileCategory.Error,
-                        Data = new { Error = $"Tile '{tileSettings.TileId}' not found" }
-                    });
-                    continue;
+                        Data = new { Error = ex.Message }
+                    }));
                 }
+            });
 
-                // Load data using registry method that manages scope properly
-                var data = await _tileRegistry.GetTileDataAsync(tileSettings.TileId, tileParameters);
-
-                result.Add(new TileData
-                {
-                    TileId = tile.GetTileId(),
-                    Title = tile.Title,
-                    Description = tile.Description,
-                    Size = tile.Size,
-                    Category = tile.Category,
-                    DefaultEnabled = tile.DefaultEnabled,
-                    AutoShow = tile.AutoShow,
-                    ComponentType = tile.ComponentType,
-                    RequiredPermissions = tile.RequiredPermissions,
-                    Data = data
-                });
-            }
-            catch (Exception ex)
-            {
-                // Log error but continue with other tiles
-                result.Add(new TileData
-                {
-                    TileId = tileSettings.TileId,
-                    Title = "Error",
-                    Description = $"Failed to load tile: {ex.Message}",
-                    Size = TileSize.Small,
-                    Category = TileCategory.Error,
-                    Data = new { Error = ex.Message }
-                });
-            }
-        }
-
-        return result;
+        return results.OrderBy(r => r.Index).Select(r => r.Data);
     }
 }
