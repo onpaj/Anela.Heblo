@@ -1,11 +1,13 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using Anela.Heblo.Adapters.ShoptetApi.Expedition.Model;
 using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
-using Anela.Heblo.Domain.Features.ShoptetOrders;
+using Anela.Heblo.Application.Features.ShoptetOrders;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 
-public class ShoptetOrderClient : IShoptetOrderClient
+public class ShoptetOrderClient : IEshopOrderClient
 {
     private readonly HttpClient _http;
 
@@ -19,19 +21,30 @@ public class ShoptetOrderClient : IShoptetOrderClient
         _http = http;
     }
 
-    /// <summary>
-    /// List all orders whose externalCode starts with the given prefix.
-    /// Because externalCode is not returned by the list endpoint, this method fetches
-    /// the single-order detail for each candidate. Pass emailFilter to narrow candidates
-    /// before issuing detail requests (the list endpoint does include email).
-    /// Paginates automatically (API max is 50 items per page).
-    /// </summary>
-    public async Task<List<OrderSummary>> ListByExternalCodePrefixAsync(
+    public async Task<List<EshopOrderSummary>> GetRecentOrdersAsync(int count = 20, CancellationToken ct = default)
+    {
+        var itemsPerPage = Math.Min(count, 50);
+        var response = await _http.GetAsync($"/api/orders?page=1&itemsPerPage={itemsPerPage}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var data = await response.Content.ReadFromJsonAsync<OrderListResponse>(JsonOptions, ct);
+        return (data?.Data.Orders ?? [])
+            .Take(count)
+            .Select(o => new EshopOrderSummary
+            {
+                Code = o.Code,
+                Email = o.Email,
+                StatusId = o.Status.Id,
+            })
+            .ToList();
+    }
+
+    public async Task<List<EshopOrderSummary>> ListByExternalCodePrefixAsync(
         string prefix,
         string? emailFilter = null,
         CancellationToken ct = default)
     {
-        var result = new List<OrderSummary>();
+        var result = new List<EshopOrderSummary>();
         var page = 1;
 
         while (true)
@@ -50,9 +63,9 @@ public class ShoptetOrderClient : IShoptetOrderClient
 
             foreach (var summary in candidates)
             {
-                var detail = await GetOrderDetailAsync(summary.Code, ct);
+                var detail = await GetOrderDetailInternalAsync(summary.Code, ct);
                 if (detail.ExternalCode?.StartsWith(prefix, StringComparison.Ordinal) == true)
-                    result.Add(detail);
+                    result.Add(MapToSummary(detail));
             }
 
             if (page >= data.Data.Paginator.PageCount)
@@ -64,35 +77,41 @@ public class ShoptetOrderClient : IShoptetOrderClient
         return result;
     }
 
-    /// <summary>
-    /// Get a single order by its Shoptet order code. Returns the full order summary
-    /// including externalCode, which is not available in the list endpoint.
-    /// </summary>
-    public async Task<OrderSummary> GetOrderDetailAsync(string code, CancellationToken ct = default)
-    {
-        var response = await _http.GetAsync($"/api/orders/{code}", ct);
-        response.EnsureSuccessStatusCode();
-
-        var data = await response.Content.ReadFromJsonAsync<CreateOrderResponse>(JsonOptions, ct);
-        return data!.Data.Order;
-    }
-
-    /// <summary>
-    /// Get the current status ID for an order.
-    /// </summary>
     public async Task<int> GetOrderStatusIdAsync(string orderCode, CancellationToken ct = default)
     {
-        var detail = await GetOrderDetailAsync(orderCode, ct);
+        var detail = await GetOrderDetailInternalAsync(orderCode, ct);
         return detail.Status.Id;
     }
 
-    /// <summary>
-    /// Create a new order. Returns the created order code.
-    /// </summary>
-    public async Task<string> CreateOrderAsync(CreateOrderRequest request, CancellationToken ct = default)
+    public async Task<string> CreateOrderAsync(CreateEshopOrderRequest request, CancellationToken ct = default)
     {
-        // Shoptet REST API requires the body wrapped in {"data": {...}}
-        var envelope = new { data = request };
+        var body = new ShoptetCreateOrderBody
+        {
+            Email = request.Email,
+            Phone = request.Phone,
+            ExternalCode = request.ExternalCode,
+            ShippingGuid = request.ShippingGuid,
+            PaymentMethodGuid = request.PaymentMethodGuid,
+            Currency = new ShoptetCurrency { Code = request.CurrencyCode },
+            BillingAddress = new ShoptetAddress
+            {
+                FullName = request.BillingAddress.FullName,
+                Street = request.BillingAddress.Street,
+                City = request.BillingAddress.City,
+                Zip = request.BillingAddress.Zip,
+            },
+            Items = request.Items.Select(i => new ShoptetOrderItem
+            {
+                ItemType = i.ItemType,
+                Code = i.Code,
+                Name = i.Name,
+                VatRate = i.VatRate,
+                ItemPriceWithVat = i.ItemPriceWithVat,
+                Amount = i.Amount,
+            }).ToList(),
+        };
+
+        var envelope = new { data = body };
         var response = await _http.PostAsJsonAsync("/api/orders", envelope, JsonOptions, ct);
         response.EnsureSuccessStatusCode();
 
@@ -100,9 +119,6 @@ public class ShoptetOrderClient : IShoptetOrderClient
         return result!.Data.Order.Code;
     }
 
-    /// <summary>
-    /// Update the status of an existing order.
-    /// </summary>
     public async Task UpdateStatusAsync(string orderCode, int statusId, CancellationToken ct = default)
     {
         var body = new UpdateStatusRequest
@@ -119,10 +135,6 @@ public class ShoptetOrderClient : IShoptetOrderClient
         }
     }
 
-    /// <summary>
-    /// Add a system remark to the order history (visible in admin under the History tab).
-    /// Uses POST /api/orders/{code}/history with type "system".
-    /// </summary>
     public async Task SetInternalNoteAsync(string orderCode, string note, CancellationToken ct = default)
     {
         var body = new CreateOrderRemarkRequest
@@ -139,12 +151,123 @@ public class ShoptetOrderClient : IShoptetOrderClient
         }
     }
 
-    /// <summary>
-    /// Delete an order by its code.
-    /// </summary>
     public async Task DeleteOrderAsync(string orderCode, CancellationToken ct = default)
     {
         var response = await _http.DeleteAsync($"/api/orders/{orderCode}", ct);
         response.EnsureSuccessStatusCode();
     }
+
+    // ── Expedition methods ────────────────────────────────────────────────────
+
+    public async Task<OrderListResponse> GetOrdersByStatusAsync(int statusId, int page, CancellationToken ct = default)
+    {
+        var response = await _http.GetAsync($"/api/orders?statusId={statusId}&page={page}&itemsPerPage=50", ct);
+        response.EnsureSuccessStatusCode();
+
+        var data = await response.Content.ReadFromJsonAsync<OrderListResponse>(JsonOptions, ct);
+        return data ?? new OrderListResponse();
+    }
+
+    public async Task<ExpeditionOrderDetail> GetExpeditionOrderDetailAsync(string code, CancellationToken ct = default)
+    {
+        var response = await _http.GetAsync($"/api/orders/{code}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var data = await response.Content.ReadFromJsonAsync<ExpeditionOrderDetailResponse>(JsonOptions, ct);
+        return data!.Data.Order;
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private async Task<OrderSummary> GetOrderDetailInternalAsync(string code, CancellationToken ct)
+    {
+        var response = await _http.GetAsync($"/api/orders/{code}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var data = await response.Content.ReadFromJsonAsync<CreateOrderResponse>(JsonOptions, ct);
+        return data!.Data.Order;
+    }
+
+    private static EshopOrderSummary MapToSummary(OrderSummary order) =>
+        new()
+        {
+            Code = order.Code,
+            ExternalCode = order.ExternalCode,
+            Email = order.Email,
+            StatusId = order.Status.Id,
+        };
+}
+
+/// <summary>
+/// Internal HTTP body type for POST /api/orders.
+/// JSON attributes match the Shoptet REST API contract.
+/// </summary>
+file class ShoptetCreateOrderBody
+{
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = null!;
+
+    [JsonPropertyName("phone")]
+    public string Phone { get; set; } = null!;
+
+    [JsonPropertyName("externalCode")]
+    public string ExternalCode { get; set; } = null!;
+
+    [JsonPropertyName("shippingGuid")]
+    public string ShippingGuid { get; set; } = null!;
+
+    [JsonPropertyName("paymentMethodGuid")]
+    public string PaymentMethodGuid { get; set; } = null!;
+
+    [JsonPropertyName("currency")]
+    public ShoptetCurrency Currency { get; set; } = new();
+
+    [JsonPropertyName("billingAddress")]
+    public ShoptetAddress BillingAddress { get; set; } = new();
+
+    [JsonPropertyName("items")]
+    public List<ShoptetOrderItem> Items { get; set; } = new();
+}
+
+file class ShoptetCurrency
+{
+    [JsonPropertyName("code")]
+    public string Code { get; set; } = "CZK";
+}
+
+file class ShoptetAddress
+{
+    [JsonPropertyName("fullName")]
+    public string FullName { get; set; } = null!;
+
+    [JsonPropertyName("street")]
+    public string Street { get; set; } = null!;
+
+    [JsonPropertyName("city")]
+    public string City { get; set; } = null!;
+
+    [JsonPropertyName("zip")]
+    public string Zip { get; set; } = null!;
+}
+
+file class ShoptetOrderItem
+{
+    [JsonPropertyName("itemType")]
+    public string ItemType { get; set; } = null!;
+
+    [JsonPropertyName("code")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Code { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = null!;
+
+    [JsonPropertyName("vatRate")]
+    public string VatRate { get; set; } = null!;
+
+    [JsonPropertyName("itemPriceWithVat")]
+    public string ItemPriceWithVat { get; set; } = null!;
+
+    [JsonPropertyName("amount")]
+    public string Amount { get; set; } = null!;
 }

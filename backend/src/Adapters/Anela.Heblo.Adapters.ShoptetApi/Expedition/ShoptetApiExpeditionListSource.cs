@@ -1,4 +1,7 @@
 using System.Globalization;
+using Anela.Heblo.Adapters.ShoptetApi.Orders;
+using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
+using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 
@@ -6,36 +9,43 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 
 public class ShoptetApiExpeditionListSource : IPickingListSource
 {
-    private readonly ShoptetApiExpeditionClient _client;
+    // ShoptetOrderClient is the only implementation of IEshopOrderClient — safe to cast
+    // within this adapter assembly to access expedition-specific methods not on the interface.
+    private readonly ShoptetOrderClient _client;
 
+    // GUIDs discovered via: GET /api/eshop?include=shippingMethods (match by method name)
+    // Known production GUIDs are from docs/integrations/shoptet-api.md.
+    // Methods with an empty Guid are skipped until their GUID is discovered.
     private static readonly IReadOnlyList<ShippingMethod> ShippingList = new List<ShippingMethod>
     {
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY", Id = 21 },
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT", Id = 15 },
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_SK", Id = 385 },
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_CHLAZENY", Id = 370 },
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT_CHLAZENY", Id = 373 },
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_SK_CHLAZENY", Id = 388 },
-        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT_ZDARMA", Id = 487 },
+        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY",              Id = 21,  Guid = "f6610d4d-578d-11e9-beb1-002590dad85e" },
+        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT",               Id = 15  },
+        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_SK",           Id = 385 },
+        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_CHLAZENY",     Id = 370 },
+        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT_CHLAZENY",      Id = 373 },
+        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_DO_RUKY_SK_CHLAZENY",  Id = 388 },
+        new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT_ZDARMA",        Id = 487 },
         new() { Carrier = Carriers.Zasilkovna, Name = "ZASILKOVNA_ZPOINT_CHLAZENY_ZDARMA", Id = 481 },
-        new() { Carrier = Carriers.PPL, Name = "PPL_DO_RUKY", Id = 6 },
-        new() { Carrier = Carriers.PPL, Name = "PPL_PARCELSHOP", Id = 80 },
-        new() { Carrier = Carriers.PPL, Name = "PPL_EXPORT", Id = 86 },
-        new() { Carrier = Carriers.PPL, Name = "PPL_DO_RUKY_CHLAZENY", Id = 358 },
-        new() { Carrier = Carriers.PPL, Name = "PPL_PARCELSHOP_CHLAZENY", Id = 361 },
-        new() { Carrier = Carriers.PPL, Name = "PPL_EXPORT_CHLAZENY", Id = 379 },
-        new() { Carrier = Carriers.GLS, Name = "GLS_DO_RUKY", Id = 97 },
-        new() { Carrier = Carriers.GLS, Name = "GLS_EXPORT", Id = 109 },
-        new() { Carrier = Carriers.GLS, Name = "GLS_PARCELSHOP", Id = 489 },
-        new() { Carrier = Carriers.Osobak, Name = "OSOBAK", Id = 4, PageSize = 1 },
+        new() { Carrier = Carriers.PPL,        Name = "PPL_DO_RUKY",                     Id = 6,   Guid = "2ec88ea7-3fb0-11e2-a723-705ab6a2ba75" },
+        new() { Carrier = Carriers.PPL,        Name = "PPL_PARCELSHOP",                  Id = 80  },
+        new() { Carrier = Carriers.PPL,        Name = "PPL_EXPORT",                      Id = 86  },
+        new() { Carrier = Carriers.PPL,        Name = "PPL_DO_RUKY_CHLAZENY",            Id = 358 },
+        new() { Carrier = Carriers.PPL,        Name = "PPL_PARCELSHOP_CHLAZENY",         Id = 361 },
+        new() { Carrier = Carriers.PPL,        Name = "PPL_EXPORT_CHLAZENY",             Id = 379 },
+        new() { Carrier = Carriers.GLS,        Name = "GLS_DO_RUKY",                     Id = 97  },
+        new() { Carrier = Carriers.GLS,        Name = "GLS_EXPORT",                      Id = 109 },
+        new() { Carrier = Carriers.GLS,        Name = "GLS_PARCELSHOP",                  Id = 489 },
+        new() { Carrier = Carriers.Osobak,     Name = "OSOBAK",                          Id = 4,  PageSize = 1 },
     };
 
-    private static readonly Dictionary<int, ShippingMethod> ShippingById =
-        ShippingList.ToDictionary(s => s.Id, s => s);
+    private static readonly Dictionary<string, ShippingMethod> ShippingByGuid =
+        ShippingList
+            .Where(s => !string.IsNullOrEmpty(s.Guid))
+            .ToDictionary(s => s.Guid, s => s);
 
-    public ShoptetApiExpeditionListSource(ShoptetApiExpeditionClient client)
+    public ShoptetApiExpeditionListSource(IEshopOrderClient client)
     {
-        _client = client;
+        _client = (ShoptetOrderClient)client;
     }
 
     public async Task<PrintPickingListResult> CreatePickingList(
@@ -51,22 +61,22 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             ? new HashSet<Carriers>(request.Carriers)
             : null;
 
-        var ordersByCarrier = new Dictionary<Carriers, List<(string Code, int ShippingId)>>();
+        var ordersByCarrier = new Dictionary<Carriers, List<(string Code, string ShippingGuid)>>();
         foreach (var order in allOrders)
         {
-            var shippingId = order.Shipping?.Id ?? 0;
-            if (!ShippingById.TryGetValue(shippingId, out var method))
+            var shippingGuid = order.Shipping?.Guid;
+            if (string.IsNullOrEmpty(shippingGuid) || !ShippingByGuid.TryGetValue(shippingGuid, out var method))
                 continue;
             if (carrierFilter != null && !carrierFilter.Contains(method.Carrier))
                 continue;
 
             if (!ordersByCarrier.TryGetValue(method.Carrier, out var list))
             {
-                list = new List<(string, int)>();
+                list = new List<(string, string)>();
                 ordersByCarrier[method.Carrier] = list;
             }
 
-            list.Add((order.Code, shippingId));
+            list.Add((order.Code, shippingGuid));
         }
 
         var exportedFiles = new List<string>();
@@ -75,11 +85,11 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
 
         foreach (var (carrier, orders) in ordersByCarrier)
         {
-            // Sort by shippingId so same method types are together
-            var sorted = orders.OrderBy(o => o.ShippingId).ToList();
+            // Sort by shippingGuid so same method types are together
+            var sorted = orders.OrderBy(o => o.ShippingGuid).ToList();
 
             // Determine page size from the first shipping method encountered for this carrier
-            var pageSize = ShippingById.TryGetValue(sorted[0].ShippingId, out var sm) ? sm.PageSize : 8;
+            var pageSize = ShippingByGuid.TryGetValue(sorted[0].ShippingGuid, out var sm) ? sm.PageSize : 8;
             var carrierDisplayName = carrier.ToString();
 
             // 3. Batch
@@ -96,7 +106,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                 var expeditionOrders = new List<ExpeditionOrder>();
                 foreach (var (code, _) in batch)
                 {
-                    var detail = await _client.GetOrderDetailAsync(code, cancellationToken);
+                    var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
                     expeditionOrders.Add(MapToExpeditionOrder(detail));
                     processedCodes.Add(code);
                 }
@@ -110,7 +120,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
 
                 var pdfBytes = ExpeditionProtocolDocument.Generate(data);
 
-                // 4d. Write to temp path
+                // 4d. Write to temp; delivery is the caller's responsibility via onBatchFilesReady
                 var fileName = $"{timestamp}_{carrier}_{batchIndex}.pdf";
                 var filePath = Path.Combine(Path.GetTempPath(), fileName);
                 await File.WriteAllBytesAsync(filePath, pdfBytes, cancellationToken);
@@ -128,7 +138,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         if (request.ChangeOrderState)
         {
             foreach (var code in processedCodes)
-                await _client.UpdateOrderStatusAsync(code, request.DesiredStateId, cancellationToken);
+                await _client.UpdateStatusAsync(code, request.DesiredStateId, cancellationToken);
         }
 
         return new PrintPickingListResult
@@ -138,9 +148,9 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         };
     }
 
-    private async Task<List<Model.ExpeditionOrderSummary>> FetchAllOrdersAsync(int statusId, CancellationToken ct)
+    private async Task<List<OrderSummary>> FetchAllOrdersAsync(int statusId, CancellationToken ct)
     {
-        var all = new List<Model.ExpeditionOrderSummary>();
+        var all = new List<OrderSummary>();
         var page = 1;
         while (true)
         {
@@ -177,6 +187,8 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                     WarehousePosition = i.WarehousePosition ?? string.Empty,
                     Quantity = int.TryParse(i.Amount, out var qty) ? qty : 0,
                     StockCount = i.StockStatus?.StockCount ?? 0,
+                    StockDemand = i.StockStatus?.AllDemand ?? 0,
+                    Unit = i.Unit ?? string.Empty,
                     UnitPrice = decimal.TryParse(i.ItemPriceWithVat, NumberStyles.Any, CultureInfo.InvariantCulture, out var price) ? price : 0m,
                 })
                 .ToList(),

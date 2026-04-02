@@ -156,7 +156,7 @@ Defined in `PrintPickingListOptions` and `ShoptetPlaywrightExpeditionListSource`
 
 ### 3.5 GET /api/orders — Filtering Parameters
 
-- `status` — filter by status id
+- `statusId` — filter by status id; **use `statusId=` (not `status=`)** — the correct parameter name supports both positive custom IDs and negative system IDs (e.g. `?statusId=-2` for "Vyřizuje se" works correctly; `?status=-2` returns 400)
 - `transport` — filter by shipping method
 - `payment` — filter by payment method
 - Date range filters

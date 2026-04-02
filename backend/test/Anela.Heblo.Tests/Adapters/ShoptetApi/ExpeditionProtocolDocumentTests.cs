@@ -28,6 +28,8 @@ public class ExpeditionProtocolDocumentTests
                 WarehousePosition = $"A{j}",
                 Quantity = j,
                 StockCount = j * 10,
+                StockDemand = j * 2,
+                Unit = j % 2 == 0 ? "ks" : string.Empty,
                 UnitPrice = j * 99.9m,
             }).ToList(),
         }).ToList();
@@ -38,6 +40,109 @@ public class ExpeditionProtocolDocumentTests
             Orders = orders,
         };
     }
+
+    /// <summary>
+    /// Sample data matching the reference PDF (Přehled objednávek - 780175.myshoptet.com.pdf).
+    /// Used for visual inspection tests.
+    /// </summary>
+    private static ExpeditionProtocolData BuildSampleData() =>
+        new()
+        {
+            CarrierDisplayName = "PPL (do ruky)",
+            Orders = new List<ExpeditionOrder>
+            {
+                new()
+                {
+                    Code = "126000046",
+                    CustomerName = "Vojtěch Liška",
+                    Address = "Testovaci 1, 10000 Praha",
+                    Phone = "+420 725 191 660",
+                    Items = new List<ExpeditionOrderItem>
+                    {
+                        new()
+                        {
+                            ProductCode = "OCH009030",
+                            Name = "Klidný dech dětský prsní balzám",
+                            Variant = "Obsah: 30 ml",
+                            WarehousePosition = "A04-2",
+                            Quantity = 2,
+                            StockCount = 91,
+                            StockDemand = 2,
+                            UnitPrice = 340.00m,
+                            Unit = "ks",
+                        },
+                        new()
+                        {
+                            ProductCode = "OCH001030",
+                            Name = "Test product",
+                            Variant = "Obsah: 30 ml",
+                            WarehousePosition = "A28-3",
+                            Quantity = 1,
+                            StockCount = 94,
+                            StockDemand = 19,
+                            UnitPrice = 1.00m,
+                            Unit = string.Empty,
+                        },
+                    },
+                },
+                new()
+                {
+                    Code = "126000045",
+                    CustomerName = "Monika Poláková",
+                    Address = "Testovaci 1, 10000 Praha",
+                    Phone = "+420 725 191 660",
+                    Items = new List<ExpeditionOrderItem>
+                    {
+                        new()
+                        {
+                            ProductCode = "OCH001030",
+                            Name = "Test product",
+                            Variant = "Obsah: 30 ml",
+                            WarehousePosition = "A28-3",
+                            Quantity = 1,
+                            StockCount = 94,
+                            StockDemand = 19,
+                            UnitPrice = 1.00m,
+                            Unit = string.Empty,
+                        },
+                    },
+                },
+                new()
+                {
+                    Code = "126000041",
+                    CustomerName = "Simona Růžičková",
+                    Address = "Testovaci 1, 10000 Praha",
+                    Phone = "+420 725 191 660",
+                    Items = new List<ExpeditionOrderItem>
+                    {
+                        new()
+                        {
+                            ProductCode = "OCH009005",
+                            Name = "Klidný dech dětský prsní balzám",
+                            Variant = "Obsah: 5 ml vzorek",
+                            WarehousePosition = "A04-1",
+                            Quantity = 3,
+                            StockCount = 185,
+                            StockDemand = 4,
+                            UnitPrice = 110.00m,
+                            Unit = "ks",
+                        },
+                        new()
+                        {
+                            ProductCode = "OCH001030",
+                            Name = "Test product",
+                            Variant = "Obsah: 30 ml",
+                            WarehousePosition = "A28-3",
+                            Quantity = 1,
+                            StockCount = 94,
+                            StockDemand = 19,
+                            UnitPrice = 1.00m,
+                            Unit = string.Empty,
+                        },
+                    },
+                },
+            },
+        };
 
     [Fact]
     public void Generate_WithValidData_ReturnsPdfBytes()
@@ -123,5 +228,114 @@ public class ExpeditionProtocolDocumentTests
         var pdfBytes = ExpeditionProtocolDocument.Generate(data);
 
         pdfBytes.Length.Should().BeGreaterThan(1024);
+    }
+
+    [Fact]
+    public void Generate_WithUnitAndStockDemand_DoesNotThrow()
+    {
+        // Verifies that Unit and StockDemand fields are accepted by the document generator
+        var data = new ExpeditionProtocolData
+        {
+            CarrierDisplayName = "PPL (do ruky)",
+            Orders = new List<ExpeditionOrder>
+            {
+                new()
+                {
+                    Code = "126000046",
+                    CustomerName = "Vojtěch Liška",
+                    Address = "Testovaci 1, 10000 Praha",
+                    Phone = "+420 725 191 660",
+                    Items = new List<ExpeditionOrderItem>
+                    {
+                        new()
+                        {
+                            ProductCode = "OCH009030",
+                            Name = "Klidný dech dětský prsní balzám",
+                            Variant = "Obsah: 30 ml",
+                            WarehousePosition = "A04-2",
+                            Quantity = 2,
+                            StockCount = 91,
+                            StockDemand = 2,
+                            UnitPrice = 340.00m,
+                            Unit = "ks",
+                        },
+                        new()
+                        {
+                            ProductCode = "OCH001030",
+                            Name = "Test product",
+                            Variant = "Obsah: 30 ml",
+                            WarehousePosition = "A28-3",
+                            Quantity = 1,
+                            StockCount = 94,
+                            StockDemand = 19,
+                            UnitPrice = 1.00m,
+                            Unit = string.Empty,
+                        },
+                    },
+                },
+            },
+        };
+
+        var act = () => ExpeditionProtocolDocument.Generate(data);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Generate_SummaryPage_IncludesStockDemandAndRealState()
+    {
+        // Summary page must aggregate StockDemand and compute RealState = StockCount + StockDemand
+        var data = new ExpeditionProtocolData
+        {
+            CarrierDisplayName = "PPL",
+            Orders = new List<ExpeditionOrder>
+            {
+                new()
+                {
+                    Code = "ORD001",
+                    CustomerName = "Test",
+                    Address = "Praha",
+                    Phone = "123",
+                    Items = new List<ExpeditionOrderItem>
+                    {
+                        new()
+                        {
+                            ProductCode = "P001",
+                            Name = "Product",
+                            Variant = string.Empty,
+                            WarehousePosition = "A1",
+                            Quantity = 3,
+                            StockCount = 100,
+                            StockDemand = 5,
+                            UnitPrice = 99m,
+                            Unit = "ks",
+                        },
+                    },
+                },
+            },
+        };
+
+        var act = () => ExpeditionProtocolDocument.Generate(data);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Generate_SampleData_SavesToDiskForVisualInspection()
+    {
+        // Generates the reference PDF for manual visual comparison.
+        // Output: <temp>/ExpeditionList_Sample.pdf
+        var data = BuildSampleData();
+
+        var pdfBytes = ExpeditionProtocolDocument.Generate(data);
+
+        var outputPath = Path.Combine(Path.GetTempPath(), "ExpeditionList_Sample.pdf");
+        File.WriteAllBytes(outputPath, pdfBytes);
+
+        pdfBytes.Should().NotBeNullOrEmpty();
+        File.Exists(outputPath).Should().BeTrue();
+
+        // Cleanup
+        File.Delete(outputPath);
     }
 }

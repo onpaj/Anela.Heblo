@@ -67,6 +67,9 @@ public class ExpeditionOrderItemDto
     [JsonPropertyName("amount")]
     public string? Amount { get; set; }
 
+    [JsonPropertyName("unit")]
+    public string? Unit { get; set; }
+
     [JsonPropertyName("itemPriceWithVat")]
     public string? ItemPriceWithVat { get; set; }
 
@@ -78,4 +81,7 @@ public class ExpeditionStockStatus
 {
     [JsonPropertyName("stockCount")]
     public int StockCount { get; set; }
+
+    [JsonPropertyName("allDemand")]
+    public int AllDemand { get; set; }
 }

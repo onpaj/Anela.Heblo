@@ -1,5 +1,8 @@
+using System.Reflection;
 using Anela.Heblo.Adapters.ShoptetApi;
 using Anela.Heblo.API.Extensions;
+using Anela.Heblo.Application.Features.ExpeditionList;
+using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -25,9 +28,14 @@ public class ShoptetIntegrationTestFixture
         services.AddLogging(builder => builder.AddConsole());
 
         services.AddShoptetApiAdapter(Configuration);
-        services.AddShoptetApiAdapter(Configuration);
         services.AddCrossCuttingServices();
         services.AddHttpClient();
+
+        services.Configure<PrintPickingListOptions>(opts =>
+        {
+            opts.PrintQueueFolder = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "test_prints");
+        });
+        services.AddScoped<IPrintQueueSink, FileSystemPrintQueueSink>();
 
         ServiceProvider = services.BuildServiceProvider();
     }

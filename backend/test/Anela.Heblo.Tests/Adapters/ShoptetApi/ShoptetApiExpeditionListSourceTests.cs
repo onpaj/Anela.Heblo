@@ -3,9 +3,12 @@ using System.Text;
 using System.Text.Json;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition.Model;
+using Anela.Heblo.Adapters.ShoptetApi.Orders;
+using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 using FluentAssertions;
+using QuestPDF.Infrastructure;
 
 namespace Anela.Heblo.Tests.Adapters.ShoptetApi;
 
@@ -15,18 +18,23 @@ namespace Anela.Heblo.Tests.Adapters.ShoptetApi;
 /// </summary>
 public class ShoptetApiExpeditionListSourceTests
 {
+    static ShoptetApiExpeditionListSourceTests()
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Builds a <see cref="ShoptetApiExpeditionClient"/> backed by a handler that
+    /// Builds a <see cref="ShoptetOrderClient"/> backed by a handler that
     /// routes requests based on URL patterns.
     /// </summary>
-    private static ShoptetApiExpeditionClient BuildClient(
+    private static ShoptetOrderClient BuildClient(
         Func<HttpRequestMessage, HttpResponseMessage> handler)
     {
         var msgHandler = new FakeDelegatingHandler(handler);
         var http = new HttpClient(msgHandler) { BaseAddress = new Uri("https://fake.shoptet.cz") };
-        return new ShoptetApiExpeditionClient(http);
+        return new ShoptetOrderClient(http);
     }
 
     private static HttpResponseMessage Json(object obj, HttpStatusCode status = HttpStatusCode.OK)
@@ -38,26 +46,30 @@ public class ShoptetApiExpeditionListSourceTests
         };
     }
 
+    // Known production GUIDs — must match ShiptetApiExpeditionListSource.ShippingList
+    private const string ZasilkovnaDoRukyGuid = "f6610d4d-578d-11e9-beb1-002590dad85e";
+    private const string PplDoRukyGuid = "2ec88ea7-3fb0-11e2-a723-705ab6a2ba75";
+
     /// <summary>
     /// Creates a single-page list response with the given orders.
     /// </summary>
-    private static ExpeditionOrderListResponse SinglePageList(params (string code, int shippingId)[] orders)
+    private static OrderListResponse SinglePageList(params (string code, string shippingGuid)[] orders)
     {
-        return new ExpeditionOrderListResponse
+        return new OrderListResponse
         {
-            Data = new ExpeditionOrderListData
+            Data = new OrderListData
             {
-                Paginator = new ExpeditionPaginator { PageCount = 1 },
-                Orders = orders.Select(o => new ExpeditionOrderSummary
+                Paginator = new Paginator { PageCount = 1 },
+                Orders = orders.Select(o => new OrderSummary
                 {
                     Code = o.code,
-                    Shipping = new ExpeditionShippingSummary { Id = o.shippingId },
+                    Shipping = new OrderShippingSummary { Guid = o.shippingGuid },
                 }).ToList(),
             },
         };
     }
 
-    private static ExpeditionOrderDetailResponse DetailFor(string code, int shippingId = 21)
+    private static ExpeditionOrderDetailResponse DetailFor(string code)
     {
         return new ExpeditionOrderDetailResponse
         {
@@ -84,6 +96,9 @@ public class ShoptetApiExpeditionListSourceTests
         };
     }
 
+    private static ShoptetApiExpeditionListSource BuildSource(ShoptetOrderClient client) =>
+        new(client);
+
     private static PrintPickingListRequest DefaultRequest(bool changeState = false) =>
         new()
         {
@@ -98,8 +113,8 @@ public class ShoptetApiExpeditionListSourceTests
     [Fact]
     public async Task CreatePickingList_GroupsByCarrier_OnlyZasilkovnaReturned_WhenFilterSet()
     {
-        // Arrange — list has one Zasilkovna (id=21) and one PPL (id=6)
-        var listResp = SinglePageList(("Z001", 21), ("P001", 6));
+        // Arrange — list has one Zasilkovna and one PPL order (identified by shipping GUID)
+        var listResp = SinglePageList(("Z001", ZasilkovnaDoRukyGuid), ("P001", PplDoRukyGuid));
 
         var detailCallLog = new List<string>();
         var client = BuildClient(req =>
@@ -113,7 +128,7 @@ public class ShoptetApiExpeditionListSourceTests
             return Json(DetailFor(code));
         });
 
-        var source = new ShoptetApiExpeditionListSource(client);
+        var source = BuildSource(client);
         var request = new PrintPickingListRequest
         {
             SourceStateId = 5,
@@ -135,7 +150,7 @@ public class ShoptetApiExpeditionListSourceTests
     {
         // Arrange — 9 Zasilkovna orders → expect 2 batches (8 + 1)
         var codes = Enumerable.Range(1, 9).Select(i => $"Z{i:D3}").ToArray();
-        var listResp = SinglePageList(codes.Select(c => (c, 21)).ToArray());
+        var listResp = SinglePageList(codes.Select(c => (c, ZasilkovnaDoRukyGuid)).ToArray());
 
         var batchFilesReceived = new List<IList<string>>();
         var client = BuildClient(req =>
@@ -147,7 +162,7 @@ public class ShoptetApiExpeditionListSourceTests
             return Json(DetailFor(code));
         });
 
-        var source = new ShoptetApiExpeditionListSource(client);
+        var source = BuildSource(client);
         var request = DefaultRequest();
 
         // Act
@@ -169,43 +184,35 @@ public class ShoptetApiExpeditionListSourceTests
     [Fact]
     public async Task CreatePickingList_OsobaK_1PerBatch()
     {
-        // Arrange — 2 Osobak orders (id=4, PageSize=1) → expect 2 batches of 1
-        var listResp = SinglePageList(("O001", 4), ("O002", 4));
+        // Arrange — 2 Osobak orders with unknown GUID → both skipped (GUID not yet discovered)
+        // TODO: once Osobak GUID is known, update this test to verify PageSize=1 batching
+        // Discover via: GET /api/eshop?include=shippingMethods (match method "OSOBAK" by name)
+        var listResp = SinglePageList(("O001", "unknown-guid"), ("O002", "unknown-guid"));
 
-        var batchFilesReceived = new List<IList<string>>();
         var client = BuildClient(req =>
         {
             if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
                 return Json(listResp);
 
             var code = req.RequestUri.Segments.Last();
-            return Json(DetailFor(code, 4));
+            return Json(DetailFor(code));
         });
 
-        var source = new ShoptetApiExpeditionListSource(client);
+        var source = BuildSource(client);
         var request = DefaultRequest();
 
         // Act
-        var result = await source.CreatePickingList(request, files =>
-        {
-            batchFilesReceived.Add(files);
-            return Task.CompletedTask;
-        });
+        var result = await source.CreatePickingList(request, null);
 
-        // Assert — 2 batches, one order each
-        batchFilesReceived.Should().HaveCount(2);
-        result.TotalCount.Should().Be(2);
-
-        // Cleanup
-        foreach (var file in result.ExportedFiles.Where(File.Exists))
-            File.Delete(file);
+        // Assert — orders with unknown GUIDs are skipped
+        result.TotalCount.Should().Be(0);
     }
 
     [Fact]
     public async Task CreatePickingList_CallsUpdateStatus_WhenChangeOrderStateTrue()
     {
         // Arrange
-        var listResp = SinglePageList(("Z001", 21));
+        var listResp = SinglePageList(("Z001", ZasilkovnaDoRukyGuid));
 
         var patchedCodes = new List<string>();
         var client = BuildClient(req =>
@@ -226,23 +233,25 @@ public class ShoptetApiExpeditionListSourceTests
             return Json(DetailFor(orderCode));
         });
 
-        var source = new ShoptetApiExpeditionListSource(client);
+        var source = BuildSource(client);
         var request = DefaultRequest(changeState: true);
 
         // Act
-        await source.CreatePickingList(request, null);
+        var result = await source.CreatePickingList(request, null);
 
         // Assert
         patchedCodes.Should().ContainSingle().Which.Should().Be("Z001");
 
         // Cleanup
+        foreach (var file in result.ExportedFiles.Where(File.Exists))
+            File.Delete(file);
     }
 
     [Fact]
     public async Task CreatePickingList_DoesNotCallUpdateStatus_WhenChangeOrderStateFalse()
     {
         // Arrange
-        var listResp = SinglePageList(("Z001", 21));
+        var listResp = SinglePageList(("Z001", ZasilkovnaDoRukyGuid));
 
         var patchCallCount = 0;
         var client = BuildClient(req =>
@@ -260,23 +269,29 @@ public class ShoptetApiExpeditionListSourceTests
             return Json(DetailFor(code));
         });
 
-        var source = new ShoptetApiExpeditionListSource(client);
+        var source = BuildSource(client);
         var request = DefaultRequest(changeState: false);
 
         // Act
-        await source.CreatePickingList(request, null);
+        var result = await source.CreatePickingList(request, null);
 
         // Assert
         patchCallCount.Should().Be(0);
 
-        // Cleanup temp files
+        // Cleanup
+        foreach (var file in result.ExportedFiles.Where(File.Exists))
+            File.Delete(file);
     }
 
     [Fact]
     public async Task CreatePickingList_InvokesCallback_PerBatch()
     {
-        // Arrange — 3 Zasilkovna + 1 Osobak → Zasilkovna fits in 1 batch, Osobak has 1 batch → 2 total callbacks
-        var listResp = SinglePageList(("Z001", 21), ("Z002", 21), ("Z003", 21), ("O001", 4));
+        // Arrange — 3 Zasilkovna + 1 PPL → 1 batch each → 2 total callbacks
+        var listResp = SinglePageList(
+            ("Z001", ZasilkovnaDoRukyGuid),
+            ("Z002", ZasilkovnaDoRukyGuid),
+            ("Z003", ZasilkovnaDoRukyGuid),
+            ("P001", PplDoRukyGuid));
 
         var callbackInvocations = new List<IList<string>>();
         var client = BuildClient(req =>
@@ -288,7 +303,7 @@ public class ShoptetApiExpeditionListSourceTests
             return Json(DetailFor(code));
         });
 
-        var source = new ShoptetApiExpeditionListSource(client);
+        var source = BuildSource(client);
         var request = DefaultRequest();
 
         // Act
@@ -298,12 +313,70 @@ public class ShoptetApiExpeditionListSourceTests
             return Task.CompletedTask;
         });
 
-        // Assert — 1 batch for Zasilkovna (3 orders < 8) + 1 batch for Osobak = 2 callbacks
+        // Assert — 1 batch for Zasilkovna (3 orders < 8) + 1 batch for PPL = 2 callbacks
         callbackInvocations.Should().HaveCount(2);
         callbackInvocations.SelectMany(x => x).Should().AllSatisfy(f => File.Exists(f).Should().BeTrue());
 
         // Cleanup
         foreach (var file in callbackInvocations.SelectMany(x => x).Where(File.Exists))
+            File.Delete(file);
+    }
+
+    [Fact]
+    public async Task CreatePickingList_PassesGeneratedPdfPathsToCallback()
+    {
+        // Arrange
+        var callbackPaths = new List<string>();
+        var listResp = SinglePageList(("Z001", ZasilkovnaDoRukyGuid));
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
+                return Json(listResp);
+            return Json(DetailFor(req.RequestUri.Segments.Last()));
+        });
+
+        var source = BuildSource(client);
+
+        // Act
+        var result = await source.CreatePickingList(DefaultRequest(), files =>
+        {
+            callbackPaths.AddRange(files);
+            return Task.CompletedTask;
+        });
+
+        // Assert — callback received the same paths as the exported files
+        result.ExportedFiles.Should().NotBeEmpty();
+        callbackPaths.Should().BeEquivalentTo(result.ExportedFiles);
+
+        // Cleanup
+        foreach (var file in result.ExportedFiles.Where(File.Exists))
+            File.Delete(file);
+    }
+
+    [Fact]
+    public async Task CreatePickingList_WritesPdfsToSystemTempFolder()
+    {
+        // Arrange
+        var listResp = SinglePageList(("Z001", ZasilkovnaDoRukyGuid));
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
+                return Json(listResp);
+            return Json(DetailFor(req.RequestUri.Segments.Last()));
+        });
+
+        var source = BuildSource(client);
+
+        // Act
+        var result = await source.CreatePickingList(DefaultRequest(), null);
+
+        // Assert — files land in system temp directory
+        result.ExportedFiles.Should().NotBeEmpty();
+        result.ExportedFiles.Should().AllSatisfy(f =>
+            Path.GetDirectoryName(f).Should().Be(Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar)));
+
+        // Cleanup
+        foreach (var file in result.ExportedFiles.Where(File.Exists))
             File.Delete(file);
     }
 }

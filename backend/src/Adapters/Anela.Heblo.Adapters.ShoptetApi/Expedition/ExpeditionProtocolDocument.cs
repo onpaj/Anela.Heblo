@@ -12,7 +12,6 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 public class ExpeditionProtocolDocument : IDocument
 {
     private readonly ExpeditionProtocolData _data;
-
     public ExpeditionProtocolDocument(ExpeditionProtocolData data)
     {
         _data = data;
@@ -34,130 +33,197 @@ public class ExpeditionProtocolDocument : IDocument
         {
             page.Size(PageSizes.A4);
             page.Margin(1.5f, Unit.Centimetre);
-            page.DefaultTextStyle(x => x.FontSize(10));
+            page.DefaultTextStyle(x => x.FontSize(9));
 
             page.Content().Column(col =>
             {
                 // Title
                 col.Item().Text($"Objednávky k expedici – {_data.CarrierDisplayName}")
-                    .FontSize(16).Bold();
+                    .FontSize(12).Bold();
 
-                col.Item().PaddingBottom(10);
+                col.Item().PaddingBottom(6);
 
                 // Per-order sections
                 foreach (var order in _data.Orders)
                 {
                     col.Item().Column(orderCol =>
                     {
-                        // Order heading
-                        orderCol.Item().Text($"Objednávka {order.Code}")
-                            .FontSize(12).Bold();
-
-                        // Barcode
-                        var barcodeBytes = GenerateBarcode(order.Code);
-                        orderCol.Item().Image(barcodeBytes).FitWidth();
-
-                        // Customer info
-                        orderCol.Item().PaddingTop(4).Column(info =>
+                        // Order heading: "Objednávka " + bold code — 30% larger than body (9 * 1.3 ≈ 12)
+                        orderCol.Item().Text(t =>
                         {
-                            info.Item().Text(order.CustomerName);
-                            info.Item().Text(order.Address);
-                            info.Item().Text(order.Phone);
+                            t.Span("Objednávka ").FontSize(12);
+                            t.Span(order.Code).Bold().FontSize(12);
                         });
 
-                        orderCol.Item().PaddingTop(6);
+                        // Barcode — 60% of full width
+                        var barcodeBytes = GenerateBarcode(order.Code);
+                        orderCol.Item().Height(30).MaxWidth(300).Image(barcodeBytes).FitHeight();
+
+                        // Customer info — single right-aligned line
+                        orderCol.Item().AlignRight().Text(
+                            $"{order.CustomerName}, {order.Address} {order.Phone}".Trim())
+                            .FontSize(9);
+
+                        orderCol.Item().PaddingTop(3);
 
                         // Items table
                         orderCol.Item().Table(table =>
                         {
                             table.ColumnsDefinition(cols =>
                             {
-                                cols.RelativeColumn(2);  // Kód
-                                cols.RelativeColumn(5);  // Popis položky
-                                cols.RelativeColumn(1);  // Množství
-                                cols.RelativeColumn(2);  // Stav skladu
-                                cols.RelativeColumn(2);  // Cena za m.j.
-                                cols.RelativeColumn(1);  // Zkompletováno
+                                cols.RelativeColumn(2);   // Kód
+                                cols.RelativeColumn(6);   // Popis položky
+                                cols.RelativeColumn(2);   // Množství
+                                cols.RelativeColumn(2);   // Stav skladu
+                                cols.RelativeColumn(1.5f); // OK
                             });
 
                             // Header row
+                            static IContainer HeaderCell(IContainer c) =>
+                                c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+                                 .Background(Colors.Grey.Lighten3)
+                                 .Padding(3);
+
+                            static IContainer HeaderCellCenter(IContainer c) =>
+                                c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+                                 .Background(Colors.Grey.Lighten3)
+                                 .Padding(3).AlignCenter();
+
                             table.Header(header =>
                             {
-                                header.Cell().Text("Kód").Bold();
-                                header.Cell().Text("Popis položky").Bold();
-                                header.Cell().Text("Množství").Bold();
-                                header.Cell().Text("Stav skladu").Bold();
-                                header.Cell().Text("Cena za m.j.").Bold();
-                                header.Cell().Text("Zkompletováno").Bold();
+                                header.Cell().Element(HeaderCell).Text("Kód").Bold();
+                                header.Cell().Element(HeaderCell).Text("Popis položky").Bold();
+                                header.Cell().Element(HeaderCellCenter).Text("Množství").Bold();
+                                header.Cell().Element(HeaderCellCenter).Text("Stav skladu").Bold();
+                                header.Cell().Element(HeaderCellCenter).Text("OK").Bold();
                             });
+
+                            static IContainer DataCell(IContainer c) =>
+                                c.Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(3);
+
+                            static IContainer CenteredDataCell(IContainer c) =>
+                                c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+                                 .Padding(3).AlignCenter().AlignMiddle();
 
                             foreach (var item in order.Items)
                             {
-                                table.Cell().Text(item.ProductCode);
-                                table.Cell().Column(itemCol =>
+                                table.Cell().Element(DataCell).Text(item.ProductCode);
+
+                                table.Cell().Element(DataCell).Column(itemCol =>
                                 {
                                     itemCol.Item().Text(item.Name);
                                     if (!string.IsNullOrEmpty(item.Variant))
-                                        itemCol.Item().Text($"Varianta: {item.Variant}").FontSize(9).Italic();
+                                        itemCol.Item().Text($"Varianta: {item.Variant}").FontSize(8).Italic();
                                     if (!string.IsNullOrEmpty(item.WarehousePosition))
-                                        itemCol.Item().Text($"Pozice ve skladu: {item.WarehousePosition}").FontSize(9).Italic();
+                                        itemCol.Item().Text($"Pozice ve skladu: {item.WarehousePosition}").FontSize(8).Italic();
                                 });
-                                table.Cell().Text(item.Quantity.ToString());
-                                table.Cell().Text(item.StockCount.ToString());
-                                table.Cell().Text(item.UnitPrice.ToString("N2"));
-                                table.Cell().Text("☐");
+
+                                table.Cell().Element(CenteredDataCell)
+                                    .Text(FormatAmount(item.Quantity, item.Unit)).FontSize(18).Bold();
+                                table.Cell().Element(CenteredDataCell)
+                                    .Text(FormatAmount(item.StockCount, item.Unit));
+                                table.Cell().Element(CenteredDataCell).Text("☐").FontSize(14);
                             }
                         });
 
-                        orderCol.Item().PaddingBottom(15);
+                        orderCol.Item().PaddingTop(8).PaddingBottom(4)
+                            .LineHorizontal(1.5f).LineColor(Colors.Grey.Darken2);
                     });
                 }
 
                 // Summary page
                 col.Item().PageBreak();
-                col.Item().Text("Souhrn").FontSize(14).Bold();
-                col.Item().PaddingBottom(8);
+                col.Item().Text("Položky objednávek").FontSize(12).Bold();
+                col.Item().PaddingBottom(6);
 
                 var aggregated = _data.Orders
                     .SelectMany(o => o.Items)
                     .GroupBy(i => i.ProductCode)
-                    .Select(g => new { Code = g.Key, Name = g.First().Name, TotalQty = g.Sum(i => i.Quantity) })
-                    .OrderBy(x => x.Code)
+                    .Select(g =>
+                    {
+                        var first = g.First();
+                        return new
+                        {
+                            Code = g.Key,
+                            first.Name,
+                            first.Variant,
+                            first.WarehousePosition,
+                            first.Unit,
+                            TotalQty = g.Sum(i => i.Quantity),
+                            first.StockCount,
+                            first.StockDemand,
+                        };
+                    })
+                    .OrderBy(x => x.WarehousePosition)
                     .ToList();
 
                 col.Item().Table(table =>
                 {
                     table.ColumnsDefinition(cols =>
                     {
-                        cols.RelativeColumn(2);
-                        cols.RelativeColumn(6);
-                        cols.RelativeColumn(2);
+                        cols.RelativeColumn(2);   // Kód
+                        cols.RelativeColumn(6);   // Popis položky
+                        cols.RelativeColumn(2);   // Množství
+                        cols.RelativeColumn(2);   // Stav skladu
                     });
+
+                    static IContainer SummaryHeaderCell(IContainer c) =>
+                        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+                         .Background(Colors.Grey.Lighten3)
+                         .Padding(3);
+
+                    static IContainer SummaryHeaderCellCenter(IContainer c) =>
+                        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+                         .Background(Colors.Grey.Lighten3)
+                         .Padding(3).AlignCenter();
 
                     table.Header(header =>
                     {
-                        header.Cell().Text("Kód").Bold();
-                        header.Cell().Text("Název").Bold();
-                        header.Cell().Text("Celkové množství").Bold();
+                        header.Cell().Element(SummaryHeaderCell).Text("Kód").Bold();
+                        header.Cell().Element(SummaryHeaderCell).Text("Popis položky").Bold();
+                        header.Cell().Element(SummaryHeaderCellCenter).Text("Množství").Bold();
+                        header.Cell().Element(SummaryHeaderCellCenter).Text("Stav skladu").Bold();
                     });
+
+                    static IContainer SummaryDataCell(IContainer c) =>
+                        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(3);
+
+                    static IContainer SummaryCenteredDataCell(IContainer c) =>
+                        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+                         .Padding(3).AlignCenter().AlignMiddle();
 
                     foreach (var row in aggregated)
                     {
-                        table.Cell().Text(row.Code);
-                        table.Cell().Text(row.Name);
-                        table.Cell().Text(row.TotalQty.ToString());
+                        table.Cell().Element(SummaryDataCell).Text(row.Code);
+
+                        table.Cell().Element(SummaryDataCell).Column(itemCol =>
+                        {
+                            itemCol.Item().Text(row.Name);
+                            if (!string.IsNullOrEmpty(row.Variant))
+                                itemCol.Item().Text($"Varianta: {row.Variant}").FontSize(8).Italic();
+                            if (!string.IsNullOrEmpty(row.WarehousePosition))
+                                itemCol.Item().Text($"Pozice ve skladu: {row.WarehousePosition}").FontSize(8).Italic();
+                        });
+
+                        table.Cell().Element(SummaryCenteredDataCell)
+                            .Text(FormatAmount(row.TotalQty, row.Unit)).FontSize(18).Bold();
+                        table.Cell().Element(SummaryCenteredDataCell)
+                            .Text(FormatAmount(row.StockCount, row.Unit));
                     }
                 });
             });
         });
     }
 
+    private static string FormatAmount(int amount, string unit) =>
+        string.IsNullOrEmpty(unit) ? amount.ToString() : $"{amount} {unit}";
+
     private static byte[] GenerateBarcode(string text)
     {
         var writer = new BarcodeWriter<SKBitmap>
         {
             Format = BarcodeFormat.CODE_128,
-            Options = new EncodingOptions { Width = 300, Height = 80, Margin = 10 },
+            Options = new EncodingOptions { Width = 500, Height = 80, Margin = 5 },
             Renderer = new SKBitmapRenderer(),
         };
 
