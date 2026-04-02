@@ -1,9 +1,13 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using Anela.Heblo.Adapters.Flexi.Stock;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
+using Rem.FlexiBeeSDK.Client;
 using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
 using Rem.FlexiBeeSDK.Client.Clients.IssuedOrders;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
@@ -53,6 +57,8 @@ public class FlexiManufactureClient : IManufactureClient
     private readonly ILotsClient _lotsClient;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<FlexiManufactureClient> _logger;
+    private readonly FlexiBeeSettings _flexiBeeSettings;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public FlexiManufactureClient(
         IIssuedOrdersClient ordersClient,
@@ -62,7 +68,9 @@ public class FlexiManufactureClient : IManufactureClient
         IProductSetsClient productSetsClient,
         ILotsClient lotsClient,
         TimeProvider timeProvider,
-        ILogger<FlexiManufactureClient> logger)
+        ILogger<FlexiManufactureClient> logger,
+        FlexiBeeSettings flexiBeeSettings,
+        IHttpClientFactory httpClientFactory)
     {
         _ordersClient = ordersClient ?? throw new ArgumentNullException(nameof(ordersClient));
         _stockClient = stockClient ?? throw new ArgumentNullException(nameof(stockClient));
@@ -72,6 +80,8 @@ public class FlexiManufactureClient : IManufactureClient
         _lotsClient = lotsClient ?? throw new ArgumentNullException(nameof(lotsClient));
         _timeProvider = timeProvider;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _flexiBeeSettings = flexiBeeSettings ?? throw new ArgumentNullException(nameof(flexiBeeSettings));
+        _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
     }
 
     public async Task<string> SubmitManufactureAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken = default)
@@ -615,11 +625,34 @@ public class FlexiManufactureClient : IManufactureClient
                 $"Ingredient '{ingredientCode}' not found in BoM for product '{productCode}'");
         }
 
-        ingredient.Amount = newAmount;
+        var url = $"{_flexiBeeSettings.Server}/c/{_flexiBeeSettings.Company}/kusovnik/{ingredient.Id}.json";
+        var body = new
+        {
+            winstrom = new
+            {
+                kusovnik = new[]
+                {
+                    new { id = ingredient.Id.ToString(), mnozstvi = newAmount }
+                }
+            }
+        };
 
-        // IBoMClient does not expose SaveAsync — BoM update requires SDK update or raw REST call.
-        throw new NotImplementedException(
-            "IBoMClient.SaveAsync not available — BoM update requires SDK update or raw REST call");
+        var json = JsonSerializer.Serialize(body);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var credentials = Convert.ToBase64String(
+            Encoding.UTF8.GetBytes($"{_flexiBeeSettings.Login}:{_flexiBeeSettings.Password}"));
+
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
+
+        var response = await client.PutAsync(url, content, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException(
+                $"Failed to update BoM ingredient '{ingredientCode}' for product '{productCode}': HTTP {(int)response.StatusCode}");
+        }
     }
 
     public async Task<ManufactureTemplate> GetManufactureTemplateAsync(string id, CancellationToken cancellationToken = default)
