@@ -5,7 +5,7 @@ import {
   X,
   StickyNote,
 } from "lucide-react";
-import { ManufactureOrderState } from "../../../api/generated/api-client";
+import { ManufactureOrderState, ResidueDistributionDto } from "../../../api/generated/api-client";
 import ConfirmSemiProductQuantityModal from "../../modals/ConfirmSemiProductQuantityModal";
 import ConfirmProductCompletionModal from "../../modals/ConfirmProductCompletionModal";
 import ResolveManualActionModal from "../../modals/ResolveManualActionModal";
@@ -31,6 +31,9 @@ interface ConfirmationDialogsProps {
   showProductCompletionModal: boolean;
   onProductCompletionModalClose: () => void;
   onProductCompletionConfirm: (request: any) => Promise<void>;
+  distributionPreview?: ResidueDistributionDto;
+  onConfirmDistribution: () => Promise<void>;
+  onBackFromDistribution: () => void;
   
   // Resolve manual action modal
   showResolveModal: boolean;
@@ -65,6 +68,9 @@ export const ConfirmationDialogs: React.FC<ConfirmationDialogsProps> = ({
   showProductCompletionModal,
   onProductCompletionModalClose,
   onProductCompletionConfirm,
+  distributionPreview,
+  onConfirmDistribution,
+  onBackFromDistribution,
   showResolveModal,
   onResolveModalClose,
   onResolveSuccess,
@@ -189,6 +195,9 @@ export const ConfirmationDialogs: React.FC<ConfirmationDialogsProps> = ({
             plannedQuantity: product.plannedQuantity || 0
           }))}
           isLoading={isProductCompletionLoading}
+          distributionPreview={distributionPreview}
+          onConfirmDistribution={onConfirmDistribution}
+          onBackFromDistribution={onBackFromDistribution}
         />
       )}
 
