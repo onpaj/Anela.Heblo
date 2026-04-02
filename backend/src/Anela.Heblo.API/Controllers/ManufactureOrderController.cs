@@ -154,7 +154,18 @@ public class ManufactureOrderController : BaseApiController
             var result = await _manufacturingApplicationService.ConfirmProductCompletionAsync(
                 request.Id,
                 productActualQuantities,
+                request.OverrideConfirmed,
                 request.ChangeReason);
+
+            if (result.RequiresConfirmation)
+            {
+                var response = new ConfirmProductCompletionResponse
+                {
+                    RequiresConfirmation = true,
+                    Distribution = MapResidueDistributionToDto(result.Distribution)
+                };
+                return Ok(response);
+            }
 
             if (result.Success)
             {
@@ -174,6 +185,35 @@ public class ManufactureOrderController : BaseApiController
             response.Message = "Došlo k neočekávané chybě při dokončení výroby produktů";
             return StatusCode(500, response);
         }
+    }
+
+    private static ResidueDistributionDto MapResidueDistributionToDto(Anela.Heblo.Domain.Features.Manufacture.ResidueDistribution? distribution)
+    {
+        if (distribution == null)
+        {
+            throw new InvalidOperationException("Distribution cannot be null when mapping to DTO");
+        }
+
+        return new ResidueDistributionDto
+        {
+            ActualSemiProductQuantity = distribution.ActualSemiProductQuantity,
+            TheoreticalConsumption = distribution.TheoreticalConsumption,
+            Difference = distribution.Difference,
+            DifferencePercentage = distribution.DifferencePercentage,
+            IsWithinAllowedThreshold = distribution.IsWithinAllowedThreshold,
+            AllowedResiduePercentage = distribution.AllowedResiduePercentage,
+            Products = distribution.Products.Select(p => new ProductConsumptionDistributionDto
+            {
+                ProductCode = p.ProductCode,
+                ProductName = p.ProductName,
+                ActualPieces = p.ActualPieces,
+                TheoreticalGramsPerUnit = p.TheoreticalGramsPerUnit,
+                TheoreticalConsumption = p.TheoreticalConsumption,
+                AdjustedConsumption = p.AdjustedConsumption,
+                AdjustedGramsPerUnit = p.AdjustedGramsPerUnit,
+                ProportionRatio = p.ProportionRatio
+            }).ToList()
+        };
     }
 
     /// <summary>

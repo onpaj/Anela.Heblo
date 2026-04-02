@@ -11,6 +11,7 @@ public interface IManufactureOrderApplicationService
     Task<ConfirmProductCompletionResult> ConfirmProductCompletionAsync(
         int orderId,
         Dictionary<int, decimal> productActualQuantities,
+        bool overrideConfirmed = false,
         string? changeReason = null,
         CancellationToken cancellationToken = default);
 }

@@ -5,6 +5,8 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 public class ConfirmProductCompletionResponse : BaseResponse
 {
     public string? Message { get; set; }
+    public bool RequiresConfirmation { get; set; }
+    public ResidueDistributionDto? Distribution { get; set; }
 
     public ConfirmProductCompletionResponse() : base() { }
 

@@ -10,5 +10,7 @@ public class ConfirmProductCompletionRequest
     [Required]
     public List<ProductActualQuantityRequest> Products { get; set; } = new();
 
+    public bool OverrideConfirmed { get; set; } = false;
+
     public string? ChangeReason { get; set; }
 }
