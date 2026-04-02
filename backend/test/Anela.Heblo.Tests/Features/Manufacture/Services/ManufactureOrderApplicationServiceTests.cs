@@ -288,7 +288,7 @@ public class ManufactureOrderApplicationServiceTests
             .ReturnsAsync(distribution);
 
         // Act
-        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, ValidChangeReason);
+        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, changeReason: ValidChangeReason);
 
         // Assert
         result.Should().NotBeNull();
@@ -314,7 +314,7 @@ public class ManufactureOrderApplicationServiceTests
             .ReturnsAsync(updateOrderResponse);
 
         // Act
-        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, ValidChangeReason);
+        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, changeReason: ValidChangeReason);
 
         // Assert
         result.Should().NotBeNull();
@@ -342,7 +342,7 @@ public class ManufactureOrderApplicationServiceTests
             .ReturnsAsync(distribution);
 
         // Act
-        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, ValidChangeReason);
+        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, changeReason: ValidChangeReason);
 
         // Assert
         result.Should().NotBeNull();
@@ -364,7 +364,7 @@ public class ManufactureOrderApplicationServiceTests
             .ThrowsAsync(new InvalidOperationException("Database error"));
 
         // Act
-        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, ValidChangeReason);
+        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, changeReason: ValidChangeReason);
 
         // Assert
         result.Should().NotBeNull();
