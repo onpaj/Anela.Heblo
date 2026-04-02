@@ -7,6 +7,7 @@ using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Rem.FlexiBeeSDK.Client;
 using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
 using Rem.FlexiBeeSDK.Client.Clients.IssuedOrders;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
@@ -33,6 +34,7 @@ public class FlexiManufactureClientTests
     private readonly Mock<IProductSetsClient> _mockProductSetsClient;
     private readonly Mock<ILotsClient> _mockLotsClient;
     private readonly Mock<ILogger<FlexiManufactureClient>> _mockLogger;
+    private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
     private readonly FlexiManufactureClient _client;
 
     public FlexiManufactureClientTests()
@@ -44,6 +46,15 @@ public class FlexiManufactureClientTests
         _mockProductSetsClient = new Mock<IProductSetsClient>();
         _mockLotsClient = new Mock<ILotsClient>();
         _mockLogger = new Mock<ILogger<FlexiManufactureClient>>();
+        _mockHttpClientFactory = new Mock<IHttpClientFactory>();
+
+        var flexiBeeSettings = new FlexiBeeSettings
+        {
+            Server = "test.flexibee.com",
+            Company = "test_company",
+            Login = "test_user",
+            Password = "test_password"
+        };
 
         _client = new FlexiManufactureClient(
             _mockOrdersClient.Object,
@@ -53,7 +64,9 @@ public class FlexiManufactureClientTests
             _mockProductSetsClient.Object,
             _mockLotsClient.Object,
             TimeProvider.System, // Use real TimeProvider - it's not critical to mock for these tests
-            _mockLogger.Object);
+            _mockLogger.Object,
+            flexiBeeSettings,
+            _mockHttpClientFactory.Object);
     }
 
     #region Basic Flow Tests
