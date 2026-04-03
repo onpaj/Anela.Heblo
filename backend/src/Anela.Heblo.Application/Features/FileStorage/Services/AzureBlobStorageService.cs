@@ -78,15 +78,12 @@ public class AzureBlobStorageService : IBlobStorageService
             var containerClient = await GetOrCreateContainerAsync(containerName, cancellationToken);
             var blobClient = containerClient.GetBlobClient(blobName);
 
-            var blobHttpHeaders = new BlobHttpHeaders
+            await blobClient.UploadAsync(stream, overwrite: true, cancellationToken);
+
+            await blobClient.SetHttpHeadersAsync(new BlobHttpHeaders
             {
                 ContentType = contentType
-            };
-
-            await blobClient.UploadAsync(stream, new BlobUploadOptions
-            {
-                HttpHeaders = blobHttpHeaders
-            }, cancellationToken);
+            }, cancellationToken: cancellationToken);
 
             var blobUrl = blobClient.Uri.ToString();
             _logger.LogInformation("Successfully uploaded blob: {BlobUrl}", blobUrl);

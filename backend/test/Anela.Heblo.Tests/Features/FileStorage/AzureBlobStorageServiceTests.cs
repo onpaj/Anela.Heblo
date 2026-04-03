@@ -109,9 +109,15 @@ public class AzureBlobStorageServiceTests
         mockBlobClient.Setup(x => x.Uri).Returns(new Uri(expectedBlobUrl));
         mockBlobClient.Setup(x => x.UploadAsync(
             It.IsAny<Stream>(),
-            It.IsAny<BlobUploadOptions>(),
+            It.IsAny<bool>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
+
+        mockBlobClient.Setup(x => x.SetHttpHeadersAsync(
+            It.IsAny<BlobHttpHeaders>(),
+            It.IsAny<BlobRequestConditions>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobInfo>>()));
 
         mockContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(mockBlobClient.Object);
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
@@ -147,9 +153,15 @@ public class AzureBlobStorageServiceTests
         mockBlobClient.Setup(x => x.Uri).Returns(new Uri(expectedBlobUrl));
         mockBlobClient.Setup(x => x.UploadAsync(
             It.IsAny<Stream>(),
-            It.IsAny<BlobUploadOptions>(),
+            It.IsAny<bool>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
+
+        mockBlobClient.Setup(x => x.SetHttpHeadersAsync(
+            It.IsAny<BlobHttpHeaders>(),
+            It.IsAny<BlobRequestConditions>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobInfo>>()));
 
         mockContainerClient.Setup(x => x.GetBlobClient(blobName)).Returns(mockBlobClient.Object);
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
@@ -167,7 +179,59 @@ public class AzureBlobStorageServiceTests
         Assert.Equal(expectedBlobUrl, result);
         mockBlobClient.Verify(x => x.UploadAsync(
             It.IsAny<Stream>(),
-            It.Is<BlobUploadOptions>(opts => opts.HttpHeaders.ContentType == contentType),
+            true,
+            It.IsAny<CancellationToken>()), Times.Once);
+        mockBlobClient.Verify(x => x.SetHttpHeadersAsync(
+            It.Is<BlobHttpHeaders>(h => h.ContentType == contentType),
+            It.IsAny<BlobRequestConditions>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UploadAsync_BlobAlreadyExists_ShouldOverwriteWithoutConflict()
+    {
+        // Arrange — verifies Overwrite = true is passed so a second upload of the same blob does not throw 409
+        var content = "Updated file content";
+        var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
+        var containerName = "documents";
+        var blobName = "existing.txt";
+        var contentType = "text/plain";
+
+        var mockContainerClient = new Mock<BlobContainerClient>();
+        var mockBlobClient = new Mock<BlobClient>();
+        var expectedBlobUrl = $"https://testaccount.blob.core.windows.net/{containerName}/{blobName}";
+
+        mockBlobClient.Setup(x => x.Uri).Returns(new Uri(expectedBlobUrl));
+        mockBlobClient
+            .Setup(x => x.UploadAsync(
+                It.IsAny<Stream>(),
+                It.Is<bool>(b => b == true),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
+
+        mockBlobClient.Setup(x => x.SetHttpHeadersAsync(
+            It.IsAny<BlobHttpHeaders>(),
+            It.IsAny<BlobRequestConditions>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobInfo>>()));
+
+        mockContainerClient.Setup(x => x.GetBlobClient(blobName)).Returns(mockBlobClient.Object);
+        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
+            It.IsAny<PublicAccessType>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
+
+        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
+
+        // Act — should not throw (overwrite:true prevents 409)
+        var result = await _service.UploadAsync(stream, containerName, blobName, contentType);
+
+        // Assert
+        Assert.Equal(expectedBlobUrl, result);
+        mockBlobClient.Verify(x => x.UploadAsync(
+            It.IsAny<Stream>(),
+            true,
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -312,7 +376,7 @@ public class AzureBlobStorageServiceTests
 
         mockBlobClient.Setup(x => x.UploadAsync(
             It.IsAny<Stream>(),
-            It.IsAny<BlobUploadOptions>(),
+            It.IsAny<bool>(),
             It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Storage error"));
 
