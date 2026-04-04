@@ -83,6 +83,8 @@ public class AzureBlobStorageService : IBlobStorageService
                 ContentType = contentType
             };
 
+            // BlobUploadOptions without Conditions performs an unconditional PUT — always overwrites.
+            // (Conditions.IfNoneMatch = ETag.All would prevent overwriting; we intentionally omit it.)
             await blobClient.UploadAsync(stream, new BlobUploadOptions
             {
                 HttpHeaders = blobHttpHeaders

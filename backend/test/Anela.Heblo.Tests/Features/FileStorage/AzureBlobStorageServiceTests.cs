@@ -165,9 +165,56 @@ public class AzureBlobStorageServiceTests
 
         // Assert
         Assert.Equal(expectedBlobUrl, result);
+        // Conditions must be null so the PUT is unconditional (always overwrites — no IfNoneMatch: *)
         mockBlobClient.Verify(x => x.UploadAsync(
             It.IsAny<Stream>(),
-            It.Is<BlobUploadOptions>(opts => opts.HttpHeaders.ContentType == contentType),
+            It.Is<BlobUploadOptions>(opts =>
+                opts.HttpHeaders.ContentType == contentType &&
+                opts.Conditions == null),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UploadAsync_ShouldAllowReUpload_WhenBlobAlreadyExists()
+    {
+        // Arrange — re-upload scenario (e.g. KB document re-ingestion).
+        // The upload must not set Conditions.IfNoneMatch = ETag.All, which would cause a 409 Conflict.
+        var content = "Updated file content";
+        var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
+        var containerName = "documents";
+        var blobName = "existing-document.pdf";
+        var contentType = "application/pdf";
+
+        var mockContainerClient = new Mock<BlobContainerClient>();
+        var mockBlobClient = new Mock<BlobClient>();
+        var expectedBlobUrl = $"https://testaccount.blob.core.windows.net/{containerName}/{blobName}";
+
+        mockBlobClient.Setup(x => x.Uri).Returns(new Uri(expectedBlobUrl));
+        mockBlobClient.Setup(x => x.UploadAsync(
+            It.IsAny<Stream>(),
+            It.IsAny<BlobUploadOptions>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
+
+        mockContainerClient.Setup(x => x.GetBlobClient(blobName)).Returns(mockBlobClient.Object);
+        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
+            It.IsAny<PublicAccessType>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
+
+        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
+
+        // Act
+        var result = await _service.UploadAsync(stream, containerName, blobName, contentType);
+
+        // Assert — upload succeeds and uses unconditional PUT (Conditions == null → always overwrites)
+        Assert.Equal(expectedBlobUrl, result);
+        mockBlobClient.Verify(x => x.UploadAsync(
+            It.IsAny<Stream>(),
+            It.Is<BlobUploadOptions>(opts =>
+                opts.HttpHeaders.ContentType == contentType &&
+                opts.Conditions == null),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
