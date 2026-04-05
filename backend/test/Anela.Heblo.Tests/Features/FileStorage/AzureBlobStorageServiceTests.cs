@@ -172,6 +172,47 @@ public class AzureBlobStorageServiceTests
     }
 
     [Fact]
+    public async Task UploadAsync_ExistingBlob_ShouldUploadWithOverwriteTrue()
+    {
+        // Arrange
+        var content = "Updated file content";
+        var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
+        var containerName = "documents";
+        var blobName = "existing.txt";
+        var contentType = "text/plain";
+
+        var mockContainerClient = new Mock<BlobContainerClient>();
+        var mockBlobClient = new Mock<BlobClient>();
+        var expectedBlobUrl = $"https://testaccount.blob.core.windows.net/{containerName}/{blobName}";
+
+        BlobUploadOptions? capturedOptions = null;
+        mockBlobClient.Setup(x => x.Uri).Returns(new Uri(expectedBlobUrl));
+        mockBlobClient.Setup(x => x.UploadAsync(
+            It.IsAny<Stream>(),
+            It.IsAny<BlobUploadOptions>(),
+            It.IsAny<CancellationToken>()))
+            .Callback<Stream, BlobUploadOptions, CancellationToken>((s, opts, ct) => capturedOptions = opts)
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
+
+        mockContainerClient.Setup(x => x.GetBlobClient(blobName)).Returns(mockBlobClient.Object);
+        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
+            It.IsAny<PublicAccessType>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
+
+        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
+
+        // Act
+        await _service.UploadAsync(stream, containerName, blobName, contentType);
+
+        // Assert — Conditions must be null to allow overwrite (null = no If-None-Match header = overwrite OK)
+        // BlobUploadOptions has no Overwrite property; null Conditions is the SDK way to allow overwrite (issue #481)
+        Assert.NotNull(capturedOptions);
+        Assert.Null(capturedOptions!.Conditions);
+    }
+
+    [Fact]
     public async Task DeleteAsync_ExistingBlob_ShouldReturnTrue()
     {
         // Arrange

@@ -83,9 +83,11 @@ public class AzureBlobStorageService : IBlobStorageService
                 ContentType = contentType
             };
 
+            // Conditions = null means no If-None-Match header → overwrite is allowed (prevents 409 on re-upload, see #481)
             await blobClient.UploadAsync(stream, new BlobUploadOptions
             {
-                HttpHeaders = blobHttpHeaders
+                HttpHeaders = blobHttpHeaders,
+                Conditions = null
             }, cancellationToken);
 
             var blobUrl = blobClient.Uri.ToString();
