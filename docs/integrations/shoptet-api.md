@@ -165,6 +165,10 @@ Defined in `PrintPickingListOptions` and `ShoptetPlaywrightExpeditionListSource`
 
 Optional `include` sections: `notes`, `images`, `shippingDetails`, `stockLocation`, `surchargeParameters`, `productFlags`
 
+**`?include=stockLocation`** — required to get the warehouse position on order items. The field is named `stockLocation` (a nullable string, e.g. `"H6/M11/R13"`) — there is no `warehousePosition` field. Without this include, `stockLocation` is absent from all items.
+
+**`amount` field in GET response** — returned as a JSON decimal number (e.g. `1.000`), NOT a string and NOT an integer. Map to `decimal?` with `[JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]`, then cast to `int` when needed.
+
 **Fields in list response:** `code`, `guid`, `creationTime`, `changeTime`, `company`, `fullName`, `email`, `phone`, `remark`, `cashDeskOrder`, `customerGuid`, `paid`, `status`, `source`, `price`, `paymentMethod`, `shipping`, `adminUrl`, `salesChannelGuid`. **`externalCode` is NOT included.** Use `GET /api/orders/{code}` (single detail) to get `externalCode`.
 
 
@@ -253,12 +257,55 @@ for m in data['data']['shippingMethods']['retail']['methods']:
 
 Note: the response **does not include numeric IDs** — match by method name against the constants in `ShoptetPlaywrightExpeditionListSource.cs`.
 
-**Known mappings — production store (780175.myshoptet.com / Anela.cz):**
+**How to get a shipping GUID for a new/unknown method:**
+
+1. Run the discovery command above with the production API token (from user secrets: `Shoptet:ApiToken`).
+2. Find the method by name in the output.
+3. Add the GUID to `ShippingList` in `ShoptetApiExpeditionListSource.cs` and to the table below.
+4. To verify: place a real order with that shipping method in the store, then call `GET /api/orders/{code}` — the `shipping.guid` field must match.
+
+**Known mappings — production store (269953 / anela.cz):**
+
+Discovered via `GET /api/eshop?include=shippingMethods` with production API token. The response contains two channels: `retail` (B2C) and `wholesale` (VO/B2B) — each with separate GUIDs for the same logical carrier. Both are mapped so wholesale orders appear in the expedition list alongside retail orders.
+
+**Retail (B2C) GUIDs:**
 
 | Numeric ID | Constant | Method name | GUID |
 |---|---|---|---|
 | 21 | `ZASILKOVNA_DO_RUKY` | Zásilkovna (do ruky) | `f6610d4d-578d-11e9-beb1-002590dad85e` |
+| 15 | `ZASILKOVNA_ZPOINT` | Zásilkovna Z-Point | `7878c138-578d-11e9-beb1-002590dad85e` |
+| 385 | `ZASILKOVNA_DO_RUKY_SK` | Zásilkovna (do ruky) SK | `a6d9a6ce-0ede-11ee-b534-2a01067a25a9` |
+| 370 | `ZASILKOVNA_DO_RUKY_CHLAZENY` | Zásilkovna chlazený balík (do ruky) | `34d3f7d4-166f-11ee-b534-2a01067a25a9` |
+| 373 | `ZASILKOVNA_ZPOINT_CHLAZENY` | Zásilkovna Z-Point chlazený balík - ZDARMA od 1500,- | `bac58d34-166f-11ee-b534-2a01067a25a9` |
+| 388 | `ZASILKOVNA_DO_RUKY_SK_CHLAZENY` | Zásilkovna SK chlazený balík (do ruky) | `75123baa-1671-11ee-b534-2a01067a25a9` |
+| 487 | `ZASILKOVNA_ZPOINT_ZDARMA` | Zásilkovna Z-Point - DOPRAVA ZDARMA | `79b9ef95-5e46-11f0-ae6d-9237d29d7242` |
+| 481 | `ZASILKOVNA_ZPOINT_CHLAZENY_ZDARMA` | Zásilkovna Z-Point - PLATÍTE POUZE CHLADÍTKO | `db9bf927-5e44-11f0-ae6d-9237d29d7242` |
 | 6 | `PPL_DO_RUKY` | PPL (do ruky) | `2ec88ea7-3fb0-11e2-a723-705ab6a2ba75` |
+| 80 | `PPL_PARCELSHOP` | PPL ParcelShop | `c4e6c287-9a85-11ea-beb1-002590dad85e` |
+| 86 | `PPL_EXPORT` | PPL Export (doručení do zahraničí) | `f17a0a12-0ebe-11eb-933a-002590dad85e` |
+| 358 | `PPL_DO_RUKY_CHLAZENY` | PPL chlazený balík (do ruky) - ZDARMA od 3000,- | `05ea842d-166a-11ee-b534-2a01067a25a9` |
+| 361 | `PPL_PARCELSHOP_CHLAZENY` | PPL ParcelShop chlazený balík - ZDARMA od 1500,- | `0d10802f-166c-11ee-b534-2a01067a25a9` |
+| 379 | `PPL_EXPORT_CHLAZENY` | PPL Export chlazený balík (zahraničí) | `de70f0e4-1670-11ee-b534-2a01067a25a9` |
+| 97 | `GLS_DO_RUKY` | GLS (do ruky) | `138ec07f-0119-11ec-a39f-002590dc5efc` |
+| 109 | `GLS_EXPORT` | GLS Export (doručení do zahraničí) | `c06835e6-165e-11ec-a39f-002590dc5efc` |
+| 489 | `GLS_PARCELSHOP` | GLS ParcelShop | `49b79aec-0118-11ec-a39f-002590dc5efc` |
+| 4 | `OSOBAK` | Osobní odběr v Dobrušce | `8fdb2c89-3fae-11e2-a723-705ab6a2ba75` |
+
+**Wholesale / VO (B2B) GUIDs:**
+
+These are separate GUID variants for the same carriers used in wholesale orders. Mapped to the same constants as retail.
+
+| Constant | Method name (VO) | GUID |
+|---|---|---|
+| `ZASILKOVNA_ZPOINT` | Zásilkovna Z-Point | `389cea0b-40f1-11ea-beb1-002590dad85e` |
+| `PPL_DO_RUKY` | PPL (do ruky) | `389ce5b4-40f1-11ea-beb1-002590dad85e` |
+| `PPL_PARCELSHOP` | PPL ParcelShop (vyzvednutí na pobočce) | `83372e07-9a86-11ea-beb1-002590dad85e` |
+| `PPL_EXPORT` | PPL Export (doručení do zahraničí) | `2fd96b91-1508-11eb-933a-002590dad85e` |
+| `GLS_DO_RUKY` | GLS (do ruky) | `b7e787c5-011d-11ec-a39f-002590dc5efc` |
+| `GLS_EXPORT` | GLS Export (doručení do zahraničí) | `bbbe7223-4ea8-11ec-a39f-002590dc5efc` |
+| `OSOBAK` | Osobní odběr v Dobrušce - po dohodě | `389ce19e-40f1-11ea-beb1-002590dad85e` |
+
+> **Note:** Wholesale has no chlazený or SK variants — those are retail-only.
 
 **Payment method used for seeding:**
 

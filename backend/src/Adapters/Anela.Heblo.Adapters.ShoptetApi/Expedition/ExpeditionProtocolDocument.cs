@@ -118,7 +118,7 @@ public class ExpeditionProtocolDocument : IDocument
                                 table.Cell().Element(CenteredDataCell)
                                     .Text(item.WarehousePosition ?? string.Empty).FontSize(8);
                                 table.Cell().Element(CenteredDataCell)
-                                    .Text(FormatAmount(item.StockCount, item.Unit));
+                                    .Text(item.StockCount.ToString("0.##"));
                             }
                         });
 
@@ -147,7 +147,6 @@ public class ExpeditionProtocolDocument : IDocument
                             first.Unit,
                             TotalQty = g.Sum(i => i.Quantity),
                             first.StockCount,
-                            first.StockDemand,
                         };
                     })
                     .OrderBy(x => x.WarehousePosition)
@@ -203,7 +202,7 @@ public class ExpeditionProtocolDocument : IDocument
                         table.Cell().Element(SummaryCenteredDataCell)
                             .Text(row.WarehousePosition ?? string.Empty).FontSize(8);
                         table.Cell().Element(SummaryCenteredDataCell)
-                            .Text(FormatAmount(row.StockCount, row.Unit));
+                            .Text(row.StockCount.ToString("0.##"));
                     }
                 });
             });

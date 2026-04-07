@@ -61,11 +61,12 @@ public class ExpeditionOrderItemDto
     [JsonPropertyName("variantName")]
     public string? VariantName { get; set; }
 
-    [JsonPropertyName("warehousePosition")]
+    [JsonPropertyName("stockLocation")]
     public string? WarehousePosition { get; set; }
 
     [JsonPropertyName("amount")]
-    public string? Amount { get; set; }
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? Amount { get; set; }
 
     [JsonPropertyName("unit")]
     public string? Unit { get; set; }

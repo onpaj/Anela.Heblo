@@ -16,9 +16,10 @@ public class ShippingMethod
     public int PageSize { get; set; } = 8;
 
     /// <summary>
-    /// Shipping method GUID as returned by GET /api/orders (shipping.guid).
+    /// Shipping method GUIDs as returned by GET /api/orders (shipping.guid).
+    /// One shipping ID can map to multiple GUIDs (e.g. when Shoptet creates a new variant of the same method).
     /// Discover via: GET /api/eshop?include=shippingMethods
-    /// Empty string means the GUID is not yet known — orders with this method are skipped.
+    /// Empty array means the GUIDs are not yet known — orders with this method are skipped.
     /// </summary>
-    public string Guid { get; set; } = string.Empty;
+    public string[] Guids { get; set; } = [];
 }
