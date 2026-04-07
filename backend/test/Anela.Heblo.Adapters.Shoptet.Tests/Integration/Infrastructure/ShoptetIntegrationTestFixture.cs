@@ -1,4 +1,5 @@
 using System.Reflection;
+using Anela.Heblo.Adapters.Shoptet;
 using Anela.Heblo.Adapters.ShoptetApi;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.Application.Features.ExpeditionList;
@@ -27,6 +28,7 @@ public class ShoptetIntegrationTestFixture
 
         services.AddLogging(builder => builder.AddConsole());
 
+        services.AddShoptetPlaywrightAdapter(Configuration);
         services.AddShoptetApiAdapter(Configuration);
         services.AddCrossCuttingServices();
         services.AddHttpClient();

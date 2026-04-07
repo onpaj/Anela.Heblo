@@ -40,16 +40,16 @@ public class FlexiManufactureClientIntegrationTests : IClassFixture<FlexiIntegra
     }
 
     [Fact]
-    public async Task GetManufactureTemplateAsync_WithNonExistentProduct_ThrowsException()
+    public async Task GetManufactureTemplateAsync_WithNonExistentProduct_ReturnsNull()
     {
         // Arrange
         const string nonExistentProductId = "NON_EXISTENT_PRODUCT_12345";
 
         // Act
-        var act = async () => await _client.GetManufactureTemplateAsync(nonExistentProductId);
+        var result = await _client.GetManufactureTemplateAsync(nonExistentProductId);
 
         // Assert
-        await act.Should().ThrowAsync<Exception>();
+        result.Should().BeNull();
     }
 
     [Fact]
