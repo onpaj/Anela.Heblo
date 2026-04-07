@@ -185,15 +185,24 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
 
     private static ExpeditionOrder MapToExpeditionOrder(Model.ExpeditionOrderDetail detail)
     {
-        var addr = detail.BillingAddress;
+        var addr = detail.DeliveryAddress ?? detail.BillingAddress;
         var address = addr != null
             ? $"{addr.Street} {addr.HouseNumber}, {addr.Zip} {addr.City}".Trim()
             : string.Empty;
 
+        var shipAddr = detail.DeliveryAddress ?? detail.BillingAddress;
+        var customerName = !string.IsNullOrWhiteSpace(shipAddr?.FullName)
+            ? shipAddr.FullName
+            : !string.IsNullOrWhiteSpace(shipAddr?.Company)
+                ? shipAddr.Company
+                : !string.IsNullOrWhiteSpace(detail.FullName)
+                    ? detail.FullName
+                    : detail.Company ?? string.Empty;
+
         return new ExpeditionOrder
         {
             Code = detail.Code,
-            CustomerName = detail.FullName ?? string.Empty,
+            CustomerName = customerName,
             Address = address,
             Phone = detail.Phone ?? string.Empty,
             Items = detail.Items

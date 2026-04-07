@@ -22,8 +22,14 @@ public class ExpeditionOrderDetail
     [JsonPropertyName("fullName")]
     public string? FullName { get; set; }
 
+    [JsonPropertyName("company")]
+    public string? Company { get; set; }
+
     [JsonPropertyName("phone")]
     public string? Phone { get; set; }
+
+    [JsonPropertyName("deliveryAddress")]
+    public ExpeditionAddress? DeliveryAddress { get; set; }
 
     [JsonPropertyName("billingAddress")]
     public ExpeditionAddress? BillingAddress { get; set; }
@@ -34,6 +40,12 @@ public class ExpeditionOrderDetail
 
 public class ExpeditionAddress
 {
+    [JsonPropertyName("fullName")]
+    public string? FullName { get; set; }
+
+    [JsonPropertyName("company")]
+    public string? Company { get; set; }
+
     [JsonPropertyName("street")]
     public string? Street { get; set; }
 
