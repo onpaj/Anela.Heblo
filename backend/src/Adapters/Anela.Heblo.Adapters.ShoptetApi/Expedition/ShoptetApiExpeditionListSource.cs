@@ -230,6 +230,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                     Variant = item.VariantName ?? string.Empty,
                     WarehousePosition = item.WarehousePosition ?? string.Empty,
                     Quantity = (int)(item.Amount ?? 0),
+                    StockDemand = item.StockStatus?.AllDemand ?? 0,
                     Unit = item.Unit ?? string.Empty,
                     UnitPrice = decimal.TryParse(item.ItemPriceWithVat, NumberStyles.Any, CultureInfo.InvariantCulture, out var price) ? price : 0m,
                 });

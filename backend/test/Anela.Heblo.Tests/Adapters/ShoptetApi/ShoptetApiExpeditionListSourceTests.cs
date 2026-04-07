@@ -5,9 +5,11 @@ using Anela.Heblo.Adapters.ShoptetApi.Expedition;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition.Model;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 using FluentAssertions;
+using Moq;
 using QuestPDF.Infrastructure;
 
 namespace Anela.Heblo.Tests.Adapters.ShoptetApi;
@@ -87,7 +89,7 @@ public class ShoptetApiExpeditionListSourceTests
                             ItemType = "product",
                             Code = "P001",
                             Name = "Widget",
-                            Amount = "1",
+                            Amount = 1m,
                             ItemPriceWithVat = "99.90",
                         },
                     },
@@ -97,7 +99,7 @@ public class ShoptetApiExpeditionListSourceTests
     }
 
     private static ShoptetApiExpeditionListSource BuildSource(ShoptetOrderClient client) =>
-        new(client);
+        new(client, TimeProvider.System, new Mock<ICatalogRepository>().Object);
 
     private static PrintPickingListRequest DefaultRequest(bool changeState = false) =>
         new()
