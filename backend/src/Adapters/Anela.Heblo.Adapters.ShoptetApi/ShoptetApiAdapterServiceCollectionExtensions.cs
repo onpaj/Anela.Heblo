@@ -27,7 +27,7 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
         });
 
-        services.AddSingleton<IPickingListSource, ShoptetApiExpeditionListSource>();
+        services.AddTransient<IPickingListSource, ShoptetApiExpeditionListSource>();
 
         return services;
     }

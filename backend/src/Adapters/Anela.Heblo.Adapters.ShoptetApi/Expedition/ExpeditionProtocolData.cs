@@ -22,8 +22,8 @@ public class ExpeditionOrderItem
     public string Variant { get; set; } = null!;
     public string WarehousePosition { get; set; } = null!;
     public int Quantity { get; set; }
-    public int StockCount { get; set; }
-    public int StockDemand { get; set; }
+    public decimal StockCount { get; set; }
+    public decimal StockDemand { get; set; }
     public decimal UnitPrice { get; set; }
     public string Unit { get; set; } = string.Empty;
 }

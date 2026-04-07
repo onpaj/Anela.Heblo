@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { FileText, Printer, ExternalLink, ChevronLeft, ChevronRight, Play } from "lucide-react";
-import { getAuthenticatedApiClient } from "../api/client";
+import { FileText, Printer, ExternalLink, ChevronLeft, ChevronRight, Play, RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { getAuthenticatedApiClient, QUERY_KEYS } from "../api/client";
 import {
   useExpeditionDates,
   useExpeditionListsByDate,
@@ -34,7 +35,9 @@ const formatDateTime = (iso: string | null): string => {
 
 const ExpeditionListArchivePage: React.FC = () => {
   const { showSuccess, showError } = useToast();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [reprintConfirm, setReprintConfirm] = useState<ExpeditionListItemDto | null>(null);
 
@@ -69,6 +72,12 @@ const ExpeditionListArchivePage: React.FC = () => {
     } catch {
       showError('Chyba', 'Nepodařilo se otevřít soubor.');
     }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.expeditionListArchive });
+    setIsRefreshing(false);
   };
 
   const handleRunJob = async () => {
@@ -112,6 +121,14 @@ const ExpeditionListArchivePage: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-gray-900">Archiv expedičních listů</h1>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
+            Obnovit
+          </button>
           <button
             onClick={handleRunFix}
             disabled={runFixMutation.isPending}
