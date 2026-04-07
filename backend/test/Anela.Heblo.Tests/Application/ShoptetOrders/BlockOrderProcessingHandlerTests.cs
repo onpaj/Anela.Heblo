@@ -1,7 +1,6 @@
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.ShoptetOrders.UseCases.BlockOrderProcessing;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.ShoptetOrders;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,7 +10,7 @@ namespace Anela.Heblo.Tests.Application.ShoptetOrders;
 
 public class BlockOrderProcessingHandlerTests
 {
-    private readonly Mock<IShoptetOrderClient> _clientMock;
+    private readonly Mock<IEshopOrderClient> _clientMock;
     private readonly Mock<ILogger<BlockOrderProcessingHandler>> _loggerMock;
     private readonly ShoptetOrdersSettings _settings;
     private BlockOrderProcessingHandler CreateHandler() =>
@@ -22,7 +21,7 @@ public class BlockOrderProcessingHandlerTests
 
     public BlockOrderProcessingHandlerTests()
     {
-        _clientMock = new Mock<IShoptetOrderClient>();
+        _clientMock = new Mock<IEshopOrderClient>();
         _loggerMock = new Mock<ILogger<BlockOrderProcessingHandler>>();
         _settings = new ShoptetOrdersSettings
         {

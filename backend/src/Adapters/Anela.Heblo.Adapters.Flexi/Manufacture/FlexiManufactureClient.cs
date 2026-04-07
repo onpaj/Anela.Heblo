@@ -194,7 +194,8 @@ public class FlexiManufactureClient : IManufactureClient
 
         foreach (var item in request.Items)
         {
-            var template = await GetManufactureTemplateAsync(item.ProductCode, cancellationToken);
+            var template = await GetManufactureTemplateAsync(item.ProductCode, cancellationToken)
+                ?? throw new ApplicationException($"No BoM header for product {item.ProductCode} found");
             var scaleFactor = (double)item.Amount / template.Amount;
 
             foreach (var ingredient in template.Ingredients.Where(w => w.ProductType != ProductType.UNDEFINED))
@@ -655,11 +656,14 @@ public class FlexiManufactureClient : IManufactureClient
         }
     }
 
-    public async Task<ManufactureTemplate> GetManufactureTemplateAsync(string id, CancellationToken cancellationToken = default)
+    public async Task<ManufactureTemplate?> GetManufactureTemplateAsync(string id, CancellationToken cancellationToken = default)
     {
         var bom = await _bomClient.GetAsync(id, cancellationToken);
 
-        var header = bom.SingleOrDefault(s => s.Level == 1) ?? throw new ApplicationException(message: $"No BoM header for product {id} found");
+        var header = bom.SingleOrDefault(s => s.Level == 1);
+        if (header == null)
+            return null;
+
         var ingredients = bom.Where(w => w.Level != 1);
 
         // Get stock data to determine HasLots for each ingredient

@@ -86,7 +86,12 @@ export async function applyFilters(
 export async function clearAllFilters(page: Page): Promise<void> {
   const inputs = getFilterInputs(page);
   await inputs.clearButton.click();
-  await page.waitForLoadState('networkidle'); // Wait for clear to complete
+  // ClassificationHistoryPage.clearFilters uses setTimeout(() => refetch(), 0) so the
+  // refetch API call is deferred one event-loop tick. waitForLoadState('networkidle')
+  // can resolve in that gap — before the request has even started — causing the test
+  // to proceed with stale data. A small pause lets the deferred refetch fire first.
+  await page.waitForTimeout(100);
+  await page.waitForLoadState('networkidle');
 }
 
 /**

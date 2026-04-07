@@ -239,6 +239,25 @@ public class FlexiManufactureClientTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task GetManufactureTemplateAsync_MissingBoMHeader_ReturnsNull()
+    {
+        // Arrange - BoM with no Level 1 item (no header)
+        var bomItems = new List<BoMItemFlexiDto>
+        {
+            ManufactureTestData.CreateBoMItem(2, 2, 5.0, ManufactureTestData.Materials.Bisabolol)
+        };
+
+        _mockBomClient.Setup(x => x.GetAsync(ManufactureTestData.Products.ConfidentBar.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(bomItems);
+
+        // Act
+        var result = await _client.GetManufactureTemplateAsync(ManufactureTestData.Products.ConfidentBar.Code);
+
+        // Assert
+        Assert.Null(result);
+    }
+
     #endregion
 
     #region Stock Validation Tests

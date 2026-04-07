@@ -34,7 +34,7 @@ test.describe('Recurring Jobs Management', () => {
     await expect(page.getByText('Actions').first()).toBeVisible();
   });
 
-  test('should display all 9 recurring jobs', async ({ page }) => {
+  test('should display all 12 recurring jobs', async ({ page }) => {
     // Wait for table to load
     await page.waitForSelector('table tbody tr', { timeout: 10000 });
 
@@ -42,8 +42,8 @@ test.describe('Recurring Jobs Management', () => {
     const rows = page.locator('table tbody tr');
     const rowCount = await rows.count();
 
-    // Verify we have 9 jobs
-    expect(rowCount).toBe(9);
+    // Verify we have 12 jobs
+    expect(rowCount).toBe(12);
   });
 
   test('should display job details correctly', async ({ page }) => {
@@ -210,10 +210,10 @@ test.describe('Recurring Jobs Management', () => {
     // Verify table is still visible
     await expect(page.locator('table')).toBeVisible();
 
-    // Verify we still have 9 jobs
+    // Verify we still have 12 jobs
     const rows = page.locator('table tbody tr');
     const rowCount = await rows.count();
-    expect(rowCount).toBe(9);
+    expect(rowCount).toBe(12);
   });
 
   test('should display correct job names', async ({ page }) => {
@@ -227,7 +227,10 @@ test.describe('Recurring Jobs Management', () => {
       'Daily Consumption Calculation',
       'Daily Invoice Import (CZK)',
       'Daily Invoice Import (EUR)',
+      'Daily ShoptetPay CZK Import',
       'Invoice Classification',
+      'Knowledge Base Ingestion',
+      'Print Picking List',
       'Product Export Download',
       'Product Weight Recalculation',
       'Purchase Price Recalculation'
@@ -252,8 +255,8 @@ test.describe('Recurring Jobs Management', () => {
     const cronExpressions = await cronCells.allTextContents();
 
     // Verify all cron expressions are valid (match cron format pattern)
-    // Pattern allows: digits or * in each of the 5 fields
-    const cronPattern = /^(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)\s+(\d+|\*)$/;
+    // Pattern allows digits, *, /, comma, dash in each of the 5 fields (supports step/list/range syntax)
+    const cronPattern = /^[\d*,\-\/]+(\s+[\d*,\-\/]+){4}$/;
 
     for (const cron of cronExpressions) {
       const trimmedCron = cron.trim();
@@ -289,8 +292,8 @@ test.describe('Recurring Jobs Management', () => {
     const toggleButtons = page.locator('button[role="switch"]');
     const buttonCount = await toggleButtons.count();
 
-    // Verify we have toggle buttons for all 9 jobs
-    expect(buttonCount).toBe(9);
+    // Verify we have toggle buttons for all 12 jobs
+    expect(buttonCount).toBe(12);
 
     // Check each button has proper ARIA attributes
     for (let i = 0; i < buttonCount; i++) {
@@ -686,8 +689,8 @@ test.describe('Recurring Jobs - Manual Trigger', () => {
     const runNowButtons = page.getByText('Run Now');
     const buttonCount = await runNowButtons.count();
 
-    // Verify we have buttons for all 9 jobs
-    expect(buttonCount).toBe(9);
+    // Verify we have buttons for all 12 jobs
+    expect(buttonCount).toBe(12);
 
     // Check first button has proper aria-label
     const firstButton = runNowButtons.first();
