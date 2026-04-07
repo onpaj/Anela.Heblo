@@ -1,6 +1,7 @@
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Anela.Heblo.Xcc.Domain;
 using FluentAssertions;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -16,7 +17,8 @@ public class DashboardServiceTests
     {
         _tileRegistryMock = new Mock<ITileRegistry>();
         _settingsRepositoryMock = new Mock<IUserDashboardSettingsRepository>();
-        _service = new DashboardService(_tileRegistryMock.Object, _settingsRepositoryMock.Object);
+        var options = Options.Create(new DashboardOptions());
+        _service = new DashboardService(_tileRegistryMock.Object, _settingsRepositoryMock.Object, options);
     }
 
     [Fact]
@@ -292,6 +294,55 @@ public class DashboardServiceTests
         errorTile.Title.Should().Be("Error");
         errorTile.Category.Should().Be(TileCategory.Error);
         errorTile.Description.Should().Contain("Data loading failed");
+    }
+
+    [Fact]
+    public async Task GetTileDataAsync_WhenMultipleVisibleTiles_ShouldReturnAllTilesInDisplayOrder()
+    {
+        // Arrange
+        var userId = "user123";
+        var userSettings = new UserDashboardSettings
+        {
+            UserId = userId,
+            LastModified = DateTime.UtcNow,
+            Tiles = new List<UserDashboardTile>
+            {
+                new() { UserId = userId, TileId = "tile1", IsVisible = true, DisplayOrder = 0, LastModified = DateTime.UtcNow },
+                new() { UserId = userId, TileId = "tile2", IsVisible = true, DisplayOrder = 1, LastModified = DateTime.UtcNow },
+                new() { UserId = userId, TileId = "tile3", IsVisible = true, DisplayOrder = 2, LastModified = DateTime.UtcNow }
+            }
+        };
+
+        _settingsRepositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
+            .ReturnsAsync(userSettings);
+
+        _tileRegistryMock
+            .Setup(x => x.GetAvailableTiles())
+            .Returns(new List<ITile>());
+
+        foreach (var tileId in new[] { "tile1", "tile2", "tile3" })
+        {
+            var id = tileId;
+            _tileRegistryMock
+                .Setup(x => x.GetTile(id))
+                .Returns(new TestTileWithData(id));
+
+            _tileRegistryMock
+                .Setup(x => x.GetTileDataAsync(id, It.IsAny<Dictionary<string, string>?>()))
+                .ReturnsAsync(new { TileId = id });
+        }
+
+        // Act
+        var result = (await _service.GetTileDataAsync(userId)).ToList();
+
+        // Assert
+        result.Should().HaveCount(3);
+        result[0].TileId.Should().Be("testwithdata");
+        result[1].TileId.Should().Be("testwithdata");
+        result[2].TileId.Should().Be("testwithdata");
+        result.Should().AllSatisfy(t => t.Category.Should().Be(TileCategory.Finance));
+        result.Should().AllSatisfy(t => t.Data.Should().NotBeNull());
     }
 
     private static List<ITile> CreateMockAutoShowTiles()

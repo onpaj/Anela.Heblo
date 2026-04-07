@@ -34,7 +34,7 @@ public class KnowledgeBaseIngestionJobTests
         OneDriveFolderMappings =
         [
             new() { InboxPath = "/KnowledgeBase/Inbox", ArchivedPath = "/KnowledgeBase/Archived", DocumentType = DocumentType.KnowledgeBase, DriveId = "drive-kb" },
-            new() { InboxPath = "/Conversation/Inbox",  ArchivedPath = "/Conversation/Archived",  DocumentType = DocumentType.Conversation,  DriveId = "drive-conv" }
+            new() { InboxPath = "/Conversation/Inbox", ArchivedPath = "/Conversation/Archived", DocumentType = DocumentType.Conversation, DriveId = "drive-conv" }
         ]
     };
 
