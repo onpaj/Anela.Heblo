@@ -1,6 +1,3 @@
-using Anela.Heblo.Adapters.ShoptetApi.Orders;
-using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
-using Anela.Heblo.Domain.Features.ShoptetOrders;
 using Anela.Heblo.Adapters.Shoptet.Tests.Integration.Infrastructure;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.ShoptetOrders.UseCases.BlockOrderProcessing;
@@ -26,7 +23,7 @@ public class BlockOrderProcessingIntegrationTests
     private const string TestEmail = "block-order-test@heblo.test";
 
     private readonly IConfiguration _configuration;
-    private readonly ShoptetOrderClient _client;
+    private readonly IEshopOrderClient _client;
     private readonly ILogger<BlockOrderProcessingHandler> _logger;
     private readonly ITestOutputHelper _output;
 
@@ -35,7 +32,7 @@ public class BlockOrderProcessingIntegrationTests
         ITestOutputHelper output)
     {
         _configuration = fixture.Configuration;
-        _client = (ShoptetOrderClient)fixture.ServiceProvider.GetRequiredService<IShoptetOrderClient>();
+        _client = fixture.ServiceProvider.GetRequiredService<IEshopOrderClient>();
         _logger = fixture.ServiceProvider.GetRequiredService<ILogger<BlockOrderProcessingHandler>>();
         _output = output;
     }
@@ -126,7 +123,7 @@ public class BlockOrderProcessingIntegrationTests
         }
     }
 
-    private static CreateOrderRequest BuildOrderRequest(
+    private static CreateEshopOrderRequest BuildOrderRequest(
         string externalCode,
         string shippingGuid,
         string paymentGuid) =>
@@ -137,8 +134,8 @@ public class BlockOrderProcessingIntegrationTests
             ExternalCode = externalCode,
             ShippingGuid = shippingGuid,
             PaymentMethodGuid = paymentGuid,
-            Currency = new OrderCurrency { Code = "CZK" },
-            BillingAddress = new OrderAddress
+            CurrencyCode = "CZK",
+            BillingAddress = new EshopOrderAddress
             {
                 FullName = "Test Heblo",
                 Street = "Testovaci 1",
@@ -147,7 +144,7 @@ public class BlockOrderProcessingIntegrationTests
             },
             Items =
             [
-                new OrderItem
+                new EshopOrderItem
                 {
                     ItemType = "product",
                     Code = "OCH001030",
@@ -156,7 +153,7 @@ public class BlockOrderProcessingIntegrationTests
                     ItemPriceWithVat = "1.00",
                     Amount = "1",
                 },
-                new OrderItem
+                new EshopOrderItem
                 {
                     ItemType = "billing",
                     Name = "Platba prevod",
@@ -164,7 +161,7 @@ public class BlockOrderProcessingIntegrationTests
                     ItemPriceWithVat = "0.00",
                     Amount = "1",
                 },
-                new OrderItem
+                new EshopOrderItem
                 {
                     ItemType = "shipping",
                     Name = "Zásilkovna (do ruky)",

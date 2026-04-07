@@ -11,7 +11,6 @@ using Anela.Heblo.Domain.Features.CashRegister;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Invoices;
-using Anela.Heblo.Domain.Features.Logistics.Picking;
 using Anela.Heblo.Domain.Features.Logistics.StockTaking;
 using Anela.Heblo.Persistence.Logistics.StockTaking;
 using Anela.Heblo.Persistence.Repositories;
@@ -45,9 +44,6 @@ public static class ShoptetAdapterServiceCollectionExtensions
         services.AddSingleton<ForeignCurrencyPriceValueResolver>();
 
         services.AddSingleton<IssuedInvoiceExportScenario>();
-
-        services.AddSingleton<IPickingListSource, ShoptetPlaywrightExpeditionListSource>();
-        services.AddSingleton<PrintPickingListScenario>();
 
         services.AddScoped<IEshopStockDomainService, ShoptetPlaywrightStockDomainService>();
         services.AddSingleton<StockUpScenario>();

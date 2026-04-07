@@ -1,6 +1,5 @@
-using Anela.Heblo.Adapters.ShoptetApi.Orders;
-using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 using Anela.Heblo.Adapters.Shoptet.Tests.Integration.Infrastructure;
+using Anela.Heblo.Application.Features.ShoptetOrders;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +13,7 @@ public class ShoptetTestEnvironmentHydrationTests
 {
     private readonly ShoptetIntegrationTestFixture _fixture;
     private readonly IConfiguration _configuration;
-    private readonly ShoptetOrderClient _client;
+    private readonly IEshopOrderClient _client;
     private readonly ITestOutputHelper _output;
 
     // Shipping IDs match ShoptetPlaywrightExpeditionListSource constants.
@@ -61,7 +60,7 @@ public class ShoptetTestEnvironmentHydrationTests
     {
         _fixture = fixture;
         _configuration = fixture.Configuration;
-        _client = fixture.ServiceProvider.GetRequiredService<ShoptetOrderClient>();
+        _client = fixture.ServiceProvider.GetRequiredService<IEshopOrderClient>();
         _output = output;
 
         var expStatusId = _configuration.GetValue<int?>("Shoptet:StatusId:EXP")
@@ -172,26 +171,26 @@ public class ShoptetTestEnvironmentHydrationTests
             if (existing is null)
             {
                 var shippingName = definition.ShippingId == 21 ? "Zásilkovna (do ruky)" : "PPL (do ruky)";
-                var request = new CreateOrderRequest
+                var request = new CreateEshopOrderRequest
                 {
                     Email = "test-seed@heblo.test",
                     Phone = "+420725191660",
                     ExternalCode = definition.ExternalCode,
                     ShippingGuid = shippingGuid,
                     PaymentMethodGuid = paymentGuid,
-                    Currency = new OrderCurrency { Code = "CZK" },
-                    BillingAddress = new OrderAddress
+                    CurrencyCode = "CZK",
+                    BillingAddress = new EshopOrderAddress
                     {
                         FullName = CustomerNames[idx % CustomerNames.Length],
                         Street = "Testovaci 1",
                         City = "Praha",
                         Zip = "10000",
                     },
-                    Items = new List<OrderItem>
+                    Items = new List<EshopOrderItem>
                     {
                         // OCH001030 is a real product variant code required by the Shoptet API.
                         // suppressProductChecking is not supported via REST.
-                        new OrderItem
+                        new EshopOrderItem
                         {
                             ItemType = "product",
                             Code = "OCH001030",
@@ -200,7 +199,7 @@ public class ShoptetTestEnvironmentHydrationTests
                             ItemPriceWithVat = "1.00",
                             Amount = "1",
                         },
-                        new OrderItem
+                        new EshopOrderItem
                         {
                             ItemType = "billing",
                             Name = "Platba prevod",
@@ -208,7 +207,7 @@ public class ShoptetTestEnvironmentHydrationTests
                             ItemPriceWithVat = "0.00",
                             Amount = "1",
                         },
-                        new OrderItem
+                        new EshopOrderItem
                         {
                             ItemType = "shipping",
                             Name = shippingName,
@@ -227,11 +226,11 @@ public class ShoptetTestEnvironmentHydrationTests
                 _output.WriteLine($"CREATED  {definition.ExternalCode} → status {definition.TargetState}");
                 created++;
             }
-            else if (existing.Status.Id != definition.TargetState)
+            else if (existing.StatusId != definition.TargetState)
             {
                 await _client.UpdateStatusAsync(existing.Code, definition.TargetState, ct);
                 _output.WriteLine(
-                    $"RESET    {definition.ExternalCode}: {existing.Status.Id} → {definition.TargetState}");
+                    $"RESET    {definition.ExternalCode}: {existing.StatusId} → {definition.TargetState}");
                 reset++;
             }
             else

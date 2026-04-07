@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.ShoptetOrders;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -8,16 +7,16 @@ namespace Anela.Heblo.Application.Features.ShoptetOrders.UseCases.BlockOrderProc
 
 public class BlockOrderProcessingHandler : IRequestHandler<BlockOrderProcessingRequest, BlockOrderProcessingResponse>
 {
-    private readonly IShoptetOrderClient _shoptetOrderClient;
+    private readonly IEshopOrderClient _eshopOrderClient;
     private readonly IOptions<ShoptetOrdersSettings> _settings;
     private readonly ILogger<BlockOrderProcessingHandler> _logger;
 
     public BlockOrderProcessingHandler(
-        IShoptetOrderClient shoptetOrderClient,
+        IEshopOrderClient eshopOrderClient,
         IOptions<ShoptetOrdersSettings> settings,
         ILogger<BlockOrderProcessingHandler> logger)
     {
-        _shoptetOrderClient = shoptetOrderClient;
+        _eshopOrderClient = eshopOrderClient;
         _settings = settings;
         _logger = logger;
     }
@@ -28,7 +27,7 @@ public class BlockOrderProcessingHandler : IRequestHandler<BlockOrderProcessingR
     {
         try
         {
-            var currentStatusId = await _shoptetOrderClient.GetOrderStatusIdAsync(
+            var currentStatusId = await _eshopOrderClient.GetOrderStatusIdAsync(
                 request.OrderCode, cancellationToken);
 
             if (!_settings.Value.AllowedBlockSourceStateIds.Contains(currentStatusId))
@@ -42,10 +41,10 @@ public class BlockOrderProcessingHandler : IRequestHandler<BlockOrderProcessingR
                     });
             }
 
-            await _shoptetOrderClient.UpdateStatusAsync(
+            await _eshopOrderClient.UpdateStatusAsync(
                 request.OrderCode, _settings.Value.BlockedStatusId, cancellationToken);
 
-            await _shoptetOrderClient.SetInternalNoteAsync(
+            await _eshopOrderClient.SetInternalNoteAsync(
                 request.OrderCode, request.Note, cancellationToken);
 
             return new BlockOrderProcessingResponse();

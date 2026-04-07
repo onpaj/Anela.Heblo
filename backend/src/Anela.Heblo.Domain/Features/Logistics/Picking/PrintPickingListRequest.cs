@@ -2,10 +2,7 @@ namespace Anela.Heblo.Domain.Features.Logistics.Picking;
 
 public class PrintPickingListRequest
 {
-    //public const int DefaultSourceStateId = -2; // Vyrizuje se
-    //private const string SourceStateId = "55"; // K Expedici
-    //private const string SourceStateId = "26"; // Bali se
-    public const int DefaultSourceStateId = 73; // Oprava robot
+    public const int DefaultSourceStateId = -2; // Vyrizuje se
     //private const string DesiredStateId = "26"; // Bali se
     public const int DefaultDesiredStateId = 26; // Bali se
 
