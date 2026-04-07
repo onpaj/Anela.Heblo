@@ -42,7 +42,10 @@ These two are **completely unrelated** — do not confuse them.
 | `PATCH` | `/api/orders/{code}/head` | Update basic info (email, addresses) |
 | `PATCH` | `/api/orders/{code}/status` | Change status / mark paid / update payment method |
 | `PATCH` | `/api/orders/{code}/notes` | Update remarks and 6 custom fields |
+| `GET` | `/api/orders/{code}/history` | List history entries for an order |
 | `POST` | `/api/orders/{code}/history` | Add a remark to order history (type: `comment` or `system`) |
+| `DELETE` | `/api/orders/{code}/history/{id}` | Delete a specific history entry |
+| `GET` | `/api/orders/history/snapshot` | Bulk async history export for up to 50 orders (gzip jsonlines, HTTP 202 + jobId) |
 | `PATCH` | `/api/orders/status-change` | Bulk status update for multiple orders |
 | `DELETE` | `/api/orders/{code}` | Delete order |
 | `POST` | `/api/orders/{code}/copy` | Duplicate order |
@@ -231,6 +234,8 @@ Location: `backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/`
 - **Seeding endpoint:** `POST /api/orders` — creates orders with minimal valid payload.
 - **Status update endpoint:** `PATCH /api/orders/{code}/status` — body shape `{"data":{"statusId":<int>}}`. Note: the property is `statusId` (flat integer), NOT `{"status":{"id":x}}` — verified against Shoptet OpenAPI spec (`additionalProperties: false` schema).
 - **Internal note / history remark:** `POST /api/orders/{code}/history` — body `{"data":{"text":"...","type":"system"}}`. The `type` field is either `"comment"` (visible to customer) or `"system"` (internal). `PATCH /api/orders/{code}/notes` is for updating the order's `remark` field and custom fields — it is NOT for writing history entries.
+- **Read history for one order:** `GET /api/orders/{code}/history` — returns `data.orderHistory[]`. Each entry: `id` (int), `creationTime` (datetime string), `text` (string), `system` (bool — true = Shoptet-generated), `type` ("comment"|"system"), `user` object with `id` (email or system process ID) and `name` (human-readable name). **Author is `user.name`, NOT `author`/`createdBy`/`userName`.** Timestamp is `creationTime`, NOT `createdAt`. Optional query param `system` (bool) to filter system-only or user-only entries. Max 100 history items per order (POST returns 403 if exceeded).
+- **Bulk history fetch:** `GET /api/orders/history/snapshot?orderCodes=A,B,C` — async, max 50 codes per call. Returns HTTP 202 with `data.jobId`. Poll `GET /api/orders/history/snapshot/{jobId}` until it returns a download URL. Download is gzip-compressed jsonlines (one entry per line), same schema as single-order history but extended with `orderCode` field identifying the parent order.
 - **Delete endpoint:** `DELETE /api/orders/{code}`.
 - **ExternalCode filter does NOT exist.** `GET /api/orders?externalCode={code}` returns 400 "Unsupported query parameters". There is no server-side filter by externalCode.
 - **ExternalCode is NOT in the list response.** `GET /api/orders` (paginated list) does NOT include the `externalCode` field for each order. The field is only available via `GET /api/orders/{code}` (single order detail). The list response DOES include `email`, which can be used as a pre-filter to narrow down candidates before fetching details.
