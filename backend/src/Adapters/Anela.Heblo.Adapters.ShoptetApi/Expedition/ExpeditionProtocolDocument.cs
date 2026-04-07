@@ -210,7 +210,9 @@ public class ExpeditionProtocolDocument : IDocument
     }
 
     private static string FormatAmount(int amount, string unit) =>
-        string.IsNullOrEmpty(unit) ? amount.ToString() : $"{amount} {unit}";
+        string.IsNullOrEmpty(unit) || unit.Equals("ks", StringComparison.OrdinalIgnoreCase)
+            ? amount.ToString()
+            : $"{amount} {unit}";
 
     private static string FormatVariant(string? variant)
     {

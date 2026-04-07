@@ -36,6 +36,9 @@ public class ExpeditionOrderDetail
 
     [JsonPropertyName("items")]
     public List<ExpeditionOrderItemDto> Items { get; set; } = new();
+
+    [JsonPropertyName("completion")]
+    public List<ExpeditionCompletionItemDto> Completion { get; set; } = new();
 }
 
 public class ExpeditionAddress
@@ -59,10 +62,41 @@ public class ExpeditionAddress
     public string? Zip { get; set; }
 }
 
+public class ExpeditionCompletionItemDto
+{
+    [JsonPropertyName("itemType")]
+    public string ItemType { get; set; } = null!;
+
+    [JsonPropertyName("itemId")]
+    public long ItemId { get; set; }
+
+    [JsonPropertyName("parentProductSetItemId")]
+    public long? ParentProductSetItemId { get; set; }
+
+    [JsonPropertyName("code")]
+    public string? Code { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("variantName")]
+    public string? VariantName { get; set; }
+
+    [JsonPropertyName("amount")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? Amount { get; set; }
+
+    [JsonPropertyName("amountUnit")]
+    public string? Unit { get; set; }
+}
+
 public class ExpeditionOrderItemDto
 {
     [JsonPropertyName("itemType")]
     public string ItemType { get; set; } = null!;
+
+    [JsonPropertyName("itemId")]
+    public long ItemId { get; set; }
 
     [JsonPropertyName("code")]
     public string? Code { get; set; }

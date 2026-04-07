@@ -205,19 +205,57 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             CustomerName = customerName,
             Address = address,
             Phone = detail.Phone ?? string.Empty,
-            Items = detail.Items
-                .Where(i => string.Equals(i.ItemType, "product", StringComparison.OrdinalIgnoreCase))
-                .Select(i => new ExpeditionOrderItem
-                {
-                    ProductCode = i.Code ?? string.Empty,
-                    Name = i.Name ?? string.Empty,
-                    Variant = i.VariantName ?? string.Empty,
-                    WarehousePosition = i.WarehousePosition ?? string.Empty,
-                    Quantity = (int)(i.Amount ?? 0),
-                    Unit = i.Unit ?? string.Empty,
-                    UnitPrice = decimal.TryParse(i.ItemPriceWithVat, NumberStyles.Any, CultureInfo.InvariantCulture, out var price) ? price : 0m,
-                })
-                .ToList(),
+            Items = MapOrderItems(detail),
         };
+    }
+
+    private static List<ExpeditionOrderItem> MapOrderItems(Model.ExpeditionOrderDetail detail)
+    {
+        var result = new List<ExpeditionOrderItem>();
+
+        var setItemsByParentId = detail.Completion
+            .Where(c => string.Equals(c.ItemType, "product-set-item", StringComparison.OrdinalIgnoreCase)
+                     && c.ParentProductSetItemId.HasValue)
+            .GroupBy(c => c.ParentProductSetItemId!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        foreach (var item in detail.Items)
+        {
+            if (string.Equals(item.ItemType, "product", StringComparison.OrdinalIgnoreCase))
+            {
+                result.Add(new ExpeditionOrderItem
+                {
+                    ProductCode = item.Code ?? string.Empty,
+                    Name = item.Name ?? string.Empty,
+                    Variant = item.VariantName ?? string.Empty,
+                    WarehousePosition = item.WarehousePosition ?? string.Empty,
+                    Quantity = (int)(item.Amount ?? 0),
+                    Unit = item.Unit ?? string.Empty,
+                    UnitPrice = decimal.TryParse(item.ItemPriceWithVat, NumberStyles.Any, CultureInfo.InvariantCulture, out var price) ? price : 0m,
+                });
+            }
+            else if (string.Equals(item.ItemType, "product-set", StringComparison.OrdinalIgnoreCase))
+            {
+                var setQuantity = (int)(item.Amount ?? 1);
+                if (!setItemsByParentId.TryGetValue(item.ItemId, out var setComponents))
+                    continue;
+
+                foreach (var component in setComponents)
+                {
+                    result.Add(new ExpeditionOrderItem
+                    {
+                        ProductCode = component.Code ?? string.Empty,
+                        Name = component.Name ?? string.Empty,
+                        Variant = component.VariantName ?? string.Empty,
+                        WarehousePosition = string.Empty,
+                        Quantity = (int)(component.Amount ?? 0) * setQuantity,
+                        Unit = component.Unit ?? string.Empty,
+                        UnitPrice = 0m,
+                    });
+                }
+            }
+        }
+
+        return result;
     }
 }

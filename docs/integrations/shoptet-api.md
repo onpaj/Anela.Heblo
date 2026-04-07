@@ -102,6 +102,8 @@ Statuses are store-specific (configured in Shoptet admin). Retrievable via `GET 
 
 **IMPORTANT — numeric fields must be JSON strings.** `vatRate`, `itemPriceWithVat`, and `amount` must be sent as strings (e.g. `"21"`, `"1.00"`, `"1"`), not JSON numbers. Sending them as numbers returns 422. The correct field name for quantity is `amount` (not `quantity`).
 
+**`product-set` in GET order response:** When an order contains a set product, Shoptet returns the set header as a `product-set` item in `items[]` (with its own SKU, e.g. `SA009`). The individual components are **not** in `items[]` — they are in the separate `completion[]` array as `product-set-item` entries, linked to the parent via `parentProductSetItemId` matching the parent's `itemId`. To build an expedition/picking list for sets, ignore `product-set` in `items[]` and instead expand it using the `product-set-item` entries from `completion[]`, multiplying component quantities by the set quantity.
+
 
 ### 3.4 Shipping Methods
 
