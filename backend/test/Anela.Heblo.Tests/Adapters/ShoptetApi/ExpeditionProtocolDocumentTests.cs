@@ -335,7 +335,7 @@ public class ExpeditionProtocolDocumentTests
         pdfBytes.Should().NotBeNullOrEmpty();
         File.Exists(outputPath).Should().BeTrue();
 
-        // Cleanup
-        File.Delete(outputPath);
+        // File intentionally kept for visual inspection — open manually from temp path printed below
+        Console.WriteLine($"PDF saved to: {outputPath}");
     }
 }
