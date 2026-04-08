@@ -154,19 +154,26 @@ export const useUpdateManufactureOrderStatusMutation = () => {
       const apiClient = getManufactureOrdersClient();
       return await apiClient.manufactureOrder_UpdateOrderStatus(request.id!, request);
     },
-    onSuccess: (data, variables) => {
-      // Invalidate and refetch manufacture orders
-      queryClient.invalidateQueries({ queryKey: manufactureOrderKeys.all });
-      
-      // Also invalidate specific order detail
-      queryClient.invalidateQueries({
-        queryKey: manufactureOrderKeys.detail(variables.id!),
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: manufactureOrderKeys.detail(variables.id!) });
+      const previousOrder = queryClient.getQueryData(manufactureOrderKeys.detail(variables.id!));
+      queryClient.setQueryData(manufactureOrderKeys.detail(variables.id!), (old: any) => {
+        if (!old) return old;
+        return { ...old, order: { ...old.order, state: variables.newState } };
       });
-
-      // Also invalidate all calendar queries (including those with date parameters)
+      return { previousOrder };
+    },
+    onError: (_err, variables, context: any) => {
+      if (context?.previousOrder) {
+        queryClient.setQueryData(manufactureOrderKeys.detail(variables.id!), context.previousOrder);
+      }
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: manufactureOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: manufactureOrderKeys.detail(variables.id!) });
       queryClient.invalidateQueries({
         predicate: (query) => {
-          return query.queryKey.length >= 2 && 
+          return query.queryKey.length >= 2 &&
                  query.queryKey[0] === "manufacture-orders" &&
                  query.queryKey[1] === "calendar";
         },
@@ -243,27 +250,32 @@ export const useManufactureOrderCalendarQuery = (
 // Confirm semi-product manufacture mutation hook using generated API client
 export const useConfirmSemiProductManufacture = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (request: ConfirmSemiProductManufactureRequest): Promise<ConfirmSemiProductManufactureResponse> => {
       const apiClient = getManufactureOrdersClient();
       return await apiClient.manufactureOrder_ConfirmSemiProductManufacture(request.id!, request);
     },
-    onSuccess: (data, variables) => {
-      // Invalidate and refetch manufacture orders
-      queryClient.invalidateQueries({
-        queryKey: manufactureOrderKeys.all,
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: manufactureOrderKeys.detail(variables.id!) });
+      const previousOrder = queryClient.getQueryData(manufactureOrderKeys.detail(variables.id!));
+      queryClient.setQueryData(manufactureOrderKeys.detail(variables.id!), (old: any) => {
+        if (!old) return old;
+        return { ...old, order: { ...old.order, state: ManufactureOrderState.SemiProductManufactured } };
       });
-      
-      // Also invalidate specific order detail
-      queryClient.invalidateQueries({
-        queryKey: manufactureOrderKeys.detail(variables.id!),
-      });
-
-      // Also invalidate all calendar queries (including those with date parameters)
+      return { previousOrder };
+    },
+    onError: (_err, variables, context: any) => {
+      if (context?.previousOrder) {
+        queryClient.setQueryData(manufactureOrderKeys.detail(variables.id!), context.previousOrder);
+      }
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: manufactureOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: manufactureOrderKeys.detail(variables.id!) });
       queryClient.invalidateQueries({
         predicate: (query) => {
-          return query.queryKey.length >= 2 && 
+          return query.queryKey.length >= 2 &&
                  query.queryKey[0] === "manufacture-orders" &&
                  query.queryKey[1] === "calendar";
         },
@@ -275,27 +287,32 @@ export const useConfirmSemiProductManufacture = () => {
 // Confirm product completion mutation hook using generated API client
 export const useConfirmProductCompletion = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (request: ConfirmProductCompletionRequest): Promise<ConfirmProductCompletionResponse> => {
       const apiClient = getManufactureOrdersClient();
       return await apiClient.manufactureOrder_ConfirmProductCompletion(request.id!, request);
     },
-    onSuccess: (data, variables) => {
-      // Invalidate and refetch manufacture orders
-      queryClient.invalidateQueries({
-        queryKey: manufactureOrderKeys.all,
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: manufactureOrderKeys.detail(variables.id!) });
+      const previousOrder = queryClient.getQueryData(manufactureOrderKeys.detail(variables.id!));
+      queryClient.setQueryData(manufactureOrderKeys.detail(variables.id!), (old: any) => {
+        if (!old) return old;
+        return { ...old, order: { ...old.order, state: ManufactureOrderState.Completed } };
       });
-      
-      // Also invalidate specific order detail
-      queryClient.invalidateQueries({
-        queryKey: manufactureOrderKeys.detail(variables.id!),
-      });
-
-      // Also invalidate all calendar queries (including those with date parameters)
+      return { previousOrder };
+    },
+    onError: (_err, variables, context: any) => {
+      if (context?.previousOrder) {
+        queryClient.setQueryData(manufactureOrderKeys.detail(variables.id!), context.previousOrder);
+      }
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({ queryKey: manufactureOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: manufactureOrderKeys.detail(variables.id!) });
       queryClient.invalidateQueries({
         predicate: (query) => {
-          return query.queryKey.length >= 2 && 
+          return query.queryKey.length >= 2 &&
                  query.queryKey[0] === "manufacture-orders" &&
                  query.queryKey[1] === "calendar";
         },

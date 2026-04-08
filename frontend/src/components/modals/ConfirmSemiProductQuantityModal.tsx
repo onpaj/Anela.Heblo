@@ -24,13 +24,16 @@ const ConfirmSemiProductQuantityModal: React.FC<ConfirmSemiProductQuantityModalP
   const [actualQuantity, setActualQuantity] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  // Initialize with planned quantity when modal opens
+  // Initialize with planned quantity when modal opens.
+  // Intentionally omit `plannedQuantity` from deps — re-renders caused by
+  // optimistic cache updates must not reset a value the user has already entered.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isOpen) {
       setActualQuantity(plannedQuantity.toString());
       setError("");
     }
-  }, [isOpen, plannedQuantity]);
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
