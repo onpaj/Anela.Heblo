@@ -66,6 +66,7 @@ export default function JournalEntryForm({
     entry?.entry?.associatedProducts || [],
   );
   const [currentProduct, setCurrentProduct] = useState<string | null>(null);
+  const [currentTextProduct, setCurrentTextProduct] = useState("");
   const [newTagName, setNewTagName] = useState("");
   const [showNewTagInput, setShowNewTagInput] = useState(false);
   const [useTextInput, setUseTextInput] = useState(false);
@@ -199,6 +200,14 @@ export default function JournalEntryForm({
 
   const handleRemoveProduct = (productCode: string) => {
     setAssociatedProducts(associatedProducts.filter((p) => p !== productCode));
+  };
+
+  const handleTextProductSubmit = () => {
+    const trimmed = currentTextProduct.trim();
+    if (trimmed && !associatedProducts.includes(trimmed)) {
+      setAssociatedProducts([...associatedProducts, trimmed]);
+    }
+    setCurrentTextProduct("");
   };
 
   const handleTagToggle = (tagId: number) => {
@@ -394,20 +403,34 @@ export default function JournalEntryForm({
               </div>
             </div>
 
-            <CatalogAutocomplete<string>
-              value={currentProduct}
-              onSelect={handleProductSelect}
-              placeholder={
-                useTextInput
-                  ? "Zadejte produktový prefix (např. COSM-001)..."
-                  : "Začněte psát název nebo kód produktu..."
-              }
-              productTypes={PRODUCT_TYPE_FILTERS.ALL}
-              itemAdapter={catalogItemToProductCode}
-              displayValue={(value) => value}
-              allowManualEntry={useTextInput}
-              size="md"
-            />
+            {useTextInput ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={currentTextProduct}
+                  onChange={(e) => setCurrentTextProduct(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleTextProductSubmit();
+                    }
+                  }}
+                  onBlur={handleTextProductSubmit}
+                  placeholder="Zadejte produktový prefix (např. COSM-001)..."
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                />
+              </div>
+            ) : (
+              <CatalogAutocomplete<string>
+                value={currentProduct}
+                onSelect={handleProductSelect}
+                placeholder="Začněte psát název nebo kód produktu..."
+                productTypes={PRODUCT_TYPE_FILTERS.ALL}
+                itemAdapter={catalogItemToProductCode}
+                displayValue={(value) => value}
+                size="md"
+              />
+            )}
 
             {/* Mode-specific help text */}
             {useTextInput && (
