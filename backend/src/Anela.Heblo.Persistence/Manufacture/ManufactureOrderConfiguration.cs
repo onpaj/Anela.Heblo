@@ -73,6 +73,13 @@ public class ManufactureOrderConfiguration : IEntityTypeConfiguration<Manufactur
             .IsRequired(false)
             .AsUtcTimestamp();
 
+        builder.Property(x => x.WeightWithinTolerance)
+            .IsRequired(false);
+
+        builder.Property(x => x.WeightDifference)
+            .HasColumnType("numeric(18,4)")
+            .IsRequired(false);
+
         // Indexes for performance
         builder.HasIndex(x => x.OrderNumber)
             .IsUnique()
