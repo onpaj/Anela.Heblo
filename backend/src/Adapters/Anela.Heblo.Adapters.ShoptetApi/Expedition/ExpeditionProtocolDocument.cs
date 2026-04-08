@@ -149,7 +149,8 @@ public class ExpeditionProtocolDocument : IDocument
                             first.StockCount,
                         };
                     })
-                    .OrderBy(x => x.WarehousePosition)
+                    .OrderBy(x => x.WarehousePosition == null)
+                    .ThenBy(x => x.WarehousePosition)
                     .ToList();
 
                 col.Item().Table(table =>
