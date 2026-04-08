@@ -1,18 +1,19 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using DiscardResidualSemiProductRequest = Anela.Heblo.Application.Features.Manufacture.UseCases.DiscardResidualSemiProduct.DiscardResidualSemiProductRequest;
-using DiscardResidualSemiProductResponse = Anela.Heblo.Application.Features.Manufacture.UseCases.DiscardResidualSemiProduct.DiscardResidualSemiProductResponse;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
 public class ManufactureOrderApplicationService : IManufactureOrderApplicationService
 {
     private readonly IMediator _mediator;
+    private readonly IManufactureClient _manufactureClient;
+    private readonly IResidueDistributionCalculator _residueCalculator;
     private readonly TimeProvider _timeProvider;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<ManufactureOrderApplicationService> _logger;
@@ -20,12 +21,16 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
 
     public ManufactureOrderApplicationService(
         IMediator mediator,
+        IManufactureClient manufactureClient,
+        IResidueDistributionCalculator residueCalculator,
         TimeProvider timeProvider,
         ICurrentUserService currentUserService,
         ILogger<ManufactureOrderApplicationService> logger,
         IProductNameFormatter productNameFormatter)
     {
         _mediator = mediator;
+        _manufactureClient = manufactureClient;
+        _residueCalculator = residueCalculator;
         _timeProvider = timeProvider;
         _currentUserService = currentUserService;
         _logger = logger;
@@ -53,7 +58,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             }
 
             // Step 2: Create manufacture via external client
-            var submitManufactureResult = await CreateManufactureOrderInErp(orderId, updateResult.Order!, ErpManufactureType.SemiProduct, cancellationToken);
+            var submitManufactureResult = await CreateManufactureOrderInErp(orderId, updateResult.Order!, ErpManufactureType.SemiProduct, null, cancellationToken);
 
             // Step 3: Change state to SemiProductManufactured
             var result = await UpdateOrderStatus(
@@ -65,6 +70,8 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 productDocumentCode: null,
                 discardDocumentCode: null,
                 !submitManufactureResult.Success,
+                weightWithinTolerance: null,
+                weightDifference: null,
                 cancellationToken);
 
             if (!result.Success)
@@ -91,6 +98,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
     public async Task<ConfirmProductCompletionResult> ConfirmProductCompletionAsync(
         int orderId,
         Dictionary<int, decimal> productActualQuantities,
+        bool overrideConfirmed = false,
         string? changeReason = null,
         CancellationToken cancellationToken = default)
     {
@@ -108,31 +116,57 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 return new ConfirmProductCompletionResult($"Chyba při aktualizaci množství produktů: {updateResult.ErrorCode}");
             }
 
+            // Step 2: Calculate residue distribution
+            var distribution = await _residueCalculator.CalculateAsync(updateResult.Order!, cancellationToken);
+
+            // Step 3: If outside threshold and not yet confirmed by user, request confirmation
+            if (!distribution.IsWithinAllowedThreshold && !overrideConfirmed)
+            {
+                _logger.LogInformation("Order {OrderId} requires user confirmation: residue {DiffPct:F2}% exceeds allowed {AllowedPct:F2}%",
+                    orderId, distribution.DifferencePercentage, distribution.AllowedResiduePercentage);
+                return ConfirmProductCompletionResult.NeedsConfirmation(distribution);
+            }
+
+            // Step 4: Submit to ERP with distribution data
+            var submitManufactureResult = await CreateManufactureOrderInErp(orderId, updateResult.Order!, ErpManufactureType.Product, distribution, cancellationToken);
+
+            // Step 5: Update BoM ingredient amounts per product if ERP submission succeeded
+            if (submitManufactureResult.Success)
+            {
+                foreach (var product in distribution.Products)
+                {
+                    try
+                    {
+                        await _manufactureClient.UpdateBoMIngredientAmountAsync(
+                            product.ProductCode,
+                            updateResult.Order!.SemiProduct.ProductCode,
+                            (double)product.AdjustedGramsPerUnit,
+                            cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to update BoM ingredient amount for product {ProductCode} in order {OrderId}",
+                            product.ProductCode, orderId);
+                    }
+                }
+            }
+
+            // Step 6: Change state to Completed
             string? orderNote = null;
-            // Step 2: Create manufacture via external client
-            var submitManufactureResult = await CreateManufactureOrderInErp(orderId, updateResult.Order!, ErpManufactureType.Product, cancellationToken);
             if (!submitManufactureResult.Success)
                 orderNote = submitManufactureResult.UserMessage ?? submitManufactureResult.FullError();
 
-            DiscardResidualSemiProductResponse? discardResiduesResult = null;
-            // Step 3: Dispose remaining semiproduct
-            if (submitManufactureResult.Success)
-            {
-                discardResiduesResult = await DiscardResidueMaterial(cancellationToken, updateResult);
-                if (!discardResiduesResult.Success)
-                    orderNote = discardResiduesResult.Details ?? discardResiduesResult.FullError();
-            }
-
-            // Step 4: Change state to Completed
             var result = await UpdateOrderStatus(
                 orderId,
                 ManufactureOrderState.Completed,
                 changeReason ?? $"Potvrzeno dokončení výroby produktů",
-                orderNote ?? $"Potvrzeno dokončení výroby produktů - {submitManufactureResult.ManufactureId} (+ {discardResiduesResult!.StockMovementReference})",
+                orderNote ?? $"Potvrzeno dokončení výroby produktů - {submitManufactureResult.ManufactureId}",
                 semiproductDocumentCode: null,
                 productDocumentCode: submitManufactureResult.ManufactureId,
-                discardDocumentCode: discardResiduesResult?.StockMovementReference,
-                manualActionRequired: !submitManufactureResult.Success || discardResiduesResult == null || !discardResiduesResult.Success || discardResiduesResult.RequiresManualApproval,
+                discardDocumentCode: null,
+                manualActionRequired: !submitManufactureResult.Success,
+                weightWithinTolerance: distribution.IsWithinAllowedThreshold,
+                weightDifference: distribution.Difference,
                 cancellationToken);
 
             if (!result.Success)
@@ -142,7 +176,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 return new ConfirmProductCompletionResult($"Chyba při změně stavu: {result.ErrorCode}");
             }
 
-            _logger.LogInformation("Successfully confirmed semi-product manufacture for order {OrderId}", orderId);
+            _logger.LogInformation("Successfully confirmed product completion for order {OrderId}", orderId);
             return new ConfirmProductCompletionResult();
         }
         catch (Exception ex)
@@ -152,24 +186,6 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         }
     }
 
-
-
-    private async Task<DiscardResidualSemiProductResponse> DiscardResidueMaterial(CancellationToken cancellationToken,
-        UpdateManufactureOrderResponse updateResult)
-    {
-        var discardResiduesRequest = new DiscardResidualSemiProductRequest()
-        {
-            ManufactureOrderCode = updateResult.Order!.OrderNumber,
-            ProductCode = updateResult.Order.SemiProduct.ProductCode,
-            ProductName = updateResult.Order.SemiProduct.ProductName,
-            CompletedBy = _currentUserService.GetCurrentUser().Name,
-            CompletionDate = _timeProvider.GetUtcNow().DateTime,
-            BatchSize = (double)updateResult.Order.SemiProduct.ActualQuantity!,
-        };
-
-        var discardResiduesResult = await _mediator.Send(discardResiduesRequest, cancellationToken);
-        return discardResiduesResult;
-    }
 
 
     private async Task<UpdateManufactureOrderResponse> UpdateProductsQuantity(int orderId, Dictionary<int, decimal> productActualQuantities,
@@ -200,8 +216,9 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         string? productDocumentCode,
         string? discardDocumentCode,
         bool manualActionRequired,
-        CancellationToken cancellationToken
-        )
+        bool? weightWithinTolerance,
+        decimal? weightDifference,
+        CancellationToken cancellationToken)
     {
         var statusRequest = new UpdateManufactureOrderStatusRequest
         {
@@ -212,14 +229,21 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             SemiProductOrderCode = semiproductDocumentCode,
             ProductOrderCode = productDocumentCode,
             DiscardRedisueDocumentCode = discardDocumentCode,
-            ManualActionRequired = manualActionRequired
+            ManualActionRequired = manualActionRequired,
+            WeightWithinTolerance = weightWithinTolerance,
+            WeightDifference = weightDifference,
         };
 
         var statusResult = await _mediator.Send(statusRequest, cancellationToken);
         return statusResult;
     }
 
-    private async Task<SubmitManufactureResponse> CreateManufactureOrderInErp(int orderId, UpdateManufactureOrderDto order, ErpManufactureType type, CancellationToken cancellationToken)
+    private async Task<SubmitManufactureResponse> CreateManufactureOrderInErp(
+        int orderId,
+        UpdateManufactureOrderDto order,
+        ErpManufactureType type,
+        ResidueDistribution? distribution,
+        CancellationToken cancellationToken)
     {
         string manufactureName;
         List<SubmitManufactureRequestItem> items;
@@ -259,6 +283,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             Items = items,
             LotNumber = semiProduct.LotNumber,
             ExpirationDate = semiProduct.ExpirationDate,
+            ResidueDistribution = distribution,
         };
 
         var submitManufactureResult = await _mediator.Send(submitManufactureRequest, cancellationToken);

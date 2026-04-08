@@ -1,3 +1,5 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
+
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
 public interface IManufactureOrderApplicationService
@@ -11,6 +13,7 @@ public interface IManufactureOrderApplicationService
     Task<ConfirmProductCompletionResult> ConfirmProductCompletionAsync(
         int orderId,
         Dictionary<int, decimal> productActualQuantities,
+        bool overrideConfirmed = false,
         string? changeReason = null,
         CancellationToken cancellationToken = default);
 }

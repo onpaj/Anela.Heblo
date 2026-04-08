@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Features.Manufacture.Services;
+namespace Anela.Heblo.Application.Features.Manufacture.Contracts;
 
 public class ConfirmSemiProductManufactureResult
 {

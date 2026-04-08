@@ -43,46 +43,29 @@ const stateColors: Record<ManufactureOrderState, string> = {
 type ErpDocumentStatus = 'pending' | 'failed' | 'success';
 
 const getErpDocumentStatus = (
-  documentNumber: string | undefined, 
-  orderState: ManufactureOrderState | undefined, 
-  documentType: 'semiproduct' | 'product' | 'discard'
+  documentNumber: string | undefined,
+  orderState: ManufactureOrderState | undefined,
+  documentType: 'semiproduct' | 'product'
 ): ErpDocumentStatus => {
-  // If state is undefined, default to pending
   if (orderState === undefined) {
     return 'pending';
   }
-  
-  // Logic based on order state and document type
-  let shouldHaveDocument = false;
-  
-  switch (documentType) {
-    case 'semiproduct':
-      // Should have semiproduct document if in SemiProductManufactured or Completed state
-      shouldHaveDocument = orderState === ManufactureOrderState.SemiProductManufactured || 
-                          orderState === ManufactureOrderState.Completed;
-      break;
-    case 'product':
-      // Should have product document only if in Completed state
-      shouldHaveDocument = orderState === ManufactureOrderState.Completed;
-      break;
-    case 'discard':
-      // Should have discard document only if in Completed state
-      shouldHaveDocument = orderState === ManufactureOrderState.Completed;
-      break;
-  }
-  
-  if (!shouldHaveDocument) {
-    // Not yet in the required state - show pending (question mark)
-    return 'pending';
-  }
-  
-  if (documentNumber) {
-    // In required state and has document number - success (green check)
-    return 'success';
-  } else {
-    // In required state but missing document number - failed (red X)
-    return 'failed';
-  }
+
+  const shouldHaveDocument =
+    documentType === 'semiproduct'
+      ? orderState === ManufactureOrderState.SemiProductManufactured || orderState === ManufactureOrderState.Completed
+      : orderState === ManufactureOrderState.Completed;
+
+  if (!shouldHaveDocument) return 'pending';
+  return documentNumber ? 'success' : 'failed';
+};
+
+const getWeightToleranceStatus = (
+  weightWithinTolerance: boolean | undefined | null,
+  orderState: ManufactureOrderState | undefined
+): ErpDocumentStatus => {
+  if (orderState !== ManufactureOrderState.Completed) return 'pending';
+  return weightWithinTolerance === true ? 'success' : 'failed';
 };
 
 const ErpStatusIndicator: React.FC<{ 
@@ -570,11 +553,17 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                   status={getErpDocumentStatus(event.erpOrderNumberProduct, event.state, 'product')}
                                   title={`ERP doklad produktu: ${event.erpOrderNumberProduct || 'čeká se'}`}
                                 />
-                                {/* Hide ERP výdejka přebytků for SinglePhase */}
+                                {/* Hide weight tolerance indicator for SinglePhase */}
                                 {event.manufactureType !== ManufactureType.SinglePhase && (
-                                  <ErpStatusIndicator 
-                                    status={getErpDocumentStatus(event.erpDiscardResidueDocumentNumber, event.state, 'discard')}
-                                    title={`ERP výdejka přebytků: ${event.erpDiscardResidueDocumentNumber || 'čeká se'}`}
+                                  <ErpStatusIndicator
+                                    status={getWeightToleranceStatus(event.weightWithinTolerance, event.state)}
+                                    title={
+                                      event.state !== ManufactureOrderState.Completed
+                                        ? 'Váha v toleranci: čeká se na dokončení'
+                                        : event.weightWithinTolerance === true
+                                          ? 'Váha v toleranci: OK'
+                                          : 'Váha v toleranci: mimo toleranci'
+                                    }
                                   />
                                 )}
                               </div>

@@ -1,10 +1,12 @@
 using Anela.Heblo.Application.Shared;
 
-namespace Anela.Heblo.Application.Features.Manufacture.Services;
+namespace Anela.Heblo.Application.Features.Manufacture.Contracts;
 
 public class ConfirmProductCompletionResponse : BaseResponse
 {
     public string? Message { get; set; }
+    public bool RequiresConfirmation { get; set; }
+    public ResidueDistributionDto? Distribution { get; set; }
 
     public ConfirmProductCompletionResponse() : base() { }
 

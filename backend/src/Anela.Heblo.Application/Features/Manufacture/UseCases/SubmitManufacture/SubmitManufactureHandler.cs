@@ -43,6 +43,7 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
                 }).ToList(),
                 LotNumber = request.LotNumber,
                 ExpirationDate = request.ExpirationDate,
+                ResidueDistribution = request.ResidueDistribution,
             };
 
             var manufactureId = await _manufactureClient.SubmitManufactureAsync(clientRequest, cancellationToken);

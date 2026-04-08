@@ -33,6 +33,7 @@ public static class ManufactureModule
         // Register batch planning services
         services.AddScoped<IBatchPlanningService, BatchPlanningService>();
         services.AddScoped<IBatchDistributionCalculator, BatchDistributionCalculator>();
+        services.AddScoped<IResidueDistributionCalculator, ResidueDistributionCalculator>();
 
         // Register repositories
         services.AddScoped<IManufactureOrderRepository, ManufactureOrderRepository>();

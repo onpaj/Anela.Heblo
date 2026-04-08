@@ -55,6 +55,7 @@ public class GetCalendarViewHandler : IRequestHandler<GetCalendarViewRequest, Ge
                         ErpOrderNumberProductDate = order.ErpOrderNumberProductDate,
                         ErpDiscardResidueDocumentNumber = order.ErpDiscardResidueDocumentNumber,
                         ErpDiscardResidueDocumentNumberDate = order.ErpDiscardResidueDocumentNumberDate,
+                        WeightWithinTolerance = order.WeightWithinTolerance,
                         SemiProduct = order.SemiProduct != null ? new CalendarEventSemiProductDto
                         {
                             ProductCode = order.SemiProduct.ProductCode,

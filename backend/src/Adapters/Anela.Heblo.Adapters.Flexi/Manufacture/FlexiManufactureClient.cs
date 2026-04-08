@@ -4,6 +4,7 @@ using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
+using Rem.FlexiBeeSDK.Client;
 using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
 using Rem.FlexiBeeSDK.Client.Clients.IssuedOrders;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
@@ -122,11 +123,40 @@ public class FlexiManufactureClient : IManufactureClient
                 ManufactureType = request.ManufactureType,
                 LotNumber = request.LotNumber,
                 ExpirationDate = request.ExpirationDate,
-                ValidateIngredientStock = request.ValidateIngredientStock
+                ValidateIngredientStock = request.ValidateIngredientStock,
+                ResidueDistribution = request.ResidueDistribution
             };
 
             // Get ingredient requirements for this product
             var ingredientRequirements = await AggregateIngredientRequirementsAsync(singleProductRequest, cancellationToken);
+
+            // When ResidueDistribution is set, override the semiproduct ingredient amount with the
+            // distribution-adjusted consumption so that all products together consume exactly
+            // ActualSemiProductQuantity grams (not the BoM-theoretical amount).
+            if (request.ResidueDistribution != null)
+            {
+                var distributionEntry = request.ResidueDistribution.Products
+                    .FirstOrDefault(p => p.ProductCode == item.ProductCode);
+
+                if (distributionEntry != null)
+                {
+                    var semiProductKey = ingredientRequirements
+                        .FirstOrDefault(kv => kv.Value.ProductType == ProductType.SemiProduct).Key;
+
+                    if (semiProductKey != null)
+                    {
+                        var existing = ingredientRequirements[semiProductKey];
+                        ingredientRequirements[semiProductKey] = new IngredientRequirement
+                        {
+                            ProductCode = existing.ProductCode,
+                            ProductName = existing.ProductName,
+                            ProductType = existing.ProductType,
+                            RequiredAmount = (double)distributionEntry.AdjustedConsumption,
+                            HasLots = existing.HasLots
+                        };
+                    }
+                }
+            }
 
             if (request.ValidateIngredientStock)
             {
@@ -573,186 +603,10 @@ public class FlexiManufactureClient : IManufactureClient
         }
     }
 
-    public async Task<DiscardResidualSemiProductResponse> DiscardResidualSemiProductAsync(DiscardResidualSemiProductRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task UpdateBoMIngredientAmountAsync(string productCode, string ingredientCode, double newAmount, CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Starting residual semi-product discard process. ManufactureOrderCode: {ManufactureOrderCode}, SemiProductCode: {SemiProductCode}, MaxAutoDiscardQuantity: {MaxAutoDiscardQuantity}",
-            request.ManufactureOrderCode, request.ProductCode, request.MaxAutoDiscardQuantity);
-
-        try
-        {
-            // Step 1: Read current stock quantity for the semi-product
-            var stockItems = await _stockClient.StockToDateAsync(request.CompletionDate, FlexiStockClient.SemiProductsWarehouseId, cancellationToken);
-            var semiProductStock = stockItems.FirstOrDefault(s => s.ProductCode == request.ProductCode);
-
-            if (semiProductStock == null)
-            {
-                _logger.LogDebug("No stock found for semi-product {SemiProductCode} in warehouse {WarehouseId}",
-                    request.ProductCode, FlexiStockClient.SemiProductsWarehouseId);
-
-                return new DiscardResidualSemiProductResponse
-                {
-                    Success = true,
-                    QuantityFound = 0,
-                    QuantityDiscarded = 0,
-                    RequiresManualApproval = false,
-                    Details = "Nebylo nalezeno žádné zbytkové množství - žádná akce není potřeba"
-                };
-            }
-
-            var currentQuantity = (double)semiProductStock.Stock;
-
-            _logger.LogDebug("Found {CurrentQuantity} units of semi-product {SemiProductCode} in stock",
-                currentQuantity, request.ProductCode);
-
-
-            if (currentQuantity > request.MaxAutoDiscardQuantity)
-            {
-                _logger.LogWarning("Residual quantity {CurrentQuantity} exceeds auto-discard limit {MaxAutoDiscardQuantity} for product {SemiProductCode}",
-                    currentQuantity, request.MaxAutoDiscardQuantity, request.ProductCode);
-
-                return new DiscardResidualSemiProductResponse
-                {
-                    Success = false,
-                    QuantityFound = currentQuantity,
-                    QuantityDiscarded = 0,
-                    RequiresManualApproval = true,
-                    Details = $"Množství {currentQuantity} překračuje limit pro automatické vyřazení {request.MaxAutoDiscardQuantity} - vyžaduje ruční schválení"
-                };
-            }
-
-            // Step 2: Load all available lots for the semi-product
-            _logger.LogDebug("Loading all available lots for semi-product {SemiProductCode}", request.ProductCode);
-            var lots = await _lotsClient.GetAsync(request.ProductCode, cancellationToken: cancellationToken);
-            var availableLots = lots.Where(l => l.Amount > 0).ToList();
-
-            if (availableLots.Count == 0)
-            {
-                _logger.LogWarning("No available lots found for semi-product {SemiProductCode}, but stock shows {CurrentQuantity} units",
-                    request.ProductCode, currentQuantity);
-
-                return new DiscardResidualSemiProductResponse
-                {
-                    Success = false,
-                    QuantityFound = currentQuantity,
-                    QuantityDiscarded = 0,
-                    RequiresManualApproval = true,
-                    ErrorMessage = "Nebyly nalezeny žádné šarže pro vyřazení",
-                    Details = "Skladový stav existuje, ale nejsou dostupné šarže - vyžaduje ruční schválení"
-                };
-            }
-
-            _logger.LogDebug("Found {LotCount} available lots for semi-product {SemiProductCode}", availableLots.Count, request.ProductCode);
-
-            // Step 3: Create stock movement items for each lot
-            var stockMovementItems = new List<StockItemsMovementUpsertRequestItemFlexiDto>();
-            double totalAmountToDiscard = 0;
-
-            foreach (var lot in availableLots)
-            {
-                var amountToDiscard = (double)lot.Amount;
-                totalAmountToDiscard += amountToDiscard;
-
-                stockMovementItems.Add(new StockItemsMovementUpsertRequestItemFlexiDto
-                {
-                    ProductCode = request.ProductCode,
-                    ProductName = request.ProductName,
-                    Amount = amountToDiscard,
-                    AmountIssued = amountToDiscard,
-                    LotNumber = lot.Lot,
-                    Expiration = lot.Expiration?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-                    UnitPrice = (double)semiProductStock.Price,
-                });
-
-                _logger.LogDebug("Added lot {LotNumber} with amount {Amount} and expiration {Expiration} to discard",
-                    lot.Lot, amountToDiscard, lot.Expiration);
-            }
-
-            _logger.LogDebug("Creating stock movement to discard {TotalAmount} units across {LotCount} lots of {SemiProductCode}",
-                totalAmountToDiscard, availableLots.Count, request.ProductCode);
-
-            // Step 4: Create stock movement for discard (stock reduction)
-            var note = CreateDescription(request);
-            string? movementReference;
-            try
-            {
-                var stockMovementRequest = new StockItemsMovementUpsertRequestFlexiDto()
-                {
-                    CreatedBy = request.CompletedBy,
-                    AccountingDate = _timeProvider.GetLocalNow().DateTime,
-                    IssueDate = _timeProvider.GetLocalNow().DateTime,
-                    StockItems = stockMovementItems,
-                    Description = note,
-                    DocumentTypeCode = WarehouseDocumentType_OutboundSemiProduct,
-                    StockMovementDirection = StockMovementDirection.Out,
-                    Note = request.ManufactureOrderCode,
-                    WarehouseId = FlexiStockClient.SemiProductsWarehouseId.ToString(),
-                };
-
-                var stockMovementResult = await _stockMovementClient.SaveAsync(stockMovementRequest, cancellationToken);
-                if (!stockMovementResult.IsSuccess)
-                {
-                    return new DiscardResidualSemiProductResponse
-                    {
-                        Success = false,
-                        QuantityFound = currentQuantity,
-                        QuantityDiscarded = 0,
-                        RequiresManualApproval = true,
-                        ErrorMessage = $"Selhalo vytvoření skladového pohybu: {stockMovementResult.GetErrorMessage()}",
-                        Details = "Vytvoření skladového pohybu selhalo - vyžaduje ruční schválení"
-                    };
-                }
-                var newDocumentIdString = stockMovementResult?.Result?.Results?.FirstOrDefault()?.Id;
-                var newDocumentId = Int32.Parse(newDocumentIdString);
-                var document = await _stockMovementClient.GetAsync(newDocumentId);
-                movementReference = document.FirstOrDefault()?.Document.DocumentCode;
-
-                _logger.LogDebug("Successfully created stock movement {MovementReference} for discard", movementReference);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to create stock movement for discard, but continuing with discard process");
-                return new DiscardResidualSemiProductResponse
-                {
-                    Success = false,
-                    QuantityFound = currentQuantity,
-                    QuantityDiscarded = 0,
-                    RequiresManualApproval = true,
-                    ErrorMessage = $"Selhalo vytvoření skladového pohybu: {ex.Message}",
-                    Details = "Vytvoření skladového pohybu selhalo - vyžaduje ruční schválení"
-                };
-            }
-
-            _logger.LogInformation("Successfully discarded {TotalAmount} units across {LotCount} lots of semi-product {SemiProductCode} for manufacture order {ManufactureOrderCode}",
-                totalAmountToDiscard, availableLots.Count, request.ProductCode, request.ManufactureOrderCode);
-
-            return new DiscardResidualSemiProductResponse
-            {
-                Success = true,
-                QuantityFound = currentQuantity,
-                QuantityDiscarded = totalAmountToDiscard,
-                RequiresManualApproval = false,
-                StockMovementReference = movementReference,
-                Details = $"Úspěšně automaticky vyřazeno {totalAmountToDiscard} kusů z {availableLots.Count} šarží"
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to discard residual semi-product for manufacture order {ManufactureOrderCode}: {ErrorMessage}",
-                request.ManufactureOrderCode, ex.Message);
-
-            return new DiscardResidualSemiProductResponse
-            {
-                Success = false,
-                QuantityFound = 0,
-                QuantityDiscarded = 0,
-                RequiresManualApproval = false,
-                ErrorMessage = $"Selhalo vyřazení zbytkového polotovaru: {ex.Message}"
-            };
-        }
+        await _bomClient.UpdateIngredientAmountAsync(productCode, ingredientCode, newAmount, cancellationToken);
     }
-
-
 
     public async Task<ManufactureTemplate?> GetManufactureTemplateAsync(string id, CancellationToken cancellationToken = default)
     {
@@ -923,8 +777,5 @@ public class FlexiManufactureClient : IManufactureClient
             : request.ManufactureInternalNumber;
     }
 
-    private static string CreateDescription(DiscardResidualSemiProductRequest request)
-    {
-        return $"{request.ProductCode} - {request.ProductName}";
-    }
+
 }

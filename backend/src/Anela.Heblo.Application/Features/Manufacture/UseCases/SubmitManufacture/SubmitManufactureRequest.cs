@@ -17,4 +17,5 @@ public class SubmitManufactureRequest : IRequest<SubmitManufactureResponse>
 
     public string? LotNumber { get; set; }
     public DateOnly? ExpirationDate { get; set; }
+    public ResidueDistribution? ResidueDistribution { get; set; }
 }

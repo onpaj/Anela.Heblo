@@ -30,5 +30,7 @@ public class ManufactureOrder
     public DateTime? ErpOrderNumberProductDate { get; set; }
     public string? ErpDiscardResidueDocumentNumber { get; set; }
     public DateTime? ErpDiscardResidueDocumentNumberDate { get; set; }
+    public bool? WeightWithinTolerance { get; set; }
+    public decimal? WeightDifference { get; set; }   // positive = surplus, negative = deficit
 
 }

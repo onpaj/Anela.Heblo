@@ -27,6 +27,8 @@ import {
   UpdateManufactureOrderSemiProductRequest,
   ConfirmSemiProductManufactureRequest,
   ConfirmProductCompletionRequest,
+  ProductActualQuantityRequest,
+  ResidueDistributionDto,
   ManufactureOrderState,
   ManufactureType,
 } from "../../../api/generated/api-client";
@@ -93,6 +95,8 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const [showResolveModal, setShowResolveModal] = useState(false);
   const [showExpandedNote, setShowExpandedNote] = useState(false);
   const [expandedNoteContent, setExpandedNoteContent] = useState("");
+  const [distributionPreview, setDistributionPreview] = useState<ResidueDistributionDto | undefined>(undefined);
+  const [pendingCompletionRequest, setPendingCompletionRequest] = useState<ConfirmProductCompletionRequest | undefined>(undefined);
 
   // Fetch order details
   const {
@@ -447,13 +451,48 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
 
   const handleConfirmProductCompletion = async (request: ConfirmProductCompletionRequest) => {
     try {
-      await confirmProductCompletionMutation.mutateAsync(request);
-      setShowProductCompletionModal(false);
-      handleCloseWithWeekNavigation();
+      const response = await confirmProductCompletionMutation.mutateAsync(request);
+      if (response.requiresConfirmation && response.distribution) {
+        // Store the original request and show the distribution preview
+        setPendingCompletionRequest(request);
+        setDistributionPreview(response.distribution);
+      } else {
+        setShowProductCompletionModal(false);
+        setDistributionPreview(undefined);
+        setPendingCompletionRequest(undefined);
+        handleCloseWithWeekNavigation();
+      }
     } catch (error) {
       console.error("Error confirming product completion:", error);
       throw error;
     }
+  };
+
+  const handleConfirmDistribution = async () => {
+    if (!pendingCompletionRequest) return;
+    try {
+      const overrideRequest = new ConfirmProductCompletionRequest({
+        id: pendingCompletionRequest.id,
+        changeReason: pendingCompletionRequest.changeReason,
+        products: (pendingCompletionRequest.products ?? []).map(
+          p => new ProductActualQuantityRequest({ id: p.id, actualQuantity: p.actualQuantity })
+        ),
+        overrideConfirmed: true,
+      });
+      await confirmProductCompletionMutation.mutateAsync(overrideRequest);
+      setShowProductCompletionModal(false);
+      setDistributionPreview(undefined);
+      setPendingCompletionRequest(undefined);
+      handleCloseWithWeekNavigation();
+    } catch (error) {
+      console.error("Error confirming distribution override:", error);
+      throw error;
+    }
+  };
+
+  const handleBackFromDistribution = () => {
+    setDistributionPreview(undefined);
+    setPendingCompletionRequest(undefined);
   };
 
   const handleGoToBatchCalculator = () => {
@@ -588,7 +627,6 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                       editableResponsiblePerson={editableResponsiblePerson}
                       editableErpOrderNumberSemiproduct={editableErpOrderNumberSemiproduct}
                       editableErpOrderNumberProduct={editableErpOrderNumberProduct}
-                      editableErpDiscardResidueDocumentNumber={editableErpDiscardResidueDocumentNumber}
                       editablePlannedDate={editablePlannedDate}
                       editableLotNumber={editableLotNumber}
                       editableExpirationDate={editableExpirationDate}
@@ -596,7 +634,6 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
                       onResponsiblePersonChange={(value) => setEditableResponsiblePerson(value || "")}
                       onErpOrderNumberSemiproductChange={setEditableErpOrderNumberSemiproduct}
                       onErpOrderNumberProductChange={setEditableErpOrderNumberProduct}
-                      onErpDiscardResidueDocumentNumberChange={setEditableErpDiscardResidueDocumentNumber}
                       onPlannedDateChange={setEditablePlannedDate}
                       onLotNumberChange={setEditableLotNumber}
                       onExpirationDateChange={setEditableExpirationDate}
@@ -681,8 +718,15 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         onQuantityConfirmModalClose={() => setShowQuantityConfirmModal(false)}
         onQuantityConfirm={handleConfirmQuantity}
         showProductCompletionModal={showProductCompletionModal}
-        onProductCompletionModalClose={() => setShowProductCompletionModal(false)}
+        onProductCompletionModalClose={() => {
+          setShowProductCompletionModal(false);
+          setDistributionPreview(undefined);
+          setPendingCompletionRequest(undefined);
+        }}
         onProductCompletionConfirm={handleConfirmProductCompletion}
+        distributionPreview={distributionPreview}
+        onConfirmDistribution={handleConfirmDistribution}
+        onBackFromDistribution={handleBackFromDistribution}
         showResolveModal={showResolveModal}
         onResolveModalClose={() => setShowResolveModal(false)}
         onResolveSuccess={() => {

@@ -18,6 +18,7 @@ public class CalendarEventDto
     public DateTime? ErpOrderNumberProductDate { get; set; }
     public string? ErpDiscardResidueDocumentNumber { get; set; }
     public DateTime? ErpDiscardResidueDocumentNumberDate { get; set; }
+    public bool? WeightWithinTolerance { get; set; }
 
     // Extended information for detailed views
     public CalendarEventSemiProductDto? SemiProduct { get; set; }

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Anela.Heblo.Application.Features.Manufacture.Services;
+namespace Anela.Heblo.Application.Features.Manufacture.Contracts;
 
 public class ConfirmProductCompletionRequest
 {
@@ -9,6 +9,8 @@ public class ConfirmProductCompletionRequest
 
     [Required]
     public List<ProductActualQuantityRequest> Products { get; set; } = new();
+
+    public bool OverrideConfirmed { get; set; } = false;
 
     public string? ChangeReason { get; set; }
 }
