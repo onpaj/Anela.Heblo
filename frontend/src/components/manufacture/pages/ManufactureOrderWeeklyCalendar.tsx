@@ -45,44 +45,19 @@ type ErpDocumentStatus = 'pending' | 'failed' | 'success';
 const getErpDocumentStatus = (
   documentNumber: string | undefined,
   orderState: ManufactureOrderState | undefined,
-  documentType: 'semiproduct' | 'product' | 'discard'
+  documentType: 'semiproduct' | 'product'
 ): ErpDocumentStatus => {
-  // If state is undefined, default to pending
   if (orderState === undefined) {
     return 'pending';
   }
 
-  // Logic based on order state and document type
-  let shouldHaveDocument = false;
+  const shouldHaveDocument =
+    documentType === 'semiproduct'
+      ? orderState === ManufactureOrderState.SemiProductManufactured || orderState === ManufactureOrderState.Completed
+      : orderState === ManufactureOrderState.Completed;
 
-  switch (documentType) {
-    case 'semiproduct':
-      // Should have semiproduct document if in SemiProductManufactured or Completed state
-      shouldHaveDocument = orderState === ManufactureOrderState.SemiProductManufactured ||
-                          orderState === ManufactureOrderState.Completed;
-      break;
-    case 'product':
-      // Should have product document only if in Completed state
-      shouldHaveDocument = orderState === ManufactureOrderState.Completed;
-      break;
-    case 'discard':
-      // Should have discard document only if in Completed state
-      shouldHaveDocument = orderState === ManufactureOrderState.Completed;
-      break;
-  }
-
-  if (!shouldHaveDocument) {
-    // Not yet in the required state - show pending (question mark)
-    return 'pending';
-  }
-
-  if (documentNumber) {
-    // In required state and has document number - success (green check)
-    return 'success';
-  } else {
-    // In required state but missing document number - failed (red X)
-    return 'failed';
-  }
+  if (!shouldHaveDocument) return 'pending';
+  return documentNumber ? 'success' : 'failed';
 };
 
 const getWeightToleranceStatus = (
