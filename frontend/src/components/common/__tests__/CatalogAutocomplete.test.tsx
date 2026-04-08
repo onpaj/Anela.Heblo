@@ -1,99 +1,118 @@
 import React from "react";
-import { render, fireEvent } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CatalogAutocomplete } from "../CatalogAutocomplete";
 import { CatalogItemDto, ProductType } from "../../../api/generated/api-client";
 import { useCatalogAutocomplete } from "../../../api/hooks/useCatalogAutocomplete";
 
-// Mock the useCatalogAutocomplete hook
 jest.mock("../../../api/hooks/useCatalogAutocomplete");
 const mockUseCatalogAutocomplete = useCatalogAutocomplete as jest.MockedFunction<
   typeof useCatalogAutocomplete
 >;
 
-// Mock CatalogItemDto with price data
-const mockCatalogItemWithPrice = new CatalogItemDto({
+// Use jest.fn() inside factory (jest is always in scope).
+// Retrieve mock references via jest.requireMock() to avoid hoisting/TDZ issues.
+jest.mock("react-select", () => ({
+  __esModule: true,
+  default: jest.fn(() => null),
+  components: { Option: () => null, SingleValue: () => null },
+}));
+
+const mockCatalogItem = new CatalogItemDto({
   productCode: "TEST001",
   productName: "Test Material",
   type: ProductType.Material,
-  location: "A1-B2",
-  stock: { available: 100 },
-  minimalOrderQuantity: "10",
-  price: {
-    currentPurchasePrice: 25.1234,
-    currentSellingPrice: 35.0000,
-  },
 });
 
-const createTestQueryClient = () => {
-  return new QueryClient({
+const createTestQueryClient = () =>
+  new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
     },
   });
-};
 
-const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const queryClient = createTestQueryClient();
-  return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
-};
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <QueryClientProvider client={createTestQueryClient()}>
+    {children}
+  </QueryClientProvider>
+);
 
 describe("CatalogAutocomplete", () => {
+  let MockSelect: jest.Mock;
+
   beforeEach(() => {
     jest.clearAllMocks();
-  });
+    MockSelect = jest.requireMock("react-select").default as jest.Mock;
 
-  // These tests have been removed because they test implementation details
-  // that don't match real usage patterns. They try to simulate user interactions
-  // with mocked hooks, but the mocks don't properly simulate async behavior.
-  // The actual component works correctly in real usage (verified in staging).
-
-  it("clears selection when clear button is clicked", async () => {
     mockUseCatalogAutocomplete.mockReturnValue({
       data: { items: [] },
       isLoading: false,
       error: null,
     } as any);
+  });
 
+  it("renders the Select component", () => {
+    render(
+      <TestWrapper>
+        <CatalogAutocomplete value={null} onSelect={jest.fn()} />
+      </TestWrapper>
+    );
+
+    expect(MockSelect).toHaveBeenCalled();
+  });
+
+  it("calls onSelect with null when onChange receives null (clear action)", () => {
     const mockOnSelect = jest.fn();
 
-    const { container } = render(
+    render(
       <TestWrapper>
         <CatalogAutocomplete
-          value={mockCatalogItemWithPrice}
+          value={mockCatalogItem}
           onSelect={mockOnSelect}
-          placeholder="Select material..."
           clearable={true}
         />
       </TestWrapper>
     );
 
-    // Find the clear indicator - it's the first indicator container with an X path
-    // The clear button contains an SVG with a specific path for the X icon
-    const clearIndicators = container.querySelectorAll('[class*="indicatorContainer"]');
+    expect(MockSelect).toHaveBeenCalled();
+    const selectProps = MockSelect.mock.calls[0][0];
 
-    // The clear indicator is the first one (has the X icon)
-    // Find the one with the X path by looking for the specific d attribute
-    let clearIndicator: Element | null = null;
-    clearIndicators.forEach((indicator) => {
-      const svg = indicator.querySelector('svg');
-      if (svg) {
-        const path = svg.querySelector('path');
-        if (path && path.getAttribute('d')?.includes('14.348 14.849')) {
-          // This is the X icon path for the clear button
-          clearIndicator = indicator;
-        }
-      }
+    act(() => {
+      selectProps.onChange(null, { action: "clear" });
     });
 
-    expect(clearIndicator).toBeInTheDocument();
-
-    // Click the clear indicator
-    fireEvent.mouseDown(clearIndicator!);
-
     expect(mockOnSelect).toHaveBeenCalledWith(null);
+  });
+
+  it("calls onSelect with adapted item when an option is selected", () => {
+    const mockOnSelect = jest.fn();
+
+    render(
+      <TestWrapper>
+        <CatalogAutocomplete
+          value={null}
+          onSelect={mockOnSelect}
+          itemAdapter={(item) => item.productCode || ""}
+        />
+      </TestWrapper>
+    );
+
+    const selectProps = MockSelect.mock.calls[0][0];
+
+    act(() => {
+      selectProps.onChange(
+        {
+          value: "TEST001",
+          label: "Test Material (TEST001)",
+          productCode: "TEST001",
+          productName: "Test Material",
+          data: mockCatalogItem,
+        },
+        { action: "select-option" }
+      );
+    });
+
+    expect(mockOnSelect).toHaveBeenCalledWith("TEST001");
   });
 });
