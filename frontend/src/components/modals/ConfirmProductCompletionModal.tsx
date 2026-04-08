@@ -39,7 +39,10 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
   const [actualQuantities, setActualQuantities] = useState<{ [key: number]: string }>({});
   const [error, setError] = useState<string>('');
 
-  // Initialize with planned quantities when modal opens
+  // Initialize with planned quantities when modal opens.
+  // Intentionally omit `products` from deps — re-renders caused by optimistic
+  // cache updates must not reset values the user has already entered.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isOpen && products.length > 0) {
       const initialQuantities: { [key: number]: string } = {};
@@ -49,7 +52,7 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
       setActualQuantities(initialQuantities);
       setError('');
     }
-  }, [isOpen, products]);
+  }, [isOpen]);
 
   const handleQuantityChange = (productId: number, value: string) => {
     setActualQuantities(prev => ({
@@ -87,10 +90,6 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
       });
 
       await onSubmit(request);
-
-      // Reset form
-      setActualQuantities({});
-      setError('');
     } catch (err) {
       setError('Chyba při potvrzení množství produktů. Zkuste to prosím znovu.');
       console.error('Error confirming product completion:', err);
