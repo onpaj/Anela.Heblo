@@ -69,6 +69,11 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
                 order.ErpOrderNumberProductDate = _timeProvider.GetUtcNow().DateTime;
             }
 
+            if (request.WeightWithinTolerance.HasValue)
+                order.WeightWithinTolerance = request.WeightWithinTolerance.Value;
+
+            if (request.WeightDifference.HasValue)
+                order.WeightDifference = request.WeightDifference.Value;
 
             if (request.Note != null)
             {
