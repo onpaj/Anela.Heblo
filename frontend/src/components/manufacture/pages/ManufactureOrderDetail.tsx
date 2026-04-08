@@ -27,6 +27,7 @@ import {
   UpdateManufactureOrderSemiProductRequest,
   ConfirmSemiProductManufactureRequest,
   ConfirmProductCompletionRequest,
+  ProductActualQuantityRequest,
   ResidueDistributionDto,
   ManufactureOrderState,
   ManufactureType,
@@ -471,7 +472,11 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     if (!pendingCompletionRequest) return;
     try {
       const overrideRequest = new ConfirmProductCompletionRequest({
-        ...pendingCompletionRequest.toJSON(),
+        id: pendingCompletionRequest.id,
+        changeReason: pendingCompletionRequest.changeReason,
+        products: (pendingCompletionRequest.products ?? []).map(
+          p => new ProductActualQuantityRequest({ id: p.id, actualQuantity: p.actualQuantity })
+        ),
         overrideConfirmed: true,
       });
       await confirmProductCompletionMutation.mutateAsync(overrideRequest);

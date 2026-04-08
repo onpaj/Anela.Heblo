@@ -164,6 +164,7 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
                     <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Kusů</th>
                     <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Teoreticky (g)</th>
                     <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Upraveno (g)</th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">g/ks (stará BoM)</th>
                     <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">g/ks (nová BoM)</th>
                   </tr>
                 </thead>
@@ -181,7 +182,10 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
                         <td className="px-3 py-2 text-right font-medium text-orange-700">
                           {(item.adjustedConsumption ?? 0).toFixed(1)}
                         </td>
-                        <td className="px-3 py-2 text-right text-gray-700">
+                        <td className="px-3 py-2 text-right text-gray-500">
+                          {(item.theoreticalGramsPerUnit ?? 0).toFixed(4)}
+                        </td>
+                        <td className="px-3 py-2 text-right text-gray-700 font-medium">
                           {(item.adjustedGramsPerUnit ?? 0).toFixed(4)}
                         </td>
                       </tr>
