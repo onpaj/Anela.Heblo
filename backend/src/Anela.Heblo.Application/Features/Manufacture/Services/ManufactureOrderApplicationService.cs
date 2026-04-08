@@ -70,6 +70,8 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 productDocumentCode: null,
                 discardDocumentCode: null,
                 !submitManufactureResult.Success,
+                weightWithinTolerance: null,
+                weightDifference: null,
                 cancellationToken);
 
             if (!result.Success)
@@ -163,6 +165,8 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 productDocumentCode: submitManufactureResult.ManufactureId,
                 discardDocumentCode: null,
                 manualActionRequired: !submitManufactureResult.Success,
+                weightWithinTolerance: distribution.IsWithinAllowedThreshold,
+                weightDifference: distribution.Difference,
                 cancellationToken);
 
             if (!result.Success)
@@ -212,8 +216,9 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         string? productDocumentCode,
         string? discardDocumentCode,
         bool manualActionRequired,
-        CancellationToken cancellationToken
-        )
+        bool? weightWithinTolerance,
+        decimal? weightDifference,
+        CancellationToken cancellationToken)
     {
         var statusRequest = new UpdateManufactureOrderStatusRequest
         {
@@ -224,7 +229,9 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             SemiProductOrderCode = semiproductDocumentCode,
             ProductOrderCode = productDocumentCode,
             DiscardRedisueDocumentCode = discardDocumentCode,
-            ManualActionRequired = manualActionRequired
+            ManualActionRequired = manualActionRequired,
+            WeightWithinTolerance = weightWithinTolerance,
+            WeightDifference = weightDifference,
         };
 
         var statusResult = await _mediator.Send(statusRequest, cancellationToken);

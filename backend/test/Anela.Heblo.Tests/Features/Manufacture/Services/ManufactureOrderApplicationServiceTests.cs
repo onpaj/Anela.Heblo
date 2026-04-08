@@ -208,7 +208,8 @@ public class ManufactureOrderApplicationServiceTests
 
         VerifyUpdateProductsCall(productQuantities);
         VerifySubmitManufactureCall(ErpManufactureType.Product);
-        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_456", null, false);
+        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_456", null, false,
+            expectedWeightWithinTolerance: true, expectedWeightDifference: 1m);
         VerifyBoMUpdateCalledForEachProduct(distribution);
     }
 
@@ -268,7 +269,8 @@ public class ManufactureOrderApplicationServiceTests
         result.ErrorMessage.Should().BeNull();
 
         VerifySubmitManufactureCall(ErpManufactureType.Product);
-        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_789", null, false);
+        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_789", null, false,
+            expectedWeightWithinTolerance: false, expectedWeightDifference: 20m);
         VerifyBoMUpdateCalledForEachProduct(distribution);
     }
 
@@ -297,7 +299,8 @@ public class ManufactureOrderApplicationServiceTests
 
         VerifyUpdateProductsCall(productQuantities);
         VerifySubmitManufactureCall(ErpManufactureType.Product);
-        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, null, null, true);
+        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, null, null, true,
+            expectedWeightWithinTolerance: true, expectedWeightDifference: 1m);
         _manufactureClientMock.Verify(
             x => x.UpdateBoMIngredientAmountAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()),
             Times.Never);
@@ -351,7 +354,8 @@ public class ManufactureOrderApplicationServiceTests
 
         VerifyUpdateProductsCall(productQuantities);
         VerifySubmitManufactureCall(ErpManufactureType.Product);
-        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_456", null, false);
+        VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, "ERP_PRODUCT_456", null, false,
+            expectedWeightWithinTolerance: true, expectedWeightDifference: 1m);
     }
 
     [Fact]
@@ -551,7 +555,9 @@ public class ManufactureOrderApplicationServiceTests
         string? expectedSemiProductCode,
         string? expectedProductCode,
         string? expectedDiscardCode,
-        bool expectedManualActionRequired)
+        bool expectedManualActionRequired,
+        bool? expectedWeightWithinTolerance = null,
+        decimal? expectedWeightDifference = null)
     {
         _mediatorMock.Verify(x => x.Send(
             It.Is<UpdateManufactureOrderStatusRequest>(r =>
@@ -560,7 +566,9 @@ public class ManufactureOrderApplicationServiceTests
                 r.SemiProductOrderCode == expectedSemiProductCode &&
                 r.ProductOrderCode == expectedProductCode &&
                 r.DiscardRedisueDocumentCode == expectedDiscardCode &&
-                r.ManualActionRequired == expectedManualActionRequired),
+                r.ManualActionRequired == expectedManualActionRequired &&
+                r.WeightWithinTolerance == expectedWeightWithinTolerance &&
+                r.WeightDifference == expectedWeightDifference),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
