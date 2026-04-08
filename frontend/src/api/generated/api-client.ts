@@ -17234,6 +17234,7 @@ export class CalendarEventDto implements ICalendarEventDto {
     erpOrderNumberProductDate?: Date | undefined;
     erpDiscardResidueDocumentNumber?: string | undefined;
     erpDiscardResidueDocumentNumberDate?: Date | undefined;
+    weightWithinTolerance?: boolean | undefined;
     semiProduct?: CalendarEventSemiProductDto | undefined;
     products?: CalendarEventProductDto[];
 
@@ -17262,6 +17263,7 @@ export class CalendarEventDto implements ICalendarEventDto {
             this.erpOrderNumberProductDate = _data["erpOrderNumberProductDate"] ? new Date(_data["erpOrderNumberProductDate"].toString()) : <any>undefined;
             this.erpDiscardResidueDocumentNumber = _data["erpDiscardResidueDocumentNumber"];
             this.erpDiscardResidueDocumentNumberDate = _data["erpDiscardResidueDocumentNumberDate"] ? new Date(_data["erpDiscardResidueDocumentNumberDate"].toString()) : <any>undefined;
+            this.weightWithinTolerance = _data["weightWithinTolerance"];
             this.semiProduct = _data["semiProduct"] ? CalendarEventSemiProductDto.fromJS(_data["semiProduct"]) : <any>undefined;
             if (Array.isArray(_data["products"])) {
                 this.products = [] as any;
@@ -17294,6 +17296,7 @@ export class CalendarEventDto implements ICalendarEventDto {
         data["erpOrderNumberProductDate"] = this.erpOrderNumberProductDate ? this.erpOrderNumberProductDate.toISOString() : <any>undefined;
         data["erpDiscardResidueDocumentNumber"] = this.erpDiscardResidueDocumentNumber;
         data["erpDiscardResidueDocumentNumberDate"] = this.erpDiscardResidueDocumentNumberDate ? this.erpDiscardResidueDocumentNumberDate.toISOString() : <any>undefined;
+        data["weightWithinTolerance"] = this.weightWithinTolerance;
         data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
         if (Array.isArray(this.products)) {
             data["products"] = [];
@@ -17319,6 +17322,7 @@ export interface ICalendarEventDto {
     erpOrderNumberProductDate?: Date | undefined;
     erpDiscardResidueDocumentNumber?: string | undefined;
     erpDiscardResidueDocumentNumberDate?: Date | undefined;
+    weightWithinTolerance?: boolean | undefined;
     semiProduct?: CalendarEventSemiProductDto | undefined;
     products?: CalendarEventProductDto[];
 }
