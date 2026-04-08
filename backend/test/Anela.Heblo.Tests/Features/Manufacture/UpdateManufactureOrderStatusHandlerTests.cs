@@ -284,6 +284,71 @@ public class UpdateManufactureOrderStatusHandlerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Handle_WhenWeightFieldsProvided_SetsThemOnSavedOrder()
+    {
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.Completed,
+            WeightWithinTolerance = true,
+            WeightDifference = 5.5m
+        };
+
+        var existingOrder = CreateOrderInState(ManufactureOrderState.SemiProductManufactured);
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingOrder);
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => order);
+
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result.Success.Should().BeTrue();
+
+        _repositoryMock.Verify(x => x.UpdateOrderAsync(
+            It.Is<ManufactureOrder>(o =>
+                o.WeightWithinTolerance == true &&
+                o.WeightDifference == 5.5m),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenWeightFieldsNull_DoesNotOverwriteExistingValues()
+    {
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.SemiProductManufactured,
+            WeightWithinTolerance = null,
+            WeightDifference = null
+        };
+
+        var existingOrder = CreateOrderInState(ManufactureOrderState.Planned);
+        existingOrder.WeightWithinTolerance = true;
+        existingOrder.WeightDifference = 3.0m;
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingOrder);
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => order);
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        _repositoryMock.Verify(x => x.UpdateOrderAsync(
+            It.Is<ManufactureOrder>(o =>
+                o.WeightWithinTolerance == true &&
+                o.WeightDifference == 3.0m),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     private static ManufactureOrder CreateOrderInState(ManufactureOrderState state)
     {
         return new ManufactureOrder
