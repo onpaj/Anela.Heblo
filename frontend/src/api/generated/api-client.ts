@@ -15750,6 +15750,8 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
     manualActionRequired?: boolean;
+    weightWithinTolerance?: boolean | undefined;
+    weightDifference?: number | undefined;
     stateChangedByUser?: string;
     semiProduct?: ManufactureOrderSemiProductDto | undefined;
     products?: ManufactureOrderProductDto[];
@@ -15782,6 +15784,8 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
             this.state = _data["state"];
             this.stateChangedAt = _data["stateChangedAt"] ? new Date(_data["stateChangedAt"].toString()) : <any>undefined;
             this.manualActionRequired = _data["manualActionRequired"];
+            this.weightWithinTolerance = _data["weightWithinTolerance"];
+            this.weightDifference = _data["weightDifference"];
             this.stateChangedByUser = _data["stateChangedByUser"];
             this.semiProduct = _data["semiProduct"] ? ManufactureOrderSemiProductDto.fromJS(_data["semiProduct"]) : <any>undefined;
             if (Array.isArray(_data["products"])) {
@@ -15822,6 +15826,8 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
         data["state"] = this.state;
         data["stateChangedAt"] = this.stateChangedAt ? this.stateChangedAt.toISOString() : <any>undefined;
         data["manualActionRequired"] = this.manualActionRequired;
+        data["weightWithinTolerance"] = this.weightWithinTolerance;
+        data["weightDifference"] = this.weightDifference;
         data["stateChangedByUser"] = this.stateChangedByUser;
         data["semiProduct"] = this.semiProduct ? this.semiProduct.toJSON() : <any>undefined;
         if (Array.isArray(this.products)) {
@@ -15855,6 +15861,8 @@ export interface IManufactureOrderDto {
     state?: ManufactureOrderState;
     stateChangedAt?: Date;
     manualActionRequired?: boolean;
+    weightWithinTolerance?: boolean | undefined;
+    weightDifference?: number | undefined;
     stateChangedByUser?: string;
     semiProduct?: ManufactureOrderSemiProductDto | undefined;
     products?: ManufactureOrderProductDto[];
@@ -16758,6 +16766,8 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
     semiProductOrderCode?: string | undefined;
     productOrderCode?: string | undefined;
     discardRedisueDocumentCode?: string | undefined;
+    weightWithinTolerance?: boolean | undefined;
+    weightDifference?: number | undefined;
 
     constructor(data?: IUpdateManufactureOrderStatusRequest) {
         if (data) {
@@ -16778,6 +16788,8 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
             this.semiProductOrderCode = _data["semiProductOrderCode"];
             this.productOrderCode = _data["productOrderCode"];
             this.discardRedisueDocumentCode = _data["discardRedisueDocumentCode"];
+            this.weightWithinTolerance = _data["weightWithinTolerance"];
+            this.weightDifference = _data["weightDifference"];
         }
     }
 
@@ -16798,6 +16810,8 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
         data["semiProductOrderCode"] = this.semiProductOrderCode;
         data["productOrderCode"] = this.productOrderCode;
         data["discardRedisueDocumentCode"] = this.discardRedisueDocumentCode;
+        data["weightWithinTolerance"] = this.weightWithinTolerance;
+        data["weightDifference"] = this.weightDifference;
         return data;
     }
 }
@@ -16811,6 +16825,8 @@ export interface IUpdateManufactureOrderStatusRequest {
     semiProductOrderCode?: string | undefined;
     productOrderCode?: string | undefined;
     discardRedisueDocumentCode?: string | undefined;
+    weightWithinTolerance?: boolean | undefined;
+    weightDifference?: number | undefined;
 }
 
 export class ConfirmSemiProductManufactureResponse extends BaseResponse implements IConfirmSemiProductManufactureResponse {

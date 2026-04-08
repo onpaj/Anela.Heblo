@@ -29,6 +29,8 @@ public class ManufactureOrderDto
     public ManufactureOrderState State { get; set; }
     public DateTime StateChangedAt { get; set; }
     public bool ManualActionRequired { get; set; }
+    public bool? WeightWithinTolerance { get; set; }
+    public decimal? WeightDifference { get; set; }
     public string StateChangedByUser { get; set; } = null!;
 
     public ManufactureOrderSemiProductDto? SemiProduct { get; set; }
