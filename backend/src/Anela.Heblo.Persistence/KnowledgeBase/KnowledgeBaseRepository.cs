@@ -35,6 +35,7 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
                 """
                 INSERT INTO dbo."KnowledgeBaseChunks" ("Id", "DocumentId", "ChunkIndex", "Content", "Summary", "DocumentType", "Embedding")
                 VALUES (@id, @documentId, @chunkIndex, @content, @summary, @documentType, @embedding)
+                ON CONFLICT ("Id") DO NOTHING
                 """,
                 connection);
 

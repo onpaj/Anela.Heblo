@@ -7,6 +7,7 @@ using Anela.Heblo.Persistence.BackgroundJobs;
 using Anela.Heblo.Persistence.Catalog.Stock;
 using Anela.Heblo.Persistence.Dashboard;
 using Anela.Heblo.Persistence.Features.Bank;
+using Anela.Heblo.Persistence.Infrastructure;
 using Anela.Heblo.Persistence.InvoiceClassification;
 using Anela.Heblo.Persistence.KnowledgeBase;
 using Anela.Heblo.Xcc.Services.Dashboard;
@@ -48,8 +49,11 @@ public static class PersistenceModule
             services.AddSingleton(dataSource); // Register for DI-managed disposal
         }
 
+        // Register interceptors
+        services.AddScoped<PostgresExceptionLoggingInterceptor>();
+
         // Register DbContext
-        services.AddDbContext<ApplicationDbContext>(options =>
+        services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
             if (useInMemory || connectionString == "InMemory")
             {
@@ -59,6 +63,7 @@ public static class PersistenceModule
             else
             {
                 options.UseNpgsql(dataSource!);
+                options.AddInterceptors(sp.GetRequiredService<PostgresExceptionLoggingInterceptor>());
             }
         });
 

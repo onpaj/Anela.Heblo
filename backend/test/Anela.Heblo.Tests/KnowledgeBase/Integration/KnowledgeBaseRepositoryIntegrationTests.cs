@@ -218,6 +218,36 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AddChunksAsync_IsIdempotent_WhenCalledTwiceWithSameChunks()
+    {
+        var doc = MakeDocument("idempotent-test.pdf", "deadbeef006");
+        await _repository.AddDocumentAsync(doc);
+        await _repository.SaveChangesAsync();
+
+        var chunk = new KnowledgeBaseChunk
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = doc.Id,
+            ChunkIndex = 0,
+            Content = "Idempotent content",
+            Embedding = [0.1f, 0.2f, 0.3f]
+        };
+
+        // First insert — should succeed
+        await _repository.AddChunksAsync([chunk]);
+
+        // Second insert with same Id — ON CONFLICT DO NOTHING, must not throw
+        var exception = await Record.ExceptionAsync(() => _repository.AddChunksAsync([chunk]));
+        Assert.Null(exception);
+
+        // Only one row should exist
+        var rows = await _context.KnowledgeBaseChunks
+            .Where(c => c.DocumentId == doc.Id)
+            .ToListAsync();
+        Assert.Single(rows);
+    }
+
+    [Fact]
     public async Task GetChunkByIdAsync_ReturnsNull_WhenNotExists()
     {
         var result = await _repository.GetChunkByIdAsync(Guid.NewGuid());
