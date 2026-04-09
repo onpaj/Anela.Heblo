@@ -216,9 +216,9 @@ public class FlexiManufactureClient : IManufactureClient
 
         if (insufficientIngredients.Any())
         {
-            throw new InvalidOperationException(
-                $"Insufficient stock for the following ingredients:\n{string.Join("\n", insufficientIngredients)}"
-            );
+            throw new FlexiManufactureException(
+                FlexiManufactureOperationKind.StockValidation,
+                $"Insufficient stock for ingredients: {string.Join("; ", insufficientIngredients)}");
         }
     }
 
@@ -304,11 +304,9 @@ public class FlexiManufactureClient : IManufactureClient
 
             if (remainingToAllocate > 0.001)
             {
-                throw new InvalidOperationException(
-                    $"Could not allocate sufficient lots for ingredient '{requirement.ProductName}' ({ingredientCode}). " +
-                    $"Required: {requirement.RequiredAmount:F2}, Allocated: {requirement.RequiredAmount - remainingToAllocate:F2}, " +
-                    $"Missing: {remainingToAllocate:F2}"
-                );
+                throw new FlexiManufactureException(
+                    FlexiManufactureOperationKind.Allocation,
+                    $"Cannot allocate full amount for ingredient {requirement.ProductCode}: {remainingToAllocate:F3} remaining");
             }
         }
 
@@ -371,9 +369,11 @@ public class FlexiManufactureClient : IManufactureClient
 
             if (consumptionResult != null && !consumptionResult.IsSuccess)
             {
-                throw new InvalidOperationException(
-                    $"Failed to create consumption stock movement for warehouse {warehouseId}: {consumptionResult.GetErrorMessage()}"
-                );
+                throw new FlexiManufactureException(
+                    FlexiManufactureOperationKind.ConsumptionMovement,
+                    $"Failed to create consumption stock movement for warehouse {warehouseId}",
+                    warehouseId: warehouseId,
+                    rawFlexiError: consumptionResult.GetErrorMessage());
             }
         }
     }
@@ -427,9 +427,10 @@ public class FlexiManufactureClient : IManufactureClient
 
         if (productionResult != null && !productionResult.IsSuccess)
         {
-            throw new InvalidOperationException(
-                $"Failed to create production stock movement: {productionResult.GetErrorMessage()}"
-            );
+            throw new FlexiManufactureException(
+                FlexiManufactureOperationKind.ProductionMovement,
+                "Failed to create production stock movement",
+                rawFlexiError: productionResult.GetErrorMessage());
         }
     }
 

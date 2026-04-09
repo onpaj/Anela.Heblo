@@ -13,6 +13,7 @@ using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
 using Rem.FlexiBeeSDK.Model;
 using Rem.FlexiBeeSDK.Model.Products.StockMovement;
+using Rem.FlexiBeeSDK.Model.Response;
 using Xunit;
 
 namespace Anela.Heblo.Adapters.Flexi.Tests.Manufacture;
@@ -291,9 +292,10 @@ public class FlexiManufactureClientTests
         SetupStockDataForIngredients((ManufactureTestData.Materials.Bisabolol, 2m, 10m, hasLots: false));
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exception = await Assert.ThrowsAsync<FlexiManufactureException>(
             () => _client.SubmitManufactureAsync(request));
 
+        Assert.Equal(FlexiManufactureOperationKind.StockValidation, exception.OperationKind);
         Assert.Contains("Insufficient stock", exception.Message);
         Assert.Contains(ManufactureTestData.Materials.Bisabolol.Name, exception.Message);
         Assert.Contains(ManufactureTestData.Materials.Bisabolol.Code, exception.Message);
@@ -426,15 +428,12 @@ public class FlexiManufactureClientTests
             .ReturnsAsync(lots);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exception = await Assert.ThrowsAsync<FlexiManufactureException>(
             () => _client.SubmitManufactureAsync(request));
 
-        Assert.Contains("Could not allocate sufficient lots", exception.Message);
-        Assert.Contains(ManufactureTestData.Materials.Bisabolol.Name, exception.Message);
+        Assert.Equal(FlexiManufactureOperationKind.Allocation, exception.OperationKind);
+        Assert.Contains("Cannot allocate full amount", exception.Message);
         Assert.Contains(ManufactureTestData.Materials.Bisabolol.Code, exception.Message);
-        Assert.Contains("Required: 10", exception.Message);
-        Assert.Contains("Allocated: 7", exception.Message);
-        Assert.Contains("Missing: 3", exception.Message);
     }
 
     [Fact]
@@ -550,12 +549,62 @@ public class FlexiManufactureClientTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    // NOTE: These tests require FlexiResult from Rem.FlexiBeeSDK which is difficult to mock.
-    // The behavior they test (exception on SaveAsync failure) is covered by integration tests.
-    // [Fact]
-    // public async Task SubmitManufactureAsync_ConsumptionFails_ThrowsException()
-    // [Fact]
-    // public async Task SubmitManufactureAsync_ProductionFails_ThrowsException()
+    [Fact]
+    public async Task SubmitManufactureAsync_WhenConsumptionMovementFails_ThrowsFlexiManufactureException()
+    {
+        // Arrange
+        var request = ManufactureTestData.CreateManufactureRequest(ManufactureTestData.Products.ConfidentBar, 10m);
+        request.ManufactureType = ErpManufactureType.Product;
+
+        SetupSuccessfulManufacture(ManufactureTestData.Products.ConfidentBar, ManufactureTestData.Materials.Bisabolol, 5.0);
+
+        var failureResult = new OperationResult<OperationResultDetail>(
+            System.Net.HttpStatusCode.InternalServerError,
+            "Nelze vytvořit výdejku");
+
+        _mockStockMovementClient
+            .Setup(x => x.SaveAsync(
+                It.Is<StockItemsMovementUpsertRequestFlexiDto>(r => r.StockMovementDirection == StockMovementDirection.Out),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(failureResult);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<FlexiManufactureException>(
+            () => _client.SubmitManufactureAsync(request));
+
+        Assert.Equal(FlexiManufactureOperationKind.ConsumptionMovement, exception.OperationKind);
+        Assert.Contains("consumption stock movement", exception.Message);
+        Assert.Equal("Nelze vytvořit výdejku", exception.RawFlexiError);
+        Assert.NotNull(exception.WarehouseId);
+    }
+
+    [Fact]
+    public async Task SubmitManufactureAsync_WhenProductionMovementFails_ThrowsFlexiManufactureException()
+    {
+        // Arrange
+        var request = ManufactureTestData.CreateManufactureRequest(ManufactureTestData.Products.ConfidentBar, 10m);
+        request.ManufactureType = ErpManufactureType.Product;
+
+        SetupSuccessfulManufacture(ManufactureTestData.Products.ConfidentBar, ManufactureTestData.Materials.Bisabolol, 5.0);
+
+        var failureResult = new OperationResult<OperationResultDetail>(
+            System.Net.HttpStatusCode.InternalServerError,
+            "Nelze vytvořit příjemku výrobku");
+
+        _mockStockMovementClient
+            .Setup(x => x.SaveAsync(
+                It.Is<StockItemsMovementUpsertRequestFlexiDto>(r => r.StockMovementDirection == StockMovementDirection.In),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(failureResult);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<FlexiManufactureException>(
+            () => _client.SubmitManufactureAsync(request));
+
+        Assert.Equal(FlexiManufactureOperationKind.ProductionMovement, exception.OperationKind);
+        Assert.Contains("production stock movement", exception.Message);
+        Assert.Equal("Nelze vytvořit příjemku výrobku", exception.RawFlexiError);
+    }
 
     #endregion
 
