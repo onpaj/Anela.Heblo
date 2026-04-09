@@ -28,27 +28,10 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
     {
         try
         {
-            var clientRequest = new SubmitManufactureClientRequest
-            {
-                ManufactureOrderCode = request.ManufactureOrderNumber,
-                ManufactureInternalNumber = request.ManufactureInternalNumber,
-                Date = request.Date,
-                CreatedBy = request.CreatedBy,
-                ManufactureType = request.ManufactureType,
-                Items = request.Items.Select(item => new SubmitManufactureClientItem
-                {
-                    ProductCode = item.ProductCode,
-                    Amount = item.Amount,
-                    ProductName = item.Name,
-                }).ToList(),
-                LotNumber = request.LotNumber,
-                ExpirationDate = request.ExpirationDate,
-                ResidueDistribution = request.ResidueDistribution,
-            };
+            var manufactureId = await _manufactureClient.SubmitManufactureAsync(
+                request.ToClientRequest(), cancellationToken);
 
-            var manufactureId = await _manufactureClient.SubmitManufactureAsync(clientRequest, cancellationToken);
-
-            _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {ManufactureOrderId}",
+            _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {ManufactureOrderNumber}",
                 manufactureId, request.ManufactureOrderNumber);
 
             return new SubmitManufactureResponse
@@ -56,9 +39,9 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
                 ManufactureId = manufactureId
             };
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogError(ex, "Error creating manufacture for order {ManufactureOrderId}", request.ManufactureOrderNumber);
+            _logger.LogError(ex, "Error creating manufacture for order {ManufactureOrderNumber}", request.ManufactureOrderNumber);
             return new SubmitManufactureResponse(ex)
             {
                 UserMessage = _errorTransformer.Transform(ex)
