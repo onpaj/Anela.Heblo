@@ -359,6 +359,35 @@ public class ManufactureOrderApplicationServiceTests
     }
 
     [Fact]
+    public async Task ConfirmProductCompletionAsync_OutsideThreshold_OverrideConfirmed_AddsWeightToleranceNote()
+    {
+        // Arrange
+        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m } };
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
+        var submitManufactureResponse = CreateSuccessfulSubmitManufactureResponse("ERP_PRODUCT_789");
+        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
+        var distribution = CreateDistributionOutsideThreshold(); // DifferencePercentage=25.0, AllowedResiduePercentage=5.0
+
+        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
+        _residueCalculatorMock
+            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(distribution);
+
+        // Act
+        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, overrideConfirmed: true, ValidChangeReason);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _mediatorMock.Verify(x => x.Send(
+            It.Is<UpdateManufactureOrderStatusRequest>(r =>
+                r.Note != null &&
+                r.Note.Contains("mimo toleranci") &&
+                r.Note.Contains("25.00%") &&
+                r.Note.Contains("5.00%")),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task ConfirmProductCompletionAsync_UnexpectedException_ReturnsErrorMessage_LogsException()
     {
         // Arrange
