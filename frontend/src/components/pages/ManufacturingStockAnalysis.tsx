@@ -60,7 +60,7 @@ const readSalesMultiplierCookie = (): number => {
 const ManufacturingStockAnalysis: React.FC = () => {
   // State for filters
   const [filters, setFilters] = useState<GetManufacturingStockAnalysisRequest>({
-    timePeriod: TimePeriodFilter.PreviousQuarter,
+    timePeriod: TimePeriodFilter.Q9M,
     productFamily: undefined,
     criticalItemsOnly: true,
     majorItemsOnly: true,
@@ -153,7 +153,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
   // Handler for time period change
   const handleTimePeriodChange = (timePeriod: TimePeriodFilter) => {
     if (timePeriod === TimePeriodFilter.CustomPeriod) {
-      const range = calculateTimePeriodRange(TimePeriodFilter.PreviousQuarter);
+      const range = calculateTimePeriodRange(TimePeriodFilter.Q9M);
       handleFilterChange({
         timePeriod,
         customFromDate: range.fromDate || undefined,
@@ -176,7 +176,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
       const relativeUrl = `/api/manufacturing-stock-analysis`;
       const params = new URLSearchParams();
 
-      if (filters.timePeriod && filters.timePeriod !== TimePeriodFilter.PreviousQuarter) {
+      if (filters.timePeriod && filters.timePeriod !== TimePeriodFilter.Q9M) {
         params.append("timePeriod", filters.timePeriod);
       }
       if (filters.customFromDate)
@@ -718,6 +718,14 @@ const ManufacturingStockAnalysis: React.FC = () => {
     if (!range.fromDate || !range.toDate) {
       return getTimePeriodDisplayText(timePeriod);
     }
+    if (range.ranges && range.ranges.length > 1) {
+      return range.ranges
+        .map(
+          (r, i) =>
+            `Období ${String.fromCharCode(65 + i)}: ${r.fromDate.toLocaleDateString("cs-CZ")} – ${r.toDate.toLocaleDateString("cs-CZ")}`,
+        )
+        .join("\n");
+    }
     return `${range.fromDate.toLocaleDateString("cs-CZ")} - ${range.toDate.toLocaleDateString("cs-CZ")}`;
   };
 
@@ -1072,14 +1080,14 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   </label>
                   <select
                     value={
-                      filters.timePeriod || TimePeriodFilter.PreviousQuarter
+                      filters.timePeriod || TimePeriodFilter.Q9M
                     }
                     onChange={(e) =>
                       handleTimePeriodChange(e.target.value as TimePeriodFilter)
                     }
                     className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                     title={getTimePeriodTooltip(
-                      filters.timePeriod || TimePeriodFilter.PreviousQuarter,
+                      filters.timePeriod || TimePeriodFilter.Q9M,
                     )}
                   >
                     <option value={TimePeriodFilter.PreviousQuarter}>
@@ -1093,6 +1101,9 @@ const ManufacturingStockAnalysis: React.FC = () => {
                     </option>
                     <option value={TimePeriodFilter.PreviousSeason}>
                       Předchozí sezona
+                    </option>
+                    <option value={TimePeriodFilter.Q9M}>
+                      9M (6 měsíců + prognóza 3 měsíce)
                     </option>
                     <option value={TimePeriodFilter.CustomPeriod}>
                       Vlastní období

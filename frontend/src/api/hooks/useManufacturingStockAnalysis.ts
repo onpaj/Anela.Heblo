@@ -24,6 +24,7 @@ export enum TimePeriodFilter {
   FutureQuarter = "FutureQuarter",
   Y2Y = "Y2Y",
   PreviousSeason = "PreviousSeason",
+  Q9M = "Q9M",
   CustomPeriod = "CustomPeriod",
 }
 
@@ -120,7 +121,7 @@ export const useManufacturingStockAnalysisQuery = (
 
       if (
         request.timePeriod &&
-        request.timePeriod !== TimePeriodFilter.PreviousQuarter
+        request.timePeriod !== TimePeriodFilter.Q9M
       ) {
         params.append("timePeriod", request.timePeriod);
       }
@@ -253,17 +254,23 @@ export const getTimePeriodDisplayText = (
       return "Y2Y (12 měsíců)";
     case TimePeriodFilter.PreviousSeason:
       return "Předchozí sezona";
+    case TimePeriodFilter.Q9M:
+      return "9M (6 měsíců + prognóza 3 měsíce)";
     case TimePeriodFilter.CustomPeriod:
       return "Vlastní období";
     default:
-      return "Minulý kvartal";
+      return "9M (6 měsíců + prognóza 3 měsíce)";
   }
 };
 
 // Helper function to calculate date range for time period
 export const calculateTimePeriodRange = (
   timePeriod: TimePeriodFilter,
-): { fromDate: Date | null; toDate: Date | null } => {
+): {
+  fromDate: Date | null;
+  toDate: Date | null;
+  ranges?: Array<{ fromDate: Date; toDate: Date }>;
+} => {
   const now = new Date();
 
   switch (timePeriod) {
@@ -310,6 +317,32 @@ export const calculateTimePeriodRange = (
       const seasonStart = new Date(now.getFullYear() - 1, 9, 1); // October (0-indexed)
       const seasonEnd = new Date(now.getFullYear(), 0, 31); // January 31
       return { fromDate: seasonStart, toDate: seasonEnd };
+
+    case TimePeriodFilter.Q9M: {
+      const sixMonthsAgo = new Date(
+        now.getFullYear(),
+        now.getMonth() - 6,
+        now.getDate(),
+      );
+      const oneYearAgo = new Date(
+        now.getFullYear() - 1,
+        now.getMonth(),
+        now.getDate(),
+      );
+      const oneYearAgoPlus3 = new Date(
+        now.getFullYear() - 1,
+        now.getMonth() + 3,
+        now.getDate(),
+      );
+      return {
+        fromDate: oneYearAgo,
+        toDate: now,
+        ranges: [
+          { fromDate: sixMonthsAgo, toDate: now },
+          { fromDate: oneYearAgo, toDate: oneYearAgoPlus3 },
+        ],
+      };
+    }
 
     case TimePeriodFilter.CustomPeriod:
       return { fromDate: null, toDate: null };

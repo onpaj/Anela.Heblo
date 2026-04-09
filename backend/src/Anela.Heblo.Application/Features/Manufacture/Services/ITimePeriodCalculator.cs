@@ -8,4 +8,9 @@ public interface ITimePeriodCalculator
         TimePeriodFilter timePeriod,
         DateTime? customFromDate = null,
         DateTime? customToDate = null);
+
+    IReadOnlyList<(DateTime fromDate, DateTime toDate)> CalculateTimePeriodRanges(
+        TimePeriodFilter timePeriod,
+        DateTime? customFromDate = null,
+        DateTime? customToDate = null);
 }

@@ -167,6 +167,56 @@ describe("useManufacturingStockAnalysisQuery", () => {
     });
   });
 
+  it("omits timePeriod param when it equals Q9M (default)", async () => {
+    mockGetAuthenticatedApiClient.mockResolvedValue(mockApiClient as any);
+    mockApiClient.http.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => mockResponse,
+    } as any);
+
+    const { result } = renderHook(
+      () =>
+        useManufacturingStockAnalysisQuery({
+          timePeriod: TimePeriodFilter.Q9M,
+          pageNumber: 1,
+          pageSize: 20,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const url = mockApiClient.http.fetch.mock.calls[0][0] as string;
+    expect(url).not.toContain("timePeriod=");
+  });
+
+  it("includes timePeriod param for non-default periods", async () => {
+    mockGetAuthenticatedApiClient.mockResolvedValue(mockApiClient as any);
+    mockApiClient.http.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => mockResponse,
+    } as any);
+
+    const { result } = renderHook(
+      () =>
+        useManufacturingStockAnalysisQuery({
+          timePeriod: TimePeriodFilter.PreviousQuarter,
+          pageNumber: 1,
+          pageSize: 20,
+        }),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    const url = mockApiClient.http.fetch.mock.calls[0][0] as string;
+    expect(url).toContain("timePeriod=PreviousQuarter");
+  });
+
   it("handles custom time period with dates", async () => {
     const customFromDate = new Date("2023-01-01");
     const customToDate = new Date("2023-03-31");
@@ -257,5 +307,31 @@ describe("calculateTimePeriodRange", () => {
 
     expect(result.fromDate).toBeNull();
     expect(result.toDate).toBeNull();
+  });
+
+  it("calculates Q9M with two ranges", () => {
+    const result = calculateTimePeriodRange(TimePeriodFilter.Q9M);
+
+    expect(result.ranges).toHaveLength(2);
+
+    // Range A: last 6 months → now
+    const rangeA = result.ranges![0];
+    expect(rangeA.fromDate.getFullYear()).toBe(2022);
+    expect(rangeA.fromDate.getMonth()).toBe(9); // October (0-indexed)
+    expect(rangeA.fromDate.getDate()).toBe(15);
+    expect(rangeA.toDate).toEqual(now);
+
+    // Range B: 1 year ago → 1 year ago + 3 months
+    const rangeB = result.ranges![1];
+    expect(rangeB.fromDate.getFullYear()).toBe(2022);
+    expect(rangeB.fromDate.getMonth()).toBe(3); // April (0-indexed)
+    expect(rangeB.fromDate.getDate()).toBe(15);
+    expect(rangeB.toDate.getFullYear()).toBe(2022);
+    expect(rangeB.toDate.getMonth()).toBe(6); // July (0-indexed)
+    expect(rangeB.toDate.getDate()).toBe(15);
+
+    // Outer bounds
+    expect(result.fromDate).toEqual(rangeB.fromDate); // min of ranges
+    expect(result.toDate).toEqual(now); // max of ranges
   });
 });

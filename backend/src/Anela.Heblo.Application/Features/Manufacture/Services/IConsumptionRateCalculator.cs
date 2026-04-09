@@ -14,6 +14,15 @@ public interface IConsumptionRateCalculator
     double CalculateDailySalesRate(IEnumerable<CatalogSaleRecord> salesHistory, DateTime fromDate, DateTime toDate);
 
     /// <summary>
+    /// Calculates the daily consumption rate across multiple disjoint date ranges.
+    /// Total sales and total days are summed across all ranges before dividing.
+    /// </summary>
+    /// <param name="salesHistory">Collection of sales records to analyze</param>
+    /// <param name="ranges">List of date ranges to include in the analysis</param>
+    /// <returns>Daily sales rate (pieces per day)</returns>
+    double CalculateDailySalesRate(IEnumerable<CatalogSaleRecord> salesHistory, IReadOnlyList<(DateTime fromDate, DateTime toDate)> ranges);
+
+    /// <summary>
     /// Calculates consumption rate from consumed materials history.
     /// </summary>
     /// <param name="consumedHistory">Collection of consumed material records</param>
