@@ -27,11 +27,11 @@ internal sealed class FlexiManufactureClient : IManufactureClient
     private readonly IBoMClient _bomClient;
     private readonly IProductSetsClient _productSetsClient;
     private readonly ILotsClient _lotsClient;
-    private readonly TimeProvider _timeProvider;
     private readonly ILogger<FlexiManufactureClient> _logger;
     private readonly IFlexiManufactureTemplateService _templateService;
     private readonly IFefoConsumptionAllocator _fefoAllocator;
     private readonly IFlexiIngredientRequirementAggregator _requirementAggregator;
+    private readonly IFlexiIngredientStockValidator _stockValidator;
 
     public FlexiManufactureClient(
         IErpStockClient stockClient,
@@ -39,22 +39,22 @@ internal sealed class FlexiManufactureClient : IManufactureClient
         IBoMClient bomClient,
         IProductSetsClient productSetsClient,
         ILotsClient lotsClient,
-        TimeProvider timeProvider,
         ILogger<FlexiManufactureClient> logger,
         IFlexiManufactureTemplateService templateService,
         IFefoConsumptionAllocator fefoAllocator,
-        IFlexiIngredientRequirementAggregator requirementAggregator)
+        IFlexiIngredientRequirementAggregator requirementAggregator,
+        IFlexiIngredientStockValidator stockValidator)
     {
         _stockClient = stockClient ?? throw new ArgumentNullException(nameof(stockClient));
         _stockMovementClient = stockMovementClient ?? throw new ArgumentNullException(nameof(stockMovementClient));
         _bomClient = bomClient;
         _productSetsClient = productSetsClient;
         _lotsClient = lotsClient ?? throw new ArgumentNullException(nameof(lotsClient));
-        _timeProvider = timeProvider;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _templateService = templateService ?? throw new ArgumentNullException(nameof(templateService));
         _fefoAllocator = fefoAllocator ?? throw new ArgumentNullException(nameof(fefoAllocator));
         _requirementAggregator = requirementAggregator ?? throw new ArgumentNullException(nameof(requirementAggregator));
+        _stockValidator = stockValidator ?? throw new ArgumentNullException(nameof(stockValidator));
     }
 
     public async Task<string> SubmitManufactureAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken = default)
@@ -119,7 +119,7 @@ internal sealed class FlexiManufactureClient : IManufactureClient
 
             if (request.ValidateIngredientStock)
             {
-                await ValidateIngredientStockAsync(ingredientRequirements, cancellationToken);
+                await _stockValidator.ValidateAsync(ingredientRequirements, cancellationToken);
             }
 
             var ingredientLots = await LoadAvailableLotsAsync(ingredientRequirements, cancellationToken);
@@ -134,37 +134,6 @@ internal sealed class FlexiManufactureClient : IManufactureClient
 
         // Phase 3: Create ONE produce document with all products
         await SubmitConsolidatedProductionMovementAsync(request, productCosts, cancellationToken);
-    }
-
-    private async Task ValidateIngredientStockAsync(
-        Dictionary<string, IngredientRequirement> ingredientRequirements,
-        CancellationToken cancellationToken)
-    {
-        var stockDate = _timeProvider.GetLocalNow().DateTime;
-        var insufficientIngredients = new List<string>();
-
-        foreach (var (ingredientCode, requirement) in ingredientRequirements)
-        {
-            int warehouseId = FlexiWarehouseResolver.ForProductType(requirement.ProductType);
-
-            var stockItems = await _stockClient.StockToDateAsync(stockDate, warehouseId, cancellationToken);
-            var ingredientStock = stockItems.FirstOrDefault(s => s.ProductCode == ingredientCode);
-            var availableStock = ingredientStock != null ? (double)ingredientStock.Stock : 0;
-
-            if (availableStock < requirement.RequiredAmount)
-            {
-                insufficientIngredients.Add(
-                    $"{requirement.ProductName} ({ingredientCode}): Required {requirement.RequiredAmount:F2}, Available {availableStock:F2}"
-                );
-            }
-        }
-
-        if (insufficientIngredients.Any())
-        {
-            throw new FlexiManufactureException(
-                FlexiManufactureOperationKind.StockValidation,
-                $"Insufficient stock for ingredients: {string.Join("; ", insufficientIngredients)}");
-        }
     }
 
     private async Task<Dictionary<string, List<CatalogLot>>> LoadAvailableLotsAsync(
