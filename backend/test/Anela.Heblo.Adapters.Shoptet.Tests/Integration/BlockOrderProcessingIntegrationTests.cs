@@ -61,7 +61,7 @@ public class BlockOrderProcessingIntegrationTests
         if (Environment.GetEnvironmentVariable("SHOPTET_BLOCK_ORDER") != "1")
             return;
 
-        AssertTestEnvironment(_configuration);
+        ShoptetTestGuard.Assert(_configuration);
 
         var blockedStatusId = _configuration.GetValue<int?>("ShoptetOrders:BlockedStatusId")
             ?? throw new InvalidOperationException(

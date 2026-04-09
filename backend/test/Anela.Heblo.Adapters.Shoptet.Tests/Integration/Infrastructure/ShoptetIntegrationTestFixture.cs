@@ -37,7 +37,7 @@ public class ShoptetIntegrationTestFixture
 
         services.Configure<PrintPickingListOptions>(opts =>
         {
-            opts.PrintQueueFolder = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "test_prints");
+            opts.PrintQueueFolder = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "test_prints");
         });
         services.AddScoped<IPrintQueueSink, FileSystemPrintQueueSink>();
         services.AddSingleton(new Mock<ICatalogRepository>().Object);
