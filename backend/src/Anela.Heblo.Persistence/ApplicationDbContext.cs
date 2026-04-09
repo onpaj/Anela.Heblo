@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Bank;
+using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
@@ -78,6 +79,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<KnowledgeBaseChunk> KnowledgeBaseChunks { get; set; } = null!;
     public DbSet<KnowledgeBaseQuestionLog> KnowledgeBaseQuestionLogs { get; set; } = null!;
 
+    // Grid Layouts module
+    public DbSet<GridLayout> GridLayouts { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
