@@ -53,7 +53,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             {
                 _logger.LogError("Failed to update actual quantity for order {OrderId}: {ErrorCode}",
                     orderId, updateResult.ErrorCode);
-                return new ConfirmSemiProductManufactureResult(false, $"Chyba při aktualizaci množství: {updateResult.ErrorCode}");
+                return new ConfirmSemiProductManufactureResult(false, string.Format(ManufactureMessages.QuantityUpdateErrorFormat, updateResult.ErrorCode));
             }
 
             // Step 2: Create manufacture via external client
@@ -64,9 +64,9 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 new UpdateOrderStatusCommand(
                     OrderId: orderId,
                     TargetState: ManufactureOrderState.SemiProductManufactured,
-                    ChangeReason: changeReason ?? $"Potvrzeno skutečné množství polotovaru: {actualQuantity}",
+                    ChangeReason: changeReason ?? string.Format(ManufactureMessages.SemiProductDefaultChangeReasonFormat, actualQuantity),
                     Note: submitManufactureResult.Success
-                        ? $"Vytvořena vydaná objednávka meziproduktu {submitManufactureResult.ManufactureId}"
+                        ? string.Format(ManufactureMessages.SemiProductErpNoteFormat, submitManufactureResult.ManufactureId)
                         : submitManufactureResult.UserMessage ?? submitManufactureResult.FullError(),
                     Documents: new ManufactureDocumentCodes(
                         SemiProduct: submitManufactureResult.ManufactureId,
@@ -80,17 +80,17 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             {
                 _logger.LogError("Failed to update status for order {OrderId}: {ErrorCode}",
                     orderId, result.ErrorCode);
-                return new ConfirmSemiProductManufactureResult(false, $"Chyba při změně stavu: {result.ErrorCode}");
+                return new ConfirmSemiProductManufactureResult(false, string.Format(ManufactureMessages.StatusChangeErrorFormat, result.ErrorCode));
             }
 
             _logger.LogInformation("Successfully confirmed semi-product manufacture for order {OrderId}", orderId);
             return new ConfirmSemiProductManufactureResult(true,
-                $"Polotovar byl úspěšně vyroben se skutečným množstvím {actualQuantity}");
+                string.Format(ManufactureMessages.SemiProductManufacturedSuccessFormat, actualQuantity));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error confirming semi-product manufacture for order {OrderId}", orderId);
-            return new ConfirmSemiProductManufactureResult(false, "Došlo k neočekávané chybě při potvrzení výroby polotovaru");
+            return new ConfirmSemiProductManufactureResult(false, ManufactureMessages.UnexpectedSemiProductError);
         }
     }
 
@@ -115,7 +115,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             {
                 _logger.LogError("Failed to update actual quantities for order {OrderId}: {ErrorCode}",
                     orderId, updateResult.ErrorCode);
-                return new ConfirmProductCompletionResult($"Chyba při aktualizaci množství produktů: {updateResult.ErrorCode}");
+                return new ConfirmProductCompletionResult(string.Format(ManufactureMessages.ProductQuantityUpdateErrorFormat, updateResult.ErrorCode));
             }
 
             // Step 2: Calculate residue distribution
@@ -164,19 +164,19 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             if (overrideConfirmed && !distribution.IsWithinAllowedThreshold)
                 weightToleranceNote = string.Format(
                     System.Globalization.CultureInfo.InvariantCulture,
-                    "Hmotnost mimo toleranci potvrzena uživatelem. Rozdíl: {0:F2}% (povoleno: {1:F2}%)",
+                    ManufactureMessages.WeightToleranceOverrideFormat,
                     distribution.DifferencePercentage,
                     distribution.AllowedResiduePercentage);
 
             var combinedNote = string.Join("\n", new[] { orderNote, weightToleranceNote }.Where(n => n != null));
             if (string.IsNullOrEmpty(combinedNote))
-                combinedNote = $"Potvrzeno dokončení výroby produktů - {submitManufactureResult.ManufactureId}";
+                combinedNote = string.Format(ManufactureMessages.ProductCompletionDefaultNoteFormat, submitManufactureResult.ManufactureId);
 
             var result = await UpdateOrderStatus(
                 new UpdateOrderStatusCommand(
                     OrderId: orderId,
                     TargetState: ManufactureOrderState.Completed,
-                    ChangeReason: changeReason ?? $"Potvrzeno dokončení výroby produktů",
+                    ChangeReason: changeReason ?? ManufactureMessages.ProductCompletionDefaultChangeReason,
                     Note: combinedNote,
                     Documents: new ManufactureDocumentCodes(
                         SemiProduct: null,
@@ -192,7 +192,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             {
                 _logger.LogError("Failed to update status for order {OrderId}: {ErrorCode}",
                     orderId, result.ErrorCode);
-                return new ConfirmProductCompletionResult($"Chyba při změně stavu: {result.ErrorCode}");
+                return new ConfirmProductCompletionResult(string.Format(ManufactureMessages.StatusChangeErrorFormat, result.ErrorCode));
             }
 
             _logger.LogInformation("Successfully confirmed product completion for order {OrderId}", orderId);
@@ -201,7 +201,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error confirming product completion for order {OrderId}", orderId);
-            return new ConfirmProductCompletionResult($"Došlo k neočekávané chybě při dokončení výroby produktů: {ex.Message}");
+            return new ConfirmProductCompletionResult(string.Format(ManufactureMessages.UnexpectedProductCompletionErrorFormat, ex.Message));
         }
     }
 
