@@ -44,6 +44,7 @@ public static class ManufactureModule
         services.AddScoped<IProductNameFormatter, ProductNameFormatter>();
         services.AddScoped<IManufactureNameBuilder, ManufactureNameBuilder>();
         services.AddScoped<IConfirmSemiProductManufactureWorkflow, ConfirmSemiProductManufactureWorkflow>();
+        services.AddScoped<IConfirmProductCompletionWorkflow, ConfirmProductCompletionWorkflow>();
 
         // Register dashboard tiles
         services.RegisterTile<TodayProductionTile>();
