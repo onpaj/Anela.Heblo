@@ -13,15 +13,12 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
 public class ManufactureOrderApplicationService : IManufactureOrderApplicationService
 {
-    private const int ProductCodePrefixLength = 6;
-    private const int MaxManufactureNameLength = 40;
-
     private readonly IMediator _mediator;
     private readonly IResidueDistributionCalculator _residueCalculator;
     private readonly TimeProvider _timeProvider;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<ManufactureOrderApplicationService> _logger;
-    private readonly IProductNameFormatter _productNameFormatter;
+    private readonly IManufactureNameBuilder _nameBuilder;
 
     public ManufactureOrderApplicationService(
         IMediator mediator,
@@ -29,14 +26,14 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         TimeProvider timeProvider,
         ICurrentUserService currentUserService,
         ILogger<ManufactureOrderApplicationService> logger,
-        IProductNameFormatter productNameFormatter)
+        IManufactureNameBuilder nameBuilder)
     {
         _mediator = mediator;
         _residueCalculator = residueCalculator;
         _timeProvider = timeProvider;
         _currentUserService = currentUserService;
         _logger = logger;
-        _productNameFormatter = productNameFormatter;
+        _nameBuilder = nameBuilder ?? throw new ArgumentNullException(nameof(nameBuilder));
     }
 
     public async Task<ConfirmSemiProductManufactureResult> ConfirmSemiProductManufactureAsync(
@@ -263,7 +260,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
 
         if (type == ErpManufactureType.Product)
         {
-            manufactureName = CreateManufactureName(order, type);
+            manufactureName = _nameBuilder.Build(order, type);
             items = order!.Products.Select(p => new SubmitManufactureRequestItem()
             {
                 ProductCode = p.ProductCode,
@@ -273,7 +270,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         }
         else
         {
-            manufactureName = CreateManufactureName(order, type);
+            manufactureName = _nameBuilder.Build(order, type);
             items = new List<SubmitManufactureRequestItem>()
             {
                 new()
@@ -312,40 +309,6 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
 
         return submitManufactureResult;
     }
-
-    private string CreateManufactureName(UpdateManufactureOrderDto order, ErpManufactureType type)
-    {
-        string manufactureName;
-        var semiCode = order.SemiProduct.ProductCode;
-        var shortName = _productNameFormatter.ShortProductName(order.SemiProduct.ProductName);
-        var prefix = SafeTake(semiCode, ProductCodePrefixLength);
-
-        if (type == ErpManufactureType.Product)
-        {
-            if (order.Products.All(p => p.ProductCode == semiCode)) // Singlephase manufacture
-            {
-                manufactureName = semiCode;
-            }
-            else
-            {
-                manufactureName = $"{prefix} {shortName}";
-            }
-        }
-        else
-        {
-            manufactureName = $"{prefix}M {shortName}";
-        }
-
-        return SafeTake(manufactureName, MaxManufactureNameLength);
-    }
-
-    private static string SafeTake(string value, int maxLength)
-    {
-        if (string.IsNullOrEmpty(value))
-            return string.Empty;
-        return value.Length <= maxLength ? value : value.Substring(0, maxLength);
-    }
-
 
     private async Task<UpdateManufactureOrderResponse> UpdateSemiProductQuantity(int orderId, decimal actualQuantity, CancellationToken cancellationToken)
     {

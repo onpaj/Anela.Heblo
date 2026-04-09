@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.DashboardTiles;
 using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
 using Anela.Heblo.Application.Features.Manufacture.Services;
+using Anela.Heblo.Application.Features.Manufacture.Services.Workflows;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Persistence.Manufacture;
 using Anela.Heblo.Xcc.Services.Dashboard;
@@ -41,6 +42,7 @@ public static class ManufactureModule
         // Register application services
         services.AddScoped<IManufactureOrderApplicationService, ManufactureOrderApplicationService>();
         services.AddScoped<IProductNameFormatter, ProductNameFormatter>();
+        services.AddScoped<IManufactureNameBuilder, ManufactureNameBuilder>();
 
         // Register dashboard tiles
         services.RegisterTile<TodayProductionTile>();

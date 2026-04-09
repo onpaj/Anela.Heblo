@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.Services;
+using Anela.Heblo.Application.Features.Manufacture.Services.Workflows;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateBoMIngredientAmount;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
@@ -21,7 +22,7 @@ public class ManufactureOrderApplicationServiceTests
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<ManufactureOrderApplicationService>> _loggerMock;
-    private readonly Mock<IProductNameFormatter> _productNameFormatterMock;
+    private readonly Mock<IManufactureNameBuilder> _nameBuilderMock;
     private readonly ManufactureOrderApplicationService _service;
 
     private const int ValidOrderId = 1;
@@ -36,7 +37,7 @@ public class ManufactureOrderApplicationServiceTests
         _timeProviderMock = new Mock<TimeProvider>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<ManufactureOrderApplicationService>>();
-        _productNameFormatterMock = new Mock<IProductNameFormatter>();
+        _nameBuilderMock = new Mock<IManufactureNameBuilder>();
 
         var testTime = DateTime.UtcNow;
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(new DateTimeOffset(testTime));
@@ -44,7 +45,7 @@ public class ManufactureOrderApplicationServiceTests
         var testUser = new CurrentUser("test-user-id", TestUserName, "test@example.com", true);
         _currentUserServiceMock.Setup(x => x.GetCurrentUser()).Returns(testUser);
 
-        _productNameFormatterMock.Setup(x => x.ShortProductName(It.IsAny<string>())).Returns("Short Name");
+        _nameBuilderMock.Setup(x => x.Build(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<ErpManufactureType>())).Returns("Short Name");
 
         _service = new ManufactureOrderApplicationService(
             _mediatorMock.Object,
@@ -52,7 +53,7 @@ public class ManufactureOrderApplicationServiceTests
             _timeProviderMock.Object,
             _currentUserServiceMock.Object,
             _loggerMock.Object,
-            _productNameFormatterMock.Object);
+            _nameBuilderMock.Object);
     }
 
     #region ConfirmSemiProductManufactureAsync Tests
@@ -662,159 +663,4 @@ public class ManufactureOrderApplicationServiceTests
 
     #endregion
 
-    #region CreateManufactureName Safe Substring Tests
-
-    [Fact]
-    public async Task ConfirmProductCompletion_WhenProductCodeShorterThanPrefix_DoesNotThrow()
-    {
-        // Arrange – semi-product code only 3 chars (shorter than the 6-char prefix)
-        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m } };
-
-        var updateOrderResponse = new UpdateManufactureOrderResponse
-        {
-            Success = true,
-            Order = new UpdateManufactureOrderDto
-            {
-                OrderNumber = "MO-SHORT-001",
-                SemiProduct = new UpdateManufactureOrderSemiProductDto
-                {
-                    ProductCode = "AB3",
-                    ProductName = "Short Code Product",
-                    ActualQuantity = 5.0m,
-                    PlannedQuantity = 5.0m,
-                    LotNumber = "LOT001",
-                    ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30))
-                },
-                Products = new List<UpdateManufactureOrderProductDto>
-                {
-                    new UpdateManufactureOrderProductDto
-                    {
-                        ProductCode = "P001",
-                        ProductName = "Product 1",
-                        ActualQuantity = 5.0m,
-                        PlannedQuantity = 5.0m
-                    }
-                }
-            }
-        };
-
-        var submitManufactureResponse = CreateSuccessfulSubmitManufactureResponse("ERP_SHORT_001");
-        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
-        var distribution = CreateDistributionWithinThreshold();
-
-        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
-        _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(distribution);
-
-        // Act & Assert – must not throw and must succeed (ArgumentOutOfRangeException would be caught and returned as failure)
-        var act = async () => await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, overrideConfirmed: false, ValidChangeReason);
-        await act.Should().NotThrowAsync();
-        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, overrideConfirmed: false, ValidChangeReason);
-        result.Success.Should().BeTrue("short product code must not cause ArgumentOutOfRangeException");
-    }
-
-    [Fact]
-    public async Task ConfirmProductCompletion_WhenManufactureNameWouldExceed40Chars_IsTruncated()
-    {
-        // Arrange – long product name that pushes the manufacture name well past 40 chars
-        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m } };
-
-        var updateOrderResponse = new UpdateManufactureOrderResponse
-        {
-            Success = true,
-            Order = new UpdateManufactureOrderDto
-            {
-                OrderNumber = "MO-LONG-001",
-                SemiProduct = new UpdateManufactureOrderSemiProductDto
-                {
-                    ProductCode = "ABCDEF",
-                    ProductName = "A Very Long Semi Product Name That Will Overflow",
-                    ActualQuantity = 5.0m,
-                    PlannedQuantity = 5.0m,
-                    LotNumber = "LOT001",
-                    ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30))
-                },
-                Products = new List<UpdateManufactureOrderProductDto>
-                {
-                    new UpdateManufactureOrderProductDto
-                    {
-                        ProductCode = "P001",
-                        ProductName = "Product 1",
-                        ActualQuantity = 5.0m,
-                        PlannedQuantity = 5.0m
-                    }
-                }
-            }
-        };
-
-        // Return a long short-name so the formatted name definitely exceeds 40 chars
-        _productNameFormatterMock
-            .Setup(x => x.ShortProductName(It.IsAny<string>()))
-            .Returns("VeryLongShortNameThatExceedsFortyCharactersLimit");
-
-        string? capturedInternalNumber = null;
-        var submitManufactureResponse = CreateSuccessfulSubmitManufactureResponse("ERP_LONG_001");
-        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
-        var distribution = CreateDistributionWithinThreshold();
-
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(updateOrderResponse);
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<SubmitManufactureRequest>(), It.IsAny<CancellationToken>()))
-            .Callback<IRequest<SubmitManufactureResponse>, CancellationToken>((req, _) =>
-                capturedInternalNumber = ((SubmitManufactureRequest)req).ManufactureInternalNumber)
-            .ReturnsAsync(submitManufactureResponse);
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(updateStatusResponse);
-        _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(distribution);
-
-        // Act
-        await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, overrideConfirmed: false, ValidChangeReason);
-
-        // Assert
-        capturedInternalNumber.Should().NotBeNull();
-        capturedInternalNumber!.Length.Should().BeLessOrEqualTo(40);
-    }
-
-    [Fact]
-    public async Task ConfirmSemiProductManufacture_WhenProductCodeShorterThanPrefix_DoesNotThrow()
-    {
-        // Arrange – semi-product code only 2 chars (shorter than the 6-char prefix)
-        var updateOrderResponse = new UpdateManufactureOrderResponse
-        {
-            Success = true,
-            Order = new UpdateManufactureOrderDto
-            {
-                OrderNumber = "MO-SEMI-SHORT-001",
-                SemiProduct = new UpdateManufactureOrderSemiProductDto
-                {
-                    ProductCode = "XY",
-                    ProductName = "Tiny Code Semi Product",
-                    ActualQuantity = ValidQuantity,
-                    PlannedQuantity = ValidQuantity,
-                    LotNumber = "LOT002",
-                    ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30))
-                },
-                Products = new List<UpdateManufactureOrderProductDto>()
-            }
-        };
-
-        var submitManufactureResponse = CreateSuccessfulSubmitManufactureResponse("ERP_SEMI_SHORT_001");
-        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
-
-        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
-
-        // Act & Assert – must not throw and must succeed (ArgumentOutOfRangeException would be caught and returned as failure)
-        var act = async () => await _service.ConfirmSemiProductManufactureAsync(ValidOrderId, ValidQuantity, ValidChangeReason);
-        await act.Should().NotThrowAsync();
-        var result = await _service.ConfirmSemiProductManufactureAsync(ValidOrderId, ValidQuantity, ValidChangeReason);
-        result.Success.Should().BeTrue("short semi-product code must not cause ArgumentOutOfRangeException");
-    }
-
-    #endregion
 }
