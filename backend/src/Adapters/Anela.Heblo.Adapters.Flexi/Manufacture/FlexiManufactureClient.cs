@@ -31,6 +31,7 @@ internal sealed class FlexiManufactureClient : IManufactureClient
     private readonly ILogger<FlexiManufactureClient> _logger;
     private readonly IFlexiManufactureTemplateService _templateService;
     private readonly IFefoConsumptionAllocator _fefoAllocator;
+    private readonly IFlexiIngredientRequirementAggregator _requirementAggregator;
 
     public FlexiManufactureClient(
         IErpStockClient stockClient,
@@ -41,7 +42,8 @@ internal sealed class FlexiManufactureClient : IManufactureClient
         TimeProvider timeProvider,
         ILogger<FlexiManufactureClient> logger,
         IFlexiManufactureTemplateService templateService,
-        IFefoConsumptionAllocator fefoAllocator)
+        IFefoConsumptionAllocator fefoAllocator,
+        IFlexiIngredientRequirementAggregator requirementAggregator)
     {
         _stockClient = stockClient ?? throw new ArgumentNullException(nameof(stockClient));
         _stockMovementClient = stockMovementClient ?? throw new ArgumentNullException(nameof(stockMovementClient));
@@ -52,6 +54,7 @@ internal sealed class FlexiManufactureClient : IManufactureClient
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _templateService = templateService ?? throw new ArgumentNullException(nameof(templateService));
         _fefoAllocator = fefoAllocator ?? throw new ArgumentNullException(nameof(fefoAllocator));
+        _requirementAggregator = requirementAggregator ?? throw new ArgumentNullException(nameof(requirementAggregator));
     }
 
     public async Task<string> SubmitManufactureAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken = default)
@@ -84,7 +87,7 @@ internal sealed class FlexiManufactureClient : IManufactureClient
             };
 
             // Get ingredient requirements for this product
-            var ingredientRequirements = await AggregateIngredientRequirementsAsync(singleProductRequest, cancellationToken);
+            var ingredientRequirements = await _requirementAggregator.AggregateAsync(singleProductRequest.Items, cancellationToken);
 
             // When ResidueDistribution is set, override the semiproduct ingredient amount with the
             // distribution-adjusted consumption so that all products together consume exactly
@@ -131,50 +134,6 @@ internal sealed class FlexiManufactureClient : IManufactureClient
 
         // Phase 3: Create ONE produce document with all products
         await SubmitConsolidatedProductionMovementAsync(request, productCosts, cancellationToken);
-    }
-
-    private async Task<Dictionary<string, IngredientRequirement>> AggregateIngredientRequirementsAsync(
-        SubmitManufactureClientRequest request,
-        CancellationToken cancellationToken)
-    {
-        var ingredientRequirements = new Dictionary<string, IngredientRequirement>();
-
-        foreach (var item in request.Items)
-        {
-            var template = await _templateService.GetManufactureTemplateAsync(item.ProductCode, cancellationToken)
-                ?? throw new ApplicationException($"No BoM header for product {item.ProductCode} found");
-            var scaleFactor = (double)item.Amount / template.Amount;
-
-            foreach (var ingredient in template.Ingredients.Where(w => w.ProductType != ProductType.UNDEFINED))
-            {
-                var scaledAmount = ingredient.Amount * scaleFactor;
-
-                if (ingredientRequirements.TryGetValue(ingredient.ProductCode, out var existing))
-                {
-                    ingredientRequirements[ingredient.ProductCode] = new IngredientRequirement
-                    {
-                        ProductCode = ingredient.ProductCode,
-                        ProductName = existing.ProductName,
-                        ProductType = existing.ProductType,
-                        RequiredAmount = existing.RequiredAmount + scaledAmount,
-                        HasLots = existing.HasLots
-                    };
-                }
-                else
-                {
-                    ingredientRequirements[ingredient.ProductCode] = new IngredientRequirement
-                    {
-                        ProductCode = ingredient.ProductCode,
-                        ProductName = ingredient.ProductName,
-                        ProductType = ingredient.ProductType,
-                        RequiredAmount = scaledAmount,
-                        HasLots = ingredient.HasLots
-                    };
-                }
-            }
-        }
-
-        return ingredientRequirements;
     }
 
     private async Task ValidateIngredientStockAsync(
