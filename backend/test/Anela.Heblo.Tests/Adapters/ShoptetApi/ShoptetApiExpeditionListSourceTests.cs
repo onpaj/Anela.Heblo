@@ -147,8 +147,9 @@ public class ShoptetApiExpeditionListSourceTests
     [Fact]
     public async Task CreatePickingList_BatchesByItemCount_SplitsWhenLimitExceeded()
     {
-        // Arrange — 3 orders: first 2 have 10 items each (total 20 = at limit), third has 1 item.
-        // Expect 2 batches: [Z001, Z002] (20 items) and [Z003] (1 item).
+        // Arrange — 3 orders: Z001 has 10 items, Z002 has 10 items, Z003 has 1 item.
+        // Adding Z002 to Z001's batch would exceed the 15-item limit (10+10=20 > 15).
+        // Expect 2 batches: [Z001] (10 items) and [Z002, Z003] (11 items).
         var listResp = SinglePageList(
             ("Z001", ZasilkovnaDoRukyGuid),
             ("Z002", ZasilkovnaDoRukyGuid),
@@ -176,7 +177,7 @@ public class ShoptetApiExpeditionListSourceTests
             return Task.CompletedTask;
         });
 
-        // Assert — 2 batches: [Z001+Z002] hits the 20-item limit, [Z003] is the remainder
+        // Assert — 2 batches: [Z001] alone (adding Z002 would exceed 15-item limit), [Z002+Z003] together
         batchFilesReceived.Should().HaveCount(2);
         result.TotalCount.Should().Be(3);
 
@@ -188,7 +189,7 @@ public class ShoptetApiExpeditionListSourceTests
     [Fact]
     public async Task CreatePickingList_SingleOrderExceedingItemLimit_GetsOwnBatch()
     {
-        // Arrange — one order with 25 items (exceeds MaxItems=20); must still be processed
+        // Arrange — one order with 25 items (exceeds MaxItems=15); must still be processed
         var listResp = SinglePageList(("Z001", ZasilkovnaDoRukyGuid));
 
         var batchFilesReceived = new List<IList<string>>();
@@ -211,6 +212,42 @@ public class ShoptetApiExpeditionListSourceTests
         // Assert — single order always gets its own batch even if it exceeds the item limit
         batchFilesReceived.Should().HaveCount(1);
         result.TotalCount.Should().Be(1);
+
+        // Cleanup
+        foreach (var file in result.ExportedFiles.Where(File.Exists))
+            File.Delete(file);
+    }
+
+    [Fact]
+    public async Task CreatePickingList_BatchesByOrderCount_SplitsWhenLimitExceeded()
+    {
+        // Arrange — 8 orders each with 1 item (total 8 items well under 15-item limit,
+        // but 8 orders exceeds MaxOrders=7). Expect 2 batches: first 7 orders, then 1 order.
+        var orders = Enumerable.Range(1, 8).Select(i => ($"Z{i:D3}", ZasilkovnaDoRukyGuid)).ToArray();
+        var listResp = SinglePageList(orders);
+
+        var batchFilesReceived = new List<IList<string>>();
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
+                return Json(listResp);
+
+            var code = req.RequestUri.Segments.Last();
+            return Json(DetailFor(code, itemCount: 1));
+        });
+
+        var source = BuildSource(client);
+
+        // Act
+        var result = await source.CreatePickingList(DefaultRequest(), files =>
+        {
+            batchFilesReceived.Add(files);
+            return Task.CompletedTask;
+        });
+
+        // Assert — 2 batches: first 7 orders hit the MaxOrders=7 limit, 8th order gets its own batch
+        batchFilesReceived.Should().HaveCount(2);
+        result.TotalCount.Should().Be(8);
 
         // Cleanup
         foreach (var file in result.ExportedFiles.Where(File.Exists))
@@ -349,7 +386,7 @@ public class ShoptetApiExpeditionListSourceTests
             return Task.CompletedTask;
         });
 
-        // Assert — 1 batch for Zasilkovna (3 orders < 8) + 1 batch for PPL = 2 callbacks
+        // Assert — 1 batch for Zasilkovna (3 orders < 7) + 1 batch for PPL = 2 callbacks
         callbackInvocations.Should().HaveCount(2);
         callbackInvocations.SelectMany(x => x).Should().AllSatisfy(f => File.Exists(f).Should().BeTrue());
 
