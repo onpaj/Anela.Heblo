@@ -44,8 +44,11 @@ public class BlockOrderProcessingHandler : IRequestHandler<BlockOrderProcessingR
             await _eshopOrderClient.UpdateStatusAsync(
                 request.OrderCode, _settings.Value.BlockedStatusId, cancellationToken);
 
-            await _eshopOrderClient.SetInternalNoteAsync(
-                request.OrderCode, request.Note, cancellationToken);
+            var currentRemark = await _eshopOrderClient.GetEshopRemarkAsync(request.OrderCode, cancellationToken);
+            var updatedRemark = string.IsNullOrEmpty(currentRemark)
+                ? request.Note
+                : $"{currentRemark}\n{request.Note}";
+            await _eshopOrderClient.UpdateEshopRemarkAsync(request.OrderCode, updatedRemark, cancellationToken);
 
             return new BlockOrderProcessingResponse();
         }
