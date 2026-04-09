@@ -11,6 +11,9 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
 public class ManufactureOrderApplicationService : IManufactureOrderApplicationService
 {
+    private const int ProductCodePrefixLength = 6;
+    private const int MaxManufactureNameLength = 40;
+
     private readonly IMediator _mediator;
     private readonly IManufactureClient _manufactureClient;
     private readonly IResidueDistributionCalculator _residueCalculator;
@@ -316,21 +319,34 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
     private string CreateManufactureName(UpdateManufactureOrderDto order, ErpManufactureType type)
     {
         string manufactureName;
+        var semiCode = order.SemiProduct.ProductCode;
+        var shortName = _productNameFormatter.ShortProductName(order.SemiProduct.ProductName);
+        var prefix = SafeTake(semiCode, ProductCodePrefixLength);
+
         if (type == ErpManufactureType.Product)
         {
-            if (order.Products.All(p => p.ProductCode == order.SemiProduct.ProductCode)) // Singlephase manufacture
+            if (order.Products.All(p => p.ProductCode == semiCode)) // Singlephase manufacture
             {
-                manufactureName = $"{order.SemiProduct.ProductCode}";
+                manufactureName = semiCode;
             }
             else
             {
-                manufactureName = $"{order.SemiProduct.ProductCode.Substring(0, 6)} {_productNameFormatter.ShortProductName(order.SemiProduct.ProductName)}";
+                manufactureName = $"{prefix} {shortName}";
             }
         }
         else
-            manufactureName = $"{order.SemiProduct.ProductCode.Substring(0, 6)}M {_productNameFormatter.ShortProductName(order.SemiProduct.ProductName)}";
+        {
+            manufactureName = $"{prefix}M {shortName}";
+        }
 
-        return manufactureName.Length > 40 ? manufactureName.Substring(0, 40) : manufactureName;
+        return SafeTake(manufactureName, MaxManufactureNameLength);
+    }
+
+    private static string SafeTake(string value, int maxLength)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+        return value.Length <= maxLength ? value : value.Substring(0, maxLength);
     }
 
 
