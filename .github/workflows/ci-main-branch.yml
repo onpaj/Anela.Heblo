@@ -226,10 +226,9 @@ jobs:
           REQUEST_PAYLOAD=$(jq -n \
             --arg source_json "$SOURCE_JSON" \
             '{
-              "model": "gpt-4o-mini",
+              "model": "gpt-4o",
               "messages": [
-                {"role": "system", "content": "You are a professional translator specializing in technical documentation. Translate from English to Czech while preserving technical terms and JSON structure. Return only valid JSON without markdown formatting or code blocks."},
-                {"role": "user", "content": "Přelož všechny hodnoty v JSONu z angličtiny do češtiny. Zachovej strukturu JSON a technické termíny (fix, feature, commit, docs etc). Návratová hodnota musí být pouze validní JSON bez jakéhokoliv markdown formátování nebo code blocků."},
+                {"role": "system", "content": "Jsi redaktor poznámek k vydání pro aplikaci kosmetické firmy. Tvým úkolem je přepsat technické commit zprávy do přívětivého, srozumitelného češtiny pro netechnické zaměstnance (skladníky, účetní, vedení). Pravidla:\n- Piš přirozeně česky, jako bys psal kolegům\n- Vysvětli CO se změnilo a PROČ je to pro uživatele důležité, ne jak to bylo implementováno\n- Vynechej technické detaily (názvy souborů, hashí, čísla PR v závorkách jako (#123))\n- Typy změn převeď: feature→novinka, fix→oprava, refactor→vylepšení, test→interní, docs→dokumentace, perf→zrychlení\n- Zachovej JSON strukturu beze změny – překládej pouze hodnoty polí title a description\n- Vrať pouze validní JSON bez markdown formátování nebo code bloků"},
                 {"role": "user", "content": $source_json}
               ]
             }')
