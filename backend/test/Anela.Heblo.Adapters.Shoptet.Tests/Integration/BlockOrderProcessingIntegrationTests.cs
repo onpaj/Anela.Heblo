@@ -56,6 +56,63 @@ public class BlockOrderProcessingIntegrationTests
     }
 
     [Fact]
+    public async Task BlockOrder_PreservesExistingEshopRemark_AndAppendsOnNewLine()
+    {
+        if (Environment.GetEnvironmentVariable("SHOPTET_BLOCK_ORDER") != "1")
+            return;
+
+        ShoptetTestGuard.Assert(_configuration);
+
+        var blockedStatusId = _configuration.GetValue<int?>("ShoptetOrders:BlockedStatusId")
+            ?? throw new InvalidOperationException(
+                "Missing ShoptetOrders:BlockedStatusId in configuration. "
+                + "Add it to user secrets — use GET /api/eshop?include=orderStatuses to discover valid IDs.");
+
+        var handler = new BlockOrderProcessingHandler(
+            _client,
+            Options.Create(new ShoptetOrdersSettings
+            {
+                AllowedBlockSourceStateIds = [StatusNova, StatusPoznamka, StatusVyrizujeSe],
+                BlockedStatusId = blockedStatusId,
+            }),
+            _logger);
+
+        var ct = new CancellationTokenSource(TimeSpan.FromMinutes(2)).Token;
+        var paymentGuid = _configuration["Shoptet:PaymentMethodGuid"]
+            ?? throw new InvalidOperationException("Missing Shoptet:PaymentMethodGuid in configuration.");
+        var shippingGuid = _configuration["Shoptet:ShippingGuidMap:21"]
+            ?? throw new InvalidOperationException("Missing Shoptet:ShippingGuidMap:21 in configuration.");
+
+        string? code = null;
+        try
+        {
+            code = await _client.CreateOrderAsync(BuildOrderRequest("BLOCK-ORDER-TEST-APPEND", shippingGuid, paymentGuid), ct);
+            await _client.UpdateStatusAsync(code, StatusNova, ct);
+            await _client.UpdateEshopRemarkAsync(code, "pre-existing note from setup", ct);
+            _output.WriteLine($"CREATED  BLOCK-ORDER-TEST-APPEND ({code}) → status {StatusNova} with pre-existing remark");
+
+            var result = await handler.Handle(
+                new BlockOrderProcessingRequest { OrderCode = code, Note = "block reason from test" },
+                ct);
+
+            result.Success.Should().BeTrue("order in state Nova with pre-existing remark should be blockable");
+
+            var remarkAfter = await _client.GetEshopRemarkAsync(code, ct);
+            remarkAfter.Should().Be("pre-existing note from setup\nblock reason from test");
+
+            _output.WriteLine($"REMARK   BLOCK-ORDER-TEST-APPEND ({code}) ✓");
+        }
+        finally
+        {
+            if (code != null)
+            {
+                await _client.DeleteOrderAsync(code, ct);
+                _output.WriteLine($"DELETED  {code}");
+            }
+        }
+    }
+
+    [Fact]
     public async Task BlockOrder_BaliSe_IsRejectedWithInvalidSourceStateError()
     {
         await RunTest("BLOCK-ORDER-TEST-BALI", StatusBaliSe, shouldSucceed: false);
@@ -66,7 +123,7 @@ public class BlockOrderProcessingIntegrationTests
         if (Environment.GetEnvironmentVariable("SHOPTET_BLOCK_ORDER") != "1")
             return;
 
-        AssertTestEnvironment(_configuration);
+        ShoptetTestGuard.Assert(_configuration);
 
         var blockedStatusId = _configuration.GetValue<int?>("ShoptetOrders:BlockedStatusId")
             ?? throw new InvalidOperationException(
@@ -103,6 +160,10 @@ public class BlockOrderProcessingIntegrationTests
             {
                 result.Success.Should().BeTrue(
                     $"order in state {statusId} ({externalCode}) should be blockable");
+
+                var remarkAfter = await _client.GetEshopRemarkAsync(code, ct);
+                remarkAfter.Should().EndWith("Integration test block");
+
                 _output.WriteLine($"BLOCKED  {externalCode} ({code}) ✓");
             }
             else
@@ -172,17 +233,4 @@ public class BlockOrderProcessingIntegrationTests
             ],
         };
 
-    private static void AssertTestEnvironment(IConfiguration config)
-    {
-        var isTest = config.GetValue<bool>("Shoptet:IsTestEnvironment");
-        if (!isTest)
-            throw new InvalidOperationException(
-                "Integration test must not run against live environment. "
-                + "Set Shoptet:IsTestEnvironment=true in test appsettings.json");
-
-        var baseUrl = config["Shoptet:BaseUrl"] ?? string.Empty;
-        if (baseUrl.Contains("anela", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(
-                "Integration test refused: base URL contains 'anela' — this looks like the production store.");
-    }
 }
