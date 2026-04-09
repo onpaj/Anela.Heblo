@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
+using Anela.Heblo.Application.Features.Manufacture.Services.Workflows;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -65,16 +66,19 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
 
             // Step 3: Change state to SemiProductManufactured
             var result = await UpdateOrderStatus(
-                orderId,
-                ManufactureOrderState.SemiProductManufactured,
-                changeReason ?? $"Potvrzeno skutečné množství polotovaru: {actualQuantity}",
-                submitManufactureResult.Success ? $"Vytvořena vydaná objednávka meziproduktu {submitManufactureResult.ManufactureId}" : submitManufactureResult.UserMessage ?? submitManufactureResult.FullError(),
-                submitManufactureResult.ManufactureId,
-                productDocumentCode: null,
-                discardDocumentCode: null,
-                !submitManufactureResult.Success,
-                weightWithinTolerance: null,
-                weightDifference: null,
+                new UpdateOrderStatusCommand(
+                    OrderId: orderId,
+                    TargetState: ManufactureOrderState.SemiProductManufactured,
+                    ChangeReason: changeReason ?? $"Potvrzeno skutečné množství polotovaru: {actualQuantity}",
+                    Note: submitManufactureResult.Success
+                        ? $"Vytvořena vydaná objednávka meziproduktu {submitManufactureResult.ManufactureId}"
+                        : submitManufactureResult.UserMessage ?? submitManufactureResult.FullError(),
+                    Documents: new ManufactureDocumentCodes(
+                        SemiProduct: submitManufactureResult.ManufactureId,
+                        Product: null,
+                        Discard: null),
+                    ManualActionRequired: !submitManufactureResult.Success,
+                    WeightTolerance: null),
                 cancellationToken);
 
             if (!result.Success)
@@ -172,16 +176,19 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 combinedNote = $"Potvrzeno dokončení výroby produktů - {submitManufactureResult.ManufactureId}";
 
             var result = await UpdateOrderStatus(
-                orderId,
-                ManufactureOrderState.Completed,
-                changeReason ?? $"Potvrzeno dokončení výroby produktů",
-                combinedNote,
-                semiproductDocumentCode: null,
-                productDocumentCode: submitManufactureResult.ManufactureId,
-                discardDocumentCode: null,
-                manualActionRequired: !submitManufactureResult.Success,
-                weightWithinTolerance: distribution.IsWithinAllowedThreshold,
-                weightDifference: distribution.Difference,
+                new UpdateOrderStatusCommand(
+                    OrderId: orderId,
+                    TargetState: ManufactureOrderState.Completed,
+                    ChangeReason: changeReason ?? $"Potvrzeno dokončení výroby produktů",
+                    Note: combinedNote,
+                    Documents: new ManufactureDocumentCodes(
+                        SemiProduct: null,
+                        Product: submitManufactureResult.ManufactureId,
+                        Discard: null),
+                    ManualActionRequired: !submitManufactureResult.Success,
+                    WeightTolerance: new WeightToleranceInfo(
+                        WithinTolerance: distribution.IsWithinAllowedThreshold,
+                        Difference: distribution.Difference)),
                 cancellationToken);
 
             if (!result.Success)
@@ -223,34 +230,24 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
     }
 
     private async Task<UpdateManufactureOrderStatusResponse> UpdateOrderStatus(
-        int orderId,
-        ManufactureOrderState targetState,
-        string changeReason,
-        string note,
-        string? semiproductDocumentCode,
-        string? productDocumentCode,
-        string? discardDocumentCode,
-        bool manualActionRequired,
-        bool? weightWithinTolerance,
-        decimal? weightDifference,
+        UpdateOrderStatusCommand command,
         CancellationToken cancellationToken)
     {
         var statusRequest = new UpdateManufactureOrderStatusRequest
         {
-            Id = orderId,
-            NewState = targetState,
-            ChangeReason = changeReason,
-            Note = note,
-            SemiProductOrderCode = semiproductDocumentCode,
-            ProductOrderCode = productDocumentCode,
-            DiscardRedisueDocumentCode = discardDocumentCode,
-            ManualActionRequired = manualActionRequired,
-            WeightWithinTolerance = weightWithinTolerance,
-            WeightDifference = weightDifference,
+            Id = command.OrderId,
+            NewState = command.TargetState,
+            ChangeReason = command.ChangeReason,
+            Note = command.Note,
+            SemiProductOrderCode = command.Documents.SemiProduct,
+            ProductOrderCode = command.Documents.Product,
+            DiscardRedisueDocumentCode = command.Documents.Discard,
+            ManualActionRequired = command.ManualActionRequired,
+            WeightWithinTolerance = command.WeightTolerance?.WithinTolerance,
+            WeightDifference = command.WeightTolerance?.Difference,
         };
 
-        var statusResult = await _mediator.Send(statusRequest, cancellationToken);
-        return statusResult;
+        return await _mediator.Send(statusRequest, cancellationToken);
     }
 
     private async Task<SubmitManufactureResponse> CreateManufactureOrderInErp(
