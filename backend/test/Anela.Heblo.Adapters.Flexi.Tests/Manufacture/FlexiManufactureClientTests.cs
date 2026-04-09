@@ -50,12 +50,12 @@ public class FlexiManufactureClientTests
             _mockStockMovementClient.Object,
             _mockBomClient.Object,
             _mockProductSetsClient.Object,
-            _mockLotsClient.Object,
             _mockLogger.Object,
             _mockTemplateService.Object,
             new FefoConsumptionAllocator(),
             new FlexiIngredientRequirementAggregator(_mockTemplateService.Object),
-            new FlexiIngredientStockValidator(_mockStockClient.Object, TimeProvider.System));
+            new FlexiIngredientStockValidator(_mockStockClient.Object, TimeProvider.System),
+            new FlexiLotLoader(_mockLotsClient.Object));
     }
 
     #region Basic Flow Tests

@@ -74,6 +74,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddScoped<IFefoConsumptionAllocator, FefoConsumptionAllocator>();
         services.AddScoped<IFlexiIngredientRequirementAggregator, FlexiIngredientRequirementAggregator>();
         services.AddScoped<IFlexiIngredientStockValidator, FlexiIngredientStockValidator>();
+        services.AddScoped<IFlexiLotLoader, FlexiLotLoader>();
         services.AddScoped<IManufactureClient, FlexiManufactureClient>();
         services.AddScoped<IProductWeightClient, FlexiProductClient>();
         services.AddScoped<ILotsClient, FlexiLotsClient>();

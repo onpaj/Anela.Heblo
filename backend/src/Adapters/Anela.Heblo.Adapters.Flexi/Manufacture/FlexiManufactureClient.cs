@@ -26,35 +26,35 @@ internal sealed class FlexiManufactureClient : IManufactureClient
     private readonly IStockItemsMovementClient _stockMovementClient;
     private readonly IBoMClient _bomClient;
     private readonly IProductSetsClient _productSetsClient;
-    private readonly ILotsClient _lotsClient;
     private readonly ILogger<FlexiManufactureClient> _logger;
     private readonly IFlexiManufactureTemplateService _templateService;
     private readonly IFefoConsumptionAllocator _fefoAllocator;
     private readonly IFlexiIngredientRequirementAggregator _requirementAggregator;
     private readonly IFlexiIngredientStockValidator _stockValidator;
+    private readonly IFlexiLotLoader _lotLoader;
 
     public FlexiManufactureClient(
         IErpStockClient stockClient,
         IStockItemsMovementClient stockMovementClient,
         IBoMClient bomClient,
         IProductSetsClient productSetsClient,
-        ILotsClient lotsClient,
         ILogger<FlexiManufactureClient> logger,
         IFlexiManufactureTemplateService templateService,
         IFefoConsumptionAllocator fefoAllocator,
         IFlexiIngredientRequirementAggregator requirementAggregator,
-        IFlexiIngredientStockValidator stockValidator)
+        IFlexiIngredientStockValidator stockValidator,
+        IFlexiLotLoader lotLoader)
     {
         _stockClient = stockClient ?? throw new ArgumentNullException(nameof(stockClient));
         _stockMovementClient = stockMovementClient ?? throw new ArgumentNullException(nameof(stockMovementClient));
         _bomClient = bomClient;
         _productSetsClient = productSetsClient;
-        _lotsClient = lotsClient ?? throw new ArgumentNullException(nameof(lotsClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _templateService = templateService ?? throw new ArgumentNullException(nameof(templateService));
         _fefoAllocator = fefoAllocator ?? throw new ArgumentNullException(nameof(fefoAllocator));
         _requirementAggregator = requirementAggregator ?? throw new ArgumentNullException(nameof(requirementAggregator));
         _stockValidator = stockValidator ?? throw new ArgumentNullException(nameof(stockValidator));
+        _lotLoader = lotLoader ?? throw new ArgumentNullException(nameof(lotLoader));
     }
 
     public async Task<string> SubmitManufactureAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken = default)
@@ -122,7 +122,7 @@ internal sealed class FlexiManufactureClient : IManufactureClient
                 await _stockValidator.ValidateAsync(ingredientRequirements, cancellationToken);
             }
 
-            var ingredientLots = await LoadAvailableLotsAsync(ingredientRequirements, cancellationToken);
+            var ingredientLots = await _lotLoader.LoadAvailableLotsAsync(ingredientRequirements, cancellationToken);
             var consumptionItems = _fefoAllocator.Allocate(ingredientRequirements, ingredientLots, item.ProductCode);
 
             allConsumptionItems.AddRange(consumptionItems);
@@ -134,30 +134,6 @@ internal sealed class FlexiManufactureClient : IManufactureClient
 
         // Phase 3: Create ONE produce document with all products
         await SubmitConsolidatedProductionMovementAsync(request, productCosts, cancellationToken);
-    }
-
-    private async Task<Dictionary<string, List<CatalogLot>>> LoadAvailableLotsAsync(
-        Dictionary<string, IngredientRequirement> ingredientRequirements,
-        CancellationToken cancellationToken)
-    {
-        var ingredientLots = new Dictionary<string, List<CatalogLot>>();
-
-        foreach (var (ingredientCode, requirement) in ingredientRequirements)
-        {
-            if (requirement.HasLots)
-            {
-                var lots = await _lotsClient.GetAsync(ingredientCode, cancellationToken: cancellationToken);
-                var availableLots = lots.Where(l => l.Amount > 0).ToList();
-                ingredientLots[ingredientCode] = availableLots;
-            }
-            else
-            {
-                // For items without lots, create empty list
-                ingredientLots[ingredientCode] = new List<CatalogLot>();
-            }
-        }
-
-        return ingredientLots;
     }
 
     private async Task SubmitConsolidatedConsumptionMovementsAsync(
