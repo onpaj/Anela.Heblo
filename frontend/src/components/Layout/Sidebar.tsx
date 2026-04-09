@@ -327,7 +327,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex flex-col h-full">
           {/* App Title / Mobile Menu */}
           <div
-            className={`${isCollapsed ? "h-16 px-2" : "h-16 px-4"} flex items-center border-b border-gray-200`}
+            className={`${isCollapsed ? "h-16 px-2" : "h-16 px-4"} flex items-center border-b border-gray-200 flex-shrink-0`}
           >
             {!isCollapsed ? (
               <div className="flex items-center justify-between w-full">
@@ -360,7 +360,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Navigation */}
-          <nav className={`flex-1 py-4 ${isCollapsed ? "px-2" : "px-3"}`}>
+          <nav className={`flex-1 min-h-0 overflow-y-auto py-4 ${isCollapsed ? "px-2" : "px-3"}`}>
             <div className="space-y-1">
               {navigationSections.map((section) => {
                 const IconComponent = section.icon;
@@ -538,7 +538,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Changelog and User Profile at bottom */}
           <div
-            className={`border-t border-gray-200 ${isCollapsed ? "px-2" : "px-3"} flex flex-col`}
+            className={`border-t border-gray-200 ${isCollapsed ? "px-2" : "px-3"} flex flex-col flex-shrink-0`}
           >
             {/* Changelog button */}
             {!isCollapsed ? (
