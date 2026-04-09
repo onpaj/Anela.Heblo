@@ -163,8 +163,8 @@ public class ShoptetTestEnvironmentHydrationTests
     [Fact]
     public async Task HydrateTestEnvironment()
     {
-        // if (Environment.GetEnvironmentVariable("SHOPTET_HYDRATE") != "1")
-        //     return;
+        if (Environment.GetEnvironmentVariable("SHOPTET_HYDRATE") != "1")
+            return;
 
         ShoptetTestGuard.Assert(_configuration);
 
@@ -268,8 +268,8 @@ public class ShoptetTestEnvironmentHydrationTests
     [Fact]
     public async Task PurgeTestOrders()
     {
-        // if (Environment.GetEnvironmentVariable("SHOPTET_HYDRATE") != "1")
-        //     return;
+        if (Environment.GetEnvironmentVariable("SHOPTET_HYDRATE") != "1")
+            return;
 
         ShoptetTestGuard.Assert(_configuration);
 
