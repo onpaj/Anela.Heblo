@@ -176,6 +176,38 @@ Optional `include` sections: `notes`, `images`, `shippingDetails`, `stockLocatio
 
 **Fields in list response:** `code`, `guid`, `creationTime`, `changeTime`, `company`, `fullName`, `email`, `phone`, `remark`, `cashDeskOrder`, `customerGuid`, `paid`, `status`, `source`, `price`, `paymentMethod`, `shipping`, `adminUrl`, `salesChannelGuid`. **`externalCode` is NOT included.** Use `GET /api/orders/{code}` (single detail) to get `externalCode`.
 
+### 3.6 PATCH /api/orders/{code}/notes — Update Remarks (operationId: updateRemarksForOrder)
+
+Updates the order's remark/note slots. Any property omitted from the body is left unchanged on the server — the endpoint is a partial update.
+
+**Request body:**
+```json
+{
+  "data": {
+    "customerRemark": "string or null",
+    "eshopRemark":    "string or null",
+    "trackingNumber": "string or null",
+    "additionalFields": [
+      { "index": 1, "text": "..." }
+    ]
+  }
+}
+```
+
+- `customerRemark` — customer-facing note (what customer typed at checkout).
+- `eshopRemark` — internal staff-facing note.
+- `trackingNumber` — max 32 chars.
+- `additionalFields` — optional, each `{ index: 1..6, text: string|null }`. Fields 1–3 max 255 chars.
+
+**Success response (200):** `{"data":null,"errors":null}` — no meaningful body content.
+
+**Field-to-GET-response mapping (names differ):**
+- `customerRemark` (PATCH) ↔ `remark` (GET /api/orders list, GET /api/orders/{code}).
+- `eshopRemark` (PATCH) ↔ `notes.eshopRemark` (GET /api/orders/{code}?include=notes only; NOT in GET /api/orders list response).
+
+**NOT a history endpoint.** `PATCH /notes` overwrites `eshopRemark`. It does NOT create a history entry. To append rather than replace, the caller must first `GET /api/orders/{code}?include=notes`, read `data.order.notes.eshopRemark`, concatenate, then PATCH the combined value.
+
+**Used by:** `BlockOrderProcessingHandler` — reads current `eshopRemark` via `GetEshopRemarkAsync`, appends the block reason on a new line, writes back via `UpdateEshopRemarkAsync`. Both methods are on `ShoptetOrderClient`.
 
 ---
 
@@ -233,7 +265,7 @@ Location: `backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/`
 
 - **Seeding endpoint:** `POST /api/orders` — creates orders with minimal valid payload.
 - **Status update endpoint:** `PATCH /api/orders/{code}/status` — body shape `{"data":{"statusId":<int>}}`. Note: the property is `statusId` (flat integer), NOT `{"status":{"id":x}}` — verified against Shoptet OpenAPI spec (`additionalProperties: false` schema).
-- **Internal note / history remark:** `POST /api/orders/{code}/history` — body `{"data":{"text":"...","type":"system"}}`. The `type` field is either `"comment"` (visible to customer) or `"system"` (internal). `PATCH /api/orders/{code}/notes` is for updating the order's `remark` field and custom fields — it is NOT for writing history entries.
+- **Internal note / history remark:** `POST /api/orders/{code}/history` — body `{"data":{"text":"...","type":"system"}}`. The `type` field is either `"comment"` (visible to customer) or `"system"` (internal). `PATCH /api/orders/{code}/notes` is for updating `customerRemark` (= `remark` in GET), `eshopRemark`, `trackingNumber`, and 6 custom fields — it is NOT for writing history entries. See section 3.6 for the full contract.
 - **Read history for one order:** `GET /api/orders/{code}/history` — returns `data.orderHistory[]`. Each entry: `id` (int), `creationTime` (datetime string), `text` (string), `system` (bool — true = Shoptet-generated), `type` ("comment"|"system"), `user` object with `id` (email or system process ID) and `name` (human-readable name). **Author is `user.name`, NOT `author`/`createdBy`/`userName`.** Timestamp is `creationTime`, NOT `createdAt`. Optional query param `system` (bool) to filter system-only or user-only entries. Max 100 history items per order (POST returns 403 if exceeded).
 - **Bulk history fetch:** `GET /api/orders/history/snapshot?orderCodes=A,B,C` — async, max 50 codes per call. Returns HTTP 202 with `data.jobId`. Poll `GET /api/orders/history/snapshot/{jobId}` until it returns a download URL. Download is gzip-compressed jsonlines (one entry per line), same schema as single-order history but extended with `orderCode` field identifying the parent order.
 - **Delete endpoint:** `DELETE /api/orders/{code}`.
