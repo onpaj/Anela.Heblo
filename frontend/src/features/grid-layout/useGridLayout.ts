@@ -75,8 +75,8 @@ export function useGridLayout<TRow>(gridKey: string, columns: GridColumn<TRow>[]
             : buildDefaultState(columnsRef.current);
 
         setColumnState(state);
-      } catch {
-        // Network error — fall back to defaults
+      } catch (error) {
+        console.warn('Failed to load grid layout:', error);
         if (!cancelled) setColumnState(buildDefaultState(columnsRef.current));
       } finally {
         if (!cancelled) setIsLoaded(true);
@@ -159,8 +159,8 @@ export function useGridLayout<TRow>(gridKey: string, columns: GridColumn<TRow>[]
   const orderedColumns = columnState
     .filter((s) => !s.hidden)
     .sort((a, b) => a.order - b.order)
-    .map((s) => columnsRef.current.find((c) => c.id === s.id)!)
-    .filter(Boolean);
+    .map((s) => columnsRef.current.find((c) => c.id === s.id))
+    .filter((col): col is GridColumn<TRow> => col !== undefined);
 
   return {
     orderedColumns,

@@ -18,7 +18,8 @@ public class ResetGridLayoutHandler : IRequestHandler<ResetGridLayoutRequest, Re
     public async Task<ResetGridLayoutResponse> Handle(ResetGridLayoutRequest request, CancellationToken cancellationToken)
     {
         var user = _currentUserService.GetCurrentUser();
-        var userId = user.Id ?? user.Email ?? "anonymous";
+        var userId = user.Id ?? user.Email
+            ?? throw new InvalidOperationException("Authenticated user must have either Id or Email claim.");
 
         await _repository.DeleteAsync(userId, request.GridKey, cancellationToken);
 

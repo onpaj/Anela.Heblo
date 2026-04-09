@@ -20,7 +20,8 @@ public class SaveGridLayoutHandler : IRequestHandler<SaveGridLayoutRequest, Save
     public async Task<SaveGridLayoutResponse> Handle(SaveGridLayoutRequest request, CancellationToken cancellationToken)
     {
         var user = _currentUserService.GetCurrentUser();
-        var userId = user.Id ?? user.Email ?? "anonymous";
+        var userId = user.Id ?? user.Email
+            ?? throw new InvalidOperationException("Authenticated user must have either Id or Email claim.");
 
         var payload = new GridLayoutDto
         {
