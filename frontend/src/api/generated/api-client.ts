@@ -2301,6 +2301,129 @@ export class ApiClient {
         return Promise.resolve<GetFinancialOverviewResponse>(null as any);
     }
 
+    gridLayouts_Get(gridKey: string): Promise<GridLayoutDto> {
+        let url_ = this.baseUrl + "/api/GridLayouts/{gridKey}";
+        if (gridKey === undefined || gridKey === null)
+            throw new Error("The parameter 'gridKey' must be defined.");
+        url_ = url_.replace("{gridKey}", encodeURIComponent("" + gridKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGridLayouts_Get(_response);
+        });
+    }
+
+    protected processGridLayouts_Get(response: Response): Promise<GridLayoutDto> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GridLayoutDto.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GridLayoutDto>(null as any);
+    }
+
+    gridLayouts_Save(gridKey: string, body: SaveGridLayoutRequest): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/GridLayouts/{gridKey}";
+        if (gridKey === undefined || gridKey === null)
+            throw new Error("The parameter 'gridKey' must be defined.");
+        url_ = url_.replace("{gridKey}", encodeURIComponent("" + gridKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGridLayouts_Save(_response);
+        });
+    }
+
+    protected processGridLayouts_Save(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
+    gridLayouts_Reset(gridKey: string): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/GridLayouts/{gridKey}";
+        if (gridKey === undefined || gridKey === null)
+            throw new Error("The parameter 'gridKey' must be defined.");
+        url_ = url_.replace("{gridKey}", encodeURIComponent("" + gridKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGridLayouts_Reset(_response);
+        });
+    }
+
+    protected processGridLayouts_Reset(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
     invoiceClassification_GetRules(includeInactive: boolean | undefined): Promise<GetClassificationRulesResponse> {
         let url_ = this.baseUrl + "/api/InvoiceClassification/rules?";
         if (includeInactive === null)
@@ -11175,6 +11298,154 @@ export interface IStockSummaryDto {
     averageMonthlyTotalBalance?: number;
 }
 
+export class GridLayoutDto implements IGridLayoutDto {
+    gridKey?: string;
+    columns?: GridColumnStateDto[];
+    lastModified?: Date | undefined;
+
+    constructor(data?: IGridLayoutDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.gridKey = _data["gridKey"];
+            if (Array.isArray(_data["columns"])) {
+                this.columns = [] as any;
+                for (let item of _data["columns"])
+                    this.columns!.push(GridColumnStateDto.fromJS(item));
+            }
+            this.lastModified = _data["lastModified"] ? new Date(_data["lastModified"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): GridLayoutDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new GridLayoutDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["gridKey"] = this.gridKey;
+        if (Array.isArray(this.columns)) {
+            data["columns"] = [];
+            for (let item of this.columns)
+                data["columns"].push(item.toJSON());
+        }
+        data["lastModified"] = this.lastModified ? this.lastModified.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IGridLayoutDto {
+    gridKey?: string;
+    columns?: GridColumnStateDto[];
+    lastModified?: Date | undefined;
+}
+
+export class GridColumnStateDto implements IGridColumnStateDto {
+    id?: string;
+    order?: number;
+    width?: number | undefined;
+    hidden?: boolean;
+
+    constructor(data?: IGridColumnStateDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.order = _data["order"];
+            this.width = _data["width"];
+            this.hidden = _data["hidden"];
+        }
+    }
+
+    static fromJS(data: any): GridColumnStateDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new GridColumnStateDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["order"] = this.order;
+        data["width"] = this.width;
+        data["hidden"] = this.hidden;
+        return data;
+    }
+}
+
+export interface IGridColumnStateDto {
+    id?: string;
+    order?: number;
+    width?: number | undefined;
+    hidden?: boolean;
+}
+
+export class SaveGridLayoutRequest implements ISaveGridLayoutRequest {
+    gridKey?: string;
+    columns?: GridColumnStateDto[];
+
+    constructor(data?: ISaveGridLayoutRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.gridKey = _data["gridKey"];
+            if (Array.isArray(_data["columns"])) {
+                this.columns = [] as any;
+                for (let item of _data["columns"])
+                    this.columns!.push(GridColumnStateDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): SaveGridLayoutRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SaveGridLayoutRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["gridKey"] = this.gridKey;
+        if (Array.isArray(this.columns)) {
+            data["columns"] = [];
+            for (let item of this.columns)
+                data["columns"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface ISaveGridLayoutRequest {
+    gridKey?: string;
+    columns?: GridColumnStateDto[];
+}
+
 export class GetClassificationRulesResponse extends BaseResponse implements IGetClassificationRulesResponse {
     rules?: ClassificationRuleDto[];
 
@@ -18479,6 +18750,7 @@ export enum TimePeriodFilter {
     FutureQuarter = "FutureQuarter",
     Y2Y = "Y2Y",
     PreviousSeason = "PreviousSeason",
+    Q9M = "Q9M",
     CustomPeriod = "CustomPeriod",
 }
 
