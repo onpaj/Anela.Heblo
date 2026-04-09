@@ -147,6 +147,35 @@ public static class ManufactureTestData
     }
 
     /// <summary>
+    /// Creates a ManufactureTemplate for use in unit tests that mock IFlexiManufactureTemplateService
+    /// </summary>
+    public static ManufactureTemplate CreateTemplate(
+        TestProduct product,
+        double templateAmount,
+        params (TestProduct ingredient, double amount, bool hasLots)[] ingredients)
+    {
+        return new ManufactureTemplate
+        {
+            TemplateId = 1,
+            ProductCode = product.Code,
+            ProductName = product.Name,
+            Amount = templateAmount,
+            OriginalAmount = templateAmount,
+            ManufactureType = ManufactureType.SinglePhase,
+            Ingredients = ingredients.Select((ing, idx) => new Ingredient
+            {
+                TemplateId = idx + 2,
+                ProductCode = ing.ingredient.Code,
+                ProductName = ing.ingredient.Name,
+                Amount = ing.amount,
+                ProductType = ing.ingredient.Type,
+                HasLots = ing.hasLots,
+                HasExpiration = false
+            }).ToList()
+        };
+    }
+
+    /// <summary>
     /// Creates lot data for a product
     /// </summary>
     public static CatalogLot CreateLot(

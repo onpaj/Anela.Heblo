@@ -34,7 +34,7 @@ internal sealed class ConsumptionItem
     public required string SourceProductCode { get; init; }
 }
 
-public class FlexiManufactureClient : IManufactureClient
+internal sealed class FlexiManufactureClient : IManufactureClient
 {
     private const string WarehouseDocumentType_OutboundMaterial = "V-VYDEJ-MATERIAL";
     private const string WarehouseDocumentType_InboundSemiProduct = "V-PRIJEM-POLOTOVAR";
@@ -49,6 +49,7 @@ public class FlexiManufactureClient : IManufactureClient
     private readonly ILotsClient _lotsClient;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<FlexiManufactureClient> _logger;
+    private readonly IFlexiManufactureTemplateService _templateService;
 
     public FlexiManufactureClient(
         IErpStockClient stockClient,
@@ -57,7 +58,8 @@ public class FlexiManufactureClient : IManufactureClient
         IProductSetsClient productSetsClient,
         ILotsClient lotsClient,
         TimeProvider timeProvider,
-        ILogger<FlexiManufactureClient> logger)
+        ILogger<FlexiManufactureClient> logger,
+        IFlexiManufactureTemplateService templateService)
     {
         _stockClient = stockClient ?? throw new ArgumentNullException(nameof(stockClient));
         _stockMovementClient = stockMovementClient ?? throw new ArgumentNullException(nameof(stockMovementClient));
@@ -66,6 +68,7 @@ public class FlexiManufactureClient : IManufactureClient
         _lotsClient = lotsClient ?? throw new ArgumentNullException(nameof(lotsClient));
         _timeProvider = timeProvider;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _templateService = templateService ?? throw new ArgumentNullException(nameof(templateService));
     }
 
     public async Task<string> SubmitManufactureAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken = default)
@@ -155,7 +158,7 @@ public class FlexiManufactureClient : IManufactureClient
 
         foreach (var item in request.Items)
         {
-            var template = await GetManufactureTemplateAsync(item.ProductCode, cancellationToken)
+            var template = await _templateService.GetManufactureTemplateAsync(item.ProductCode, cancellationToken)
                 ?? throw new ApplicationException($"No BoM header for product {item.ProductCode} found");
             var scaleFactor = (double)item.Amount / template.Amount;
 
@@ -439,94 +442,8 @@ public class FlexiManufactureClient : IManufactureClient
         await _bomClient.UpdateIngredientAmountAsync(productCode, ingredientCode, newAmount, cancellationToken);
     }
 
-    public async Task<ManufactureTemplate?> GetManufactureTemplateAsync(string id, CancellationToken cancellationToken = default)
-    {
-        var bom = await _bomClient.GetAsync(id, cancellationToken);
-
-        var header = bom.SingleOrDefault(s => s.Level == 1);
-        if (header == null)
-            return null;
-
-        var ingredients = bom.Where(w => w.Level != 1);
-
-        // Get stock data to determine HasLots for each ingredient
-        var stockDate = _timeProvider.GetLocalNow().DateTime;
-        var allStockData = new List<ErpStock>();
-
-        // Load stock from all warehouses to get HasLots information
-        var warehouseIds = new[]
-        {
-            FlexiStockClient.MaterialWarehouseId,
-            FlexiStockClient.SemiProductsWarehouseId,
-            FlexiStockClient.ProductsWarehouseId
-        };
-
-        foreach (var warehouseId in warehouseIds)
-        {
-            var stockItems = await _stockClient.StockToDateAsync(stockDate, warehouseId, cancellationToken);
-            allStockData.AddRange(stockItems);
-        }
-
-        var template = new ManufactureTemplate()
-        {
-            TemplateId = header.Id,
-            ProductCode = header.IngredientCode.RemoveCodePrefix(),
-            ProductName = header.IngredientFullName,
-            Amount = header.Amount,
-            OriginalAmount = header.Amount,
-            Ingredients = ingredients.Select(s =>
-            {
-                var productCode = s.IngredientCode.RemoveCodePrefix();
-                var stockItem = allStockData.FirstOrDefault(stock => stock.ProductCode == productCode);
-
-                return new Ingredient()
-                {
-                    TemplateId = s.Id,
-                    ProductCode = productCode,
-                    ProductName = s.IngredientFullName,
-                    Amount = s.Amount,
-                    ProductType = ResolveProductType(s),
-                    HasLots = stockItem?.HasLots ?? false,
-                    HasExpiration = false // This information is not available from BoM, set to false as default
-                };
-            }).ToList(),
-        };
-
-        if (ingredients.Any(a => a.Ingredient.Any(b => b.ProductTypeId == (int)ProductType.SemiProduct)))
-            template.ManufactureType = ManufactureType.MultiPhase;
-        else
-            template.ManufactureType = ManufactureType.SinglePhase;
-
-        return template;
-    }
-
-    private ProductType ResolveProductType(BoMItemFlexiDto boMItemFlexiDto)
-    {
-        try
-        {
-            var productTypeId = boMItemFlexiDto.Ingredient?.FirstOrDefault()?.ProductTypeId;
-
-            // Return UNDEFINED if no ProductTypeId is available
-            if (!productTypeId.HasValue)
-            {
-                return ProductType.UNDEFINED;
-            }
-
-            // Check if the value is a valid ProductType enum value
-            if (Enum.IsDefined(typeof(ProductType), productTypeId.Value))
-            {
-                return (ProductType)productTypeId.Value;
-            }
-
-            // Return UNDEFINED for unknown enum values
-            return ProductType.UNDEFINED;
-        }
-        catch
-        {
-            // Return UNDEFINED for any exceptions
-            return ProductType.UNDEFINED;
-        }
-    }
+    public Task<ManufactureTemplate?> GetManufactureTemplateAsync(string id, CancellationToken cancellationToken = default)
+        => _templateService.GetManufactureTemplateAsync(id, cancellationToken);
 
     public async Task<List<ManufactureTemplate>> FindByIngredientAsync(string ingredientCode, CancellationToken cancellationToken)
     {
