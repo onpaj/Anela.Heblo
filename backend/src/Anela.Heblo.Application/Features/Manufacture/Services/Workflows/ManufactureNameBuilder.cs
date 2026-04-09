@@ -22,7 +22,8 @@ internal sealed class ManufactureNameBuilder : IManufactureNameBuilder
 
     public string Build(UpdateManufactureOrderDto order, ErpManufactureType type)
     {
-        var semiCode = order.SemiProduct!.ProductCode;
+        ArgumentNullException.ThrowIfNull(order.SemiProduct, nameof(order.SemiProduct));
+        var semiCode = order.SemiProduct.ProductCode;
         var shortName = _nameFormatter.ShortProductName(order.SemiProduct.ProductName);
         var prefix = SafeTake(semiCode, ProductCodePrefixLength);
 
