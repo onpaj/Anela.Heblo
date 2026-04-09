@@ -65,6 +65,29 @@ jest.mock("../../../api/hooks/useManufacturingStockAnalysis", () => ({
   calculateTimePeriodRange: jest.fn(),
 }));
 
+// Mock grid-layout feature
+jest.mock('../../../features/grid-layout', () => ({
+  useGridLayout: (_key: string, columns: any[]) => ({
+    orderedColumns: columns,
+    columnState: columns.map((c: any, i: number) => ({ id: c.id, order: i, hidden: false })),
+    setColumnOrder: jest.fn(),
+    setColumnWidth: jest.fn(),
+    toggleColumnVisibility: jest.fn(),
+    resetLayout: jest.fn(),
+    isLoaded: true,
+  }),
+  GridHeader: ({ columns }: any) => (
+    <thead>
+      <tr>
+        {columns.map((c: any) => (
+          <th key={c.id}>{c.header}</th>
+        ))}
+      </tr>
+    </thead>
+  ),
+  ColumnChooser: () => null,
+}));
+
 // Mock CatalogDetail component since it's imported
 jest.mock("../CatalogDetail", () => {
   return function MockCatalogDetail() {

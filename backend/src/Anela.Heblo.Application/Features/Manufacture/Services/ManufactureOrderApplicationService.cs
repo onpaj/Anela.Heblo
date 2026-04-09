@@ -156,11 +156,23 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             if (!submitManufactureResult.Success)
                 orderNote = submitManufactureResult.UserMessage ?? submitManufactureResult.FullError();
 
+            string? weightToleranceNote = null;
+            if (overrideConfirmed && !distribution.IsWithinAllowedThreshold)
+                weightToleranceNote = string.Format(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    "Hmotnost mimo toleranci potvrzena uživatelem. Rozdíl: {0:F2}% (povoleno: {1:F2}%)",
+                    distribution.DifferencePercentage,
+                    distribution.AllowedResiduePercentage);
+
+            var combinedNote = string.Join("\n", new[] { orderNote, weightToleranceNote }.Where(n => n != null));
+            if (string.IsNullOrEmpty(combinedNote))
+                combinedNote = $"Potvrzeno dokončení výroby produktů - {submitManufactureResult.ManufactureId}";
+
             var result = await UpdateOrderStatus(
                 orderId,
                 ManufactureOrderState.Completed,
                 changeReason ?? $"Potvrzeno dokončení výroby produktů",
-                orderNote ?? $"Potvrzeno dokončení výroby produktů - {submitManufactureResult.ManufactureId}",
+                combinedNote,
                 semiproductDocumentCode: null,
                 productDocumentCode: submitManufactureResult.ManufactureId,
                 discardDocumentCode: null,

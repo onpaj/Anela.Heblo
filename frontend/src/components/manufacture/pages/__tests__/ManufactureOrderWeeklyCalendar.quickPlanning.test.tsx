@@ -1,5 +1,6 @@
 // Mock the ManufactureOrderState enum first
 import React from "react";
+import { getWeightToleranceStatus } from "../ManufactureOrderWeeklyCalendar";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -73,6 +74,26 @@ const mockCalendarData = {
     },
   ],
 };
+
+describe("getWeightToleranceStatus", () => {
+  it('returns "pending" when order is not completed', () => {
+    expect(getWeightToleranceStatus(true, "Planned" as any)).toBe('pending');
+    expect(getWeightToleranceStatus(null, "SemiProductManufactured" as any)).toBe('pending');
+  });
+
+  it('returns null (omit mark) for completed orders with no tolerance data', () => {
+    expect(getWeightToleranceStatus(null, "Completed" as any)).toBeNull();
+    expect(getWeightToleranceStatus(undefined, "Completed" as any)).toBeNull();
+  });
+
+  it('returns "success" for completed orders within tolerance', () => {
+    expect(getWeightToleranceStatus(true, "Completed" as any)).toBe('success');
+  });
+
+  it('returns "warning" (not "failed") for completed orders outside tolerance', () => {
+    expect(getWeightToleranceStatus(false, "Completed" as any)).toBe('warning');
+  });
+});
 
 describe("ManufactureOrderWeeklyCalendar - Quick Planning", () => {
   beforeEach(() => {

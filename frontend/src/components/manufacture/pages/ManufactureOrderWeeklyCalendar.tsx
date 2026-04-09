@@ -40,7 +40,7 @@ const stateColors: Record<ManufactureOrderState, string> = {
   [ManufactureOrderState.Cancelled]: "bg-red-100 text-red-800 border-red-200",
 };
 
-type ErpDocumentStatus = 'pending' | 'failed' | 'success';
+type ErpDocumentStatus = 'pending' | 'failed' | 'success' | 'warning';
 
 const getErpDocumentStatus = (
   documentNumber: string | undefined,
@@ -60,12 +60,21 @@ const getErpDocumentStatus = (
   return documentNumber ? 'success' : 'failed';
 };
 
-const getWeightToleranceStatus = (
+export const getWeightToleranceStatus = (
   weightWithinTolerance: boolean | undefined | null,
   orderState: ManufactureOrderState | undefined
-): ErpDocumentStatus => {
+): ErpDocumentStatus | null => {
+  // Not completed yet — gray pending indicator.
   if (orderState !== ManufactureOrderState.Completed) return 'pending';
-  return weightWithinTolerance === true ? 'success' : 'failed';
+  // Completed but no tolerance data recorded => historical order from
+  // before the weight-tolerance feature (2026-04-08). Omit the mark
+  // entirely (the caller should not render anything).
+  if (weightWithinTolerance === null || weightWithinTolerance === undefined) {
+    return null;
+  }
+  // Completed with data: green check if within tolerance, orange warning
+  // (not red failure) if outside.
+  return weightWithinTolerance === true ? 'success' : 'warning';
 };
 
 const ErpStatusIndicator: React.FC<{ 
@@ -78,6 +87,8 @@ const ErpStatusIndicator: React.FC<{
         return <Check className="h-3 w-3 text-green-600" />;
       case 'failed':
         return <X className="h-3 w-3 text-red-600" />;
+      case 'warning':
+        return <AlertCircle className="h-3 w-3 text-orange-600" />;
       case 'pending':
       default:
         return <HelpCircle className="h-3 w-3 text-gray-400" />;
@@ -90,6 +101,8 @@ const ErpStatusIndicator: React.FC<{
         return 'bg-green-50 border-green-200';
       case 'failed':
         return 'bg-red-50 border-red-200';
+      case 'warning':
+        return 'bg-orange-50 border-orange-200';
       case 'pending':
       default:
         return 'bg-gray-50 border-gray-200';
@@ -553,19 +566,30 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                   status={getErpDocumentStatus(event.erpOrderNumberProduct, event.state, 'product')}
                                   title={`ERP doklad produktu: ${event.erpOrderNumberProduct || 'čeká se'}`}
                                 />
-                                {/* Hide weight tolerance indicator for SinglePhase */}
-                                {event.manufactureType !== ManufactureType.SinglePhase && (
-                                  <ErpStatusIndicator
-                                    status={getWeightToleranceStatus(event.weightWithinTolerance, event.state)}
-                                    title={
-                                      event.state !== ManufactureOrderState.Completed
-                                        ? 'Váha v toleranci: čeká se na dokončení'
-                                        : event.weightWithinTolerance === true
-                                          ? 'Váha v toleranci: OK'
-                                          : 'Váha v toleranci: mimo toleranci'
-                                    }
-                                  />
-                                )}
+                                {/* Hide weight tolerance indicator for SinglePhase and for pre-feature historical orders */}
+                                {event.manufactureType !== ManufactureType.SinglePhase && (() => {
+                                  const toleranceStatus = getWeightToleranceStatus(
+                                    event.weightWithinTolerance,
+                                    event.state
+                                  );
+                                  // null => historical order completed before the weight-tolerance feature
+                                  // existed (no data recorded). Render nothing.
+                                  if (toleranceStatus === null) return null;
+
+                                  const toleranceTitle =
+                                    event.state !== ManufactureOrderState.Completed
+                                      ? 'Váha v toleranci: čeká se na dokončení'
+                                      : event.weightWithinTolerance === true
+                                        ? 'Váha v toleranci: OK'
+                                        : 'Váha v toleranci: mimo toleranci';
+
+                                  return (
+                                    <ErpStatusIndicator
+                                      status={toleranceStatus}
+                                      title={toleranceTitle}
+                                    />
+                                  );
+                                })()}
                               </div>
                             </div>
 
