@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.Services.Workflows;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
@@ -23,6 +24,7 @@ public class ManufactureOrderApplicationServiceTests
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<ManufactureOrderApplicationService>> _loggerMock;
     private readonly Mock<IManufactureNameBuilder> _nameBuilderMock;
+    private readonly Mock<IConfirmSemiProductManufactureWorkflow> _semiProductWorkflowMock;
     private readonly ManufactureOrderApplicationService _service;
 
     private const int ValidOrderId = 1;
@@ -38,6 +40,7 @@ public class ManufactureOrderApplicationServiceTests
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<ManufactureOrderApplicationService>>();
         _nameBuilderMock = new Mock<IManufactureNameBuilder>();
+        _semiProductWorkflowMock = new Mock<IConfirmSemiProductManufactureWorkflow>();
 
         var testTime = DateTime.UtcNow;
         _timeProviderMock.Setup(x => x.GetUtcNow()).Returns(new DateTimeOffset(testTime));
@@ -53,153 +56,46 @@ public class ManufactureOrderApplicationServiceTests
             _timeProviderMock.Object,
             _currentUserServiceMock.Object,
             _loggerMock.Object,
-            _nameBuilderMock.Object);
+            _nameBuilderMock.Object,
+            _semiProductWorkflowMock.Object);
     }
 
     #region ConfirmSemiProductManufactureAsync Tests
 
     [Fact]
-    public async Task ConfirmSemiProductManufactureAsync_SuccessfulFlow_UpdatesStateAndSetsErpData()
+    public async Task ConfirmSemiProductManufactureAsync_DelegatesToWorkflow_ReturnsWorkflowResult()
     {
         // Arrange
-        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
-        var submitManufactureResponse = CreateSuccessfulSubmitManufactureResponse("ERP_ORDER_123");
-        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
-
-        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
-
-        // Act & Assert
-        try
-        {
-            var result = await _service.ConfirmSemiProductManufactureAsync(ValidOrderId, ValidQuantity, ValidChangeReason);
-
-            result.Should().NotBeNull();
-            if (!result.Success)
-            {
-                throw new Exception($"Service failed with message: {result.Message}");
-            }
-            result.Success.Should().BeTrue();
-            result.Message.Should().Contain($"skutečným množstvím {ValidQuantity}");
-
-            VerifyUpdateOrderCall();
-            VerifySubmitManufactureCall(ErpManufactureType.SemiProduct);
-            VerifyUpdateStatusCall(ManufactureOrderState.SemiProductManufactured, "ERP_ORDER_123", null, null, false);
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"Test failed with exception: {ex.Message}", ex);
-        }
-    }
-
-    [Fact]
-    public async Task ConfirmSemiProductManufactureAsync_ErpFailure_StillUpdatesState_SetsManualActionRequired()
-    {
-        // Arrange
-        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
-        var submitManufactureResponse = CreateFailedSubmitManufactureResponse("ERP connection failed");
-        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
-
-        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
+        var expected = new ConfirmSemiProductManufactureResult(true, $"Polotovar byl úspěšně vyroben se skutečným množstvím {ValidQuantity}");
+        _semiProductWorkflowMock
+            .Setup(x => x.ExecuteAsync(ValidOrderId, ValidQuantity, ValidChangeReason, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
 
         // Act
         var result = await _service.ConfirmSemiProductManufactureAsync(ValidOrderId, ValidQuantity, ValidChangeReason);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeTrue();
-        result.Message.Should().Contain($"skutečným množstvím {ValidQuantity}");
-
-        VerifyUpdateOrderCall();
-        VerifySubmitManufactureCall(ErpManufactureType.SemiProduct);
-        VerifyUpdateStatusCall(ManufactureOrderState.SemiProductManufactured, null, null, null, true);
+        result.Should().BeSameAs(expected);
+        _semiProductWorkflowMock.Verify(
+            x => x.ExecuteAsync(ValidOrderId, ValidQuantity, ValidChangeReason, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task ConfirmSemiProductManufactureAsync_UpdateQuantityFailure_ReturnsError_DoesNotUpdateState()
+    public async Task ConfirmSemiProductManufactureAsync_WorkflowReturnsFailure_PropagatesFailure()
     {
         // Arrange
-        var updateOrderResponse = CreateFailedUpdateOrderResponse("Update failed");
-
-        _mediatorMock.Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(updateOrderResponse);
+        var expected = new ConfirmSemiProductManufactureResult(false, "Chyba při aktualizaci množství: InternalServerError");
+        _semiProductWorkflowMock
+            .Setup(x => x.ExecuteAsync(ValidOrderId, ValidQuantity, ValidChangeReason, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
 
         // Act
         var result = await _service.ConfirmSemiProductManufactureAsync(ValidOrderId, ValidQuantity, ValidChangeReason);
 
         // Assert
-        result.Should().NotBeNull();
+        result.Should().BeSameAs(expected);
         result.Success.Should().BeFalse();
-        result.Message.Should().Contain("Chyba při aktualizaci množství");
-
-        VerifyUpdateOrderCall();
-        VerifyNoSubmitManufactureCall();
-        VerifyNoUpdateStatusCall();
-    }
-
-    [Fact]
-    public async Task CreateManufactureOrderInErp_WhenSubmitFails_DoesNotLogSuccess()
-    {
-        // Arrange
-        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
-        var submitManufactureResponse = CreateFailedSubmitManufactureResponse("ERP connection failed");
-        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
-
-        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
-
-        // Act
-        await _service.ConfirmSemiProductManufactureAsync(ValidOrderId, ValidQuantity, ValidChangeReason);
-
-        // Assert: LogInformation with "Successfully created manufacture" must NEVER fire when submit failed
-        _loggerMock.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Successfully created manufacture")),
-                It.IsAny<Exception?>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Never,
-            "Success log must not fire when ERP submit failed");
-    }
-
-    [Fact]
-    public async Task ConfirmSemiProductManufactureAsync_UpdateStatusFailure_ReturnsError()
-    {
-        // Arrange
-        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
-        var submitManufactureResponse = CreateSuccessfulSubmitManufactureResponse("ERP_ORDER_123");
-        var updateStatusResponse = CreateFailedUpdateStatusResponse("Status update failed");
-
-        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
-
-        // Act
-        var result = await _service.ConfirmSemiProductManufactureAsync(ValidOrderId, ValidQuantity, ValidChangeReason);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.Message.Should().Contain("Chyba při změně stavu");
-
-        VerifyUpdateOrderCall();
-        VerifySubmitManufactureCall(ErpManufactureType.SemiProduct);
-        VerifyUpdateStatusCall(ManufactureOrderState.SemiProductManufactured, "ERP_ORDER_123", null, null, false);
-    }
-
-    [Fact]
-    public async Task ConfirmSemiProductManufactureAsync_UnexpectedException_ReturnsErrorMessage_LogsException()
-    {
-        // Arrange
-        _mediatorMock.Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("Database error"));
-
-        // Act
-        var result = await _service.ConfirmSemiProductManufactureAsync(ValidOrderId, ValidQuantity, ValidChangeReason);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.Success.Should().BeFalse();
-        result.Message.Should().Be("Došlo k neočekávané chybě při potvrzení výroby polotovaru");
-
-        VerifyErrorLogged();
     }
 
     #endregion

@@ -43,6 +43,7 @@ public static class ManufactureModule
         services.AddScoped<IManufactureOrderApplicationService, ManufactureOrderApplicationService>();
         services.AddScoped<IProductNameFormatter, ProductNameFormatter>();
         services.AddScoped<IManufactureNameBuilder, ManufactureNameBuilder>();
+        services.AddScoped<IConfirmSemiProductManufactureWorkflow, ConfirmSemiProductManufactureWorkflow>();
 
         // Register dashboard tiles
         services.RegisterTile<TodayProductionTile>();

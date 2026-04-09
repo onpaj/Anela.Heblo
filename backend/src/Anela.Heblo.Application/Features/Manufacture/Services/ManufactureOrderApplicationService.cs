@@ -19,6 +19,7 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<ManufactureOrderApplicationService> _logger;
     private readonly IManufactureNameBuilder _nameBuilder;
+    private readonly IConfirmSemiProductManufactureWorkflow _semiProductWorkflow;
 
     public ManufactureOrderApplicationService(
         IMediator mediator,
@@ -26,7 +27,8 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         TimeProvider timeProvider,
         ICurrentUserService currentUserService,
         ILogger<ManufactureOrderApplicationService> logger,
-        IManufactureNameBuilder nameBuilder)
+        IManufactureNameBuilder nameBuilder,
+        IConfirmSemiProductManufactureWorkflow semiProductWorkflow)
     {
         _mediator = mediator;
         _residueCalculator = residueCalculator;
@@ -34,64 +36,16 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         _currentUserService = currentUserService;
         _logger = logger;
         _nameBuilder = nameBuilder ?? throw new ArgumentNullException(nameof(nameBuilder));
+        _semiProductWorkflow = semiProductWorkflow;
     }
 
-    public async Task<ConfirmSemiProductManufactureResult> ConfirmSemiProductManufactureAsync(
+    public Task<ConfirmSemiProductManufactureResult> ConfirmSemiProductManufactureAsync(
         int orderId,
         decimal actualQuantity,
         string? changeReason = null,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _logger.LogInformation("Starting semi-product manufacture confirmation for order {OrderId} with quantity {ActualQuantity}",
-                orderId, actualQuantity);
-
-            // Step 1: Update the ActualQuantity on the semi-product
-            var updateResult = await UpdateSemiProductQuantity(orderId, actualQuantity, cancellationToken);
-            if (!updateResult.Success)
-            {
-                _logger.LogError("Failed to update actual quantity for order {OrderId}: {ErrorCode}",
-                    orderId, updateResult.ErrorCode);
-                return new ConfirmSemiProductManufactureResult(false, string.Format(ManufactureMessages.QuantityUpdateErrorFormat, updateResult.ErrorCode));
-            }
-
-            // Step 2: Create manufacture via external client
-            var submitManufactureResult = await CreateManufactureOrderInErp(orderId, updateResult.Order!, ErpManufactureType.SemiProduct, null, cancellationToken);
-
-            // Step 3: Change state to SemiProductManufactured
-            var result = await UpdateOrderStatus(
-                new UpdateOrderStatusCommand(
-                    OrderId: orderId,
-                    TargetState: ManufactureOrderState.SemiProductManufactured,
-                    ChangeReason: changeReason ?? string.Format(ManufactureMessages.SemiProductDefaultChangeReasonFormat, actualQuantity),
-                    Note: submitManufactureResult.Success
-                        ? string.Format(ManufactureMessages.SemiProductErpNoteFormat, submitManufactureResult.ManufactureId)
-                        : submitManufactureResult.UserMessage ?? submitManufactureResult.FullError(),
-                    Documents: new ManufactureDocumentCodes(
-                        SemiProduct: submitManufactureResult.ManufactureId,
-                        Product: null,
-                        Discard: null),
-                    ManualActionRequired: !submitManufactureResult.Success,
-                    WeightTolerance: null),
-                cancellationToken);
-
-            if (!result.Success)
-            {
-                _logger.LogError("Failed to update status for order {OrderId}: {ErrorCode}",
-                    orderId, result.ErrorCode);
-                return new ConfirmSemiProductManufactureResult(false, string.Format(ManufactureMessages.StatusChangeErrorFormat, result.ErrorCode));
-            }
-
-            _logger.LogInformation("Successfully confirmed semi-product manufacture for order {OrderId}", orderId);
-            return new ConfirmSemiProductManufactureResult(true,
-                string.Format(ManufactureMessages.SemiProductManufacturedSuccessFormat, actualQuantity));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error confirming semi-product manufacture for order {OrderId}", orderId);
-            return new ConfirmSemiProductManufactureResult(false, ManufactureMessages.UnexpectedSemiProductError);
-        }
+        return _semiProductWorkflow.ExecuteAsync(orderId, actualQuantity, changeReason, cancellationToken);
     }
 
 
@@ -310,20 +264,5 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         return submitManufactureResult;
     }
 
-    private async Task<UpdateManufactureOrderResponse> UpdateSemiProductQuantity(int orderId, decimal actualQuantity, CancellationToken cancellationToken)
-    {
-        // Step 1: Update the ActualQuantity on the semi-product
-        var updateRequest = new UpdateManufactureOrderRequest
-        {
-            Id = orderId,
-            SemiProduct = new UpdateManufactureOrderSemiProductRequest
-            {
-                // Only update ActualQuantity, other fields will be preserved
-                ActualQuantity = actualQuantity,
-            }
-        };
-
-        var updateResult = await _mediator.Send(updateRequest, cancellationToken);
-        return updateResult;
-    }
 }
+
