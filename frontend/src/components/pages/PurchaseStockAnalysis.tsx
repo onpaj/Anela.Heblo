@@ -10,7 +10,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
   ChevronDown,
   HelpCircle,
   Plus,
@@ -24,7 +23,9 @@ import {
   StockAnalysisSortBy,
   formatNumber,
   formatCurrency,
+  StockAnalysisItemDto,
 } from "../../api/hooks/usePurchaseStockAnalysis";
+import { GridColumn, GridHeader, ColumnChooser, useGridLayout } from '../../features/grid-layout';
 import { StockSeverity } from "../../api/generated/api-client";
 import { getAuthenticatedApiClient } from "../../api/client";
 import { exportToXlsx } from "../../utils/exportToXlsx";
@@ -288,37 +289,6 @@ const PurchaseStockAnalysis: React.FC = () => {
     };
   };
 
-  // Sortable header component
-  const SortableHeader: React.FC<{
-    column: StockAnalysisSortBy;
-    children: React.ReactNode;
-    className?: string;
-  }> = ({ column, children, className = "" }) => {
-    const isActive = filters.sortBy === column;
-    const isAscending = isActive && !filters.sortDescending;
-    const isDescending = isActive && filters.sortDescending;
-
-    return (
-      <th
-        scope="col"
-        className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none ${className}`}
-        onClick={() => handleSort(column)}
-      >
-        <div className="flex items-center space-x-1">
-          <span>{children}</span>
-          <div className="flex flex-col">
-            <ChevronUp
-              className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
-            />
-            <ChevronDown
-              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
-            />
-          </div>
-        </div>
-      </th>
-    );
-  };
-
   // Get row background color based on severity (subtle coloring)
   const getRowColorClass = (severity: StockSeverity | undefined) => {
     switch (severity) {
@@ -382,6 +352,178 @@ const PurchaseStockAnalysis: React.FC = () => {
         return "";
     }
   };
+
+  // Column definitions for grid layout
+  const purchaseStockColumns = useMemo((): GridColumn<StockAnalysisItemDto>[] => [
+    {
+      id: 'product',
+      header: 'Produkt',
+      align: 'left',
+      minWidth: 160,
+      canHide: false,
+      canReorder: false,
+      renderCell: (item) => (
+        <div className="flex items-center">
+          {getSeverityStripColor(item.severity) && (
+            <div className={`w-1 h-8 mr-3 rounded-sm ${getSeverityStripColor(item.severity)}`} />
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="text-sm text-gray-900 truncate">{item.productName}</div>
+            <div className="text-xs text-gray-500">{item.productCode}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'planningList',
+      header: '',
+      align: 'center',
+      defaultWidth: 60,
+      canHide: false,
+      canReorder: false,
+      renderCell: (item) => (
+        <button
+          onClick={(e) => handleTogglePurchasePlanningList(item, e)}
+          className={`p-1 rounded transition-colors ${
+            isInPurchasePlanningList(item.productCode)
+              ? 'text-green-600 hover:text-red-600 hover:bg-red-50'
+              : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
+          }`}
+          title={
+            isInPurchasePlanningList(item.productCode)
+              ? 'Odebrat ze seznamu k objednání'
+              : 'Přidat do seznamu k objednání'
+          }
+        >
+          {isInPurchasePlanningList(item.productCode) ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Plus className="h-4 w-4" />
+          )}
+        </button>
+      ),
+    },
+    {
+      id: 'availableStock',
+      header: 'Skladem',
+      align: 'right',
+      canHide: true,
+      canReorder: true,
+      renderCell: (item) => {
+        const display = formatStockDisplay(
+          item.availableStock ?? 0,
+          item.orderedStock ?? 0,
+          item.effectiveStock ?? 0,
+        );
+        return (
+          <div title={display.tooltip}>
+            <div className="font-bold">{display.mainValue}</div>
+            {display.subValue && (
+              <div className="text-xs text-gray-500">{display.subValue}</div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: 'minOpt',
+      header: 'Min/Opt',
+      align: 'right',
+      canHide: true,
+      canReorder: true,
+      renderCell: (item) => (
+        <>
+          <div>{formatNumber(item.minStockLevel, 0)}</div>
+          <div className="text-xs text-gray-400">{formatNumber(item.optimalStockLevel, 0)}</div>
+        </>
+      ),
+    },
+    {
+      id: 'consumption',
+      header: 'Spotřeba',
+      align: 'right',
+      canHide: true,
+      canReorder: true,
+      sortBy: StockAnalysisSortBy.Consumption,
+      renderCell: (item) => (
+        <>
+          <div>{formatNumber(item.consumptionInPeriod, 0)}</div>
+          <div className="text-xs text-gray-500">{formatNumber(item.dailyConsumption, 2)}/den</div>
+        </>
+      ),
+    },
+    {
+      id: 'stockEfficiency',
+      header: 'NS',
+      align: 'right',
+      canHide: true,
+      canReorder: true,
+      sortBy: StockAnalysisSortBy.StockEfficiency,
+      renderCell: (item) => (
+        <div className="font-bold">
+          {formatNumber(item.stockEfficiencyPercentage, 1)}%
+        </div>
+      ),
+    },
+    {
+      id: 'moq',
+      header: 'MOQ',
+      align: 'right',
+      canHide: true,
+      canReorder: true,
+      renderCell: (item) => <>{item.minimalOrderQuantity || '—'}</>,
+    },
+    {
+      id: 'daysUntilStockout',
+      header: 'Dny',
+      align: 'right',
+      canHide: true,
+      canReorder: true,
+      renderCell: (item) => (
+        <>{item.daysUntilStockout ? formatNumber(item.daysUntilStockout, 0) : '∞'}</>
+      ),
+    },
+    {
+      id: 'supplier',
+      header: 'Dodavatel',
+      align: 'left',
+      canHide: true,
+      canReorder: true,
+      renderCell: (item) => <>{item.supplier || '—'}</>,
+    },
+    {
+      id: 'lastPurchase',
+      header: 'Poslední nákup',
+      align: 'left',
+      defaultWidth: 224,
+      canHide: true,
+      canReorder: true,
+      sortBy: StockAnalysisSortBy.LastPurchaseDate,
+      renderCell: (item) =>
+        item.lastPurchase ? (
+          <div>
+            <div className="font-medium">
+              {item.lastPurchase.date
+                ? new Date(item.lastPurchase.date).toLocaleDateString('cs-CZ')
+                : '—'}
+            </div>
+            <div className="text-xs truncate max-w-20">
+              {item.lastPurchase.supplierName || '—'}
+            </div>
+            <div className="text-xs font-medium">
+              {formatNumber(item.lastPurchase.amount, 0)}ks @{' '}
+              {formatCurrency(item.lastPurchase.unitPrice)}
+            </div>
+          </div>
+        ) : (
+          <span className="text-gray-400">—</span>
+        ),
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [filters.stockStatus, purchasePlanningListItems]);
+
+  const { orderedColumns, columnState, toggleColumnVisibility, resetLayout } =
+    useGridLayout('purchase-stock-analysis', purchaseStockColumns);
 
   if (error) {
     return (
@@ -553,6 +695,13 @@ const PurchaseStockAnalysis: React.FC = () => {
                 )}
                 {isControlsCollapsed ? "" : "Export"}
               </button>
+
+              <ColumnChooser
+                columns={purchaseStockColumns}
+                columnState={columnState}
+                onToggle={toggleColumnVisibility}
+                onReset={resetLayout}
+              />
 
               {/* Help */}
               <div className="relative group">
@@ -853,58 +1002,11 @@ const PurchaseStockAnalysis: React.FC = () => {
         ) : (
           <div className="flex-1 overflow-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  <SortableHeader
-                    column={StockAnalysisSortBy.ProductCode}
-                    className="text-left w-40"
-                  >
-                    Produkt
-                  </SortableHeader>
-                  <th
-                    scope="col"
-                    className="px-2 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center"
-                    style={{ minWidth: "60px", width: "5%" }}
-                  >
-                  </th>
-                  <SortableHeader
-                    column={StockAnalysisSortBy.AvailableStock}
-                    className="text-right"
-                  >
-                    Skladem
-                  </SortableHeader>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                    Min/Opt
-                  </th>
-                  <SortableHeader
-                    column={StockAnalysisSortBy.Consumption}
-                    className="text-right hidden lg:table-cell"
-                  >
-                    Spotřeba
-                  </SortableHeader>
-                  <SortableHeader
-                    column={StockAnalysisSortBy.StockEfficiency}
-                    className="text-right"
-                  >
-                    NS
-                  </SortableHeader>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                    MOQ
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">
-                    Dny
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                    Dodavatel
-                  </th>
-                  <SortableHeader
-                    column={StockAnalysisSortBy.LastPurchaseDate}
-                    className="text-left hidden lg:table-cell w-56"
-                  >
-                    Poslední nákup
-                  </SortableHeader>
-                </tr>
-              </thead>
+              <GridHeader
+                columns={orderedColumns}
+                sortState={{ sortBy: filters.sortBy, sortDescending: filters.sortDescending }}
+                onSort={(key) => handleSort(key as StockAnalysisSortBy)}
+              />
               <tbody className="bg-white divide-y divide-gray-200">
                 {tableData.map((item) => (
                   <tr
@@ -913,158 +1015,18 @@ const PurchaseStockAnalysis: React.FC = () => {
                     onClick={() => handleRowClick(item)}
                     title="Klikněte pro zobrazení detailu produktu"
                   >
-                    {/* Product Info */}
-                    <td className="px-6 py-4 whitespace-nowrap w-40">
-                      <div className="flex items-center">
-                        {/* Color strip based on severity (only when not filtering) */}
-                        {getSeverityStripColor(item.severity) && (
-                          <div
-                            className={`w-1 h-8 mr-3 rounded-sm ${getSeverityStripColor(item.severity)}`}
-                          ></div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          {/* Product name first - main info - wider display */}
-                          <div className="text-sm text-gray-900 truncate">
-                            {item.productName}
-                          </div>
-                          {/* Product code second - smaller */}
-                          <div className="text-xs text-gray-500">
-                            {item.productCode}
-                          </div>
-                          <div className="text-xs text-gray-500 md:hidden">
-                            {item.productType}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Purchase Planning List Button */}
-                    <td
-                      className="px-2 py-4 whitespace-nowrap text-center"
-                      style={{ minWidth: "60px", width: "5%" }}
-                    >
-                      <button
-                        onClick={(e) => handleTogglePurchasePlanningList(item, e)}
-                        className={`p-1 rounded transition-colors ${
-                          isInPurchasePlanningList(item.productCode)
-                            ? "text-green-600 hover:text-red-600 hover:bg-red-50"
-                            : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
-                        }`}
-                        title={
-                          isInPurchasePlanningList(item.productCode)
-                            ? "Odebrat ze seznamu k objednání"
-                            : "Přidat do seznamu k objednání"
-                        }
-                      >
-                        {isInPurchasePlanningList(item.productCode) ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <Plus className="h-4 w-4" />
-                        )}
-                      </button>
-                    </td>
-
-                    {/* Available Stock (Skladem) */}
-                    <td
-                      className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900"
-                      title={formatStockDisplay(
-                        item.availableStock ?? 0,
-                        item.orderedStock ?? 0,
-                        item.effectiveStock ?? 0
-                      ).tooltip}
-                    >
-                      <div className="font-bold">
-                        {formatStockDisplay(
-                          item.availableStock ?? 0,
-                          item.orderedStock ?? 0,
-                          item.effectiveStock ?? 0
-                        ).mainValue}
-                      </div>
-                      {formatStockDisplay(
-                        item.availableStock ?? 0,
-                        item.orderedStock ?? 0,
-                        item.effectiveStock ?? 0
-                      ).subValue && (
-                        <div className="text-xs text-gray-500">
-                          {formatStockDisplay(
-                            item.availableStock ?? 0,
-                            item.orderedStock ?? 0,
-                            item.effectiveStock ?? 0
-                          ).subValue}
-                        </div>
-                      )}
-                      <div className="text-xs text-gray-500 md:hidden">
-                        {formatNumber(item.minStockLevel, 0)}/
-                        {formatNumber(item.optimalStockLevel, 0)}
-                      </div>
-                    </td>
-
-                    {/* Min/Optimal - Hidden on mobile */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-500 hidden md:table-cell">
-                      <div>{formatNumber(item.minStockLevel, 0)}</div>
-                      <div className="text-xs text-gray-400">
-                        {formatNumber(item.optimalStockLevel, 0)}
-                      </div>
-                    </td>
-
-                    {/* Consumption - Hidden on tablet and below */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden lg:table-cell">
-                      <div>{formatNumber(item.consumptionInPeriod, 0)}</div>
-                      <div className="text-xs text-gray-500">
-                        {formatNumber(item.dailyConsumption, 2)}/den
-                      </div>
-                    </td>
-
-                    {/* NS (Stock Efficiency) */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900">
-                      <div className="font-bold">
-                        {formatNumber(item.stockEfficiencyPercentage, 1)}%
-                      </div>
-                      <div className="text-xs text-gray-500 lg:hidden">
-                        {formatNumber(item.consumptionInPeriod, 0)}/měs
-                      </div>
-                    </td>
-
-                    {/* MOQ - Hidden on mobile */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden md:table-cell">
-                      {item.minimalOrderQuantity || "—"}
-                    </td>
-
-                    {/* Days Until Stockout - Hidden on large and below */}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs text-gray-900 hidden xl:table-cell">
-                      {item.daysUntilStockout
-                        ? formatNumber(item.daysUntilStockout, 0)
-                        : "∞"}
-                    </td>
-
-                    {/* Supplier - Hidden on tablet and below */}
-                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-900 hidden lg:table-cell">
-                      {item.supplier || "—"}
-                    </td>
-
-                    {/* Last Purchase with quantity and price - Hidden on tablet and below */}
-                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 hidden lg:table-cell w-56">
-                      {item.lastPurchase ? (
-                        <div>
-                          <div className="font-medium">
-                            {item.lastPurchase.date
-                              ? new Date(
-                                  item.lastPurchase.date,
-                                ).toLocaleDateString("cs-CZ")
-                              : "—"}
-                          </div>
-                          <div className="text-xs truncate max-w-20">
-                            {item.lastPurchase.supplierName || "—"}
-                          </div>
-                          <div className="text-xs font-medium">
-                            {formatNumber(item.lastPurchase.amount, 0)}ks @{" "}
-                            {formatCurrency(item.lastPurchase.unitPrice)}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
+                    {orderedColumns.map((col) => {
+                      const state = columnState.find((s) => s.id === col.id);
+                      return (
+                        <td
+                          key={col.id}
+                          className={`px-6 py-4 whitespace-nowrap text-xs text-gray-900 ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : ''} ${col.cellClassName || ''}`}
+                          style={state?.width ? { width: state.width, minWidth: col.minWidth } : col.minWidth ? { minWidth: col.minWidth } : undefined}
+                        >
+                          {col.renderCell(item)}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>

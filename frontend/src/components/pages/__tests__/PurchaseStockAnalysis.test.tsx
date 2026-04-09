@@ -10,6 +10,34 @@ import { TestRouterWrapper } from "../../../test-utils/router-wrapper";
 import { PurchasePlanningListProvider } from "../../../contexts/PurchasePlanningListContext";
 import { ToastProvider } from "../../../contexts/ToastContext";
 
+jest.mock('../../../features/grid-layout', () => ({
+  useGridLayout: (_key: string, columns: any[]) => ({
+    orderedColumns: columns,
+    columnState: columns.map((c: any, i: number) => ({ id: c.id, order: i, hidden: false })),
+    setColumnOrder: jest.fn(),
+    setColumnWidth: jest.fn(),
+    toggleColumnVisibility: jest.fn(),
+    resetLayout: jest.fn(),
+    isLoaded: true,
+  }),
+  GridHeader: ({ columns, onSort }: any) => (
+    <thead>
+      <tr>
+        {columns.map((c: any) => (
+          <th
+            key={c.id}
+            className="cursor-pointer"
+            onClick={() => c.sortBy && onSort(c.sortBy)}
+          >
+            {c.header}
+          </th>
+        ))}
+      </tr>
+    </thead>
+  ),
+  ColumnChooser: () => null,
+}));
+
 // Mock the entire module properly
 jest.mock("../../../api/hooks/usePurchaseStockAnalysis", () => {
   const actualModule = jest.requireActual(
