@@ -18,12 +18,12 @@ public class OrderListData
 }
 
 /// <summary>
-/// Order summary as returned by GET /api/orders (list endpoint).
-/// Available fields: code, guid, creationTime, changeTime, company, fullName, email,
+/// Order summary as returned by GET /api/orders (list endpoint) and GET /api/orders/{code}.
+/// List-endpoint fields: code, guid, creationTime, changeTime, company, fullName, email,
 /// phone, remark, cashDeskOrder, customerGuid, paid, status, source, price,
 /// paymentMethod, shipping, adminUrl, salesChannelGuid.
-/// Note: externalCode and billing/delivery addresses are NOT in the list response —
-/// use GET /api/orders/{code} to retrieve them.
+/// Note: externalCode, billing/delivery addresses, and the notes object (eshopRemark etc.)
+/// are NOT in the list response. Use GET /api/orders/{code}?include=notes for notes.
 /// </summary>
 public class OrderSummary
 {
@@ -67,6 +67,13 @@ public class OrderSummary
 
     [JsonPropertyName("paymentMethod")]
     public OrderPaymentMethodSummary? PaymentMethod { get; set; }
+
+    /// <summary>
+    /// Populated only when the request included ?include=notes.
+    /// Contains eshopRemark (internal staff note), customerRemark, trackingNumber, etc.
+    /// </summary>
+    [JsonPropertyName("notes")]
+    public OrderNotes? Notes { get; set; }
 }
 
 public class OrderStatusSummary
@@ -109,4 +116,26 @@ public class Paginator
 
     [JsonPropertyName("pageCount")]
     public int PageCount { get; set; }
+}
+
+/// <summary>
+/// The notes/remarks object returned by GET /api/orders/{code}?include=notes.
+/// Only present when ?include=notes is included in the request — null otherwise.
+/// Updated via PATCH /api/orders/{code}/notes.
+/// </summary>
+public class OrderNotes
+{
+    /// <summary>Internal staff-facing remark. Updated via PATCH /notes with body {"data":{"eshopRemark":"..."}}.</summary>
+    [JsonPropertyName("eshopRemark")]
+    public string? EshopRemark { get; set; }
+
+    /// <summary>Customer remark entered at checkout. Corresponds to the "remark" field in GET /api/orders list response.</summary>
+    [JsonPropertyName("customerRemark")]
+    public string? CustomerRemark { get; set; }
+
+    [JsonPropertyName("trackingNumber")]
+    public string? TrackingNumber { get; set; }
+
+    [JsonPropertyName("trackingUrl")]
+    public string? TrackingUrl { get; set; }
 }
