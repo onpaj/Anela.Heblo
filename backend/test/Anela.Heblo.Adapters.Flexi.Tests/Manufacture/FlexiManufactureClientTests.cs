@@ -53,7 +53,8 @@ public class FlexiManufactureClientTests
             _mockLotsClient.Object,
             TimeProvider.System, // Use real TimeProvider - it's not critical to mock for these tests
             _mockLogger.Object,
-            _mockTemplateService.Object);
+            _mockTemplateService.Object,
+            new FefoConsumptionAllocator());
     }
 
     #region Basic Flow Tests

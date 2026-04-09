@@ -71,6 +71,7 @@ public static class FlexiAdapterServiceCollectionExtensions
 
         services.AddSingleton<ILedgerService, LedgerService>();
         services.AddScoped<IFlexiManufactureTemplateService, FlexiManufactureTemplateService>();
+        services.AddScoped<IFefoConsumptionAllocator, FefoConsumptionAllocator>();
         services.AddScoped<IManufactureClient, FlexiManufactureClient>();
         services.AddScoped<IProductWeightClient, FlexiProductClient>();
         services.AddScoped<ILotsClient, FlexiLotsClient>();

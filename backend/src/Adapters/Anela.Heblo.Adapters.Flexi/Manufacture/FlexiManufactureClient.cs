@@ -30,6 +30,7 @@ internal sealed class FlexiManufactureClient : IManufactureClient
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<FlexiManufactureClient> _logger;
     private readonly IFlexiManufactureTemplateService _templateService;
+    private readonly IFefoConsumptionAllocator _fefoAllocator;
 
     public FlexiManufactureClient(
         IErpStockClient stockClient,
@@ -39,7 +40,8 @@ internal sealed class FlexiManufactureClient : IManufactureClient
         ILotsClient lotsClient,
         TimeProvider timeProvider,
         ILogger<FlexiManufactureClient> logger,
-        IFlexiManufactureTemplateService templateService)
+        IFlexiManufactureTemplateService templateService,
+        IFefoConsumptionAllocator fefoAllocator)
     {
         _stockClient = stockClient ?? throw new ArgumentNullException(nameof(stockClient));
         _stockMovementClient = stockMovementClient ?? throw new ArgumentNullException(nameof(stockMovementClient));
@@ -49,6 +51,7 @@ internal sealed class FlexiManufactureClient : IManufactureClient
         _timeProvider = timeProvider;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _templateService = templateService ?? throw new ArgumentNullException(nameof(templateService));
+        _fefoAllocator = fefoAllocator ?? throw new ArgumentNullException(nameof(fefoAllocator));
     }
 
     public async Task<string> SubmitManufactureAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken = default)
@@ -117,7 +120,7 @@ internal sealed class FlexiManufactureClient : IManufactureClient
             }
 
             var ingredientLots = await LoadAvailableLotsAsync(ingredientRequirements, cancellationToken);
-            var consumptionItems = AllocateConsumptionItemsUsingFefo(ingredientRequirements, ingredientLots, item.ProductCode);
+            var consumptionItems = _fefoAllocator.Allocate(ingredientRequirements, ingredientLots, item.ProductCode);
 
             allConsumptionItems.AddRange(consumptionItems);
             productCosts[item.ProductCode] = 0; // Will be calculated during consumption
@@ -227,73 +230,6 @@ internal sealed class FlexiManufactureClient : IManufactureClient
         }
 
         return ingredientLots;
-    }
-
-    private List<ConsumptionItem> AllocateConsumptionItemsUsingFefo(
-        Dictionary<string, IngredientRequirement> ingredientRequirements,
-        Dictionary<string, List<CatalogLot>> ingredientLots,
-        string sourceProductCode = "")
-    {
-        var consumptionItems = new List<ConsumptionItem>();
-
-        foreach (var (ingredientCode, requirement) in ingredientRequirements)
-        {
-            if (!requirement.HasLots)
-            {
-                // For items without lots, create a single consumption item with full amount
-                consumptionItems.Add(new ConsumptionItem
-                {
-                    ProductCode = ingredientCode,
-                    ProductName = requirement.ProductName,
-                    ProductType = requirement.ProductType,
-                    LotNumber = null,
-                    Expiration = null,
-                    Amount = requirement.RequiredAmount,
-                    SourceProductCode = sourceProductCode
-                });
-                continue;
-            }
-
-            // For items with lots, use FEFO allocation
-            var lots = ingredientLots[ingredientCode];
-            var sortedLots = lots
-                .OrderBy(l => l.Expiration ?? DateOnly.MaxValue)
-                .ThenBy(s => s.Id)
-                .ToList();
-            double remainingToAllocate = requirement.RequiredAmount;
-
-            foreach (var lot in sortedLots)
-            {
-                if (remainingToAllocate <= 0)
-                {
-                    break;
-                }
-
-                var amountFromThisLot = Math.Min(remainingToAllocate, (double)lot.Amount);
-
-                consumptionItems.Add(new ConsumptionItem
-                {
-                    ProductCode = ingredientCode,
-                    ProductName = requirement.ProductName,
-                    ProductType = requirement.ProductType,
-                    LotNumber = lot.Lot,
-                    Expiration = lot.Expiration,
-                    Amount = amountFromThisLot,
-                    SourceProductCode = sourceProductCode
-                });
-
-                remainingToAllocate -= amountFromThisLot;
-            }
-
-            if (remainingToAllocate > 0.001)
-            {
-                throw new FlexiManufactureException(
-                    FlexiManufactureOperationKind.Allocation,
-                    $"Cannot allocate full amount for ingredient {requirement.ProductCode}: {remainingToAllocate:F3} remaining");
-            }
-        }
-
-        return consumptionItems;
     }
 
     private async Task SubmitConsolidatedConsumptionMovementsAsync(
