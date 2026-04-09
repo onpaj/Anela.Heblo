@@ -6,11 +6,9 @@ using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
 using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
-using Rem.FlexiBeeSDK.Client.Clients.IssuedOrders;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
 using Rem.FlexiBeeSDK.Model;
-using Rem.FlexiBeeSDK.Model.IssuedOrders;
 using Rem.FlexiBeeSDK.Model.Products.StockMovement;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture;
@@ -43,10 +41,6 @@ public class FlexiManufactureClient : IManufactureClient
     private const string WarehouseDocumentType_InboundProduct = "V-PRIJEM-VYROBEK";
 
 
-    private const string WarehouseCodeSemiProduct = "POLOTOVARY";
-    private const string WarehouseCodeProduct = "ZBOZI";
-
-    private readonly IIssuedOrdersClient _ordersClient;
     private readonly IErpStockClient _stockClient;
     private readonly IStockItemsMovementClient _stockMovementClient;
     private readonly IBoMClient _bomClient;
@@ -56,7 +50,6 @@ public class FlexiManufactureClient : IManufactureClient
     private readonly ILogger<FlexiManufactureClient> _logger;
 
     public FlexiManufactureClient(
-        IIssuedOrdersClient ordersClient,
         IErpStockClient stockClient,
         IStockItemsMovementClient stockMovementClient,
         IBoMClient bomClient,
@@ -65,7 +58,6 @@ public class FlexiManufactureClient : IManufactureClient
         TimeProvider timeProvider,
         ILogger<FlexiManufactureClient> logger)
     {
-        _ordersClient = ordersClient ?? throw new ArgumentNullException(nameof(ordersClient));
         _stockClient = stockClient ?? throw new ArgumentNullException(nameof(stockClient));
         _stockMovementClient = stockMovementClient ?? throw new ArgumentNullException(nameof(stockMovementClient));
         _bomClient = bomClient;
@@ -728,25 +720,6 @@ public class FlexiManufactureClient : IManufactureClient
             .ToList();
     }
 
-
-    private static IssuedOrderItemFlexiDto MapToFlexiItem(SubmitManufactureClientItem item,
-        SubmitManufactureClientRequest request)
-    {
-        if (item.Amount <= 0)
-        {
-            throw new ArgumentException("Item quantity must be greater than zero", nameof(item));
-        }
-
-        return new IssuedOrderItemFlexiDto
-        {
-            ProductCode = item.ProductCode,
-            Name = item.ProductName,
-            Amount = (double)item.Amount,
-            LotNumber = request.LotNumber,
-            ExpirationDate = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            WarehouseCode = request.ManufactureType == ErpManufactureType.SemiProduct ? WarehouseCodeSemiProduct : WarehouseCodeProduct,
-        };
-    }
 
     private static string GetProductionDocumentType(ErpManufactureType manufactureType)
     {

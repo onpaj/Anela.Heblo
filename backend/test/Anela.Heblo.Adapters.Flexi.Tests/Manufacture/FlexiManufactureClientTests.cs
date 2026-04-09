@@ -9,11 +9,9 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Rem.FlexiBeeSDK.Client;
 using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
-using Rem.FlexiBeeSDK.Client.Clients.IssuedOrders;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
 using Rem.FlexiBeeSDK.Model;
-using Rem.FlexiBeeSDK.Model.IssuedOrders;
 using Rem.FlexiBeeSDK.Model.Products.StockMovement;
 using Xunit;
 
@@ -27,7 +25,6 @@ namespace Anela.Heblo.Adapters.Flexi.Tests.Manufacture;
 /// </summary>
 public class FlexiManufactureClientTests
 {
-    private readonly Mock<IIssuedOrdersClient> _mockOrdersClient;
     private readonly Mock<IErpStockClient> _mockStockClient;
     private readonly Mock<IStockItemsMovementClient> _mockStockMovementClient;
     private readonly Mock<IBoMClient> _mockBomClient;
@@ -38,7 +35,6 @@ public class FlexiManufactureClientTests
 
     public FlexiManufactureClientTests()
     {
-        _mockOrdersClient = new Mock<IIssuedOrdersClient>();
         _mockStockClient = new Mock<IErpStockClient>();
         _mockStockMovementClient = new Mock<IStockItemsMovementClient>();
         _mockBomClient = new Mock<IBoMClient>();
@@ -47,7 +43,6 @@ public class FlexiManufactureClientTests
         _mockLogger = new Mock<ILogger<FlexiManufactureClient>>();
 
         _client = new FlexiManufactureClient(
-            _mockOrdersClient.Object,
             _mockStockClient.Object,
             _mockStockMovementClient.Object,
             _mockBomClient.Object,
