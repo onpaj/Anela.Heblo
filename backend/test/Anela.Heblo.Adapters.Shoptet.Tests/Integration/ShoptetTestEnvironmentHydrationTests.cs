@@ -1,5 +1,6 @@
 using Anela.Heblo.Adapters.Shoptet.Tests.Integration.Infrastructure;
 using Anela.Heblo.Application.Features.ShoptetOrders;
+using Anela.Heblo.Domain.Features.Catalog.Stock;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,7 @@ public class ShoptetTestEnvironmentHydrationTests
     private readonly ShoptetIntegrationTestFixture _fixture;
     private readonly IConfiguration _configuration;
     private readonly IEshopOrderClient _client;
+    private readonly IEshopStockClient _stockClient;
     private readonly ITestOutputHelper _output;
 
     // Shipping IDs match ShoptetPlaywrightExpeditionListSource constants.
@@ -22,7 +24,7 @@ public class ShoptetTestEnvironmentHydrationTests
     // Custom status IDs are store-specific — configure under Shoptet:StatusId:EXP and Shoptet:StatusId:PACK.
     private readonly IReadOnlyList<OrderDefinition> _seedCatalog;
 
-    private record OrderDefinition(string ExternalCode, int ShippingId, int TargetState);
+    private record OrderDefinition(string ExternalCode, int ShippingId, int TargetState, int ProductCount = 1);
 
     private static readonly string[] CustomerNames =
     [
@@ -61,6 +63,7 @@ public class ShoptetTestEnvironmentHydrationTests
         _fixture = fixture;
         _configuration = fixture.Configuration;
         _client = fixture.ServiceProvider.GetRequiredService<IEshopOrderClient>();
+        _stockClient = fixture.ServiceProvider.GetRequiredService<IEshopStockClient>();
         _output = output;
 
         var expStatusId = _configuration.GetValue<int?>("Shoptet:StatusId:EXP")
@@ -78,7 +81,7 @@ public class ShoptetTestEnvironmentHydrationTests
     // ── Guard tests ───────────────────────────────────────────────────────────
 
     [Fact]
-    public void AssertTestEnvironment_WhenFlagFalse_Throws()
+    public void Guard_WhenFlagFalse_Throws()
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(
@@ -86,10 +89,11 @@ public class ShoptetTestEnvironmentHydrationTests
                 {
                     ["Shoptet:IsTestEnvironment"] = "false",
                     ["Shoptet:BaseUrl"] = "https://api.test-store.com",
+                    ["Shoptet:ApiToken"] = "780175-test-token",
                 })
             .Build();
 
-        var act = () => AssertTestEnvironment(config);
+        var act = () => ShoptetTestGuard.Assert(config);
 
         act.Should()
             .Throw<InvalidOperationException>()
@@ -97,7 +101,7 @@ public class ShoptetTestEnvironmentHydrationTests
     }
 
     [Fact]
-    public void AssertTestEnvironment_WhenUrlContainsAnela_Throws()
+    public void Guard_WhenUrlContainsAnela_Throws()
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(
@@ -105,10 +109,11 @@ public class ShoptetTestEnvironmentHydrationTests
                 {
                     ["Shoptet:IsTestEnvironment"] = "true",
                     ["Shoptet:BaseUrl"] = "https://api.anela.myshoptet.com",
+                    ["Shoptet:ApiToken"] = "780175-test-token",
                 })
             .Build();
 
-        var act = () => AssertTestEnvironment(config);
+        var act = () => ShoptetTestGuard.Assert(config);
 
         act.Should()
             .Throw<InvalidOperationException>()
@@ -116,7 +121,7 @@ public class ShoptetTestEnvironmentHydrationTests
     }
 
     [Fact]
-    public void AssertTestEnvironment_WhenValidTestConfig_DoesNotThrow()
+    public void Guard_WhenApiTokenWrongPrefix_Throws()
     {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(
@@ -124,10 +129,31 @@ public class ShoptetTestEnvironmentHydrationTests
                 {
                     ["Shoptet:IsTestEnvironment"] = "true",
                     ["Shoptet:BaseUrl"] = "https://api.myshoptet.com",
+                    ["Shoptet:ApiToken"] = "999999-production-token",
                 })
             .Build();
 
-        var act = () => AssertTestEnvironment(config);
+        var act = () => ShoptetTestGuard.Assert(config);
+
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("*780175*");
+    }
+
+    [Fact]
+    public void Guard_WhenValidTestConfig_DoesNotThrow()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["Shoptet:IsTestEnvironment"] = "true",
+                    ["Shoptet:BaseUrl"] = "https://api.myshoptet.com",
+                    ["Shoptet:ApiToken"] = "780175-test-token",
+                })
+            .Build();
+
+        var act = () => ShoptetTestGuard.Assert(config);
 
         act.Should().NotThrow();
     }
@@ -137,10 +163,10 @@ public class ShoptetTestEnvironmentHydrationTests
     [Fact]
     public async Task HydrateTestEnvironment()
     {
-        if (Environment.GetEnvironmentVariable("SHOPTET_HYDRATE") != "1")
-            return;
+        // if (Environment.GetEnvironmentVariable("SHOPTET_HYDRATE") != "1")
+        //     return;
 
-        AssertTestEnvironment(_configuration);
+        ShoptetTestGuard.Assert(_configuration);
 
         var ct = new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token;
         var paymentGuid = _configuration["Shoptet:PaymentMethodGuid"]!;
@@ -153,6 +179,25 @@ public class ShoptetTestEnvironmentHydrationTests
             .ToDictionary(o => o.ExternalCode!, StringComparer.Ordinal);
 
         _output.WriteLine($"Found {existingOrders.Count} existing TEST- orders.");
+
+        // Pre-fetch all variant codes from the stock CSV export — one call, no N+1.
+        // The stock client reads the same CSV that Shoptet generates for the store.
+        var stockItems = await _stockClient.ListAsync(ct);
+        var variantCodes = stockItems
+            .Where(s => s.Stock > 0)
+            .Select(s => s.Code)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Distinct()
+            .ToList();
+
+        var maxProducts = _seedCatalog.Max(d => d.ProductCount);
+        if (variantCodes.Count < maxProducts)
+            throw new InvalidOperationException(
+                $"Not enough distinct variant codes in the store ({variantCodes.Count}) "
+                    + $"to seed an order with {maxProducts} products. "
+                    + "Add more products to the test store catalog.");
+
+        _output.WriteLine($"Loaded {variantCodes.Count} product variant codes from stock CSV.");
 
         int created = 0,
             reset = 0,
@@ -171,6 +216,8 @@ public class ShoptetTestEnvironmentHydrationTests
             if (existing is null)
             {
                 var shippingName = definition.ShippingId == 21 ? "Zásilkovna (do ruky)" : "PPL (do ruky)";
+                // Seed from ExternalCode so the same order always gets the same amounts/prices/products.
+                var rng = new Random(definition.ExternalCode.GetHashCode());
                 var request = new CreateEshopOrderRequest
                 {
                     Email = "test-seed@heblo.test",
@@ -181,41 +228,12 @@ public class ShoptetTestEnvironmentHydrationTests
                     CurrencyCode = "CZK",
                     BillingAddress = new EshopOrderAddress
                     {
-                        FullName = CustomerNames[idx % CustomerNames.Length],
+                        FullName = $"TEST-{CustomerNames[idx % CustomerNames.Length]}",
                         Street = "Testovaci 1",
                         City = "Praha",
                         Zip = "10000",
                     },
-                    Items = new List<EshopOrderItem>
-                    {
-                        // OCH001030 is a real product variant code required by the Shoptet API.
-                        // suppressProductChecking is not supported via REST.
-                        new EshopOrderItem
-                        {
-                            ItemType = "product",
-                            Code = "OCH001030",
-                            Name = "Test product",
-                            VatRate = "21",
-                            ItemPriceWithVat = "1.00",
-                            Amount = "1",
-                        },
-                        new EshopOrderItem
-                        {
-                            ItemType = "billing",
-                            Name = "Platba prevod",
-                            VatRate = "0",
-                            ItemPriceWithVat = "0.00",
-                            Amount = "1",
-                        },
-                        new EshopOrderItem
-                        {
-                            ItemType = "shipping",
-                            Name = shippingName,
-                            VatRate = "0",
-                            ItemPriceWithVat = "0.00",
-                            Amount = "1",
-                        },
-                    },
+                    Items = BuildOrderItems(definition.ProductCount, shippingName, rng, variantCodes),
                 };
 
                 var code = await _client.CreateOrderAsync(request, ct);
@@ -250,10 +268,10 @@ public class ShoptetTestEnvironmentHydrationTests
     [Fact]
     public async Task PurgeTestOrders()
     {
-        if (Environment.GetEnvironmentVariable("SHOPTET_HYDRATE") != "1")
-            return;
+        // if (Environment.GetEnvironmentVariable("SHOPTET_HYDRATE") != "1")
+        //     return;
 
-        AssertTestEnvironment(_configuration);
+        ShoptetTestGuard.Assert(_configuration);
 
         var ct = new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token;
         var orders = await _client.ListByExternalCodePrefixAsync("TEST-", "test-seed@heblo.test", ct);
@@ -265,22 +283,6 @@ public class ShoptetTestEnvironmentHydrationTests
         }
 
         _output.WriteLine($"\nDeleted {orders.Count} test orders.");
-    }
-
-    // ── Guard helper ──────────────────────────────────────────────────────────
-
-    private static void AssertTestEnvironment(IConfiguration config)
-    {
-        var isTest = config.GetValue<bool>("Shoptet:IsTestEnvironment");
-        if (!isTest)
-            throw new InvalidOperationException(
-                "Hydration must not run against live environment. "
-                    + "Set Shoptet:IsTestEnvironment=true in test appsettings.json");
-
-        var baseUrl = config["Shoptet:BaseUrl"] ?? string.Empty;
-        if (baseUrl.Contains("anela", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(
-                "Hydration refused: base URL contains 'anela' — this looks like the production store.");
     }
 
     // ── Seed catalog ──────────────────────────────────────────────────────────
@@ -297,6 +299,13 @@ public class ShoptetTestEnvironmentHydrationTests
         for (int i = 1; i <= 2; i++)
             catalog.Add(new($"TEST-ZAK-21-PACK-{i:D2}", 21, packStatusId));
 
+        // Shipping 21 — multi-product orders
+        catalog.Add(new("TEST-ZAK-21-INIT-M2-01", 21, -2, ProductCount: 2));
+        catalog.Add(new("TEST-ZAK-21-INIT-M2-02", 21, -2, ProductCount: 2));
+        catalog.Add(new("TEST-ZAK-21-INIT-M3-01", 21, -2, ProductCount: 3));
+        catalog.Add(new("TEST-ZAK-21-INIT-M4-01", 21, -2, ProductCount: 4));
+        catalog.Add(new("TEST-ZAK-21-INIT-M10-01", 21, -2, ProductCount: 10));
+
         // Shipping 6 — PPL_DO_RUKY
         for (int i = 1; i <= 9; i++)
             catalog.Add(new($"TEST-PPL-6-INIT-{i:D2}", 6, -2));
@@ -305,6 +314,80 @@ public class ShoptetTestEnvironmentHydrationTests
         for (int i = 1; i <= 2; i++)
             catalog.Add(new($"TEST-PPL-6-PACK-{i:D2}", 6, packStatusId));
 
+        // Shipping 6 — multi-product orders
+        catalog.Add(new("TEST-PPL-6-INIT-M2-01", 6, -2, ProductCount: 2));
+        catalog.Add(new("TEST-PPL-6-INIT-M2-02", 6, -2, ProductCount: 2));
+        catalog.Add(new("TEST-PPL-6-INIT-M3-01", 6, -2, ProductCount: 3));
+        catalog.Add(new("TEST-PPL-6-INIT-M4-01", 6, -2, ProductCount: 4));
+        catalog.Add(new("TEST-PPL-6-INIT-M10-01", 6, -2, ProductCount: 10));
+
         return catalog;
+    }
+
+    // ── Item builder ──────────────────────────────────────────────────────────
+
+    // Amount distribution: 90 % → 1, 6 % → 2, 3 % → 3, 1 % → 5
+    private static int PickAmount(Random rng)
+    {
+        var roll = rng.Next(100);
+        return roll switch
+        {
+            < 90 => 1,
+            < 96 => 2,
+            < 99 => 3,
+            _    => 5,
+        };
+    }
+
+    private static List<EshopOrderItem> BuildOrderItems(
+        int productCount,
+        string shippingName,
+        Random rng,
+        List<string> variantCodes)
+    {
+        // Sample without replacement so the same variant code never appears twice in one order
+        // (Shoptet rejects orders with duplicate product codes).
+        var pool = variantCodes.ToList();
+        var items = Enumerable
+            .Range(1, productCount)
+            .Select(n =>
+            {
+                var idx = rng.Next(pool.Count);
+                var code = pool[idx];
+                pool.RemoveAt(idx);
+
+                var amount = PickAmount(rng);
+                // Price per piece: random integer in [200, 1100], formatted with 2 dp
+                var price = rng.Next(200, 1101);
+                return new EshopOrderItem
+                {
+                    ItemType = "product",
+                    Code = code,
+                    Name = productCount == 1 ? "Test product" : $"Test product {n}",
+                    VatRate = "21",
+                    ItemPriceWithVat = $"{price}.00",
+                    Amount = amount.ToString(),
+                };
+            })
+            .ToList<EshopOrderItem>();
+
+        items.Add(new EshopOrderItem
+        {
+            ItemType = "billing",
+            Name = "Platba prevod",
+            VatRate = "0",
+            ItemPriceWithVat = "0.00",
+            Amount = "1",
+        });
+        items.Add(new EshopOrderItem
+        {
+            ItemType = "shipping",
+            Name = shippingName,
+            VatRate = "0",
+            ItemPriceWithVat = "0.00",
+            Amount = "1",
+        });
+
+        return items;
     }
 }

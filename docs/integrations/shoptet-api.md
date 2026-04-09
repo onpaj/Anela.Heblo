@@ -211,7 +211,45 @@ Updates the order's remark/note slots. Any property omitted from the body is lef
 
 ---
 
-## 4. ShoptetPay API
+## 4. Products API
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/products` | List products (paginated, default 20, max 50) |
+| `GET` | `/api/products/{guid}` | Get single product detail |
+
+**`include` sections:** Only `images` is supported on the list endpoint. **`variants` and `productVariants` are NOT valid include values and return 400.**
+
+### 4.1 GET /api/products (list)
+
+Returns paginated product list — **does not include variants**. Max `itemsPerPage` is 50.
+
+### 4.2 GET /api/products/{guid} (detail)
+
+Returns the full product including a `variants[]` array with `code` fields — **no `include` needed**:
+
+```json
+{
+  "data": {
+    "guid": "...",
+    "name": "Ochráním zadečky",
+    "isVariant": true,
+    "variants": [
+      { "code": "OCH001030", "stock": "120.000", "price": "190.00", ... }
+    ]
+  }
+}
+```
+
+### 4.3 Getting all variant codes efficiently
+
+**Do NOT use N+1 product detail calls.** Use the stock CSV export instead — it lists all variant codes in a single request and is already parsed by `IEshopStockClient.ListAsync()`. The `EshopStock.Code` field is the variant-level SKU accepted by `POST /api/orders`.
+
+The snapshot endpoint (`GET /api/products/snapshot`) exists but requires a registered webhook for `job:finished` — not usable without webhook infrastructure.
+
+---
+
+## 5. ShoptetPay API
 
 Base URL: `https://api.shoptetpay.com`
 
@@ -228,7 +266,7 @@ Base URL: `https://api.shoptetpay.com`
 
 ---
 
-## 5. Existing Project Integration Points
+## 6. Existing Project Integration Points
 
 ### 5.1 Adapter: `Anela.Heblo.Adapters.ShoptetApi`
 Location: `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/`
@@ -252,7 +290,7 @@ Location: `backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/`
 
 ---
 
-## 6. Test Environment Notes
+## 7. Test Environment Notes
 
 - **No official Shoptet sandbox.** Test env is a real Shoptet store configured with test credentials.
 - **`suppress*` flags are NOT supported by the REST API.** `suppressEmailSending`, `suppressStockMovements`, `suppressDocumentGeneration`, `suppressProductChecking` only exist in the Shoptet admin UI import flow — the REST `POST /api/orders` endpoint rejects them with 422. Do not include them in the request body.
@@ -356,7 +394,7 @@ These values are stored in `~/.microsoft/usersecrets/anela-heblo-adapters-shopte
 
 ---
 
-## 7. Design Documents
+## 8. Design Documents
 
 - **ShoptetApi Adapter F1** (ShoptetPay payout downloads): `docs/superpowers/specs/2026-03-24-shoptet-api-adapter-f1-design.md`
 - **ShoptetApi Adapter F1 Implementation Plan**: `docs/superpowers/plans/2026-03-24-shoptet-api-f1.md`

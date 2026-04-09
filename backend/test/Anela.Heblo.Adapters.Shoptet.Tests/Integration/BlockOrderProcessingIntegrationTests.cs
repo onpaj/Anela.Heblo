@@ -123,7 +123,7 @@ public class BlockOrderProcessingIntegrationTests
         if (Environment.GetEnvironmentVariable("SHOPTET_BLOCK_ORDER") != "1")
             return;
 
-        AssertTestEnvironment(_configuration);
+        ShoptetTestGuard.Assert(_configuration);
 
         var blockedStatusId = _configuration.GetValue<int?>("ShoptetOrders:BlockedStatusId")
             ?? throw new InvalidOperationException(
@@ -233,17 +233,4 @@ public class BlockOrderProcessingIntegrationTests
             ],
         };
 
-    private static void AssertTestEnvironment(IConfiguration config)
-    {
-        var isTest = config.GetValue<bool>("Shoptet:IsTestEnvironment");
-        if (!isTest)
-            throw new InvalidOperationException(
-                "Integration test must not run against live environment. "
-                + "Set Shoptet:IsTestEnvironment=true in test appsettings.json");
-
-        var baseUrl = config["Shoptet:BaseUrl"] ?? string.Empty;
-        if (baseUrl.Contains("anela", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(
-                "Integration test refused: base URL contains 'anela' — this looks like the production store.");
-    }
 }

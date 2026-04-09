@@ -125,7 +125,12 @@ public class ShoptetOrderClient : IEshopOrderClient
 
         var envelope = new { data = body };
         var response = await _http.PostAsJsonAsync("/api/orders", envelope, JsonOptions, ct);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException(
+                $"POST /api/orders returned {(int)response.StatusCode}: {errorBody}");
+        }
 
         var result = await response.Content.ReadFromJsonAsync<CreateOrderResponse>(JsonOptions, ct);
         return result!.Data.Order.Code;

@@ -51,7 +51,7 @@ public class PickingListIntegrationTests
     [Fact]
     public async Task PrintPickingList_ProducesPdfs_ForRecentOrders()
     {
-        AssertTestEnvironment(_configuration);
+        ShoptetTestGuard.Assert(_configuration);
 
         var ct = new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token;
 
@@ -130,17 +130,4 @@ public class PickingListIntegrationTests
         }
     }
 
-    private static void AssertTestEnvironment(IConfiguration config)
-    {
-        var isTest = config.GetValue<bool>("Shoptet:IsTestEnvironment");
-        if (!isTest)
-            throw new InvalidOperationException(
-                "Integration test must not run against live environment. "
-                + "Set Shoptet:IsTestEnvironment=true in test appsettings.json");
-
-        var baseUrl = config["Shoptet:BaseUrl"] ?? string.Empty;
-        if (baseUrl.Contains("anela", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(
-                "Integration test refused: base URL contains 'anela' — this looks like the production store.");
-    }
 }
