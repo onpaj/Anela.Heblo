@@ -37,7 +37,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         new() { Carrier = Carriers.GLS,        Name = "GLS_DO_RUKY",                     Id = 97,  Guids = ["138ec07f-0119-11ec-a39f-002590dc5efc", "b7e787c5-011d-11ec-a39f-002590dc5efc"] }, // GLS (do ruky) (retail + VO)
         new() { Carrier = Carriers.GLS,        Name = "GLS_EXPORT",                      Id = 109, Guids = ["c06835e6-165e-11ec-a39f-002590dc5efc", "bbbe7223-4ea8-11ec-a39f-002590dc5efc"] }, // GLS Export (retail + VO)
         new() { Carrier = Carriers.GLS,        Name = "GLS_PARCELSHOP",                  Id = 489, Guids = ["49b79aec-0118-11ec-a39f-002590dc5efc"] }, // GLS ParcelShop
-        new() { Carrier = Carriers.Osobak,     Name = "OSOBAK",                          Id = 4,   Guids = ["8fdb2c89-3fae-11e2-a723-705ab6a2ba75", "389ce19e-40f1-11ea-beb1-002590dad85e"], PageSize = 1 }, // Osobní odběr (retail + VO)
+        new() { Carrier = Carriers.Osobak,     Name = "OSOBAK",                          Id = 4,   Guids = ["8fdb2c89-3fae-11e2-a723-705ab6a2ba75", "389ce19e-40f1-11ea-beb1-002590dad85e"], MaxOrders = 1 }, // Osobní odběr (retail + VO)
     };
 
     private static readonly Dictionary<string, ShippingMethod> ShippingByGuid =
@@ -92,64 +92,82 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             // Sort by shippingGuid so same method types are together
             var sorted = orders.OrderBy(o => o.ShippingGuid).ToList();
 
-            // Determine page size from the first shipping method encountered for this carrier
-            var pageSize = ShippingByGuid.TryGetValue(sorted[0].ShippingGuid, out var sm) ? sm.PageSize : 8;
+            // Determine batch limits from the first shipping method for this carrier
+            var maxItems = ShippingByGuid.TryGetValue(sorted[0].ShippingGuid, out var sm) ? sm.MaxItems : 20;
+            var maxOrders = sm?.MaxOrders ?? int.MaxValue;
             var carrierDisplayName = carrier.ToString();
 
-            // 3. Batch
-            var batches = sorted
-                .Select((o, i) => (o, i))
-                .GroupBy(x => x.i / pageSize)
-                .Select(g => g.Select(x => x.o).ToList())
-                .ToList();
-
-            var batchIndex = 0;
-            foreach (var batch in batches)
+            // 3. Fetch all order details for this carrier upfront, then batch greedily by item count.
+            //    This ensures batches are split based on how much content fits on a printed page,
+            //    rather than by an arbitrary order count.
+            var allExpeditionOrders = new List<ExpeditionOrder>();
+            foreach (var (code, _) in sorted)
             {
-                // 4a. Fetch detail for each order in the batch
-                var expeditionOrders = new List<ExpeditionOrder>();
-                foreach (var (code, _) in batch)
-                {
-                    var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
-                    expeditionOrders.Add(MapToExpeditionOrder(detail));
-                    processedCodes.Add(code);
-                }
+                var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
+                allExpeditionOrders.Add(MapToExpeditionOrder(detail));
+                processedCodes.Add(code);
+            }
 
-                // 4b. Enrich with stock counts from catalog (in-memory, no extra I/O)
-                var allCodes = expeditionOrders.SelectMany(o => o.Items).Select(i => i.ProductCode).Distinct();
+            // Greedy batching: accumulate orders until adding the next would exceed maxItems.
+            // A single order with more items than maxItems always becomes its own batch.
+            var currentBatch = new List<ExpeditionOrder>();
+            var currentItemCount = 0;
+            var batchIndex = 0;
+
+            async Task FlushBatchAsync(List<ExpeditionOrder> batch)
+            {
+                // Enrich with stock counts from catalog
+                var productCodes = batch.SelectMany(o => o.Items).Select(i => i.ProductCode).Distinct();
                 var stockByCode = new Dictionary<string, decimal>();
-                foreach (var productCode in allCodes)
+                foreach (var productCode in productCodes)
                 {
                     var entry = await _catalog.GetByIdAsync(productCode, cancellationToken);
                     if (entry != null)
                         stockByCode[productCode] = entry.Stock.Available;
                 }
-                foreach (var item in expeditionOrders.SelectMany(o => o.Items))
+                foreach (var item in batch.SelectMany(o => o.Items))
                 {
                     if (stockByCode.TryGetValue(item.ProductCode, out var stock))
                         item.StockCount = stock;
                 }
 
-                // 4b-c. Generate PDF
                 var data = new ExpeditionProtocolData
                 {
                     CarrierDisplayName = carrierDisplayName,
-                    Orders = expeditionOrders,
+                    Orders = batch,
                 };
 
                 var pdfBytes = ExpeditionProtocolDocument.Generate(data);
-
-                // 4d. Write to temp; delivery is the caller's responsibility via onBatchFilesReady
                 var fileName = $"{timestamp}_{carrier}_{batchIndex}.pdf";
                 var filePath = Path.Combine(Path.GetTempPath(), fileName);
                 await File.WriteAllBytesAsync(filePath, pdfBytes, cancellationToken);
                 exportedFiles.Add(filePath);
 
-                // 4e. Invoke callback per batch
                 if (onBatchFilesReady != null)
                     await onBatchFilesReady(new List<string> { filePath });
+            }
 
-                batchIndex++;
+            foreach (var order in allExpeditionOrders)
+            {
+                var orderItemCount = order.Items.Count;
+
+                if ((currentItemCount + orderItemCount > maxItems || currentBatch.Count >= maxOrders) && currentBatch.Count > 0)
+                {
+                    // Flush current batch before starting a new one
+                    await FlushBatchAsync(currentBatch);
+                    batchIndex++;
+                    currentBatch = new List<ExpeditionOrder>();
+                    currentItemCount = 0;
+                }
+
+                currentBatch.Add(order);
+                currentItemCount += orderItemCount;
+            }
+
+            // Flush any remaining orders
+            if (currentBatch.Count > 0)
+            {
+                await FlushBatchAsync(currentBatch);
             }
         }
 
