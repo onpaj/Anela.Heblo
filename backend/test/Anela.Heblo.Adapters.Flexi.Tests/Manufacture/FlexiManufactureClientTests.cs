@@ -19,9 +19,8 @@ namespace Anela.Heblo.Adapters.Flexi.Tests.Manufacture;
 
 /// <summary>
 /// Unit tests for FlexiManufactureClient.SubmitManufactureAsync method.
-/// Tests cover two main code paths:
-/// - Product type: Processes items independently via SubmitManufacturePerProductAsync()
-/// - SemiProduct type: Aggregates all items via SubmitManufactureAggregatedAsync()
+/// All manufacture types (Product and SemiProduct) go through the consolidated
+/// per-product path via SubmitManufacturePerProductAsync().
 /// </summary>
 public class FlexiManufactureClientTests
 {
