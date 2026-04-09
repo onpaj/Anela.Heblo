@@ -71,7 +71,7 @@ public class ShoptetApiExpeditionListSourceTests
         };
     }
 
-    private static ExpeditionOrderDetailResponse DetailFor(string code)
+    private static ExpeditionOrderDetailResponse DetailFor(string code, int itemCount = 1)
     {
         return new ExpeditionOrderDetailResponse
         {
@@ -82,17 +82,14 @@ public class ShoptetApiExpeditionListSourceTests
                     Code = code,
                     FullName = $"Customer {code}",
                     Phone = "123",
-                    Items = new List<ExpeditionOrderItemDto>
+                    Items = Enumerable.Range(1, itemCount).Select(i => new ExpeditionOrderItemDto
                     {
-                        new()
-                        {
-                            ItemType = "product",
-                            Code = "P001",
-                            Name = "Widget",
-                            Amount = 1m,
-                            ItemPriceWithVat = "99.90",
-                        },
-                    },
+                        ItemType = "product",
+                        Code = $"P{i:D3}",
+                        Name = $"Widget {i}",
+                        Amount = 1m,
+                        ItemPriceWithVat = "99.90",
+                    }).ToList(),
                 },
             },
         };
@@ -148,11 +145,14 @@ public class ShoptetApiExpeditionListSourceTests
     }
 
     [Fact]
-    public async Task CreatePickingList_BatchesByPageSize_8PerBatch()
+    public async Task CreatePickingList_BatchesByItemCount_SplitsWhenLimitExceeded()
     {
-        // Arrange — 9 Zasilkovna orders → expect 2 batches (8 + 1)
-        var codes = Enumerable.Range(1, 9).Select(i => $"Z{i:D3}").ToArray();
-        var listResp = SinglePageList(codes.Select(c => (c, ZasilkovnaDoRukyGuid)).ToArray());
+        // Arrange — 3 orders: first 2 have 10 items each (total 20 = at limit), third has 1 item.
+        // Expect 2 batches: [Z001, Z002] (20 items) and [Z003] (1 item).
+        var listResp = SinglePageList(
+            ("Z001", ZasilkovnaDoRukyGuid),
+            ("Z002", ZasilkovnaDoRukyGuid),
+            ("Z003", ZasilkovnaDoRukyGuid));
 
         var batchFilesReceived = new List<IList<string>>();
         var client = BuildClient(req =>
@@ -161,7 +161,9 @@ public class ShoptetApiExpeditionListSourceTests
                 return Json(listResp);
 
             var code = req.RequestUri.Segments.Last();
-            return Json(DetailFor(code));
+            // Z001 and Z002 have 10 items each; Z003 has 1 item
+            var itemCount = code is "Z001" or "Z002" ? 10 : 1;
+            return Json(DetailFor(code, itemCount));
         });
 
         var source = BuildSource(client);
@@ -174,11 +176,43 @@ public class ShoptetApiExpeditionListSourceTests
             return Task.CompletedTask;
         });
 
-        // Assert — 2 batches of PDFs
+        // Assert — 2 batches: [Z001+Z002] hits the 20-item limit, [Z003] is the remainder
         batchFilesReceived.Should().HaveCount(2);
-        result.TotalCount.Should().Be(9);
+        result.TotalCount.Should().Be(3);
 
         // Cleanup temp files
+        foreach (var file in result.ExportedFiles.Where(File.Exists))
+            File.Delete(file);
+    }
+
+    [Fact]
+    public async Task CreatePickingList_SingleOrderExceedingItemLimit_GetsOwnBatch()
+    {
+        // Arrange — one order with 25 items (exceeds MaxItems=20); must still be processed
+        var listResp = SinglePageList(("Z001", ZasilkovnaDoRukyGuid));
+
+        var batchFilesReceived = new List<IList<string>>();
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
+                return Json(listResp);
+            return Json(DetailFor(req.RequestUri.Segments.Last(), itemCount: 25));
+        });
+
+        var source = BuildSource(client);
+
+        // Act
+        var result = await source.CreatePickingList(DefaultRequest(), files =>
+        {
+            batchFilesReceived.Add(files);
+            return Task.CompletedTask;
+        });
+
+        // Assert — single order always gets its own batch even if it exceeds the item limit
+        batchFilesReceived.Should().HaveCount(1);
+        result.TotalCount.Should().Be(1);
+
+        // Cleanup
         foreach (var file in result.ExportedFiles.Where(File.Exists))
             File.Delete(file);
     }

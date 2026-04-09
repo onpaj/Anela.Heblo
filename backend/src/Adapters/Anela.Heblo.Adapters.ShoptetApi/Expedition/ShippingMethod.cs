@@ -13,7 +13,19 @@ public class ShippingMethod
     public int Id { get; set; }
 
     public string Name { get; set; } = null!;
-    public int PageSize { get; set; } = 8;
+
+    /// <summary>
+    /// Maximum number of items (across all orders in a batch) before starting a new batch.
+    /// Controls how many orders end up in a single PDF so that the printed protocol fits on two pages.
+    /// If a single order has more items than this limit it still gets its own batch.
+    /// </summary>
+    public int MaxItems { get; set; } = 20;
+
+    /// <summary>
+    /// Maximum number of orders per batch. Default is no limit (int.MaxValue).
+    /// Use for carriers like Osobak where each order must be its own PDF regardless of item count.
+    /// </summary>
+    public int MaxOrders { get; set; } = int.MaxValue;
 
     /// <summary>
     /// Shipping method GUIDs as returned by GET /api/orders (shipping.guid).
