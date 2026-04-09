@@ -138,6 +138,31 @@ public class ManufactureOrderApplicationServiceTests
     }
 
     [Fact]
+    public async Task CreateManufactureOrderInErp_WhenSubmitFails_DoesNotLogSuccess()
+    {
+        // Arrange
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
+        var submitManufactureResponse = CreateFailedSubmitManufactureResponse("ERP connection failed");
+        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
+
+        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
+
+        // Act
+        await _service.ConfirmSemiProductManufactureAsync(ValidOrderId, ValidQuantity, ValidChangeReason);
+
+        // Assert: LogInformation with "Successfully created manufacture" must NEVER fire when submit failed
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Successfully created manufacture")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never,
+            "Success log must not fire when ERP submit failed");
+    }
+
+    [Fact]
     public async Task ConfirmSemiProductManufactureAsync_UpdateStatusFailure_ReturnsError()
     {
         // Arrange

@@ -304,9 +304,12 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             _logger.LogError("Failed to create manufacture for order {OrderId}: {ErrorCode}",
                 orderId, submitManufactureResult.ErrorCode);
         }
+        else
+        {
+            _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {OrderId}",
+                submitManufactureResult.ManufactureId, orderId);
+        }
 
-        _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {OrderId}",
-            submitManufactureResult.ManufactureId, orderId);
         return submitManufactureResult;
     }
 
