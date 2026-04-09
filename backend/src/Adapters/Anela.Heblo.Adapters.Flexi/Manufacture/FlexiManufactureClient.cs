@@ -1,3 +1,4 @@
+using Anela.Heblo.Adapters.Flexi.Manufacture.Internal;
 using Anela.Heblo.Adapters.Flexi.Stock;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
@@ -199,13 +200,7 @@ public class FlexiManufactureClient : IManufactureClient
 
         foreach (var (ingredientCode, requirement) in ingredientRequirements)
         {
-            int warehouseId = requirement.ProductType switch
-            {
-                ProductType.Material => FlexiStockClient.MaterialWarehouseId,
-                ProductType.SemiProduct => FlexiStockClient.SemiProductsWarehouseId,
-                ProductType.Product or ProductType.Goods => FlexiStockClient.ProductsWarehouseId,
-                _ => FlexiStockClient.MaterialWarehouseId
-            };
+            int warehouseId = FlexiWarehouseResolver.ForProductType(requirement.ProductType);
 
             var stockItems = await _stockClient.StockToDateAsync(stockDate, warehouseId, cancellationToken);
             var ingredientStock = stockItems.FirstOrDefault(s => s.ProductCode == ingredientCode);
@@ -327,13 +322,7 @@ public class FlexiManufactureClient : IManufactureClient
         CancellationToken cancellationToken)
     {
         var consumptionByWarehouse = consumptionItems
-            .GroupBy(item => item.ProductType switch
-            {
-                ProductType.Material => FlexiStockClient.MaterialWarehouseId,
-                ProductType.SemiProduct => FlexiStockClient.SemiProductsWarehouseId,
-                ProductType.Product or ProductType.Goods => FlexiStockClient.ProductsWarehouseId,
-                _ => FlexiStockClient.MaterialWarehouseId
-            })
+            .GroupBy(item => FlexiWarehouseResolver.ForProductType(item.ProductType))
             .ToList();
 
         foreach (var warehouseGroup in consumptionByWarehouse)
