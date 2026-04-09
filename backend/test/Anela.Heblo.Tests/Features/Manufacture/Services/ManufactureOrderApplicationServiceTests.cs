@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateBoMIngredientAmount;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Application.Shared;
@@ -16,7 +17,6 @@ namespace Anela.Heblo.Tests.Features.Manufacture.Services;
 public class ManufactureOrderApplicationServiceTests
 {
     private readonly Mock<IMediator> _mediatorMock;
-    private readonly Mock<IManufactureClient> _manufactureClientMock;
     private readonly Mock<IResidueDistributionCalculator> _residueCalculatorMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
@@ -32,7 +32,6 @@ public class ManufactureOrderApplicationServiceTests
     public ManufactureOrderApplicationServiceTests()
     {
         _mediatorMock = new Mock<IMediator>();
-        _manufactureClientMock = new Mock<IManufactureClient>();
         _residueCalculatorMock = new Mock<IResidueDistributionCalculator>();
         _timeProviderMock = new Mock<TimeProvider>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
@@ -49,7 +48,6 @@ public class ManufactureOrderApplicationServiceTests
 
         _service = new ManufactureOrderApplicationService(
             _mediatorMock.Object,
-            _manufactureClientMock.Object,
             _residueCalculatorMock.Object,
             _timeProviderMock.Object,
             _currentUserServiceMock.Object,
@@ -264,8 +262,8 @@ public class ManufactureOrderApplicationServiceTests
 
         VerifyNoSubmitManufactureCall();
         VerifyNoUpdateStatusCall();
-        _manufactureClientMock.Verify(
-            x => x.UpdateBoMIngredientAmountAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()),
+        _mediatorMock.Verify(
+            x => x.Send(It.IsAny<UpdateBoMIngredientAmountRequest>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -326,8 +324,8 @@ public class ManufactureOrderApplicationServiceTests
         VerifySubmitManufactureCall(ErpManufactureType.Product);
         VerifyUpdateStatusCall(ManufactureOrderState.Completed, null, null, null, true,
             expectedWeightWithinTolerance: true, expectedWeightDifference: 1m);
-        _manufactureClientMock.Verify(
-            x => x.UpdateBoMIngredientAmountAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()),
+        _mediatorMock.Verify(
+            x => x.Send(It.IsAny<UpdateBoMIngredientAmountRequest>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -449,6 +447,9 @@ public class ManufactureOrderApplicationServiceTests
 
         _mediatorMock.Setup(x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updateStatusResponse);
+
+        _mediatorMock.Setup(x => x.Send(It.IsAny<UpdateBoMIngredientAmountRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UpdateBoMIngredientAmountResponse());
     }
 
     private static UpdateManufactureOrderResponse CreateSuccessfulUpdateOrderResponse()
@@ -637,11 +638,11 @@ public class ManufactureOrderApplicationServiceTests
     {
         foreach (var product in distribution.Products)
         {
-            _manufactureClientMock.Verify(
-                x => x.UpdateBoMIngredientAmountAsync(
-                    product.ProductCode,
-                    It.IsAny<string>(),
-                    (double)product.AdjustedGramsPerUnit,
+            _mediatorMock.Verify(
+                x => x.Send(
+                    It.Is<UpdateBoMIngredientAmountRequest>(r =>
+                        r.ProductCode == product.ProductCode &&
+                        r.NewAmount == (double)product.AdjustedGramsPerUnit),
                     It.IsAny<CancellationToken>()),
                 Times.Once);
         }

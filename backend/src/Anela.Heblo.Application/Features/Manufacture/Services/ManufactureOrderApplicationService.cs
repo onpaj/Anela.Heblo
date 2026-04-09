@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateBoMIngredientAmount;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
@@ -16,7 +17,6 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
     private const int MaxManufactureNameLength = 40;
 
     private readonly IMediator _mediator;
-    private readonly IManufactureClient _manufactureClient;
     private readonly IResidueDistributionCalculator _residueCalculator;
     private readonly TimeProvider _timeProvider;
     private readonly ICurrentUserService _currentUserService;
@@ -25,7 +25,6 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
 
     public ManufactureOrderApplicationService(
         IMediator mediator,
-        IManufactureClient manufactureClient,
         IResidueDistributionCalculator residueCalculator,
         TimeProvider timeProvider,
         ICurrentUserService currentUserService,
@@ -33,7 +32,6 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         IProductNameFormatter productNameFormatter)
     {
         _mediator = mediator;
-        _manufactureClient = manufactureClient;
         _residueCalculator = residueCalculator;
         _timeProvider = timeProvider;
         _currentUserService = currentUserService;
@@ -142,18 +140,20 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             {
                 foreach (var product in distribution.Products)
                 {
-                    try
+                    var bomResponse = await _mediator.Send(
+                        new UpdateBoMIngredientAmountRequest
+                        {
+                            ProductCode = product.ProductCode,
+                            IngredientCode = updateResult.Order!.SemiProduct.ProductCode,
+                            NewAmount = (double)product.AdjustedGramsPerUnit
+                        },
+                        cancellationToken);
+
+                    if (!bomResponse.Success)
                     {
-                        await _manufactureClient.UpdateBoMIngredientAmountAsync(
-                            product.ProductCode,
-                            updateResult.Order!.SemiProduct.ProductCode,
-                            (double)product.AdjustedGramsPerUnit,
-                            cancellationToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to update BoM ingredient amount for product {ProductCode} in order {OrderId}",
-                            product.ProductCode, orderId);
+                        _logger.LogWarning(
+                            "Failed to update BoM ingredient amount for product {ProductCode} in order {OrderId}: {UserMessage}",
+                            product.ProductCode, orderId, bomResponse.UserMessage);
                     }
                 }
             }
