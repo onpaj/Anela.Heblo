@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Features.Analytics;
+using Anela.Heblo.Application.Features.GridLayouts;
 using Anela.Heblo.Application.Features.BackgroundJobs;
 using Anela.Heblo.Application.Features.Bank;
 using Anela.Heblo.Application.Features.Catalog;
@@ -66,6 +67,7 @@ public static class ApplicationModule
         services.AddExpeditionListModule(configuration);
         services.AddExpeditionListArchiveModule();
         services.AddShoptetOrdersModule(configuration);
+        services.AddGridLayoutsModule();
         // services.AddOrdersModule();
 
         return services;
