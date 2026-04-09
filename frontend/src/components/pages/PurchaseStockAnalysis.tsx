@@ -409,6 +409,7 @@ const PurchaseStockAnalysis: React.FC = () => {
       align: 'right',
       canHide: true,
       canReorder: true,
+      sortBy: StockAnalysisSortBy.AvailableStock,
       renderCell: (item) => {
         const display = formatStockDisplay(
           item.availableStock ?? 0,
@@ -522,7 +523,7 @@ const PurchaseStockAnalysis: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [filters.stockStatus, purchasePlanningListItems]);
 
-  const { orderedColumns, columnState, toggleColumnVisibility, resetLayout } =
+  const { orderedColumns, columnState, setColumnOrder, setColumnWidth, toggleColumnVisibility, resetLayout } =
     useGridLayout('purchase-stock-analysis', purchaseStockColumns);
 
   if (error) {
@@ -1004,8 +1005,12 @@ const PurchaseStockAnalysis: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <GridHeader
                 columns={orderedColumns}
-                sortState={{ sortBy: filters.sortBy, sortDescending: filters.sortDescending }}
+                columnState={columnState}
+                activeSortKey={filters.sortBy as string | undefined}
+                sortDescending={filters.sortDescending}
                 onSort={(key) => handleSort(key as StockAnalysisSortBy)}
+                onReorder={setColumnOrder}
+                onResizeEnd={setColumnWidth}
               />
               <tbody className="bg-white divide-y divide-gray-200">
                 {tableData.map((item) => (

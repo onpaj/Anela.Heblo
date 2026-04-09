@@ -20,14 +20,14 @@ jest.mock('../../../features/grid-layout', () => ({
     resetLayout: jest.fn(),
     isLoaded: true,
   }),
-  GridHeader: ({ columns, onSort }: any) => (
+  GridHeader: ({ columns, columnState: _columnState, onSort }: any) => (
     <thead>
       <tr>
         {columns.map((c: any) => (
           <th
             key={c.id}
             className="cursor-pointer"
-            onClick={() => c.sortBy && onSort(c.sortBy)}
+            onClick={() => c.sortBy && onSort && onSort(c.sortBy)}
           >
             {c.header}
           </th>
