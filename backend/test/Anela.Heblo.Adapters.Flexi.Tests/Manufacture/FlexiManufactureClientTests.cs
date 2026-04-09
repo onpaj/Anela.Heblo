@@ -45,9 +45,11 @@ public class FlexiManufactureClientTests
         _mockLogger = new Mock<ILogger<FlexiManufactureClient>>();
         _mockTemplateService = new Mock<IFlexiManufactureTemplateService>();
 
-        _client = new FlexiManufactureClient(
+        var movementService = new FlexiManufactureMovementService(
             _mockStockClient.Object,
-            _mockStockMovementClient.Object,
+            _mockStockMovementClient.Object);
+
+        _client = new FlexiManufactureClient(
             _mockBomClient.Object,
             _mockProductSetsClient.Object,
             _mockLogger.Object,
@@ -55,7 +57,8 @@ public class FlexiManufactureClientTests
             new FefoConsumptionAllocator(),
             new FlexiIngredientRequirementAggregator(_mockTemplateService.Object),
             new FlexiIngredientStockValidator(_mockStockClient.Object, TimeProvider.System),
-            new FlexiLotLoader(_mockLotsClient.Object));
+            new FlexiLotLoader(_mockLotsClient.Object),
+            movementService);
     }
 
     #region Basic Flow Tests
