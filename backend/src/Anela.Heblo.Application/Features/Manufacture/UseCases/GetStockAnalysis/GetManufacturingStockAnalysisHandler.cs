@@ -41,9 +41,12 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         GetManufacturingStockAnalysisRequest request,
         CancellationToken cancellationToken)
     {
-        // 1. Calculate time period
-        var (fromDate, toDate) = _timePeriodCalculator.CalculateTimePeriod(
+        // 1. Calculate time period(s)
+        var ranges = _timePeriodCalculator.CalculateTimePeriodRanges(
             request.TimePeriod, request.CustomFromDate, request.CustomToDate);
+
+        var outerFrom = ranges.Min(r => r.fromDate);
+        var outerTo = ranges.Max(r => r.toDate);
 
         // 2. Get finished products data
         var allCatalogItems = await _catalogRepository.GetAllAsync(cancellationToken);
@@ -64,7 +67,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
 
         // 3. Analyze all items for summary calculation
         var allAnalysisItems = finishedProducts
-            .Select(item => AnalyzeManufacturingStockItem(item, fromDate, toDate, request.SalesMultiplier))
+            .Select(item => AnalyzeManufacturingStockItem(item, ranges, request.SalesMultiplier))
             .ToList();
 
         var productFamilies = allAnalysisItems
@@ -87,8 +90,8 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
                 .Take(request.PageSize)
                 .ToList();
 
-        // 6. Calculate summary from all items
-        var summary = _filterService.CalculateSummary(allAnalysisItems, fromDate, toDate, productFamilies);
+        // 6. Calculate summary from all items (use outer bounds for display)
+        var summary = _filterService.CalculateSummary(allAnalysisItems, outerFrom, outerTo, productFamilies);
 
         return new GetManufacturingStockAnalysisResponse
         {
@@ -100,14 +103,17 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         };
     }
 
-    private ManufacturingStockItemDto AnalyzeManufacturingStockItem(CatalogAggregate item, DateTime fromDate, DateTime toDate, double salesMultiplier = 1.0)
+    private ManufacturingStockItemDto AnalyzeManufacturingStockItem(
+        CatalogAggregate item,
+        IReadOnlyList<(DateTime fromDate, DateTime toDate)> ranges,
+        double salesMultiplier = 1.0)
     {
-        // Calculate daily sales rate using domain service
-        var dailySalesRate = _consumptionCalculator.CalculateDailySalesRate(item.SalesHistory, fromDate, toDate);
+        // Calculate daily sales rate across all ranges using domain service
+        var dailySalesRate = _consumptionCalculator.CalculateDailySalesRate(item.SalesHistory, ranges);
         dailySalesRate *= salesMultiplier;
 
-        // Calculate total sales in period for display
-        var salesInPeriod = item.GetTotalSold(fromDate, toDate) * salesMultiplier;
+        // Calculate total sales across all ranges for display
+        var salesInPeriod = ranges.Sum(r => item.GetTotalSold(r.fromDate, r.toDate)) * salesMultiplier;
 
         // Calculate stock days available using domain service - now includes reserve stock
         var stockDaysAvailable = _consumptionCalculator.CalculateStockDaysAvailable(item.Stock.Total, dailySalesRate);

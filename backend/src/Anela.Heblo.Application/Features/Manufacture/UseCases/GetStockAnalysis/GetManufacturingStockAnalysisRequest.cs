@@ -5,7 +5,7 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis
 
 public class GetManufacturingStockAnalysisRequest : IRequest<GetManufacturingStockAnalysisResponse>
 {
-    public TimePeriodFilter TimePeriod { get; set; } = TimePeriodFilter.PreviousQuarter;
+    public TimePeriodFilter TimePeriod { get; set; } = TimePeriodFilter.Q9M;
 
     public DateTime? CustomFromDate { get; set; }
 
@@ -57,6 +57,7 @@ public enum TimePeriodFilter
     FutureQuarter,
     Y2Y,
     PreviousSeason,
+    Q9M,
     CustomPeriod
 }
 

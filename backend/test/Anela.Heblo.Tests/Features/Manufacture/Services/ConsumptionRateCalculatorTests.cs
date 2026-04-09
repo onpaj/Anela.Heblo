@@ -173,4 +173,64 @@ public class ConsumptionRateCalculatorTests
         // Assert
         result.Should().Be(10.0);
     }
+
+    [Fact]
+    public void CalculateDailySalesRate_WithMultipleRanges_SumsSalesAndDaysAcrossRanges()
+    {
+        // Arrange
+        // Range A: 10 days (Jan 1-11), 20 units sold
+        var rangeA = (new DateTime(2025, 1, 1), new DateTime(2025, 1, 11));
+        // Range B: 5 days (Feb 1-6), 10 units sold
+        var rangeB = (new DateTime(2025, 2, 1), new DateTime(2025, 2, 6));
+        IReadOnlyList<(DateTime, DateTime)> ranges = [rangeA, rangeB];
+
+        var salesHistory = new List<CatalogSaleRecord>
+        {
+            new() { Date = new DateTime(2025, 1, 5), AmountB2B = 10, AmountB2C = 10 }, // In A
+            new() { Date = new DateTime(2025, 2, 3), AmountB2B = 5, AmountB2C = 5 },  // In B
+            new() { Date = new DateTime(2025, 3, 1), AmountB2B = 100, AmountB2C = 0 }, // Outside — excluded
+        };
+
+        // Total sales: 30, Total days: 10 + 5 = 15, Expected rate: 30/15 = 2.0
+        // Act
+        var result = _calculator.CalculateDailySalesRate(salesHistory, ranges);
+
+        // Assert
+        result.Should().Be(2.0);
+    }
+
+    [Fact]
+    public void CalculateDailySalesRate_WithEmptyRangeList_ReturnsZero()
+    {
+        // Arrange
+        IReadOnlyList<(DateTime, DateTime)> ranges = [];
+        var salesHistory = new List<CatalogSaleRecord>();
+
+        // Act
+        var result = _calculator.CalculateDailySalesRate(salesHistory, ranges);
+
+        // Assert
+        result.Should().Be(0.0);
+    }
+
+    [Fact]
+    public void CalculateDailySalesRate_WithSingleRangeList_MatchesSingleRangeOverload()
+    {
+        // Arrange
+        var fromDate = new DateTime(2025, 1, 1);
+        var toDate = new DateTime(2025, 1, 11);
+        IReadOnlyList<(DateTime, DateTime)> ranges = [(fromDate, toDate)];
+
+        var salesHistory = new List<CatalogSaleRecord>
+        {
+            new() { Date = new DateTime(2025, 1, 5), AmountB2B = 5, AmountB2C = 5 },
+        };
+
+        // Act
+        var multiResult = _calculator.CalculateDailySalesRate(salesHistory, ranges);
+        var singleResult = _calculator.CalculateDailySalesRate(salesHistory, fromDate, toDate);
+
+        // Assert
+        multiResult.Should().Be(singleResult);
+    }
 }

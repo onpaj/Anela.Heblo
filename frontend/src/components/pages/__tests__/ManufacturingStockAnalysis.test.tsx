@@ -19,6 +19,7 @@ jest.mock("../../../api/hooks/useManufacturingStockAnalysis", () => ({
     FutureQuarter: "FutureQuarter",
     Y2Y: "Y2Y",
     PreviousSeason: "PreviousSeason",
+    Q9M: "Q9M",
     CustomPeriod: "CustomPeriod",
   },
   ManufacturingStockSortBy: {
@@ -59,7 +60,8 @@ jest.mock("../../../api/hooks/useManufacturingStockAnalysis", () => ({
     const transportStockFormatted = transportStock.toLocaleString("cs-CZ");
     return `${totalStock} (${primaryStock}+${transportStockFormatted})`;
   },
-  getTimePeriodDisplayText: (timePeriod: any) => "Minulý kvartal",
+  getTimePeriodDisplayText: (timePeriod: any) =>
+    timePeriod === "Q9M" ? "9M (6 měsíců + prognóza 3 měsíce)" : "Minulý kvartal",
   calculateTimePeriodRange: jest.fn(),
 }));
 
@@ -510,5 +512,20 @@ describe("ManufacturingStockAnalysis", () => {
     render(<ManufacturingStockAnalysis />, { wrapper: createWrapper() });
 
     expect(screen.getByText("1.5x")).toBeInTheDocument();
+  });
+
+  it("renders Q9M option in time period dropdown", () => {
+    mockUseManufacturingStockAnalysisQuery.mockReturnValue({
+      data: mockData,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    render(<ManufacturingStockAnalysis />, { wrapper: createWrapper() });
+
+    expect(
+      screen.getByRole("option", { name: "9M (6 měsíců + prognóza 3 měsíce)" }),
+    ).toBeInTheDocument();
   });
 });

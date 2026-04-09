@@ -9,6 +9,15 @@ public class TimePeriodCalculator : ITimePeriodCalculator
         DateTime? customFromDate = null,
         DateTime? customToDate = null)
     {
+        var ranges = CalculateTimePeriodRanges(timePeriod, customFromDate, customToDate);
+        return ranges[0];
+    }
+
+    public IReadOnlyList<(DateTime fromDate, DateTime toDate)> CalculateTimePeriodRanges(
+        TimePeriodFilter timePeriod,
+        DateTime? customFromDate = null,
+        DateTime? customToDate = null)
+    {
         var now = DateTime.UtcNow;
 
         switch (timePeriod)
@@ -18,38 +27,47 @@ public class TimePeriodCalculator : ITimePeriodCalculator
                 var startOfCurrentMonth = new DateTime(now.Year, now.Month, 1);
                 var endOfPreviousMonth = startOfCurrentMonth.AddDays(-1);
                 var startOfPreviousQuarter = startOfCurrentMonth.AddMonths(-3);
-                return (startOfPreviousQuarter, endOfPreviousMonth);
+                return [(startOfPreviousQuarter, endOfPreviousMonth)];
 
             case TimePeriodFilter.FutureQuarter:
                 // Next 3 months from previous year (for demand forecasting)
                 var startOfFutureQuarterLastYear = new DateTime(now.Year - 1, now.Month, 1);
                 var endOfFutureQuarterLastYear = startOfFutureQuarterLastYear.AddMonths(3).AddDays(-1);
-                return (startOfFutureQuarterLastYear, endOfFutureQuarterLastYear);
+                return [(startOfFutureQuarterLastYear, endOfFutureQuarterLastYear)];
 
             case TimePeriodFilter.Y2Y:
                 // Last 12 months
                 var startOfY2Y = new DateTime(now.Year, now.Month, 1).AddMonths(-12);
                 var endOfY2Y = new DateTime(now.Year, now.Month, 1).AddDays(-1);
-                return (startOfY2Y, endOfY2Y);
+                return [(startOfY2Y, endOfY2Y)];
 
             case TimePeriodFilter.PreviousSeason:
                 // October-January of previous year
                 var seasonStart = new DateTime(now.Year - 1, 10, 1);
                 var seasonEnd = new DateTime(now.Year, 1, 31);
-                return (seasonStart, seasonEnd);
+                return [(seasonStart, seasonEnd)];
+
+            case TimePeriodFilter.Q9M:
+                // Last 6 months (real data) + upcoming 3 months of previous year (seasonal proxy)
+                var rangeAFrom = now.AddMonths(-6);
+                var rangeATo = now;
+                var rangeBFrom = now.AddYears(-1);
+                var rangeBTo = now.AddYears(-1).AddMonths(3);
+                return [(rangeAFrom, rangeATo), (rangeBFrom, rangeBTo)];
 
             case TimePeriodFilter.CustomPeriod:
                 if (customFromDate.HasValue && customToDate.HasValue)
                 {
-                    return (customFromDate.Value, customToDate.Value);
+                    return [(customFromDate.Value, customToDate.Value)];
                 }
+
                 goto default; // Fall back to default if custom dates not provided
 
             default:
                 // Default to previous quarter
                 var defaultStart = new DateTime(now.Year, now.Month, 1).AddMonths(-3);
                 var defaultEnd = new DateTime(now.Year, now.Month, 1).AddDays(-1);
-                return (defaultStart, defaultEnd);
+                return [(defaultStart, defaultEnd)];
         }
     }
 }

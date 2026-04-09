@@ -119,4 +119,49 @@ public class TimePeriodCalculatorTests
         fromDate.Should().Be(expectedFrom);
         toDate.Should().Be(expectedTo);
     }
+
+    [Fact]
+    public void CalculateTimePeriodRanges_WithQ9M_ReturnsTwoRanges()
+    {
+        // Act
+        var ranges = _sut.CalculateTimePeriodRanges(TimePeriodFilter.Q9M);
+
+        // Assert
+        var now = DateTime.UtcNow;
+        ranges.Should().HaveCount(2);
+
+        // Range A: last 6 months
+        ranges[0].fromDate.Date.Should().Be(now.AddMonths(-6).Date);
+        ranges[0].toDate.Date.Should().Be(now.Date);
+
+        // Range B: same period last year + 3 months
+        ranges[1].fromDate.Date.Should().Be(now.AddYears(-1).Date);
+        ranges[1].toDate.Date.Should().Be(now.AddYears(-1).AddMonths(3).Date);
+    }
+
+    [Fact]
+    public void CalculateTimePeriodRanges_WithPreviousQuarter_ReturnsSingleRangeMatchingLegacy()
+    {
+        // Act
+        var ranges = _sut.CalculateTimePeriodRanges(TimePeriodFilter.PreviousQuarter);
+        var legacy = _sut.CalculateTimePeriod(TimePeriodFilter.PreviousQuarter);
+
+        // Assert
+        ranges.Should().HaveCount(1);
+        ranges[0].fromDate.Should().Be(legacy.fromDate);
+        ranges[0].toDate.Should().Be(legacy.toDate);
+    }
+
+    [Theory]
+    [InlineData(TimePeriodFilter.FutureQuarter)]
+    [InlineData(TimePeriodFilter.Y2Y)]
+    [InlineData(TimePeriodFilter.PreviousSeason)]
+    public void CalculateTimePeriodRanges_WithSingleRangePeriods_ReturnsSingleElementList(TimePeriodFilter period)
+    {
+        // Act
+        var ranges = _sut.CalculateTimePeriodRanges(period);
+
+        // Assert
+        ranges.Should().HaveCount(1);
+    }
 }
