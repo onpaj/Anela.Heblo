@@ -42,6 +42,7 @@ jest.mock("../../../../api/hooks/useManufactureOrders", () => ({
   useConfirmSemiProductManufacture: () => mockUseConfirmSemiProductManufacture(),
   useConfirmProductCompletion: () => mockUseConfirmProductCompletion(),
   useDuplicateManufactureOrder: () => mockUseDuplicateManufactureOrder(),
+  useOpenManufactureProtocol: () => ({ openProtocol: jest.fn(), isLoading: false, error: null }),
 }));
 
 // Mock react-router-dom navigate
