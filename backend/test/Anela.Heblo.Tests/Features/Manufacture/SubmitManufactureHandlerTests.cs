@@ -56,6 +56,32 @@ public class SubmitManufactureHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WhenClientSucceeds_PropagatesAllFlexiDocCodes()
+    {
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SubmitManufactureClientResponse
+            {
+                ManufactureId = "MAN-001",
+                MaterialIssueForSemiProductDocCode = "V-MAT-001",
+                SemiProductReceiptDocCode = "V-POL-001",
+                SemiProductIssueForProductDocCode = "V-POLV-001",
+                MaterialIssueForProductDocCode = "V-MATV-001",
+                ProductReceiptDocCode = "V-PRIJEM-001",
+            });
+
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.ManufactureId.Should().Be("MAN-001");
+        result.MaterialIssueForSemiProductDocCode.Should().Be("V-MAT-001");
+        result.SemiProductReceiptDocCode.Should().Be("V-POL-001");
+        result.SemiProductIssueForProductDocCode.Should().Be("V-POLV-001");
+        result.MaterialIssueForProductDocCode.Should().Be("V-MATV-001");
+        result.ProductReceiptDocCode.Should().Be("V-PRIJEM-001");
+    }
+
+    [Fact]
     public async Task Handle_WhenClientThrows_LogsOriginalException()
     {
         var ex = new InvalidOperationException("Flexi raw error");

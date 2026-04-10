@@ -20,4 +20,9 @@ public class UpdateManufactureOrderStatusRequest : IRequest<UpdateManufactureOrd
     public string? DiscardRedisueDocumentCode { get; set; }
     public bool? WeightWithinTolerance { get; set; }
     public decimal? WeightDifference { get; set; }
+    public string? FlexiDocMaterialIssueForSemiProduct { get; set; }
+    public string? FlexiDocSemiProductReceipt { get; set; }
+    public string? FlexiDocSemiProductIssueForProduct { get; set; }
+    public string? FlexiDocMaterialIssueForProduct { get; set; }
+    public string? FlexiDocProductReceipt { get; set; }
 }
