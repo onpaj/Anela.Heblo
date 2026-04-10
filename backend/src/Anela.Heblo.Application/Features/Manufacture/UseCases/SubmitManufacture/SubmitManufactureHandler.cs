@@ -53,7 +53,12 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
 
             return new SubmitManufactureResponse
             {
-                ManufactureId = clientResponse.ManufactureId
+                ManufactureId = clientResponse.ManufactureId,
+                MaterialIssueForSemiProductDocCode = clientResponse.MaterialIssueForSemiProductDocCode,
+                SemiProductReceiptDocCode = clientResponse.SemiProductReceiptDocCode,
+                SemiProductIssueForProductDocCode = clientResponse.SemiProductIssueForProductDocCode,
+                MaterialIssueForProductDocCode = clientResponse.MaterialIssueForProductDocCode,
+                ProductReceiptDocCode = clientResponse.ProductReceiptDocCode,
             };
         }
         catch (Exception ex)

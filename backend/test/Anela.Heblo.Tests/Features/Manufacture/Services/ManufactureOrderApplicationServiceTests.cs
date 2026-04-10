@@ -409,6 +409,78 @@ public class ManufactureOrderApplicationServiceTests
 
     #endregion
 
+    #region Phase 3: FlexiDoc Code Propagation Tests
+
+    [Fact]
+    public async Task ConfirmSemiProductManufactureAsync_PassesPhaseAFlexiDocCodesToStatusUpdate()
+    {
+        // Arrange
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
+        var submitManufactureResponse = new SubmitManufactureResponse
+        {
+            Success = true,
+            ManufactureId = "MO-2026-001",
+            MaterialIssueForSemiProductDocCode = "V-MAT-001",
+            SemiProductReceiptDocCode = "V-POL-001",
+        };
+        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
+
+        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
+
+        // Act
+        var result = await _service.ConfirmSemiProductManufactureAsync(ValidOrderId, ValidQuantity, ValidChangeReason);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _mediatorMock.Verify(x => x.Send(
+            It.Is<UpdateManufactureOrderStatusRequest>(r =>
+                r.FlexiDocMaterialIssueForSemiProduct == "V-MAT-001" &&
+                r.FlexiDocSemiProductReceipt == "V-POL-001" &&
+                r.FlexiDocSemiProductIssueForProduct == null &&
+                r.FlexiDocMaterialIssueForProduct == null &&
+                r.FlexiDocProductReceipt == null),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ConfirmProductCompletionAsync_PassesPhaseBFlexiDocCodesToStatusUpdate()
+    {
+        // Arrange
+        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m } };
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
+        var submitManufactureResponse = new SubmitManufactureResponse
+        {
+            Success = true,
+            ManufactureId = "MO-2026-001",
+            SemiProductIssueForProductDocCode = "V-POLV-001",
+            MaterialIssueForProductDocCode = "V-MATV-001",
+            ProductReceiptDocCode = "V-PRIJEM-001",
+        };
+        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
+        var distribution = CreateDistributionWithinThreshold();
+
+        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
+        _residueCalculatorMock
+            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(distribution);
+
+        // Act
+        var result = await _service.ConfirmProductCompletionAsync(ValidOrderId, productQuantities, changeReason: ValidChangeReason);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _mediatorMock.Verify(x => x.Send(
+            It.Is<UpdateManufactureOrderStatusRequest>(r =>
+                r.FlexiDocMaterialIssueForSemiProduct == null &&
+                r.FlexiDocSemiProductReceipt == null &&
+                r.FlexiDocSemiProductIssueForProduct == "V-POLV-001" &&
+                r.FlexiDocMaterialIssueForProduct == "V-MATV-001" &&
+                r.FlexiDocProductReceipt == "V-PRIJEM-001"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    #endregion
+
     #region Helper Methods
 
     private void SetupMediatorResponses(
