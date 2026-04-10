@@ -1,16 +1,26 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
-export function exportToXlsx<T>(
+export async function exportToXlsx<T>(
   rows: T[],
   columns: { header: string; value: (row: T) => unknown }[],
   filename: string,
-): void {
-  const headers = columns.map((col) => col.header);
-  const dataRows = rows.map((row) => columns.map((col) => col.value(row)));
+): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Sheet1");
 
-  const wsData = [headers, ...dataRows];
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-  XLSX.writeFile(wb, filename);
+  worksheet.addRow(columns.map((col) => col.header));
+  rows.forEach((row) => {
+    worksheet.addRow(columns.map((col) => col.value(row)));
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
