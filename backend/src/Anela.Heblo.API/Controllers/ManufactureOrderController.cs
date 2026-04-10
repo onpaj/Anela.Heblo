@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrders;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
@@ -296,6 +297,24 @@ public class ManufactureOrderController : BaseApiController
 
         var response = await _mediator.Send(request);
         return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Generate manufacture protocol PDF for a completed order
+    /// </summary>
+    [HttpGet("{id}/protocol.pdf")]
+    public async Task<IActionResult> GetProtocolPdf(int id)
+    {
+        var request = new GetManufactureProtocolRequest { Id = id };
+        try
+        {
+            var response = await _mediator.Send(request);
+            return File(response.PdfBytes, "application/pdf", response.FileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>
