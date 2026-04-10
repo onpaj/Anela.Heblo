@@ -17,6 +17,11 @@ public class FlexiManufactureException : Exception
     public int? WarehouseId { get; }
     public string? RawFlexiError { get; }
 
+    public override string Message =>
+        string.IsNullOrEmpty(RawFlexiError)
+            ? base.Message
+            : $"{base.Message}: {RawFlexiError}";
+
     public FlexiManufactureException(
         FlexiManufactureOperationKind operationKind,
         string message,
