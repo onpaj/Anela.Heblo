@@ -51,7 +51,7 @@ public class ManufactureOrderControllerProtocolTests
             });
 
         // Act
-        var result = await _controller.GetProtocolPdf(orderId);
+        var result = await _controller.GetProtocolPdf(orderId, CancellationToken.None);
 
         // Assert
         var fileResult = result.Should().BeOfType<FileContentResult>().Subject;
@@ -76,12 +76,13 @@ public class ManufactureOrderControllerProtocolTests
             .ThrowsAsync(new InvalidOperationException(errorMessage));
 
         // Act
-        var result = await _controller.GetProtocolPdf(orderId);
+        var result = await _controller.GetProtocolPdf(orderId, CancellationToken.None);
 
         // Assert
         var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
-        var body = badRequest.Value.Should().BeAssignableTo<object>().Subject;
-        body.ToString().Should().Contain("message");
+        var body = badRequest.Value;
+        var message = body!.GetType().GetProperty("message")?.GetValue(body) as string;
+        message.Should().Be(errorMessage);
 
         _mediatorMock.Verify(
             m => m.Send(It.Is<GetManufactureProtocolRequest>(r => r.Id == orderId), It.IsAny<CancellationToken>()),
@@ -99,7 +100,7 @@ public class ManufactureOrderControllerProtocolTests
             .ThrowsAsync(new InvalidOperationException($"Manufacture order with id {orderId} was not found."));
 
         // Act
-        var result = await _controller.GetProtocolPdf(orderId);
+        var result = await _controller.GetProtocolPdf(orderId, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();

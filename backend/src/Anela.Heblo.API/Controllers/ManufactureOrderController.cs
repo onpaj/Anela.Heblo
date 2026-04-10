@@ -303,12 +303,12 @@ public class ManufactureOrderController : BaseApiController
     /// Generate manufacture protocol PDF for a completed order
     /// </summary>
     [HttpGet("{id}/protocol.pdf")]
-    public async Task<IActionResult> GetProtocolPdf(int id)
+    public async Task<IActionResult> GetProtocolPdf(int id, CancellationToken cancellationToken)
     {
         var request = new GetManufactureProtocolRequest { Id = id };
         try
         {
-            var response = await _mediator.Send(request);
+            var response = await _mediator.Send(request, cancellationToken);
             return File(response.PdfBytes, "application/pdf", response.FileName);
         }
         catch (InvalidOperationException ex)

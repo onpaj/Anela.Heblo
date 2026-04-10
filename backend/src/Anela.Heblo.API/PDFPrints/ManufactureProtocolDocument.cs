@@ -7,11 +7,6 @@ namespace Anela.Heblo.API.PDFPrints;
 
 public class ManufactureProtocolDocument : IDocument
 {
-    static ManufactureProtocolDocument()
-    {
-        QuestPDF.Settings.License = LicenseType.Community;
-    }
-
     private readonly ManufactureProtocolData _data;
 
     public ManufactureProtocolDocument(ManufactureProtocolData data)
