@@ -12,7 +12,7 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
         _context = context;
     }
 
-    public async Task<List<ManufactureOrder>> GetOrdersAsync(
+    public async Task<(List<ManufactureOrder> Items, int TotalCount)> GetOrdersAsync(
         ManufactureOrderState? state = null,
         DateOnly? dateFrom = null,
         DateOnly? dateTo = null,
@@ -21,6 +21,9 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
         string? productCode = null,
         string? erpDocumentNumber = null,
         bool? manualActionRequired = null,
+        string? lotNumber = null,
+        int pageNumber = 1,
+        int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         var query = _context.ManufactureOrders
@@ -74,9 +77,25 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
             query = query.Where(x => x.ManualActionRequired == manualActionRequired.Value);
         }
 
-        return await query
+        if (!string.IsNullOrEmpty(lotNumber))
+        {
+            query = query.Where(x =>
+                (x.SemiProduct != null && x.SemiProduct.LotNumber != null && x.SemiProduct.LotNumber.Contains(lotNumber)) ||
+                x.Products.Any(p => p.LotNumber != null && p.LotNumber.Contains(lotNumber)));
+        }
+
+        var safePageSize = pageSize <= 0 ? 20 : pageSize;
+        var safePageNumber = pageNumber <= 0 ? 1 : pageNumber;
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
             .OrderByDescending(x => x.CreatedDate)
+            .Skip((safePageNumber - 1) * safePageSize)
+            .Take(safePageSize)
             .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
     }
 
     public async Task<ManufactureOrder?> GetOrderByIdAsync(int id, CancellationToken cancellationToken = default)
