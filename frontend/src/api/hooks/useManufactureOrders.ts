@@ -427,7 +427,9 @@ export const useOpenManufactureProtocol = () => {
       window.open(blobUrl, '_blank', 'noopener,noreferrer');
       setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error('Failed to open manufacture protocol PDF:', error);
+      setError(error);
     } finally {
       setIsLoading(false);
     }
