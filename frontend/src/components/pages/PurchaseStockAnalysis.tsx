@@ -140,7 +140,7 @@ const PurchaseStockAnalysis: React.FC = () => {
       );
 
       const today = new Date().toISOString().split("T")[0];
-      exportToXlsx(
+      await exportToXlsx(
         result.items ?? [],
         [
           { header: "Kód produktu", value: (row) => row.productCode },

@@ -21,6 +21,7 @@
     "autoprefixer": "^10.4.20",
     "chart.js": "^4.5.0",
     "date-fns": "^4.1.0",
+    "exceljs": "^4.4.0",
     "i18next": "^23.16.8",
     "i18next-browser-languagedetector": "^8.0.0",
     "lucide-react": "^0.454.0",
@@ -36,8 +37,7 @@
     "recharts": "^3.2.1",
     "tailwindcss": "^3.4.14",
     "typescript": "^4.9.5",
-    "web-vitals": "^2.1.4",
-    "xlsx": "^0.18.5"
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "PORT=3000 REACT_APP_API_URL=http://localhost:5000 react-scripts start",
@@ -81,5 +81,11 @@
       "git add"
     ]
   },
-  "homepage": "/"
+  "homepage": "/",
+  "overrides": {
+    "nth-check": ">=2.0.1",
+    "serialize-javascript": ">=6.0.2",
+    "underscore": ">=1.13.8",
+    "svgo": ">=3.0.0"
+  }
 }
