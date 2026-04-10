@@ -24,7 +24,8 @@ public class CurrentUserService : ICurrentUserService
                    ?? (isAuthenticated ? "Unknown User" : "Anonymous");
 
         var id = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                 ?? user?.FindFirst("sub")?.Value;
+                 ?? user?.FindFirst("sub")?.Value
+                 ?? user?.FindFirst("oid")?.Value;
 
         var email = user?.FindFirst(ClaimTypes.Email)?.Value
                     ?? user?.FindFirst("email")?.Value;
