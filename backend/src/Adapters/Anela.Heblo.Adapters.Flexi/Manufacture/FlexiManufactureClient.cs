@@ -767,6 +767,42 @@ public class FlexiManufactureClient : IManufactureClient
             .ToList();
     }
 
+    public async Task<List<ManufactureErpDocumentItem>> GetErpDocumentItemsAsync(string documentCode, int? documentTypeId = null, CancellationToken cancellationToken = default)
+    {
+        var now = _timeProvider.GetUtcNow().DateTime;
+        var dateFrom = now.AddYears(-5);
+        var dateTo = now.AddDays(1);
+
+        var items = await _stockMovementClient.GetAsync(
+            dateFrom,
+            dateTo,
+            documentCode: documentCode,
+            documentTypeId: documentTypeId,
+            cancellationToken: cancellationToken);
+
+        return items.Select(item => new ManufactureErpDocumentItem
+        {
+            ProductCode = item.ProductCode,
+            ProductName = item.Name,
+            Amount = item.Amount,
+            LotNumber = string.IsNullOrEmpty(item.Batch) ? null : item.Batch,
+            ExpirationDate = ParseExpiration(item.Expiration),
+        }).ToList();
+    }
+
+    private static DateOnly? ParseExpiration(string? expiration)
+    {
+        if (string.IsNullOrEmpty(expiration))
+            return null;
+
+        if (DateOnly.TryParse(expiration, out var date))
+            return date;
+
+        if (DateTime.TryParse(expiration, out var dateTime))
+            return DateOnly.FromDateTime(dateTime);
+
+        return null;
+    }
 
     private static IssuedOrderItemFlexiDto MapToFlexiItem(SubmitManufactureClientItem item,
         SubmitManufactureClientRequest request)
