@@ -15,6 +15,10 @@ using Rem.FlexiBeeSDK.Model.Products.StockMovement;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture;
 
+internal sealed record ConsumptionResult(double TotalCost, string? DocCode);
+
+internal sealed record ConsolidatedConsumptionCodes(string? SemiProductIssueCode, string? MaterialIssueCode);
+
 internal sealed class IngredientRequirement
 {
     public required string ProductCode { get; init; }
@@ -80,18 +84,16 @@ public class FlexiManufactureClient : IManufactureClient
         if (request.ManufactureType == ErpManufactureType.Product)
         {
             // For products, create separate consumption and production movements for each product
-            await SubmitManufacturePerProductAsync(request, cancellationToken);
+            return await SubmitManufacturePerProductAsync(request, cancellationToken);
         }
         else
         {
             // For semi-products, use aggregated approach (existing behavior)
-            await SubmitManufactureAggregatedAsync(request, cancellationToken);
+            return await SubmitManufactureAggregatedAsync(request, cancellationToken);
         }
-
-        return new SubmitManufactureClientResponse { ManufactureId = request.ManufactureOrderCode };
     }
 
-    private async Task SubmitManufactureAggregatedAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken)
+    private async Task<SubmitManufactureClientResponse> SubmitManufactureAggregatedAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken)
     {
         var ingredientRequirements = await AggregateIngredientRequirementsAsync(request, cancellationToken);
         if (request.ValidateIngredientStock)
@@ -100,11 +102,18 @@ public class FlexiManufactureClient : IManufactureClient
         }
         var ingredientLots = await LoadAvailableLotsAsync(ingredientRequirements, cancellationToken);
         var consumptionItems = AllocateConsumptionItemsUsingFefo(ingredientRequirements, ingredientLots);
-        var totalConsumptionCost = await SubmitConsumptionMovementsAsync(request, consumptionItems, cancellationToken);
-        await SubmitProductionMovementAsync(request, totalConsumptionCost, cancellationToken);
+        var consumptionResult = await SubmitConsumptionMovementsAsync(request, consumptionItems, cancellationToken);
+        var semiProductReceiptDocCode = await SubmitProductionMovementAsync(request, consumptionResult.TotalCost, cancellationToken);
+
+        return new SubmitManufactureClientResponse
+        {
+            ManufactureId = request.ManufactureOrderCode,
+            MaterialIssueForSemiProductDocCode = consumptionResult.DocCode,
+            SemiProductReceiptDocCode = semiProductReceiptDocCode,
+        };
     }
 
-    private async Task SubmitManufacturePerProductAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken)
+    private async Task<SubmitManufactureClientResponse> SubmitManufacturePerProductAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken)
     {
         // Phase 1: Collect all ingredient requirements with product attribution
         var allConsumptionItems = new List<ConsumptionItem>();
@@ -171,10 +180,18 @@ public class FlexiManufactureClient : IManufactureClient
         }
 
         // Phase 2: Create ONE consume document (per warehouse) with all consumption lines
-        await SubmitConsolidatedConsumptionMovementsAsync(request, allConsumptionItems, productCosts, cancellationToken);
+        var consumptionCodes = await SubmitConsolidatedConsumptionMovementsAsync(request, allConsumptionItems, productCosts, cancellationToken);
 
         // Phase 3: Create ONE produce document with all products
-        await SubmitConsolidatedProductionMovementAsync(request, productCosts, cancellationToken);
+        var productReceiptDocCode = await SubmitConsolidatedProductionMovementAsync(request, productCosts, cancellationToken);
+
+        return new SubmitManufactureClientResponse
+        {
+            ManufactureId = request.ManufactureOrderCode,
+            SemiProductIssueForProductDocCode = consumptionCodes.SemiProductIssueCode,
+            MaterialIssueForProductDocCode = consumptionCodes.MaterialIssueCode,
+            ProductReceiptDocCode = productReceiptDocCode,
+        };
     }
 
     private async Task<Dictionary<string, IngredientRequirement>> AggregateIngredientRequirementsAsync(
@@ -351,7 +368,7 @@ public class FlexiManufactureClient : IManufactureClient
         return consumptionItems;
     }
 
-    private async Task<double> SubmitConsumptionMovementsAsync(
+    private async Task<ConsumptionResult> SubmitConsumptionMovementsAsync(
         SubmitManufactureClientRequest request,
         List<ConsumptionItem> consumptionItems,
         CancellationToken cancellationToken)
@@ -367,6 +384,7 @@ public class FlexiManufactureClient : IManufactureClient
             .ToList();
 
         double totalConsumptionCost = 0;
+        string? capturedDocCode = null;
 
         foreach (var warehouseGroup in consumptionByWarehouse)
         {
@@ -418,15 +436,17 @@ public class FlexiManufactureClient : IManufactureClient
                     $"Failed to create consumption stock movement for warehouse {warehouseId}: {consumptionResult.GetErrorMessage()}"
                 );
             }
+
+            capturedDocCode = consumptionResult?.Result?.Results?.FirstOrDefault()?.Code;
         }
 
-        return Math.Round(totalConsumptionCost, 4);
+        return new ConsumptionResult(Math.Round(totalConsumptionCost, 4), capturedDocCode);
     }
 
 
 
 
-    private async Task SubmitProductionMovementAsync(
+    private async Task<string?> SubmitProductionMovementAsync(
         SubmitManufactureClientRequest request,
         double totalConsumptionCost,
         CancellationToken cancellationToken)
@@ -475,16 +495,21 @@ public class FlexiManufactureClient : IManufactureClient
                 $"Failed to create production stock movement: {productionResult.GetErrorMessage()}"
             );
         }
+
+        return productionResult?.Result?.Results?.FirstOrDefault()?.Code;
     }
 
 
 
-    private async Task SubmitConsolidatedConsumptionMovementsAsync(
+    private async Task<ConsolidatedConsumptionCodes> SubmitConsolidatedConsumptionMovementsAsync(
         SubmitManufactureClientRequest request,
         List<ConsumptionItem> consumptionItems,
         Dictionary<string, double> productCosts,
         CancellationToken cancellationToken)
     {
+        string? semiProductIssueCode = null;
+        string? materialIssueCode = null;
+
         var consumptionByWarehouse = consumptionItems
             .GroupBy(item => item.ProductType switch
             {
@@ -545,10 +570,22 @@ public class FlexiManufactureClient : IManufactureClient
                     $"Failed to create consumption stock movement for warehouse {warehouseId}: {consumptionResult.GetErrorMessage()}"
                 );
             }
+
+            var docCode = consumptionResult?.Result?.Results?.FirstOrDefault()?.Code;
+            if (documentType == WarehouseDocumentType_OutboundSemiProduct)
+            {
+                semiProductIssueCode = docCode;
+            }
+            else if (documentType == WarehouseDocumentType_OutboundMaterial)
+            {
+                materialIssueCode = docCode;
+            }
         }
+
+        return new ConsolidatedConsumptionCodes(semiProductIssueCode, materialIssueCode);
     }
 
-    private async Task SubmitConsolidatedProductionMovementAsync(
+    private async Task<string?> SubmitConsolidatedProductionMovementAsync(
         SubmitManufactureClientRequest request,
         Dictionary<string, double> productCosts,
         CancellationToken cancellationToken)
@@ -575,7 +612,7 @@ public class FlexiManufactureClient : IManufactureClient
         // Don't create production movement if there are no products
         if (productMovementItems.Count == 0)
         {
-            return;
+            return null;
         }
 
         var documentType = GetProductionDocumentType(request.ManufactureType);
@@ -601,6 +638,8 @@ public class FlexiManufactureClient : IManufactureClient
                 $"Failed to create production stock movement: {productionResult.GetErrorMessage()}"
             );
         }
+
+        return productionResult?.Result?.Results?.FirstOrDefault()?.Code;
     }
 
     public async Task UpdateBoMIngredientAmountAsync(string productCode, string ingredientCode, double newAmount, CancellationToken cancellationToken = default)
