@@ -18,6 +18,7 @@ import {
   useConfirmSemiProductManufacture,
   useConfirmProductCompletion,
   useDuplicateManufactureOrder,
+  useOpenManufactureProtocol,
 } from "../../../api/hooks/useManufactureOrders";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -106,6 +107,9 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   } = useManufactureOrderDetailQuery(orderId || 0);
 
   const order = orderData?.order;
+
+  // Protocol PDF hook
+  const { openProtocol, isLoading: isProtocolLoading } = useOpenManufactureProtocol();
 
   // Mutations
   const updateOrderMutation = useUpdateManufactureOrder();
@@ -689,8 +693,10 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         onClose={handleCloseWithWeekNavigation}
         onSave={handleSave}
         onBatchCalculator={handleGoToBatchCalculator}
+        onPrintProtocol={() => openProtocol(orderId)}
         isUpdateLoading={updateOrderMutation.isPending}
         isDuplicateLoading={duplicateOrderMutation.isPending}
+        isPrintingProtocol={isProtocolLoading}
       />
 
       <ConfirmationDialogs
