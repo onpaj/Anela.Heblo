@@ -85,7 +85,6 @@
   "overrides": {
     "nth-check": ">=2.0.1",
     "serialize-javascript": ">=6.0.2",
-    "underscore": ">=1.13.8",
-    "svgo": ">=3.0.0"
+    "underscore": ">=1.13.8"
   }
 }
