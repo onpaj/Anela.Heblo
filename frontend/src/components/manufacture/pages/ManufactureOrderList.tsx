@@ -19,6 +19,7 @@ import ManufactureOrderFilters from "../list/ManufactureOrderFilters";
 import ManufactureOrderDetail from "./ManufactureOrderDetail";
 import ManufactureOrderCalendar from "./ManufactureOrderCalendar";
 import ManufactureOrderWeeklyCalendar from "./ManufactureOrderWeeklyCalendar";
+import Pagination from "../../common/Pagination";
 
 const ManufactureOrderList: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -61,6 +62,10 @@ const ManufactureOrderList: React.FC = () => {
     return (view === 'weekly' || view === 'calendar' || view === 'grid') ? view : 'weekly';
   });
 
+  // Pagination state
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
   // Initial date for weekly calendar from URL params
   const initialCalendarDate = React.useMemo(() => {
     const dateParam = searchParams.get('date');
@@ -73,9 +78,11 @@ const ManufactureOrderList: React.FC = () => {
     isLoading: loading,
     error,
     refetch,
-  } = useManufactureOrdersQuery(filters);
+  } = useManufactureOrdersQuery({ ...filters, pageNumber, pageSize });
 
   const orders: ManufactureOrderDto[] = data?.orders || [];
+  const totalCount: number = data?.totalCount || 0;
+  const totalPages: number = data?.totalPages || 0;
 
   // Handle order click to open detail modal
   const handleOrderClick = (orderId: number) => {
@@ -94,6 +101,17 @@ const ManufactureOrderList: React.FC = () => {
     if (!date) return "-";
     const dateObj = typeof date === "string" ? new Date(date) : date;
     return dateObj.toLocaleDateString("cs-CZ");
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPageNumber(newPage);
+    }
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPageNumber(1);
   };
 
   if (loading) {
@@ -160,7 +178,10 @@ const ManufactureOrderList: React.FC = () => {
 
       {/* Filters */}
       <ManufactureOrderFilters
-        onFiltersChange={setFilters}
+        onFiltersChange={(newFilters) => {
+          setFilters(newFilters);
+          setPageNumber(1);
+        }}
         onApplyFilters={async () => {
           await refetch();
         }}
@@ -176,124 +197,134 @@ const ManufactureOrderList: React.FC = () => {
             initialDate={initialCalendarDate}
           />
         ) : (
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0 z-10">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Číslo zakázky
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Stav
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Datum výroby
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  ERP č. (meziprod.)
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  ERP č. (produkt)
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  ERP výdejka přebytků
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Odpovědná osoba
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Produkt
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Variant
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {orders.map((order) => (
-                <tr
-                  key={order.id}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
-                  onClick={() => order.id && handleOrderClick(order.id)}
-                  title="Klikněte pro zobrazení detailu"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    <div className="flex items-center space-x-2">
-                      <span>{order.orderNumber}</span>
-                      {order.manualActionRequired && (
-                        <div 
-                          className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" 
-                          title="Vyžaduje ruční zásah"
-                        />
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {order.state !== undefined && (
-                      <ManufactureOrderStateChip state={order.state} />
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDateOnly(order.plannedDate)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {order.erpOrderNumberSemiproduct || "-"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {order.erpOrderNumberProduct || "-"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {order.erpDiscardResidueDocumentNumber || "-"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {order.responsiblePerson || "-"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {order.semiProduct?.productName} ({order.semiProduct?.productCode})
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                    {order.products?.length || 0}
-                  </td>
+          <div className="flex flex-col h-full">
+            <div className="bg-white shadow rounded-lg overflow-hidden flex-1">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50 sticky top-0 z-10">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Číslo zakázky
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Stav
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Datum výroby
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    ERP č. (meziprod.)
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    ERP č. (produkt)
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    ERP výdejka přebytků
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Odpovědná osoba
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Produkt
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Variant
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {orders.map((order) => (
+                  <tr
+                    key={order.id}
+                    className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                    onClick={() => order.id && handleOrderClick(order.id)}
+                    title="Klikněte pro zobrazení detailu"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <div className="flex items-center space-x-2">
+                        <span>{order.orderNumber}</span>
+                        {order.manualActionRequired && (
+                          <div
+                            className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"
+                            title="Vyžaduje ruční zásah"
+                          />
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.state !== undefined && (
+                        <ManufactureOrderStateChip state={order.state} />
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatDateOnly(order.plannedDate)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.erpOrderNumberSemiproduct || "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.erpOrderNumberProduct || "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.erpDiscardResidueDocumentNumber || "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.responsiblePerson || "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {order.semiProduct?.productName} ({order.semiProduct?.productCode})
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                      {order.products?.length || 0}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-              {orders.length === 0 && (
-                <div className="text-center py-8">
-                  <Clock className="mx-auto h-12 w-12 text-gray-300" />
-                  <p className="mt-2 text-gray-500">Žádné výrobní zakázky nebyly nalezeny.</p>
-                </div>
-              )}
+                {orders.length === 0 && (
+                  <div className="text-center py-8">
+                    <Clock className="mx-auto h-12 w-12 text-gray-300" />
+                    <p className="mt-2 text-gray-500">Žádné výrobní zakázky nebyly nalezeny.</p>
+                  </div>
+                )}
+              </div>
             </div>
+            <Pagination
+              totalCount={totalCount}
+              pageNumber={pageNumber}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
           </div>
         )}
       </div>
