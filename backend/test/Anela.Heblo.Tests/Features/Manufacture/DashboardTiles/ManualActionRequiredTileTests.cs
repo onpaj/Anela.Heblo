@@ -40,7 +40,6 @@ public class ManualActionRequiredTileTests
     public async Task LoadDataAsync_WithNoOrders_ShouldReturnZeroCount()
     {
         // Arrange
-        var orders = new List<ManufactureOrder>();
         _mockRepository.Setup(x => x.GetOrdersAsync(
             It.IsAny<ManufactureOrderState?>(),
             It.IsAny<DateOnly?>(),
@@ -50,8 +49,11 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((new List<ManufactureOrder>(), 0));
 
         // Act
         var result = await _tile.LoadDataAsync();
@@ -69,6 +71,9 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -76,7 +81,6 @@ public class ManualActionRequiredTileTests
     public async Task LoadDataAsync_WithOrdersButNoManualAction_ShouldReturnZeroCount()
     {
         // Arrange
-        var orders = new List<ManufactureOrder>();  // Repository returns empty list when manualActionRequired=true
         _mockRepository.Setup(x => x.GetOrdersAsync(
             It.IsAny<ManufactureOrderState?>(),
             It.IsAny<DateOnly?>(),
@@ -86,8 +90,11 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((new List<ManufactureOrder>(), 0));
 
         // Act
         var result = await _tile.LoadDataAsync();
@@ -105,6 +112,9 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -127,8 +137,11 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, orders.Count));
 
         // Act
         var result = await _tile.LoadDataAsync();
@@ -146,6 +159,9 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -163,6 +179,9 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()))
             .ThrowsAsync(expectedException);
 
@@ -175,7 +194,6 @@ public class ManualActionRequiredTileTests
     {
         // Arrange
         var cancellationToken = new CancellationToken();
-        var orders = new List<ManufactureOrder>();
         _mockRepository.Setup(x => x.GetOrdersAsync(
             It.IsAny<ManufactureOrderState?>(),
             It.IsAny<DateOnly?>(),
@@ -185,8 +203,11 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             cancellationToken))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((new List<ManufactureOrder>(), 0));
 
         // Act
         await _tile.LoadDataAsync(cancellationToken: cancellationToken);
@@ -201,6 +222,9 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             cancellationToken), Times.Once);
     }
 }
