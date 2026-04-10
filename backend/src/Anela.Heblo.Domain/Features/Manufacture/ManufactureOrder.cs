@@ -30,6 +30,28 @@ public class ManufactureOrder
     public DateTime? ErpOrderNumberProductDate { get; set; }
     public string? ErpDiscardResidueDocumentNumber { get; set; }
     public DateTime? ErpDiscardResidueDocumentNumberDate { get; set; }
+
+    // ABRA Flexi stock-document codes captured from SubmitManufactureAsync results.
+    // 1. Material issue for semi-product (V-VYDEJ-MATERIAL, phase A)
+    public string? FlexiDocMaterialIssueForSemiProduct { get; set; }
+    public DateTime? FlexiDocMaterialIssueForSemiProductDate { get; set; }
+
+    // 2. Semi-product receipt (V-PRIJEM-POLOTOVAR, phase A)
+    public string? FlexiDocSemiProductReceipt { get; set; }
+    public DateTime? FlexiDocSemiProductReceiptDate { get; set; }
+
+    // 3. Semi-product issue for product (V-VYDEJ-POLOTOVAR, phase B)
+    public string? FlexiDocSemiProductIssueForProduct { get; set; }
+    public DateTime? FlexiDocSemiProductIssueForProductDate { get; set; }
+
+    // 4. Material issue for product (V-VYDEJ-MATERIAL, phase B, optional)
+    public string? FlexiDocMaterialIssueForProduct { get; set; }
+    public DateTime? FlexiDocMaterialIssueForProductDate { get; set; }
+
+    // 5. Product receipt (V-PRIJEM-VYROBEK, phase B)
+    public string? FlexiDocProductReceipt { get; set; }
+    public DateTime? FlexiDocProductReceiptDate { get; set; }
+
     public bool? WeightWithinTolerance { get; set; }
     public decimal? WeightDifference { get; set; }   // positive = surplus, negative = deficit
 

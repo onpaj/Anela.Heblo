@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -5,7 +6,12 @@ namespace Anela.Heblo.Xcc.Services.Dashboard;
 
 public static class TileRegistryExtensions
 {
-    private static readonly List<Type> RegisteredTileTypes = new();
+    private static readonly ConcurrentBag<Type> RegisteredTileTypes = new();
+
+    private static readonly System.Reflection.MethodInfo RegisterTileMethod =
+        typeof(ITileRegistry)
+            .GetMethods()
+            .Single(m => m.Name == nameof(ITileRegistry.RegisterTile) && m.IsGenericMethodDefinition);
 
     public static IServiceCollection RegisterTile<TTile>(
         this IServiceCollection services)
@@ -24,10 +30,9 @@ public static class TileRegistryExtensions
     {
         var registry = app.Services.GetRequiredService<ITileRegistry>();
 
-        foreach (var tileType in RegisteredTileTypes)
+        foreach (var tileType in RegisteredTileTypes.Distinct())
         {
-            var method = typeof(ITileRegistry).GetMethod(nameof(ITileRegistry.RegisterTile));
-            var genericMethod = method!.MakeGenericMethod(tileType);
+            var genericMethod = RegisterTileMethod.MakeGenericMethod(tileType);
             genericMethod.Invoke(registry, null);
         }
     }

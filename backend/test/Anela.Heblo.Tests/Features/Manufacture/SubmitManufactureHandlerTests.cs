@@ -29,7 +29,7 @@ public class SubmitManufactureHandlerTests
     {
         _clientMock
             .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("MAN-001");
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-001" });
 
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
 
@@ -83,7 +83,7 @@ public class SubmitManufactureHandlerTests
         _clientMock
             .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
             .Callback<SubmitManufactureClientRequest, CancellationToken>((req, _) => captured = req)
-            .ReturnsAsync("MAN-999");
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-999" });
 
         var expirationDate = new DateOnly(2027, 6, 30);
         var date = new DateTime(2026, 4, 9, 10, 0, 0, DateTimeKind.Utc);
