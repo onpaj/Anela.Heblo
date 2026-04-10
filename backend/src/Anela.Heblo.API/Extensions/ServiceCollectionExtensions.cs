@@ -279,13 +279,19 @@ public static class ServiceCollectionExtensions
                 {
                     // Use isolated schema to avoid conflicts with other applications
                     SchemaName = hangfireOptions.SchemaName,
-                    PrepareSchemaIfNecessary = true // We handle schema creation manually
+                    PrepareSchemaIfNecessary = true, // We handle schema creation manually
+                    CommandBatchMaxTimeout = TimeSpan.FromMinutes(1),
+                    InvisibilityTimeout = TimeSpan.FromMinutes(30),
+                    DistributedLockTimeout = TimeSpan.FromSeconds(10),
+                    QueuePollInterval = TimeSpan.FromSeconds(15),
                 }));
         }
 
         services.AddHangfireServer(options =>
         {
             options.WorkerCount = hangfireOptions.WorkerCount;
+            options.JobExpirationCheckInterval = TimeSpan.FromHours(1);
+            options.CountersAggregateInterval = TimeSpan.FromMinutes(5);
         });
 
         // Register Hangfire dashboard authorization filter
