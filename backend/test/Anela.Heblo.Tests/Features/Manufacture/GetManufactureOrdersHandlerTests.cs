@@ -40,8 +40,11 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<bool?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, orders.Count));
 
         _mapperMock
             .Setup(x => x.Map<List<ManufactureOrderDto>>(orders))
@@ -75,8 +78,11 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<bool?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, orders.Count));
 
         _mapperMock
             .Setup(x => x.Map<List<ManufactureOrderDto>>(orders))
@@ -94,6 +100,9 @@ public class GetManufactureOrdersHandlerTests
                 null,
                 null,
                 null,
+                null,
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -123,8 +132,11 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<bool?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, orders.Count));
 
         _mapperMock
             .Setup(x => x.Map<List<ManufactureOrderDto>>(orders))
@@ -142,6 +154,9 @@ public class GetManufactureOrdersHandlerTests
                 null,
                 null,
                 null,
+                null,
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -168,8 +183,11 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<bool?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, orders.Count));
 
         _mapperMock
             .Setup(x => x.Map<List<ManufactureOrderDto>>(orders))
@@ -187,6 +205,9 @@ public class GetManufactureOrdersHandlerTests
                 null,
                 null,
                 null,
+                null,
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -213,8 +234,11 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<bool?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, orders.Count));
 
         _mapperMock
             .Setup(x => x.Map<List<ManufactureOrderDto>>(orders))
@@ -232,6 +256,9 @@ public class GetManufactureOrdersHandlerTests
                 null,
                 null,
                 null,
+                null,
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -258,8 +285,11 @@ public class GetManufactureOrdersHandlerTests
                 productCode,
                 It.IsAny<string?>(),
                 It.IsAny<bool?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, orders.Count));
 
         _mapperMock
             .Setup(x => x.Map<List<ManufactureOrderDto>>(orders))
@@ -277,6 +307,9 @@ public class GetManufactureOrdersHandlerTests
                 productCode,
                 null,
                 null,
+                null,
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -307,8 +340,11 @@ public class GetManufactureOrdersHandlerTests
                 request.ProductCode,
                 request.ErpDocumentNumber,
                 request.ManualActionRequired,
+                request.LotNumber,
+                request.PageNumber,
+                request.PageSize,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, orders.Count));
 
         _mapperMock
             .Setup(x => x.Map<List<ManufactureOrderDto>>(orders))
@@ -326,6 +362,9 @@ public class GetManufactureOrdersHandlerTests
                 request.ProductCode,
                 request.ErpDocumentNumber,
                 request.ManualActionRequired,
+                request.LotNumber,
+                request.PageNumber,
+                request.PageSize,
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -347,8 +386,11 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<bool?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, 0));
 
         _mapperMock
             .Setup(x => x.Map<List<ManufactureOrderDto>>(orders))
@@ -375,6 +417,9 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<bool?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Database error"));
 
@@ -400,8 +445,11 @@ public class GetManufactureOrdersHandlerTests
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<bool?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, orders.Count));
 
         _mapperMock
             .Setup(x => x.Map<List<ManufactureOrderDto>>(orders))

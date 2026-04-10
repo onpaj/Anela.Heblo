@@ -17,7 +17,7 @@ public class GetManufactureOrdersHandler : IRequestHandler<GetManufactureOrdersR
 
     public async Task<GetManufactureOrdersResponse> Handle(GetManufactureOrdersRequest request, CancellationToken cancellationToken)
     {
-        var orders = await _repository.GetOrdersAsync(
+        var (orders, totalCount) = await _repository.GetOrdersAsync(
             request.State,
             request.DateFrom,
             request.DateTo,
@@ -26,13 +26,19 @@ public class GetManufactureOrdersHandler : IRequestHandler<GetManufactureOrdersR
             request.ProductCode,
             request.ErpDocumentNumber,
             request.ManualActionRequired,
+            request.LotNumber,
+            request.PageNumber,
+            request.PageSize,
             cancellationToken);
 
         var orderDtos = _mapper.Map<List<ManufactureOrderDto>>(orders);
 
         return new GetManufactureOrdersResponse
         {
-            Orders = orderDtos
+            Orders = orderDtos,
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
         };
     }
 }
