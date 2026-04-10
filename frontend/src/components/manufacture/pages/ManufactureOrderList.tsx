@@ -188,18 +188,18 @@ const ManufactureOrderList: React.FC = () => {
       />
 
       {/* Content - Grid, Monthly Calendar, or Weekly Calendar */}
-      <div className="flex-1">
+      <div className="flex-1 min-h-0">
         {viewMode === 'calendar' ? (
           <ManufactureOrderCalendar onEventClick={handleCalendarEventClick} />
         ) : viewMode === 'weekly' ? (
-          <ManufactureOrderWeeklyCalendar 
-            onEventClick={handleCalendarEventClick} 
+          <ManufactureOrderWeeklyCalendar
+            onEventClick={handleCalendarEventClick}
             initialDate={initialCalendarDate}
           />
         ) : (
           <div className="flex flex-col h-full">
-            <div className="bg-white shadow rounded-lg overflow-hidden flex-1">
-              <div className="overflow-x-auto">
+            <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+              <div className="flex-1 overflow-auto">
                 <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
