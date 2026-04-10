@@ -1,3 +1,4 @@
+using System.Net;
 using Anela.Heblo.Adapters.Flexi.Manufacture;
 using Anela.Heblo.Adapters.Flexi.Stock;
 using Anela.Heblo.Adapters.Flexi.Tests.Manufacture;
@@ -5,6 +6,7 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Rem.FlexiBeeSDK.Client;
@@ -15,6 +17,7 @@ using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
 using Rem.FlexiBeeSDK.Model;
 using Rem.FlexiBeeSDK.Model.IssuedOrders;
 using Rem.FlexiBeeSDK.Model.Products.StockMovement;
+using Rem.FlexiBeeSDK.Model.Response;
 using Xunit;
 
 namespace Anela.Heblo.Adapters.Flexi.Tests.Manufacture;
@@ -925,6 +928,91 @@ public class FlexiManufactureClientTests
 
     #endregion
 
+    #region Flexi Doc Code Capture Tests
+
+    [Fact]
+    public async Task SubmitManufactureAsync_SemiProductPhase_ReturnsCapturedFlexiDocCodes()
+    {
+        // Arrange: semi-product manufactured from a SemiProduct-type ingredient
+        var request = ManufactureTestData.CreateManufactureRequest(ManufactureTestData.SemiProducts.SilkBar, 10m);
+        request.ManufactureType = ErpManufactureType.SemiProduct;
+
+        SetupSuccessfulManufacture(ManufactureTestData.SemiProducts.SilkBar, ManufactureTestData.Materials.Bisabolol, 5.0);
+        SetupStockMovementsWithDocCodes();
+
+        // Act
+        var result = await _client.SubmitManufactureAsync(request);
+
+        // Assert: consumption doc code captured in phase-A consumption slot
+        result.MaterialIssueForSemiProductDocCode.Should().NotBeNullOrEmpty();
+        // Assert: production (semi-product receipt) doc code captured
+        result.SemiProductReceiptDocCode.Should().NotBeNullOrEmpty();
+        // Assert: product-phase slots remain null
+        result.SemiProductIssueForProductDocCode.Should().BeNull();
+        result.MaterialIssueForProductDocCode.Should().BeNull();
+        result.ProductReceiptDocCode.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SubmitManufactureAsync_ProductPhaseWithMixedIngredients_ReturnsCapturedFlexiDocCodes()
+    {
+        // Arrange: product manufactured from a semi-product ingredient + a raw material ingredient
+        var rawMaterial = new ManufactureTestData.TestProduct("RAW001", "Raw Material", ProductType.Material);
+
+        var request = ManufactureTestData.CreateManufactureRequest(ManufactureTestData.Products.ConfidentBar, 10m);
+        request.ManufactureType = ErpManufactureType.Product;
+
+        var bomItems = new List<BoMItemFlexiDto>
+        {
+            CreateBoMItemHeader(1, ManufactureTestData.Products.ConfidentBar, 10.0),
+            ManufactureTestData.CreateBoMItem(2, 2, 5.0, ManufactureTestData.Materials.Bisabolol), // ProductType.SemiProduct
+            ManufactureTestData.CreateBoMItem(3, 2, 3.0, rawMaterial)                              // ProductType.Material
+        };
+
+        _mockBomClient.Setup(x => x.GetAsync(ManufactureTestData.Products.ConfidentBar.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(bomItems);
+
+        SetupStockDataForIngredients(
+            (ManufactureTestData.Materials.Bisabolol, 100m, 10m, hasLots: false),
+            (rawMaterial, 100m, 5m, hasLots: false));
+
+        SetupStockMovementsWithDocCodes();
+
+        // Act
+        var result = await _client.SubmitManufactureAsync(request);
+
+        // Assert: semi-product consumption (V-VYDEJ-POLOTOVAR) captured
+        result.SemiProductIssueForProductDocCode.Should().NotBeNullOrEmpty();
+        // Assert: material consumption (V-VYDEJ-MATERIAL) captured
+        result.MaterialIssueForProductDocCode.Should().NotBeNullOrEmpty();
+        // Assert: product receipt captured
+        result.ProductReceiptDocCode.Should().NotBeNullOrEmpty();
+        // Assert: semi-product-phase slots remain null
+        result.MaterialIssueForSemiProductDocCode.Should().BeNull();
+        result.SemiProductReceiptDocCode.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SubmitManufactureAsync_ProductPhaseNoMaterial_MaterialDocCodeIsNull()
+    {
+        // Arrange: product manufactured from semi-product only (no raw material ingredient)
+        var request = ManufactureTestData.CreateManufactureRequest(ManufactureTestData.Products.ConfidentBar, 10m);
+        request.ManufactureType = ErpManufactureType.Product;
+
+        SetupSuccessfulManufacture(ManufactureTestData.Products.ConfidentBar, ManufactureTestData.Materials.Bisabolol, 5.0);
+        SetupStockMovementsWithDocCodes();
+
+        // Act
+        var result = await _client.SubmitManufactureAsync(request);
+
+        // Assert: semi-product issue captured; material issue is null (no material ingredient)
+        result.SemiProductIssueForProductDocCode.Should().NotBeNullOrEmpty();
+        result.MaterialIssueForProductDocCode.Should().BeNull();
+        result.ProductReceiptDocCode.Should().NotBeNullOrEmpty();
+    }
+
+    #endregion
+
     #region Helper Methods
 
     /// <summary>
@@ -994,6 +1082,34 @@ public class FlexiManufactureClientTests
     {
         // Don't setup any response - let it return null which will cause NullRef if IsSuccess is accessed
         // This is intentional - we're testing the happy path where IsSuccess would be true
+    }
+
+    /// <summary>
+    /// Sets up stock movements to return distinct document codes per DocumentTypeCode.
+    /// Used by doc-code-capture tests to verify captured codes in the response.
+    /// </summary>
+    private void SetupStockMovementsWithDocCodes()
+    {
+        _mockStockMovementClient
+            .Setup(x => x.SaveAsync(It.IsAny<StockItemsMovementUpsertRequestFlexiDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((StockItemsMovementUpsertRequestFlexiDto req, CancellationToken _) =>
+            {
+                var code = req.DocumentTypeCode switch
+                {
+                    "V-VYDEJ-MATERIAL" => "DOC-MAT-001",
+                    "V-VYDEJ-POLOTOVAR" => "DOC-SP-OUT-001",
+                    "V-PRIJEM-POLOTOVAR" => "DOC-SP-IN-001",
+                    "V-PRIJEM-VYROBEK" => "DOC-PROD-IN-001",
+                    _ => $"DOC-UNKNOWN-{req.DocumentTypeCode}"
+                };
+                return new OperationResult<OperationResultDetail>(
+                    HttpStatusCode.Created,
+                    new OperationResultDetail
+                    {
+                        Success = "true",
+                        Results = new List<Result> { new() { Id = "42", Code = code } }
+                    });
+            });
     }
 
     /// <summary>
