@@ -138,7 +138,7 @@ public class ManufactureProtocolDocument : IDocument
                         {
                             t.DefaultTextStyle(x => x.FontSize(10));
                             t.Span($"{erpDoc.DocumentCode}").Bold();
-                            t.Span($"  –  {erpDoc.DocumentLabel}").FontColor(Colors.Grey.Darken1);
+                            t.Span($"  –  {erpDoc.DocumentType}").FontColor(Colors.Grey.Darken1);
                         });
 
                         col.Item().PaddingTop(4);

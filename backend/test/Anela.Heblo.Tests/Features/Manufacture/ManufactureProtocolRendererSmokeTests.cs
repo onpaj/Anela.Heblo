@@ -1,5 +1,6 @@
 using Anela.Heblo.API.PDFPrints;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
+using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Xunit;
 
@@ -43,10 +44,10 @@ public class ManufactureProtocolRendererSmokeTests
                 new ManufactureProtocolErpDocument
                 {
                     DocumentCode = "VYD001",
-                    DocumentLabel = "Výdej materiálu pro polotovar",
-                    Items = new List<ManufactureErpDocumentItemDto>
+                    DocumentType = "Výdej materiálu pro polotovar",
+                    Items = new List<ManufactureErpDocumentItem>
                     {
-                        new ManufactureErpDocumentItemDto
+                        new ManufactureErpDocumentItem
                         {
                             ProductCode = "MAT001",
                             ProductName = "Materiál A",

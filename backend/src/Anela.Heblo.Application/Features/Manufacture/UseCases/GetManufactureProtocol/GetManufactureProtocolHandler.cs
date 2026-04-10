@@ -38,6 +38,7 @@ public class GetManufactureProtocolHandler : IRequestHandler<GetManufactureProto
         {
             OrderNumber = order.OrderNumber,
             CreatedDate = order.CreatedDate,
+            PlannedDate = order.PlannedDate,
             CompletedAt = order.StateChangedAt,
             ResponsiblePerson = order.ResponsiblePerson,
             ManufactureType = order.ManufactureType,

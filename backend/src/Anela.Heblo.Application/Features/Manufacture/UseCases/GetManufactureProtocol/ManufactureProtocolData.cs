@@ -6,6 +6,7 @@ public class ManufactureProtocolData
 {
     public string OrderNumber { get; set; } = null!;
     public DateTime CreatedDate { get; set; }
+    public DateOnly PlannedDate { get; set; }
     public DateTime? CompletedAt { get; set; }
     public string? ResponsiblePerson { get; set; }
     public ManufactureType ManufactureType { get; set; }
