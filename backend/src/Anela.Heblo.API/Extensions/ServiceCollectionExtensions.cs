@@ -279,7 +279,12 @@ public static class ServiceCollectionExtensions
                 {
                     // Use isolated schema to avoid conflicts with other applications
                     SchemaName = hangfireOptions.SchemaName,
-                    PrepareSchemaIfNecessary = true // We handle schema creation manually
+                    PrepareSchemaIfNecessary = true, // We handle schema creation manually
+                    InvisibilityTimeout = TimeSpan.FromMinutes(30),
+                    DistributedLockTimeout = TimeSpan.FromSeconds(10),
+                    QueuePollInterval = TimeSpan.FromSeconds(15),
+                    JobExpirationCheckInterval = TimeSpan.FromHours(1),
+                    CountersAggregateInterval = TimeSpan.FromMinutes(5),
                 }));
         }
 
