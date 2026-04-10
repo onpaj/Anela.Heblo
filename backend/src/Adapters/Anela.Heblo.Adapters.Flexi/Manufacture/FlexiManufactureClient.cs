@@ -534,12 +534,13 @@ public class FlexiManufactureClient : IManufactureClient
                 // Track cost per manufactured product
                 productCosts[consumptionItem.SourceProductCode] += unitPrice * consumptionItem.Amount;
 
+                var amount = Math.Round(consumptionItem.Amount, 6);
                 stockMovementItems.Add(new StockItemsMovementUpsertRequestItemFlexiDto
                 {
                     ProductCode = consumptionItem.ProductCode,
                     ProductName = consumptionItem.ProductName,
-                    Amount = consumptionItem.Amount,
-                    AmountIssued = consumptionItem.Amount,
+                    Amount = amount,
+                    AmountIssued = amount,
                     LotNumber = consumptionItem.LotNumber,
                     Expiration = consumptionItem.Expiration?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
                     UnitPrice = unitPrice,
