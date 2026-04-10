@@ -75,7 +75,7 @@ public class FlexiManufactureClient : IManufactureClient
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<string> SubmitManufactureAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken = default)
+    public async Task<SubmitManufactureClientResponse> SubmitManufactureAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken = default)
     {
         if (request.ManufactureType == ErpManufactureType.Product)
         {
@@ -88,7 +88,7 @@ public class FlexiManufactureClient : IManufactureClient
             await SubmitManufactureAggregatedAsync(request, cancellationToken);
         }
 
-        return request.ManufactureOrderCode;
+        return new SubmitManufactureClientResponse { ManufactureId = request.ManufactureOrderCode };
     }
 
     private async Task SubmitManufactureAggregatedAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken)

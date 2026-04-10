@@ -72,7 +72,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
         VerifyStockMovementsCreated(times: 2); // 1 consumption + 1 production
     }
 
@@ -89,7 +89,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
         VerifyStockMovementsCreated(times: 2); // 1 consumption + 1 production
     }
 
@@ -104,7 +104,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
         VerifyStockMovementsCreated(times: 0); // No movements created
     }
 
@@ -127,7 +127,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
         // Only one product processed (ConfidentBar), GiftBox with zero amount is skipped
         VerifyStockMovementsCreated(times: 2); // 1 consumption + 1 production for ConfidentBar
     }
@@ -184,7 +184,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
         // Only Bisabolol should be processed, UNDEFINED ingredient filtered out
         VerifyStockMovementsCreated(times: 2);
     }
@@ -216,7 +216,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
 
         // Verify scaled amounts: Bisabolol should be 10 (5 * 2), Glycerol should be 6 (3 * 2)
         _mockStockMovementClient.Verify(x => x.SaveAsync(
@@ -274,7 +274,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
     }
 
     [Fact]
@@ -344,7 +344,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
 
         // Verify consumption uses the lot
         _mockStockMovementClient.Verify(x => x.SaveAsync(
@@ -391,7 +391,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
 
         // Verify FEFO: LOT-001 (5) + LOT-002 (5) + LOT-003 (2) = 12 units
         _mockStockMovementClient.Verify(x => x.SaveAsync(
@@ -470,7 +470,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
 
         // Verify consumption has no lot number
         _mockStockMovementClient.Verify(x => x.SaveAsync(
@@ -500,7 +500,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
 
         // Verify consumption movement (Out) - SemiProduct ingredients use SemiProducts warehouse
         _mockStockMovementClient.Verify(x => x.SaveAsync(
@@ -545,7 +545,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
 
         // Verify single consumption movement with both ingredients from SemiProducts warehouse
         _mockStockMovementClient.Verify(x => x.SaveAsync(
@@ -589,7 +589,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
 
         // Verify semi-products warehouse used for consumption
         _mockStockMovementClient.Verify(x => x.SaveAsync(
@@ -621,7 +621,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
 
         // Verify semi-product warehouse used for consumption
         _mockStockMovementClient.Verify(x => x.SaveAsync(
@@ -661,7 +661,7 @@ public class FlexiManufactureClientTests
         var result = await _client.SubmitManufactureAsync(request);
 
         // Assert
-        Assert.Equal("MO-001", result);
+        Assert.Equal("MO-001", result.ManufactureId);
 
         // Total cost: (5 * 10) + (3 * 15) = 50 + 45 = 95 CZK
         // Unit price: 95 / 10 = 9.5 CZK per unit

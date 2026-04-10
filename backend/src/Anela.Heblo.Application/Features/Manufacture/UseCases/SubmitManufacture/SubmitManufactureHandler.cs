@@ -46,14 +46,14 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
                 ResidueDistribution = request.ResidueDistribution,
             };
 
-            var manufactureId = await _manufactureClient.SubmitManufactureAsync(clientRequest, cancellationToken);
+            var clientResponse = await _manufactureClient.SubmitManufactureAsync(clientRequest, cancellationToken);
 
             _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {ManufactureOrderId}",
-                manufactureId, request.ManufactureOrderNumber);
+                clientResponse.ManufactureId, request.ManufactureOrderNumber);
 
             return new SubmitManufactureResponse
             {
-                ManufactureId = manufactureId
+                ManufactureId = clientResponse.ManufactureId
             };
         }
         catch (Exception ex)

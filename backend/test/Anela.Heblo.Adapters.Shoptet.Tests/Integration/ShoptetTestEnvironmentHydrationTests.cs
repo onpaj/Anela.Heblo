@@ -335,7 +335,7 @@ public class ShoptetTestEnvironmentHydrationTests
             < 90 => 1,
             < 96 => 2,
             < 99 => 3,
-            _    => 5,
+            _ => 5,
         };
     }
 
