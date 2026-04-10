@@ -30,6 +30,9 @@ export interface GetManufactureOrdersRequest {
   productCode?: string | null;
   erpDocumentNumber?: string | null;
   manualActionRequired?: boolean | null;
+  lotNumber?: string | null;
+  pageNumber?: number | null;
+  pageSize?: number | null;
 }
 
 // Query keys using QUERY_KEYS for consistency
@@ -70,7 +73,10 @@ export const useManufactureOrdersQuery = (request: GetManufactureOrdersRequest =
       if (request.manualActionRequired !== undefined && request.manualActionRequired !== null) {
         params.append('manualActionRequired', request.manualActionRequired.toString());
       }
-      
+      if (request.lotNumber) params.append('lotNumber', request.lotNumber);
+      if (request.pageNumber !== undefined && request.pageNumber !== null) params.append('pageNumber', request.pageNumber.toString());
+      if (request.pageSize !== undefined && request.pageSize !== null) params.append('pageSize', request.pageSize.toString());
+
       const urlWithParams = params.toString() ? `${fullUrl}?${params.toString()}` : fullUrl;
       const response = await (apiClient as any).http.fetch(urlWithParams, {
         method: 'GET',

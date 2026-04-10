@@ -28,15 +28,15 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
     {
         try
         {
-            var manufactureId = await _manufactureClient.SubmitManufactureAsync(
+            var clientResponse = await _manufactureClient.SubmitManufactureAsync(
                 request.ToClientRequest(), cancellationToken);
 
-            _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {ManufactureOrderNumber}",
-                manufactureId, request.ManufactureOrderNumber);
+            _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {ManufactureOrderId}",
+                clientResponse.ManufactureId, request.ManufactureOrderNumber);
 
             return new SubmitManufactureResponse
             {
-                ManufactureId = manufactureId
+                ManufactureId = clientResponse.ManufactureId
             };
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

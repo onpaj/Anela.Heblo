@@ -50,8 +50,11 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, 0));
 
         // Act
         var result = await _tile.LoadDataAsync();
@@ -69,6 +72,9 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -86,8 +92,11 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, 0));
 
         // Act
         var result = await _tile.LoadDataAsync();
@@ -105,6 +114,9 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -127,8 +139,11 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, 3));
 
         // Act
         var result = await _tile.LoadDataAsync();
@@ -146,6 +161,9 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -163,8 +181,11 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             It.IsAny<CancellationToken>()))
-            .ThrowsAsync(expectedException);
+            .Throws(expectedException);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => _tile.LoadDataAsync());
@@ -185,8 +206,11 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             cancellationToken))
-            .ReturnsAsync(orders);
+            .ReturnsAsync((orders, 0));
 
         // Act
         await _tile.LoadDataAsync(cancellationToken: cancellationToken);
@@ -201,6 +225,9 @@ public class ManualActionRequiredTileTests
             It.IsAny<string?>(),
             It.IsAny<string?>(),
             true,
+            It.IsAny<string?>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
             cancellationToken), Times.Once);
     }
 }

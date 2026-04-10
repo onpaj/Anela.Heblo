@@ -42,10 +42,38 @@ internal sealed class FlexiManufactureClient : IManufactureClient
         _movementService = movementService ?? throw new ArgumentNullException(nameof(movementService));
     }
 
-    public async Task<string> SubmitManufactureAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken = default)
+    public async Task<SubmitManufactureClientResponse> SubmitManufactureAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken = default)
     {
-        await SubmitManufacturePerProductAsync(request, cancellationToken);
-        return request.ManufactureOrderCode;
+        if (request.ManufactureType == ErpManufactureType.Product)
+        {
+            // For products, create separate consumption and production movements for each product
+            await SubmitManufacturePerProductAsync(request, cancellationToken);
+        }
+        else
+        {
+            // For semi-products, use aggregated approach (existing behavior)
+            await SubmitManufactureAggregatedAsync(request, cancellationToken);
+        }
+
+        return new SubmitManufactureClientResponse { ManufactureId = request.ManufactureOrderCode };
+    }
+
+    private async Task SubmitManufactureAggregatedAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken)
+    {
+        var ingredientRequirements = await _requirementAggregator.AggregateAsync(request.Items, cancellationToken);
+        if (request.ValidateIngredientStock)
+        {
+            await _stockValidator.ValidateAsync(ingredientRequirements, cancellationToken);
+        }
+        var ingredientLots = await _lotLoader.LoadAvailableLotsAsync(ingredientRequirements, cancellationToken);
+        var primaryProductCode = request.Items.FirstOrDefault()?.ProductCode ?? string.Empty;
+        var consumptionItems = _fefoAllocator.Allocate(ingredientRequirements, ingredientLots, primaryProductCode);
+        var productCosts = request.Items
+            .Select(i => i.ProductCode)
+            .Distinct()
+            .ToDictionary(code => code, _ => 0.0);
+        await _movementService.SubmitConsolidatedConsumptionAsync(request, consumptionItems, productCosts, cancellationToken);
+        await _movementService.SubmitConsolidatedProductionAsync(request, productCosts, cancellationToken);
     }
 
     private async Task SubmitManufacturePerProductAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken)

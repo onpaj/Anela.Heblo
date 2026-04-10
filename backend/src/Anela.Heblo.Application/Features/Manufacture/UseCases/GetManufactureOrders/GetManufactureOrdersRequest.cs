@@ -13,4 +13,7 @@ public class GetManufactureOrdersRequest : IRequest<GetManufactureOrdersResponse
     public string? ProductCode { get; set; }
     public string? ErpDocumentNumber { get; set; }
     public bool? ManualActionRequired { get; set; }
+    public string? LotNumber { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
 }
