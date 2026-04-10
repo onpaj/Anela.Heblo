@@ -279,6 +279,39 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("StockUpOperations", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.GridLayouts.GridLayout", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("GridKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("LastModified")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("LayoutJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "GridKey")
+                        .IsUnique();
+
+                    b.ToTable("GridLayouts", (string)null);
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.InvoiceClassification.ClassificationHistory", b =>
                 {
                     b.Property<Guid>("Id")

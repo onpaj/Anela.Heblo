@@ -83,6 +83,18 @@ public class ShoptetOrderClient : IEshopOrderClient
         return detail.Status.Id;
     }
 
+    public async Task<string> GetEshopRemarkAsync(string orderCode, CancellationToken ct = default)
+    {
+        // eshopRemark is inside the nested "notes" object which requires ?include=notes.
+        // The existing GetOrderDetailInternalAsync calls GET /api/orders/{code} without this
+        // include, so the notes object would be null. We make a dedicated call here.
+        var response = await _http.GetAsync($"/api/orders/{orderCode}?include=notes", ct);
+        response.EnsureSuccessStatusCode();
+
+        var data = await response.Content.ReadFromJsonAsync<CreateOrderResponse>(JsonOptions, ct);
+        return data?.Data?.Order?.Notes?.EshopRemark ?? string.Empty;
+    }
+
     public async Task<string> CreateOrderAsync(CreateEshopOrderRequest request, CancellationToken ct = default)
     {
         var body = new ShoptetCreateOrderBody
@@ -113,7 +125,12 @@ public class ShoptetOrderClient : IEshopOrderClient
 
         var envelope = new { data = body };
         var response = await _http.PostAsJsonAsync("/api/orders", envelope, JsonOptions, ct);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException(
+                $"POST /api/orders returned {(int)response.StatusCode}: {errorBody}");
+        }
 
         var result = await response.Content.ReadFromJsonAsync<CreateOrderResponse>(JsonOptions, ct);
         return result!.Data.Order.Code;
@@ -148,6 +165,22 @@ public class ShoptetOrderClient : IEshopOrderClient
             var errorBody = await response.Content.ReadAsStringAsync(ct);
             throw new HttpRequestException(
                 $"POST /api/orders/{orderCode}/history returned {(int)response.StatusCode}: {errorBody}");
+        }
+    }
+
+    public async Task UpdateEshopRemarkAsync(string orderCode, string eshopRemark, CancellationToken ct = default)
+    {
+        var body = new UpdateEshopRemarkRequest
+        {
+            Data = new UpdateEshopRemarkData { EshopRemark = eshopRemark },
+        };
+
+        var response = await _http.PatchAsJsonAsync($"/api/orders/{orderCode}/notes", body, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException(
+                $"PATCH /api/orders/{orderCode}/notes returned {(int)response.StatusCode}: {errorBody}");
         }
     }
 

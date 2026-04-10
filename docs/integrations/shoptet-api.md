@@ -176,10 +176,80 @@ Optional `include` sections: `notes`, `images`, `shippingDetails`, `stockLocatio
 
 **Fields in list response:** `code`, `guid`, `creationTime`, `changeTime`, `company`, `fullName`, `email`, `phone`, `remark`, `cashDeskOrder`, `customerGuid`, `paid`, `status`, `source`, `price`, `paymentMethod`, `shipping`, `adminUrl`, `salesChannelGuid`. **`externalCode` is NOT included.** Use `GET /api/orders/{code}` (single detail) to get `externalCode`.
 
+### 3.6 PATCH /api/orders/{code}/notes — Update Remarks (operationId: updateRemarksForOrder)
+
+Updates the order's remark/note slots. Any property omitted from the body is left unchanged on the server — the endpoint is a partial update.
+
+**Request body:**
+```json
+{
+  "data": {
+    "customerRemark": "string or null",
+    "eshopRemark":    "string or null",
+    "trackingNumber": "string or null",
+    "additionalFields": [
+      { "index": 1, "text": "..." }
+    ]
+  }
+}
+```
+
+- `customerRemark` — customer-facing note (what customer typed at checkout).
+- `eshopRemark` — internal staff-facing note.
+- `trackingNumber` — max 32 chars.
+- `additionalFields` — optional, each `{ index: 1..6, text: string|null }`. Fields 1–3 max 255 chars.
+
+**Success response (200):** `{"data":null,"errors":null}` — no meaningful body content.
+
+**Field-to-GET-response mapping (names differ):**
+- `customerRemark` (PATCH) ↔ `remark` (GET /api/orders list, GET /api/orders/{code}).
+- `eshopRemark` (PATCH) ↔ `notes.eshopRemark` (GET /api/orders/{code}?include=notes only; NOT in GET /api/orders list response).
+
+**NOT a history endpoint.** `PATCH /notes` overwrites `eshopRemark`. It does NOT create a history entry. To append rather than replace, the caller must first `GET /api/orders/{code}?include=notes`, read `data.order.notes.eshopRemark`, concatenate, then PATCH the combined value.
+
+**Used by:** `BlockOrderProcessingHandler` — reads current `eshopRemark` via `GetEshopRemarkAsync`, appends the block reason on a new line, writes back via `UpdateEshopRemarkAsync`. Both methods are on `ShoptetOrderClient`.
 
 ---
 
-## 4. ShoptetPay API
+## 4. Products API
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/products` | List products (paginated, default 20, max 50) |
+| `GET` | `/api/products/{guid}` | Get single product detail |
+
+**`include` sections:** Only `images` is supported on the list endpoint. **`variants` and `productVariants` are NOT valid include values and return 400.**
+
+### 4.1 GET /api/products (list)
+
+Returns paginated product list — **does not include variants**. Max `itemsPerPage` is 50.
+
+### 4.2 GET /api/products/{guid} (detail)
+
+Returns the full product including a `variants[]` array with `code` fields — **no `include` needed**:
+
+```json
+{
+  "data": {
+    "guid": "...",
+    "name": "Ochráním zadečky",
+    "isVariant": true,
+    "variants": [
+      { "code": "OCH001030", "stock": "120.000", "price": "190.00", ... }
+    ]
+  }
+}
+```
+
+### 4.3 Getting all variant codes efficiently
+
+**Do NOT use N+1 product detail calls.** Use the stock CSV export instead — it lists all variant codes in a single request and is already parsed by `IEshopStockClient.ListAsync()`. The `EshopStock.Code` field is the variant-level SKU accepted by `POST /api/orders`.
+
+The snapshot endpoint (`GET /api/products/snapshot`) exists but requires a registered webhook for `job:finished` — not usable without webhook infrastructure.
+
+---
+
+## 5. ShoptetPay API
 
 Base URL: `https://api.shoptetpay.com`
 
@@ -196,7 +266,7 @@ Base URL: `https://api.shoptetpay.com`
 
 ---
 
-## 5. Existing Project Integration Points
+## 6. Existing Project Integration Points
 
 ### 5.1 Adapter: `Anela.Heblo.Adapters.ShoptetApi`
 Location: `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/`
@@ -220,7 +290,7 @@ Location: `backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/`
 
 ---
 
-## 6. Test Environment Notes
+## 7. Test Environment Notes
 
 - **No official Shoptet sandbox.** Test env is a real Shoptet store configured with test credentials.
 - **`suppress*` flags are NOT supported by the REST API.** `suppressEmailSending`, `suppressStockMovements`, `suppressDocumentGeneration`, `suppressProductChecking` only exist in the Shoptet admin UI import flow — the REST `POST /api/orders` endpoint rejects them with 422. Do not include them in the request body.
@@ -233,7 +303,7 @@ Location: `backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/`
 
 - **Seeding endpoint:** `POST /api/orders` — creates orders with minimal valid payload.
 - **Status update endpoint:** `PATCH /api/orders/{code}/status` — body shape `{"data":{"statusId":<int>}}`. Note: the property is `statusId` (flat integer), NOT `{"status":{"id":x}}` — verified against Shoptet OpenAPI spec (`additionalProperties: false` schema).
-- **Internal note / history remark:** `POST /api/orders/{code}/history` — body `{"data":{"text":"...","type":"system"}}`. The `type` field is either `"comment"` (visible to customer) or `"system"` (internal). `PATCH /api/orders/{code}/notes` is for updating the order's `remark` field and custom fields — it is NOT for writing history entries.
+- **Internal note / history remark:** `POST /api/orders/{code}/history` — body `{"data":{"text":"...","type":"system"}}`. The `type` field is either `"comment"` (visible to customer) or `"system"` (internal). `PATCH /api/orders/{code}/notes` is for updating `customerRemark` (= `remark` in GET), `eshopRemark`, `trackingNumber`, and 6 custom fields — it is NOT for writing history entries. See section 3.6 for the full contract.
 - **Read history for one order:** `GET /api/orders/{code}/history` — returns `data.orderHistory[]`. Each entry: `id` (int), `creationTime` (datetime string), `text` (string), `system` (bool — true = Shoptet-generated), `type` ("comment"|"system"), `user` object with `id` (email or system process ID) and `name` (human-readable name). **Author is `user.name`, NOT `author`/`createdBy`/`userName`.** Timestamp is `creationTime`, NOT `createdAt`. Optional query param `system` (bool) to filter system-only or user-only entries. Max 100 history items per order (POST returns 403 if exceeded).
 - **Bulk history fetch:** `GET /api/orders/history/snapshot?orderCodes=A,B,C` — async, max 50 codes per call. Returns HTTP 202 with `data.jobId`. Poll `GET /api/orders/history/snapshot/{jobId}` until it returns a download URL. Download is gzip-compressed jsonlines (one entry per line), same schema as single-order history but extended with `orderCode` field identifying the parent order.
 - **Delete endpoint:** `DELETE /api/orders/{code}`.
@@ -324,7 +394,7 @@ These values are stored in `~/.microsoft/usersecrets/anela-heblo-adapters-shopte
 
 ---
 
-## 7. Design Documents
+## 8. Design Documents
 
 - **ShoptetApi Adapter F1** (ShoptetPay payout downloads): `docs/superpowers/specs/2026-03-24-shoptet-api-adapter-f1-design.md`
 - **ShoptetApi Adapter F1 Implementation Plan**: `docs/superpowers/plans/2026-03-24-shoptet-api-f1.md`

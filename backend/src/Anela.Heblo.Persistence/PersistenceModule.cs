@@ -1,5 +1,7 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Bank;
+using Anela.Heblo.Domain.Features.GridLayouts;
+using Anela.Heblo.Persistence.GridLayouts;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
@@ -88,6 +90,9 @@ public static class PersistenceModule
 
         // KnowledgeBase repositories
         services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
+
+        // Grid Layouts repositories
+        services.AddScoped<IGridLayoutRepository, GridLayoutRepository>();
 
         return services;
     }

@@ -10,7 +10,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
   ChevronDown,
   HelpCircle,
   Plus,
@@ -35,6 +34,8 @@ import CatalogDetail from "./CatalogDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { usePlanningList } from "../../contexts/PlanningListContext";
 import PlanningListPanel from "../common/PlanningListPanel";
+import { GridColumn, GridHeader, ColumnChooser, useGridLayout } from '../../features/grid-layout';
+import { ManufacturingStockItemDto } from '../../api/hooks/useManufacturingStockAnalysis';
 
 const SALES_MULTIPLIER_COOKIE = "manufacturing-stock-sales-multiplier";
 
@@ -252,7 +253,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
     if (event) {
       event.stopPropagation(); // Prevent row click
     }
-    
+
     if (isInPlanningList(item.code)) {
       removeFromPlanningList(item.code);
     } else {
@@ -260,38 +261,210 @@ const ManufacturingStockAnalysis: React.FC = () => {
     }
   };
 
-  // Sortable header component
-  const SortableHeader: React.FC<{
-    column: ManufacturingStockSortBy;
-    children: React.ReactNode;
-    className?: string;
-    style?: React.CSSProperties;
-  }> = ({ column, children, className = "", style }) => {
-    const isActive = filters.sortBy === column;
-    const isAscending = isActive && !filters.sortDescending;
-    const isDescending = isActive && filters.sortDescending;
-
-    return (
-      <th
-        scope="col"
-        className={`px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none ${className}`}
-        style={style}
-        onClick={() => handleSort(column)}
-      >
-        <div className="flex items-center space-x-1">
-          <span>{children}</span>
-          <div className="flex flex-col">
-            <ChevronUp
-              className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
-            />
-            <ChevronDown
-              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
-            />
+  // Column definitions for grid layout
+  const columns = useMemo((): GridColumn<ManufacturingStockItemDto>[] => [
+    {
+      id: 'product',
+      header: 'Produkt',
+      canHide: false,
+      canReorder: false,
+      align: 'left',
+      minWidth: 200,
+      defaultWidth: 276,
+      renderCell: (item) => {
+        const hasSubItems = shouldShowExpandButton(item);
+        const isExpanded = !!(item.productFamily && expandedRows.has(item.productFamily));
+        return (
+          <div className="flex items-center">
+            {hasSubItems ? (
+              <button
+                className="expand-button flex-shrink-0 p-1 mr-2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRowExpand(item.productFamily!, item.code);
+                }}
+                title={isExpanded ? 'Skrýt ostatní produkty řady' : 'Zobrazit ostatní produkty řady'}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+            ) : (
+              <div className="w-6 mr-2"></div>
+            )}
+            <div className={`w-1 h-8 mr-3 rounded-sm ${getSeverityStripColor(item.severity)}`} />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-gray-900 truncate font-medium">{item.name}</div>
+              <div className="text-xs text-gray-500">{item.code}</div>
+              {item.productFamily && <div className="text-xs text-gray-400">{item.productFamily}</div>}
+            </div>
           </div>
+        );
+      },
+    },
+    {
+      id: 'indicator',
+      header: '',
+      canHide: false,
+      canReorder: false,
+      canResize: false,
+      align: 'center',
+      minWidth: 60,
+      defaultWidth: 60,
+      renderCell: (item) => (
+        <button
+          onClick={(e) => handleTogglePlanningList(item, e)}
+          className={`p-1 rounded transition-colors ${
+            isInPlanningList(item.code)
+              ? 'text-green-600 hover:text-red-600 hover:bg-red-50'
+              : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
+          }`}
+          title={isInPlanningList(item.code) ? 'Odebrat ze seznamu k plánování' : 'Přidat do seznamu k plánování'}
+        >
+          {isInPlanningList(item.code) ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+        </button>
+      ),
+    },
+    {
+      id: 'currentStock',
+      header: 'Sklad',
+      sortBy: ManufacturingStockSortBy.CurrentStock,
+      align: 'right',
+      minWidth: 60,
+      defaultWidth: 120,
+      cellClassName: 'text-xs',
+      renderCell: (item) => (
+        <div className={`font-bold ${getStockValueColorClass(item.severity)}`}>
+          {formatWarehouseStock(item)}
         </div>
-      </th>
-    );
-  };
+      ),
+    },
+    {
+      id: 'reserve',
+      header: 'Rezerv',
+      sortBy: ManufacturingStockSortBy.Reserve,
+      align: 'right',
+      minWidth: 60,
+      defaultWidth: 120,
+      cellClassName: 'text-xs text-gray-900',
+      renderCell: (item) =>
+        (item.reserve || 0) > 0 ? (
+          <div className="font-bold">{formatNumber(item.reserve, 0)}</div>
+        ) : (
+          <span className="text-gray-400">—</span>
+        ),
+    },
+    {
+      id: 'quarantine',
+      header: 'Karant.',
+      sortBy: ManufacturingStockSortBy.Quarantine,
+      align: 'right',
+      minWidth: 60,
+      defaultWidth: 120,
+      cellClassName: 'text-xs text-gray-900',
+      renderCell: (item) =>
+        (item.quarantine || 0) > 0 ? (
+          <div className="font-bold text-orange-700">{formatNumber(item.quarantine, 0)}</div>
+        ) : (
+          <span className="text-gray-400">—</span>
+        ),
+    },
+    {
+      id: 'planned',
+      header: 'Plán',
+      sortBy: ManufacturingStockSortBy.Planned,
+      align: 'right',
+      minWidth: 60,
+      defaultWidth: 120,
+      cellClassName: 'text-xs text-gray-900',
+      renderCell: (item) =>
+        (item.planned || 0) > 0 ? (
+          <div className="font-bold">{formatNumber(item.planned, 0)}</div>
+        ) : (
+          <span className="text-gray-400">—</span>
+        ),
+    },
+    {
+      id: 'salesInPeriod',
+      header: 'Prodeje',
+      sortBy: ManufacturingStockSortBy.SalesInPeriod,
+      align: 'right',
+      minWidth: 60,
+      defaultWidth: 144,
+      cellClassName: 'text-xs text-gray-900',
+      renderCell: (item) => <>{formatNumber(item.salesInPeriod, 0)}</>,
+    },
+    {
+      id: 'dailySales',
+      header: 'Prod/den',
+      sortBy: ManufacturingStockSortBy.DailySales,
+      align: 'right',
+      minWidth: 100,
+      defaultWidth: 144,
+      cellClassName: 'text-xs text-gray-900',
+      renderCell: (item) => <div>{formatNumber(item.dailySalesRate, 2)}</div>,
+    },
+    {
+      id: 'stockDaysAvailable',
+      header: 'NS',
+      sortBy: ManufacturingStockSortBy.StockDaysAvailable,
+      align: 'right',
+      minWidth: 90,
+      defaultWidth: 120,
+      cellClassName: 'text-xs text-gray-900',
+      renderCell: (item) => (
+        <div className="font-bold">
+          {item.stockDaysAvailable > 999 ? '∞' : formatNumber(item.stockDaysAvailable, 0)}
+        </div>
+      ),
+    },
+    {
+      id: 'overstockPercentage',
+      header: 'NS %',
+      sortBy: ManufacturingStockSortBy.OverstockPercentage,
+      align: 'right',
+      minWidth: 90,
+      defaultWidth: 120,
+      cellClassName: 'text-xs text-gray-900',
+      renderCell: (item) => <>{formatPercentage(item.overstockPercentage)}</>,
+    },
+    {
+      id: 'minimumStock',
+      header: 'Min',
+      sortBy: ManufacturingStockSortBy.MinimumStock,
+      align: 'right',
+      minWidth: 90,
+      defaultWidth: 120,
+      cellClassName: 'text-xs text-gray-900',
+      renderCell: (item) => <>{formatNumber(item.minimumStock, 0)}</>,
+    },
+    {
+      id: 'optimalDaysSetup',
+      header: 'Nastavení',
+      sortBy: ManufacturingStockSortBy.OptimalDaysSetup,
+      align: 'right',
+      minWidth: 90,
+      defaultWidth: 120,
+      cellClassName: 'text-xs text-gray-900',
+      renderCell: (item) => <>{item.optimalDaysSetup > 0 ? `${item.optimalDaysSetup} dní` : '—'}</>,
+    },
+    {
+      id: 'batchSize',
+      header: 'ks/šarže',
+      sortBy: ManufacturingStockSortBy.BatchSize,
+      align: 'right',
+      minWidth: 80,
+      defaultWidth: 96,
+      cellClassName: 'text-xs text-gray-900',
+      renderCell: (item) => <>{item.batchSize || '—'}</>,
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [expandedRows, loadingSubgrids]);
+
+  const { orderedColumns, columnState, setColumnOrder, setColumnWidth, toggleColumnVisibility, resetLayout } =
+    useGridLayout('manufacturing-stock-analysis', columns);
 
   // Get row background color based on severity (like in PurchaseStockAnalysis)
   const getRowColorClass = (
@@ -927,6 +1100,13 @@ const ManufacturingStockAnalysis: React.FC = () => {
                 {isControlsCollapsed ? "" : "Export"}
               </button>
 
+              <ColumnChooser
+                columns={columns}
+                columnState={columnState}
+                onToggle={toggleColumnVisibility}
+                onReset={resetLayout}
+              />
+
               {/* Help */}
               <div className="relative group">
                 <HelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
@@ -1226,103 +1406,15 @@ const ManufacturingStockAnalysis: React.FC = () => {
               className="w-full divide-y divide-gray-200"
               style={{ minWidth: "1200px" }}
             >
-              <thead className="bg-gray-50 sticky top-0 z-10">
-                <tr>
-                  
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.ProductCode}
-                    className="text-left"
-                    style={{ minWidth: "200px", width: "23%" }}
-                  >
-                    Produkt
-                  </SortableHeader>
-                  <th
-                    scope="col"
-                    className="px-2 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center"
-                    style={{ minWidth: "60px", width: "5%" }}
-                  >
-                  </th>
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.CurrentStock}
-                    className="text-right"
-                    style={{ minWidth: "60px", width: "12%" }}
-                  >
-                    Sklad
-                  </SortableHeader>
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.Reserve}
-                    className="text-right"
-                    style={{ minWidth: "60px", width: "10%" }}
-                  >
-                    Rezerv
-                  </SortableHeader>
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.Quarantine}
-                    className="text-right"
-                    style={{ minWidth: "60px", width: "10%" }}
-                  >
-                    Karant.
-                  </SortableHeader>
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.Planned}
-                    className="text-right"
-                    style={{ minWidth: "60px", width: "10%" }}
-                  >
-                    Plán
-                  </SortableHeader>
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.SalesInPeriod}
-                    className="text-right"
-                    style={{ minWidth: "60px", width: "12%" }}
-                  >
-                    Prodeje
-                  </SortableHeader>
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.DailySales}
-                    className="text-right"
-                    style={{ minWidth: "100px", width: "12%" }}
-                  >
-                    Prod/den
-                  </SortableHeader>
-
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.StockDaysAvailable}
-                    className="text-right"
-                    style={{ minWidth: "90px", width: "10%" }}
-                  >
-                    NS
-                  </SortableHeader>
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.OverstockPercentage}
-                    className="text-right"
-                    style={{ minWidth: "90px", width: "10%" }}
-                  >
-                    NS %
-                  </SortableHeader>
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.MinimumStock}
-                    className="text-right"
-                    style={{ minWidth: "90px", width: "10%" }}
-                  >
-                    Min
-                  </SortableHeader>
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.OptimalDaysSetup}
-                    className="text-right"
-                    style={{ minWidth: "90px", width: "10%" }}
-                  >
-                    Nastavení
-                  </SortableHeader>
-                  <SortableHeader
-                    column={ManufacturingStockSortBy.BatchSize}
-                    className="text-right"
-                    style={{ minWidth: "80px", width: "8%" }}
-                  >
-                    ks/šarže
-                  </SortableHeader>
-                  
-                </tr>
-              </thead>
+              <GridHeader
+                columns={orderedColumns}
+                columnState={columnState}
+                activeSortKey={filters.sortBy as string | undefined}
+                sortDescending={filters.sortDescending}
+                onSort={(key) => handleSort(key as ManufacturingStockSortBy)}
+                onReorder={setColumnOrder}
+                onResizeEnd={setColumnWidth}
+              />
               <tbody className="bg-white divide-y divide-gray-200">
                 {tableData.map((item) => {
                   const hasSubItems = shouldShowExpandButton(item);
@@ -1340,204 +1432,19 @@ const ManufacturingStockAnalysis: React.FC = () => {
                         onClick={(e) => handleRowClick(item, e)}
                         title="Klikněte pro zobrazení detailu produktu"
                       >
-                        
-                        {/* Product Info */}
-                        <td
-                          className="px-4 py-3 whitespace-nowrap"
-                          style={{ minWidth: "200px", width: "23%" }}
-                        >
-                          <div className="flex items-center">
-                            {/* Expand/Collapse button */}
-                            {hasSubItems ? (
-                              <button
-                                className="expand-button flex-shrink-0 p-1 mr-2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRowExpand(
-                                    item.productFamily!,
-                                    item.code,
-                                  );
-                                }}
-                                title={
-                                  isExpanded
-                                    ? "Skrýt ostatní produkty řady"
-                                    : "Zobrazit ostatní produkty řady"
-                                }
-                              >
-                                {isExpanded ? (
-                                  <ChevronDown className="h-4 w-4" />
-                                ) : (
-                                  <ChevronRight className="h-4 w-4" />
-                                )}
-                              </button>
-                            ) : (
-                              <div className="w-6 mr-2"></div>
-                            )}
-
-                            {/* Color strip based on severity */}
-                            <div
-                              className={`w-1 h-8 mr-3 rounded-sm ${getSeverityStripColor(item.severity)}`}
-                              title={`Severity: ${item.severity} (${getSeverityStripColor(item.severity)})`}
-                            ></div>
-                            <div className="flex-1 min-w-0">
-                              {/* Product name first - main info */}
-                              <div className="text-xs text-gray-900 truncate font-medium">
-                                {item.name}
-                              </div>
-                              {/* Product code second - smaller */}
-                              <div className="text-xs text-gray-500">
-                                {item.code}
-                              </div>
-                              {item.productFamily && (
-                                <div className="text-xs text-gray-400">
-                                  {item.productFamily}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Planning List Button */}
-                        <td
-                          className="px-2 py-3 whitespace-nowrap text-center"
-                          style={{ minWidth: "60px", width: "5%" }}
-                        >
-                          <button
-                            onClick={(e) => handleTogglePlanningList(item, e)}
-                            className={`p-1 rounded transition-colors ${
-                              isInPlanningList(item.code)
-                                ? "text-green-600 hover:text-red-600 hover:bg-red-50"
-                                : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
-                            }`}
-                            title={
-                              isInPlanningList(item.code)
-                                ? "Odebrat ze seznamu k plánování"
-                                : "Přidat do seznamu k plánování"
-                            }
-                          >
-                            {isInPlanningList(item.code) ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              <Plus className="h-4 w-4" />
-                            )}
-                          </button>
-                        </td>
-                        {/* Current Stock */}
-                        <td
-                          className="px-3 py-3 whitespace-nowrap text-right text-xs"
-                          style={{ minWidth: "60px", width: "10%" }}
-                        >
-                          <div className={`font-bold ${getStockValueColorClass(item.severity)}`}>
-                            {formatWarehouseStock(item)}
-                          </div>
-                        </td>
-
-                        {/* Reserve Stock */}
-                        <td
-                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "60px", width: "10%" }}
-                        >
-                          {(item.reserve || 0) > 0 ? (
-                            <div className="font-bold">
-                              {formatNumber(item.reserve, 0)}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-
-                        {/* Quarantine Stock */}
-                        <td
-                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "60px", width: "10%" }}
-                        >
-                          {(item.quarantine || 0) > 0 ? (
-                            <div className="font-bold text-orange-700">
-                              {formatNumber(item.quarantine, 0)}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-
-                        {/* Planned Stock */}
-                        <td
-                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "60px", width: "10%" }}
-                        >
-                          {(item.planned || 0) > 0 ? (
-                            <div className="font-bold">
-                              {formatNumber(item.planned, 0)}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-
-                        {/* Sales in Period */}
-                        <td
-                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "80px", width: "12%" }}
-                        >
-                          {formatNumber(item.salesInPeriod, 0)}
-                        </td>
-
-                        {/* Daily Sales */}
-                        <td
-                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "80px", width: "12%" }}
-                        >
-                          <div>{formatNumber(item.dailySalesRate, 2)}</div>
-                        </td>
-
-
-                        {/* Stock Days Available */}
-                        <td
-                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "90px", width: "10%" }}
-                        >
-                          <div className="font-bold">
-                            {item.stockDaysAvailable > 999
-                              ? "∞"
-                              : formatNumber(item.stockDaysAvailable, 0)}
-                          </div>
-                        </td>
-
-                        
-
-                        {/* Overstock Percentage */}
-                        <td
-                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "90px", width: "10%" }}
-                        >
-                          {formatPercentage(item.overstockPercentage)}
-                        </td>
-
-                        {/* Minimum Stock */}
-                        <td
-                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "90px", width: "10%" }}
-                        >
-                          {formatNumber(item.minimumStock, 0)}
-                        </td>
-
-                        {/* Optimal Days Setup */}
-                        <td
-                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "90px", width: "10%" }}
-                        >
-                          {item.optimalDaysSetup > 0
-                            ? `${item.optimalDaysSetup} dní`
-                            : "—"}
-                        </td>
-
-                        {/* Batch Size */}
-                        <td
-                          className="px-3 py-3 whitespace-nowrap text-right text-xs text-gray-900"
-                          style={{ minWidth: "80px", width: "8%" }}
-                        >
-                          {item.batchSize || "—"}
-                        </td>
+                        {orderedColumns.map((col) => {
+                          const colState = columnState.find((s) => s.id === col.id);
+                          const width = colState?.width ?? col.defaultWidth;
+                          return (
+                            <td
+                              key={col.id}
+                              className={`px-4 py-3 whitespace-nowrap ${col.cellClassName ?? ''}`}
+                              style={width ? { width: `${width}px`, minWidth: `${col.minWidth ?? 60}px` } : undefined}
+                            >
+                              {col.renderCell(item)}
+                            </td>
+                          );
+                        })}
                       </tr>
 
                       {/* Subgrid for ProductFamily - only show if expanded */}
