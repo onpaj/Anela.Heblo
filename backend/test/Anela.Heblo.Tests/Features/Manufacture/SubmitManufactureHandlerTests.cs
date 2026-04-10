@@ -29,7 +29,7 @@ public class SubmitManufactureHandlerTests
     {
         _clientMock
             .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("MAN-001");
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-001" });
 
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
 
