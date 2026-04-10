@@ -396,14 +396,15 @@ public class FlexiManufactureClient : IManufactureClient
             {
                 var stockItem = stockItems.FirstOrDefault(s => s.ProductCode == consumptionItem.ProductCode);
                 var unitPrice = stockItem != null ? (double)stockItem.Price : 0;
-                totalConsumptionCost += unitPrice * consumptionItem.Amount;
+                var amount = Math.Round(consumptionItem.Amount, 4);
+                totalConsumptionCost += unitPrice * amount;
 
                 stockMovementItems.Add(new StockItemsMovementUpsertRequestItemFlexiDto
                 {
                     ProductCode = consumptionItem.ProductCode,
                     ProductName = consumptionItem.ProductName,
-                    Amount = consumptionItem.Amount,
-                    AmountIssued = consumptionItem.Amount,
+                    Amount = amount,
+                    AmountIssued = amount,
                     LotNumber = consumptionItem.LotNumber,
                     Expiration = consumptionItem.Expiration?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
                     UnitPrice = unitPrice
@@ -534,12 +535,13 @@ public class FlexiManufactureClient : IManufactureClient
                 // Track cost per manufactured product
                 productCosts[consumptionItem.SourceProductCode] += unitPrice * consumptionItem.Amount;
 
+                var amount = Math.Round(consumptionItem.Amount, 4);
                 stockMovementItems.Add(new StockItemsMovementUpsertRequestItemFlexiDto
                 {
                     ProductCode = consumptionItem.ProductCode,
                     ProductName = consumptionItem.ProductName,
-                    Amount = consumptionItem.Amount,
-                    AmountIssued = consumptionItem.Amount,
+                    Amount = amount,
+                    AmountIssued = amount,
                     LotNumber = consumptionItem.LotNumber,
                     Expiration = consumptionItem.Expiration?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
                     UnitPrice = unitPrice,
