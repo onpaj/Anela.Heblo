@@ -21,3 +21,7 @@ internal sealed class ConsumptionItem
     public required double Amount { get; init; }
     public required string SourceProductCode { get; init; }
 }
+
+internal sealed record ConsumptionResult(double TotalCost, string? DocCode);
+
+internal sealed record ConsolidatedConsumptionCodes(string? SemiProductIssueCode, string? MaterialIssueCode);

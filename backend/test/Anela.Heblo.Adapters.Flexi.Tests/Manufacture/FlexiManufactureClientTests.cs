@@ -997,15 +997,14 @@ public class FlexiManufactureClientTests
         var request = ManufactureTestData.CreateManufactureRequest(ManufactureTestData.Products.ConfidentBar, 10m);
         request.ManufactureType = ErpManufactureType.Product;
 
-        var bomItems = new List<BoMItemFlexiDto>
-        {
-            CreateBoMItemHeader(1, ManufactureTestData.Products.ConfidentBar, 10.0),
-            ManufactureTestData.CreateBoMItem(2, 2, 5.0, ManufactureTestData.Materials.Bisabolol), // ProductType.SemiProduct
-            ManufactureTestData.CreateBoMItem(3, 2, 3.0, rawMaterial)                              // ProductType.Material
-        };
+        var template = ManufactureTestData.CreateTemplate(
+            ManufactureTestData.Products.ConfidentBar, 10.0,
+            (ManufactureTestData.Materials.Bisabolol, 5.0, false),  // ProductType.SemiProduct
+            (rawMaterial, 3.0, false));                              // ProductType.Material
 
-        _mockBomClient.Setup(x => x.GetAsync(ManufactureTestData.Products.ConfidentBar.Code, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(bomItems);
+        _mockTemplateService
+            .Setup(x => x.GetManufactureTemplateAsync(ManufactureTestData.Products.ConfidentBar.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
 
         SetupStockDataForIngredients(
             (ManufactureTestData.Materials.Bisabolol, 100m, 10m, hasLots: false),

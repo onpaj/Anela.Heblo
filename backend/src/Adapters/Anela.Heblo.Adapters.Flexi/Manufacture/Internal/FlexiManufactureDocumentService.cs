@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Flexi.Stock;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Rem.FlexiBeeSDK.Client;
@@ -25,14 +26,23 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
         _stockMovementClient = stockMovementClient ?? throw new ArgumentNullException(nameof(stockMovementClient));
     }
 
-    public async Task SubmitConsolidatedConsumptionAsync(
+    public async Task<ConsolidatedConsumptionCodes> SubmitConsolidatedConsumptionAsync(
         SubmitManufactureClientRequest request,
         List<ConsumptionItem> consumptionItems,
         Dictionary<string, double> productCosts,
         CancellationToken cancellationToken)
     {
+        string? semiProductIssueCode = null;
+        string? materialIssueCode = null;
+
         var consumptionByWarehouse = consumptionItems
-            .GroupBy(item => FlexiWarehouseResolver.ForProductType(item.ProductType))
+            .GroupBy(item => item.ProductType switch
+            {
+                ProductType.Material => FlexiStockClient.MaterialWarehouseId,
+                ProductType.SemiProduct => FlexiStockClient.SemiProductsWarehouseId,
+                ProductType.Product or ProductType.Goods => FlexiStockClient.ProductsWarehouseId,
+                _ => FlexiStockClient.MaterialWarehouseId
+            })
             .ToList();
 
         foreach (var warehouseGroup in consumptionByWarehouse)
@@ -87,10 +97,22 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
                     warehouseId: warehouseId,
                     rawFlexiError: consumptionResult.GetErrorMessage());
             }
+
+            var docCode = consumptionResult?.Result?.Results?.FirstOrDefault()?.Code;
+            if (documentType == WarehouseDocumentType_OutboundSemiProduct)
+            {
+                semiProductIssueCode = docCode;
+            }
+            else if (documentType == WarehouseDocumentType_OutboundMaterial)
+            {
+                materialIssueCode = docCode;
+            }
         }
+
+        return new ConsolidatedConsumptionCodes(semiProductIssueCode, materialIssueCode);
     }
 
-    public async Task SubmitConsolidatedProductionAsync(
+    public async Task<string?> SubmitConsolidatedProductionAsync(
         SubmitManufactureClientRequest request,
         Dictionary<string, double> productCosts,
         CancellationToken cancellationToken)
@@ -117,7 +139,7 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
         // Don't create production movement if there are no products
         if (productMovementItems.Count == 0)
         {
-            return;
+            return null;
         }
 
         var documentType = GetProductionDocumentType(request.ManufactureType);
@@ -144,28 +166,155 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
                 "Failed to create production stock movement",
                 rawFlexiError: productionResult.GetErrorMessage());
         }
+
+        return productionResult?.Result?.Results?.FirstOrDefault()?.Code;
+    }
+
+    public async Task<ConsumptionResult> SubmitConsumptionAsync(
+        SubmitManufactureClientRequest request,
+        List<ConsumptionItem> consumptionItems,
+        CancellationToken cancellationToken)
+    {
+        var consumptionByWarehouse = consumptionItems
+            .GroupBy(item => item.ProductType switch
+            {
+                ProductType.Material => FlexiStockClient.MaterialWarehouseId,
+                ProductType.SemiProduct => FlexiStockClient.SemiProductsWarehouseId,
+                ProductType.Product or ProductType.Goods => FlexiStockClient.ProductsWarehouseId,
+                _ => FlexiStockClient.MaterialWarehouseId
+            })
+            .ToList();
+
+        double totalConsumptionCost = 0;
+        string? capturedDocCode = null;
+
+        foreach (var warehouseGroup in consumptionByWarehouse)
+        {
+            var warehouseId = warehouseGroup.Key;
+            var stockItems = await _stockClient.StockToDateAsync(request.Date, warehouseId, cancellationToken);
+            var stockMovementItems = new List<StockItemsMovementUpsertRequestItemFlexiDto>();
+
+            foreach (var consumptionItem in warehouseGroup)
+            {
+                var stockItem = stockItems.FirstOrDefault(s => s.ProductCode == consumptionItem.ProductCode);
+                var unitPrice = stockItem != null ? (double)stockItem.Price : 0;
+                totalConsumptionCost += unitPrice * consumptionItem.Amount;
+
+                stockMovementItems.Add(new StockItemsMovementUpsertRequestItemFlexiDto
+                {
+                    ProductCode = consumptionItem.ProductCode,
+                    ProductName = consumptionItem.ProductName,
+                    Amount = consumptionItem.Amount,
+                    AmountIssued = consumptionItem.Amount,
+                    LotNumber = consumptionItem.LotNumber,
+                    Expiration = consumptionItem.Expiration?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+                    UnitPrice = unitPrice
+                });
+            }
+
+            var documentType = GetConsumptionDocumentType(warehouseId);
+            var note = CreateDescription(request);
+
+            var consumptionRequest = new StockItemsMovementUpsertRequestFlexiDto
+            {
+                CreatedBy = request.CreatedBy,
+                AccountingDate = request.Date,
+                IssueDate = request.Date,
+                StockItems = stockMovementItems,
+                Description = note,
+                DocumentTypeCode = documentType,
+                StockMovementDirection = StockMovementDirection.Out,
+                Note = request.ManufactureOrderCode,
+                WarehouseId = warehouseId.ToString()
+            };
+
+            var consumptionResult = await _stockMovementClient.SaveAsync(consumptionRequest, cancellationToken);
+
+            if (consumptionResult != null && !consumptionResult.IsSuccess)
+            {
+                throw new FlexiManufactureException(
+                    FlexiManufactureOperationKind.ConsumptionMovement,
+                    $"Failed to create consumption stock movement for warehouse {warehouseId}",
+                    warehouseId: warehouseId,
+                    rawFlexiError: consumptionResult.GetErrorMessage());
+            }
+
+            capturedDocCode = consumptionResult?.Result?.Results?.FirstOrDefault()?.Code;
+        }
+
+        return new ConsumptionResult(Math.Round(totalConsumptionCost, 4), capturedDocCode);
+    }
+
+    public async Task<string?> SubmitProductionAsync(
+        SubmitManufactureClientRequest request,
+        double totalConsumptionCost,
+        CancellationToken cancellationToken)
+    {
+        var productWarehouseId = request.ManufactureType == ErpManufactureType.SemiProduct
+            ? FlexiStockClient.SemiProductsWarehouseId
+            : FlexiStockClient.ProductsWarehouseId;
+
+        var documentType = GetProductionDocumentType(request.ManufactureType);
+        var totalManufacturedAmount = request.Items.Sum(i => (double)i.Amount);
+        var manufacturedUnitPrice = totalManufacturedAmount > 0 ? totalConsumptionCost / totalManufacturedAmount : 0;
+
+        var productMovementItems = request.Items.Select(item => new StockItemsMovementUpsertRequestItemFlexiDto
+        {
+            ProductCode = item.ProductCode,
+            ProductName = item.ProductName,
+            Amount = (double)item.Amount,
+            AmountIssued = (double)item.Amount,
+            LotNumber = request.LotNumber,
+            Expiration = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            UnitPrice = manufacturedUnitPrice
+        }).ToList();
+
+        var note = CreateDescription(request);
+
+        var productionRequest = new StockItemsMovementUpsertRequestFlexiDto
+        {
+            CreatedBy = request.CreatedBy,
+            AccountingDate = request.Date,
+            IssueDate = request.Date,
+            StockItems = productMovementItems,
+            Description = note,
+            DocumentTypeCode = documentType,
+            StockMovementDirection = StockMovementDirection.In,
+            Note = request.ManufactureOrderCode,
+            WarehouseId = productWarehouseId.ToString()
+        };
+
+        var productionResult = await _stockMovementClient.SaveAsync(productionRequest, cancellationToken);
+
+        if (productionResult != null && !productionResult.IsSuccess)
+        {
+            throw new FlexiManufactureException(
+                FlexiManufactureOperationKind.ProductionMovement,
+                "Failed to create production stock movement",
+                rawFlexiError: productionResult.GetErrorMessage());
+        }
+
+        return productionResult?.Result?.Results?.FirstOrDefault()?.Code;
     }
 
     private static string GetProductionDocumentType(ErpManufactureType manufactureType)
     {
-        var documentType = manufactureType switch
+        return manufactureType switch
         {
             ErpManufactureType.SemiProduct => WarehouseDocumentType_InboundSemiProduct,
             ErpManufactureType.Product => WarehouseDocumentType_InboundProduct,
             _ => throw new InvalidOperationException("Unknown warehouse for consumption movement for manufacture type " + manufactureType)
         };
-        return documentType;
     }
 
     private static string GetConsumptionDocumentType(int warehouseId)
     {
-        var documentType = warehouseId switch
+        return warehouseId switch
         {
             FlexiStockClient.SemiProductsWarehouseId => WarehouseDocumentType_OutboundSemiProduct,
             FlexiStockClient.MaterialWarehouseId => WarehouseDocumentType_OutboundMaterial,
             _ => throw new InvalidOperationException("Unknown warehouse for consumption movement for warehouseId " + warehouseId)
         };
-        return documentType;
     }
 
     private static string CreateDescription(SubmitManufactureClientRequest request)
