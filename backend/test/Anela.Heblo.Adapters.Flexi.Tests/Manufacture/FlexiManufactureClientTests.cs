@@ -45,7 +45,7 @@ public class FlexiManufactureClientTests
         _mockLogger = new Mock<ILogger<FlexiManufactureClient>>();
         _mockTemplateService = new Mock<IFlexiManufactureTemplateService>();
 
-        var movementService = new FlexiManufactureMovementService(
+        var movementService = new FlexiManufactureDocumentService(
             _mockStockClient.Object,
             _mockStockMovementClient.Object);
 

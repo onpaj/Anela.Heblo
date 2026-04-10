@@ -2,7 +2,7 @@ using Anela.Heblo.Domain.Features.Manufacture;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture.Internal;
 
-internal interface IFlexiManufactureMovementService
+internal interface IFlexiManufactureDocumentService
 {
     Task SubmitConsolidatedConsumptionAsync(
         SubmitManufactureClientRequest request,

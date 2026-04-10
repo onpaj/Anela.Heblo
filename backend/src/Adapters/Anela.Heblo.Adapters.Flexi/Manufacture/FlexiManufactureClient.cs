@@ -18,7 +18,7 @@ internal sealed class FlexiManufactureClient : IManufactureClient
     private readonly IFlexiIngredientRequirementAggregator _requirementAggregator;
     private readonly IFlexiIngredientStockValidator _stockValidator;
     private readonly IFlexiLotLoader _lotLoader;
-    private readonly IFlexiManufactureMovementService _movementService;
+    private readonly IFlexiManufactureDocumentService _movementService;
 
     public FlexiManufactureClient(
         IBoMClient bomClient,
@@ -29,7 +29,7 @@ internal sealed class FlexiManufactureClient : IManufactureClient
         IFlexiIngredientRequirementAggregator requirementAggregator,
         IFlexiIngredientStockValidator stockValidator,
         IFlexiLotLoader lotLoader,
-        IFlexiManufactureMovementService movementService)
+        IFlexiManufactureDocumentService movementService)
     {
         _bomClient = bomClient;
         _productSetsClient = productSetsClient;

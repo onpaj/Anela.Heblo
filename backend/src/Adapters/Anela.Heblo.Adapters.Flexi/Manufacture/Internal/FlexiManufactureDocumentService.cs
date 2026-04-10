@@ -7,7 +7,7 @@ using Rem.FlexiBeeSDK.Model.Products.StockMovement;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture.Internal;
 
-internal sealed class FlexiManufactureMovementService : IFlexiManufactureMovementService
+internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumentService
 {
     private const string WarehouseDocumentType_OutboundMaterial = "V-VYDEJ-MATERIAL";
     private const string WarehouseDocumentType_InboundSemiProduct = "V-PRIJEM-POLOTOVAR";
@@ -17,7 +17,7 @@ internal sealed class FlexiManufactureMovementService : IFlexiManufactureMovemen
     private readonly IErpStockClient _stockClient;
     private readonly IStockItemsMovementClient _stockMovementClient;
 
-    public FlexiManufactureMovementService(
+    public FlexiManufactureDocumentService(
         IErpStockClient stockClient,
         IStockItemsMovementClient stockMovementClient)
     {
