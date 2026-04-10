@@ -212,7 +212,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
 
       const result = await response.json();
       const today = new Date().toISOString().split("T")[0];
-      exportToXlsx(
+      await exportToXlsx(
         result.items ?? [],
         [
           { header: "Kód", value: (row: any) => row.code },
