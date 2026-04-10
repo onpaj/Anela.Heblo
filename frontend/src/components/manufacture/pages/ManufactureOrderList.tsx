@@ -19,6 +19,7 @@ import ManufactureOrderFilters from "../list/ManufactureOrderFilters";
 import ManufactureOrderDetail from "./ManufactureOrderDetail";
 import ManufactureOrderCalendar from "./ManufactureOrderCalendar";
 import ManufactureOrderWeeklyCalendar from "./ManufactureOrderWeeklyCalendar";
+import Pagination from "../../common/Pagination";
 
 const ManufactureOrderList: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -61,6 +62,10 @@ const ManufactureOrderList: React.FC = () => {
     return (view === 'weekly' || view === 'calendar' || view === 'grid') ? view : 'weekly';
   });
 
+  // Pagination state
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
   // Initial date for weekly calendar from URL params
   const initialCalendarDate = React.useMemo(() => {
     const dateParam = searchParams.get('date');
@@ -73,9 +78,11 @@ const ManufactureOrderList: React.FC = () => {
     isLoading: loading,
     error,
     refetch,
-  } = useManufactureOrdersQuery(filters);
+  } = useManufactureOrdersQuery({ ...filters, pageNumber, pageSize });
 
   const orders: ManufactureOrderDto[] = data?.orders || [];
+  const totalCount: number = data?.totalCount || 0;
+  const totalPages: number = data?.totalPages || 0;
 
   // Handle order click to open detail modal
   const handleOrderClick = (orderId: number) => {
@@ -94,6 +101,17 @@ const ManufactureOrderList: React.FC = () => {
     if (!date) return "-";
     const dateObj = typeof date === "string" ? new Date(date) : date;
     return dateObj.toLocaleDateString("cs-CZ");
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setPageNumber(newPage);
+    }
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPageNumber(1);
   };
 
   if (loading) {
@@ -160,25 +178,29 @@ const ManufactureOrderList: React.FC = () => {
 
       {/* Filters */}
       <ManufactureOrderFilters
-        onFiltersChange={setFilters}
+        onFiltersChange={(newFilters) => {
+          setFilters(newFilters);
+          setPageNumber(1);
+        }}
         onApplyFilters={async () => {
           await refetch();
         }}
       />
 
       {/* Content - Grid, Monthly Calendar, or Weekly Calendar */}
-      <div className="flex-1">
+      <div className="flex-1 min-h-0">
         {viewMode === 'calendar' ? (
           <ManufactureOrderCalendar onEventClick={handleCalendarEventClick} />
         ) : viewMode === 'weekly' ? (
-          <ManufactureOrderWeeklyCalendar 
-            onEventClick={handleCalendarEventClick} 
+          <ManufactureOrderWeeklyCalendar
+            onEventClick={handleCalendarEventClick}
             initialDate={initialCalendarDate}
           />
         ) : (
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+          <div className="flex flex-col h-full">
+            <div className="flex-1 bg-white shadow rounded-lg overflow-hidden flex flex-col min-h-0">
+              <div className="flex-1 overflow-auto">
+                <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
                 <th
@@ -285,15 +307,24 @@ const ManufactureOrderList: React.FC = () => {
                 </tr>
               ))}
             </tbody>
-          </table>
+                </table>
 
-              {orders.length === 0 && (
-                <div className="text-center py-8">
-                  <Clock className="mx-auto h-12 w-12 text-gray-300" />
-                  <p className="mt-2 text-gray-500">Žádné výrobní zakázky nebyly nalezeny.</p>
-                </div>
-              )}
+                {orders.length === 0 && (
+                  <div className="text-center py-8">
+                    <Clock className="mx-auto h-12 w-12 text-gray-300" />
+                    <p className="mt-2 text-gray-500">Žádné výrobní zakázky nebyly nalezeny.</p>
+                  </div>
+                )}
+              </div>
             </div>
+            <Pagination
+              totalCount={totalCount}
+              pageNumber={pageNumber}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
           </div>
         )}
       </div>

@@ -2,7 +2,7 @@ namespace Anela.Heblo.Domain.Features.Manufacture;
 
 public interface IManufactureOrderRepository
 {
-    Task<List<ManufactureOrder>> GetOrdersAsync(
+    Task<(List<ManufactureOrder> Items, int TotalCount)> GetOrdersAsync(
         ManufactureOrderState? state = null,
         DateOnly? dateFrom = null,
         DateOnly? dateTo = null,
@@ -11,6 +11,9 @@ public interface IManufactureOrderRepository
         string? productCode = null,
         string? erpDocumentNumber = null,
         bool? manualActionRequired = null,
+        string? lotNumber = null,
+        int pageNumber = 1,
+        int pageSize = 20,
         CancellationToken cancellationToken = default);
 
     Task<ManufactureOrder?> GetOrderByIdAsync(int id, CancellationToken cancellationToken = default);

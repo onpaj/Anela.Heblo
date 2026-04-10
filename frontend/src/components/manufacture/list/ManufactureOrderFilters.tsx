@@ -39,6 +39,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
   const [productCodeInput, setProductCodeInput] = useState("");
   const [erpDocumentNumberInput, setErpDocumentNumberInput] = useState("");
   const [manualActionRequiredInput, setManualActionRequiredInput] = useState<boolean | null>(null);
+  const [lotNumberInput, setLotNumberInput] = useState("");
 
   const [orderNumberFilter, setOrderNumberFilter] = useState("");
   const [stateFilter, setStateFilter] = useState<ManufactureOrderState | null>(null);
@@ -46,6 +47,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
   const [productCodeFilter, setProductCodeFilter] = useState("");
   const [erpDocumentNumberFilter, setErpDocumentNumberFilter] = useState("");
   const [manualActionRequiredFilter, setManualActionRequiredFilter] = useState<boolean | null>(null);
+  const [lotNumberFilter, setLotNumberFilter] = useState("");
 
   // Handler for applying filters on Enter or button click
   const handleApplyFilters = async () => {
@@ -55,6 +57,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
     setProductCodeFilter(productCodeInput);
     setErpDocumentNumberFilter(erpDocumentNumberInput);
     setManualActionRequiredFilter(manualActionRequiredInput);
+    setLotNumberFilter(lotNumberInput);
 
     // Build request object
     const filters: GetManufactureOrdersRequest = {
@@ -66,6 +69,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
       productCode: productCodeInput || null,
       erpDocumentNumber: erpDocumentNumberInput || null,
       manualActionRequired: manualActionRequiredInput,
+      lotNumber: lotNumberInput || null,
     };
 
     onFiltersChange(filters);
@@ -82,13 +86,15 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
     setProductCodeInput("");
     setErpDocumentNumberInput("");
     setManualActionRequiredInput(null);
-    
+    setLotNumberInput("");
+
     setOrderNumberFilter("");
     setStateFilter(null);
     setResponsiblePersonFilter("");
     setProductCodeFilter("");
     setErpDocumentNumberFilter("");
     setManualActionRequiredFilter(null);
+    setLotNumberFilter("");
 
     const emptyFilters: GetManufactureOrdersRequest = {
       orderNumber: null,
@@ -99,6 +105,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
       productCode: null,
       erpDocumentNumber: null,
       manualActionRequired: null,
+      lotNumber: null,
     };
 
     onFiltersChange(emptyFilters);
@@ -137,7 +144,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
           {isFiltersCollapsed && (
             <div className="flex items-center space-x-3 text-xs">
               {/* Quick filter info */}
-              {(orderNumberFilter || stateFilter || responsiblePersonFilter || productCodeFilter || erpDocumentNumberFilter || manualActionRequiredFilter !== null) ? (
+              {(orderNumberFilter || stateFilter || responsiblePersonFilter || productCodeFilter || erpDocumentNumberFilter || manualActionRequiredFilter !== null || lotNumberFilter) ? (
                 <span className="text-gray-600">Aktivní filtry</span>
               ) : (
                 <span className="text-gray-500">Klikněte pro rozbalení filtrů</span>
@@ -321,6 +328,24 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
                   placeholder="ERP číslo dokladu"
                   value={erpDocumentNumberInput}
                   onChange={(e) => setErpDocumentNumberInput(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  className="pl-7 w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* LOT Number */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                LOT / Šarže
+              </label>
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="LOT / Šarže"
+                  value={lotNumberInput}
+                  onChange={(e) => setLotNumberInput(e.target.value)}
                   onKeyDown={handleKeyPress}
                   className="pl-7 w-full border border-gray-300 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-transparent"
                 />
