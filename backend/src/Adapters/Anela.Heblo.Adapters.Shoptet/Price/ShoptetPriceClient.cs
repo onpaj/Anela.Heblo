@@ -23,26 +23,30 @@ public class ShoptetPriceClient : IProductPriceEshopClient
         List<ProductPriceEshop> priceList = new List<ProductPriceEshop>();
 
         using (HttpResponseMessage response = await _httpClient.GetAsync(_options.Value.ProductExportUrl, cancellationToken))
-        using (Stream csvStream = await response.Content.ReadAsStreamAsync(cancellationToken))
-        using (StreamReader reader = new StreamReader(csvStream, Encoding.GetEncoding("windows-1250")))
-        using (CsvReader csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";" }))
         {
-            csv.Context.RegisterClassMap<ProductPriceImportMap>();
+            response.EnsureSuccessStatusCode();
 
-            // Read records and calculate PriceWithoutVat
-            var rawRecords = csv.GetRecords<ProductPriceImportRecord>().ToList();
-
-            foreach (var record in rawRecords)
+            using (Stream csvStream = await response.Content.ReadAsStreamAsync(cancellationToken))
+            using (StreamReader reader = new StreamReader(csvStream, Encoding.GetEncoding("windows-1250")))
+            using (CsvReader csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";" }))
             {
-                var product = new ProductPriceEshop
-                {
-                    ProductCode = record.ProductCode,
-                    PriceWithVat = record.PriceWithVat,
-                    PriceWithoutVat = (decimal)((double)(record.PriceWithVat ?? 0) / (double)((record?.PercentVat ?? 21) / 100 + 1)),
-                    PurchasePrice = record.PurchasePrice
-                };
+                csv.Context.RegisterClassMap<ProductPriceImportMap>();
 
-                priceList.Add(product);
+                // Read records and calculate PriceWithoutVat
+                var rawRecords = csv.GetRecords<ProductPriceImportRecord>().ToList();
+
+                foreach (var record in rawRecords)
+                {
+                    var product = new ProductPriceEshop
+                    {
+                        ProductCode = record.ProductCode,
+                        PriceWithVat = record.PriceWithVat,
+                        PriceWithoutVat = (decimal)((double)(record.PriceWithVat ?? 0) / (double)((record?.PercentVat ?? 21) / 100 + 1)),
+                        PurchasePrice = record.PurchasePrice
+                    };
+
+                    priceList.Add(product);
+                }
             }
         }
 
@@ -146,4 +150,3 @@ public class ShoptetPriceClient : IProductPriceEshopClient
         }
     }
 }
-

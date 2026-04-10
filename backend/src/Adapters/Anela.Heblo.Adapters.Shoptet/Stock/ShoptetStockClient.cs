@@ -35,12 +35,16 @@ public class ShoptetStockClient : IEshopStockClient
             List<EshopStock> stockDataList = new List<EshopStock>();
 
             using (HttpResponseMessage response = await _client.GetAsync(_options.Value.Url, cancellationToken))
-            using (Stream csvStream = await response.Content.ReadAsStreamAsync(cancellationToken))
-            using (StreamReader reader = new StreamReader(csvStream, Encoding.GetEncoding("windows-1250")))
-            using (CsvReader csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";" }))
             {
-                csv.Context.RegisterClassMap<StockDataMap>();
-                stockDataList = csv.GetRecords<EshopStock>().ToList();
+                response.EnsureSuccessStatusCode();
+
+                using (Stream csvStream = await response.Content.ReadAsStreamAsync(cancellationToken))
+                using (StreamReader reader = new StreamReader(csvStream, Encoding.GetEncoding("windows-1250")))
+                using (CsvReader csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";" }))
+                {
+                    csv.Context.RegisterClassMap<StockDataMap>();
+                    stockDataList = csv.GetRecords<EshopStock>().ToList();
+                }
             }
 
             return stockDataList;
