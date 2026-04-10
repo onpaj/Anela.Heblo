@@ -28,8 +28,7 @@ public class ManualActionRequiredTile : ITile
 
     public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
-        var (_, totalCount) = await _repository.GetOrdersAsync(manualActionRequired: true, cancellationToken: cancellationToken);
-        var count = totalCount;
+        var (_, count) = await _repository.GetOrdersAsync(manualActionRequired: true, pageSize: 1, cancellationToken: cancellationToken);
 
         return new
         {
