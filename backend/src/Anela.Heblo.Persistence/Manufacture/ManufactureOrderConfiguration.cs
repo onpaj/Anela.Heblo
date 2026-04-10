@@ -73,6 +73,41 @@ public class ManufactureOrderConfiguration : IEntityTypeConfiguration<Manufactur
             .IsRequired(false)
             .AsUtcTimestamp();
 
+        builder.Property(x => x.FlexiDocMaterialIssueForSemiProduct)
+            .IsRequired(false);
+
+        builder.Property(x => x.FlexiDocMaterialIssueForSemiProductDate)
+            .IsRequired(false)
+            .AsUtcTimestamp();
+
+        builder.Property(x => x.FlexiDocSemiProductReceipt)
+            .IsRequired(false);
+
+        builder.Property(x => x.FlexiDocSemiProductReceiptDate)
+            .IsRequired(false)
+            .AsUtcTimestamp();
+
+        builder.Property(x => x.FlexiDocSemiProductIssueForProduct)
+            .IsRequired(false);
+
+        builder.Property(x => x.FlexiDocSemiProductIssueForProductDate)
+            .IsRequired(false)
+            .AsUtcTimestamp();
+
+        builder.Property(x => x.FlexiDocMaterialIssueForProduct)
+            .IsRequired(false);
+
+        builder.Property(x => x.FlexiDocMaterialIssueForProductDate)
+            .IsRequired(false)
+            .AsUtcTimestamp();
+
+        builder.Property(x => x.FlexiDocProductReceipt)
+            .IsRequired(false);
+
+        builder.Property(x => x.FlexiDocProductReceiptDate)
+            .IsRequired(false)
+            .AsUtcTimestamp();
+
         builder.Property(x => x.WeightWithinTolerance)
             .IsRequired(false);
 
