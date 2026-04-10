@@ -2,7 +2,7 @@
 # Builds React frontend and ASP.NET Core backend into single container
 
 # Stage 1: Build React Frontend
-FROM node:18-alpine AS frontend-build
+FROM node:20-alpine AS frontend-build
 WORKDIR /app/frontend
 
 # Accept build arguments for React environment variables
