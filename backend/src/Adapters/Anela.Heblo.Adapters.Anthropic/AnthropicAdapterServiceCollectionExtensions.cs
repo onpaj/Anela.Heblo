@@ -16,8 +16,14 @@ public static class AnthropicAdapterServiceCollectionExtensions
             opts.ApiKey = configuration["Anthropic:ApiKey"] ?? "";
             opts.Model = configuration["KnowledgeBase:ChatModel"] ?? opts.Model;
             opts.MaxTokens = configuration.GetValue("KnowledgeBase:ChatMaxTokens", opts.MaxTokens);
+            opts.HttpTimeoutSeconds = configuration.GetValue("Anthropic:HttpTimeoutSeconds", opts.HttpTimeoutSeconds);
         });
-        services.AddHttpClient("Anthropic");
+
+        services.AddHttpClient("Anthropic", (sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<AnthropicOptions>>().Value;
+            client.Timeout = TimeSpan.FromSeconds(options.HttpTimeoutSeconds);
+        });
 
         services.AddChatClient(sp =>
             new AnthropicChatClient(

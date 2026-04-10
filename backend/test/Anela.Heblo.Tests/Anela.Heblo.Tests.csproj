@@ -30,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Anthropic\Anela.Heblo.Adapters.Anthropic.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.ShoptetApi\Anela.Heblo.Adapters.ShoptetApi.csproj" />
     <ProjectReference Include="..\..\src\Anela.Heblo.API\Anela.Heblo.API.csproj" />
     <ProjectReference Include="..\..\src\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
