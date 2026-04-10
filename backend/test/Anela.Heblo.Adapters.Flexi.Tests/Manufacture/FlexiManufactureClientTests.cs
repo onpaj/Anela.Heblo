@@ -60,7 +60,9 @@ public class FlexiManufactureClientTests
             new FlexiIngredientRequirementAggregator(_mockTemplateService.Object),
             new FlexiIngredientStockValidator(_mockStockClient.Object, TimeProvider.System),
             new FlexiLotLoader(_mockLotsClient.Object),
-            movementService);
+            movementService,
+            _mockStockMovementClient.Object,
+            TimeProvider.System);
     }
 
     #region Basic Flow Tests
@@ -1179,6 +1181,137 @@ public class FlexiManufactureClientTests
         _mockTemplateService
             .Setup(x => x.GetManufactureTemplateAsync(ManufactureTestData.Products.GiftBox.Code, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
+    }
+
+    #endregion
+
+    #region GetErpDocumentItemsAsync Tests
+
+    [Fact]
+    public async Task GetErpDocumentItemsAsync_MapsFlexiItems_ReturnsCorrectLotAndExpiration()
+    {
+        // Arrange
+        const string documentCode = "V-VYDEJ-2026-000123";
+        var expirationDate = new DateTime(2027, 6, 30);
+
+        var flexiItem = new StockItemMovementFlexiDto
+        {
+            Name = "Bisabolol",
+            Amount = 5.5,
+            Batch = "LOT-2026-001",
+            Expiration = expirationDate.ToString("yyyy-MM-dd"),
+            Items = new List<StockItemProductFlexiDto>
+            {
+                new StockItemProductFlexiDto { Code = "AKL001" }
+            },
+            DocumentList = new List<StockItemDocumentFlexiDto>
+            {
+                new StockItemDocumentFlexiDto { DocumentCode = documentCode }
+            },
+            StoreList = new List<StockItemStoreFlexiDto>
+            {
+                new StockItemStoreFlexiDto()
+            }
+        };
+
+        _mockStockMovementClient
+            .Setup(x => x.GetAsync(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<StockMovementDirection>(),
+                It.IsAny<string?>(),
+                It.IsAny<int?>(),
+                documentCode,
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<StockItemMovementFlexiDto> { flexiItem });
+
+        // Act
+        var result = await _client.GetErpDocumentItemsAsync(documentCode);
+
+        // Assert
+        Assert.Single(result);
+        var item = result[0];
+        Assert.Equal("AKL001", item.ProductCode);
+        Assert.Equal("Bisabolol", item.ProductName);
+        Assert.Equal(5.5, item.Amount);
+        Assert.Equal("LOT-2026-001", item.LotNumber);
+        Assert.Equal(new DateOnly(2027, 6, 30), item.ExpirationDate);
+    }
+
+    [Fact]
+    public async Task GetErpDocumentItemsAsync_NullBatchAndExpiration_ReturnsNullLotAndExpiration()
+    {
+        // Arrange
+        const string documentCode = "V-PRIJEM-2026-000456";
+
+        var flexiItem = new StockItemMovementFlexiDto
+        {
+            Name = "Glycerol 99%",
+            Amount = 10.0,
+            Batch = null,
+            Expiration = null,
+            Items = new List<StockItemProductFlexiDto>
+            {
+                new StockItemProductFlexiDto { Code = "AKL007" }
+            },
+            DocumentList = new List<StockItemDocumentFlexiDto>
+            {
+                new StockItemDocumentFlexiDto { DocumentCode = documentCode }
+            },
+            StoreList = new List<StockItemStoreFlexiDto>
+            {
+                new StockItemStoreFlexiDto()
+            }
+        };
+
+        _mockStockMovementClient
+            .Setup(x => x.GetAsync(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<StockMovementDirection>(),
+                It.IsAny<string?>(),
+                It.IsAny<int?>(),
+                documentCode,
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<StockItemMovementFlexiDto> { flexiItem });
+
+        // Act
+        var result = await _client.GetErpDocumentItemsAsync(documentCode);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Null(result[0].LotNumber);
+        Assert.Null(result[0].ExpirationDate);
+    }
+
+    [Fact]
+    public async Task GetErpDocumentItemsAsync_EmptyResult_ReturnsEmptyList()
+    {
+        // Arrange
+        const string documentCode = "V-VYDEJ-2026-000999";
+
+        _mockStockMovementClient
+            .Setup(x => x.GetAsync(
+                It.IsAny<DateTime>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<StockMovementDirection>(),
+                It.IsAny<string?>(),
+                It.IsAny<int?>(),
+                documentCode,
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<StockItemMovementFlexiDto>());
+
+        // Act
+        var result = await _client.GetErpDocumentItemsAsync(documentCode);
+
+        // Assert
+        Assert.Empty(result);
     }
 
     #endregion

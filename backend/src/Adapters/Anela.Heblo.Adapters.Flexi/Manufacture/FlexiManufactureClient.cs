@@ -3,11 +3,13 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
+using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
+using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture;
 
-public class FlexiManufactureClient : IManufactureClient
+internal class FlexiManufactureClient : IManufactureClient
 {
     private readonly IBoMClient _bomClient;
     private readonly IProductSetsClient _productSetsClient;
@@ -18,6 +20,8 @@ public class FlexiManufactureClient : IManufactureClient
     private readonly IFlexiIngredientStockValidator _stockValidator;
     private readonly IFlexiLotLoader _lotLoader;
     private readonly IFlexiManufactureDocumentService _documentService;
+    private readonly IStockItemsMovementClient _stockMovementClient;
+    private readonly TimeProvider _timeProvider;
 
     public FlexiManufactureClient(
         IBoMClient bomClient,
@@ -28,7 +32,9 @@ public class FlexiManufactureClient : IManufactureClient
         IFlexiIngredientRequirementAggregator requirementAggregator,
         IFlexiIngredientStockValidator stockValidator,
         IFlexiLotLoader lotLoader,
-        IFlexiManufactureDocumentService documentService)
+        IFlexiManufactureDocumentService documentService,
+        IStockItemsMovementClient stockMovementClient,
+        TimeProvider timeProvider)
     {
         _bomClient = bomClient;
         _productSetsClient = productSetsClient;
@@ -39,6 +45,8 @@ public class FlexiManufactureClient : IManufactureClient
         _stockValidator = stockValidator ?? throw new ArgumentNullException(nameof(stockValidator));
         _lotLoader = lotLoader ?? throw new ArgumentNullException(nameof(lotLoader));
         _documentService = documentService ?? throw new ArgumentNullException(nameof(documentService));
+        _stockMovementClient = stockMovementClient ?? throw new ArgumentNullException(nameof(stockMovementClient));
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
     }
 
     public async Task<SubmitManufactureClientResponse> SubmitManufactureAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken = default)
@@ -195,5 +203,42 @@ public class FlexiManufactureClient : IManufactureClient
                 Amount = s.Quantity,
             })
             .ToList();
+    }
+
+    public async Task<List<ManufactureErpDocumentItem>> GetErpDocumentItemsAsync(string documentCode, int? documentTypeId = null, CancellationToken cancellationToken = default)
+    {
+        var now = _timeProvider.GetUtcNow().DateTime;
+        var dateFrom = now.AddYears(-5);
+        var dateTo = now.AddDays(1);
+
+        var items = await _stockMovementClient.GetAsync(
+            dateFrom,
+            dateTo,
+            documentCode: documentCode,
+            documentTypeId: documentTypeId,
+            cancellationToken: cancellationToken);
+
+        return items.Select(item => new ManufactureErpDocumentItem
+        {
+            ProductCode = item.ProductCode,
+            ProductName = item.Name,
+            Amount = item.Amount,
+            LotNumber = string.IsNullOrEmpty(item.Batch) ? null : item.Batch,
+            ExpirationDate = ParseExpiration(item.Expiration),
+        }).ToList();
+    }
+
+    private static DateOnly? ParseExpiration(string? expiration)
+    {
+        if (string.IsNullOrEmpty(expiration))
+            return null;
+
+        if (DateOnly.TryParse(expiration, out var date))
+            return date;
+
+        if (DateTime.TryParse(expiration, out var dateTime))
+            return DateOnly.FromDateTime(dateTime);
+
+        return null;
     }
 }
