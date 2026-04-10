@@ -72,6 +72,11 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 !submitManufactureResult.Success,
                 weightWithinTolerance: null,
                 weightDifference: null,
+                flexiDocMaterialIssueForSemiProduct: submitManufactureResult.MaterialIssueForSemiProductDocCode,
+                flexiDocSemiProductReceipt: submitManufactureResult.SemiProductReceiptDocCode,
+                flexiDocSemiProductIssueForProduct: null,
+                flexiDocMaterialIssueForProduct: null,
+                flexiDocProductReceipt: null,
                 cancellationToken);
 
             if (!result.Success)
@@ -179,6 +184,11 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
                 manualActionRequired: !submitManufactureResult.Success,
                 weightWithinTolerance: distribution.IsWithinAllowedThreshold,
                 weightDifference: distribution.Difference,
+                flexiDocMaterialIssueForSemiProduct: null,
+                flexiDocSemiProductReceipt: null,
+                flexiDocSemiProductIssueForProduct: submitManufactureResult.SemiProductIssueForProductDocCode,
+                flexiDocMaterialIssueForProduct: submitManufactureResult.MaterialIssueForProductDocCode,
+                flexiDocProductReceipt: submitManufactureResult.ProductReceiptDocCode,
                 cancellationToken);
 
             if (!result.Success)
@@ -230,6 +240,11 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
         bool manualActionRequired,
         bool? weightWithinTolerance,
         decimal? weightDifference,
+        string? flexiDocMaterialIssueForSemiProduct,
+        string? flexiDocSemiProductReceipt,
+        string? flexiDocSemiProductIssueForProduct,
+        string? flexiDocMaterialIssueForProduct,
+        string? flexiDocProductReceipt,
         CancellationToken cancellationToken)
     {
         var statusRequest = new UpdateManufactureOrderStatusRequest
@@ -244,6 +259,11 @@ public class ManufactureOrderApplicationService : IManufactureOrderApplicationSe
             ManualActionRequired = manualActionRequired,
             WeightWithinTolerance = weightWithinTolerance,
             WeightDifference = weightDifference,
+            FlexiDocMaterialIssueForSemiProduct = flexiDocMaterialIssueForSemiProduct,
+            FlexiDocSemiProductReceipt = flexiDocSemiProductReceipt,
+            FlexiDocSemiProductIssueForProduct = flexiDocSemiProductIssueForProduct,
+            FlexiDocMaterialIssueForProduct = flexiDocMaterialIssueForProduct,
+            FlexiDocProductReceipt = flexiDocProductReceipt,
         };
 
         var statusResult = await _mediator.Send(statusRequest, cancellationToken);

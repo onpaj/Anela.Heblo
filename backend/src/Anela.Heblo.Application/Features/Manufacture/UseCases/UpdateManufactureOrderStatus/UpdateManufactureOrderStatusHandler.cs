@@ -75,6 +75,36 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
             if (request.WeightDifference.HasValue)
                 order.WeightDifference = request.WeightDifference.Value;
 
+            if (request.FlexiDocMaterialIssueForSemiProduct != null)
+            {
+                order.FlexiDocMaterialIssueForSemiProduct = request.FlexiDocMaterialIssueForSemiProduct;
+                order.FlexiDocMaterialIssueForSemiProductDate = _timeProvider.GetUtcNow().DateTime;
+            }
+
+            if (request.FlexiDocSemiProductReceipt != null)
+            {
+                order.FlexiDocSemiProductReceipt = request.FlexiDocSemiProductReceipt;
+                order.FlexiDocSemiProductReceiptDate = _timeProvider.GetUtcNow().DateTime;
+            }
+
+            if (request.FlexiDocSemiProductIssueForProduct != null)
+            {
+                order.FlexiDocSemiProductIssueForProduct = request.FlexiDocSemiProductIssueForProduct;
+                order.FlexiDocSemiProductIssueForProductDate = _timeProvider.GetUtcNow().DateTime;
+            }
+
+            if (request.FlexiDocMaterialIssueForProduct != null)
+            {
+                order.FlexiDocMaterialIssueForProduct = request.FlexiDocMaterialIssueForProduct;
+                order.FlexiDocMaterialIssueForProductDate = _timeProvider.GetUtcNow().DateTime;
+            }
+
+            if (request.FlexiDocProductReceipt != null)
+            {
+                order.FlexiDocProductReceipt = request.FlexiDocProductReceipt;
+                order.FlexiDocProductReceiptDate = _timeProvider.GetUtcNow().DateTime;
+            }
+
             if (request.Note != null)
             {
                 order.Notes.Add(new ManufactureOrderNote()

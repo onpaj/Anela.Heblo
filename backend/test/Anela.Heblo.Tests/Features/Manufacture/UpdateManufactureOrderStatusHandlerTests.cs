@@ -349,6 +349,111 @@ public class UpdateManufactureOrderStatusHandlerTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task Handle_WhenPhaseAFlexiDocCodesProvided_PersistsThem()
+    {
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.SemiProductManufactured,
+            FlexiDocMaterialIssueForSemiProduct = "V-MAT-001",
+            FlexiDocSemiProductReceipt = "V-POL-001",
+        };
+
+        var existingOrder = CreateOrderInState(ManufactureOrderState.Planned);
+        ManufactureOrder? updatedOrder = null;
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingOrder);
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
+            {
+                updatedOrder = order;
+                return order;
+            });
+
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        updatedOrder!.FlexiDocMaterialIssueForSemiProduct.Should().Be("V-MAT-001");
+        updatedOrder.FlexiDocMaterialIssueForSemiProductDate.Should().NotBeNull();
+        updatedOrder.FlexiDocSemiProductReceipt.Should().Be("V-POL-001");
+        updatedOrder.FlexiDocSemiProductReceiptDate.Should().NotBeNull();
+        updatedOrder.FlexiDocSemiProductIssueForProduct.Should().BeNull();
+        updatedOrder.FlexiDocProductReceipt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_WhenPhaseBFlexiDocCodesProvided_PersistsThem()
+    {
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.Completed,
+            FlexiDocSemiProductIssueForProduct = "V-POLV-001",
+            FlexiDocMaterialIssueForProduct = "V-MATV-001",
+            FlexiDocProductReceipt = "V-PRIJEM-001",
+        };
+
+        var existingOrder = CreateOrderInState(ManufactureOrderState.SemiProductManufactured);
+        ManufactureOrder? updatedOrder = null;
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingOrder);
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
+            {
+                updatedOrder = order;
+                return order;
+            });
+
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        updatedOrder!.FlexiDocSemiProductIssueForProduct.Should().Be("V-POLV-001");
+        updatedOrder.FlexiDocSemiProductIssueForProductDate.Should().NotBeNull();
+        updatedOrder.FlexiDocMaterialIssueForProduct.Should().Be("V-MATV-001");
+        updatedOrder.FlexiDocMaterialIssueForProductDate.Should().NotBeNull();
+        updatedOrder.FlexiDocProductReceipt.Should().Be("V-PRIJEM-001");
+        updatedOrder.FlexiDocProductReceiptDate.Should().NotBeNull();
+        updatedOrder.FlexiDocMaterialIssueForSemiProduct.Should().BeNull();
+        updatedOrder.FlexiDocSemiProductReceipt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_WhenFlexiDocCodesNull_DoesNotOverwriteExistingValues()
+    {
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.Completed,
+            FlexiDocMaterialIssueForSemiProduct = null,
+        };
+
+        var existingOrder = CreateOrderInState(ManufactureOrderState.SemiProductManufactured);
+        existingOrder.FlexiDocMaterialIssueForSemiProduct = "V-MAT-EXISTING";
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingOrder);
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) => order);
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        _repositoryMock.Verify(x => x.UpdateOrderAsync(
+            It.Is<ManufactureOrder>(o => o.FlexiDocMaterialIssueForSemiProduct == "V-MAT-EXISTING"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     private static ManufactureOrder CreateOrderInState(ManufactureOrderState state)
     {
         return new ManufactureOrder
