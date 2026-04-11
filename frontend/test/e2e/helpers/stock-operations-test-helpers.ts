@@ -14,11 +14,15 @@ const UI_LABELS = {
  * Wait for stock operations table to update after filter/sort changes.
  * Uses DOM-based wait to avoid race conditions with page.waitForResponse,
  * which only catches API responses registered BEFORE the request fires.
+ *
+ * Waits for at least one data row (tbody tr) to be visible, or for the
+ * empty-state message to appear. Using 'tbody tr' instead of 'table' avoids
+ * matching layout/filter tables that may be present before the data table loads.
  */
 export async function waitForTableUpdate(page: Page): Promise<void> {
-  // Wait for either the data table or the empty-state message to appear
+  // Wait for either at least one data row or the empty-state message to appear
   await expect(
-    page.locator('table').or(page.locator('h3').filter({ hasText: 'Žádné výsledky' }))
+    page.locator('tbody tr').first().or(page.locator('h3').filter({ hasText: 'Žádné výsledky' }))
   ).toBeVisible({ timeout: 15000 });
 }
 
