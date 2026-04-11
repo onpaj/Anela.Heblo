@@ -340,6 +340,61 @@ public class ConfirmProductCompletionWorkflowTests
             Times.AtLeastOnce);
     }
 
+    [Fact]
+    public async Task ExecuteAsync_HappyPath_ForwardsFlexiDocCodesToStatusRequest()
+    {
+        // Arrange
+        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m }, { 2, 3.5m } };
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
+        var submitResponse = new SubmitManufactureResponse
+        {
+            Success = true,
+            ManufactureId = "MFG-PROD-001",
+            SemiProductIssueForProductDocCode = "FLX-SP-ISSUE-001",
+            MaterialIssueForProductDocCode = "FLX-MI-PROD-001",
+            ProductReceiptDocCode = "FLX-RCPT-PROD-001",
+        };
+        var distribution = CreateDistributionWithinThreshold();
+        UpdateManufactureOrderStatusRequest? capturedStatusRequest = null;
+        var updateStatusResponse = new UpdateManufactureOrderStatusResponse { Success = true };
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updateOrderResponse);
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<SubmitManufactureRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(submitResponse);
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateBoMIngredientAmountRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UpdateBoMIngredientAmountResponse { Success = true });
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<UpdateManufactureOrderStatusResponse>, CancellationToken>(
+                (r, _) => capturedStatusRequest = (UpdateManufactureOrderStatusRequest)r)
+            .ReturnsAsync(updateStatusResponse);
+
+        _residueCalculatorMock
+            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(distribution);
+
+        // Act
+        var result = await _workflow.ExecuteAsync(
+            ValidOrderId, productQuantities, overrideConfirmed: false, changeReason: null, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        capturedStatusRequest.Should().NotBeNull();
+        capturedStatusRequest!.FlexiDocSemiProductIssueForProduct.Should().Be("FLX-SP-ISSUE-001");
+        capturedStatusRequest.FlexiDocMaterialIssueForProduct.Should().Be("FLX-MI-PROD-001");
+        capturedStatusRequest.FlexiDocProductReceipt.Should().Be("FLX-RCPT-PROD-001");
+        // Semi-product fields must NOT be set in the product-completion workflow
+        capturedStatusRequest.FlexiDocMaterialIssueForSemiProduct.Should().BeNull();
+        capturedStatusRequest.FlexiDocSemiProductReceipt.Should().BeNull();
+    }
+
     #region Helper Methods
 
     private void SetupMediatorResponses(

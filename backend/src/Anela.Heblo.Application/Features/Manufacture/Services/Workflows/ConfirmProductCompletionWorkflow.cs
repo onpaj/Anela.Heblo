@@ -263,6 +263,12 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
             ManualActionRequired = manualActionRequired,
             WeightWithinTolerance = distribution.IsWithinAllowedThreshold,
             WeightDifference = distribution.Difference,
+            // Restore Flexi sub-document codes so ManufactureOrder.FlexiDoc* columns
+            // are populated. These were forwarded by the old service and must keep
+            // being forwarded to preserve audit trails that link orders to Flexi docs.
+            FlexiDocSemiProductIssueForProduct = submitResult.SemiProductIssueForProductDocCode,
+            FlexiDocMaterialIssueForProduct = submitResult.MaterialIssueForProductDocCode,
+            FlexiDocProductReceipt = submitResult.ProductReceiptDocCode,
         };
 
         return await _mediator.Send(statusRequest, cancellationToken);
