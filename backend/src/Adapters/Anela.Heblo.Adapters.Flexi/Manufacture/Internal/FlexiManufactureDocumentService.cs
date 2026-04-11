@@ -56,15 +56,21 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
                 var stockItem = stockItems.FirstOrDefault(s => s.ProductCode == consumptionItem.ProductCode);
                 var unitPrice = stockItem != null ? (double)stockItem.Price : 0;
 
+                // Round to 4 decimal places to eliminate double-precision drift that
+                // originates from (decimal -> double) conversions accumulating across
+                // FEFO lot allocations. Without this, Flexi rejects movements like
+                // 5800.0000000000009 > 5800.0 available. See PR #572 / commit fba995e1.
+                var amount = Math.Round(consumptionItem.Amount, 4);
+
                 // Track cost per manufactured product
-                productCosts[consumptionItem.SourceProductCode] += unitPrice * consumptionItem.Amount;
+                productCosts[consumptionItem.SourceProductCode] += unitPrice * amount;
 
                 stockMovementItems.Add(new StockItemsMovementUpsertRequestItemFlexiDto
                 {
                     ProductCode = consumptionItem.ProductCode,
                     ProductName = consumptionItem.ProductName,
-                    Amount = consumptionItem.Amount,
-                    AmountIssued = consumptionItem.Amount,
+                    Amount = amount,
+                    AmountIssued = amount,
                     LotNumber = consumptionItem.LotNumber,
                     Expiration = consumptionItem.Expiration?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
                     UnitPrice = unitPrice,
@@ -198,14 +204,18 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
             {
                 var stockItem = stockItems.FirstOrDefault(s => s.ProductCode == consumptionItem.ProductCode);
                 var unitPrice = stockItem != null ? (double)stockItem.Price : 0;
-                totalConsumptionCost += unitPrice * consumptionItem.Amount;
+
+                // Round to 4 decimal places — see SubmitConsolidatedConsumptionAsync above.
+                var amount = Math.Round(consumptionItem.Amount, 4);
+
+                totalConsumptionCost += unitPrice * amount;
 
                 stockMovementItems.Add(new StockItemsMovementUpsertRequestItemFlexiDto
                 {
                     ProductCode = consumptionItem.ProductCode,
                     ProductName = consumptionItem.ProductName,
-                    Amount = consumptionItem.Amount,
-                    AmountIssued = consumptionItem.Amount,
+                    Amount = amount,
+                    AmountIssued = amount,
                     LotNumber = consumptionItem.LotNumber,
                     Expiration = consumptionItem.Expiration?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
                     UnitPrice = unitPrice

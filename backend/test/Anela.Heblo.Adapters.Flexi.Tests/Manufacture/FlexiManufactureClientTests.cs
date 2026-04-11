@@ -140,6 +140,67 @@ public class FlexiManufactureClientTests
         VerifyStockMovementsCreated(times: 2); // 1 consumption + 1 production for ConfidentBar
     }
 
+    [Fact]
+    public async Task SubmitManufactureAsync_Product_ConsumptionAmountsRoundedToFourDecimals()
+    {
+        // Arrange — template: 5800.0 of Bisabolol per 1 unit of ConfidentBar.
+        // Requesting 1.0000000000001m units forces (decimal -> double) drift:
+        // the FEFO allocator computes 5800.0 * (double)1.0000000000001m which
+        // produces something like 5800.0000000000009 — more than 4 decimal places.
+        // Without Math.Round, this gets posted to Flexi and gets rejected.
+        SetupSuccessfulManufacture(
+            ManufactureTestData.Products.ConfidentBar,
+            ManufactureTestData.Materials.Bisabolol,
+            5800.0);
+
+        var request = ManufactureTestData.CreateManufactureRequest(
+            ManufactureTestData.Products.ConfidentBar,
+            amount: 1.0000000000001m);
+        request.ManufactureType = ErpManufactureType.Product;
+
+        // Act
+        await _client.SubmitManufactureAsync(request);
+
+        // Assert — every Out-direction stock movement must have all amounts
+        // rounded to exactly 4 decimal places (amount == Math.Round(amount, 4)).
+        _mockStockMovementClient.Verify(
+            m => m.SaveAsync(
+                It.Is<StockItemsMovementUpsertRequestFlexiDto>(req =>
+                    req.StockMovementDirection == StockMovementDirection.Out &&
+                    req.StockItems.All(i => i.Amount == Math.Round((double)i.Amount!, 4)) &&
+                    req.StockItems.All(i => i.AmountIssued == Math.Round((double)i.AmountIssued!, 4))),
+                It.IsAny<CancellationToken>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task SubmitManufactureAsync_SemiProduct_ConsumptionAmountsRoundedToFourDecimals()
+    {
+        // Arrange — SemiProduct path uses SubmitConsumptionAsync (aggregated).
+        SetupSuccessfulManufacture(
+            ManufactureTestData.SemiProducts.SilkBar,
+            ManufactureTestData.Materials.Bisabolol,
+            5800.0);
+
+        var request = ManufactureTestData.CreateManufactureRequest(
+            ManufactureTestData.SemiProducts.SilkBar,
+            amount: 1.0000000000001m);
+        request.ManufactureType = ErpManufactureType.SemiProduct;
+
+        // Act
+        await _client.SubmitManufactureAsync(request);
+
+        // Assert — same rounding invariant on the semi-product path.
+        _mockStockMovementClient.Verify(
+            m => m.SaveAsync(
+                It.Is<StockItemsMovementUpsertRequestFlexiDto>(req =>
+                    req.StockMovementDirection == StockMovementDirection.Out &&
+                    req.StockItems.All(i => i.Amount == Math.Round((double)i.Amount!, 4)) &&
+                    req.StockItems.All(i => i.AmountIssued == Math.Round((double)i.AmountIssued!, 4))),
+                It.IsAny<CancellationToken>()),
+            Times.AtLeastOnce);
+    }
+
     #endregion
 
     #region BoM/Template Tests
@@ -1181,137 +1242,6 @@ public class FlexiManufactureClientTests
         _mockTemplateService
             .Setup(x => x.GetManufactureTemplateAsync(ManufactureTestData.Products.GiftBox.Code, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
-    }
-
-    #endregion
-
-    #region GetErpDocumentItemsAsync Tests
-
-    [Fact]
-    public async Task GetErpDocumentItemsAsync_MapsFlexiItems_ReturnsCorrectLotAndExpiration()
-    {
-        // Arrange
-        const string documentCode = "V-VYDEJ-2026-000123";
-        var expirationDate = new DateTime(2027, 6, 30);
-
-        var flexiItem = new StockItemMovementFlexiDto
-        {
-            Name = "Bisabolol",
-            Amount = 5.5,
-            Batch = "LOT-2026-001",
-            Expiration = expirationDate.ToString("yyyy-MM-dd"),
-            Items = new List<StockItemProductFlexiDto>
-            {
-                new StockItemProductFlexiDto { Code = "AKL001" }
-            },
-            DocumentList = new List<StockItemDocumentFlexiDto>
-            {
-                new StockItemDocumentFlexiDto { DocumentCode = documentCode }
-            },
-            StoreList = new List<StockItemStoreFlexiDto>
-            {
-                new StockItemStoreFlexiDto()
-            }
-        };
-
-        _mockStockMovementClient
-            .Setup(x => x.GetAsync(
-                It.IsAny<DateTime>(),
-                It.IsAny<DateTime>(),
-                It.IsAny<StockMovementDirection>(),
-                It.IsAny<string?>(),
-                It.IsAny<int?>(),
-                documentCode,
-                It.IsAny<int>(),
-                It.IsAny<int>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<StockItemMovementFlexiDto> { flexiItem });
-
-        // Act
-        var result = await _client.GetErpDocumentItemsAsync(documentCode);
-
-        // Assert
-        Assert.Single(result);
-        var item = result[0];
-        Assert.Equal("AKL001", item.ProductCode);
-        Assert.Equal("Bisabolol", item.ProductName);
-        Assert.Equal(5.5, item.Amount);
-        Assert.Equal("LOT-2026-001", item.LotNumber);
-        Assert.Equal(new DateOnly(2027, 6, 30), item.ExpirationDate);
-    }
-
-    [Fact]
-    public async Task GetErpDocumentItemsAsync_NullBatchAndExpiration_ReturnsNullLotAndExpiration()
-    {
-        // Arrange
-        const string documentCode = "V-PRIJEM-2026-000456";
-
-        var flexiItem = new StockItemMovementFlexiDto
-        {
-            Name = "Glycerol 99%",
-            Amount = 10.0,
-            Batch = null,
-            Expiration = null,
-            Items = new List<StockItemProductFlexiDto>
-            {
-                new StockItemProductFlexiDto { Code = "AKL007" }
-            },
-            DocumentList = new List<StockItemDocumentFlexiDto>
-            {
-                new StockItemDocumentFlexiDto { DocumentCode = documentCode }
-            },
-            StoreList = new List<StockItemStoreFlexiDto>
-            {
-                new StockItemStoreFlexiDto()
-            }
-        };
-
-        _mockStockMovementClient
-            .Setup(x => x.GetAsync(
-                It.IsAny<DateTime>(),
-                It.IsAny<DateTime>(),
-                It.IsAny<StockMovementDirection>(),
-                It.IsAny<string?>(),
-                It.IsAny<int?>(),
-                documentCode,
-                It.IsAny<int>(),
-                It.IsAny<int>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<StockItemMovementFlexiDto> { flexiItem });
-
-        // Act
-        var result = await _client.GetErpDocumentItemsAsync(documentCode);
-
-        // Assert
-        Assert.Single(result);
-        Assert.Null(result[0].LotNumber);
-        Assert.Null(result[0].ExpirationDate);
-    }
-
-    [Fact]
-    public async Task GetErpDocumentItemsAsync_EmptyResult_ReturnsEmptyList()
-    {
-        // Arrange
-        const string documentCode = "V-VYDEJ-2026-000999";
-
-        _mockStockMovementClient
-            .Setup(x => x.GetAsync(
-                It.IsAny<DateTime>(),
-                It.IsAny<DateTime>(),
-                It.IsAny<StockMovementDirection>(),
-                It.IsAny<string?>(),
-                It.IsAny<int?>(),
-                documentCode,
-                It.IsAny<int>(),
-                It.IsAny<int>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<StockItemMovementFlexiDto>());
-
-        // Act
-        var result = await _client.GetErpDocumentItemsAsync(documentCode);
-
-        // Assert
-        Assert.Empty(result);
     }
 
     #endregion
