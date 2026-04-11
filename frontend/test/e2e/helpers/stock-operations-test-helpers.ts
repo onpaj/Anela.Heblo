@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { waitForSearchResults, waitForLoadingComplete, waitForDropdownOptions } from './wait-helpers';
+import { waitForLoadingComplete, waitForDropdownOptions } from './wait-helpers';
 
 // Czech UI text labels
 const UI_LABELS = {
@@ -290,8 +290,14 @@ export async function searchProduct(page: Page, searchTerm: string): Promise<voi
   console.log(`🔍 Searching for product: "${searchTerm}"`);
   const input = getProductAutocomplete(page);
   await input.click();
+  // Register the response promise BEFORE triggering fill() to avoid a race
+  // condition where the API response arrives before the listener is registered.
+  const responsePromise = page.waitForResponse(
+    r => r.url().includes('/api/catalog') && r.status() === 200,
+    { timeout: 15000 }
+  );
   await input.fill(searchTerm);
-  await waitForSearchResults(page, { endpoint: '/api/catalog' });
+  await responsePromise;
   console.log('✅ Product search results loaded');
 }
 
