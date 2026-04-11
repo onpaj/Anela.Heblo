@@ -4411,7 +4411,7 @@ export class ApiClient {
         return Promise.resolve<CalculateBatchPlanResponse>(null as any);
     }
 
-    manufactureOrder_GetOrders(state: ManufactureOrderState | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, responsiblePerson: string | null | undefined, orderNumber: string | null | undefined, productCode: string | null | undefined, erpDocumentNumber: string | null | undefined, manualActionRequired: boolean | null | undefined): Promise<GetManufactureOrdersResponse> {
+    manufactureOrder_GetOrders(state: ManufactureOrderState | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, responsiblePerson: string | null | undefined, orderNumber: string | null | undefined, productCode: string | null | undefined, erpDocumentNumber: string | null | undefined, manualActionRequired: boolean | null | undefined, lotNumber: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetManufactureOrdersResponse> {
         let url_ = this.baseUrl + "/api/ManufactureOrder?";
         if (state !== undefined && state !== null)
             url_ += "State=" + encodeURIComponent("" + state) + "&";
@@ -4429,6 +4429,16 @@ export class ApiClient {
             url_ += "ErpDocumentNumber=" + encodeURIComponent("" + erpDocumentNumber) + "&";
         if (manualActionRequired !== undefined && manualActionRequired !== null)
             url_ += "ManualActionRequired=" + encodeURIComponent("" + manualActionRequired) + "&";
+        if (lotNumber !== undefined && lotNumber !== null)
+            url_ += "LotNumber=" + encodeURIComponent("" + lotNumber) + "&";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {
@@ -4852,6 +4862,47 @@ export class ApiClient {
             });
         }
         return Promise.resolve<ResolveManualActionResponse>(null as any);
+    }
+
+    manufactureOrder_GetProtocolPdf(id: number): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/ManufactureOrder/{id}/protocol.pdf";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureOrder_GetProtocolPdf(_response);
+        });
+    }
+
+    protected processManufactureOrder_GetProtocolPdf(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
     }
 
     manufactureOrder_UpdateOrderSchedule(id: number, request: UpdateManufactureOrderScheduleRequest): Promise<UpdateManufactureOrderScheduleResponse> {
@@ -15965,6 +16016,10 @@ export interface IProductSizeConstraint {
 
 export class GetManufactureOrdersResponse extends BaseResponse implements IGetManufactureOrdersResponse {
     orders?: ManufactureOrderDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
 
     constructor(data?: IGetManufactureOrdersResponse) {
         super(data);
@@ -15978,6 +16033,10 @@ export class GetManufactureOrdersResponse extends BaseResponse implements IGetMa
                 for (let item of _data["orders"])
                     this.orders!.push(ManufactureOrderDto.fromJS(item));
             }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
         }
     }
 
@@ -15995,6 +16054,10 @@ export class GetManufactureOrdersResponse extends BaseResponse implements IGetMa
             for (let item of this.orders)
                 data["orders"].push(item.toJSON());
         }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
         super.toJSON(data);
         return data;
     }
@@ -16002,6 +16065,10 @@ export class GetManufactureOrdersResponse extends BaseResponse implements IGetMa
 
 export interface IGetManufactureOrdersResponse extends IBaseResponse {
     orders?: ManufactureOrderDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
 }
 
 export class ManufactureOrderDto implements IManufactureOrderDto {
@@ -17039,6 +17106,11 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
     discardRedisueDocumentCode?: string | undefined;
     weightWithinTolerance?: boolean | undefined;
     weightDifference?: number | undefined;
+    flexiDocMaterialIssueForSemiProduct?: string | undefined;
+    flexiDocSemiProductReceipt?: string | undefined;
+    flexiDocSemiProductIssueForProduct?: string | undefined;
+    flexiDocMaterialIssueForProduct?: string | undefined;
+    flexiDocProductReceipt?: string | undefined;
 
     constructor(data?: IUpdateManufactureOrderStatusRequest) {
         if (data) {
@@ -17061,6 +17133,11 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
             this.discardRedisueDocumentCode = _data["discardRedisueDocumentCode"];
             this.weightWithinTolerance = _data["weightWithinTolerance"];
             this.weightDifference = _data["weightDifference"];
+            this.flexiDocMaterialIssueForSemiProduct = _data["flexiDocMaterialIssueForSemiProduct"];
+            this.flexiDocSemiProductReceipt = _data["flexiDocSemiProductReceipt"];
+            this.flexiDocSemiProductIssueForProduct = _data["flexiDocSemiProductIssueForProduct"];
+            this.flexiDocMaterialIssueForProduct = _data["flexiDocMaterialIssueForProduct"];
+            this.flexiDocProductReceipt = _data["flexiDocProductReceipt"];
         }
     }
 
@@ -17083,6 +17160,11 @@ export class UpdateManufactureOrderStatusRequest implements IUpdateManufactureOr
         data["discardRedisueDocumentCode"] = this.discardRedisueDocumentCode;
         data["weightWithinTolerance"] = this.weightWithinTolerance;
         data["weightDifference"] = this.weightDifference;
+        data["flexiDocMaterialIssueForSemiProduct"] = this.flexiDocMaterialIssueForSemiProduct;
+        data["flexiDocSemiProductReceipt"] = this.flexiDocSemiProductReceipt;
+        data["flexiDocSemiProductIssueForProduct"] = this.flexiDocSemiProductIssueForProduct;
+        data["flexiDocMaterialIssueForProduct"] = this.flexiDocMaterialIssueForProduct;
+        data["flexiDocProductReceipt"] = this.flexiDocProductReceipt;
         return data;
     }
 }
@@ -17098,6 +17180,11 @@ export interface IUpdateManufactureOrderStatusRequest {
     discardRedisueDocumentCode?: string | undefined;
     weightWithinTolerance?: boolean | undefined;
     weightDifference?: number | undefined;
+    flexiDocMaterialIssueForSemiProduct?: string | undefined;
+    flexiDocSemiProductReceipt?: string | undefined;
+    flexiDocSemiProductIssueForProduct?: string | undefined;
+    flexiDocMaterialIssueForProduct?: string | undefined;
+    flexiDocProductReceipt?: string | undefined;
 }
 
 export class ConfirmSemiProductManufactureResponse extends BaseResponse implements IConfirmSemiProductManufactureResponse {

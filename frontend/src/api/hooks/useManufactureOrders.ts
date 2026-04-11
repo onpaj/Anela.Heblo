@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import { ApiClient as GeneratedApiClient } from "../generated/api-client";
@@ -405,3 +406,34 @@ export const useUpdateManufactureOrderSchedule = () => {
 export const useCreateManufactureOrder = useCreateManufactureOrderMutation;
 export const useUpdateManufactureOrder = useUpdateManufactureOrderMutation;
 export const useUpdateManufactureOrderStatus = useUpdateManufactureOrderStatusMutation;
+
+export const useOpenManufactureProtocol = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const openProtocol = async (orderId: number) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const apiClient = getAuthenticatedApiClient();
+      const relativeUrl = `/api/manufactureorder/${orderId}/protocol.pdf`;
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+      const response = await (apiClient as any).http.fetch(fullUrl, { method: 'GET' });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      console.error('Failed to open manufacture protocol PDF:', error);
+      setError(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { openProtocol, isLoading, error };
+};
