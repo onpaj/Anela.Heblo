@@ -22,6 +22,11 @@ public interface IConfirmProductCompletionWorkflow
 
 public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflow
 {
+    // ManufactureOrderNote.Text is constrained to HasMaxLength(2000) — see
+    // ManufactureOrderNoteConfiguration.cs. Leave a margin for the suffix.
+    private const int MaxNoteLength = 2000;
+    private const string NoteTruncationSuffix = "… [truncated]";
+
     private readonly IMediator _mediator;
     private readonly IResidueDistributionCalculator _residueCalculator;
     private readonly IManufactureNameBuilder _nameBuilder;
@@ -249,6 +254,8 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
                 submitResult.ManufactureId);
         }
 
+        combined = TruncateNote(combined);
+
         var manualActionRequired = !submitResult.Success || bomFailures.Count > 0;
 
         var statusRequest = new UpdateManufactureOrderStatusRequest
@@ -272,5 +279,16 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
         };
 
         return await _mediator.Send(statusRequest, cancellationToken);
+    }
+
+    private static string TruncateNote(string note)
+    {
+        if (note.Length <= MaxNoteLength)
+        {
+            return note;
+        }
+
+        var cutoff = MaxNoteLength - NoteTruncationSuffix.Length;
+        return note.Substring(0, cutoff) + NoteTruncationSuffix;
     }
 }

@@ -395,6 +395,56 @@ public class ConfirmProductCompletionWorkflowTests
         capturedStatusRequest.FlexiDocSemiProductReceipt.Should().BeNull();
     }
 
+    [Fact]
+    public async Task ExecuteAsync_WhenBoMFailuresProduceOversizedNote_TruncatesToFit2000CharLimit()
+    {
+        // Arrange — 30 products, each with a 200-char error message.
+        // Raw note would be >> 2000 chars; it must be truncated to exactly <= 2000.
+        const int ProductCount = 30;
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponseWithManyProducts(ProductCount);
+        var productQuantities = Enumerable.Range(1, ProductCount)
+            .ToDictionary(i => i, _ => 1m);
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updateOrderResponse);
+
+        _residueCalculatorMock
+            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateDistributionWithinThreshold());
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<SubmitManufactureRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SubmitManufactureResponse { Success = true, ManufactureId = "MFG-BIG-001" });
+
+        // Every BoM update fails with a 200-char error string
+        var longError = new string('Á', 200);
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateBoMIngredientAmountRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UpdateBoMIngredientAmountResponse
+            {
+                Success = false,
+                UserMessage = longError,
+            });
+
+        UpdateManufactureOrderStatusRequest? capturedStatusRequest = null;
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<UpdateManufactureOrderStatusResponse>, CancellationToken>(
+                (r, _) => capturedStatusRequest = (UpdateManufactureOrderStatusRequest)r)
+            .ReturnsAsync(new UpdateManufactureOrderStatusResponse { Success = true });
+
+        // Act
+        var result = await _workflow.ExecuteAsync(
+            ValidOrderId, productQuantities, overrideConfirmed: false, changeReason: null, CancellationToken.None);
+
+        // Assert
+        capturedStatusRequest.Should().NotBeNull();
+        capturedStatusRequest!.Note.Should().NotBeNull();
+        capturedStatusRequest.Note!.Length.Should().BeLessThanOrEqualTo(2000);
+        capturedStatusRequest.ManualActionRequired.Should().BeTrue();
+    }
+
     #region Helper Methods
 
     private void SetupMediatorResponses(
@@ -417,6 +467,38 @@ public class ConfirmProductCompletionWorkflowTests
         _mediatorMock
             .Setup(x => x.Send(It.IsAny<UpdateBoMIngredientAmountRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new UpdateBoMIngredientAmountResponse());
+    }
+
+    private static UpdateManufactureOrderResponse CreateSuccessfulUpdateOrderResponseWithManyProducts(int productCount)
+    {
+        var products = Enumerable.Range(1, productCount)
+            .Select(i => new UpdateManufactureOrderProductDto
+            {
+                ProductCode = $"P{i:D3}",
+                ProductName = $"Product {i}",
+                ActualQuantity = 1.0m,
+                PlannedQuantity = 1.0m,
+            })
+            .ToList();
+
+        return new UpdateManufactureOrderResponse
+        {
+            Success = true,
+            Order = new UpdateManufactureOrderDto
+            {
+                OrderNumber = "MO-2024-LARGE",
+                SemiProduct = new UpdateManufactureOrderSemiProductDto
+                {
+                    ProductCode = "SP001001",
+                    ProductName = "Semi Product 1",
+                    ActualQuantity = 10.5m,
+                    PlannedQuantity = 10.5m,
+                    LotNumber = "LOT123",
+                    ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
+                },
+                Products = products,
+            },
+        };
     }
 
     private static UpdateManufactureOrderResponse CreateSuccessfulUpdateOrderResponse()
