@@ -157,6 +157,27 @@ public class SubmitManufactureHandlerTests
         _transformerMock.Verify(t => t.Transform(It.IsAny<Exception>()), Times.Never);
     }
 
+    [Fact]
+    public async Task Handle_DoesNotActivateIngredientStockValidation()
+    {
+        // Arrange — ingredient stock validation must NOT be activated at the
+        // client boundary by the default submit path. Activation should be an
+        // explicit, documented opt-in in a separate PR.
+        SubmitManufactureClientRequest? capturedClientRequest = null;
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<SubmitManufactureClientRequest, CancellationToken>(
+                (r, _) => capturedClientRequest = r)
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-VAL-1" });
+
+        // Act
+        await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        capturedClientRequest.Should().NotBeNull();
+        capturedClientRequest!.ValidateIngredientStock.Should().BeFalse();
+    }
+
     private static SubmitManufactureRequest BuildRequest() => new()
     {
         ManufactureOrderNumber = "MO-001",

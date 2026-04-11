@@ -21,7 +21,6 @@ internal static class SubmitManufactureMapping
             }).ToList(),
             LotNumber = request.LotNumber,
             ExpirationDate = request.ExpirationDate,
-            ValidateIngredientStock = true,
             ResidueDistribution = request.ResidueDistribution,
         };
     }
