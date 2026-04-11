@@ -18,7 +18,10 @@ public class AnthropicChatClient : IChatClient
             MaxRetryAttempts = 3,
             Delay = TimeSpan.FromSeconds(2),
             BackoffType = DelayBackoffType.Exponential,
-            ShouldHandle = new PredicateBuilder().Handle<HttpRequestException>()
+            ShouldHandle = new PredicateBuilder()
+                .Handle<HttpRequestException>()
+                .Handle<TimeoutException>()
+                .Handle<TaskCanceledException>()
         })
         .Build();
 
@@ -63,7 +66,7 @@ public class AnthropicChatClient : IChatClient
 
         var httpResponse = await Pipeline.ExecuteAsync(async token =>
         {
-            using var client = _httpClientFactory.CreateClient("Anthropic");
+            var client = _httpClientFactory.CreateClient("Anthropic");
             using var request = new HttpRequestMessage(HttpMethod.Post, _options.MessagesUrl);
             request.Headers.Add("x-api-key", _options.ApiKey);
             request.Headers.Add("anthropic-version", "2023-06-01");
@@ -72,7 +75,7 @@ public class AnthropicChatClient : IChatClient
                 Encoding.UTF8,
                 "application/json");
 
-            var response = await client.SendAsync(request, token);
+            var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
 
             if (!response.IsSuccessStatusCode)
             {

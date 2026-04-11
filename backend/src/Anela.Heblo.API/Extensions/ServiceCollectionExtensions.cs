@@ -18,7 +18,9 @@ using Anela.Heblo.Adapters.Azure;
 using Anela.Heblo.Adapters.Cups;
 using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 using Anela.Heblo.API.Features.ExpeditionList;
+using Anela.Heblo.API.PDFPrints;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -115,6 +117,9 @@ public static class ServiceCollectionExtensions
             logging.ResponseBodyLogLimit = 4096;
         });
         services.AddHttpLoggingInterceptor<SuppressHealthHttpLogging>();
+
+        // PDF renderer — lives in API layer because QuestPDF is not a dependency of Application layer
+        services.AddScoped<IManufactureProtocolRenderer, QuestPdfManufactureProtocolRenderer>();
 
         // Note: Application services are now registered in vertical slice modules
         // This method is kept for backward compatibility and other cross-cutting concerns
@@ -279,7 +284,12 @@ public static class ServiceCollectionExtensions
                 {
                     // Use isolated schema to avoid conflicts with other applications
                     SchemaName = hangfireOptions.SchemaName,
-                    PrepareSchemaIfNecessary = true // We handle schema creation manually
+                    PrepareSchemaIfNecessary = true, // We handle schema creation manually
+                    InvisibilityTimeout = TimeSpan.FromMinutes(30),
+                    DistributedLockTimeout = TimeSpan.FromSeconds(10),
+                    QueuePollInterval = TimeSpan.FromSeconds(15),
+                    JobExpirationCheckInterval = TimeSpan.FromHours(1),
+                    CountersAggregateInterval = TimeSpan.FromMinutes(5),
                 }));
         }
 
