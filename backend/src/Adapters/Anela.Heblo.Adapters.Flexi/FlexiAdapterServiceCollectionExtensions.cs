@@ -5,6 +5,7 @@ using Anela.Heblo.Adapters.Flexi.Bank;
 using Anela.Heblo.Adapters.Flexi.Invoices;
 using Anela.Heblo.Adapters.Flexi.Lots;
 using Anela.Heblo.Adapters.Flexi.Manufacture;
+using Anela.Heblo.Adapters.Flexi.Manufacture.Internal;
 using Anela.Heblo.Adapters.Flexi.Materials;
 using Anela.Heblo.Adapters.Flexi.Price;
 using Anela.Heblo.Adapters.Flexi.ProductAttributes;
@@ -69,6 +70,12 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<ISeasonalDataParser, SeasonalDataParser>();
 
         services.AddSingleton<ILedgerService, LedgerService>();
+        services.AddScoped<IFlexiManufactureTemplateService, FlexiManufactureTemplateService>();
+        services.AddScoped<IFefoConsumptionAllocator, FefoConsumptionAllocator>();
+        services.AddScoped<IFlexiIngredientRequirementAggregator, FlexiIngredientRequirementAggregator>();
+        services.AddScoped<IFlexiIngredientStockValidator, FlexiIngredientStockValidator>();
+        services.AddScoped<IFlexiLotLoader, FlexiLotLoader>();
+        services.AddScoped<IFlexiManufactureDocumentService, FlexiManufactureDocumentService>();
         services.AddScoped<IManufactureClient, FlexiManufactureClient>();
         services.AddScoped<IProductWeightClient, FlexiProductClient>();
         services.AddScoped<ILotsClient, FlexiLotsClient>();

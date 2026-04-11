@@ -102,6 +102,82 @@ public class SubmitManufactureHandlerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Handle_MapsAllFieldsToClientRequest()
+    {
+        SubmitManufactureClientRequest? captured = null;
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<SubmitManufactureClientRequest, CancellationToken>((req, _) => captured = req)
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-999" });
+
+        var expirationDate = new DateOnly(2027, 6, 30);
+        var date = new DateTime(2026, 4, 9, 10, 0, 0, DateTimeKind.Utc);
+        var request = new SubmitManufactureRequest
+        {
+            ManufactureOrderNumber = "MO-MAPPED",
+            ManufactureInternalNumber = "INT-MAPPED",
+            ManufactureType = ErpManufactureType.SemiProduct,
+            Date = date,
+            CreatedBy = "mapper@anela.cz",
+            LotNumber = "LOT-001",
+            ExpirationDate = expirationDate,
+            Items = new List<SubmitManufactureRequestItem>
+            {
+                new() { ProductCode = "PROD-X", Name = "Product X", Amount = 50 }
+            }
+        };
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        captured.Should().NotBeNull();
+        captured!.ManufactureOrderCode.Should().Be("MO-MAPPED");
+        captured.ManufactureInternalNumber.Should().Be("INT-MAPPED");
+        captured.ManufactureType.Should().Be(ErpManufactureType.SemiProduct);
+        captured.Date.Should().Be(date);
+        captured.CreatedBy.Should().Be("mapper@anela.cz");
+        captured.LotNumber.Should().Be("LOT-001");
+        captured.ExpirationDate.Should().Be(expirationDate);
+        captured.Items.Should().HaveCount(1);
+        captured.Items[0].ProductCode.Should().Be("PROD-X");
+        captured.Items[0].ProductName.Should().Be("Product X");
+        captured.Items[0].Amount.Should().Be(50);
+    }
+
+    [Fact]
+    public async Task Handle_WhenCancelled_PropagatesOperationCanceledException()
+    {
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        var act = async () => await _handler.Handle(BuildRequest(), new CancellationTokenSource().Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _transformerMock.Verify(t => t.Transform(It.IsAny<Exception>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotActivateIngredientStockValidation()
+    {
+        // Arrange — ingredient stock validation must NOT be activated at the
+        // client boundary by the default submit path. Activation should be an
+        // explicit, documented opt-in in a separate PR.
+        SubmitManufactureClientRequest? capturedClientRequest = null;
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<SubmitManufactureClientRequest, CancellationToken>(
+                (r, _) => capturedClientRequest = r)
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-VAL-1" });
+
+        // Act
+        await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        capturedClientRequest.Should().NotBeNull();
+        capturedClientRequest!.ValidateIngredientStock.Should().BeFalse();
+    }
+
     private static SubmitManufactureRequest BuildRequest() => new()
     {
         ManufactureOrderNumber = "MO-001",

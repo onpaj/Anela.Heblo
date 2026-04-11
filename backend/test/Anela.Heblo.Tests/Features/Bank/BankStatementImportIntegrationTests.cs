@@ -287,7 +287,7 @@ public class BankStatementImportIntegrationTests : IClassFixture<BankStatementIm
         // Assert - Verify record was saved to database
         using (var scope = _factory.Services.CreateScope())
         {
-            var context = scope.ServiceProvider.GetRequiredService<Persistence.ApplicationDbContext>();
+            var context = scope.ServiceProvider.GetRequiredService<Anela.Heblo.Persistence.ApplicationDbContext>();
             var savedImport = context.BankStatements
                 .FirstOrDefault(bs => bs.TransferId == "T-PERSIST");
 
