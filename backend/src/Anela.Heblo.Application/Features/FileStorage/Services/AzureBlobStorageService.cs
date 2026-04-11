@@ -1,7 +1,7 @@
+using System.Collections.Concurrent;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Anela.Heblo.Domain.Features.FileStorage;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.FileStorage.Services;
@@ -14,6 +14,7 @@ public class AzureBlobStorageService : IBlobStorageService
     private readonly BlobServiceClient _blobServiceClient;
     private readonly HttpClient _httpClient;
     private readonly ILogger<AzureBlobStorageService> _logger;
+    private readonly ConcurrentDictionary<string, bool> _containerExists = new();
 
     public AzureBlobStorageService(
         BlobServiceClient blobServiceClient,
@@ -229,7 +230,11 @@ public class AzureBlobStorageService : IBlobStorageService
     private async Task<BlobContainerClient> GetOrCreateContainerAsync(string containerName, CancellationToken cancellationToken = default)
     {
         var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
-        await containerClient.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken);
+        if (_containerExists.TryAdd(containerName, true))
+        {
+            await containerClient.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: cancellationToken);
+        }
+
         return containerClient;
     }
 
