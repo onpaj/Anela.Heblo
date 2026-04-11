@@ -228,6 +228,50 @@ public class ConfirmSemiProductManufactureWorkflowTests
             Times.AtLeastOnce);
     }
 
+    [Fact]
+    public async Task ExecuteAsync_HappyPath_ForwardsFlexiDocCodesToStatusRequest()
+    {
+        // Arrange — submit response carries FlexiDoc codes; status request must forward them.
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
+        var submitResponse = new SubmitManufactureResponse
+        {
+            Success = true,
+            ManufactureId = "MFG-SEMI-001",
+            MaterialIssueForSemiProductDocCode = "FLX-MI-SP-001",
+            SemiProductReceiptDocCode = "FLX-RCPT-SP-001",
+        };
+        UpdateManufactureOrderStatusRequest? capturedStatusRequest = null;
+        var updateStatusResponse = new UpdateManufactureOrderStatusResponse { Success = true };
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updateOrderResponse);
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<SubmitManufactureRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(submitResponse);
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<UpdateManufactureOrderStatusResponse>, CancellationToken>(
+                (r, _) => capturedStatusRequest = (UpdateManufactureOrderStatusRequest)r)
+            .ReturnsAsync(updateStatusResponse);
+
+        // Act
+        var result = await _workflow.ExecuteAsync(
+            ValidOrderId, ValidQuantity, ValidChangeReason, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        capturedStatusRequest.Should().NotBeNull();
+        capturedStatusRequest!.FlexiDocMaterialIssueForSemiProduct.Should().Be("FLX-MI-SP-001");
+        capturedStatusRequest.FlexiDocSemiProductReceipt.Should().Be("FLX-RCPT-SP-001");
+        // Product-completion fields must NOT be set in semi-product workflow
+        capturedStatusRequest.FlexiDocSemiProductIssueForProduct.Should().BeNull();
+        capturedStatusRequest.FlexiDocMaterialIssueForProduct.Should().BeNull();
+        capturedStatusRequest.FlexiDocProductReceipt.Should().BeNull();
+    }
+
     #region Helper Methods
 
     private void SetupMediatorResponses(

@@ -167,6 +167,11 @@ public class ConfirmSemiProductManufactureWorkflow : IConfirmSemiProductManufact
             ManualActionRequired = !submitResult.Success,
             WeightWithinTolerance = null,
             WeightDifference = null,
+            // Restore Flexi sub-document codes so ManufactureOrder.FlexiDoc* columns
+            // are populated. These were forwarded by the old service and must keep
+            // being forwarded to preserve audit trails that link orders to Flexi docs.
+            FlexiDocMaterialIssueForSemiProduct = submitResult.MaterialIssueForSemiProductDocCode,
+            FlexiDocSemiProductReceipt = submitResult.SemiProductReceiptDocCode,
         };
 
         return await _mediator.Send(statusRequest, cancellationToken);
