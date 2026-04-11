@@ -72,9 +72,8 @@ test.describe('Recurring Jobs Management', () => {
     const lastModifiedCell = firstRow.locator('td').nth(3);
     await expect(lastModifiedCell).not.toBeEmpty();
 
-    // Check that status toggle button is present
-    const statusCell = firstRow.locator('td').nth(4);
-    const toggleButton = statusCell.locator('button[role="switch"]');
+    // Check that status toggle button is present (use semantic selector, robust against column reordering)
+    const toggleButton = firstRow.locator('button[role="switch"]');
     await expect(toggleButton).toBeVisible();
   });
 
@@ -255,8 +254,9 @@ test.describe('Recurring Jobs Management', () => {
     const cronExpressions = await cronCells.allTextContents();
 
     // Verify all cron expressions are valid (match cron format pattern)
-    // Pattern allows digits, *, /, comma, dash in each of the 5 fields (supports step/list/range syntax)
-    const cronPattern = /^[\d*,\-\/]+(\s+[\d*,\-\/]+){4}$/;
+    // Pattern allows digits, *, /, comma, dash, and uppercase letters in each of the 5 fields
+    // (supports step/list/range syntax and day-name tokens like MON-FRI, JAN, SUN, etc.)
+    const cronPattern = /^[\d*,\-\/A-Z]+(\s+[\d*,\-\/A-Z]+){4}$/;
 
     for (const cron of cronExpressions) {
       const trimmedCron = cron.trim();
