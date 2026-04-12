@@ -567,6 +567,15 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("LastSyncTime")
                         .HasDatabaseName("IX_IssuedInvoice_LastSyncTime");
 
+                    b.HasIndex("IsSynced")
+                        .HasDatabaseName("IX_IssuedInvoice_IsSynced");
+
+                    b.HasIndex("ErrorType")
+                        .HasDatabaseName("IX_IssuedInvoice_ErrorType");
+
+                    b.HasIndex("CustomerName")
+                        .HasDatabaseName("IX_IssuedInvoice_CustomerName");
+
                     b.ToTable("IssuedInvoice", "dbo");
                 });
 
