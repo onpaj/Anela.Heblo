@@ -9,4 +9,5 @@ public class ShoptetApiSettings
     public string ApiToken { get; set; } = null!;
     public Dictionary<string, string> ShippingGuidMap { get; set; } = new();
     public string PaymentMethodGuid { get; set; } = null!;
+    public int StockId { get; set; } = 1;
 }
