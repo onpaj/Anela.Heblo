@@ -105,34 +105,13 @@ public class StockUpProcessingService : IStockUpProcessingService
 
             var request = new StockUpRequest(operation.ProductCode, operation.Amount, operation.DocumentNumber);
             await _eshopService.StockUpAsync(request);
+
+            // REST 200 is a hard success guarantee — no post-verify needed
+            operation.MarkAsCompleted(DateTime.UtcNow);
+            await _repository.SaveChangesAsync(ct);
             _logger.LogInformation(
-                "Successfully submitted {DocumentNumber} to Shoptet",
+                "Successfully submitted and completed {DocumentNumber}",
                 operation.DocumentNumber);
-
-            // === LAYER 4: Post-verify in Shoptet history ===
-            _logger.LogDebug(
-                "Verifying {DocumentNumber} in Shoptet history after submission",
-                operation.DocumentNumber);
-
-            var verified = await _eshopService.VerifyStockUpExistsAsync(operation.DocumentNumber);
-            if (verified)
-            {
-                operation.MarkAsCompleted(DateTime.UtcNow);
-                await _repository.SaveChangesAsync(ct);
-                _logger.LogInformation(
-                    "Operation {DocumentNumber} verified and completed successfully",
-                    operation.DocumentNumber);
-            }
-            else
-            {
-                _logger.LogError(
-                    "Verification failed: {DocumentNumber} not found in Shoptet history after submission",
-                    operation.DocumentNumber);
-                operation.MarkAsFailed(
-                    DateTime.UtcNow,
-                    "Verification failed: Record not found in Shoptet history");
-                await _repository.SaveChangesAsync(ct);
-            }
         }
         catch (Exception ex)
         {
