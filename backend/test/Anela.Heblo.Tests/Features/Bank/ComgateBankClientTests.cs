@@ -1,9 +1,11 @@
+using System.Net;
 using Anela.Heblo.Adapters.Comgate;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Xcc.Abo;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using Polly;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Bank;
@@ -29,6 +31,12 @@ public class ComgateBankClientTests
         _httpClient = new HttpClient();
     }
 
+    private ComgateBankClient CreateClient(HttpMessageHandler handler)
+    {
+        var httpClient = new HttpClient(handler);
+        return new ComgateBankClient(httpClient, _optionsMock.Object, _loggerMock.Object, ResiliencePipeline.Empty);
+    }
+
     [Fact]
     public void Constructor_WithValidParameters_CreatesInstance()
     {
@@ -44,6 +52,65 @@ public class ComgateBankClientTests
     {
         var client = new ComgateBankClient(_httpClient, _optionsMock.Object, _loggerMock.Object);
         Assert.Equal(BankClientProvider.Comgate, client.Provider);
+    }
+
+    [Fact]
+    public async Task GetStatementAsync_When521Response_ThrowsPaymentGatewayUnavailableException()
+    {
+        // Arrange
+        var handler = new FakeHttpHandler(() => new HttpResponseMessage((HttpStatusCode)521));
+        var client = CreateClient(handler);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<PaymentGatewayUnavailableException>(
+            () => client.GetStatementAsync("transfer-123"));
+
+        Assert.Equal(521, ex.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetStatementAsync_WhenServerError500_ThrowsPaymentGatewayUnavailableException()
+    {
+        // Arrange
+        var handler = new FakeHttpHandler(() => new HttpResponseMessage(HttpStatusCode.InternalServerError));
+        var client = CreateClient(handler);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<PaymentGatewayUnavailableException>(
+            () => client.GetStatementAsync("transfer-123"));
+
+        Assert.Equal(500, ex.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetStatementAsync_WhenClientError404_DoesNotThrowPaymentGatewayUnavailableException()
+    {
+        // Arrange
+        var handler = new FakeHttpHandler(() => new HttpResponseMessage(HttpStatusCode.NotFound));
+        var client = CreateClient(handler);
+
+        // Act & Assert — should throw HttpRequestException, NOT PaymentGatewayUnavailableException
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(
+            () => client.GetStatementAsync("transfer-123"));
+
+        Assert.NotNull(ex);
+    }
+
+    [Fact]
+    public void PaymentGatewayUnavailableException_StoresStatusCode()
+    {
+        var ex = new PaymentGatewayUnavailableException("gateway down", 521);
+
+        Assert.Equal(521, ex.StatusCode);
+        Assert.Contains("521", ex.Message);
+    }
+
+    [Fact]
+    public void PaymentGatewayUnavailableException_WithoutStatusCode_HasNullStatusCode()
+    {
+        var ex = new PaymentGatewayUnavailableException("circuit breaker open");
+
+        Assert.Null(ex.StatusCode);
     }
 
     [Fact]
@@ -185,4 +252,10 @@ Line2: Transaction 2
         // Assert
         Assert.Equal(string.Empty, aboHeader.Raw);
     }
+}
+
+internal class FakeHttpHandler(Func<HttpResponseMessage> responseFactory) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        => Task.FromResult(responseFactory());
 }

@@ -1,10 +1,14 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Net;
 using Anela.Heblo.Adapters.Comgate.Model;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Xcc.Abo;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
 
 namespace Anela.Heblo.Adapters.Comgate;
 
@@ -19,14 +23,39 @@ public class ComgateBankClient : IBankClient
     private static string GetStatementUrlTemplate =
         "https://payments.comgate.cz/v1.0/aboSingleTransfer?merchant={0}&secret={1}&transferId={2}&download=true&type=v2";
 
+    private readonly ResiliencePipeline _resiliencePipeline;
+
+    internal static ResiliencePipeline BuildDefaultPipeline() => new ResiliencePipelineBuilder()
+        .AddRetry(new RetryStrategyOptions
+        {
+            ShouldHandle = new PredicateBuilder()
+                .Handle<HttpRequestException>(ex => ex.StatusCode >= HttpStatusCode.InternalServerError),
+            MaxRetryAttempts = 3,
+            Delay = TimeSpan.FromSeconds(1),
+            BackoffType = DelayBackoffType.Exponential,
+            UseJitter = true,
+        })
+        .AddCircuitBreaker(new CircuitBreakerStrategyOptions
+        {
+            ShouldHandle = new PredicateBuilder()
+                .Handle<HttpRequestException>(ex => ex.StatusCode >= HttpStatusCode.InternalServerError),
+            FailureRatio = 0.5,
+            MinimumThroughput = 3,
+            SamplingDuration = TimeSpan.FromMinutes(1),
+            BreakDuration = TimeSpan.FromSeconds(30),
+        })
+        .Build();
+
     public ComgateBankClient(
         HttpClient httpClient,
         IOptions<ComgateSettings> options,
-        ILogger<ComgateBankClient> logger)
+        ILogger<ComgateBankClient> logger,
+        ResiliencePipeline? resiliencePipeline = null)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _settings = options.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _resiliencePipeline = resiliencePipeline ?? BuildDefaultPipeline();
     }
 
     public BankClientProvider Provider => BankClientProvider.Comgate;
@@ -43,10 +72,12 @@ public class ComgateBankClient : IBankClient
         var sw = Stopwatch.StartNew();
         try
         {
-            var response = await _httpClient.GetStreamAsync(url);
-
-            using var sr = new StreamReader(response);
-            var data = await sr.ReadToEndAsync();
+            var data = await _resiliencePipeline.ExecuteAsync(async ct =>
+            {
+                var response = await _httpClient.GetAsync(url, ct);
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadAsStringAsync(ct);
+            }, CancellationToken.None);
 
             sw.Stop();
 
@@ -66,6 +97,23 @@ public class ComgateBankClient : IBankClient
                 Data = data,
                 ItemCount = abo.Lines.Count,
             };
+        }
+        catch (BrokenCircuitException ex)
+        {
+            sw.Stop();
+            _logger.LogError(ex,
+                "Comgate API: Circuit breaker open - TransferId: {TransferId}, Duration: {Duration}ms",
+                transferId, sw.ElapsedMilliseconds);
+            throw new PaymentGatewayUnavailableException("Comgate payment gateway is temporarily unavailable (circuit breaker open).", null, ex);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode >= HttpStatusCode.InternalServerError)
+        {
+            sw.Stop();
+            _logger.LogError(ex,
+                "Comgate API: Server error after retries - TransferId: {TransferId}, StatusCode: {StatusCode}, Duration: {Duration}ms",
+                transferId, (int?)ex.StatusCode, sw.ElapsedMilliseconds);
+            throw new PaymentGatewayUnavailableException(
+                $"Comgate payment gateway returned server error {(int?)ex.StatusCode}.", (int?)ex.StatusCode, ex);
         }
         catch (HttpRequestException ex)
         {
@@ -101,21 +149,23 @@ public class ComgateBankClient : IBankClient
             var sw = Stopwatch.StartNew();
             try
             {
-                var request = new HttpRequestMessage(HttpMethod.Post, url);
-                var response = await _httpClient.SendAsync(request);
+                var dayResults = await _resiliencePipeline.ExecuteAsync(async ct =>
+                {
+                    var request = new HttpRequestMessage(HttpMethod.Post, url);
+                    var response = await _httpClient.SendAsync(request, ct);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        _logger.LogError(
+                            "Comgate API: HTTP request failed - StatusCode: {StatusCode}, Account: {AccountNumber}, Date: {Date}, Duration: {Duration}ms",
+                            response.StatusCode, accountNumber, date.ToString("yyyy-MM-dd"), sw.ElapsedMilliseconds);
+                    }
+
+                    response.EnsureSuccessStatusCode();
+                    return await response.Content.ReadAsAsync<List<ComgateStatementHeader>>();
+                }, CancellationToken.None);
 
                 sw.Stop();
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogError(
-                        "Comgate API: HTTP request failed - StatusCode: {StatusCode}, Account: {AccountNumber}, Date: {Date}, Duration: {Duration}ms",
-                        response.StatusCode, accountNumber, date.ToString("yyyy-MM-dd"), sw.ElapsedMilliseconds);
-                }
-
-                response.EnsureSuccessStatusCode();
-
-                var dayResults = await response.Content.ReadAsAsync<List<ComgateStatementHeader>>();
 
                 var filtered = dayResults
                     .Where(w => w.AccountCounterParty == accountNumber)
@@ -133,6 +183,23 @@ public class ComgateBankClient : IBankClient
 
                 results.AddRange(filtered);
             }
+            catch (BrokenCircuitException ex)
+            {
+                sw.Stop();
+                _logger.LogError(ex,
+                    "Comgate API: Circuit breaker open - Account: {AccountNumber}, Date: {Date}, Duration: {Duration}ms",
+                    accountNumber, date.ToString("yyyy-MM-dd"), sw.ElapsedMilliseconds);
+                throw new PaymentGatewayUnavailableException("Comgate payment gateway is temporarily unavailable (circuit breaker open).", null, ex);
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode >= HttpStatusCode.InternalServerError)
+            {
+                sw.Stop();
+                _logger.LogError(ex,
+                    "Comgate API: Server error after retries - Account: {AccountNumber}, Date: {Date}, StatusCode: {StatusCode}, Duration: {Duration}ms",
+                    accountNumber, date.ToString("yyyy-MM-dd"), (int?)ex.StatusCode, sw.ElapsedMilliseconds);
+                throw new PaymentGatewayUnavailableException(
+                    $"Comgate payment gateway returned server error {(int?)ex.StatusCode}.", (int?)ex.StatusCode, ex);
+            }
             catch (HttpRequestException ex)
             {
                 sw.Stop();
@@ -146,9 +213,6 @@ public class ComgateBankClient : IBankClient
         return results;
     }
 
-    /// <summary>
-    /// Anonymizes URL by replacing the secret parameter with asterisks
-    /// </summary>
     private string AnonymizeUrl(string url)
     {
         if (string.IsNullOrEmpty(_settings.Secret))
