@@ -20,8 +20,6 @@ public class AnthropicChatClient : IChatClient
             BackoffType = DelayBackoffType.Exponential,
             ShouldHandle = new PredicateBuilder()
                 .Handle<HttpRequestException>()
-                .Handle<TimeoutException>()
-                .Handle<TaskCanceledException>()
         })
         .Build();
 

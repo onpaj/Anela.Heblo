@@ -192,6 +192,7 @@ const resources = {
         KnowledgeBaseFeedbackLogNotFound: "Záznam zpětné vazby nenalezen",
         KnowledgeBaseFeedbackAlreadySubmitted: "Zpětná vazba již byla odeslána",
         KnowledgeBaseChunkNotFound: "Fragment znalostní báze nebyl nalezen (ID: {id})",
+        KnowledgeBaseAiUnavailable: "Služba AI je dočasně nedostupná. Zkuste to prosím znovu.",
 
         // ShoptetOrders module errors
         ShoptetOrderInvalidSourceState: "Objednávku nelze zablokovat – není ve povoleném stavu",
