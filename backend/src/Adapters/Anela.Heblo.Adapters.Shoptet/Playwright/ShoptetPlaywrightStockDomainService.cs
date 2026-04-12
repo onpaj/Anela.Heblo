@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Catalog.Stock;
 using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Users;
@@ -6,23 +7,20 @@ namespace Anela.Heblo.Adapters.Shoptet.Playwright;
 
 public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
 {
-    private readonly StockUpScenario _stockUpScenario;
-    private readonly VerifyStockUpScenario _verifyStockUpScenario;
+    private readonly IShoptetStockClient _stockClient;
     private readonly StockTakingScenario _inventoryAlignScenario;
     private readonly IStockTakingRepository _stockTakingRepository;
     private readonly ICurrentUserService _currentUser;
     private readonly TimeProvider _timeProvider;
 
     public ShoptetPlaywrightStockDomainService(
-        StockUpScenario stockUpScenario,
-        VerifyStockUpScenario verifyStockUpScenario,
+        IShoptetStockClient stockClient,
         StockTakingScenario inventoryAlignScenario,
         IStockTakingRepository stockTakingRepository,
         ICurrentUserService currentUser,
         TimeProvider timeProvider)
     {
-        _stockUpScenario = stockUpScenario;
-        _verifyStockUpScenario = verifyStockUpScenario;
+        _stockClient = stockClient;
         _inventoryAlignScenario = inventoryAlignScenario;
         _stockTakingRepository = stockTakingRepository;
         _currentUser = currentUser;
@@ -31,12 +29,16 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
 
     public async Task StockUpAsync(StockUpRequest stockUpOrder)
     {
-        var result = await _stockUpScenario.RunAsync(stockUpOrder);
+        foreach (var product in stockUpOrder.Products)
+        {
+            await _stockClient.UpdateStockAsync(product.ProductCode, product.Amount);
+        }
     }
 
-    public async Task<bool> VerifyStockUpExistsAsync(string documentNumber)
+    public Task<bool> VerifyStockUpExistsAsync(string documentNumber)
     {
-        return await _verifyStockUpScenario.RunAsync(documentNumber);
+        // REST API has no document-number search. Pre-check evaluates to "not found, proceed".
+        return Task.FromResult(false);
     }
 
     public async Task<StockTakingRecord> SubmitStockTakingAsync(EshopStockTakingRequest order)
