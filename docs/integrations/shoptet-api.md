@@ -394,7 +394,47 @@ These values are stored in `~/.microsoft/usersecrets/anela-heblo-adapters-shopte
 
 ---
 
-## 8. Design Documents
+## 8. Stock Movements (PATCH /api/stocks/{stockId}/movements)
+
+**Endpoint:** `PATCH /api/stocks/{stockId}/movements`
+
+**Purpose:** Update product stock quantities via relative delta (stock-up operations).
+
+**Key findings:**
+- `stockId` is a warehouse ID, not a product ID. Most Shoptet shops have one stock. Configure via `Shoptet:StockId` (int, default `1`).
+- **No `documentNumber` field** — `additionalProperties: false`, only `productCode` + one of `amountChange`/`quantity`/`realStock` accepted. We use `amountChange` (relative delta).
+- After migration, Shoptet admin "Historie" shows movements with timestamp/amount/API-email but no document numbers. Traceability moves to Heblo's `StockUpOperation` table.
+- **Partial errors on 200:** Shoptet returns `200 OK` even when some products fail — check the `errors[]` array. Since we always send one product per call, any non-empty `errors` means failure.
+- **`VerifyStockUpExistsAsync` always returns `false`** — REST API has no document-number search. Pre-check evaluates to "not found, proceed with submit", which is correct.
+- **Post-verify removed** from `StockUpProcessingService` — REST 200 with empty errors is a hard success guarantee, unlike Playwright where verification was needed.
+- `SubmitStockTakingAsync` still uses Playwright — out of scope for this migration.
+
+**Request body:**
+```json
+{
+  "data": [
+    { "productCode": "AKL001", "amountChange": 10 }
+  ]
+}
+```
+
+**Response (success):**
+```json
+{ "errors": null }
+```
+
+**Response (partial failure — treated as full failure since we send one product per call):**
+```json
+{
+  "errors": [
+    { "errorCode": "INVALID", "message": "Product not found", "instance": "AKL001" }
+  ]
+}
+```
+
+---
+
+## 9. Design Documents
 
 - **ShoptetApi Adapter F1** (ShoptetPay payout downloads): `docs/superpowers/specs/2026-03-24-shoptet-api-adapter-f1-design.md`
 - **ShoptetApi Adapter F1 Implementation Plan**: `docs/superpowers/plans/2026-03-24-shoptet-api-f1.md`
