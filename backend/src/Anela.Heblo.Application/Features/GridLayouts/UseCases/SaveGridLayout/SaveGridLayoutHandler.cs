@@ -1,8 +1,11 @@
 using System.Text.Json;
 using Anela.Heblo.Application.Features.GridLayouts.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace Anela.Heblo.Application.Features.GridLayouts.UseCases.SaveGridLayout;
 
@@ -10,11 +13,13 @@ public class SaveGridLayoutHandler : IRequestHandler<SaveGridLayoutRequest, Save
 {
     private readonly IGridLayoutRepository _repository;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ILogger<SaveGridLayoutHandler> _logger;
 
-    public SaveGridLayoutHandler(IGridLayoutRepository repository, ICurrentUserService currentUserService)
+    public SaveGridLayoutHandler(IGridLayoutRepository repository, ICurrentUserService currentUserService, ILogger<SaveGridLayoutHandler> logger)
     {
         _repository = repository;
         _currentUserService = currentUserService;
+        _logger = logger;
     }
 
     public async Task<SaveGridLayoutResponse> Handle(SaveGridLayoutRequest request, CancellationToken cancellationToken)
@@ -30,8 +35,19 @@ public class SaveGridLayoutHandler : IRequestHandler<SaveGridLayoutRequest, Save
         };
 
         var json = JsonSerializer.Serialize(payload);
-        await _repository.UpsertAsync(userId, request.GridKey, json, cancellationToken);
 
-        return new SaveGridLayoutResponse();
+        try
+        {
+            await _repository.UpsertAsync(userId, request.GridKey, json, cancellationToken);
+            return new SaveGridLayoutResponse();
+        }
+        catch (Exception ex) when (ex is PostgresException or NpgsqlException)
+        {
+            var pgEx = ex as PostgresException ?? ex.InnerException as PostgresException;
+            _logger.LogError(ex,
+                "Database error saving GridLayout for user={UserId} gridKey={GridKey} SqlState={SqlState}",
+                userId, request.GridKey, pgEx?.SqlState);
+            return new SaveGridLayoutResponse(ErrorCodes.DatabaseError);
+        }
     }
 }

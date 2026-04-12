@@ -35,7 +35,9 @@ public class GridLayoutsController : BaseApiController
     public async Task<ActionResult> Save(string gridKey, [FromBody] SaveGridLayoutRequest body)
     {
         body.GridKey = gridKey;
-        await _mediator.Send(body);
+        var response = await _mediator.Send(body);
+        if (!response.Success)
+            return StatusCode(500, response);
         return Ok();
     }
 
@@ -43,7 +45,9 @@ public class GridLayoutsController : BaseApiController
     public async Task<ActionResult> Reset(string gridKey)
     {
         var request = new ResetGridLayoutRequest { GridKey = gridKey };
-        await _mediator.Send(request);
+        var response = await _mediator.Send(request);
+        if (!response.Success)
+            return StatusCode(500, response);
         return Ok();
     }
 }
