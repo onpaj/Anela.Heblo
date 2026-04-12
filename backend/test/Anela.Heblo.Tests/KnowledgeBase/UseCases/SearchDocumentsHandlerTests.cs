@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -13,6 +14,7 @@ public class SearchDocumentsHandlerTests
     private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddingGenerator = new();
     private readonly Mock<IKnowledgeBaseRepository> _repository = new();
     private readonly Mock<IChatClient> _chatClient = new();
+    private readonly Mock<ILogger<SearchDocumentsHandler>> _logger = new();
 
     private SearchDocumentsHandler CreateHandler(double minScore = 0.60, bool queryExpansionEnabled = false)
     {
@@ -22,7 +24,7 @@ public class SearchDocumentsHandlerTests
             QueryExpansionEnabled = queryExpansionEnabled,
             QueryExpansionPrompt = "Expand:"
         });
-        return new SearchDocumentsHandler(_embeddingGenerator.Object, _repository.Object, options, _chatClient.Object);
+        return new SearchDocumentsHandler(_embeddingGenerator.Object, _repository.Object, options, _chatClient.Object, _logger.Object);
     }
 
     private void SetupEmbeddingGenerator()
@@ -177,6 +179,41 @@ public class SearchDocumentsHandlerTests
         _chatClient.Verify(
             c => c.GetResponseAsync(It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), default),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_QueryExpansionEnabled_LlmThrowsTransientError_FallsBackToRawQuery()
+    {
+        const string rawQuery = "popraskane ruce?";
+        SetupEmbeddingGenerator();
+
+        _chatClient
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                default))
+            .ThrowsAsync(new HttpRequestException("Exception while reading from stream"));
+
+        _repository
+            .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
+            .ReturnsAsync([]);
+
+        string? capturedEmbeddingInput = null;
+        _embeddingGenerator
+            .Setup(s => s.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                default))
+            .Callback<IEnumerable<string>, EmbeddingGenerationOptions?, CancellationToken>(
+                (texts, _, _) => capturedEmbeddingInput = texts.First())
+            .ReturnsAsync(new GeneratedEmbeddings<Embedding<float>>(
+                [new Embedding<float>(new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f }))]));
+
+        await CreateHandler(queryExpansionEnabled: true).Handle(
+            new SearchDocumentsRequest { Query = rawQuery, TopK = 5 },
+            default);
+
+        Assert.Equal(rawQuery, capturedEmbeddingInput);
     }
 
     [Fact]

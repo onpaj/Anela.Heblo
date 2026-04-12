@@ -3,6 +3,7 @@ using System.Text.Json;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Server;
 
@@ -12,10 +13,12 @@ namespace Anela.Heblo.API.MCP.Tools;
 public class KnowledgeBaseTools
 {
     private readonly IMediator _mediator;
+    private readonly ILogger<KnowledgeBaseTools> _logger;
 
-    public KnowledgeBaseTools(IMediator mediator)
+    public KnowledgeBaseTools(IMediator mediator, ILogger<KnowledgeBaseTools> logger)
     {
         _mediator = mediator;
+        _logger = logger;
     }
 
     [McpServerTool]
@@ -35,6 +38,7 @@ public class KnowledgeBaseTools
         }
         catch (Exception ex)
         {
+            _logger.LogWarning(ex, "MCP SearchKnowledgeBase failed for query '{Query}'", query);
             throw new McpException($"Failed to search knowledge base: {ex.Message}");
         }
     }
@@ -56,6 +60,7 @@ public class KnowledgeBaseTools
         }
         catch (Exception ex)
         {
+            _logger.LogWarning(ex, "MCP AskKnowledgeBase failed for question '{Question}'", question);
             throw new McpException($"Failed to answer question: {ex.Message}");
         }
     }
