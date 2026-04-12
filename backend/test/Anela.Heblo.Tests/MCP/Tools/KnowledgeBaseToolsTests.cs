@@ -3,6 +3,7 @@ using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using Moq;
 using Xunit;
@@ -12,6 +13,9 @@ namespace Anela.Heblo.Tests.MCP.Tools;
 public class KnowledgeBaseToolsTests
 {
     private readonly Mock<IMediator> _mediator = new();
+    private readonly Mock<ILogger<KnowledgeBaseTools>> _logger = new();
+
+    private KnowledgeBaseTools CreateTools() => new(_mediator.Object, _logger.Object);
 
     [Fact]
     public async Task SearchKnowledgeBase_ShouldMapParametersCorrectly()
@@ -27,8 +31,7 @@ public class KnowledgeBaseToolsTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
-        var tools = new KnowledgeBaseTools(_mediator.Object);
-        var result = await tools.SearchKnowledgeBase("phenoxyethanol", 3);
+        var result = await CreateTools().SearchKnowledgeBase("phenoxyethanol", 3);
 
         var deserialized = JsonSerializer.Deserialize<SearchDocumentsResponse>(result);
         Assert.NotNull(deserialized);
@@ -51,8 +54,7 @@ public class KnowledgeBaseToolsTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
-        var tools = new KnowledgeBaseTools(_mediator.Object);
-        var result = await tools.AskKnowledgeBase("Max phenoxyethanol?");
+        var result = await CreateTools().AskKnowledgeBase("Max phenoxyethanol?");
 
         var deserialized = JsonSerializer.Deserialize<AskQuestionResponse>(result);
         Assert.NotNull(deserialized);
@@ -67,9 +69,58 @@ public class KnowledgeBaseToolsTests
             .Setup(m => m.Send(It.IsAny<SearchDocumentsRequest>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("DB error"));
 
-        var tools = new KnowledgeBaseTools(_mediator.Object);
+        await Assert.ThrowsAsync<McpException>(() =>
+            CreateTools().SearchKnowledgeBase("query"));
+    }
+
+    [Fact]
+    public async Task SearchKnowledgeBase_ShouldLogWarning_WhenMediatorThrows()
+    {
+        _mediator
+            .Setup(m => m.Send(It.IsAny<SearchDocumentsRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("stream error"));
 
         await Assert.ThrowsAsync<McpException>(() =>
-            tools.SearchKnowledgeBase("query"));
+            CreateTools().SearchKnowledgeBase("query"));
+
+        _logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("SearchKnowledgeBase")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task AskKnowledgeBase_ShouldThrowMcpException_WhenMediatorThrows()
+    {
+        _mediator
+            .Setup(m => m.Send(It.IsAny<AskQuestionRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("AI error"));
+
+        await Assert.ThrowsAsync<McpException>(() =>
+            CreateTools().AskKnowledgeBase("question?"));
+    }
+
+    [Fact]
+    public async Task AskKnowledgeBase_ShouldLogWarning_WhenMediatorThrows()
+    {
+        _mediator
+            .Setup(m => m.Send(It.IsAny<AskQuestionRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("AI error"));
+
+        await Assert.ThrowsAsync<McpException>(() =>
+            CreateTools().AskKnowledgeBase("question?"));
+
+        _logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("AskKnowledgeBase")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 }
