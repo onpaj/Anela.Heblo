@@ -119,7 +119,7 @@ public class AnthropicChatClientTests
     }
 
     [Fact]
-    public async Task GetResponseAsync_TimeoutException_IsRetriedByPolly()
+    public async Task GetResponseAsync_TimeoutException_PropagatesWithoutRetry()
     {
         int callCount = 0;
         var handlerMock = new Mock<HttpMessageHandler>();
@@ -132,26 +132,18 @@ public class AnthropicChatClientTests
             .Returns<HttpRequestMessage, CancellationToken>((_, _) =>
             {
                 callCount++;
-                if (callCount < 4)
-                    throw new TimeoutException("Simulated timeout");
-
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(BuildSuccessJson("ok after retries"))
-                });
+                throw new TimeoutException("Simulated timeout");
             });
 
         var client = CreateClient(handler: handlerMock.Object);
         var messages = new[] { new ChatMessage(ChatRole.User, "Hi") };
 
-        var response = await client.GetResponseAsync(messages);
-
-        Assert.Equal("ok after retries", response.Text);
-        Assert.Equal(4, callCount);
+        await Assert.ThrowsAsync<TimeoutException>(() => client.GetResponseAsync(messages));
+        Assert.Equal(1, callCount);
     }
 
     [Fact]
-    public async Task GetResponseAsync_TaskCanceledException_IsRetriedByPolly()
+    public async Task GetResponseAsync_TaskCanceledException_PropagatesWithoutRetry()
     {
         int callCount = 0;
         var handlerMock = new Mock<HttpMessageHandler>();
@@ -164,22 +156,14 @@ public class AnthropicChatClientTests
             .Returns<HttpRequestMessage, CancellationToken>((_, _) =>
             {
                 callCount++;
-                if (callCount < 4)
-                    throw new TaskCanceledException("Simulated task cancellation");
-
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(BuildSuccessJson("ok after retries"))
-                });
+                throw new TaskCanceledException("Simulated task cancellation");
             });
 
         var client = CreateClient(handler: handlerMock.Object);
         var messages = new[] { new ChatMessage(ChatRole.User, "Hi") };
 
-        var response = await client.GetResponseAsync(messages);
-
-        Assert.Equal("ok after retries", response.Text);
-        Assert.Equal(4, callCount);
+        await Assert.ThrowsAsync<TaskCanceledException>(() => client.GetResponseAsync(messages));
+        Assert.Equal(1, callCount);
     }
 
     [Fact]

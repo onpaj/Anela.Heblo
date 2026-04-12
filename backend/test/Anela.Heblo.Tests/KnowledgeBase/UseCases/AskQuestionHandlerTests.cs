@@ -2,8 +2,10 @@ using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
+using Anela.Heblo.Application.Shared;
 using MediatR;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -15,15 +17,24 @@ public class AskQuestionHandlerTests
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IChatClient> _chatClient = new();
     private readonly Mock<IProductEnrichmentCache> _enrichmentCache = new();
+    private readonly Mock<ILogger<AskQuestionHandler>> _logger = new();
 
     private AskQuestionHandler CreateHandler(KnowledgeBaseOptions? options = null) =>
         new(_mediator.Object, _chatClient.Object, Options.Create(options ?? new KnowledgeBaseOptions()),
-            _enrichmentCache.Object);
+            _enrichmentCache.Object, _logger.Object);
 
     private void SetupEmptyCache() =>
         _enrichmentCache
             .Setup(c => c.GetProductLookupAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, ProductEnrichmentEntry>());
+
+    private void SetupSearchWithChunk() =>
+        _mediator
+            .Setup(m => m.Send(It.IsAny<SearchDocumentsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SearchDocumentsResponse
+            {
+                Chunks = [new ChunkResult { ChunkId = Guid.NewGuid(), DocumentId = Guid.NewGuid(), Content = "some content", Score = 0.9, SourceFilename = "doc.pdf", SourcePath = "/doc.pdf" }]
+            });
 
     [Fact]
     public async Task Handle_ReturnsAnswerWithSources()
@@ -164,5 +175,30 @@ public class AskQuestionHandlerTests
         Assert.DoesNotContain("AKL001", systemMessage);
         Assert.Contains("Kontext:", systemMessage);
         Assert.Contains("Dotaz:", systemMessage);
+    }
+
+    [Theory]
+    [InlineData(typeof(HttpRequestException))]
+    [InlineData(typeof(TimeoutException))]
+    [InlineData(typeof(TaskCanceledException))]
+    public async Task Handle_ChatClientThrowsTransientException_ReturnsAiUnavailableError(Type exceptionType)
+    {
+        SetupEmptyCache();
+        SetupSearchWithChunk();
+
+        var exception = (Exception)Activator.CreateInstance(exceptionType, "simulated failure")!;
+        _chatClient
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(exception);
+
+        var result = await CreateHandler().Handle(
+            new AskQuestionRequest { Question = "Dotaz?", TopK = 5 },
+            default);
+
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.KnowledgeBaseAiUnavailable, result.ErrorCode);
     }
 }

@@ -209,6 +209,8 @@ public enum ErrorCodes
     KnowledgeBaseFeedbackAlreadySubmitted = 2002,
     [HttpStatusCode(HttpStatusCode.NotFound)]
     KnowledgeBaseChunkNotFound = 2003,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    KnowledgeBaseAiUnavailable = 2004,
 
     // ShoptetOrders module errors (21XX)
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]

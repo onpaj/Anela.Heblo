@@ -1,7 +1,9 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
+using Anela.Heblo.Application.Shared;
 using MediatR;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
@@ -12,17 +14,20 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
     private readonly IChatClient _chatClient;
     private readonly KnowledgeBaseOptions _options;
     private readonly IProductEnrichmentCache _enrichmentCache;
+    private readonly ILogger<AskQuestionHandler> _logger;
 
     public AskQuestionHandler(
         IMediator mediator,
         IChatClient chatClient,
         IOptions<KnowledgeBaseOptions> options,
-        IProductEnrichmentCache enrichmentCache)
+        IProductEnrichmentCache enrichmentCache,
+        ILogger<AskQuestionHandler> logger)
     {
         _mediator = mediator;
         _chatClient = chatClient;
         _options = options.Value;
         _enrichmentCache = enrichmentCache;
+        _logger = logger;
     }
 
     public async Task<AskQuestionResponse> Handle(
@@ -58,7 +63,21 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
             new(ChatRole.User, request.Question)
         };
 
-        var response = await _chatClient.GetResponseAsync(messages, cancellationToken: cancellationToken);
+        ChatResponse response;
+        try
+        {
+            response = await _chatClient.GetResponseAsync(messages, cancellationToken: cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TimeoutException or TaskCanceledException)
+        {
+            _logger.LogWarning(ex, "AI service unavailable while processing KnowledgeBase/Ask");
+            return new AskQuestionResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.KnowledgeBaseAiUnavailable
+            };
+        }
+
         var answer = response.Text ?? string.Empty;
 
         return new AskQuestionResponse
