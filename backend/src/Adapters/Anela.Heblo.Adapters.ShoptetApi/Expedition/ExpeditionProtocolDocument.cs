@@ -103,22 +103,61 @@ public class ExpeditionProtocolDocument : IDocument
                             static IContainer DataCell(IContainer c) =>
                                 c.Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(2);
 
+                            static IContainer SetDataCell(IContainer c) =>
+                                c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+                                 .Background(Colors.Blue.Lighten4).Padding(2);
+
                             static IContainer CenteredDataCell(IContainer c) =>
                                 c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
                                  .Padding(2).AlignCenter().AlignMiddle();
 
-                            foreach (var item in order.Items)
+                            static IContainer SetCenteredDataCell(IContainer c) =>
+                                c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+                                 .Background(Colors.Blue.Lighten4)
+                                 .Padding(2).AlignCenter().AlignMiddle();
+
+                            static IContainer SetHeaderCell(IContainer c) =>
+                                c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+                                 .Background(Colors.Blue.Lighten3)
+                                 .Padding(2);
+
+                            var regularItems = order.Items.Where(i => i.SetName == null).ToList();
+                            var setGroups = order.Items
+                                .Where(i => i.SetName != null)
+                                .GroupBy(i => i.SetName!)
+                                .ToList();
+
+                            foreach (var item in regularItems)
                             {
                                 table.Cell().Element(DataCell).Text(item.ProductCode);
                                 table.Cell().Element(DataCell).Text(item.Name);
                                 table.Cell().Element(DataCell).Text(FormatVariant(item.Variant)).FontSize(8);
-
                                 table.Cell().Element(CenteredDataCell)
                                     .Text(FormatAmount(item.Quantity, item.Unit)).FontSize(11).Bold();
                                 table.Cell().Element(CenteredDataCell)
                                     .Text(item.WarehousePosition ?? string.Empty).FontSize(8);
                                 table.Cell().Element(CenteredDataCell)
                                     .Text(item.StockCount.ToString("0.##"));
+                            }
+
+                            foreach (var group in setGroups)
+                            {
+                                // Sub-header spanning all 6 columns
+                                table.Cell().ColumnSpan(6).Element(SetHeaderCell)
+                                    .Text($"Sada: {group.Key}").Bold().FontSize(8);
+
+                                foreach (var item in group)
+                                {
+                                    table.Cell().Element(SetDataCell).Text(item.ProductCode);
+                                    table.Cell().Element(SetDataCell).Text(item.Name);
+                                    table.Cell().Element(SetDataCell).Text(FormatVariant(item.Variant)).FontSize(8);
+                                    table.Cell().Element(SetCenteredDataCell)
+                                        .Text(FormatAmount(item.Quantity, item.Unit)).FontSize(11).Bold();
+                                    table.Cell().Element(SetCenteredDataCell)
+                                        .Text(item.WarehousePosition ?? string.Empty).FontSize(8);
+                                    table.Cell().Element(SetCenteredDataCell)
+                                        .Text(item.StockCount.ToString("0.##"));
+                                }
                             }
                         });
 
@@ -147,6 +186,7 @@ public class ExpeditionProtocolDocument : IDocument
                             first.Unit,
                             TotalQty = g.Sum(i => i.Quantity),
                             first.StockCount,
+                            first.IsFromSet,
                         };
                     })
                     .OrderBy(x => x.WarehousePosition == null)
@@ -188,21 +228,33 @@ public class ExpeditionProtocolDocument : IDocument
                     static IContainer SummaryDataCell(IContainer c) =>
                         c.Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(2);
 
+                    static IContainer SummarySetDataCell(IContainer c) =>
+                        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+                         .Background(Colors.Blue.Lighten4).Padding(2);
+
                     static IContainer SummaryCenteredDataCell(IContainer c) =>
                         c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
                          .Padding(2).AlignCenter().AlignMiddle();
 
+                    static IContainer SummarySetCenteredDataCell(IContainer c) =>
+                        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+                         .Background(Colors.Blue.Lighten4)
+                         .Padding(2).AlignCenter().AlignMiddle();
+
                     foreach (var row in aggregated)
                     {
-                        table.Cell().Element(SummaryDataCell).Text(row.Code);
-                        table.Cell().Element(SummaryDataCell).Text(row.Name);
-                        table.Cell().Element(SummaryDataCell).Text(FormatVariant(row.Variant)).FontSize(8);
+                        Func<IContainer, IContainer> cell = row.IsFromSet ? SummarySetDataCell : SummaryDataCell;
+                        Func<IContainer, IContainer> centeredCell = row.IsFromSet ? SummarySetCenteredDataCell : SummaryCenteredDataCell;
 
-                        table.Cell().Element(SummaryCenteredDataCell)
+                        table.Cell().Element(cell).Text(row.Code);
+                        table.Cell().Element(cell).Text(row.Name);
+                        table.Cell().Element(cell).Text(FormatVariant(row.Variant)).FontSize(8);
+
+                        table.Cell().Element(centeredCell)
                             .Text(FormatAmount(row.TotalQty, row.Unit)).FontSize(11).Bold();
-                        table.Cell().Element(SummaryCenteredDataCell)
+                        table.Cell().Element(centeredCell)
                             .Text(row.WarehousePosition ?? string.Empty).FontSize(8);
-                        table.Cell().Element(SummaryCenteredDataCell)
+                        table.Cell().Element(centeredCell)
                             .Text(row.StockCount.ToString("0.##"));
                     }
                 });
