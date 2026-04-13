@@ -2,8 +2,10 @@ using Anela.Heblo.Adapters.Flexi.Stock;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Model;
+using System.Net;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture.Internal;
 
@@ -12,20 +14,35 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
     private readonly IBoMClient _bomClient;
     private readonly IErpStockClient _stockClient;
     private readonly TimeProvider _timeProvider;
+    private readonly ILogger<FlexiManufactureTemplateService> _logger;
 
     public FlexiManufactureTemplateService(
         IBoMClient bomClient,
         IErpStockClient stockClient,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ILogger<FlexiManufactureTemplateService> logger)
     {
         _bomClient = bomClient ?? throw new ArgumentNullException(nameof(bomClient));
         _stockClient = stockClient ?? throw new ArgumentNullException(nameof(stockClient));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<ManufactureTemplate?> GetManufactureTemplateAsync(string productCode, CancellationToken cancellationToken = default)
     {
-        var bom = await _bomClient.GetAsync(productCode, cancellationToken);
+        IEnumerable<BoMItemFlexiDto> bom;
+        try
+        {
+            bom = await _bomClient.GetAsync(productCode, cancellationToken);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotImplemented)
+        {
+            _logger.LogError(ex,
+                "FlexiBee kusovnik returned 501 NotImplemented while fetching BoM template — " +
+                "endpoint may be disabled or unsupported on this instance. ProductCode: {ProductCode}",
+                productCode);
+            throw;
+        }
 
         var header = bom.SingleOrDefault(s => s.Level == 1);
         if (header == null)
