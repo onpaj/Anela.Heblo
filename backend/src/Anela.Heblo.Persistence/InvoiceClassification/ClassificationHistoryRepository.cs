@@ -55,7 +55,11 @@ public class ClassificationHistoryRepository : IClassificationHistoryRepository
             query = query.Where(h => h.Timestamp >= fromDate.Value);
 
         if (toDate.HasValue)
-            query = query.Where(h => h.Timestamp <= toDate.Value);
+        {
+            // Include the full end day: toDate is sent as midnight (00:00:00), so we extend to the start of the next day
+            var endOfDay = toDate.Value.Date.AddDays(1);
+            query = query.Where(h => h.Timestamp < endOfDay);
+        }
 
         if (!string.IsNullOrEmpty(invoiceNumber))
             query = query.Where(h => h.AbraInvoiceId.Contains(invoiceNumber));
@@ -82,7 +86,10 @@ public class ClassificationHistoryRepository : IClassificationHistoryRepository
             query = query.Where(h => h.Timestamp >= fromDate.Value);
 
         if (toDate.HasValue)
-            query = query.Where(h => h.Timestamp <= toDate.Value);
+        {
+            var endOfDay = toDate.Value.Date.AddDays(1);
+            query = query.Where(h => h.Timestamp < endOfDay);
+        }
 
         var totalProcessed = await query.CountAsync();
         var successCount = await query.CountAsync(h => h.Result == ClassificationResult.Success);
