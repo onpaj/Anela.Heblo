@@ -7339,6 +7339,7 @@ export enum ErrorCodes {
     KnowledgeBaseFeedbackLogNotFound = "KnowledgeBaseFeedbackLogNotFound",
     KnowledgeBaseFeedbackAlreadySubmitted = "KnowledgeBaseFeedbackAlreadySubmitted",
     KnowledgeBaseChunkNotFound = "KnowledgeBaseChunkNotFound",
+    KnowledgeBaseAiUnavailable = "KnowledgeBaseAiUnavailable",
     ShoptetOrderInvalidSourceState = "ShoptetOrderInvalidSourceState",
     ShoptetOrderNotFound = "ShoptetOrderNotFound",
     ExternalServiceError = "ExternalServiceError",
@@ -16080,6 +16081,16 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
     erpOrderNumberProductDate?: Date | undefined;
     erpDiscardResidueDocumentNumber?: string | undefined;
     erpDiscardResidueDocumentNumberDate?: Date | undefined;
+    docMaterialIssueForSemiProduct?: string | undefined;
+    docMaterialIssueForSemiProductDate?: Date | undefined;
+    docSemiProductReceipt?: string | undefined;
+    docSemiProductReceiptDate?: Date | undefined;
+    docSemiProductIssueForProduct?: string | undefined;
+    docSemiProductIssueForProductDate?: Date | undefined;
+    docMaterialIssueForProduct?: string | undefined;
+    docMaterialIssueForProductDate?: Date | undefined;
+    docProductReceipt?: string | undefined;
+    docProductReceiptDate?: Date | undefined;
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;
@@ -16114,6 +16125,16 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
             this.erpOrderNumberProductDate = _data["erpOrderNumberProductDate"] ? new Date(_data["erpOrderNumberProductDate"].toString()) : <any>undefined;
             this.erpDiscardResidueDocumentNumber = _data["erpDiscardResidueDocumentNumber"];
             this.erpDiscardResidueDocumentNumberDate = _data["erpDiscardResidueDocumentNumberDate"] ? new Date(_data["erpDiscardResidueDocumentNumberDate"].toString()) : <any>undefined;
+            this.docMaterialIssueForSemiProduct = _data["docMaterialIssueForSemiProduct"];
+            this.docMaterialIssueForSemiProductDate = _data["docMaterialIssueForSemiProductDate"] ? new Date(_data["docMaterialIssueForSemiProductDate"].toString()) : <any>undefined;
+            this.docSemiProductReceipt = _data["docSemiProductReceipt"];
+            this.docSemiProductReceiptDate = _data["docSemiProductReceiptDate"] ? new Date(_data["docSemiProductReceiptDate"].toString()) : <any>undefined;
+            this.docSemiProductIssueForProduct = _data["docSemiProductIssueForProduct"];
+            this.docSemiProductIssueForProductDate = _data["docSemiProductIssueForProductDate"] ? new Date(_data["docSemiProductIssueForProductDate"].toString()) : <any>undefined;
+            this.docMaterialIssueForProduct = _data["docMaterialIssueForProduct"];
+            this.docMaterialIssueForProductDate = _data["docMaterialIssueForProductDate"] ? new Date(_data["docMaterialIssueForProductDate"].toString()) : <any>undefined;
+            this.docProductReceipt = _data["docProductReceipt"];
+            this.docProductReceiptDate = _data["docProductReceiptDate"] ? new Date(_data["docProductReceiptDate"].toString()) : <any>undefined;
             this.createdDate = _data["createdDate"] ? new Date(_data["createdDate"].toString()) : <any>undefined;
             this.createdByUser = _data["createdByUser"];
             this.responsiblePerson = _data["responsiblePerson"];
@@ -16156,6 +16177,16 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
         data["erpOrderNumberProductDate"] = this.erpOrderNumberProductDate ? this.erpOrderNumberProductDate.toISOString() : <any>undefined;
         data["erpDiscardResidueDocumentNumber"] = this.erpDiscardResidueDocumentNumber;
         data["erpDiscardResidueDocumentNumberDate"] = this.erpDiscardResidueDocumentNumberDate ? this.erpDiscardResidueDocumentNumberDate.toISOString() : <any>undefined;
+        data["docMaterialIssueForSemiProduct"] = this.docMaterialIssueForSemiProduct;
+        data["docMaterialIssueForSemiProductDate"] = this.docMaterialIssueForSemiProductDate ? this.docMaterialIssueForSemiProductDate.toISOString() : <any>undefined;
+        data["docSemiProductReceipt"] = this.docSemiProductReceipt;
+        data["docSemiProductReceiptDate"] = this.docSemiProductReceiptDate ? this.docSemiProductReceiptDate.toISOString() : <any>undefined;
+        data["docSemiProductIssueForProduct"] = this.docSemiProductIssueForProduct;
+        data["docSemiProductIssueForProductDate"] = this.docSemiProductIssueForProductDate ? this.docSemiProductIssueForProductDate.toISOString() : <any>undefined;
+        data["docMaterialIssueForProduct"] = this.docMaterialIssueForProduct;
+        data["docMaterialIssueForProductDate"] = this.docMaterialIssueForProductDate ? this.docMaterialIssueForProductDate.toISOString() : <any>undefined;
+        data["docProductReceipt"] = this.docProductReceipt;
+        data["docProductReceiptDate"] = this.docProductReceiptDate ? this.docProductReceiptDate.toISOString() : <any>undefined;
         data["createdDate"] = this.createdDate ? this.createdDate.toISOString() : <any>undefined;
         data["createdByUser"] = this.createdByUser;
         data["responsiblePerson"] = this.responsiblePerson;
@@ -16191,6 +16222,16 @@ export interface IManufactureOrderDto {
     erpOrderNumberProductDate?: Date | undefined;
     erpDiscardResidueDocumentNumber?: string | undefined;
     erpDiscardResidueDocumentNumberDate?: Date | undefined;
+    docMaterialIssueForSemiProduct?: string | undefined;
+    docMaterialIssueForSemiProductDate?: Date | undefined;
+    docSemiProductReceipt?: string | undefined;
+    docSemiProductReceiptDate?: Date | undefined;
+    docSemiProductIssueForProduct?: string | undefined;
+    docSemiProductIssueForProductDate?: Date | undefined;
+    docMaterialIssueForProduct?: string | undefined;
+    docMaterialIssueForProductDate?: Date | undefined;
+    docProductReceipt?: string | undefined;
+    docProductReceiptDate?: Date | undefined;
     createdDate?: Date;
     createdByUser?: string;
     responsiblePerson?: string | undefined;

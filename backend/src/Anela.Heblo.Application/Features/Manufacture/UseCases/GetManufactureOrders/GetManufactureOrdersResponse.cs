@@ -22,6 +22,16 @@ public class ManufactureOrderDto
     public DateTime? ErpOrderNumberProductDate { get; set; }
     public string? ErpDiscardResidueDocumentNumber { get; set; }
     public DateTime? ErpDiscardResidueDocumentNumberDate { get; set; }
+    public string? DocMaterialIssueForSemiProduct { get; set; }
+    public DateTime? DocMaterialIssueForSemiProductDate { get; set; }
+    public string? DocSemiProductReceipt { get; set; }
+    public DateTime? DocSemiProductReceiptDate { get; set; }
+    public string? DocSemiProductIssueForProduct { get; set; }
+    public DateTime? DocSemiProductIssueForProductDate { get; set; }
+    public string? DocMaterialIssueForProduct { get; set; }
+    public DateTime? DocMaterialIssueForProductDate { get; set; }
+    public string? DocProductReceipt { get; set; }
+    public DateTime? DocProductReceiptDate { get; set; }
     public DateTime CreatedDate { get; set; }
     public string CreatedByUser { get; set; } = null!;
     public string? ResponsiblePerson { get; set; }
