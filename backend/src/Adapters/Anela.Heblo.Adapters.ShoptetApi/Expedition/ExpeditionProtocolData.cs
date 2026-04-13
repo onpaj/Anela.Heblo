@@ -26,4 +26,6 @@ public class ExpeditionOrderItem
     public decimal StockDemand { get; set; }
     public decimal UnitPrice { get; set; }
     public string Unit { get; set; } = string.Empty;
+    public bool IsFromSet { get; set; }
+    public string? SetName { get; set; }
 }
