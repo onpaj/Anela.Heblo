@@ -131,5 +131,14 @@ public class IssuedInvoiceConfiguration : IEntityTypeConfiguration<IssuedInvoice
 
         builder.HasIndex(e => e.LastSyncTime)
             .HasDatabaseName("IX_IssuedInvoice_LastSyncTime");
+
+        builder.HasIndex(e => e.IsSynced)
+            .HasDatabaseName("IX_IssuedInvoice_IsSynced");
+
+        builder.HasIndex(e => e.ErrorType)
+            .HasDatabaseName("IX_IssuedInvoice_ErrorType");
+
+        builder.HasIndex(e => e.CustomerName)
+            .HasDatabaseName("IX_IssuedInvoice_CustomerName");
     }
 }
