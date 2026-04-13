@@ -7,6 +7,8 @@ using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 using Anela.Heblo.Xcc;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Anela.Heblo.Adapters.Shoptet.Tests")]
+
 namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 
 public class ShoptetApiExpeditionListSource : IPickingListSource
@@ -116,19 +118,27 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
 
             async Task FlushBatchAsync(List<ExpeditionOrder> batch)
             {
-                // Enrich with stock counts from catalog
+                // Enrich with stock counts and warehouse positions from catalog.
+                // Positions are only applied where the Shoptet API left them blank (set components).
                 var productCodes = batch.SelectMany(o => o.Items).Select(i => i.ProductCode).Distinct();
                 var stockByCode = new Dictionary<string, decimal>();
+                var locationByCode = new Dictionary<string, string>();
                 foreach (var productCode in productCodes)
                 {
                     var entry = await _catalog.GetByIdAsync(productCode, cancellationToken);
                     if (entry != null)
+                    {
                         stockByCode[productCode] = entry.Stock.Available;
+                        if (!string.IsNullOrEmpty(entry.Location))
+                            locationByCode[productCode] = entry.Location;
+                    }
                 }
                 foreach (var item in batch.SelectMany(o => o.Items))
                 {
                     if (stockByCode.TryGetValue(item.ProductCode, out var stock))
                         item.StockCount = stock;
+                    if (string.IsNullOrEmpty(item.WarehousePosition) && locationByCode.TryGetValue(item.ProductCode, out var location))
+                        item.WarehousePosition = location;
                 }
 
                 var data = new ExpeditionProtocolData
@@ -227,7 +237,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         };
     }
 
-    private static List<ExpeditionOrderItem> MapOrderItems(Model.ExpeditionOrderDetail detail)
+    internal static List<ExpeditionOrderItem> MapOrderItems(Model.ExpeditionOrderDetail detail)
     {
         var result = new List<ExpeditionOrderItem>();
 
@@ -266,10 +276,12 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                         ProductCode = component.Code ?? string.Empty,
                         Name = component.Name ?? string.Empty,
                         Variant = component.VariantName ?? string.Empty,
-                        WarehousePosition = string.Empty,
+                        WarehousePosition = string.Empty, // Shoptet completion API does not return stock locations for set components
                         Quantity = (int)(component.Amount ?? 0) * setQuantity,
                         Unit = component.Unit ?? string.Empty,
                         UnitPrice = 0m,
+                        IsFromSet = true,
+                        SetName = item.Name,
                     });
                 }
             }

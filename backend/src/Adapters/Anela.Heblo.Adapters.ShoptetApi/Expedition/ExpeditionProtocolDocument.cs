@@ -107,18 +107,48 @@ public class ExpeditionProtocolDocument : IDocument
                                 c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
                                  .Padding(2).AlignCenter().AlignMiddle();
 
-                            foreach (var item in order.Items)
+                            static IContainer SetHeaderCell(IContainer c) =>
+                                c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+                                 .Background(Colors.Grey.Lighten2)
+                                 .Padding(2);
+
+                            var regularItems = order.Items.Where(i => i.SetName == null).ToList();
+                            var setGroups = order.Items
+                                .Where(i => i.SetName != null)
+                                .GroupBy(i => i.SetName!)
+                                .ToList();
+
+                            foreach (var item in regularItems)
                             {
                                 table.Cell().Element(DataCell).Text(item.ProductCode);
                                 table.Cell().Element(DataCell).Text(item.Name);
                                 table.Cell().Element(DataCell).Text(FormatVariant(item.Variant)).FontSize(8);
-
                                 table.Cell().Element(CenteredDataCell)
                                     .Text(FormatAmount(item.Quantity, item.Unit)).FontSize(11).Bold();
                                 table.Cell().Element(CenteredDataCell)
                                     .Text(item.WarehousePosition ?? string.Empty).FontSize(8);
                                 table.Cell().Element(CenteredDataCell)
                                     .Text(item.StockCount.ToString("0.##"));
+                            }
+
+                            foreach (var group in setGroups)
+                            {
+                                // Sub-header spanning all 6 columns
+                                table.Cell().ColumnSpan(6).Element(SetHeaderCell)
+                                    .Text($"Sada: {group.Key}").Bold().FontSize(8);
+
+                                foreach (var item in group)
+                                {
+                                    table.Cell().Element(DataCell).Text(item.ProductCode).Italic();
+                                    table.Cell().Element(DataCell).Text(item.Name).Italic();
+                                    table.Cell().Element(DataCell).Text(FormatVariant(item.Variant)).FontSize(8).Italic();
+                                    table.Cell().Element(CenteredDataCell)
+                                        .Text(FormatAmount(item.Quantity, item.Unit)).FontSize(11).Bold().Italic();
+                                    table.Cell().Element(CenteredDataCell)
+                                        .Text(item.WarehousePosition ?? string.Empty).FontSize(8).Italic();
+                                    table.Cell().Element(CenteredDataCell)
+                                        .Text(item.StockCount.ToString("0.##")).Italic();
+                                }
                             }
                         });
 
@@ -147,6 +177,7 @@ public class ExpeditionProtocolDocument : IDocument
                             first.Unit,
                             TotalQty = g.Sum(i => i.Quantity),
                             first.StockCount,
+                            first.IsFromSet,
                         };
                     })
                     .OrderBy(x => x.WarehousePosition == null)
@@ -194,16 +225,30 @@ public class ExpeditionProtocolDocument : IDocument
 
                     foreach (var row in aggregated)
                     {
-                        table.Cell().Element(SummaryDataCell).Text(row.Code);
-                        table.Cell().Element(SummaryDataCell).Text(row.Name);
-                        table.Cell().Element(SummaryDataCell).Text(FormatVariant(row.Variant)).FontSize(8);
-
-                        table.Cell().Element(SummaryCenteredDataCell)
-                            .Text(FormatAmount(row.TotalQty, row.Unit)).FontSize(11).Bold();
-                        table.Cell().Element(SummaryCenteredDataCell)
-                            .Text(row.WarehousePosition ?? string.Empty).FontSize(8);
-                        table.Cell().Element(SummaryCenteredDataCell)
-                            .Text(row.StockCount.ToString("0.##"));
+                        if (row.IsFromSet)
+                        {
+                            table.Cell().Element(SummaryDataCell).Text(row.Code).Italic();
+                            table.Cell().Element(SummaryDataCell).Text(row.Name).Italic();
+                            table.Cell().Element(SummaryDataCell).Text(FormatVariant(row.Variant)).FontSize(8).Italic();
+                            table.Cell().Element(SummaryCenteredDataCell)
+                                .Text(FormatAmount(row.TotalQty, row.Unit)).FontSize(11).Bold().Italic();
+                            table.Cell().Element(SummaryCenteredDataCell)
+                                .Text(row.WarehousePosition ?? string.Empty).FontSize(8).Italic();
+                            table.Cell().Element(SummaryCenteredDataCell)
+                                .Text(row.StockCount.ToString("0.##")).Italic();
+                        }
+                        else
+                        {
+                            table.Cell().Element(SummaryDataCell).Text(row.Code);
+                            table.Cell().Element(SummaryDataCell).Text(row.Name);
+                            table.Cell().Element(SummaryDataCell).Text(FormatVariant(row.Variant)).FontSize(8);
+                            table.Cell().Element(SummaryCenteredDataCell)
+                                .Text(FormatAmount(row.TotalQty, row.Unit)).FontSize(11).Bold();
+                            table.Cell().Element(SummaryCenteredDataCell)
+                                .Text(row.WarehousePosition ?? string.Empty).FontSize(8);
+                            table.Cell().Element(SummaryCenteredDataCell)
+                                .Text(row.StockCount.ToString("0.##"));
+                        }
                     }
                 });
             });

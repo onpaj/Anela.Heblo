@@ -276,13 +276,29 @@ public class ShoptetTestEnvironmentHydrationTests
         var ct = new CancellationTokenSource(TimeSpan.FromMinutes(5)).Token;
         var orders = await _client.ListByExternalCodePrefixAsync("TEST-", "test-seed@heblo.test", ct);
 
+        // Some states block deletion with 409 — try resetting to -2 first, skip if still blocked.
+        const int deletableStateId = -2;
+        int deleted = 0, skipped = 0;
+
         foreach (var order in orders)
         {
-            await _client.DeleteOrderAsync(order.Code, ct);
-            _output.WriteLine($"DELETED  {order.Code} ({order.ExternalCode})");
+            try
+            {
+                if (order.StatusId != deletableStateId)
+                    await _client.UpdateStatusAsync(order.Code, deletableStateId, ct);
+
+                await _client.DeleteOrderAsync(order.Code, ct);
+                _output.WriteLine($"DELETED  {order.Code} ({order.ExternalCode})");
+                deleted++;
+            }
+            catch (HttpRequestException ex)
+            {
+                _output.WriteLine($"SKIPPED  {order.Code} ({order.ExternalCode}) — {ex.Message}");
+                skipped++;
+            }
         }
 
-        _output.WriteLine($"\nDeleted {orders.Count} test orders.");
+        _output.WriteLine($"\nDeleted {deleted}, skipped {skipped} test orders.");
     }
 
     // ── Seed catalog ──────────────────────────────────────────────────────────
@@ -325,6 +341,8 @@ public class ShoptetTestEnvironmentHydrationTests
     }
 
     // ── Item builder ──────────────────────────────────────────────────────────
+
+    private static readonly string[] SetCodes = ["SA015030", "SA015005", "SA014005"];
 
     // Amount distribution: 90 % → 1, 6 % → 2, 3 % → 3, 1 % → 5
     private static int PickAmount(Random rng)
@@ -370,6 +388,21 @@ public class ShoptetTestEnvironmentHydrationTests
                 };
             })
             .ToList<EshopOrderItem>();
+
+        // 15% chance to include a product set
+        if (rng.Next(100) < 15)
+        {
+            var setCode = SetCodes[rng.Next(SetCodes.Length)];
+            items.Add(new EshopOrderItem
+            {
+                ItemType = "product-set",
+                Code = setCode,
+                Name = $"Test set {setCode}",
+                VatRate = "21",
+                ItemPriceWithVat = $"{rng.Next(200, 1101)}.00",
+                Amount = "1",
+            });
+        }
 
         items.Add(new EshopOrderItem
         {
