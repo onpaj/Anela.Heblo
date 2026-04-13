@@ -273,7 +273,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                         Unit = component.Unit ?? string.Empty,
                         UnitPrice = 0m,
                         IsFromSet = true,
-                        SetName = item.Name ?? string.Empty,
+                        SetName = item.Name,
                     });
                 }
             }
