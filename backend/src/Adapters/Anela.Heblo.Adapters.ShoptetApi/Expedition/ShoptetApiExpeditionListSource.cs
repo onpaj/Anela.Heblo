@@ -7,6 +7,8 @@ using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 using Anela.Heblo.Xcc;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Anela.Heblo.Adapters.Shoptet.Tests")]
+
 namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 
 public class ShoptetApiExpeditionListSource : IPickingListSource
@@ -227,7 +229,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         };
     }
 
-    private static List<ExpeditionOrderItem> MapOrderItems(Model.ExpeditionOrderDetail detail)
+    internal static List<ExpeditionOrderItem> MapOrderItems(Model.ExpeditionOrderDetail detail)
     {
         var result = new List<ExpeditionOrderItem>();
 
@@ -270,6 +272,8 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                         Quantity = (int)(component.Amount ?? 0) * setQuantity,
                         Unit = component.Unit ?? string.Empty,
                         UnitPrice = 0m,
+                        IsFromSet = true,
+                        SetName = item.Name ?? string.Empty,
                     });
                 }
             }
