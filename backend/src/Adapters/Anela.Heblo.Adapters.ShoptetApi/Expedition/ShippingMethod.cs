@@ -20,13 +20,13 @@ public class ShippingMethod
     /// Counts item lines, not pieces (quantity is not considered).
     /// If a single order has more items than this limit it still gets its own batch.
     /// </summary>
-    public int MaxItems { get; set; } = 15;
+    public int MaxItems { get; set; } = 13;
 
     /// <summary>
-    /// Maximum number of orders per batch. Default is 7.
+    /// Maximum number of orders per batch. Default is 6.
     /// Use for carriers like Osobak where each order must be its own PDF regardless of item count.
     /// </summary>
-    public int MaxOrders { get; set; } = 7;
+    public int MaxOrders { get; set; } = 6;
 
     /// <summary>
     /// Shipping method GUIDs as returned by GET /api/orders (shipping.guid).

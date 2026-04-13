@@ -268,7 +268,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                         ProductCode = component.Code ?? string.Empty,
                         Name = component.Name ?? string.Empty,
                         Variant = component.VariantName ?? string.Empty,
-                        WarehousePosition = string.Empty,
+                        WarehousePosition = string.Empty, // Shoptet completion API does not return stock locations for set components
                         Quantity = (int)(component.Amount ?? 0) * setQuantity,
                         Unit = component.Unit ?? string.Empty,
                         UnitPrice = 0m,
