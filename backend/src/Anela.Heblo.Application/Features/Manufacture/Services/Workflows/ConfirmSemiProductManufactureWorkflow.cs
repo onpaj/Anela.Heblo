@@ -120,6 +120,7 @@ public class ConfirmSemiProductManufactureWorkflow : IConfirmSemiProductManufact
 
         var submitManufactureRequest = new SubmitManufactureRequest
         {
+            ManufactureOrderId = orderId,
             ManufactureOrderNumber = order.OrderNumber,
             ManufactureInternalNumber = manufactureName,
             ManufactureType = ErpManufactureType.SemiProduct,

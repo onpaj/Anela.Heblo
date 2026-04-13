@@ -193,15 +193,15 @@ public class GetManufactureProtocolHandlerTests
             {
                 new() { CreatedAt = DateTime.UtcNow, CreatedByUser = "Test User", Text = "Test note" }
             },
-            FlexiDocMaterialIssueForSemiProduct = "V-MAT-001",
-            FlexiDocMaterialIssueForSemiProductDate = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc),
-            FlexiDocSemiProductReceipt = "V-POL-001",
-            FlexiDocSemiProductReceiptDate = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc),
-            FlexiDocSemiProductIssueForProduct = "V-POL-OUT-001",
-            FlexiDocSemiProductIssueForProductDate = new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc),
-            FlexiDocMaterialIssueForProduct = null, // Optional — not present in this order
-            FlexiDocProductReceipt = "V-PROD-001",
-            FlexiDocProductReceiptDate = new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc),
+            DocMaterialIssueForSemiProduct = "V-MAT-001",
+            DocMaterialIssueForSemiProductDate = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc),
+            DocSemiProductReceipt = "V-POL-001",
+            DocSemiProductReceiptDate = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc),
+            DocSemiProductIssueForProduct = "V-POL-OUT-001",
+            DocSemiProductIssueForProductDate = new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc),
+            DocMaterialIssueForProduct = null, // Optional — not present in this order
+            DocProductReceipt = "V-PROD-001",
+            DocProductReceiptDate = new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc),
         };
     }
 }

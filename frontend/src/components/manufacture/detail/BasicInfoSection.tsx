@@ -15,15 +15,11 @@ interface BasicInfoSectionProps {
   order: any;
   canEditFields: boolean;
   editableResponsiblePerson: string;
-  editableErpOrderNumberSemiproduct: string;
-  editableErpOrderNumberProduct: string;
   editablePlannedDate: string;
   editableLotNumber: string;
   editableExpirationDate: string;
   editableManualActionRequired: boolean;
   onResponsiblePersonChange: (value: string | null) => void;
-  onErpOrderNumberSemiproductChange: (value: string) => void;
-  onErpOrderNumberProductChange: (value: string) => void;
   onPlannedDateChange: (value: string) => void;
   onLotNumberChange: (value: string) => void;
   onExpirationDateChange: (value: string) => void;
@@ -40,15 +36,11 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   order,
   canEditFields,
   editableResponsiblePerson,
-  editableErpOrderNumberSemiproduct,
-  editableErpOrderNumberProduct,
   editablePlannedDate,
   editableLotNumber,
   editableExpirationDate,
   editableManualActionRequired,
   onResponsiblePersonChange,
-  onErpOrderNumberSemiproductChange,
-  onErpOrderNumberProductChange,
   onPlannedDateChange,
   onLotNumberChange,
   onExpirationDateChange,
@@ -60,6 +52,13 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   shouldTruncateText,
   truncateText,
 }) => {
+  const flexiDocs = [
+    { label: 'Výdej materiálu (polotovar)', value: order.docMaterialIssueForSemiProduct, date: order.docMaterialIssueForSemiProductDate, hideForSinglePhase: true },
+    { label: 'Příjem polotovaru', value: order.docSemiProductReceipt, date: order.docSemiProductReceiptDate, hideForSinglePhase: true },
+    { label: 'Výdej polotovaru (výrobek)', value: order.docSemiProductIssueForProduct, date: order.docSemiProductIssueForProductDate, hideForSinglePhase: true },
+    { label: 'Výdej materiálu (výrobek)', value: order.docMaterialIssueForProduct, date: order.docMaterialIssueForProductDate, hideForSinglePhase: false },
+    { label: 'Příjem výrobku', value: order.docProductReceipt, date: order.docProductReceiptDate, hideForSinglePhase: false },
+  ];
   return (
     <div className="bg-gray-50 rounded-lg p-3">
       <h3 className="text-base font-semibold text-gray-800 mb-3 flex items-center">
@@ -88,56 +87,24 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           )}
         </div>
         
-        {/* ERP Order Numbers - Hide ERP meziprod for SinglePhase */}
-        {order?.manufactureType !== ManufactureType.SinglePhase && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Hash className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-sm text-gray-500">ERP č. (meziprod.):</span>
-            </div>
-            {canEditFields ? (
-              <input
-                type="text"
-                value={editableErpOrderNumberSemiproduct}
-                onChange={(e) => onErpOrderNumberSemiproductChange(e.target.value)}
-                className="w-48 text-sm border border-gray-300 rounded px-2 py-1"
-                placeholder="ERP číslo pro meziprodukt"
-                title={order.erpOrderNumberSemiproductDate ? `Datum: ${formatDateTime(order.erpOrderNumberSemiproductDate)}` : "Datum není nastaveno"}
-              />
-            ) : (
-              <span 
+        {/* Flexi document numbers (read-only, captured from submission pipeline) */}
+        {flexiDocs
+          .filter(doc => !(doc.hideForSinglePhase && order?.manufactureType === ManufactureType.SinglePhase))
+          .map(doc => (
+            <div key={doc.label} className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Hash className="h-4 w-4 text-gray-400 mr-2" />
+                <span className="text-sm text-gray-500">{doc.label}:</span>
+              </div>
+              <span
                 className="text-sm text-gray-900"
-                title={order.erpOrderNumberSemiproductDate ? `Datum: ${formatDateTime(order.erpOrderNumberSemiproductDate)}` : "Datum není nastaveno"}
+                title={doc.date ? `Datum: ${formatDateTime(doc.date)}` : undefined}
               >
-                {order.erpOrderNumberSemiproduct || "-"}
+                {doc.value || "-"}
               </span>
-            )}
-          </div>
-        )}
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Hash className="h-4 w-4 text-gray-400 mr-2" />
-            <span className="text-sm text-gray-500">ERP č. (produkt):</span>
-          </div>
-          {canEditFields ? (
-            <input
-              type="text"
-              value={editableErpOrderNumberProduct}
-              onChange={(e) => onErpOrderNumberProductChange(e.target.value)}
-              className="w-48 text-sm border border-gray-300 rounded px-2 py-1"
-              placeholder="ERP číslo pro produkt"
-              title={order.erpOrderNumberProductDate ? `Datum: ${formatDateTime(order.erpOrderNumberProductDate)}` : "Datum není nastaveno"}
-            />
-          ) : (
-            <span 
-              className="text-sm text-gray-900"
-              title={order.erpOrderNumberProductDate ? `Datum: ${formatDateTime(order.erpOrderNumberProductDate)}` : "Datum není nastaveno"}
-            >
-              {order.erpOrderNumberProduct || "-"}
-            </span>
-          )}
-        </div>
+            </div>
+          ))
+        }
         
         
         {/* Manual Action Required Section */}

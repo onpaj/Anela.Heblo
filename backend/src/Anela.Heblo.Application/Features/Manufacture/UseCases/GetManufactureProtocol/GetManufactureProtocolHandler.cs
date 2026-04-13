@@ -87,11 +87,11 @@ public class GetManufactureProtocolHandler : IRequestHandler<GetManufactureProto
     {
         var lookups = new List<(string Label, string? Code, DateTime? Date)>
         {
-            ("Výdej materiálu (polotovar)", order.FlexiDocMaterialIssueForSemiProduct, order.FlexiDocMaterialIssueForSemiProductDate),
-            ("Příjem polotovaru", order.FlexiDocSemiProductReceipt, order.FlexiDocSemiProductReceiptDate),
-            ("Výdej polotovaru (výrobek)", order.FlexiDocSemiProductIssueForProduct, order.FlexiDocSemiProductIssueForProductDate),
-            ("Výdej materiálu (výrobek)", order.FlexiDocMaterialIssueForProduct, order.FlexiDocMaterialIssueForProductDate),
-            ("Příjem výrobku", order.FlexiDocProductReceipt, order.FlexiDocProductReceiptDate),
+            ("Výdej materiálu (polotovar)", order.DocMaterialIssueForSemiProduct, order.DocMaterialIssueForSemiProductDate),
+            ("Příjem polotovaru", order.DocSemiProductReceipt, order.DocSemiProductReceiptDate),
+            ("Výdej polotovaru (výrobek)", order.DocSemiProductIssueForProduct, order.DocSemiProductIssueForProductDate),
+            ("Výdej materiálu (výrobek)", order.DocMaterialIssueForProduct, order.DocMaterialIssueForProductDate),
+            ("Příjem výrobku", order.DocProductReceipt, order.DocProductReceiptDate),
         };
 
         var populated = lookups.Where(l => !string.IsNullOrEmpty(l.Code)).ToList();
