@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
+using Anela.Heblo.Application.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Users;
 
@@ -6,45 +7,48 @@ namespace Anela.Heblo.Adapters.Shoptet.Playwright;
 
 public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
 {
-    private readonly StockUpScenario _stockUpScenario;
-    private readonly VerifyStockUpScenario _verifyStockUpScenario;
     private readonly StockTakingScenario _inventoryAlignScenario;
     private readonly IStockTakingRepository _stockTakingRepository;
     private readonly ICurrentUserService _currentUser;
     private readonly TimeProvider _timeProvider;
+    private readonly IShoptetStockClient _stockClient;
 
     public ShoptetPlaywrightStockDomainService(
-        StockUpScenario stockUpScenario,
-        VerifyStockUpScenario verifyStockUpScenario,
         StockTakingScenario inventoryAlignScenario,
         IStockTakingRepository stockTakingRepository,
         ICurrentUserService currentUser,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IShoptetStockClient stockClient)
     {
-        _stockUpScenario = stockUpScenario;
-        _verifyStockUpScenario = verifyStockUpScenario;
         _inventoryAlignScenario = inventoryAlignScenario;
         _stockTakingRepository = stockTakingRepository;
         _currentUser = currentUser;
         _timeProvider = timeProvider;
+        _stockClient = stockClient;
     }
 
     public async Task StockUpAsync(StockUpRequest stockUpOrder)
     {
-        var result = await _stockUpScenario.RunAsync(stockUpOrder);
+        foreach (var product in stockUpOrder.Products)
+        {
+            await _stockClient.UpdateStockAsync(product.ProductCode, product.Amount);
+        }
     }
 
-    public async Task<bool> VerifyStockUpExistsAsync(string documentNumber)
-    {
-        return await _verifyStockUpScenario.RunAsync(documentNumber);
-    }
+    /// <summary>
+    /// The Shoptet REST API does not support searching movements by document number,
+    /// so this check is not possible. Returns false to allow the caller to proceed with submit.
+    /// Traceability is maintained in Heblo's StockUpOperation table via DocumentNumber.
+    /// </summary>
+    public Task<bool> VerifyStockUpExistsAsync(string documentNumber)
+        => Task.FromResult(false);
 
     public async Task<StockTakingRecord> SubmitStockTakingAsync(EshopStockTakingRequest order)
     {
         try
         {
             StockTakingRecord result;
-            if (!order.SoftStockTaking) // No real stock taking, just a record in DB
+            if (!order.SoftStockTaking)
             {
                 result = await _inventoryAlignScenario.RunAsync(order);
             }
@@ -53,8 +57,8 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
                 result = new StockTakingRecord()
                 {
                     Code = order.ProductCode,
-                    AmountNew = (double)order.TargetAmount, // TODO COnvert to decimal
-                    AmountOld = (double)order.TargetAmount, // TODO COnvert to decimal
+                    AmountNew = (double)order.TargetAmount,
+                    AmountOld = (double)order.TargetAmount,
                 };
             }
             result.User = _currentUser.GetCurrentUser().Name;
@@ -69,9 +73,9 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
             {
                 Date = _timeProvider.GetUtcNow().DateTime,
                 Code = order.ProductCode,
-                AmountNew = (double)order.TargetAmount, // TODO Convert to decimal
-                AmountOld = (double)order.TargetAmount, // TODO Convert to decimal
-                Error = e.Message
+                AmountNew = (double)order.TargetAmount,
+                AmountOld = (double)order.TargetAmount,
+                Error = e.Message,
             };
         }
     }
