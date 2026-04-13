@@ -8,14 +8,15 @@ public static class ComgateAdapterServiceCollectionExtensions
 {
     public static IServiceCollection AddComgateAdapter(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddHttpClient();
-
         // Configure ComgateSettings using Options pattern
         var comgateSection = configuration.GetSection(ComgateSettings.ConfigurationKey);
         services.Configure<ComgateSettings>(comgateSection);
 
+        // Register typed HttpClient for ComgateBankClient
+        services.AddHttpClient<ComgateBankClient>();
+
         // Register IBankClient implementation
-        services.AddTransient<IBankClient, ComgateBankClient>();
+        services.AddTransient<IBankClient>(sp => sp.GetRequiredService<ComgateBankClient>());
 
         return services;
     }
