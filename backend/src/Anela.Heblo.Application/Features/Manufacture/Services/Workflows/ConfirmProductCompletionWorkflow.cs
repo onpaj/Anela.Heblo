@@ -159,6 +159,7 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
 
         var submitRequest = new SubmitManufactureRequest
         {
+            ManufactureOrderId = orderId,
             ManufactureOrderNumber = order.OrderNumber,
             ManufactureInternalNumber = manufactureName,
             ManufactureType = ErpManufactureType.Product,

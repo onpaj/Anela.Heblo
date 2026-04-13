@@ -33,24 +33,24 @@ public class ManufactureOrder
 
     // ABRA Flexi stock-document codes captured from SubmitManufactureAsync results.
     // 1. Material issue for semi-product (V-VYDEJ-MATERIAL, phase A)
-    public string? FlexiDocMaterialIssueForSemiProduct { get; set; }
-    public DateTime? FlexiDocMaterialIssueForSemiProductDate { get; set; }
+    public string? DocMaterialIssueForSemiProduct { get; set; }
+    public DateTime? DocMaterialIssueForSemiProductDate { get; set; }
 
     // 2. Semi-product receipt (V-PRIJEM-POLOTOVAR, phase A)
-    public string? FlexiDocSemiProductReceipt { get; set; }
-    public DateTime? FlexiDocSemiProductReceiptDate { get; set; }
+    public string? DocSemiProductReceipt { get; set; }
+    public DateTime? DocSemiProductReceiptDate { get; set; }
 
     // 3. Semi-product issue for product (V-VYDEJ-POLOTOVAR, phase B)
-    public string? FlexiDocSemiProductIssueForProduct { get; set; }
-    public DateTime? FlexiDocSemiProductIssueForProductDate { get; set; }
+    public string? DocSemiProductIssueForProduct { get; set; }
+    public DateTime? DocSemiProductIssueForProductDate { get; set; }
 
     // 4. Material issue for product (V-VYDEJ-MATERIAL, phase B, optional)
-    public string? FlexiDocMaterialIssueForProduct { get; set; }
-    public DateTime? FlexiDocMaterialIssueForProductDate { get; set; }
+    public string? DocMaterialIssueForProduct { get; set; }
+    public DateTime? DocMaterialIssueForProductDate { get; set; }
 
     // 5. Product receipt (V-PRIJEM-VYROBEK, phase B)
-    public string? FlexiDocProductReceipt { get; set; }
-    public DateTime? FlexiDocProductReceiptDate { get; set; }
+    public string? DocProductReceipt { get; set; }
+    public DateTime? DocProductReceiptDate { get; set; }
 
     public bool? WeightWithinTolerance { get; set; }
     public decimal? WeightDifference { get; set; }   // positive = surplus, negative = deficit

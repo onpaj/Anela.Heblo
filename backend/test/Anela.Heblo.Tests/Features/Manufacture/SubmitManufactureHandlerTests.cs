@@ -12,6 +12,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class SubmitManufactureHandlerTests
 {
     private readonly Mock<IManufactureClient> _clientMock = new();
+    private readonly Mock<IManufactureOrderRepository> _repositoryMock = new();
     private readonly Mock<IManufactureErrorTransformer> _transformerMock = new();
     private readonly Mock<ILogger<SubmitManufactureHandler>> _loggerMock = new();
     private readonly SubmitManufactureHandler _handler;
@@ -20,7 +21,9 @@ public class SubmitManufactureHandlerTests
     {
         _handler = new SubmitManufactureHandler(
             _clientMock.Object,
+            _repositoryMock.Object,
             _transformerMock.Object,
+            TimeProvider.System,
             _loggerMock.Object);
     }
 

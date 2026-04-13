@@ -378,12 +378,12 @@ public class UpdateManufactureOrderStatusHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         result.Success.Should().BeTrue();
-        updatedOrder!.FlexiDocMaterialIssueForSemiProduct.Should().Be("V-MAT-001");
-        updatedOrder.FlexiDocMaterialIssueForSemiProductDate.Should().NotBeNull();
-        updatedOrder.FlexiDocSemiProductReceipt.Should().Be("V-POL-001");
-        updatedOrder.FlexiDocSemiProductReceiptDate.Should().NotBeNull();
-        updatedOrder.FlexiDocSemiProductIssueForProduct.Should().BeNull();
-        updatedOrder.FlexiDocProductReceipt.Should().BeNull();
+        updatedOrder!.DocMaterialIssueForSemiProduct.Should().Be("V-MAT-001");
+        updatedOrder.DocMaterialIssueForSemiProductDate.Should().NotBeNull();
+        updatedOrder.DocSemiProductReceipt.Should().Be("V-POL-001");
+        updatedOrder.DocSemiProductReceiptDate.Should().NotBeNull();
+        updatedOrder.DocSemiProductIssueForProduct.Should().BeNull();
+        updatedOrder.DocProductReceipt.Should().BeNull();
     }
 
     [Fact]
@@ -416,14 +416,14 @@ public class UpdateManufactureOrderStatusHandlerTests
         var result = await _handler.Handle(request, CancellationToken.None);
 
         result.Success.Should().BeTrue();
-        updatedOrder!.FlexiDocSemiProductIssueForProduct.Should().Be("V-POLV-001");
-        updatedOrder.FlexiDocSemiProductIssueForProductDate.Should().NotBeNull();
-        updatedOrder.FlexiDocMaterialIssueForProduct.Should().Be("V-MATV-001");
-        updatedOrder.FlexiDocMaterialIssueForProductDate.Should().NotBeNull();
-        updatedOrder.FlexiDocProductReceipt.Should().Be("V-PRIJEM-001");
-        updatedOrder.FlexiDocProductReceiptDate.Should().NotBeNull();
-        updatedOrder.FlexiDocMaterialIssueForSemiProduct.Should().BeNull();
-        updatedOrder.FlexiDocSemiProductReceipt.Should().BeNull();
+        updatedOrder!.DocSemiProductIssueForProduct.Should().Be("V-POLV-001");
+        updatedOrder.DocSemiProductIssueForProductDate.Should().NotBeNull();
+        updatedOrder.DocMaterialIssueForProduct.Should().Be("V-MATV-001");
+        updatedOrder.DocMaterialIssueForProductDate.Should().NotBeNull();
+        updatedOrder.DocProductReceipt.Should().Be("V-PRIJEM-001");
+        updatedOrder.DocProductReceiptDate.Should().NotBeNull();
+        updatedOrder.DocMaterialIssueForSemiProduct.Should().BeNull();
+        updatedOrder.DocSemiProductReceipt.Should().BeNull();
     }
 
     [Fact]
@@ -437,7 +437,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         };
 
         var existingOrder = CreateOrderInState(ManufactureOrderState.SemiProductManufactured);
-        existingOrder.FlexiDocMaterialIssueForSemiProduct = "V-MAT-EXISTING";
+        existingOrder.DocMaterialIssueForSemiProduct = "V-MAT-EXISTING";
 
         _repositoryMock
             .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
@@ -450,7 +450,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         await _handler.Handle(request, CancellationToken.None);
 
         _repositoryMock.Verify(x => x.UpdateOrderAsync(
-            It.Is<ManufactureOrder>(o => o.FlexiDocMaterialIssueForSemiProduct == "V-MAT-EXISTING"),
+            It.Is<ManufactureOrder>(o => o.DocMaterialIssueForSemiProduct == "V-MAT-EXISTING"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

@@ -7,6 +7,7 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufactur
 
 public class SubmitManufactureRequest : IRequest<SubmitManufactureResponse>
 {
+    public int ManufactureOrderId { get; set; }
     [Required] public string ManufactureOrderNumber { get; set; } = null!;
 
     [Required] public string ManufactureInternalNumber { get; set; } = null!;

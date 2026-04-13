@@ -77,32 +77,32 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
 
             if (request.FlexiDocMaterialIssueForSemiProduct != null)
             {
-                order.FlexiDocMaterialIssueForSemiProduct = request.FlexiDocMaterialIssueForSemiProduct;
-                order.FlexiDocMaterialIssueForSemiProductDate = _timeProvider.GetUtcNow().DateTime;
+                order.DocMaterialIssueForSemiProduct = request.FlexiDocMaterialIssueForSemiProduct;
+                order.DocMaterialIssueForSemiProductDate = _timeProvider.GetUtcNow().DateTime;
             }
 
             if (request.FlexiDocSemiProductReceipt != null)
             {
-                order.FlexiDocSemiProductReceipt = request.FlexiDocSemiProductReceipt;
-                order.FlexiDocSemiProductReceiptDate = _timeProvider.GetUtcNow().DateTime;
+                order.DocSemiProductReceipt = request.FlexiDocSemiProductReceipt;
+                order.DocSemiProductReceiptDate = _timeProvider.GetUtcNow().DateTime;
             }
 
             if (request.FlexiDocSemiProductIssueForProduct != null)
             {
-                order.FlexiDocSemiProductIssueForProduct = request.FlexiDocSemiProductIssueForProduct;
-                order.FlexiDocSemiProductIssueForProductDate = _timeProvider.GetUtcNow().DateTime;
+                order.DocSemiProductIssueForProduct = request.FlexiDocSemiProductIssueForProduct;
+                order.DocSemiProductIssueForProductDate = _timeProvider.GetUtcNow().DateTime;
             }
 
             if (request.FlexiDocMaterialIssueForProduct != null)
             {
-                order.FlexiDocMaterialIssueForProduct = request.FlexiDocMaterialIssueForProduct;
-                order.FlexiDocMaterialIssueForProductDate = _timeProvider.GetUtcNow().DateTime;
+                order.DocMaterialIssueForProduct = request.FlexiDocMaterialIssueForProduct;
+                order.DocMaterialIssueForProductDate = _timeProvider.GetUtcNow().DateTime;
             }
 
             if (request.FlexiDocProductReceipt != null)
             {
-                order.FlexiDocProductReceipt = request.FlexiDocProductReceipt;
-                order.FlexiDocProductReceiptDate = _timeProvider.GetUtcNow().DateTime;
+                order.DocProductReceipt = request.FlexiDocProductReceipt;
+                order.DocProductReceiptDate = _timeProvider.GetUtcNow().DateTime;
             }
 
             if (request.Note != null)

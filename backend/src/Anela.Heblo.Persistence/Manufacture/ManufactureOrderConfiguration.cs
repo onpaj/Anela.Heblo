@@ -73,38 +73,38 @@ public class ManufactureOrderConfiguration : IEntityTypeConfiguration<Manufactur
             .IsRequired(false)
             .AsUtcTimestamp();
 
-        builder.Property(x => x.FlexiDocMaterialIssueForSemiProduct)
+        builder.Property(x => x.DocMaterialIssueForSemiProduct)
             .IsRequired(false);
 
-        builder.Property(x => x.FlexiDocMaterialIssueForSemiProductDate)
+        builder.Property(x => x.DocMaterialIssueForSemiProductDate)
             .IsRequired(false)
             .AsUtcTimestamp();
 
-        builder.Property(x => x.FlexiDocSemiProductReceipt)
+        builder.Property(x => x.DocSemiProductReceipt)
             .IsRequired(false);
 
-        builder.Property(x => x.FlexiDocSemiProductReceiptDate)
+        builder.Property(x => x.DocSemiProductReceiptDate)
             .IsRequired(false)
             .AsUtcTimestamp();
 
-        builder.Property(x => x.FlexiDocSemiProductIssueForProduct)
+        builder.Property(x => x.DocSemiProductIssueForProduct)
             .IsRequired(false);
 
-        builder.Property(x => x.FlexiDocSemiProductIssueForProductDate)
+        builder.Property(x => x.DocSemiProductIssueForProductDate)
             .IsRequired(false)
             .AsUtcTimestamp();
 
-        builder.Property(x => x.FlexiDocMaterialIssueForProduct)
+        builder.Property(x => x.DocMaterialIssueForProduct)
             .IsRequired(false);
 
-        builder.Property(x => x.FlexiDocMaterialIssueForProductDate)
+        builder.Property(x => x.DocMaterialIssueForProductDate)
             .IsRequired(false)
             .AsUtcTimestamp();
 
-        builder.Property(x => x.FlexiDocProductReceipt)
+        builder.Property(x => x.DocProductReceipt)
             .IsRequired(false);
 
-        builder.Property(x => x.FlexiDocProductReceiptDate)
+        builder.Property(x => x.DocProductReceiptDate)
             .IsRequired(false)
             .AsUtcTimestamp();
 
