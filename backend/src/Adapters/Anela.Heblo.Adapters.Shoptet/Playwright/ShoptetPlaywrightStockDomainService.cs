@@ -1,5 +1,4 @@
 using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
-using Anela.Heblo.Application.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Users;
 
@@ -11,14 +10,14 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
     private readonly IStockTakingRepository _stockTakingRepository;
     private readonly ICurrentUserService _currentUser;
     private readonly TimeProvider _timeProvider;
-    private readonly IShoptetStockClient _stockClient;
+    private readonly IEshopStockClient _stockClient;
 
     public ShoptetPlaywrightStockDomainService(
         StockTakingScenario inventoryAlignScenario,
         IStockTakingRepository stockTakingRepository,
         ICurrentUserService currentUser,
         TimeProvider timeProvider,
-        IShoptetStockClient stockClient)
+        IEshopStockClient stockClient)
     {
         _inventoryAlignScenario = inventoryAlignScenario;
         _stockTakingRepository = stockTakingRepository;

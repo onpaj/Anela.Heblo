@@ -5,6 +5,7 @@ using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Stock;
 using FluentAssertions;
 using Microsoft.Extensions.Options;
+using Moq;
 
 namespace Anela.Heblo.Tests.Adapters.ShoptetApi;
 
@@ -19,7 +20,9 @@ public class ShoptetStockClientTests
             BaseAddress = new Uri("https://fake.shoptet.cz"),
         };
         var settings = Options.Create(new ShoptetApiSettings { StockId = stockId });
-        return new ShoptetStockClient(http, settings);
+        var stockClientOptions = Options.Create(new ShoptetStockClientOptions());
+        var httpClientFactory = new Mock<IHttpClientFactory>().Object;
+        return new ShoptetStockClient(http, httpClientFactory, settings, stockClientOptions);
     }
 
     private static HttpResponseMessage Json(object obj, HttpStatusCode status = HttpStatusCode.OK)
