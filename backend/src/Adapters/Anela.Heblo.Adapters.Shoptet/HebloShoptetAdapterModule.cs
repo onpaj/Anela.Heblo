@@ -6,7 +6,6 @@ using System.Text;
 using Anela.Heblo.Adapters.Shoptet.IssuedInvoices;
 using Anela.Heblo.Adapters.Shoptet.IssuedInvoices.ValueResolvers;
 using Anela.Heblo.Adapters.Shoptet.Price;
-using Anela.Heblo.Adapters.Shoptet.Stock;
 using Anela.Heblo.Domain.Features.CashRegister;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
@@ -46,7 +45,6 @@ public static class ShoptetAdapterServiceCollectionExtensions
         services.AddSingleton<IssuedInvoiceExportScenario>();
 
         services.AddScoped<IEshopStockDomainService, ShoptetPlaywrightStockDomainService>();
-        services.AddSingleton<StockTakingScenario>();
 
         services.AddSingleton<ICashRegisterOrdersSource, ShoptetPlaywrightCashRegisterOrdersSource>();
         services.AddSingleton<CashRegisterStatisticsScenario>();
@@ -56,10 +54,6 @@ public static class ShoptetAdapterServiceCollectionExtensions
         services.Configure<PlaywrightSourceOptions>(configuration.GetSection(PlaywrightSourceOptions.SettingsKey));
         services.AddSingleton(configuration.GetSection(PlaywrightSourceOptions.SettingsKey).Get<PlaywrightSourceOptions>());
 
-
-        services.AddSingleton<IEshopStockClient, ShoptetStockClient>();
-        services.Configure<ShoptetStockClientOptions>(
-            configuration.GetSection(ShoptetStockClientOptions.SettingsKey));
 
         services.AddSingleton<IProductPriceEshopClient, ShoptetPriceClient>();
 

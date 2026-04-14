@@ -455,6 +455,93 @@ The response `data.defaultStockId` is the value to configure.
   `StockUpOperation` state machine (unique `DocumentNumber` per operation, Submitted → Completed transition).
 - `VerifyStockUpExistsAsync` is not implementable via REST (no document-number filter on `GET /api/stocks/{id}/movements`). The pre-check in `StockUpProcessingService` always returns false and is effectively a no-op with the REST adapter.
 
+### 8.6 GET /api/stocks/{stockId}/supplies
+
+Reads the current stock level for one or more variants. Used by StockTaking to read state before setting an absolute quantity.
+
+```
+GET /api/stocks/{stockId}/supplies
+```
+
+**Query parameters:**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `code` | string (optional) | Filter by variant code (SKU). Omit to return all. |
+| `onlyWithClaim` | bool | When `true`, return only items with a non-zero `claim` (reserved by pending orders). |
+| `changedFrom` | ISO 8601 datetime | Return only items changed since this timestamp. |
+| `itemsPerPage` | int | Default and maximum: 1000. |
+| `page` | int | Default: 1. |
+
+**Response shape:**
+
+```json
+{
+  "data": {
+    "supplies": [
+      {
+        "productGuid": "...",
+        "code": "AKL001",
+        "amount": "42.000",
+        "claim": "5.000",
+        "location": "H6/M11/R13",
+        "changeTime": "2026-04-14T10:00:00+02:00"
+      }
+    ]
+  }
+}
+```
+
+**Field semantics:**
+- `amount` — quantity available for ordering (free stock). Returned as a string (decimal), may be `null`.
+- `claim` — quantity reserved by pending/open orders. Returned as a string (decimal), may be `null`.
+- `location` — warehouse location label (same as `stockLocation` in the orders API).
+- `changeTime` — ISO 8601 timestamp of the last stock movement for this variant.
+
+**Use case:** Call `GET /supplies?code={code}` before a StockTaking PATCH to confirm current state and log it for audit purposes.
+
+### 8.7 PATCH /api/stocks/{stockId}/movements — `realStock` field (StockTaking)
+
+The existing PATCH endpoint (section 8.3) also accepts `realStock` as an alternative to `amountChange`:
+
+```json
+{
+  "data": [
+    { "productCode": "AKL001", "realStock": 37 }
+  ]
+}
+```
+
+**`realStock` vs `amountChange`:**
+
+| Field | Semantics | Use case |
+|---|---|---|
+| `amountChange` | Relative delta (positive = add, negative = subtract) | StockUp — add received goods |
+| `realStock` | Absolute physical warehouse count | StockTaking — set exact physical quantity |
+| `quantity` | (deprecated alias, avoid) | — |
+
+- When `realStock` is used, Shoptet internally calculates `amount for ordering = realStock - claim`.
+- Only one of `amountChange`, `quantity`, or `realStock` should be present per item in the request.
+- Use `[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]` on the unused fields in the C# DTO so they are omitted from the serialized request body.
+
+### 8.8 StockTaking Migration Note (Playwright → REST API)
+
+StockTaking was migrated from Playwright browser automation to the REST API. The two approaches are semantically equivalent:
+
+**Old approach (Playwright):**
+1. Navigate to the Shoptet admin stock page for the variant.
+2. Read `freeAmount` and `reservedAmount` from the HTML table.
+3. Calculate `setAmount = targetAmount - reservedAmount`.
+4. Fill the "free amount" input field with `setAmount` and submit.
+
+**New approach (REST API):**
+1. `GET /api/stocks/{stockId}/supplies?code={code}` — read current state (`amount` = free, `claim` = reserved).
+2. `PATCH /api/stocks/{stockId}/movements` with `{ "productCode": "{code}", "realStock": targetAmount }`.
+
+**Equivalence:**
+- `reservedAmount` (Playwright HTML) == `claim` (REST API `/supplies` response).
+- Setting `realStock = targetAmount` via REST produces the same final state as the old UI calculation (`setAmount = targetAmount - reservedAmount` filled into the free-amount field), because Shoptet derives free stock as `realStock - claim` in both cases.
+
 ---
 
 ## 9. Design Documents
