@@ -71,31 +71,6 @@ public class StockUpProcessingService : IStockUpProcessingService
 
         try
         {
-            // Pre-check: skip submit if the record somehow already exists.
-            // With the REST adapter, VerifyStockUpExistsAsync always returns false
-            // (the REST API has no document-number search). The check is retained so
-            // that manually accepted legacy Playwright records are still detected.
-            try
-            {
-                var existsInShoptet = await _eshopService.VerifyStockUpExistsAsync(operation.DocumentNumber);
-                if (existsInShoptet)
-                {
-                    _logger.LogWarning(
-                        "Document {DocumentNumber} already exists in Shoptet, marking as completed",
-                        operation.DocumentNumber);
-                    operation.MarkAsCompleted(DateTime.UtcNow);
-                    await _repository.SaveChangesAsync(ct);
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(
-                    ex,
-                    "Pre-check verification failed for {DocumentNumber}, continuing with submit",
-                    operation.DocumentNumber);
-            }
-
             operation.MarkAsSubmitted(DateTime.UtcNow);
             await _repository.SaveChangesAsync(ct);
             _logger.LogDebug("Operation {DocumentNumber} marked as Submitted", operation.DocumentNumber);
@@ -103,8 +78,6 @@ public class StockUpProcessingService : IStockUpProcessingService
             var request = new StockUpRequest(operation.ProductCode, operation.Amount, operation.DocumentNumber);
             await _eshopService.StockUpAsync(request);
 
-            // REST API guarantees: a 200 response with no errors means the stock change was applied.
-            // No post-verify needed — that was a Playwright-only safety net.
             operation.MarkAsCompleted(DateTime.UtcNow);
             await _repository.SaveChangesAsync(ct);
             _logger.LogInformation(

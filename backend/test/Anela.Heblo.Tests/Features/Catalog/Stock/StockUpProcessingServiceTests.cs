@@ -24,8 +24,6 @@ public class StockUpProcessingServiceTests
         var operation = PendingOperation();
         _repo.Setup(r => r.GetByStateAsync(StockUpOperationState.Pending, default))
              .ReturnsAsync([operation]);
-        _eshop.Setup(e => e.VerifyStockUpExistsAsync(It.IsAny<string>()))
-              .ReturnsAsync(false);
         _eshop.Setup(e => e.StockUpAsync(It.IsAny<StockUpRequest>()))
               .Returns(Task.CompletedTask);
 
@@ -38,26 +36,6 @@ public class StockUpProcessingServiceTests
         operation.State.Should().Be(StockUpOperationState.Completed);
     }
 
-    [Fact]
-    public async Task ProcessPendingOperations_SuccessfulSubmit_DoesNotCallVerifyAfterSubmit()
-    {
-        // Arrange
-        var operation = PendingOperation();
-        _repo.Setup(r => r.GetByStateAsync(StockUpOperationState.Pending, default))
-             .ReturnsAsync([operation]);
-        _eshop.Setup(e => e.VerifyStockUpExistsAsync(It.IsAny<string>()))
-              .ReturnsAsync(false);
-        _eshop.Setup(e => e.StockUpAsync(It.IsAny<StockUpRequest>()))
-              .Returns(Task.CompletedTask);
-
-        var service = CreateService();
-
-        // Act
-        await service.ProcessPendingOperationsAsync();
-
-        // Assert — VerifyStockUpExistsAsync called exactly once (pre-check), NOT twice
-        _eshop.Verify(e => e.VerifyStockUpExistsAsync(operation.DocumentNumber), Times.Once);
-    }
 
     [Fact]
     public async Task ProcessPendingOperations_StockUpAsyncThrows_MarksAsFailed()
@@ -66,8 +44,6 @@ public class StockUpProcessingServiceTests
         var operation = PendingOperation();
         _repo.Setup(r => r.GetByStateAsync(StockUpOperationState.Pending, default))
              .ReturnsAsync([operation]);
-        _eshop.Setup(e => e.VerifyStockUpExistsAsync(It.IsAny<string>()))
-              .ReturnsAsync(false);
         _eshop.Setup(e => e.StockUpAsync(It.IsAny<StockUpRequest>()))
               .ThrowsAsync(new HttpRequestException("Shoptet stock update failed for AKL001: [unknown-product] Product does not exist."));
 
@@ -82,34 +58,12 @@ public class StockUpProcessingServiceTests
     }
 
     [Fact]
-    public async Task ProcessPendingOperations_PreCheckReturnsTrueAlreadyInShoptet_MarksCompletedWithoutSubmit()
+    public async Task ProcessPendingOperations_CallsStockUpAsyncAndCompletes()
     {
         // Arrange
         var operation = PendingOperation();
         _repo.Setup(r => r.GetByStateAsync(StockUpOperationState.Pending, default))
              .ReturnsAsync([operation]);
-        _eshop.Setup(e => e.VerifyStockUpExistsAsync(operation.DocumentNumber))
-              .ReturnsAsync(true); // already submitted (e.g. Playwright legacy record)
-
-        var service = CreateService();
-
-        // Act
-        await service.ProcessPendingOperationsAsync();
-
-        // Assert — completes without calling StockUpAsync
-        operation.State.Should().Be(StockUpOperationState.Completed);
-        _eshop.Verify(e => e.StockUpAsync(It.IsAny<StockUpRequest>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task ProcessPendingOperations_PreCheckThrows_SubmitProceedsAndCompletes()
-    {
-        // Arrange — pre-check failure should NOT block the submit
-        var operation = PendingOperation();
-        _repo.Setup(r => r.GetByStateAsync(StockUpOperationState.Pending, default))
-             .ReturnsAsync([operation]);
-        _eshop.Setup(e => e.VerifyStockUpExistsAsync(It.IsAny<string>()))
-              .ThrowsAsync(new Exception("network timeout"));
         _eshop.Setup(e => e.StockUpAsync(It.IsAny<StockUpRequest>()))
               .Returns(Task.CompletedTask);
 
@@ -118,7 +72,7 @@ public class StockUpProcessingServiceTests
         // Act
         await service.ProcessPendingOperationsAsync();
 
-        // Assert — submit proceeded and completed
+        // Assert
         operation.State.Should().Be(StockUpOperationState.Completed);
         _eshop.Verify(e => e.StockUpAsync(It.IsAny<StockUpRequest>()), Times.Once);
     }

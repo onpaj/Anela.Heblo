@@ -1,36 +1,34 @@
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Users;
+using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Adapters.Shoptet.Playwright;
+namespace Anela.Heblo.Application.Features.Catalog.Services;
 
-public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
+public class EshopStockDomainService : IEshopStockDomainService
 {
     private readonly IStockTakingRepository _stockTakingRepository;
     private readonly ICurrentUserService _currentUser;
     private readonly TimeProvider _timeProvider;
     private readonly IEshopStockClient _stockClient;
-    private readonly bool _dryRun;
+    private readonly ILogger<EshopStockDomainService> _logger;
 
-    public ShoptetPlaywrightStockDomainService(
+    public EshopStockDomainService(
         IStockTakingRepository stockTakingRepository,
         ICurrentUserService currentUser,
         TimeProvider timeProvider,
         IEshopStockClient stockClient,
-        PlaywrightSourceOptions options)
+        ILogger<EshopStockDomainService> logger)
     {
         _stockTakingRepository = stockTakingRepository;
         _currentUser = currentUser;
         _timeProvider = timeProvider;
         _stockClient = stockClient;
-        _dryRun = options.DryRun;
+        _logger = logger;
     }
 
     public async Task StockUpAsync(StockUpRequest stockUpOrder)
     {
-        foreach (var product in stockUpOrder.Products)
-        {
-            await _stockClient.UpdateStockAsync(product.ProductCode, product.Amount);
-        }
+        await _stockClient.UpdateStockAsync(stockUpOrder.ProductCode, stockUpOrder.Amount);
     }
 
     /// <summary>
@@ -41,6 +39,10 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
     public Task<bool> VerifyStockUpExistsAsync(string documentNumber)
         => Task.FromResult(false);
 
+    /// <summary>
+    /// Submits a stock taking operation to Shoptet via the REST API.
+    /// DryRun is not supported — stock changes are always applied.
+    /// </summary>
     public async Task<StockTakingRecord> SubmitStockTakingAsync(EshopStockTakingRequest order)
     {
         try
@@ -51,10 +53,7 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
                 var supply = await _stockClient.GetSupplyAsync(order.ProductCode);
                 var amountOld = (supply?.Amount ?? 0) + (supply?.Claim ?? 0);
 
-                if (!_dryRun)
-                {
-                    await _stockClient.SetRealStockAsync(order.ProductCode, (double)order.TargetAmount);
-                }
+                await _stockClient.SetRealStockAsync(order.ProductCode, (double)order.TargetAmount);
 
                 result = new StockTakingRecord
                 {
@@ -65,7 +64,7 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
             }
             else
             {
-                result = new StockTakingRecord()
+                result = new StockTakingRecord
                 {
                     Code = order.ProductCode,
                     AmountNew = (double)order.TargetAmount,
@@ -80,6 +79,7 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
         }
         catch (Exception e)
         {
+            _logger.LogError(e, "Stock taking failed for product {ProductCode}", order.ProductCode);
             return new StockTakingRecord
             {
                 Date = _timeProvider.GetUtcNow().DateTime,

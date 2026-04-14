@@ -45,7 +45,13 @@ public static class PersistenceModule
         NpgsqlDataSource? dataSource = null;
         if (!useInMemory && connectionString != "InMemory")
         {
+            var maxPoolSize = configuration.GetValue<int?>("Database:MaxPoolSize");
             var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+            if (maxPoolSize.HasValue)
+            {
+                dataSourceBuilder.ConnectionStringBuilder.MaxPoolSize = maxPoolSize.Value;
+            }
+
             dataSourceBuilder.UseVector();
             dataSource = dataSourceBuilder.Build();
             services.AddSingleton(dataSource); // Register for DI-managed disposal
