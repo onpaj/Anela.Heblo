@@ -5,7 +5,7 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Stock.Model;
 /// <summary>
 /// Body for PATCH /api/stocks/{stockId}/movements.
 /// Shoptet's schema uses additionalProperties: false — only productCode + one of
-/// amountChange/quantity/realStock are accepted. We always use amountChange (relative delta).
+/// amountChange/quantity/realStock are accepted.
 /// </summary>
 public class UpdateStockRequest
 {
@@ -19,5 +19,10 @@ public class UpdateStockItem
     public string ProductCode { get; set; } = string.Empty;
 
     [JsonPropertyName("amountChange")]
-    public double AmountChange { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? AmountChange { get; set; }
+
+    [JsonPropertyName("realStock")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? RealStock { get; set; }
 }

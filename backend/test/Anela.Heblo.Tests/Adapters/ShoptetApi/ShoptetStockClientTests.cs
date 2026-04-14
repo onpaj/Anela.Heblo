@@ -135,6 +135,86 @@ public class ShoptetStockClientTests
         capturedBody.Should().Contain("-2");
     }
 
+    [Fact]
+    public async Task GetSupplyAsync_ReturnsAmountAndClaim()
+    {
+        var client = BuildClient(_ => Json(new
+        {
+            data = new
+            {
+                supplies = new[]
+                {
+                    new { code = "AKL001", amount = "10.000", claim = "3.000" },
+                },
+            },
+            errors = (object?)null,
+        }));
+        var result = await client.GetSupplyAsync("AKL001");
+        result.Should().NotBeNull();
+        result!.Code.Should().Be("AKL001");
+        result.Amount.Should().Be(10);
+        result.Claim.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task GetSupplyAsync_EmptySupplies_ReturnsNull()
+    {
+        var client = BuildClient(_ => Json(new
+        {
+            data = new { supplies = Array.Empty<object>() },
+            errors = (object?)null,
+        }));
+        var result = await client.GetSupplyAsync("UNKNOWN");
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetSupplyAsync_UsesCorrectUrlWithCode()
+    {
+        HttpRequestMessage? captured = null;
+        var client = BuildClient(
+            req =>
+            {
+                captured = req;
+                return Json(new { data = new { supplies = Array.Empty<object>() }, errors = (object?)null });
+            },
+            stockId: 1);
+        await client.GetSupplyAsync("AKL001");
+        captured!.Method.Should().Be(HttpMethod.Get);
+        captured.RequestUri!.PathAndQuery.Should().Contain("/api/stocks/1/supplies");
+        captured.RequestUri!.PathAndQuery.Should().Contain("code=AKL001");
+    }
+
+    [Fact]
+    public async Task SetRealStockAsync_UsesRealStockField()
+    {
+        string? capturedBody = null;
+        var client = BuildClient(req =>
+        {
+            capturedBody = req.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return Json(new { data = (object?)null, errors = (object?)null });
+        });
+        await client.SetRealStockAsync("AKL001", 42);
+        capturedBody.Should().Contain("\"realStock\"");
+        capturedBody.Should().Contain("42");
+        capturedBody.Should().NotContain("\"amountChange\"");
+    }
+
+    [Fact]
+    public async Task SetRealStockAsync_ResponseWithErrors_Throws()
+    {
+        var client = BuildClient(_ => Json(new
+        {
+            data = (object?)null,
+            errors = new[]
+            {
+                new { errorCode = "unknown-product", message = "Product does not exist.", instance = "AKL001" },
+            },
+        }));
+        var act = () => client.SetRealStockAsync("AKL001", 42);
+        await act.Should().ThrowAsync<HttpRequestException>().WithMessage("*AKL001*unknown-product*");
+    }
+
     private static ShoptetStockClient BuildClientForCsv(
         Func<HttpRequestMessage, HttpResponseMessage> handler,
         string csvUrl = "https://test.com/stock-export.csv")

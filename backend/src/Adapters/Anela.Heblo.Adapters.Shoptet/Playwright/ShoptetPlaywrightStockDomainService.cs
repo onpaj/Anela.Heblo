@@ -1,4 +1,3 @@
-using Anela.Heblo.Adapters.Shoptet.Playwright.Scenarios;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Users;
 
@@ -6,24 +5,24 @@ namespace Anela.Heblo.Adapters.Shoptet.Playwright;
 
 public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
 {
-    private readonly StockTakingScenario _inventoryAlignScenario;
     private readonly IStockTakingRepository _stockTakingRepository;
     private readonly ICurrentUserService _currentUser;
     private readonly TimeProvider _timeProvider;
     private readonly IEshopStockClient _stockClient;
+    private readonly bool _dryRun;
 
     public ShoptetPlaywrightStockDomainService(
-        StockTakingScenario inventoryAlignScenario,
         IStockTakingRepository stockTakingRepository,
         ICurrentUserService currentUser,
         TimeProvider timeProvider,
-        IEshopStockClient stockClient)
+        IEshopStockClient stockClient,
+        PlaywrightSourceOptions options)
     {
-        _inventoryAlignScenario = inventoryAlignScenario;
         _stockTakingRepository = stockTakingRepository;
         _currentUser = currentUser;
         _timeProvider = timeProvider;
         _stockClient = stockClient;
+        _dryRun = options.DryRun;
     }
 
     public async Task StockUpAsync(StockUpRequest stockUpOrder)
@@ -49,7 +48,20 @@ public class ShoptetPlaywrightStockDomainService : IEshopStockDomainService
             StockTakingRecord result;
             if (!order.SoftStockTaking)
             {
-                result = await _inventoryAlignScenario.RunAsync(order);
+                var supply = await _stockClient.GetSupplyAsync(order.ProductCode);
+                var amountOld = (supply?.Amount ?? 0) + (supply?.Claim ?? 0);
+
+                if (!_dryRun)
+                {
+                    await _stockClient.SetRealStockAsync(order.ProductCode, (double)order.TargetAmount);
+                }
+
+                result = new StockTakingRecord
+                {
+                    Code = order.ProductCode,
+                    AmountNew = (double)order.TargetAmount,
+                    AmountOld = amountOld,
+                };
             }
             else
             {

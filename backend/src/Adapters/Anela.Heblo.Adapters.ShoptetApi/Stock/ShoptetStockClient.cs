@@ -80,6 +80,52 @@ public class ShoptetStockClient : IEshopStockClient
         }
     }
 
+    public async Task<EshopStockSupply?> GetSupplyAsync(string productCode, CancellationToken ct = default)
+    {
+        var stockId = _settings.Value.StockId;
+        var response = await _http.GetFromJsonAsync<GetSuppliesResponse>(
+            $"/api/stocks/{stockId}/supplies?code={Uri.EscapeDataString(productCode)}",
+            JsonOptions,
+            ct);
+
+        var item = response?.Data?.Supplies.FirstOrDefault();
+        if (item is null)
+        {
+            return null;
+        }
+
+        return new EshopStockSupply
+        {
+            Code = item.Code,
+            Amount = double.TryParse(item.Amount, NumberStyles.Any, CultureInfo.InvariantCulture, out var a) ? a : 0,
+            Claim = double.TryParse(item.Claim, NumberStyles.Any, CultureInfo.InvariantCulture, out var c) ? c : 0,
+        };
+    }
+
+    public async Task SetRealStockAsync(string productCode, double realStock, CancellationToken ct = default)
+    {
+        var stockId = _settings.Value.StockId;
+        var body = new UpdateStockRequest
+        {
+            Data = [new UpdateStockItem { ProductCode = productCode, RealStock = realStock }],
+        };
+        var response = await _http.PatchAsJsonAsync($"/api/stocks/{stockId}/movements", body, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException(
+                $"PATCH /api/stocks/{stockId}/movements returned {(int)response.StatusCode}: {errorBody}");
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<UpdateStockResponse>(JsonOptions, ct);
+        if (result?.Errors is { Count: > 0 })
+        {
+            var error = result.Errors[0];
+            throw new HttpRequestException(
+                $"Shoptet stock set failed for {productCode}: [{error.ErrorCode}] {error.Message}");
+        }
+    }
+
     private class StockDataMap : ClassMap<EshopStock>
     {
         public StockDataMap()
