@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260414194809_AddImportedMarketingTransactions")]
+    partial class AddImportedMarketingTransactions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1216,9 +1219,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("OrderNumber")
                         .IsUnique()
                         .HasDatabaseName("IX_ManufactureOrders_OrderNumber");
-
-                    b.HasIndex("PlannedDate")
-                        .HasDatabaseName("IX_ManufactureOrders_PlannedDate");
 
                     b.HasIndex("ResponsiblePerson")
                         .HasDatabaseName("IX_ManufactureOrders_ResponsiblePerson");
