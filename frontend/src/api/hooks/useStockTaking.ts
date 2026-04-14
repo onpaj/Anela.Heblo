@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import { SubmitStockTakingRequest, SubmitStockTakingResponse, GetStockTakingHistoryResponse } from "../generated/api-client";
+import { useToast } from "../../contexts/ToastContext";
 
 export interface StockTakingSubmitRequest {
   productCode: string;
@@ -32,6 +33,7 @@ const submitStockTaking = async (request: StockTakingSubmitRequest): Promise<Sub
 // React Query mutation hook for stock taking submission
 export const useSubmitStockTaking = () => {
   const queryClient = useQueryClient();
+  const { showError } = useToast();
 
   return useMutation({
     mutationFn: submitStockTaking,
@@ -87,8 +89,12 @@ export const useSubmitStockTaking = () => {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.catalog, "detail", variables.productCode] });
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.catalog, "inventory"] });
     },
-    onError: (error, variables) => {
-      console.error("Stock taking submission failed:", error, "for product:", variables.productCode);
+    onError: (error: Error) => {
+      showError(
+        "Chyba při inventarizaci",
+        error.message || "Inventarizace se nezdařila. Zkuste to prosím znovu.",
+        { duration: 5000 }
+      );
     },
   });
 };

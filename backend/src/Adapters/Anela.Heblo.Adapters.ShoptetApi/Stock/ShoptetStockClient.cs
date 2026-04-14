@@ -6,6 +6,7 @@ using Anela.Heblo.Adapters.ShoptetApi.Stock.Model;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Stock;
@@ -16,6 +17,7 @@ public class ShoptetStockClient : IEshopStockClient
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOptions<Orders.ShoptetApiSettings> _settings;
     private readonly IOptions<ShoptetStockClientOptions> _stockClientOptions;
+    private readonly ILogger<ShoptetStockClient> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -26,12 +28,14 @@ public class ShoptetStockClient : IEshopStockClient
         HttpClient http,
         IHttpClientFactory httpClientFactory,
         IOptions<Orders.ShoptetApiSettings> settings,
-        IOptions<ShoptetStockClientOptions> stockClientOptions)
+        IOptions<ShoptetStockClientOptions> stockClientOptions,
+        ILogger<ShoptetStockClient> logger)
     {
         _http = http;
         _httpClientFactory = httpClientFactory;
         _settings = settings;
         _stockClientOptions = stockClientOptions;
+        _logger = logger;
     }
 
     public async Task<List<EshopStock>> ListAsync(CancellationToken cancellationToken)
@@ -94,11 +98,25 @@ public class ShoptetStockClient : IEshopStockClient
             return null;
         }
 
+        if (!double.TryParse(item.Amount, NumberStyles.Any, CultureInfo.InvariantCulture, out var amount))
+        {
+            _logger.LogWarning(
+                "Could not parse Amount '{Amount}' for product {Code} from Shoptet supply response. Defaulting to 0.",
+                item.Amount, item.Code);
+        }
+
+        if (!double.TryParse(item.Claim, NumberStyles.Any, CultureInfo.InvariantCulture, out var claim))
+        {
+            _logger.LogWarning(
+                "Could not parse Claim '{Claim}' for product {Code} from Shoptet supply response. Defaulting to 0.",
+                item.Claim, item.Code);
+        }
+
         return new EshopStockSupply
         {
             Code = item.Code,
-            Amount = double.TryParse(item.Amount, NumberStyles.Any, CultureInfo.InvariantCulture, out var a) ? a : 0,
-            Claim = double.TryParse(item.Claim, NumberStyles.Any, CultureInfo.InvariantCulture, out var c) ? c : 0,
+            Amount = amount,
+            Claim = claim,
         };
     }
 
