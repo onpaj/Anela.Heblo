@@ -1217,6 +1217,9 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_ManufactureOrders_OrderNumber");
 
+                    b.HasIndex("PlannedDate")
+                        .HasDatabaseName("IX_ManufactureOrders_PlannedDate");
+
                     b.HasIndex("ResponsiblePerson")
                         .HasDatabaseName("IX_ManufactureOrders_ResponsiblePerson");
 

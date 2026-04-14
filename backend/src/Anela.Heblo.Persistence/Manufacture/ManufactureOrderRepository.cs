@@ -26,47 +26,43 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
         int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.ManufactureOrders
-            .Include(x => x.SemiProduct)
-            .Include(x => x.Products)
-            .Include(x => x.Notes)
-            .AsQueryable();
+        var baseQuery = _context.ManufactureOrders.AsQueryable();
 
         if (state.HasValue)
         {
-            query = query.Where(x => x.State == state.Value);
+            baseQuery = baseQuery.Where(x => x.State == state.Value);
         }
 
         if (dateFrom.HasValue)
         {
-            query = query.Where(x => x.PlannedDate >= dateFrom.Value);
+            baseQuery = baseQuery.Where(x => x.PlannedDate >= dateFrom.Value);
         }
 
         if (dateTo.HasValue)
         {
-            query = query.Where(x => x.PlannedDate <= dateTo.Value);
+            baseQuery = baseQuery.Where(x => x.PlannedDate <= dateTo.Value);
         }
 
         if (!string.IsNullOrEmpty(responsiblePerson))
         {
-            query = query.Where(x => x.ResponsiblePerson != null && x.ResponsiblePerson.Contains(responsiblePerson));
+            baseQuery = baseQuery.Where(x => x.ResponsiblePerson != null && x.ResponsiblePerson.Contains(responsiblePerson));
         }
 
         if (!string.IsNullOrEmpty(orderNumber))
         {
-            query = query.Where(x => x.OrderNumber.Contains(orderNumber));
+            baseQuery = baseQuery.Where(x => x.OrderNumber.Contains(orderNumber));
         }
 
         if (!string.IsNullOrEmpty(productCode))
         {
-            query = query.Where(x =>
+            baseQuery = baseQuery.Where(x =>
                 (x.SemiProduct != null && x.SemiProduct.ProductCode.Contains(productCode)) ||
                 x.Products.Any(p => p.ProductCode.Contains(productCode)));
         }
 
         if (!string.IsNullOrEmpty(erpDocumentNumber))
         {
-            query = query.Where(x =>
+            baseQuery = baseQuery.Where(x =>
                 (x.ErpOrderNumberSemiproduct != null && x.ErpOrderNumberSemiproduct.Contains(erpDocumentNumber)) ||
                 (x.ErpOrderNumberProduct != null && x.ErpOrderNumberProduct.Contains(erpDocumentNumber)) ||
                 (x.ErpDiscardResidueDocumentNumber != null && x.ErpDiscardResidueDocumentNumber.Contains(erpDocumentNumber)));
@@ -74,12 +70,12 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
 
         if (manualActionRequired.HasValue)
         {
-            query = query.Where(x => x.ManualActionRequired == manualActionRequired.Value);
+            baseQuery = baseQuery.Where(x => x.ManualActionRequired == manualActionRequired.Value);
         }
 
         if (!string.IsNullOrEmpty(lotNumber))
         {
-            query = query.Where(x =>
+            baseQuery = baseQuery.Where(x =>
                 (x.SemiProduct != null && x.SemiProduct.LotNumber != null && x.SemiProduct.LotNumber.Contains(lotNumber)) ||
                 x.Products.Any(p => p.LotNumber != null && p.LotNumber.Contains(lotNumber)));
         }
@@ -87,9 +83,12 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
         var safePageSize = pageSize <= 0 ? 20 : pageSize;
         var safePageNumber = pageNumber <= 0 ? 1 : pageNumber;
 
-        var totalCount = await query.CountAsync(cancellationToken);
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
 
-        var items = await query
+        var items = await baseQuery
+            .Include(x => x.SemiProduct)
+            .Include(x => x.Products)
+            .AsNoTracking()
             .OrderByDescending(x => x.CreatedDate)
             .Skip((safePageNumber - 1) * safePageSize)
             .Take(safePageSize)

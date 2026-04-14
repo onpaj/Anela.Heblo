@@ -129,6 +129,9 @@ public class ManufactureOrderConfiguration : IEntityTypeConfiguration<Manufactur
         builder.HasIndex(x => x.ResponsiblePerson)
             .HasDatabaseName("IX_ManufactureOrders_ResponsiblePerson");
 
+        builder.HasIndex(x => x.PlannedDate)
+            .HasDatabaseName("IX_ManufactureOrders_PlannedDate");
+
         // Navigation properties
         builder.HasOne(x => x.SemiProduct)
             .WithOne(x => x.ManufactureOrder)
