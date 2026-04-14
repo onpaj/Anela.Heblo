@@ -1,4 +1,5 @@
 using System.Reflection;
+using Npgsql;
 using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.Xcc.Telemetry;
 using Anela.Heblo.API.Infrastructure.Telemetry;
@@ -265,6 +266,18 @@ public static class ServiceCollectionExtensions
                 throw new InvalidOperationException($"Database connection string is required for Hangfire in {environment.EnvironmentName} environment. Please configure either '{environment.EnvironmentName}' or 'DefaultConnection' connection string.");
             }
 
+            // Cap Hangfire's connection pool independently from EF Core's pool
+            var hangfireConnectionString = connectionString;
+            var hangfireConnectionLimit = hangfireOptions.ConnectionLimit;
+            if (hangfireConnectionLimit > 0)
+            {
+                var csb = new NpgsqlConnectionStringBuilder(connectionString)
+                {
+                    MaxPoolSize = hangfireConnectionLimit
+                };
+                hangfireConnectionString = csb.ToString();
+            }
+
             // Initialize Hangfire schema before configuring Hangfire
             using (var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole()))
             {
@@ -279,7 +292,7 @@ public static class ServiceCollectionExtensions
                 .UseRecommendedSerializerSettings()
                 .UsePostgreSqlStorage(options =>
                 {
-                    options.UseNpgsqlConnection(connectionString);
+                    options.UseNpgsqlConnection(hangfireConnectionString);
                 }, new PostgreSqlStorageOptions
                 {
                     // Use isolated schema to avoid conflicts with other applications

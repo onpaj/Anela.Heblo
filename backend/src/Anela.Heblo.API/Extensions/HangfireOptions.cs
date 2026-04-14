@@ -7,4 +7,5 @@ public class HangfireOptions
     public bool SchedulerEnabled { get; set; } = false;
     public int WorkerCount { get; set; } = 1;
     public bool UseInMemoryStorage { get; set; } = false;
+    public int ConnectionLimit { get; set; } = 5;
 }

@@ -13,16 +13,7 @@ jest.mock('../../../api/hooks/useInventory', () => ({
 jest.mock('../../../api/hooks/useStockTaking', () => ({
   useSubmitStockTaking: () => ({
     mutate: jest.fn(),
-    mutateAsync: jest.fn(),
-    isPending: false,
-    isError: false,
-    error: null,
-    isSuccess: false,
-    reset: jest.fn(),
-  }),
-  useEnqueueStockTaking: () => ({
-    mutate: jest.fn(),
-    mutateAsync: jest.fn(),
+    mutateAsync: jest.fn().mockResolvedValue({}),
     isPending: false,
     isError: false,
     error: null,
