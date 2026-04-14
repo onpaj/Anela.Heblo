@@ -134,4 +134,75 @@ public class ShoptetStockClientTests
 
         capturedBody.Should().Contain("-2");
     }
+
+    private static ShoptetStockClient BuildClientForCsv(
+        Func<HttpRequestMessage, HttpResponseMessage> handler,
+        string csvUrl = "https://test.com/stock-export.csv")
+    {
+        var dummyHttp = new HttpClient(new FakeDelegatingHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)))
+        {
+            BaseAddress = new Uri("https://fake.shoptet.cz"),
+        };
+
+        var factoryMock = new Mock<IHttpClientFactory>();
+        factoryMock
+            .Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient(new FakeDelegatingHandler(handler)));
+
+        var settings = Options.Create(new ShoptetApiSettings { StockId = 1 });
+        var stockClientOptions = Options.Create(new ShoptetStockClientOptions { Url = csvUrl });
+
+        return new ShoptetStockClient(dummyHttp, factoryMock.Object, settings, stockClientOptions);
+    }
+
+    [Fact]
+    public async Task ListAsync_WhenServerReturns500_ThrowsHttpRequestException()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+        // Arrange
+        var htmlErrorBody = "<html><body><h1>Internal Server Error</h1></body></html>";
+        var client = BuildClientForCsv(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent(htmlErrorBody, Encoding.UTF8),
+        });
+
+        // Act
+        Func<Task> act = async () => await client.ListAsync(CancellationToken.None);
+
+        // Assert – HttpRequestException must be thrown, NOT CsvHelper.MissingFieldException
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task ListAsync_WhenServerReturns503_ThrowsHttpRequestException()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+        var htmlErrorBody = "<html><body><h1>Service Unavailable</h1></body></html>";
+        var client = BuildClientForCsv(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+        {
+            Content = new StringContent(htmlErrorBody, Encoding.UTF8),
+        });
+
+        Func<Task> act = async () => await client.ListAsync(CancellationToken.None);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Fact]
+    public async Task ListAsync_WhenServerReturns404_ThrowsHttpRequestException()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+        var client = BuildClientForCsv(_ => new HttpResponseMessage(HttpStatusCode.NotFound)
+        {
+            Content = new StringContent("Not Found", Encoding.UTF8),
+        });
+
+        Func<Task> act = async () => await client.ListAsync(CancellationToken.None);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
 }
