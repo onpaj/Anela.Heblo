@@ -23,12 +23,10 @@ public class EshopStockDomainServiceTests
             NullLogger<EshopStockDomainService>.Instance);
 
     [Fact]
-    public async Task StockUpAsync_CallsUpdateStockForEachProduct()
+    public async Task StockUpAsync_CallsUpdateStock()
     {
         // Arrange
-        var request = new StockUpRequest();
-        request.Products.Add(new StockUpProductRequest { ProductCode = "AKL001", Amount = 5 });
-        request.Products.Add(new StockUpProductRequest { ProductCode = "AKL002", Amount = 3 });
+        var request = new StockUpRequest("AKL001", 5, "DOC-001");
 
         _stockClient.Setup(c => c.UpdateStockAsync(It.IsAny<string>(), It.IsAny<double>(), It.IsAny<CancellationToken>()))
                     .Returns(Task.CompletedTask);
@@ -39,8 +37,7 @@ public class EshopStockDomainServiceTests
         await service.StockUpAsync(request);
 
         // Assert
-        _stockClient.Verify(c => c.UpdateStockAsync("AKL001", 5, default), Times.Once);
-        _stockClient.Verify(c => c.UpdateStockAsync("AKL002", 3, default), Times.Once);
+        _stockClient.Verify(c => c.UpdateStockAsync("AKL001", 5, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

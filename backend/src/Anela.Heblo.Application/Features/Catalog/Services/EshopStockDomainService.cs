@@ -28,10 +28,7 @@ public class EshopStockDomainService : IEshopStockDomainService
 
     public async Task StockUpAsync(StockUpRequest stockUpOrder)
     {
-        foreach (var product in stockUpOrder.Products)
-        {
-            await _stockClient.UpdateStockAsync(product.ProductCode, product.Amount);
-        }
+        await _stockClient.UpdateStockAsync(stockUpOrder.ProductCode, stockUpOrder.Amount);
     }
 
     /// <summary>
