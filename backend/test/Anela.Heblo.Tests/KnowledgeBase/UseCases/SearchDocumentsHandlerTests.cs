@@ -251,4 +251,107 @@ public class SearchDocumentsHandlerTests
 
         Assert.Equal(rawQuery, capturedEmbeddingInput);
     }
+
+    [Theory]
+    [InlineData(typeof(IOException))]
+    [InlineData(typeof(HttpRequestException))]
+    [InlineData(typeof(TimeoutException))]
+    [InlineData(typeof(TaskCanceledException))]
+    public async Task Handle_EmbeddingGeneratorThrowsTransientException_ReturnsEmptyResponse(Type exceptionType)
+    {
+        var exception = (Exception)Activator.CreateInstance(exceptionType, "Exception while reading from stream")!;
+        _embeddingGenerator
+            .Setup(s => s.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                default))
+            .ThrowsAsync(exception);
+
+        var result = await CreateHandler().Handle(
+            new SearchDocumentsRequest { Query = "test query", TopK = 5 },
+            default);
+
+        Assert.Empty(result.Chunks);
+        Assert.Equal(0, result.BelowThresholdCount);
+        _repository.Verify(
+            r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Theory]
+    [InlineData(typeof(IOException))]
+    [InlineData(typeof(HttpRequestException))]
+    [InlineData(typeof(TimeoutException))]
+    [InlineData(typeof(TaskCanceledException))]
+    public async Task Handle_EmbeddingGeneratorThrowsTransientException_LogsWarningWithExceptionType(Type exceptionType)
+    {
+        var exception = (Exception)Activator.CreateInstance(exceptionType, "stream error")!;
+        _embeddingGenerator
+            .Setup(s => s.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                default))
+            .ThrowsAsync(exception);
+
+        await CreateHandler().Handle(
+            new SearchDocumentsRequest { Query = "test query", TopK = 5 },
+            default);
+
+        _logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Transient embedding failure")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Theory]
+    [InlineData(typeof(IOException))]
+    [InlineData(typeof(HttpRequestException))]
+    [InlineData(typeof(TimeoutException))]
+    [InlineData(typeof(TaskCanceledException))]
+    public async Task Handle_RepositoryThrowsTransientException_ReturnsEmptyResponse(Type exceptionType)
+    {
+        SetupEmbeddingGenerator();
+        var exception = (Exception)Activator.CreateInstance(exceptionType, "stream error from pgvector")!;
+        _repository
+            .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), default))
+            .ThrowsAsync(exception);
+
+        var result = await CreateHandler().Handle(
+            new SearchDocumentsRequest { Query = "test query", TopK = 5 },
+            default);
+
+        Assert.Empty(result.Chunks);
+        Assert.Equal(0, result.BelowThresholdCount);
+    }
+
+    [Theory]
+    [InlineData(typeof(IOException))]
+    [InlineData(typeof(HttpRequestException))]
+    [InlineData(typeof(TimeoutException))]
+    [InlineData(typeof(TaskCanceledException))]
+    public async Task Handle_RepositoryThrowsTransientException_LogsWarningWithExceptionType(Type exceptionType)
+    {
+        SetupEmbeddingGenerator();
+        var exception = (Exception)Activator.CreateInstance(exceptionType, "stream error from pgvector")!;
+        _repository
+            .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), default))
+            .ThrowsAsync(exception);
+
+        await CreateHandler().Handle(
+            new SearchDocumentsRequest { Query = "test query", TopK = 5 },
+            default);
+
+        _logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Transient vector DB failure")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
 }
