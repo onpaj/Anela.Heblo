@@ -442,8 +442,8 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
       </div>
 
       {/* Calendar Content */}
-      <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div className="p-4 flex-1 overflow-y-auto">
+      <div className="flex-1 flex flex-col bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-4 flex-1 overflow-y-auto h-full flex flex-col">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="flex items-center space-x-2">
@@ -461,7 +461,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
           ) : (
             <>
               {/* Week Days Header */}
-              <div className="grid grid-cols-5 gap-4 mb-4">
+              <div className="grid grid-cols-5 gap-4 flex-1">
                 {weekDays.map((day, index) => {
                   const dayInfo = formatDayHeader(day);
                   const dateKey = day.toISOString().split('T')[0];
@@ -471,7 +471,7 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                   return (
                     <div 
                       key={index}
-                      className={`border border-gray-200 rounded-lg h-[600px] flex flex-col ${
+                      className={`border border-gray-200 rounded-lg min-h-[400px] flex flex-col ${
                         isToday ? 'border-indigo-300 bg-indigo-50' : 'bg-white'
                       } ${
                         draggedOverDay === dateKey ? 'border-indigo-500 bg-indigo-100' : ''
