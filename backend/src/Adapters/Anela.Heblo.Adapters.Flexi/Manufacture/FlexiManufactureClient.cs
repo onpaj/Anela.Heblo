@@ -6,6 +6,8 @@ using Rem.FlexiBeeSDK.Client;
 using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
+using Rem.FlexiBeeSDK.Model;
+using System.Net;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture;
 
@@ -166,7 +168,18 @@ internal class FlexiManufactureClient : IManufactureClient
 
     public async Task UpdateBoMIngredientAmountAsync(string productCode, string ingredientCode, double newAmount, CancellationToken cancellationToken = default)
     {
-        await _bomClient.UpdateIngredientAmountAsync(productCode, ingredientCode, newAmount, cancellationToken);
+        try
+        {
+            await _bomClient.UpdateIngredientAmountAsync(productCode, ingredientCode, newAmount, cancellationToken);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotImplemented)
+        {
+            _logger.LogError(ex,
+                "FlexiBee kusovnik returned 501 NotImplemented while updating BoM ingredient amount — " +
+                "endpoint may be disabled or unsupported on this instance. ProductCode: {ProductCode}, IngredientCode: {IngredientCode}",
+                productCode, ingredientCode);
+            throw;
+        }
     }
 
     public async Task<ManufactureTemplate?> GetManufactureTemplateAsync(string id, CancellationToken cancellationToken = default)
@@ -176,7 +189,19 @@ internal class FlexiManufactureClient : IManufactureClient
 
     public async Task<List<ManufactureTemplate>> FindByIngredientAsync(string ingredientCode, CancellationToken cancellationToken)
     {
-        var templates = await _bomClient.GetByIngredientAsync(ingredientCode, cancellationToken);
+        IEnumerable<BoMItemFlexiDto> templates;
+        try
+        {
+            templates = await _bomClient.GetByIngredientAsync(ingredientCode, cancellationToken);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotImplemented)
+        {
+            _logger.LogError(ex,
+                "FlexiBee kusovnik returned 501 NotImplemented while fetching BoM by ingredient — " +
+                "endpoint may be disabled or unsupported on this instance. IngredientCode: {IngredientCode}",
+                ingredientCode);
+            throw;
+        }
 
         return templates
                 .Select(s => new ManufactureTemplate()

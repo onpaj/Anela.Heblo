@@ -1,6 +1,7 @@
 using Anela.Heblo.Domain.Features.Catalog.Products;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
+using System.Net;
 
 namespace Anela.Heblo.Adapters.Flexi.Products;
 
@@ -25,7 +26,19 @@ public class FlexiProductClient : IProductWeightClient
         _logger.LogDebug("Starting weight recalculation for product {ProductCode}", productCode);
 
         // 1. Get BOM data for the product
-        var weight = await _bomClient.GetBomWeight(productCode, cancellationToken);
+        double? weight;
+        try
+        {
+            weight = (await _bomClient.GetBomWeight(productCode, cancellationToken))?.NetWeight;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotImplemented)
+        {
+            _logger.LogError(ex,
+                "FlexiBee kusovnik returned 501 NotImplemented while fetching BoM weight — " +
+                "endpoint may be disabled or unsupported on this instance. ProductCode: {ProductCode}",
+                productCode);
+            throw;
+        }
 
         if (weight == null)
         {
@@ -36,7 +49,7 @@ public class FlexiProductClient : IProductWeightClient
         var request = new PriceListFlexiDto()
         {
             ProductCode = productCode,
-            Weight = weight.NetWeight,
+            Weight = weight.Value,
         };
 
         var result = await _priceListClient.SaveAsync(request, cancellationToken);
