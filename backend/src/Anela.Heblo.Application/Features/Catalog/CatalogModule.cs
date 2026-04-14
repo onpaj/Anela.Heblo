@@ -59,6 +59,7 @@ public static class CatalogModule
         services.AddTransient<SafeMarginCalculator>();
         services.AddTransient<IProductWeightRecalculationService, ProductWeightRecalculationService>();
         services.AddTransient<IStockUpProcessingService, StockUpProcessingService>();
+        services.AddScoped<IEshopStockDomainService, EshopStockDomainService>();
 
         // Configure feature flags from configuration
         services.Configure<CatalogFeatureFlags>(options =>
