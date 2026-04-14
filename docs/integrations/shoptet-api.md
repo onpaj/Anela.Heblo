@@ -394,7 +394,70 @@ These values are stored in `~/.microsoft/usersecrets/anela-heblo-adapters-shopte
 
 ---
 
-## 8. Design Documents
+## 8. Stock Endpoints
+
+Stock movements are used to update product quantities in Shoptet (stock-up and stock-down).
+
+### 8.1 Authentication
+Same `Shoptet-Private-API-Token` header as all other endpoints. No separate token.
+
+### 8.2 List Stocks
+```
+GET /api/stocks
+```
+Returns all warehouses. Response includes `defaultStockId` (integer). Most single-warehouse
+Shoptet stores have exactly one stock. Use this endpoint once to discover the `StockId` value
+to configure in `Shoptet:StockId`.
+
+### 8.3 Update Stock Quantity
+```
+PATCH /api/stocks/{stockId}/movements
+Content-Type: application/json
+
+{
+  "data": [
+    { "productCode": "AKL001", "amountChange": 5 }
+  ]
+}
+```
+
+- `stockId` — warehouse ID (configure via `Shoptet:StockId`, discover via `GET /api/stocks`)
+- `productCode` — variant-level SKU (same as stored in `StockUpOperation.ProductCode`)
+- `amountChange` — relative delta; positive = stock-up, negative = stock-down (ingredient consumption)
+- Up to 300 products per call (this project sends one product per call)
+
+**Partial failure semantics:** Shoptet returns `200 OK` even when one or more products fail;
+the `errors[]` array will be non-empty. If all products fail, Shoptet returns `400 Bad Request`.
+Always check `errors[]` even on 200. `ShoptetStockClient` throws `HttpRequestException` for
+either case.
+
+**No document number field.** `additionalProperties: false` on the request body — no `documentNumber`,
+`note`, or `reference` fields are accepted. Movements appear in Shoptet admin with
+`changedBy = "api.service-{id}@{domain}"`. Traceability is maintained in Heblo's
+`StockUpOperation` table via `DocumentNumber` (BOX-/GPM-/GPD- prefix).
+
+### 8.4 Configuration Keys
+
+| Key | Type | Where to set |
+|-----|------|-------------|
+| `Shoptet:StockId` | `int` | User secrets / Azure App Service env var |
+
+Default value is `1`. To find the correct value per environment:
+```
+GET /api/stocks
+Authorization: see section 2
+```
+The response `data.defaultStockId` is the value to configure.
+
+### 8.5 Known Constraints
+- Cannot update quantities for product sets (dynamically calculated). Returns `stock-change-not-allowed` error.
+- No idempotency key — duplicate PATCHes create duplicate movements. Guard in application layer via
+  `StockUpOperation` state machine (unique `DocumentNumber` per operation, Submitted → Completed transition).
+- `VerifyStockUpExistsAsync` is not implementable via REST (no document-number filter on `GET /api/stocks/{id}/movements`). The pre-check in `StockUpProcessingService` always returns false and is effectively a no-op with the REST adapter.
+
+---
+
+## 9. Design Documents
 
 - **ShoptetApi Adapter F1** (ShoptetPay payout downloads): `docs/superpowers/specs/2026-03-24-shoptet-api-adapter-f1-design.md`
 - **ShoptetApi Adapter F1 Implementation Plan**: `docs/superpowers/plans/2026-03-24-shoptet-api-f1.md`

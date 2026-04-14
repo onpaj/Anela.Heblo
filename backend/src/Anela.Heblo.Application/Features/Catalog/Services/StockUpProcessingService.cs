@@ -71,11 +71,10 @@ public class StockUpProcessingService : IStockUpProcessingService
 
         try
         {
-            // === LAYER 3: Pre-submit check in Shoptet history ===
-            _logger.LogDebug(
-                "Checking if document {DocumentNumber} already exists in Shoptet history",
-                operation.DocumentNumber);
-
+            // Pre-check: skip submit if the record somehow already exists.
+            // With the REST adapter, VerifyStockUpExistsAsync always returns false
+            // (the REST API has no document-number search). The check is retained so
+            // that manually accepted legacy Playwright records are still detected.
             try
             {
                 var existsInShoptet = await _eshopService.VerifyStockUpExistsAsync(operation.DocumentNumber);
@@ -95,44 +94,22 @@ public class StockUpProcessingService : IStockUpProcessingService
                     ex,
                     "Pre-check verification failed for {DocumentNumber}, continuing with submit",
                     operation.DocumentNumber);
-                // Continue with submit - verification errors shouldn't block the operation
             }
 
-            // === Submit to Shoptet ===
             operation.MarkAsSubmitted(DateTime.UtcNow);
             await _repository.SaveChangesAsync(ct);
             _logger.LogDebug("Operation {DocumentNumber} marked as Submitted", operation.DocumentNumber);
 
             var request = new StockUpRequest(operation.ProductCode, operation.Amount, operation.DocumentNumber);
             await _eshopService.StockUpAsync(request);
+
+            // REST API guarantees: a 200 response with no errors means the stock change was applied.
+            // No post-verify needed — that was a Playwright-only safety net.
+            operation.MarkAsCompleted(DateTime.UtcNow);
+            await _repository.SaveChangesAsync(ct);
             _logger.LogInformation(
-                "Successfully submitted {DocumentNumber} to Shoptet",
+                "Operation {DocumentNumber} completed successfully",
                 operation.DocumentNumber);
-
-            // === LAYER 4: Post-verify in Shoptet history ===
-            _logger.LogDebug(
-                "Verifying {DocumentNumber} in Shoptet history after submission",
-                operation.DocumentNumber);
-
-            var verified = await _eshopService.VerifyStockUpExistsAsync(operation.DocumentNumber);
-            if (verified)
-            {
-                operation.MarkAsCompleted(DateTime.UtcNow);
-                await _repository.SaveChangesAsync(ct);
-                _logger.LogInformation(
-                    "Operation {DocumentNumber} verified and completed successfully",
-                    operation.DocumentNumber);
-            }
-            else
-            {
-                _logger.LogError(
-                    "Verification failed: {DocumentNumber} not found in Shoptet history after submission",
-                    operation.DocumentNumber);
-                operation.MarkAsFailed(
-                    DateTime.UtcNow,
-                    "Verification failed: Record not found in Shoptet history");
-                await _repository.SaveChangesAsync(ct);
-            }
         }
         catch (Exception ex)
         {

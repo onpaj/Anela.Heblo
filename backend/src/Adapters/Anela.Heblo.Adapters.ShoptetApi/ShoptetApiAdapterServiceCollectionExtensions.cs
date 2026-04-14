@@ -1,5 +1,7 @@
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
+using Anela.Heblo.Adapters.ShoptetApi.Stock;
+using Anela.Heblo.Application.Features.Catalog.Stock;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 using Microsoft.Extensions.Configuration;
@@ -21,6 +23,13 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             .Bind(configuration.GetSection(ShoptetApiSettings.ConfigurationKey));
 
         services.AddHttpClient<IEshopOrderClient, ShoptetOrderClient>((sp, client) =>
+        {
+            var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
+            client.BaseAddress = new Uri(settings.BaseUrl);
+            client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
+        });
+
+        services.AddHttpClient<IShoptetStockClient, ShoptetStockClient>((sp, client) =>
         {
             var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
             client.BaseAddress = new Uri(settings.BaseUrl);

@@ -46,8 +46,6 @@ public static class ShoptetAdapterServiceCollectionExtensions
         services.AddSingleton<IssuedInvoiceExportScenario>();
 
         services.AddScoped<IEshopStockDomainService, ShoptetPlaywrightStockDomainService>();
-        services.AddSingleton<StockUpScenario>();
-        services.AddSingleton<VerifyStockUpScenario>();
         services.AddSingleton<StockTakingScenario>();
 
         services.AddSingleton<ICashRegisterOrdersSource, ShoptetPlaywrightCashRegisterOrdersSource>();
