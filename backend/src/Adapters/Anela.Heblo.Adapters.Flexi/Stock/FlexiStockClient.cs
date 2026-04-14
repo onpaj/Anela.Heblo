@@ -1,7 +1,9 @@
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockToDate;
+using System.Net;
 
 namespace Anela.Heblo.Adapters.Flexi.Stock;
 
@@ -14,12 +16,18 @@ public class FlexiStockClient : IErpStockClient
     private readonly IStockToDateClient _stockClient;
     private readonly TimeProvider _timeProvider;
     private readonly IMapper _mapper;
+    private readonly ILogger<FlexiStockClient> _logger;
 
-    public FlexiStockClient(IStockToDateClient stockClient, TimeProvider timeProvider, IMapper mapper)
+    public FlexiStockClient(
+        IStockToDateClient stockClient,
+        TimeProvider timeProvider,
+        IMapper mapper,
+        ILogger<FlexiStockClient> logger)
     {
         _stockClient = stockClient;
         _timeProvider = timeProvider;
         _mapper = mapper;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<IReadOnlyList<ErpStock>> ListAsync(CancellationToken cancellationToken)
@@ -40,12 +48,22 @@ public class FlexiStockClient : IErpStockClient
     public async Task<IReadOnlyList<ErpStock>> StockToDateAsync(DateTime date, int warehouseId,
         CancellationToken cancellationToken)
     {
-        // Map store code to warehouse ID
-        var stockToDate = await _stockClient
-            .GetAsync(date, warehouseId: warehouseId, cancellationToken: cancellationToken);
+        try
+        {
+            var stockToDate = await _stockClient
+                .GetAsync(date, warehouseId: warehouseId, cancellationToken: cancellationToken);
 
-        var stock = _mapper.Map<List<ErpStock>>(stockToDate);
-        return stock;
+            var stock = _mapper.Map<List<ErpStock>>(stockToDate);
+            return stock;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotImplemented)
+        {
+            _logger.LogError(ex,
+                "FlexiBee stav-skladu-k-datu returned 501 NotImplemented — endpoint may be disabled or unsupported on this instance. " +
+                "WarehouseId: {WarehouseId}, Date: {Date}",
+                warehouseId, date);
+            throw;
+        }
     }
 
     private Task<IReadOnlyList<ErpStock>> ListByWarehouse(int warehouseId, ProductType productType,
@@ -57,20 +75,23 @@ public class FlexiStockClient : IErpStockClient
     private async Task<IReadOnlyList<ErpStock>> ListByWarehouse(int warehouseId, ProductType[] productTypes,
         CancellationToken cancellationToken)
     {
-        var startTime = DateTime.UtcNow;
-        var parameters = new Dictionary<string, object>
+        try
         {
-            ["warehouseId"] = warehouseId,
-            ["productTypes"] = string.Join(", ", productTypes),
-            ["date"] = _timeProvider.GetUtcNow().Date
-        };
+            var stockToDate = await _stockClient
+                .GetAsync(_timeProvider.GetUtcNow().Date, warehouseId: warehouseId, cancellationToken: cancellationToken);
 
-        var stockToDate = await _stockClient
-            .GetAsync(_timeProvider.GetUtcNow().Date, warehouseId: warehouseId, cancellationToken: cancellationToken);
-
-        var productTypeIds = productTypes.Select(i => (int?)i).ToList();
-        var filteredStockToDate = stockToDate.Where(w => productTypeIds.Contains(w.ProductTypeId));
-        var stock = _mapper.Map<List<ErpStock>>(filteredStockToDate);
-        return stock;
+            var productTypeIds = productTypes.Select(i => (int?)i).ToList();
+            var filteredStockToDate = stockToDate.Where(w => productTypeIds.Contains(w.ProductTypeId));
+            var stock = _mapper.Map<List<ErpStock>>(filteredStockToDate);
+            return stock;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotImplemented)
+        {
+            _logger.LogError(ex,
+                "FlexiBee stav-skladu-k-datu returned 501 NotImplemented — endpoint may be disabled or unsupported on this instance. " +
+                "WarehouseId: {WarehouseId}, ProductTypes: {ProductTypes}",
+                warehouseId, string.Join(", ", productTypes));
+            throw;
+        }
     }
 }
