@@ -76,8 +76,26 @@ export async function applyFilters(
     await inputs.companyName.fill(filters.companyName);
   }
 
+  // Register response waiter BEFORE clicking to avoid missing the response.
+  // (US-002 pattern: page.waitForResponse must be registered before the action that
+  // triggers the request, or the response may arrive before the waiter is set up.)
+  const responsePromise = page.waitForResponse(
+    resp => resp.url().includes('/api/InvoiceClassification/history') && resp.status() === 200,
+    { timeout: 15000 }
+  );
+
   await inputs.filterButton.click();
-  await page.waitForLoadState('networkidle'); // Wait for filter application
+
+  // Wait for the API response to arrive.
+  await responsePromise;
+
+  // After the response arrives, React re-renders. Wait for the DOM to reflect the new
+  // state: either table rows or the no-records message (component renders one or the other
+  // once isLoading becomes false).
+  await page.waitForSelector(
+    'table tbody tr, :text("Nebyly nalezeny žádné záznamy")',
+    { timeout: 15000 }
+  );
 }
 
 /**
