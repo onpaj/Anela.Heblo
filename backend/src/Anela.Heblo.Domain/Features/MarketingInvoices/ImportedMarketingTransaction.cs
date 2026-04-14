@@ -1,0 +1,15 @@
+using Anela.Heblo.Xcc.Domain;
+
+namespace Anela.Heblo.Domain.Features.MarketingInvoices;
+
+public class ImportedMarketingTransaction : IEntity<int>
+{
+    public int Id { get; set; }
+    public string TransactionId { get; set; } = string.Empty;
+    public string Platform { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public DateTime TransactionDate { get; set; }
+    public DateTime ImportedAt { get; set; }
+    public bool IsSynced { get; set; } = false;
+    public string? ErrorMessage { get; set; }
+}
