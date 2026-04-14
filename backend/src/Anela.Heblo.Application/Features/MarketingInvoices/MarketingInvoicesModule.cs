@@ -10,6 +10,10 @@ public static class MarketingInvoicesModule
     public static IServiceCollection AddMarketingInvoicesModule(this IServiceCollection services)
     {
         services.AddScoped<IImportedMarketingTransactionRepository, ImportedMarketingTransactionRepository>();
+
+        // Register null implementation as default; consuming applications should override with their own
+        services.AddScoped<IMarketingTransactionSource, NullMarketingTransactionSource>();
+
         services.AddScoped<MarketingInvoiceImportService>();
 
         return services;
