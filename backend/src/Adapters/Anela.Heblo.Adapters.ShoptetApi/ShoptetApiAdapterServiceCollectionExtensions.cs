@@ -1,3 +1,4 @@
+using System.Text;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Stock;
@@ -17,6 +18,8 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
         QuestPDF.Settings.License = LicenseType.Community;
 
         services.AddOptions<ShoptetApiSettings>()
@@ -35,6 +38,9 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             client.BaseAddress = new Uri(settings.BaseUrl);
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
         });
+
+        services.Configure<ShoptetStockClientOptions>(
+            configuration.GetSection(ShoptetStockClientOptions.SettingsKey));
 
         services.AddTransient<IPickingListSource, ShoptetApiExpeditionListSource>();
 
