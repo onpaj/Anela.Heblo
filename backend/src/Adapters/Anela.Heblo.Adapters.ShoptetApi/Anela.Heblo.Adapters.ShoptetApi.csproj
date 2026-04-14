@@ -7,7 +7,9 @@
     <UserSecretsId>dcbfcc1d-905a-462c-8586-c1ef8ea4a835</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="CsvHelper" Version="32.0.2" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
     <PackageReference Include="QuestPDF" Version="2024.3.4" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.3" />
