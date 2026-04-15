@@ -126,6 +126,9 @@ public class ManufactureOrderConfiguration : IEntityTypeConfiguration<Manufactur
         builder.HasIndex(x => x.CreatedDate)
             .HasDatabaseName("IX_ManufactureOrders_CreatedDate");
 
+        builder.HasIndex(x => x.PlannedDate)
+            .HasDatabaseName("IX_ManufactureOrders_PlannedDate");
+
         builder.HasIndex(x => x.ResponsiblePerson)
             .HasDatabaseName("IX_ManufactureOrders_ResponsiblePerson");
 
