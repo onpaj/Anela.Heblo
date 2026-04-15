@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
@@ -81,6 +82,9 @@ public class ApplicationDbContext : DbContext
 
     // Grid Layouts module
     public DbSet<GridLayout> GridLayouts { get; set; } = null!;
+
+    // Marketing Invoices module
+    public DbSet<ImportedMarketingTransaction> ImportedMarketingTransactions { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
