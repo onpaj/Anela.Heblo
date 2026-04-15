@@ -21,6 +21,11 @@ public class MarketingInvoiceImportService
 
     public async Task<MarketingImportResult> ImportAsync(DateTime from, DateTime to, CancellationToken ct = default)
     {
+        if (from > to)
+        {
+            throw new ArgumentException($"'from' ({from:yyyy-MM-dd}) must be before or equal to 'to' ({to:yyyy-MM-dd}).", nameof(from));
+        }
+
         _logger.LogInformation(
             "Starting marketing invoice import for platform {Platform} from {From:yyyy-MM-dd} to {To:yyyy-MM-dd}",
             _source.Platform, from, to);
@@ -28,6 +33,7 @@ public class MarketingInvoiceImportService
         var transactions = await _source.GetTransactionsAsync(from, to, ct);
 
         var result = new MarketingImportResult();
+        var toImport = new List<ImportedMarketingTransaction>();
 
         foreach (var transaction in transactions)
         {
@@ -43,7 +49,7 @@ public class MarketingInvoiceImportService
                     continue;
                 }
 
-                var entity = new ImportedMarketingTransaction
+                toImport.Add(new ImportedMarketingTransaction
                 {
                     TransactionId = transaction.TransactionId,
                     Platform = _source.Platform,
@@ -51,20 +57,33 @@ public class MarketingInvoiceImportService
                     TransactionDate = transaction.TransactionDate,
                     ImportedAt = DateTime.UtcNow,
                     IsSynced = false,
-                };
-
-                await _repository.AddAsync(entity, ct);
-                await _repository.SaveChangesAsync(ct);
-
-                result.Imported++;
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(
                     ex,
-                    "Failed to import transaction {TransactionId} for {Platform}",
+                    "Failed to check transaction {TransactionId} for {Platform}",
                     transaction.TransactionId, _source.Platform);
                 result.Failed++;
+            }
+        }
+
+        if (toImport.Count > 0)
+        {
+            try
+            {
+                await _repository.AddRangeAsync(toImport, ct);
+                await _repository.SaveChangesAsync(ct);
+                result.Imported = toImport.Count;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Failed to batch import {Count} transactions for {Platform}",
+                    toImport.Count, _source.Platform);
+                result.Failed += toImport.Count;
             }
         }
 

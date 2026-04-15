@@ -57,5 +57,12 @@ public class ImportedMarketingTransactionConfiguration : IEntityTypeConfiguratio
         builder.HasIndex(e => new { e.Platform, e.TransactionId })
             .IsUnique()
             .HasDatabaseName("IX_imported_marketing_transactions_Platform_TransactionId");
+
+        builder.HasIndex(e => e.ImportedAt)
+            .HasDatabaseName("IX_imported_marketing_transactions_ImportedAt");
+
+        builder.HasIndex(e => e.IsSynced)
+            .HasFilter("\"IsSynced\" = false")
+            .HasDatabaseName("IX_imported_marketing_transactions_IsSynced_False");
     }
 }
