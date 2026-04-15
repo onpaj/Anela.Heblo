@@ -58,6 +58,9 @@ const BatchPlanningCalculator: React.FC = () => {
   const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
   const [createdOrderDate, setCreatedOrderDate] = useState<Date | null>(null);
   
+  // Direct semiproduct amount (MultiPhase only): kg reserved as bulk sellable output
+  const [directSemiproductAmount, setDirectSemiproductAmount] = useState<number>(0);
+
   // State to track if recalculation is needed
   const [needsRecalculation, setNeedsRecalculation] = useState(false);
   
@@ -293,6 +296,7 @@ const BatchPlanningCalculator: React.FC = () => {
       fromDate: fromDateParam || fromDate,
       toDate: toDateParam || toDate,
       salesMultiplier: salesMultiplier,
+      directSemiproductAmount: directSemiproductAmount > 0 ? directSemiproductAmount : undefined,
     };
 
     // Add mode-specific parameters
@@ -329,7 +333,8 @@ const BatchPlanningCalculator: React.FC = () => {
       fromDate: fromDateParam || fromDate,
       toDate: toDateParam || toDate,
       salesMultiplier: salesMultiplier,
-      productConstraints: constraints
+      productConstraints: constraints,
+      directSemiproductAmount: directSemiproductAmount > 0 ? directSemiproductAmount : undefined,
     };
 
     // Add mode-specific parameters
@@ -356,6 +361,7 @@ const BatchPlanningCalculator: React.FC = () => {
     setMmqMultiplier(1.0);
     setTotalBatchSize(0);
     setTargetDaysCoverage(30);
+    setDirectSemiproductAmount(0);
     setInputMode('multiplier');
     setControlMode(BatchPlanControlMode.MmqMultiplier); // Reset to default mode
     // Clear constraints when changing product
@@ -476,7 +482,8 @@ const BatchPlanningCalculator: React.FC = () => {
         })),
         plannedDate: plannedDate,
         responsiblePerson: undefined,
-        manufactureType: response.manufactureType
+        manufactureType: response.manufactureType,
+        directSemiproductAmount: directSemiproductAmount > 0 ? directSemiproductAmount : undefined,
       });
 
       const orderResponse = await createOrderMutation.mutateAsync(orderRequest);
@@ -766,6 +773,25 @@ const BatchPlanningCalculator: React.FC = () => {
                             className="w-20 px-3 py-2 text-sm border border-indigo-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
                           />
                           <span className="text-sm text-gray-600">dní</span>
+                        </div>
+                      )}
+
+                      {/* Direct Semiproduct Amount (MultiPhase only) */}
+                      {response?.manufactureType !== ManufactureType.SinglePhase && response?.manufactureType !== undefined && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm text-gray-700 whitespace-nowrap">Přímý výstup:</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.1"
+                            value={directSemiproductAmount}
+                            onChange={(e) => {
+                              setDirectSemiproductAmount(Number(e.target.value));
+                              setNeedsRecalculation(true);
+                            }}
+                            className="w-28 px-3 py-2 text-sm border border-indigo-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                          />
+                          <span className="text-sm text-gray-600">g</span>
                         </div>
                       )}
 
