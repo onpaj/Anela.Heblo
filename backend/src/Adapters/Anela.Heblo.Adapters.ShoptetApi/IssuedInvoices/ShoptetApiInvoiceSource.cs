@@ -41,6 +41,9 @@ public class ShoptetApiInvoiceSource : IIssuedInvoiceSource
 
         var total = invoices.Count;
 
+        // Shoptet /api/invoices does not support currency filtering as a query parameter,
+        // so we filter in memory after fetching. For the typical volume (hundreds per month)
+        // this is acceptable; revisit if Shoptet adds server-side currency filtering.
         var filtered = invoices
             .Where(i => string.Equals(
                 i.Price?.CurrencyCode,
