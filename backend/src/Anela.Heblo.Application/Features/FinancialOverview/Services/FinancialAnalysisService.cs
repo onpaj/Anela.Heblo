@@ -38,10 +38,21 @@ public class FinancialAnalysisService : IFinancialAnalysisService
     public async Task<GetFinancialOverviewResponse> GetFinancialOverviewAsync(
         int months,
         bool includeStockData,
+        IReadOnlyList<string>? excludedDepartments = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Fetching financial overview for {Months} months, IncludeStock={IncludeStock}",
-            months, includeStockData);
+        _logger.LogInformation("Fetching financial overview for {Months} months, IncludeStock={IncludeStock}, ExcludedDepartments={ExcludedDepartments}",
+            months, includeStockData, excludedDepartments?.Count ?? 0);
+
+        // When departments are excluded, we must use real-time calculation because
+        // the cache stores pre-aggregated totals that cannot be filtered by department.
+        if (excludedDepartments is { Count: > 0 })
+        {
+            _logger.LogInformation("Department filter active ({Count} excluded), bypassing cache for real-time calculation",
+                excludedDepartments.Count);
+
+            return await GetFinancialOverviewRealTimeAsync(months, includeStockData, excludedDepartments, cancellationToken);
+        }
 
         try
         {
@@ -59,7 +70,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
             _logger.LogWarning(ex, "Failed to get cached financial data, falling back to real-time calculation");
 
             // Fallback to real-time calculation if cache fails
-            return await GetFinancialOverviewRealTimeAsync(months, includeStockData, cancellationToken);
+            return await GetFinancialOverviewRealTimeAsync(months, includeStockData, null, cancellationToken);
         }
     }
 
@@ -298,6 +309,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
     private async Task<GetFinancialOverviewResponse> GetFinancialOverviewRealTimeAsync(
         int months,
         bool includeStockData,
+        IReadOnlyList<string>? excludedDepartments,
         CancellationToken cancellationToken)
     {
         // Set endDate to last day of previous month (exclude current month)
@@ -331,9 +343,22 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         // Execute queries in parallel
         await Task.WhenAll(debitItemsTask, creditItemsTask, stockChangesTask);
 
-        var debitItems = await debitItemsTask;
-        var creditItems = await creditItemsTask;
+        var allDebitItems = await debitItemsTask;
+        var allCreditItems = await creditItemsTask;
         var stockChanges = await stockChangesTask;
+
+        // Apply department filtering in-memory when departments are excluded
+        var excludedSet = excludedDepartments is { Count: > 0 }
+            ? excludedDepartments.ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : null;
+
+        var debitItems = excludedSet != null
+            ? allDebitItems.Where(item => item.Department == null || !excludedSet.Contains(item.Department)).ToList()
+            : allDebitItems;
+
+        var creditItems = excludedSet != null
+            ? allCreditItems.Where(item => item.Department == null || !excludedSet.Contains(item.Department)).ToList()
+            : allCreditItems;
 
         // Create lookup for stock changes by year/month for efficient access
         var stockChangesList = stockChanges.ToList();
