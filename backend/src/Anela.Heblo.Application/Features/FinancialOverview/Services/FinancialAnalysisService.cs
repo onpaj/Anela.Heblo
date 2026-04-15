@@ -434,7 +434,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
                             SemiProducts = stockChangeData.StockChanges.SemiProducts,
                             Products = stockChangeData.StockChanges.Products
                         } : null,
-                        TotalStockValueChange = includeStockData ? stockChangeData?.TotalStockValueChange : null,
+                        TotalStockValueChange = includeStockData ? (stockChangeData?.TotalStockValueChange ?? 0) : null,
                         TotalBalance = includeStockData
                             ? d.FinancialBalance + (stockChangeData?.TotalStockValueChange ?? 0)
                             : null
