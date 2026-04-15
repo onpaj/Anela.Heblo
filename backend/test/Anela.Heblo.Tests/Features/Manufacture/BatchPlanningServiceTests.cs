@@ -303,6 +303,67 @@ public class BatchPlanningServiceTests
         Assert.Equal(125, fixedProduct2.TotalVolumeRequired);
     }
 
+    [Fact]
+    public async Task CalculateBatchPlan_WithDirectSemiproductAmount_ReducesVolumeForVariants()
+    {
+        // Arrange: MMQ=1000, multiplier=1.5 → total volume=1500g; direct amount=200g → variants get 1300g
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.5,
+            DirectSemiproductAmount = 200,
+            FromDate = DateTime.Now.AddDays(-30),
+            ToDate = DateTime.Now
+        };
+
+        var semiproduct = CreateSemiproduct("SEMI001", 1000);
+        var templates = CreateManufactureTemplates();
+        var products = CreateProducts();
+
+        SetupRepositoryMocks(semiproduct, templates, products);
+
+        // Act
+        var result = await _service.CalculateBatchPlan(request, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
+        // Volume available for product variants must be reduced by the direct amount
+        Assert.Equal(1300, result.TotalVolumeAvailable); // 1500 - 200 = 1300
+        Assert.Equal(200, result.DirectSemiproductAmount);
+        // Total volume used by variants must not exceed the reduced available volume
+        Assert.True(result.TotalVolumeUsed <= 1300);
+    }
+
+    [Fact]
+    public async Task CalculateBatchPlan_WithoutDirectSemiproductAmount_EchosZeroOnResponse()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.5,
+            DirectSemiproductAmount = null,
+            FromDate = DateTime.Now.AddDays(-30),
+            ToDate = DateTime.Now
+        };
+
+        var semiproduct = CreateSemiproduct("SEMI001", 1000);
+        var templates = CreateManufactureTemplates();
+        var products = CreateProducts();
+
+        SetupRepositoryMocks(semiproduct, templates, products);
+
+        // Act
+        var result = await _service.CalculateBatchPlan(request, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(0, result.DirectSemiproductAmount);
+        Assert.Equal(1500, result.TotalVolumeAvailable); // Full volume, nothing reserved
+    }
+
     private CatalogAggregate CreateSemiproduct(string code, double stock)
     {
         return new CatalogAggregate
