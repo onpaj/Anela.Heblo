@@ -550,3 +550,272 @@ StockTaking was migrated from Playwright browser automation to the REST API. The
 - **ShoptetApi Adapter F1 Implementation Plan**: `docs/superpowers/plans/2026-03-24-shoptet-api-f1.md`
 - **Test Environment Hydration Design** (issue #444): `docs/superpowers/specs/2026-03-27-shoptet-test-env-hydration-design.md`
 - **Test Environment Hydration Implementation Plan**: `docs/superpowers/plans/2026-03-27-shoptet-test-env-hydration.md`
+
+---
+
+## 10. Invoices API
+
+> **Source:** Shoptet OpenAPI spec at `https://api.docs.shoptet.com/_bundle/Shoptet%20API/openapi.json` — probed 2026-04-15 (issue #548).
+> Live API not probed (token not available in this environment); all findings are from the official spec.
+
+### 10.1 Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/invoices` | List invoices (paginated, max 1000/page) |
+| `GET` | `/api/invoices/{code}` | Get single invoice detail |
+
+### 10.2 Authentication
+
+Same as all other Shoptet API endpoints: `Shoptet-Private-API-Token: <token>` header (see §2).
+
+### 10.3 List Invoices — `GET /api/invoices`
+
+#### Request Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `isValid` | boolean | Filter by validity flag |
+| `proformaInvoiceCode` | string | Filter by linked proforma invoice code |
+| `creationTimeFrom` | string (ISO 8601) | Filter by creation date (from) |
+| `creationTimeTo` | string (ISO 8601) | Filter by creation date (to) |
+| `taxDateFrom` | string (date) | Filter by tax date (from) |
+| `orderCode` | string | Filter by linked order code |
+| `codeFrom` | string | Filter by invoice code range (from) |
+| `codeTo` | string | Filter by invoice code range (to) |
+| `varSymbol` | number | Filter by variable symbol |
+| `itemsPerPage` | integer | Page size. **Max: 1000** (vs. orders which caps at 50) |
+| `page` | integer | Page number (1-based) |
+
+#### Response Envelope
+
+```json
+{
+  "data": {
+    "invoices": [ /* array of invoiceListItem */ ],
+    "paginator": { /* see §10.5 */ }
+  },
+  "errors": [ /* see Errors schema */ ],
+  "metadata": { "requestId": "..." }
+}
+```
+
+> **Key:** The array key is `data.invoices` — NOT `data.items` (unlike some other endpoints).
+
+#### Invoice List Item Fields
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `code` | string | ✓ | Invoice code (e.g. `"2018000004"`) |
+| `varSymbol` | `number \| null` | ✓ | Variable symbol — **number type, not string!** |
+| `isValid` | boolean | ✓ | Whether invoice is valid |
+| `proformaInvoiceCodes` | array | ✓ | Linked proforma invoice codes |
+| `orderCode` | `string \| null` | ✓ | Linked order code (can contain letters/dashes) |
+| `creationTime` | `datetime \| null` | ✓ | Date of issue (ISO 8601) |
+| `billCompany` | `string \| null` | ✓ | Billing company name |
+| `billFullName` | `string \| null` | ✓ | Billing full name |
+| `price` | object | ✓ | Price summary (see §10.4 for full structure) |
+| `changeTime` | `datetime \| null` | — | Date last modified (ISO 8601) |
+| `dueDate` | `date \| null` | — | Due date (ISO 8601 date, no time) |
+| `taxDate` | `date \| null` | — | Tax date (ISO 8601 date, no time) |
+
+### 10.4 Invoice Detail — `GET /api/invoices/{code}`
+
+#### Path Parameter
+
+| Parameter | Type | Description |
+|---|---|---|
+| `code` | string | Invoice code (e.g. `2018000004`) |
+
+#### Include Sections (on-demand)
+
+| `include` value | Section |
+|---|---|
+| `surchargeParameters` | Item surcharge parameters |
+
+#### Response Envelope
+
+```json
+{
+  "data": {
+    "invoice": { /* invoice object */ }
+  },
+  "errors": [ /* ... */ ],
+  "metadata": { "requestId": "..." }
+}
+```
+
+#### Invoice Object — Top-level Fields
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `code` | string | ✓ | Invoice code |
+| `isValid` | boolean | ✓ | Invoice is valid |
+| `proformaInvoiceCodes` | array | ✓ | Linked proforma invoice codes |
+| `orderCode` | `string \| null` | ✓ | Linked order code |
+| `creationTime` | `datetime \| null` | ✓ | Date of issue (ISO 8601) |
+| `changeTime` | `datetime \| null` | ✓ | Date last modified (ISO 8601) |
+| `dueDate` | `date \| null` | ✓ | Due date |
+| `taxDate` | `date \| null` | ✓ | Tax date |
+| `varSymbol` | number | ✓ | Variable symbol (numeric) |
+| `constSymbol` | `string \| null` | ✓ | Constant symbol |
+| `specSymbol` | `number \| null` | ✓ | Specific symbol |
+| `weight` | number | ✓ | Unpacked weight in kg (3 decimal places) |
+| `completePackageWeight` | number | ✓ | Total package weight in kg (3 decimal places) |
+| `billingMethod` | `object \| null` | ✓ | Payment method info (see §10.6) |
+| `billingAddress` | object | ✓ | Billing address (see §10.7) |
+| `deliveryAddress` | `object \| null` | ✓ | Delivery address (see §10.8) |
+| `addressesEqual` | boolean | ✓ | Billing and delivery addresses are the same |
+| `price` | object | ✓ | Price summary (see §10.9) |
+| `customer` | object | ✓ | Customer info (see §10.10) |
+| `eshop` | object | ✓ | E-shop bank details (see §10.11) |
+| `items` | array | ✓ | Line items (see §10.12) |
+| `documentRemark` | `string \| null` | ✓ | Document remark |
+| `vatPayer` | boolean | ✓ | E-shop is a VAT payer |
+| `vatMode` | `string \| null` | — | VAT mode (see §10.13) |
+| `proofPayments` | array | — | Linked proof payments |
+
+### 10.5 Paginator
+
+```json
+{
+  "totalCount": 55,
+  "page": 1,
+  "pageCount": 3,
+  "itemsOnPage": 20,
+  "itemsPerPage": 20
+}
+```
+
+### 10.6 Billing Method Object
+
+```json
+{ "id": 3, "name": "Cash" }
+```
+
+#### Billing Method Code List
+
+| id | Description (EN) | CZ name |
+|---|---|---|
+| 1 | COD | Dobírka |
+| 2 | Wire transfer | Převodem |
+| 3 | Cash | Hotově |
+| 4 | Card | Kartou |
+
+### 10.7 Billing Address Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `company` | `string \| null` | Company name |
+| `fullName` | `string \| null` | Full name |
+| `street` | `string \| null` | Street name |
+| `houseNumber` | `string \| null` | House/street number |
+| `city` | `string \| null` | City |
+| `district` | `string \| null` | County/district |
+| `additional` | `string \| null` | Additional address info |
+| `zip` | `string \| null` | ZIP/postal code |
+| `countryCode` | `string \| null` | 3-character ISO country code (ISO 4217 in spec, but likely ISO 3166-1 alpha-2 in practice, e.g. `"CZ"`) |
+| `regionName` | `string \| null` | Region name |
+| `regionShortcut` | `string \| null` | Region abbreviation |
+| `companyId` | `string \| null` | Company registration number (IČO) |
+| `taxId` | `string \| null` | Tax ID (for CZ, same as vatId) |
+| `vatId` | `string \| null` | VAT number (e.g. `"CZ289324675"`) |
+| `vatIdValidationStatus` | `"unverified" \| "verified" \| "waiting" \| null` | VAT ID verification status |
+
+### 10.8 Delivery Address Fields
+
+Same fields as Billing Address (§10.7) **except** no `companyId`, `taxId`, `vatId`, or `vatIdValidationStatus`.
+The delivery address object itself can be `null`.
+
+### 10.9 Invoice Price Object
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `vat` | `string \| null` | ✓ | VAT amount (2 decimal places, e.g. `"42.00"`) |
+| `toPay` | `string \| null` | ✓ | Total amount to pay |
+| `currencyCode` | string | ✓ | ISO 4217 currency code (e.g. `"CZK"`) |
+| `withoutVat` | `string \| null` | ✓ | Price excl. VAT |
+| `withVat` | `string \| null` | ✓ | Price incl. VAT |
+| `exchangeRate` | number | ✓ | Exchange rate |
+| `invoicingExchangeRate` | number | — | Invoicing-specific exchange rate |
+| `partialPaymentAmount` | `string \| null` | — | Partial payment value (% or money) |
+| `partialPaymentType` | string | — | `"percents"` or `"absolute"` |
+
+> Price fields are returned as **strings with 2 decimal places** (e.g. `"242.00"`), not numbers.
+
+### 10.10 Customer Object
+
+| Field | Type | Description |
+|---|---|---|
+| `guid` | `string \| null` | Customer GUID |
+| `phone` | `string \| null` | Phone number |
+| `email` | `string \| null` | Email address |
+| `remark` | `string \| null` | Customer remark |
+
+### 10.11 E-shop Object
+
+| Field | Type | Description |
+|---|---|---|
+| `bankAccount` | `string \| null` | Bank account number (e.g. `"123456789/1234"`) |
+| `iban` | `string \| null` | IBAN |
+| `bic` | `string \| null` | SWIFT/BIC code |
+| `vatPayer` | boolean | E-shop is a VAT payer |
+
+### 10.12 Invoice Item Fields
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `productGuid` | `string \| null` | ✓ | Product GUID |
+| `itemId` | integer | ✓ | Item identifier |
+| `code` | `string \| null` | ✓ | Variant/product code |
+| `itemType` | string | ✓ | Item type (e.g. `"product"`) |
+| `name` | `string \| null` | ✓ | Product name |
+| `variantName` | `string \| null` | ✓ | Variant name |
+| `brand` | `string \| null` | ✓ | Brand/manufacturer |
+| `amount` | `string \| null` | ✓ | Quantity (decimal string) |
+| `amountUnit` | `string \| null` | ✓ | Unit (e.g. `"ks"`) |
+| `remark` | `string \| null` | ✓ | Line remark |
+| `priceRatio` | number | ✓ | Discount ratio (e.g. `0.78` = 22% discount; `1.0` = no discount) |
+| `weight` | `number \| null` | ✓ | Weight in kg |
+| `additionalField` | `string \| null` | ✓ | Additional info |
+| `itemPrice` | object | ✓ | Line total price (see §10.12.1) |
+| `unitPrice` | object | ✓ | Unit price (see §10.12.1) |
+| `purchasePrice` | `object \| null` | ✓ | Purchase price (see §10.12.1) |
+| `displayPrices` | array | — | Presentation-form prices (for admin/PDF display) |
+| `recyclingFee` | object | — | Recycling fee info |
+| `surchargeParameters` | object | — | Surcharge parameters (on-demand via `include`) |
+| `consumptionTax` | object | ✓ | Consumption tax details |
+| `itemPriceVatBreakdown` | `array \| null` | — | VAT breakdown for non-product items |
+
+#### 10.12.1 Item Price Sub-Object
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `withVat` | `string \| null` | ✓ | Price incl. VAT |
+| `withoutVat` | `string \| null` | ✓ | Price excl. VAT |
+| `vat` | `string \| null` | ✓ | VAT amount |
+| `vatRate` | number | ✓ | VAT rate (%) |
+
+> **Display vs. API items:** For invoices with coupon/volume discounts across multiple VAT rates, the API returns a single discount row while the admin/PDF shows multiple rows (one per VAT rate). Use `displayPrices` array on each item to get the printout representation.
+
+### 10.13 VAT Modes
+
+| Value |
+|---|
+| `Normal` |
+| `One Stop Shop` |
+| `Mini One Stop Shop` |
+| `Reverse charge` |
+| `Outside the EU` |
+
+(Can also be `null`.)
+
+### 10.14 Notable Differences vs. Orders API
+
+| Aspect | Orders API | Invoices API |
+|---|---|---|
+| Max `itemsPerPage` | 100 | **1000** |
+| List array key | `data.orders` | `data.invoices` |
+| `varSymbol` type | string | **number** |
+| Price fields type | string (decimal) | string (decimal) |
+| Shipping field | Present on order | Not present on invoice |
