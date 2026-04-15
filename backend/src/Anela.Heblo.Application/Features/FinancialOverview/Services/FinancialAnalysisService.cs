@@ -56,10 +56,16 @@ public class FinancialAnalysisService : IFinancialAnalysisService
 
         try
         {
-            // First, try to get data from cache
+            var cacheStatus = GetCacheStatus();
+
+            if (cacheStatus.CachedMonthsCount == 0)
+            {
+                _logger.LogInformation("Cache is empty, using real-time calculation");
+                return await GetFinancialOverviewRealTimeAsync(months, includeStockData, null, cancellationToken);
+            }
+
             var cachedResponse = GetCachedFinancialOverview(months, includeStockData);
 
-            var cacheStatus = GetCacheStatus();
             _logger.LogInformation("Using cached financial data - Last refresh: {LastRefresh}, Cached months: {CachedMonths}",
                 cacheStatus.LastRefresh, cacheStatus.CachedMonthsCount);
 

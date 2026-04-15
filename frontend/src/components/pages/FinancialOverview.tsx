@@ -27,12 +27,25 @@ const FinancialOverview: React.FC = () => {
   const [includeStockData, setIncludeStockData] = useState<boolean>(true);
   const [excludedDepartments, setExcludedDepartments] = useState<string[]>([]);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const initialDefaultsSet = React.useRef(false);
 
   React.useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  const { data: departments } = useDepartments();
+
+  React.useEffect(() => {
+    if (departments && !initialDefaultsSet.current) {
+      initialDefaultsSet.current = true;
+      const buvol = departments.find((d) => d.name === "Buvol");
+      if (buvol) {
+        setExcludedDepartments([buvol.id]);
+      }
+    }
+  }, [departments]);
 
   // Convert period type to months for API call
   const getMonthsFromPeriod = (period: PeriodType): number => {
@@ -54,7 +67,6 @@ const FinancialOverview: React.FC = () => {
   };
 
   const months = getMonthsFromPeriod(selectedPeriod);
-  const { data: departments } = useDepartments();
   const { data, isLoading, error, isRefetching } = useFinancialOverviewQuery(
     months,
     includeStockData,
