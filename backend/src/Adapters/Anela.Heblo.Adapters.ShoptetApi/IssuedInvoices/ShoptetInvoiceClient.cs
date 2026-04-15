@@ -6,6 +6,8 @@ namespace Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
 
 public class ShoptetInvoiceClient : IShoptetInvoiceClient
 {
+    private const int DefaultItemsPerPage = 50;
+
     private readonly HttpClient _http;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -60,6 +62,6 @@ public class ShoptetInvoiceClient : IShoptetInvoiceClient
     {
         var from = (dateFrom ?? DateTime.UtcNow.AddDays(-1)).ToString("s") + "Z";
         var to = (dateTo ?? DateTime.UtcNow).ToString("s") + "Z";
-        return $"/api/invoices?creationTimeFrom={Uri.EscapeDataString(from)}&creationTimeTo={Uri.EscapeDataString(to)}&page={page}&itemsPerPage=50";
+        return $"/api/invoices?creationTimeFrom={Uri.EscapeDataString(from)}&creationTimeTo={Uri.EscapeDataString(to)}&page={page}&itemsPerPage={DefaultItemsPerPage}";
     }
 }
