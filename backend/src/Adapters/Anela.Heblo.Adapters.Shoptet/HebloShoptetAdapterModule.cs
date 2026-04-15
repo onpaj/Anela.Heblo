@@ -29,7 +29,7 @@ public static class ShoptetAdapterServiceCollectionExtensions
 
         services.AddHttpClient();
         services.AddSingleton<IIssuedInvoiceParser, XmlIssuedInvoiceParser>();
-        services.AddSingleton<IIssuedInvoiceSource, ShoptetPlaywrightInvoiceSource>();
+        services.AddSingleton<ShoptetPlaywrightInvoiceSource>();
 
         // Register invoice mapping resolvers
         services.AddSingleton<IPaymentMethodResolver, PaymentMethodResolver>();

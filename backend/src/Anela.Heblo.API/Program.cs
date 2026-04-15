@@ -5,10 +5,13 @@ using Anela.Heblo.Adapters.Comgate;
 using Anela.Heblo.Adapters.Flexi;
 using Anela.Heblo.Adapters.OpenAI;
 using Anela.Heblo.Adapters.Shoptet;
+using Anela.Heblo.Adapters.Shoptet.Playwright;
 using Anela.Heblo.Adapters.ShoptetApi;
+using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application;
+using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Services.Dashboard;
@@ -59,6 +62,20 @@ public partial class Program
         builder.Services.AddAnthropicAdapter(builder.Configuration);
         builder.Services.AddOpenAiAdapter(builder.Configuration);
         builder.Services.AddSendGridAdapter(builder.Configuration);
+
+        // Bind IIssuedInvoiceSource to the implementation selected by Invoices:Source config flag.
+        // Valid values: "RestApi" | "Playwright" (default)
+        var invoicesSource = builder.Configuration["Invoices:Source"] ?? "Playwright";
+        if (string.Equals(invoicesSource, "RestApi", StringComparison.OrdinalIgnoreCase))
+        {
+            builder.Services.AddSingleton<IIssuedInvoiceSource>(
+                sp => sp.GetRequiredService<ShoptetApiInvoiceSource>());
+        }
+        else
+        {
+            builder.Services.AddSingleton<IIssuedInvoiceSource>(
+                sp => sp.GetRequiredService<ShoptetPlaywrightInvoiceSource>());
+        }
 
         // Print queue sink — valid values: "FileSystem" (default), "AzureBlob", "Cups", "Combined"
         builder.Services.AddPrintQueueSink(builder.Configuration);
