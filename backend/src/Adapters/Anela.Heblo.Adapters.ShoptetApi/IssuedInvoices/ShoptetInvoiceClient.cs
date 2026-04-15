@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices.Model;
@@ -32,7 +33,7 @@ public class ShoptetInvoiceClient : IShoptetInvoiceClient
         {
             var url = BuildListUrl(dateFrom, dateTo, page);
             var response = await _http.GetAsync(url, ct);
-            response.EnsureSuccessStatusCode();
+            EnsureSuccess(response);
 
             var data = await response.Content.ReadFromJsonAsync<InvoiceListResponse>(JsonOptions, ct);
             if (data == null)
@@ -52,10 +53,30 @@ public class ShoptetInvoiceClient : IShoptetInvoiceClient
     public async Task<ShoptetInvoiceDto?> GetInvoiceAsync(string code, CancellationToken ct = default)
     {
         var response = await _http.GetAsync($"/api/invoices/{Uri.EscapeDataString(code)}", ct);
-        response.EnsureSuccessStatusCode();
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        EnsureSuccess(response);
 
         var data = await response.Content.ReadFromJsonAsync<InvoiceDetailResponse>(JsonOptions, ct);
         return data?.Data?.Invoice;
+    }
+
+    private static void EnsureSuccess(HttpResponseMessage response)
+    {
+        try
+        {
+            response.EnsureSuccessStatusCode();
+        }
+        catch (HttpRequestException ex) when (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            throw new InvalidOperationException("Shoptet API token is invalid or expired.", ex);
+        }
+        catch (HttpRequestException ex) when (response.StatusCode == HttpStatusCode.Forbidden)
+        {
+            throw new InvalidOperationException("Shoptet API access denied — check token permissions.", ex);
+        }
     }
 
     private static string BuildListUrl(DateTime? dateFrom, DateTime? dateTo, int page)
