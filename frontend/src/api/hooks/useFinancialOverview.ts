@@ -25,7 +25,7 @@ export const useFinancialOverviewQuery = (
   return useQuery<GetFinancialOverviewResponse, Error>({
     queryKey: [...QUERY_KEYS.financialOverview, months, includeStockData, excludedDepartments],
     queryFn: async () => {
-      const apiClient = await getAuthenticatedApiClient();
+      const apiClient = getAuthenticatedApiClient();
       const params = new URLSearchParams();
       params.set('months', String(months));
       params.set('includeStockData', String(includeStockData));
