@@ -11,6 +11,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useFinancialOverviewQuery } from "../../api/hooks/useFinancialOverview";
+import { useDepartments } from "../../api/hooks/useDepartments";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 
 type PeriodType =
@@ -24,13 +25,27 @@ const FinancialOverview: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] =
     useState<PeriodType>("current-year");
   const [includeStockData, setIncludeStockData] = useState<boolean>(true);
+  const [excludedDepartments, setExcludedDepartments] = useState<string[]>([]);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const initialDefaultsSet = React.useRef(false);
 
   React.useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  const { data: departments } = useDepartments();
+
+  React.useEffect(() => {
+    if (departments && !initialDefaultsSet.current) {
+      initialDefaultsSet.current = true;
+      const buvol = departments.find((d) => d.name === "Buvol");
+      if (buvol) {
+        setExcludedDepartments([buvol.id]);
+      }
+    }
+  }, [departments]);
 
   // Convert period type to months for API call
   const getMonthsFromPeriod = (period: PeriodType): number => {
@@ -55,6 +70,7 @@ const FinancialOverview: React.FC = () => {
   const { data, isLoading, error, isRefetching } = useFinancialOverviewQuery(
     months,
     includeStockData,
+    excludedDepartments,
   );
 
   const formatCurrency = (amount: number) => {
@@ -321,6 +337,41 @@ const FinancialOverview: React.FC = () => {
                 </label>
               </div>
             </div>
+
+            {departments && departments.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Střediska:
+                </label>
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  {departments.map((department) => (
+                    <div key={department.id} className="flex items-center">
+                      <input
+                        id={`dept-${department.id}`}
+                        type="checkbox"
+                        checked={!excludedDepartments.includes(department.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setExcludedDepartments(prev =>
+                              prev.filter(id => id !== department.id)
+                            );
+                          } else {
+                            setExcludedDepartments(prev => [...prev, department.id]);
+                          }
+                        }}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <label
+                        htmlFor={`dept-${department.id}`}
+                        className="ml-2 block text-sm text-gray-900"
+                      >
+                        {department.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {isRefetching && (
