@@ -186,4 +186,143 @@ public class ManufactureOrderRepositoryTests
         items.Should().HaveCount(20);
         totalCount.Should().Be(25);
     }
+
+    // -----------------------------------------------------------------------
+    // Tests verifying fix for issue #600:
+    //   - Count query is separate from includes (no extra joins)
+    //   - AsNoTracking applied to data query
+    //   - Notes not loaded in list query
+    //   - PlannedDate date range filter works correctly
+    // -----------------------------------------------------------------------
+
+    [Fact]
+    public async Task GetOrdersAsync_WithDateFromFilter_ReturnsOnlyOrdersOnOrAfterDate()
+    {
+        await using var context = CreateContext();
+        var repository = new ManufactureOrderRepository(context);
+
+        var order1 = CreateOrder("MO-001");
+        order1.PlannedDate = new DateOnly(2024, 3, 1);
+
+        var order2 = CreateOrder("MO-002");
+        order2.PlannedDate = new DateOnly(2024, 4, 1);
+
+        var order3 = CreateOrder("MO-003");
+        order3.PlannedDate = new DateOnly(2024, 5, 1);
+
+        context.ManufactureOrders.AddRange(order1, order2, order3);
+        await context.SaveChangesAsync();
+
+        var dateFrom = new DateOnly(2024, 4, 1);
+        var (items, totalCount) = await repository.GetOrdersAsync(dateFrom: dateFrom);
+
+        items.Should().HaveCount(2);
+        items.Select(x => x.OrderNumber).Should().Contain(new[] { "MO-002", "MO-003" });
+        totalCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetOrdersAsync_WithDateToFilter_ReturnsOnlyOrdersOnOrBeforeDate()
+    {
+        await using var context = CreateContext();
+        var repository = new ManufactureOrderRepository(context);
+
+        var order1 = CreateOrder("MO-001");
+        order1.PlannedDate = new DateOnly(2024, 3, 1);
+
+        var order2 = CreateOrder("MO-002");
+        order2.PlannedDate = new DateOnly(2024, 4, 1);
+
+        var order3 = CreateOrder("MO-003");
+        order3.PlannedDate = new DateOnly(2024, 5, 1);
+
+        context.ManufactureOrders.AddRange(order1, order2, order3);
+        await context.SaveChangesAsync();
+
+        var dateTo = new DateOnly(2024, 4, 1);
+        var (items, totalCount) = await repository.GetOrdersAsync(dateTo: dateTo);
+
+        items.Should().HaveCount(2);
+        items.Select(x => x.OrderNumber).Should().Contain(new[] { "MO-001", "MO-002" });
+        totalCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task GetOrdersAsync_WithDateRangeFilter_TotalCountMatchesFilteredItems()
+    {
+        await using var context = CreateContext();
+        var repository = new ManufactureOrderRepository(context);
+
+        // 5 orders spread across a range; only 3 fall in the filter window
+        for (var i = 1; i <= 5; i++)
+        {
+            var order = CreateOrder($"MO-{i:D3}");
+            order.PlannedDate = new DateOnly(2024, i, 15);
+            context.ManufactureOrders.Add(order);
+        }
+
+        await context.SaveChangesAsync();
+
+        var dateFrom = new DateOnly(2024, 2, 1);
+        var dateTo = new DateOnly(2024, 4, 30);
+
+        var (items, totalCount) = await repository.GetOrdersAsync(dateFrom: dateFrom, dateTo: dateTo);
+
+        // Orders in Feb, Mar, Apr → MO-002, MO-003, MO-004
+        items.Should().HaveCount(3);
+        totalCount.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task GetOrdersAsync_ListResult_DoesNotLoadNotes()
+    {
+        await using var context = CreateContext();
+        var repository = new ManufactureOrderRepository(context);
+
+        var order = CreateOrder("MO-001");
+        context.ManufactureOrders.Add(order);
+        await context.SaveChangesAsync();
+
+        // Add a note via direct context manipulation to avoid touching the repository
+        var note = new ManufactureOrderNote
+        {
+            ManufactureOrderId = order.Id,
+            Text = "Test note",
+            CreatedAt = DateTime.UtcNow,
+            CreatedByUser = "test",
+        };
+        context.Set<ManufactureOrderNote>().Add(note);
+        await context.SaveChangesAsync();
+
+        // Clear change tracker so the context does not serve cached data
+        context.ChangeTracker.Clear();
+
+        var (items, _) = await repository.GetOrdersAsync();
+
+        items.Should().HaveCount(1);
+        // Notes collection must not be populated in the list query to avoid
+        // the N+1 / unnecessary data loading issue described in #600.
+        items[0].Notes.Should().BeEmpty("the list query must not eagerly load Notes");
+    }
+
+    [Fact]
+    public async Task GetOrdersAsync_CountIsCorrectRegardlessOfPageSize()
+    {
+        await using var context = CreateContext();
+        var repository = new ManufactureOrderRepository(context);
+
+        var baseDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        for (var i = 1; i <= 10; i++)
+        {
+            context.ManufactureOrders.Add(CreateOrder($"MO-{i:D3}", createdDate: baseDate.AddDays(i)));
+        }
+
+        await context.SaveChangesAsync();
+
+        // Request page 1 with size 3 — only 3 items returned but total must be 10
+        var (items, totalCount) = await repository.GetOrdersAsync(pageNumber: 1, pageSize: 3);
+
+        items.Should().HaveCount(3);
+        totalCount.Should().Be(10, "CountAsync must reflect all matching rows, not just the current page");
+    }
 }

@@ -26,47 +26,50 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
         int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.ManufactureOrders
-            .Include(x => x.SemiProduct)
-            .Include(x => x.Products)
-            .Include(x => x.Notes)
-            .AsQueryable();
+        // Base filter query without navigation property includes — used for COUNT
+        // to avoid unnecessary joins when computing the total row count.
+        var filterQuery = _context.ManufactureOrders.AsQueryable();
 
         if (state.HasValue)
         {
-            query = query.Where(x => x.State == state.Value);
+            filterQuery = filterQuery.Where(x => x.State == state.Value);
         }
 
         if (dateFrom.HasValue)
         {
-            query = query.Where(x => x.PlannedDate >= dateFrom.Value);
+            filterQuery = filterQuery.Where(x => x.PlannedDate >= dateFrom.Value);
         }
 
         if (dateTo.HasValue)
         {
-            query = query.Where(x => x.PlannedDate <= dateTo.Value);
+            filterQuery = filterQuery.Where(x => x.PlannedDate <= dateTo.Value);
         }
 
         if (!string.IsNullOrEmpty(responsiblePerson))
         {
-            query = query.Where(x => x.ResponsiblePerson != null && x.ResponsiblePerson.Contains(responsiblePerson));
+            filterQuery = filterQuery.Where(x => x.ResponsiblePerson != null && x.ResponsiblePerson.Contains(responsiblePerson));
         }
 
         if (!string.IsNullOrEmpty(orderNumber))
         {
-            query = query.Where(x => x.OrderNumber.Contains(orderNumber));
+            filterQuery = filterQuery.Where(x => x.OrderNumber.Contains(orderNumber));
         }
 
+        // Filters on navigation properties require a join regardless; apply to
+        // both filterQuery and the data query so the WHERE clause is consistent.
         if (!string.IsNullOrEmpty(productCode))
         {
-            query = query.Where(x =>
-                (x.SemiProduct != null && x.SemiProduct.ProductCode.Contains(productCode)) ||
-                x.Products.Any(p => p.ProductCode.Contains(productCode)));
+            filterQuery = filterQuery
+                .Include(x => x.SemiProduct)
+                .Include(x => x.Products)
+                .Where(x =>
+                    (x.SemiProduct != null && x.SemiProduct.ProductCode.Contains(productCode)) ||
+                    x.Products.Any(p => p.ProductCode.Contains(productCode)));
         }
 
         if (!string.IsNullOrEmpty(erpDocumentNumber))
         {
-            query = query.Where(x =>
+            filterQuery = filterQuery.Where(x =>
                 (x.ErpOrderNumberSemiproduct != null && x.ErpOrderNumberSemiproduct.Contains(erpDocumentNumber)) ||
                 (x.ErpOrderNumberProduct != null && x.ErpOrderNumberProduct.Contains(erpDocumentNumber)) ||
                 (x.ErpDiscardResidueDocumentNumber != null && x.ErpDiscardResidueDocumentNumber.Contains(erpDocumentNumber)));
@@ -74,22 +77,32 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
 
         if (manualActionRequired.HasValue)
         {
-            query = query.Where(x => x.ManualActionRequired == manualActionRequired.Value);
+            filterQuery = filterQuery.Where(x => x.ManualActionRequired == manualActionRequired.Value);
         }
 
         if (!string.IsNullOrEmpty(lotNumber))
         {
-            query = query.Where(x =>
-                (x.SemiProduct != null && x.SemiProduct.LotNumber != null && x.SemiProduct.LotNumber.Contains(lotNumber)) ||
-                x.Products.Any(p => p.LotNumber != null && p.LotNumber.Contains(lotNumber)));
+            filterQuery = filterQuery
+                .Include(x => x.SemiProduct)
+                .Include(x => x.Products)
+                .Where(x =>
+                    (x.SemiProduct != null && x.SemiProduct.LotNumber != null && x.SemiProduct.LotNumber.Contains(lotNumber)) ||
+                    x.Products.Any(p => p.LotNumber != null && p.LotNumber.Contains(lotNumber)));
         }
 
         var safePageSize = pageSize <= 0 ? 20 : pageSize;
         var safePageNumber = pageNumber <= 0 ? 1 : pageNumber;
 
-        var totalCount = await query.CountAsync(cancellationToken);
+        // COUNT uses the filter query without extra includes — avoids unnecessary joins.
+        var totalCount = await filterQuery.CountAsync(cancellationToken);
 
-        var items = await query
+        // Data query: apply the same filters together with required includes.
+        // Notes are excluded from the list query; they are only loaded for the
+        // single-order detail endpoint (GetOrderByIdAsync) where they are needed.
+        var items = await filterQuery
+            .AsNoTracking()
+            .Include(x => x.SemiProduct)
+            .Include(x => x.Products)
             .OrderByDescending(x => x.CreatedDate)
             .Skip((safePageNumber - 1) * safePageSize)
             .Take(safePageSize)
