@@ -122,6 +122,46 @@ public class GetFinancialOverviewHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ForwardsExcludedDepartments_ToService()
+    {
+        // Arrange
+        var excludedDepartments = new List<string> { "Marketing", "Sales" };
+        var request = new GetFinancialOverviewRequest
+        {
+            Months = 6,
+            IncludeStockData = false,
+            ExcludedDepartments = excludedDepartments
+        };
+
+        var expectedResponse = new GetFinancialOverviewResponse
+        {
+            Data = new List<MonthlyFinancialDataDto>(),
+            Summary = new FinancialSummaryDto()
+        };
+
+        _financialAnalysisServiceMock
+            .Setup(x => x.GetFinancialOverviewAsync(
+                6,
+                false,
+                It.Is<IReadOnlyList<string>>(d => d.Count == 2 && d.Contains("Marketing") && d.Contains("Sales")),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        _financialAnalysisServiceMock.Verify(
+            x => x.GetFinancialOverviewAsync(
+                6,
+                false,
+                It.Is<IReadOnlyList<string>>(d => d.Count == 2 && d.Contains("Marketing") && d.Contains("Sales")),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_IncludesStockData_WhenRequested()
     {
         // Arrange
