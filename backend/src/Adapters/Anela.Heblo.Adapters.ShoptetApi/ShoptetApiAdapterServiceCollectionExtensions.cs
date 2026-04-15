@@ -1,5 +1,7 @@
 using System.Text;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
+using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
+using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices.Mapping;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Stock;
 using Anela.Heblo.Application.Features.ShoptetOrders;
@@ -39,10 +41,22 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
         });
 
+        services.AddHttpClient<IShoptetInvoiceClient, ShoptetInvoiceClient>((sp, client) =>
+        {
+            var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
+            client.BaseAddress = new Uri(settings.BaseUrl);
+            client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
+        });
+
         services.Configure<ShoptetStockClientOptions>(
             configuration.GetSection(ShoptetStockClientOptions.SettingsKey));
 
         services.AddTransient<IPickingListSource, ShoptetApiExpeditionListSource>();
+
+        services.AddSingleton<BillingMethodMapper>();
+        services.AddSingleton<ShippingMethodMapper>();
+        services.AddSingleton<ShoptetInvoiceMapper>();
+        services.AddSingleton<ShoptetApiInvoiceSource>();
 
         return services;
     }
