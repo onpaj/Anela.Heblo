@@ -148,7 +148,12 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
     {
         var semiProduct = order.SemiProduct;
         var manufactureName = _nameBuilder.Build(order, ErpManufactureType.Product);
+
+        // Exclude direct semiproduct output rows from the ERP submission.
+        // These rows (ProductCode == SemiProduct.ProductCode) represent bulk semiproduct
+        // sold as-is and should not be reported as finished product output to the ERP.
         var items = order.Products
+            .Where(p => p.ProductCode != semiProduct.ProductCode)
             .Select(p => new SubmitManufactureRequestItem
             {
                 ProductCode = p.ProductCode,
