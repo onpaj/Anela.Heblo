@@ -36,11 +36,38 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
             ? await ExpandQueryAsync(request.Query, cancellationToken)
             : request.Query;
 
-        var embeddings = await _embeddingGenerator.GenerateAsync(
-            [queryToEmbed],
-            cancellationToken: cancellationToken);
-        var queryEmbedding = embeddings[0].Vector.ToArray();
-        var results = await _repository.SearchSimilarAsync(queryEmbedding, request.TopK, cancellationToken);
+        float[] queryEmbedding;
+        try
+        {
+            var embeddings = await _embeddingGenerator.GenerateAsync(
+                [queryToEmbed],
+                cancellationToken: cancellationToken);
+            queryEmbedding = embeddings[0].Vector.ToArray();
+        }
+        catch (Exception ex) when (ex is IOException or HttpRequestException or TimeoutException or TaskCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "Transient embedding failure for query '{Query}' — exceptionType: {ExceptionType}, innerExceptionType: {InnerExceptionType}",
+                request.Query,
+                ex.GetType().Name,
+                ex.InnerException?.GetType().Name ?? "none");
+            return new SearchDocumentsResponse();
+        }
+
+        List<(KnowledgeBaseChunk Chunk, double Score)> results;
+        try
+        {
+            results = await _repository.SearchSimilarAsync(queryEmbedding, request.TopK, cancellationToken);
+        }
+        catch (Exception ex) when (ex is IOException or HttpRequestException or TimeoutException or TaskCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "Transient vector DB failure during SearchSimilarAsync for query '{Query}' — exceptionType: {ExceptionType}, innerExceptionType: {InnerExceptionType}",
+                request.Query,
+                ex.GetType().Name,
+                ex.InnerException?.GetType().Name ?? "none");
+            return new SearchDocumentsResponse();
+        }
 
         var above = results.Where(r => r.Score >= _options.MinSimilarityScore).ToList();
         var belowCount = results.Count - above.Count;
