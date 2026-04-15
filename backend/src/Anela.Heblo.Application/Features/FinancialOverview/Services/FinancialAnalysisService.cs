@@ -348,12 +348,16 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         var stockChanges = await stockChangesTask;
 
         // Apply department filtering in-memory when departments are excluded
-        var debitItems = excludedDepartments is { Count: > 0 }
-            ? allDebitItems.Where(item => !excludedDepartments.Contains(item.Department)).ToList()
+        var excludedSet = excludedDepartments is { Count: > 0 }
+            ? excludedDepartments.ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : null;
+
+        var debitItems = excludedSet != null
+            ? allDebitItems.Where(item => item.Department == null || !excludedSet.Contains(item.Department)).ToList()
             : allDebitItems;
 
-        var creditItems = excludedDepartments is { Count: > 0 }
-            ? allCreditItems.Where(item => !excludedDepartments.Contains(item.Department)).ToList()
+        var creditItems = excludedSet != null
+            ? allCreditItems.Where(item => item.Department == null || !excludedSet.Contains(item.Department)).ToList()
             : allCreditItems;
 
         // Create lookup for stock changes by year/month for efficient access
