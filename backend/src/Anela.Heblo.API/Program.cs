@@ -2,6 +2,7 @@ using Anela.Heblo.Adapters.Anthropic;
 using Anela.Heblo.Adapters.Azure;
 using Anela.Heblo.Adapters.SendGrid;
 using Anela.Heblo.Adapters.Comgate;
+using Anela.Heblo.Adapters.MetaAds;
 using Anela.Heblo.Adapters.Flexi;
 using Anela.Heblo.Adapters.OpenAI;
 using Anela.Heblo.Adapters.Shoptet;
@@ -59,6 +60,7 @@ public partial class Program
         builder.Services.AddShoptetApiAdapter(builder.Configuration);
         builder.Services.AddShoptetPayAdapter(builder.Configuration);
         builder.Services.AddComgateAdapter(builder.Configuration);
+        builder.Services.AddMetaAdsAdapter(builder.Configuration);
         builder.Services.AddAnthropicAdapter(builder.Configuration);
         builder.Services.AddOpenAiAdapter(builder.Configuration);
         builder.Services.AddSendGridAdapter(builder.Configuration);
