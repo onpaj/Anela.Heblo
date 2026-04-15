@@ -38,7 +38,7 @@ public class InvoiceImportService : IInvoiceImportService
     {
         _logger.LogInformation("Starting async invoice import with query: {Query}", JsonSerializer.Serialize(query));
 
-        var batches = await _issuedInvoiceSource.GetAllAsync(query);
+        var batches = await _issuedInvoiceSource.GetAllAsync(query, cancellationToken);
 
         var resultDto = new ImportResultDto()
         {

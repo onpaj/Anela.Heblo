@@ -21,22 +21,22 @@ public class ShoptetApiInvoiceSource : IIssuedInvoiceSource
         _logger = logger;
     }
 
-    public async Task<List<IssuedInvoiceDetailBatch>> GetAllAsync(IssuedInvoiceSourceQuery query)
+    public async Task<List<IssuedInvoiceDetailBatch>> GetAllAsync(
+        IssuedInvoiceSourceQuery query,
+        CancellationToken cancellationToken = default)
     {
-        var ct = CancellationToken.None;
-
         IReadOnlyList<ShoptetInvoiceDto> invoices;
 
         if (query.QueryByInvoice)
         {
-            var single = await _client.GetInvoiceAsync(query.InvoiceId!, ct);
+            var single = await _client.GetInvoiceAsync(query.InvoiceId!, cancellationToken);
             invoices = single != null
                 ? new[] { single }
                 : Array.Empty<ShoptetInvoiceDto>();
         }
         else
         {
-            invoices = await _client.ListInvoicesAsync(query.DateFrom, query.DateTo, ct);
+            invoices = await _client.ListInvoicesAsync(query.DateFrom, query.DateTo, cancellationToken);
         }
 
         var total = invoices.Count;

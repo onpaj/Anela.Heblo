@@ -59,7 +59,7 @@ public class InvoiceImportServiceTests
         var batch = CreateTestBatch("batch-1", invoiceDetail);
         var invoice = CreateTestIssuedInvoice("INV-001");
 
-        _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
         _mockRepository.Setup(x => x.GetByIdAsync("INV-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IssuedInvoice?)null);
@@ -97,7 +97,7 @@ public class InvoiceImportServiceTests
         var invoice1 = CreateTestIssuedInvoice("INV-001");
         var invoice2 = CreateTestIssuedInvoice("INV-002");
 
-        _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
 
         // Setup successful invoice
@@ -134,7 +134,7 @@ public class InvoiceImportServiceTests
         var batch = CreateTestBatch("batch-1", invoiceDetail);
         var invoice = CreateTestIssuedInvoice("INV-003");
 
-        _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
         _mockRepository.Setup(x => x.GetByIdAsync("INV-003", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IssuedInvoice?)null);
@@ -229,7 +229,7 @@ public class InvoiceImportServiceTests
             _mockMapper.Object,
             _mockLogger.Object);
 
-        _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
         _mockRepository.Setup(x => x.GetByIdAsync("INV-004", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IssuedInvoice?)null);
@@ -269,7 +269,7 @@ public class InvoiceImportServiceTests
         var batch = CreateTestBatch("batch-1", invoiceDetail);
         var existingInvoice = CreateTestIssuedInvoice("INV-005");
 
-        _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
         _mockRepository.Setup(x => x.GetByIdAsync("INV-005", It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingInvoice); // Invoice already exists
@@ -302,7 +302,7 @@ public class InvoiceImportServiceTests
         var domainInvoice1 = CreateTestIssuedInvoice("INV-BATCH1");
         var domainInvoice2 = CreateTestIssuedInvoice("INV-BATCH2");
 
-        _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch1, batch2 });
         _mockRepository.Setup(x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IssuedInvoice?)null);
