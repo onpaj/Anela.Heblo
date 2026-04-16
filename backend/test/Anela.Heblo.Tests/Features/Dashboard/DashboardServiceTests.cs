@@ -259,6 +259,93 @@ public class DashboardServiceTests
     }
 
     [Fact]
+    public async Task GetTileDataAsync_WhenTileExceedsTimeout_ShouldReturnErrorTile()
+    {
+        // Arrange
+        var userId = "user123";
+        var userSettings = CreateUserSettingsWithVisibleTiles(userId);
+        var mockTile = CreateMockTileWithData("tile1");
+
+        _settingsRepositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
+            .ReturnsAsync(userSettings);
+
+        _tileRegistryMock
+            .Setup(x => x.GetAvailableTiles())
+            .Returns(new List<ITile>());
+
+        _tileRegistryMock
+            .Setup(x => x.GetTile("tile1"))
+            .Returns(mockTile);
+
+        // Simulate a slow tile load (longer than the configured timeout)
+        _tileRegistryMock
+            .Setup(x => x.GetTileDataAsync("tile1", It.IsAny<Dictionary<string, string>?>()))
+            .Returns(async () =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(60)); // far longer than any test timeout
+                return (object?)new { };
+            });
+
+        // Use a 1-second timeout for the test
+        var options = Options.Create(new DashboardOptions { TileLoadTimeoutSeconds = 1 });
+        var service = new DashboardService(_tileRegistryMock.Object, _settingsRepositoryMock.Object, options);
+
+        // Act
+        var result = await service.GetTileDataAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(1);
+
+        var errorTile = result.First();
+        errorTile.TileId.Should().Be("tile1");
+        errorTile.Title.Should().Be("Error");
+        errorTile.Category.Should().Be(TileCategory.Error);
+        errorTile.Description.Should().Contain("timed out");
+    }
+
+    [Fact]
+    public async Task GetTileDataAsync_WhenTileLoadCompletesBeforeTimeout_ShouldReturnTileData()
+    {
+        // Arrange
+        var userId = "user123";
+        var userSettings = CreateUserSettingsWithVisibleTiles(userId);
+        var mockTile = CreateMockTileWithData("tile1");
+
+        _settingsRepositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
+            .ReturnsAsync(userSettings);
+
+        _tileRegistryMock
+            .Setup(x => x.GetAvailableTiles())
+            .Returns(new List<ITile>());
+
+        _tileRegistryMock
+            .Setup(x => x.GetTile("tile1"))
+            .Returns(mockTile);
+
+        _tileRegistryMock
+            .Setup(x => x.GetTileDataAsync("tile1", It.IsAny<Dictionary<string, string>?>()))
+            .ReturnsAsync(new { Status = "Active" });
+
+        // Use a generous timeout so the fast load completes well within it
+        var options = Options.Create(new DashboardOptions { TileLoadTimeoutSeconds = 30 });
+        var service = new DashboardService(_tileRegistryMock.Object, _settingsRepositoryMock.Object, options);
+
+        // Act
+        var result = await service.GetTileDataAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(1);
+
+        var tile = result.First();
+        tile.Title.Should().Be("Test Tile");
+        tile.Category.Should().NotBe(TileCategory.Error);
+    }
+
+    [Fact]
     public async Task GetTileDataAsync_WhenTileDataLoadingThrows_ShouldReturnErrorTile()
     {
         // Arrange

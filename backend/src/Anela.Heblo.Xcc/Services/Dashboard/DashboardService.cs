@@ -152,8 +152,34 @@ public class DashboardService : IDashboardService
                         return;
                     }
 
-                    // Load data using registry method that manages scope properly
-                    var data = await _tileRegistry.GetTileDataAsync(tileSettings.TileId, tileParameters);
+                    // Load data using registry method that manages scope properly.
+                    // Apply a per-tile timeout so a single slow tile cannot block the entire response.
+                    using var timeoutCts = new CancellationTokenSource(
+                        TimeSpan.FromSeconds(_dashboardOptions.TileLoadTimeoutSeconds));
+
+                    var loadTask = _tileRegistry.GetTileDataAsync(tileSettings.TileId, tileParameters);
+                    var completedTask = await Task.WhenAny(
+                        loadTask,
+                        Task.Delay(Timeout.Infinite, timeoutCts.Token));
+
+                    if (completedTask != loadTask)
+                    {
+                        // Tile timed out — degrade gracefully instead of blocking the whole response
+                        results.Add((index, new TileData
+                        {
+                            TileId = tileSettings.TileId,
+                            Title = "Error",
+                            Description = $"Tile '{tileSettings.TileId}' timed out after {_dashboardOptions.TileLoadTimeoutSeconds}s",
+                            Size = TileSize.Small,
+                            Category = TileCategory.Error,
+                            Data = new { Error = "Tile load timed out" }
+                        }));
+                        return;
+                    }
+
+                    // Cancel the delay task to release timer resources
+                    await timeoutCts.CancelAsync();
+                    var data = await loadTask;
 
                     results.Add((index, new TileData
                     {
