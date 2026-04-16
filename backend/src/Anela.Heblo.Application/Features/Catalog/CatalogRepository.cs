@@ -139,12 +139,19 @@ public class CatalogRepository : ICatalogRepository
 
     public async Task RefreshSalesData(CancellationToken ct)
     {
-        CachedSalesData = await _resilienceService.ExecuteWithResilienceAsync(
-            async (cancellationToken) => await _salesClient.GetAsync(
-                _timeProvider.GetUtcNow().Date.AddDays(-1 * _options.Value.SalesHistoryDays),
-                _timeProvider.GetUtcNow().Date,
-                cancellationToken: cancellationToken),
-            "RefreshSalesData", ct);
+        try
+        {
+            CachedSalesData = await _resilienceService.ExecuteWithResilienceAsync(
+                async (cancellationToken) => await _salesClient.GetAsync(
+                    _timeProvider.GetUtcNow().Date.AddDays(-1 * _options.Value.SalesHistoryDays),
+                    _timeProvider.GetUtcNow().Date,
+                    cancellationToken: cancellationToken),
+                "RefreshSalesData", ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "RefreshSalesData failed after all retries — retaining stale cache. Items in cache: {Count}", CachedSalesData.Count);
+        }
     }
 
     public async Task RefreshAttributesData(CancellationToken ct)
