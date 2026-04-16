@@ -422,33 +422,16 @@ public class CreateManufactureOrderHandlerTests
         var request = CreateValidRequest();
         request.DirectSemiproductAmount = directAmount;
 
-        ManufactureOrder? capturedOrder = null;
-
-        _catalogRepositoryMock
-            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateValidCatalogItem());
-
-        _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(GeneratedOrderNumber);
-
-        _repositoryMock
-            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
-            {
-                capturedOrder = order;
-                order.Id = 1;
-                return order;
-            });
+        var capturedOrder = SetupCapturingMocks();
 
         // Act
         await _handler.Handle(request, CancellationToken.None);
 
-        // Assert: 1 regular product + 1 direct row = 2
-        capturedOrder.Should().NotBeNull();
-        capturedOrder!.Products.Should().HaveCount(2);
+        // Assert: 1 regular product row + 1 direct row = 2 total
+        capturedOrder.Value.Should().NotBeNull();
+        capturedOrder.Value!.Products.Should().HaveCount(2);
 
-        var directRow = capturedOrder.Products.First(p => p.ProductCode == ValidProductCode);
+        var directRow = capturedOrder.Value.Products.Single(p => p.ProductCode == ValidProductCode);
         directRow.SemiProductCode.Should().Be(ValidProductCode);
         directRow.PlannedQuantity.Should().Be((decimal)directAmount);
         directRow.ActualQuantity.Should().Be((decimal)directAmount);
@@ -457,36 +440,18 @@ public class CreateManufactureOrderHandlerTests
     [Fact]
     public async Task Handle_WithoutDirectSemiproductAmount_ShouldNotAddVirtualDirectRow()
     {
-        // Arrange
+        // Arrange: DirectSemiproductAmount is null by default
         var request = CreateValidRequest();
-        // DirectSemiproductAmount is null by default
 
-        ManufactureOrder? capturedOrder = null;
-
-        _catalogRepositoryMock
-            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateValidCatalogItem());
-
-        _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(GeneratedOrderNumber);
-
-        _repositoryMock
-            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
-            {
-                capturedOrder = order;
-                order.Id = 1;
-                return order;
-            });
+        var capturedOrder = SetupCapturingMocks();
 
         // Act
         await _handler.Handle(request, CancellationToken.None);
 
-        // Assert: only the 1 regular product row, no extra direct row
-        capturedOrder.Should().NotBeNull();
-        capturedOrder!.Products.Should().HaveCount(1);
-        capturedOrder.Products.Should().NotContain(p => p.ProductCode == ValidProductCode);
+        // Assert: only the regular "PROD001" row, no direct semiproduct row
+        capturedOrder.Value.Should().NotBeNull();
+        capturedOrder.Value!.Products.Should().HaveCount(1);
+        capturedOrder.Value.Products.Single().ProductCode.Should().Be("PROD001");
     }
 
     [Fact]
@@ -496,32 +461,15 @@ public class CreateManufactureOrderHandlerTests
         var request = CreateValidRequest();
         request.DirectSemiproductAmount = 0.0;
 
-        ManufactureOrder? capturedOrder = null;
-
-        _catalogRepositoryMock
-            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateValidCatalogItem());
-
-        _repositoryMock
-            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(GeneratedOrderNumber);
-
-        _repositoryMock
-            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
-            {
-                capturedOrder = order;
-                order.Id = 1;
-                return order;
-            });
+        var capturedOrder = SetupCapturingMocks();
 
         // Act
         await _handler.Handle(request, CancellationToken.None);
 
-        // Assert: zero amount means no direct row is added
-        capturedOrder.Should().NotBeNull();
-        capturedOrder!.Products.Should().HaveCount(1);
-        capturedOrder.Products.Should().NotContain(p => p.ProductCode == ValidProductCode);
+        // Assert: zero amount means no direct row is added — only the regular "PROD001" row
+        capturedOrder.Value.Should().NotBeNull();
+        capturedOrder.Value!.Products.Should().HaveCount(1);
+        capturedOrder.Value.Products.Single().ProductCode.Should().Be("PROD001");
     }
 
     [Fact]
@@ -550,7 +498,24 @@ public class CreateManufactureOrderHandlerTests
             }
         };
 
-        ManufactureOrder? capturedOrder = null;
+        var capturedOrder = SetupCapturingMocks();
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert: SinglePhase orders must never add a direct row
+        capturedOrder.Value.Should().NotBeNull();
+        capturedOrder.Value!.Products.Should().HaveCount(1);
+        capturedOrder.Value.Products.Single().ProductCode.Should().Be("PROD001");
+    }
+
+    /// <summary>
+    /// Sets up the standard catalog and repository mocks that capture the saved order.
+    /// Returns a box holding the captured order (populated after Handle is called).
+    /// </summary>
+    private CapturedOrderBox SetupCapturingMocks()
+    {
+        var box = new CapturedOrderBox();
 
         _catalogRepositoryMock
             .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
@@ -564,17 +529,18 @@ public class CreateManufactureOrderHandlerTests
             .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
             {
-                capturedOrder = order;
+                box.Value = order;
                 order.Id = 1;
                 return order;
             });
 
-        // Act
-        await _handler.Handle(request, CancellationToken.None);
+        return box;
+    }
 
-        // Assert: SinglePhase orders must never add a direct row
-        capturedOrder.Should().NotBeNull();
-        capturedOrder!.Products.Should().HaveCount(1);
+    // Simple mutable box so the lambda can write the captured order and the test can read it.
+    private sealed class CapturedOrderBox
+    {
+        public ManufactureOrder? Value { get; set; }
     }
 
     private static CreateManufactureOrderRequest CreateValidRequest()
