@@ -430,4 +430,39 @@ public class CatalogRepositoryCacheOptimizationTests
         var currentCache = _cache.Get<List<CatalogAggregate>>("CatalogData_Current");
         currentCache.Should().NotBeNull();
     }
+
+    [Fact]
+    public async Task RefreshSalesData_WhenResilienceServiceThrows_RetainsStaleCacheAndLogsWarning()
+    {
+        // Arrange - pre-populate the cache to simulate previously loaded data
+        var staleRecords = new List<CatalogSaleRecord> { new CatalogSaleRecord { ProductCode = "STALE001" } };
+        _cache.Set("CachedSalesData", staleRecords);
+
+        // Configure resilience mock to throw for the IList<CatalogSaleRecord> call made by RefreshSalesData
+        _resilienceServiceMock
+            .Setup(x => x.ExecuteWithResilienceAsync(
+                It.IsAny<Func<CancellationToken, Task<IList<CatalogSaleRecord>>>>(),
+                "RefreshSalesData",
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("External service is temporarily unavailable"));
+
+        // Act - should NOT throw; stale fallback should be retained
+        await _repository.RefreshSalesData(CancellationToken.None);
+
+        // Assert - stale records are still in the cache
+        var cached = _cache.Get<List<CatalogSaleRecord>>("CachedSalesData");
+        cached.Should().NotBeNull();
+        cached!.Should().HaveCount(1);
+        cached.First().ProductCode.Should().Be("STALE001");
+
+        // Verify warning was logged about retaining stale cache
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("retaining stale cache")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
 }
