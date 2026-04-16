@@ -25,6 +25,7 @@ const FinancialOverview: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] =
     useState<PeriodType>("current-year");
   const [includeStockData, setIncludeStockData] = useState<boolean>(true);
+  const [includeCurrentMonth, setIncludeCurrentMonth] = useState<boolean>(false);
   const [excludedDepartments, setExcludedDepartments] = useState<string[]>([]);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const initialDefaultsSet = React.useRef(false);
@@ -47,14 +48,19 @@ const FinancialOverview: React.FC = () => {
     }
   }, [departments]);
 
-  // Convert period type to months for API call
+  // Convert period type to months for API call.
+  // For "current-year" periods, we count completed months only (now.getMonth() = 0-indexed).
+  // The +1 for includeCurrentMonth is handled by the backend via the includeCurrentMonth flag,
+  // but we still need to pass the correct total month count.
   const getMonthsFromPeriod = (period: PeriodType): number => {
     const now = new Date();
+    const currentMonthOffset = includeCurrentMonth ? 1 : 0;
     switch (period) {
       case "current-year":
-        return now.getMonth() + 1; // Months from January to current month
+        // now.getMonth() is 0-indexed: 0=Jan, 3=Apr → completed months = getMonth()
+        return now.getMonth() + currentMonthOffset;
       case "current-and-previous-year":
-        return now.getMonth() + 1 + 12; // Current year months + 12 previous months
+        return now.getMonth() + currentMonthOffset + 12;
       case "last-6-months":
         return 6;
       case "last-13-months":
@@ -71,6 +77,7 @@ const FinancialOverview: React.FC = () => {
     months,
     includeStockData,
     excludedDepartments,
+    includeCurrentMonth,
   );
 
   const formatCurrency = (amount: number) => {
@@ -320,21 +327,39 @@ const FinancialOverview: React.FC = () => {
               >
                 Zobrazení dat:
               </label>
-              <div className="flex items-center">
-                <input
-                  id="stock-toggle"
-                  type="checkbox"
-                  checked={includeStockData}
-                  onChange={(e) => setIncludeStockData(e.target.checked)}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="stock-toggle"
-                  className="ml-2 block text-sm text-gray-900 flex items-center"
-                >
-                  <Package className="w-4 h-4 mr-1" />
-                  Zahrnout skladová data
-                </label>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center">
+                  <input
+                    id="stock-toggle"
+                    type="checkbox"
+                    checked={includeStockData}
+                    onChange={(e) => setIncludeStockData(e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="stock-toggle"
+                    className="ml-2 block text-sm text-gray-900 flex items-center"
+                  >
+                    <Package className="w-4 h-4 mr-1" />
+                    Zahrnout skladová data
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    id="current-month-toggle"
+                    type="checkbox"
+                    checked={includeCurrentMonth}
+                    onChange={(e) => setIncludeCurrentMonth(e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="current-month-toggle"
+                    className="ml-2 block text-sm text-gray-900 flex items-center"
+                  >
+                    <Calendar className="w-4 h-4 mr-1" />
+                    Zobrazit aktuální měsíc
+                  </label>
+                </div>
               </div>
             </div>
 
