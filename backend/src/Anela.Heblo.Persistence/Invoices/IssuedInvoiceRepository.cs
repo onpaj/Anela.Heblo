@@ -140,8 +140,8 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
 
         if (!string.IsNullOrWhiteSpace(filters.CustomerName))
         {
-            var customerName = filters.CustomerName.Trim().ToLower();
-            query = query.Where(x => x.CustomerName != null && x.CustomerName.ToLower().Contains(customerName));
+            var customerName = filters.CustomerName.Trim();
+            query = query.Where(x => EF.Functions.ILike(x.CustomerName!, $"%{customerName}%"));
         }
 
         if (filters.InvoiceDateFrom.HasValue)
@@ -171,18 +171,18 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
         // Apply sorting
         query = ApplySorting(query, filters.SortBy, filters.SortDescending);
 
-        // Get total count before pagination
-        var totalCount = await query.CountAsync(cancellationToken);
-
         // Apply pagination
         List<IssuedInvoice> items;
+        int totalCount;
         if (filters.PageSize == 0)
         {
-            // PageSize = 0 means return all items without pagination
+            // PageSize = 0 means return all items without pagination; derive count from loaded list to avoid a second DB round-trip
             items = await query.ToListAsync(cancellationToken);
+            totalCount = items.Count;
         }
         else
         {
+            totalCount = await query.CountAsync(cancellationToken);
             items = await query
                 .Skip((filters.PageNumber - 1) * filters.PageSize)
                 .Take(filters.PageSize)
