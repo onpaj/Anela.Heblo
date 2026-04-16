@@ -327,10 +327,10 @@ public class IssuedInvoiceRepositoryTests : IDisposable
     [Fact]
     public async Task GetPaginatedAsync_WithFilters_ReturnsFilteredAndPaginatedResults()
     {
-        // Arrange
-        var invoice1 = new IssuedInvoice { Id = "INV-001", CustomerName = "Customer A", Price = 1000, InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-        var invoice2 = new IssuedInvoice { Id = "INV-002", CustomerName = "Customer B", Price = 2000, InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
-        var invoice3 = new IssuedInvoice { Id = "INV-003", CustomerName = "Customer A", Price = 1500, InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
+        // Arrange — use InvoiceId filter (CustomerName uses ILike which requires PostgreSQL, not InMemory)
+        var invoice1 = new IssuedInvoice { Id = "INV-A001", Price = 1000, InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
+        var invoice2 = new IssuedInvoice { Id = "INV-B001", Price = 2000, InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
+        var invoice3 = new IssuedInvoice { Id = "INV-A002", Price = 1500, InvoiceDate = DateTime.Today, DueDate = DateTime.Today.AddDays(30), TaxDate = DateTime.Today };
 
         await _repository.AddAsync(invoice1);
         await _repository.AddAsync(invoice2);
@@ -339,7 +339,7 @@ public class IssuedInvoiceRepositoryTests : IDisposable
 
         var filters = new IssuedInvoiceFilters
         {
-            CustomerName = "Customer A",
+            InvoiceId = "INV-A",
             PageNumber = 1,
             PageSize = 10,
             SortBy = "Price",
@@ -353,8 +353,8 @@ public class IssuedInvoiceRepositoryTests : IDisposable
         Assert.Equal(2, result.TotalCount);
         var items = result.Items.ToList();
         Assert.Equal(2, items.Count);
-        Assert.Equal("INV-001", items[0].Id); // Lower price first
-        Assert.Equal("INV-003", items[1].Id);
+        Assert.Equal("INV-A001", items[0].Id); // Lower price first
+        Assert.Equal("INV-A002", items[1].Id);
         Assert.Equal(1, result.PageNumber);
         Assert.Equal(10, result.PageSize);
     }
