@@ -1,6 +1,7 @@
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Anela.Heblo.Xcc.Domain;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -18,7 +19,8 @@ public class DashboardServiceTests
         _tileRegistryMock = new Mock<ITileRegistry>();
         _settingsRepositoryMock = new Mock<IUserDashboardSettingsRepository>();
         var options = Options.Create(new DashboardOptions());
-        _service = new DashboardService(_tileRegistryMock.Object, _settingsRepositoryMock.Object, options);
+        var logger = new Mock<ILogger<DashboardService>>();
+        _service = new DashboardService(_tileRegistryMock.Object, _settingsRepositoryMock.Object, options, logger.Object);
     }
 
     [Fact]
@@ -209,7 +211,7 @@ public class DashboardServiceTests
             .Returns(mockTile);
 
         _tileRegistryMock
-            .Setup(x => x.GetTileDataAsync("tile1", It.IsAny<Dictionary<string, string>?>()))
+            .Setup(x => x.GetTileDataAsync("tile1", It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new { Status = "Active", Count = 42 });
 
         // Act
@@ -279,7 +281,7 @@ public class DashboardServiceTests
             .Returns(mockTile);
 
         _tileRegistryMock
-            .Setup(x => x.GetTileDataAsync("tile1", It.IsAny<Dictionary<string, string>?>()))
+            .Setup(x => x.GetTileDataAsync("tile1", It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Data loading failed"));
 
         // Act
@@ -294,6 +296,55 @@ public class DashboardServiceTests
         errorTile.Title.Should().Be("Error");
         errorTile.Category.Should().Be(TileCategory.Error);
         errorTile.Description.Should().Contain("Data loading failed");
+    }
+
+    [Fact]
+    public async Task GetTileDataAsync_WhenTileExceedsTimeout_ShouldReturnErrorTileInstead()
+    {
+        // Arrange
+        var userId = "user123";
+        var userSettings = CreateUserSettingsWithVisibleTiles(userId);
+        var mockTile = CreateMockTileWithData("tile1");
+
+        _settingsRepositoryMock
+            .Setup(x => x.GetByUserIdAsync(userId))
+            .ReturnsAsync(userSettings);
+
+        _tileRegistryMock
+            .Setup(x => x.GetAvailableTiles())
+            .Returns(new List<ITile>());
+
+        _tileRegistryMock
+            .Setup(x => x.GetTile("tile1"))
+            .Returns(mockTile);
+
+        // Simulate a slow tile that exceeds the timeout by honoring the cancellation token
+        _tileRegistryMock
+            .Setup(x => x.GetTileDataAsync("tile1", It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .Returns(async (string _, Dictionary<string, string>? __, CancellationToken ct) =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(30), ct);
+                return (object?)"should not reach here";
+            });
+
+        // Use a 1-second timeout so the test completes quickly
+        var options = Options.Create(new DashboardOptions { TileLoadTimeoutSeconds = 1 });
+        var logger = new Mock<ILogger<DashboardService>>();
+        var serviceWithShortTimeout = new DashboardService(
+            _tileRegistryMock.Object, _settingsRepositoryMock.Object, options, logger.Object);
+
+        // Act
+        var result = await serviceWithShortTimeout.GetTileDataAsync(userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().HaveCount(1);
+
+        var errorTile = result.First();
+        errorTile.TileId.Should().Be("tile1");
+        errorTile.Title.Should().Be("Error");
+        errorTile.Category.Should().Be(TileCategory.Error);
+        errorTile.Description.Should().Contain("timed out");
     }
 
     [Fact]
@@ -329,7 +380,7 @@ public class DashboardServiceTests
                 .Returns(new TestTileWithData(id));
 
             _tileRegistryMock
-                .Setup(x => x.GetTileDataAsync(id, It.IsAny<Dictionary<string, string>?>()))
+                .Setup(x => x.GetTileDataAsync(id, It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new { TileId = id });
         }
 

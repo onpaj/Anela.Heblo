@@ -1,4 +1,5 @@
 using Anela.Heblo.Xcc.Domain;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 
@@ -9,16 +10,19 @@ public class DashboardService : IDashboardService
     private readonly ITileRegistry _tileRegistry;
     private readonly IUserDashboardSettingsRepository _settingsRepository;
     private readonly DashboardOptions _dashboardOptions;
+    private readonly ILogger<DashboardService> _logger;
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _userLocks = new();
 
     public DashboardService(
         ITileRegistry tileRegistry,
         IUserDashboardSettingsRepository settingsRepository,
-        IOptions<DashboardOptions> dashboardOptions)
+        IOptions<DashboardOptions> dashboardOptions,
+        ILogger<DashboardService> logger)
     {
         _tileRegistry = tileRegistry;
         _settingsRepository = settingsRepository;
         _dashboardOptions = dashboardOptions.Value;
+        _logger = logger;
     }
 
     private static SemaphoreSlim GetUserLock(string userId)
@@ -152,8 +156,33 @@ public class DashboardService : IDashboardService
                         return;
                     }
 
-                    // Load data using registry method that manages scope properly
-                    var data = await _tileRegistry.GetTileDataAsync(tileSettings.TileId, tileParameters);
+                    // Load data with a per-tile timeout to prevent one slow tile from blocking the dashboard
+                    using var tileCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    tileCts.CancelAfter(TimeSpan.FromSeconds(_dashboardOptions.TileLoadTimeoutSeconds));
+
+                    object? data;
+                    try
+                    {
+                        data = await _tileRegistry.GetTileDataAsync(tileSettings.TileId, tileParameters, tileCts.Token);
+                    }
+                    catch (OperationCanceledException) when (tileCts.IsCancellationRequested && !ct.IsCancellationRequested)
+                    {
+                        _logger.LogWarning(
+                            "Tile {TileId} exceeded load timeout of {TimeoutSeconds}s — returning error tile",
+                            tileSettings.TileId,
+                            _dashboardOptions.TileLoadTimeoutSeconds);
+
+                        results.Add((index, new TileData
+                        {
+                            TileId = tileSettings.TileId,
+                            Title = "Error",
+                            Description = $"Tile '{tileSettings.TileId}' timed out",
+                            Size = TileSize.Small,
+                            Category = TileCategory.Error,
+                            Data = new { Error = $"Tile load exceeded {_dashboardOptions.TileLoadTimeoutSeconds}s timeout" }
+                        }));
+                        return;
+                    }
 
                     results.Add((index, new TileData
                     {
