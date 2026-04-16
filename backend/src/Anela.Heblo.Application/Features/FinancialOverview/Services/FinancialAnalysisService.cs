@@ -39,19 +39,24 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         int months,
         bool includeStockData,
         IReadOnlyList<string>? excludedDepartments = null,
+        bool includeCurrentMonth = false,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Fetching financial overview for {Months} months, IncludeStock={IncludeStock}, ExcludedDepartments={ExcludedDepartments}",
-            months, includeStockData, excludedDepartments?.Count ?? 0);
+        _logger.LogInformation("Fetching financial overview for {Months} months, IncludeStock={IncludeStock}, ExcludedDepartments={ExcludedDepartments}, IncludeCurrentMonth={IncludeCurrentMonth}",
+            months, includeStockData, excludedDepartments?.Count ?? 0, includeCurrentMonth);
 
-        // When departments are excluded, we must use real-time calculation because
-        // the cache stores pre-aggregated totals that cannot be filtered by department.
-        if (excludedDepartments is { Count: > 0 })
+        // When departments are excluded or current month is requested, use real-time calculation.
+        // The cache stores pre-aggregated totals per completed month and cannot handle these cases.
+        if (excludedDepartments is { Count: > 0 } || includeCurrentMonth)
         {
-            _logger.LogInformation("Department filter active ({Count} excluded), bypassing cache for real-time calculation",
-                excludedDepartments.Count);
+            if (excludedDepartments is { Count: > 0 })
+                _logger.LogInformation("Department filter active ({Count} excluded), bypassing cache for real-time calculation",
+                    excludedDepartments.Count);
 
-            return await GetFinancialOverviewRealTimeAsync(months, includeStockData, excludedDepartments, cancellationToken);
+            if (includeCurrentMonth)
+                _logger.LogInformation("Current month requested, bypassing cache for real-time calculation");
+
+            return await GetFinancialOverviewRealTimeAsync(months, includeStockData, excludedDepartments, includeCurrentMonth, cancellationToken);
         }
 
         try
@@ -61,7 +66,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
             if (cacheStatus.CachedMonthsCount == 0)
             {
                 _logger.LogInformation("Cache is empty, using real-time calculation");
-                return await GetFinancialOverviewRealTimeAsync(months, includeStockData, null, cancellationToken);
+                return await GetFinancialOverviewRealTimeAsync(months, includeStockData, null, false, cancellationToken);
             }
 
             var cachedResponse = GetCachedFinancialOverview(months, includeStockData);
@@ -76,7 +81,7 @@ public class FinancialAnalysisService : IFinancialAnalysisService
             _logger.LogWarning(ex, "Failed to get cached financial data, falling back to real-time calculation");
 
             // Fallback to real-time calculation if cache fails
-            return await GetFinancialOverviewRealTimeAsync(months, includeStockData, null, cancellationToken);
+            return await GetFinancialOverviewRealTimeAsync(months, includeStockData, null, false, cancellationToken);
         }
     }
 
@@ -316,11 +321,14 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         int months,
         bool includeStockData,
         IReadOnlyList<string>? excludedDepartments,
+        bool includeCurrentMonth,
         CancellationToken cancellationToken)
     {
-        // Set endDate to last day of previous month (exclude current month)
         var now = DateTime.UtcNow;
-        var endDate = new DateTime(now.Year, now.Month, 1).AddDays(-1);
+        // When including current month, use today as end date; otherwise last day of previous month
+        var endDate = includeCurrentMonth
+            ? now.Date
+            : new DateTime(now.Year, now.Month, 1).AddDays(-1);
 
         // Calculate startDate - go back the requested number of months from the end date
         var startDate = endDate.AddMonths(-months + 1);

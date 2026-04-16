@@ -29,6 +29,7 @@ public class GetFinancialOverviewHandler : IRequestHandler<GetFinancialOverviewR
             months,
             request.IncludeStockData,
             request.ExcludedDepartments,
+            request.IncludeCurrentMonth,
             cancellationToken);
     }
 
