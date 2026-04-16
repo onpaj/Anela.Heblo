@@ -26,4 +26,9 @@ public interface ITransportBoxRepository : IRepository<TransportBox, int>
         CancellationToken cancellationToken = default);
 
     Task<IList<TransportBox>> GetReceivedBoxesAsync(CancellationToken cancellationToken = default);
+
+    Task<Dictionary<TransportBoxState, int>> GetStateSummaryAsync(
+        string? code = null,
+        string? productCode = null,
+        CancellationToken cancellationToken = default);
 }
