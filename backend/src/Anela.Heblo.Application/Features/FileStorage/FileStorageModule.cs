@@ -27,8 +27,9 @@ public static class FileStorageModule
         // Register HTTP client for file downloads
         services.AddTransient<HttpClient>();
 
-        // Register blob storage service
-        services.AddTransient<IBlobStorageService, AzureBlobStorageService>();
+        // Register blob storage service as Singleton so the _containerExists cache survives across requests.
+        // BlobServiceClient is already Singleton and HttpClient is safe to reuse — no thread-safety concerns.
+        services.AddSingleton<IBlobStorageService, AzureBlobStorageService>();
 
         return services;
     }
