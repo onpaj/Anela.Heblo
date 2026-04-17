@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Adapters.Shoptet.EshopUrl;
+namespace Anela.Heblo.Adapters.ShoptetApi.EshopUrl;
 
 public class HeurekaFeedOptions
 {

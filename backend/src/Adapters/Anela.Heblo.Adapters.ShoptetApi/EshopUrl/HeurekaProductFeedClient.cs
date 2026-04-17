@@ -2,7 +2,7 @@ using System.Xml.Linq;
 using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
 using Microsoft.Extensions.Options;
 
-namespace Anela.Heblo.Adapters.Shoptet.EshopUrl;
+namespace Anela.Heblo.Adapters.ShoptetApi.EshopUrl;
 
 public class HeurekaProductFeedClient : IProductEshopUrlClient
 {
