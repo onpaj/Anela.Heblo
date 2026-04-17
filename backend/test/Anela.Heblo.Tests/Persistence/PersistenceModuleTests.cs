@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Npgsql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Infrastructure;
@@ -108,6 +109,73 @@ public class PersistenceModuleTests
 
         action.Should().Throw<Exception>()
             .WithMessage("*No connection string*");
+    }
+
+    /// <summary>
+    /// Regression test: Database:MaxPoolSize config must be applied to the NpgsqlDataSource
+    /// connection pool to prevent PostgresException 53300 (too_many_connections) spikes.
+    /// See issue #591.
+    /// </summary>
+    [Fact]
+    public void AddPersistenceServices_WithMaxPoolSize_AppliesCapToDataSource()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["UseInMemoryDatabase"] = "false",
+                ["ConnectionStrings:Test"] = "Host=localhost;Database=test;Username=user;Password=pass",
+                ["Database:MaxPoolSize"] = "7"
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddPersistenceServices(configuration, new FakeHostEnvironment("Test"));
+
+        // Act
+        var provider = services.BuildServiceProvider();
+        var dataSource = provider.GetRequiredService<NpgsqlDataSource>();
+        var csb = new NpgsqlConnectionStringBuilder(dataSource.ConnectionString);
+
+        // Assert
+        csb.MaxPoolSize.Should().Be(7,
+            "Database:MaxPoolSize config must be applied so the pool is capped below server max_connections");
+    }
+
+    /// <summary>
+    /// Regression test: Database:ConnectionIdleLifetime and Database:ConnectionPruningInterval
+    /// must be applied to the NpgsqlDataSource to reclaim idle connections faster after burst load.
+    /// See issue #592.
+    /// </summary>
+    [Fact]
+    public void AddPersistenceServices_WithIdleLifetimeSettings_AppliesThemToDataSource()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["UseInMemoryDatabase"] = "false",
+                ["ConnectionStrings:Test"] = "Host=localhost;Database=test;Username=user;Password=pass",
+                ["Database:ConnectionIdleLifetime"] = "60",
+                ["Database:ConnectionPruningInterval"] = "10"
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddPersistenceServices(configuration, new FakeHostEnvironment("Test"));
+
+        // Act
+        var provider = services.BuildServiceProvider();
+        var dataSource = provider.GetRequiredService<NpgsqlDataSource>();
+        var csb = new NpgsqlConnectionStringBuilder(dataSource.ConnectionString);
+
+        // Assert
+        csb.ConnectionIdleLifetime.Should().Be(60,
+            "Database:ConnectionIdleLifetime must be applied to reclaim idle connections faster after burst load");
+        csb.ConnectionPruningInterval.Should().Be(10,
+            "Database:ConnectionPruningInterval must be applied to control how often idle connections are pruned");
     }
 
     private sealed class FakeHostEnvironment : IHostEnvironment

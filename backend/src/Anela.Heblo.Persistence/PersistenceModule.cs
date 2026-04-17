@@ -46,10 +46,25 @@ public static class PersistenceModule
         if (!useInMemory && connectionString != "InMemory")
         {
             var maxPoolSize = configuration.GetValue<int?>("Database:MaxPoolSize");
+            var connectionIdleLifetime = configuration.GetValue<int?>("Database:ConnectionIdleLifetime");
+            var connectionPruningInterval = configuration.GetValue<int?>("Database:ConnectionPruningInterval");
+
             var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
             if (maxPoolSize.HasValue)
             {
                 dataSourceBuilder.ConnectionStringBuilder.MaxPoolSize = maxPoolSize.Value;
+            }
+
+            // Reclaim idle connections faster after burst load to avoid holding
+            // connections that block other processes (e.g. migrations, Hangfire).
+            if (connectionIdleLifetime.HasValue)
+            {
+                dataSourceBuilder.ConnectionStringBuilder.ConnectionIdleLifetime = connectionIdleLifetime.Value;
+            }
+
+            if (connectionPruningInterval.HasValue)
+            {
+                dataSourceBuilder.ConnectionStringBuilder.ConnectionPruningInterval = connectionPruningInterval.Value;
             }
 
             dataSourceBuilder.UseVector();
