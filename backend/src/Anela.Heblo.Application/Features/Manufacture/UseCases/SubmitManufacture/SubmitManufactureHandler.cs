@@ -1,8 +1,11 @@
+using System.Diagnostics;
+using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
 
@@ -13,19 +16,22 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
     private readonly IManufactureErrorTransformer _errorTransformer;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<SubmitManufactureHandler> _logger;
+    private readonly ManufactureErpOptions _erpOptions;
 
     public SubmitManufactureHandler(
         IManufactureClient manufactureClient,
         IManufactureOrderRepository repository,
         IManufactureErrorTransformer errorTransformer,
         TimeProvider timeProvider,
-        ILogger<SubmitManufactureHandler> logger)
+        ILogger<SubmitManufactureHandler> logger,
+        IOptions<ManufactureErpOptions> erpOptions)
     {
         _manufactureClient = manufactureClient;
         _repository = repository;
         _errorTransformer = errorTransformer;
         _timeProvider = timeProvider;
         _logger = logger;
+        _erpOptions = erpOptions.Value;
     }
 
     public async Task<SubmitManufactureResponse> Handle(
@@ -34,8 +40,16 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
     {
         try
         {
+            using var cts = CreateLinkedCts(cancellationToken);
+
+            var sw = Stopwatch.StartNew();
             var clientResponse = await _manufactureClient.SubmitManufactureAsync(
-                request.ToClientRequest(), cancellationToken);
+                request.ToClientRequest(), cts.Token);
+            sw.Stop();
+
+            _logger.LogInformation(
+                "Flexi ERP SubmitManufacture completed in {ElapsedMs}ms for order {ManufactureOrderNumber}",
+                sw.ElapsedMilliseconds, request.ManufactureOrderNumber);
 
             _logger.LogInformation("Successfully created manufacture {ManufactureId} for order {ManufactureOrderId}",
                 clientResponse.ManufactureId, request.ManufactureOrderNumber);
@@ -60,6 +74,14 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
                 UserMessage = _errorTransformer.Transform(ex)
             };
         }
+    }
+
+    private CancellationTokenSource CreateLinkedCts(CancellationToken cancellationToken)
+    {
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        if (_erpOptions.ErpTimeoutSeconds > 0)
+            cts.CancelAfter(TimeSpan.FromSeconds(_erpOptions.ErpTimeoutSeconds));
+        return cts;
     }
 
     private async Task PersistDocCodesAsync(
