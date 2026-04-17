@@ -36,7 +36,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
 
         if (!string.IsNullOrEmpty(connectionString))
         {
-            optionsBuilder.UseNpgsql(connectionString);
+            optionsBuilder.UseNpgsql(connectionString, npgsql => npgsql.CommandTimeout(300));
         }
         else
         {
