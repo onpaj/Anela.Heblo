@@ -39,7 +39,7 @@ public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
 
             return string.IsNullOrEmpty(entry.Url)
                 ? $"{entry.ProductName} ({code})"
-                : $"[{entry.ProductName} ({code})]({entry.Url})";
+                : $"[{entry.ProductName}]({entry.Url})";
         });
 
         if (enriched == rawText)
