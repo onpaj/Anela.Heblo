@@ -42,7 +42,7 @@ public class PostAnswerEnrichmentMiddlewareTests
         var result = await Create().GetResponseAsync([], null, default);
 
         Assert.Equal(
-            "Doporučujeme aplikovat [Sérum ABC (AKL001)](https://anela.cz/produkty/serum-abc) na čistou pleť.",
+            "Doporučujeme aplikovat [Sérum ABC](https://anela.cz/produkty/serum-abc) na čistou pleť.",
             result.Text);
     }
 
@@ -79,7 +79,7 @@ public class PostAnswerEnrichmentMiddlewareTests
         var result = await Create().GetResponseAsync([], null, default);
 
         Assert.Equal(
-            "Použijte [Sérum ABC (AKL001)](https://anela.cz/serum) a poté [Hydratační krém (KRM002)](https://anela.cz/krem).",
+            "Použijte [Sérum ABC](https://anela.cz/serum) a poté [Hydratační krém](https://anela.cz/krem).",
             result.Text);
     }
 
