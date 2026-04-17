@@ -5,6 +5,7 @@ using Hangfire;
 using Anela.Heblo.API.Infrastructure.Hangfire;
 using Microsoft.AspNetCore.HttpLogging;
 using Anela.Heblo.API.Infrastructure.Authentication;
+using Anela.Heblo.API.MCP;
 using ModelContextProtocol.AspNetCore;
 
 namespace Anela.Heblo.API.Extensions;
@@ -110,6 +111,10 @@ public static class ApplicationBuilderExtensions
         }
 
         app.MapControllers();
+
+        // MCP bad-request diagnostics — blocks probes without valid Accept header (returns 404)
+        // and logs structured context for GET /mcp 400 responses to identify bad clients (#593).
+        app.UseMiddleware<McpBadRequestMiddleware>();
 
         // MCP server endpoint — requires authentication (Microsoft Entra ID)
         app.MapMcp("/mcp").RequireAuthorization();
