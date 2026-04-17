@@ -166,6 +166,47 @@ public class InvoiceImportServiceTests
     }
 
     [Fact]
+    public async Task ImportInvoicesAsync_WhenFlexiBeeRejectsInvoice_LogsErrorWithInvoiceCodeAndMessage()
+    {
+        // Arrange
+        var query = new IssuedInvoiceSourceQuery { RequestId = "test-flexi-400" };
+        var invoiceDetail = CreateTestInvoiceDetail("INV-FLEXI-400");
+        var batch = CreateTestBatch("batch-1", invoiceDetail);
+        var invoice = CreateTestIssuedInvoice("INV-FLEXI-400");
+        var flexiError = new ApplicationException("Pole 'kod' je povinné.");
+
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
+            .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
+        _mockRepository.Setup(x => x.GetByIdAsync("INV-FLEXI-400", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IssuedInvoice?)null);
+        _mockMapper.Setup(x => x.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail))
+            .Returns(invoice);
+        _mockInvoiceClient.Setup(x => x.SaveAsync(invoiceDetail, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(flexiError);
+        _mockRepository.Setup(x => x.AddAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IssuedInvoice i, CancellationToken c) => i);
+        _mockRepository.Setup(x => x.UpdateAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        await _service.ImportInvoicesAsync("test-description", query);
+
+        // Assert — LogError must be called with the invoice code and the FlexiBee error message
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("INV-FLEXI-400") &&
+                    v.ToString()!.Contains("Pole 'kod' je povinné.")),
+                flexiError,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task ImportInvoicesAsync_WithTransformations_AppliesAllTransformations()
     {
         // Arrange

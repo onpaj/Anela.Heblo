@@ -43,6 +43,8 @@ public class FlexiIssuedInvoiceClient : Anela.Heblo.Domain.Features.Invoices.IIs
 
             if (!flexiResult.IsSuccess)
             {
+                _logger.LogDebug("FlexiBee HTTP 400 response payload for invoice {InvoiceCode}: {Payload}",
+                    invoiceDetail.Code, JsonSerializer.Serialize(flexiResult));
                 throw new ApplicationException(flexiResult.GetErrorMessage());
             }
         }
