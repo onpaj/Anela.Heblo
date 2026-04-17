@@ -5,8 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Text;
 using Anela.Heblo.Adapters.Shoptet.IssuedInvoices;
 using Anela.Heblo.Adapters.Shoptet.IssuedInvoices.ValueResolvers;
+using Anela.Heblo.Adapters.Shoptet.EshopUrl;
 using Anela.Heblo.Adapters.Shoptet.Price;
 using Anela.Heblo.Domain.Features.CashRegister;
+using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Invoices;
@@ -56,6 +58,9 @@ public static class ShoptetAdapterServiceCollectionExtensions
         services.AddSingleton<IProductPriceEshopClient, ShoptetPriceClient>();
 
         services.Configure<ProductPriceOptions>(configuration.GetSection(ProductPriceOptions.ConfigKey));
+
+        services.AddSingleton<IProductEshopUrlClient, HeurekaProductFeedClient>();
+        services.Configure<HeurekaFeedOptions>(configuration.GetSection(HeurekaFeedOptions.ConfigKey));
 
         services.TryAddSingleton(TimeProvider.System);
 

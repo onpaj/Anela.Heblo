@@ -19,6 +19,7 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     Task RefreshLotsData(CancellationToken ct);
     Task RefreshEshopPricesData(CancellationToken ct);
     Task RefreshErpPricesData(CancellationToken ct);
+    Task RefreshEshopUrlData(CancellationToken ct);
     Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct);
 
     // Data load timestamps - stored in cache with same expiration as data
@@ -38,6 +39,7 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     DateTime? LotsLoadDate { get; }
     DateTime? EshopPricesLoadDate { get; }
     DateTime? ErpPricesLoadDate { get; }
+    DateTime? EshopUrlLoadDate { get; }
     DateTime? ManufactureDifficultySettingsLoadDate { get; }
     DateTime? ManufactureCostLoadDate { get; }
 
