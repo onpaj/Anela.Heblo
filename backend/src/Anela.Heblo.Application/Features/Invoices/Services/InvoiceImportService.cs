@@ -103,6 +103,7 @@ public class InvoiceImportService : IInvoiceImportService
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "FlexiBee rejected invoice {InvoiceCode}: {Error}", transformedInvoice.Code, ex.Message);
                 invoice.SyncFailed(transformedInvoice, ex.Message);
             }
 
