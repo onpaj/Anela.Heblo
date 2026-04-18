@@ -5,6 +5,7 @@ using Hangfire;
 using Anela.Heblo.API.Infrastructure.Hangfire;
 using Microsoft.AspNetCore.HttpLogging;
 using Anela.Heblo.API.Infrastructure.Authentication;
+using Anela.Heblo.API.MCP;
 using ModelContextProtocol.AspNetCore;
 
 namespace Anela.Heblo.API.Extensions;
@@ -111,6 +112,10 @@ public static class ApplicationBuilderExtensions
 
         app.MapControllers();
 
+        // MCP diagnostics — logs structured context for GET /mcp 404 responses to
+        // aid investigation of session-resumption failures (issue #599).
+        app.UseMiddleware<McpDiagnosticsMiddleware>();
+
         // MCP server endpoint — requires authentication (Microsoft Entra ID)
         app.MapMcp("/mcp").RequireAuthorization();
 
@@ -181,11 +186,18 @@ public static class ApplicationBuilderExtensions
                     }
                 };
 
-                // IMPORTANT: Configure SPA to NOT intercept API routes
+                // IMPORTANT: Configure SPA to NOT intercept API or MCP routes
                 spa.ApplicationBuilder.UseRouting();
                 spa.ApplicationBuilder.UseEndpoints(endpoints =>
                 {
                     endpoints.Map("/api/{**catch-all}", context =>
+                    {
+                        context.Response.StatusCode = 404;
+                        return Task.CompletedTask;
+                    });
+                    // Prevent SPA from serving index.html for MCP sub-paths (e.g. /mcp/sse)
+                    // that are not handled by MapMcp but must not fall through to the SPA.
+                    endpoints.Map("/mcp/{**catch-all}", context =>
                     {
                         context.Response.StatusCode = 404;
                         return Task.CompletedTask;
