@@ -1,6 +1,8 @@
 using Anela.Heblo.Xcc.Domain;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace Anela.Heblo.Xcc.Services.Dashboard;
 
@@ -9,16 +11,19 @@ public class DashboardService : IDashboardService
     private readonly ITileRegistry _tileRegistry;
     private readonly IUserDashboardSettingsRepository _settingsRepository;
     private readonly DashboardOptions _dashboardOptions;
+    private readonly ILogger<DashboardService> _logger;
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _userLocks = new();
 
     public DashboardService(
         ITileRegistry tileRegistry,
         IUserDashboardSettingsRepository settingsRepository,
-        IOptions<DashboardOptions> dashboardOptions)
+        IOptions<DashboardOptions> dashboardOptions,
+        ILogger<DashboardService> logger)
     {
         _tileRegistry = tileRegistry;
         _settingsRepository = settingsRepository;
         _dashboardOptions = dashboardOptions.Value;
+        _logger = logger;
     }
 
     private static SemaphoreSlim GetUserLock(string userId)
@@ -134,6 +139,7 @@ public class DashboardService : IDashboardService
             async (item, ct) =>
             {
                 var (tileSettings, index) = item;
+                var sw = Stopwatch.StartNew();
 
                 try
                 {
@@ -152,8 +158,42 @@ public class DashboardService : IDashboardService
                         return;
                     }
 
-                    // Load data using registry method that manages scope properly
-                    var data = await _tileRegistry.GetTileDataAsync(tileSettings.TileId, tileParameters);
+                    // Load data with a per-tile timeout to prevent one slow tile from blocking the entire dashboard
+                    var tileLoadTask = _tileRegistry.GetTileDataAsync(tileSettings.TileId, tileParameters);
+                    var timeoutTask = Task.Delay(TimeSpan.FromSeconds(_dashboardOptions.TileLoadTimeoutSeconds), ct);
+
+                    var completed = await Task.WhenAny(tileLoadTask, timeoutTask);
+                    sw.Stop();
+
+                    if (completed == timeoutTask)
+                    {
+                        _logger.LogWarning(
+                            "Tile {TileId} load timed out after {TimeoutSeconds}s",
+                            tileSettings.TileId,
+                            _dashboardOptions.TileLoadTimeoutSeconds);
+
+                        results.Add((index, new TileData
+                        {
+                            TileId = tileSettings.TileId,
+                            Title = "Error",
+                            Description = $"Tile '{tileSettings.TileId}' timed out",
+                            Size = TileSize.Small,
+                            Category = TileCategory.Error,
+                            Data = new { Error = "Tile load timed out" }
+                        }));
+                        return;
+                    }
+
+                    if (sw.Elapsed.TotalSeconds > _dashboardOptions.SlowTileWarningThresholdSeconds)
+                    {
+                        _logger.LogWarning(
+                            "Slow tile load: {TileId} took {ElapsedMs}ms (threshold: {ThresholdSeconds}s)",
+                            tileSettings.TileId,
+                            sw.ElapsedMilliseconds,
+                            _dashboardOptions.SlowTileWarningThresholdSeconds);
+                    }
+
+                    var data = await tileLoadTask;
 
                     results.Add((index, new TileData
                     {
@@ -166,11 +206,18 @@ public class DashboardService : IDashboardService
                         AutoShow = tile.AutoShow,
                         ComponentType = tile.ComponentType,
                         RequiredPermissions = tile.RequiredPermissions,
-                        Data = data
+                        Data = data ?? new { }
                     }));
                 }
                 catch (Exception ex)
                 {
+                    sw.Stop();
+                    _logger.LogError(
+                        ex,
+                        "Tile {TileId} threw an exception after {ElapsedMs}ms",
+                        tileSettings.TileId,
+                        sw.ElapsedMilliseconds);
+
                     results.Add((index, new TileData
                     {
                         TileId = tileSettings.TileId,
