@@ -36,8 +36,7 @@ public class ImportedMarketingTransactionRepository
 
     public override async Task<ImportedMarketingTransaction?> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        return await DbSet
-            .FirstOrDefaultAsync(x => x.Id == id, ct);
+        return await DbSet.FindAsync(new object[] { id }, ct);
     }
 
     public async Task<(List<ImportedMarketingTransaction> Items, int TotalCount)> GetPagedAsync(
