@@ -42,6 +42,7 @@ import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
 import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
+import MarketingCostsList from "./components/pages/MarketingCostsList";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
 import { UserStorage } from "./auth/userStorage";
 import { apiRequest } from "./auth/msalConfig";
@@ -342,6 +343,10 @@ function App() {
                         <Route
                           path="/analytics/product-margin-summary"
                           element={<ProductMarginSummary />}
+                        />
+                        <Route
+                          path="/marketing/costs"
+                          element={<MarketingCostsList />}
                         />
                         <Route path="/catalog" element={<CatalogList />} />
                         <Route

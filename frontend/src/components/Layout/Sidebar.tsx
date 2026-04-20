@@ -18,6 +18,7 @@ import {
   ExternalLink,
   FileText,
   Database,
+  Megaphone,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
 import { useAuth } from "../../auth/useAuth";
@@ -97,6 +98,24 @@ const Sidebar: React.FC<SidebarProps> = ({
                 id: "analyza-marzovosti",
                 name: "Analýza marže",
                 href: "/analytics/product-margin-summary",
+              },
+            ],
+          },
+        ]
+      : []),
+    // Marketing section - only visible for marketing_reader role
+    ...(hasRole("marketing_reader")
+      ? [
+          {
+            id: "marketing",
+            name: "Marketing",
+            icon: Megaphone,
+            type: "section" as const,
+            items: [
+              {
+                id: "naklady",
+                name: "Náklady",
+                href: "/marketing/costs",
               },
             ],
           },
