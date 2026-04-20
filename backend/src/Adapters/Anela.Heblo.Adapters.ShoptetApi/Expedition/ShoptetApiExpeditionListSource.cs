@@ -128,7 +128,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                     var entry = await _catalog.GetByIdAsync(productCode, cancellationToken);
                     if (entry != null)
                     {
-                        stockByCode[productCode] = entry.Stock.Available;
+                        stockByCode[productCode] = entry.Stock.Eshop;
                         if (!string.IsNullOrEmpty(entry.Location))
                             locationByCode[productCode] = entry.Location;
                     }
