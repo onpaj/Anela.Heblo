@@ -37,7 +37,9 @@ const MarketingCostsList: React.FC = () => {
   // Sorting
   const [sortBy, setSortBy] = useState(searchParams.get("sortBy") || "transactionDate");
   const [sortDescending, setSortDescending] = useState(
-    searchParams.get("sortDesc") !== "false"
+    searchParams.get("sortDesc") !== null
+      ? searchParams.get("sortDesc") === "true"
+      : true
   );
 
   // Detail modal
@@ -57,33 +59,59 @@ const MarketingCostsList: React.FC = () => {
 
   const { data, isLoading, error } = useMarketingCostsQuery(request);
 
+  const updateSearchParams = (overrides: {
+    platform?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    isSynced?: string;
+    page?: number;
+    pageSize?: number;
+    sortBy?: string;
+    sortDesc?: boolean;
+  }) => {
+    const params = new URLSearchParams();
+    const p = overrides.platform ?? platformFilter;
+    const df = overrides.dateFrom ?? dateFromFilter;
+    const dt = overrides.dateTo ?? dateToFilter;
+    const sy = overrides.isSynced ?? syncedFilter;
+    const pg = overrides.page ?? pageNumber;
+    const ps = overrides.pageSize ?? pageSize;
+    const sb = overrides.sortBy ?? sortBy;
+    const sd = overrides.sortDesc ?? sortDescending;
+
+    if (p) params.set("platform", p);
+    if (df) params.set("dateFrom", df);
+    if (dt) params.set("dateTo", dt);
+    if (sy) params.set("isSynced", sy);
+    params.set("page", pg.toString());
+    params.set("pageSize", ps.toString());
+    params.set("sortBy", sb);
+    params.set("sortDesc", sd.toString());
+    setSearchParams(params);
+  };
+
   const applyFilters = () => {
     setPlatformFilter(platformInput);
     setDateFromFilter(dateFromInput);
     setDateToFilter(dateToInput);
     setSyncedFilter(syncedInput);
     setPageNumber(1);
-
-    const params = new URLSearchParams();
-    if (platformInput) params.set("platform", platformInput);
-    if (dateFromInput) params.set("dateFrom", dateFromInput);
-    if (dateToInput) params.set("dateTo", dateToInput);
-    if (syncedInput) params.set("isSynced", syncedInput);
-    params.set("page", "1");
-    params.set("pageSize", pageSize.toString());
-    params.set("sortBy", sortBy);
-    params.set("sortDesc", sortDescending.toString());
-    setSearchParams(params);
+    updateSearchParams({
+      platform: platformInput,
+      dateFrom: dateFromInput,
+      dateTo: dateToInput,
+      isSynced: syncedInput,
+      page: 1,
+    });
   };
 
   const handleSort = (column: string) => {
-    if (sortBy === column) {
-      setSortDescending(!sortDescending);
-    } else {
-      setSortBy(column);
-      setSortDescending(true);
-    }
+    const newDesc = sortBy === column ? !sortDescending : true;
+    const newSortBy = column;
+    setSortBy(newSortBy);
+    setSortDescending(newDesc);
     setPageNumber(1);
+    updateSearchParams({ sortBy: newSortBy, sortDesc: newDesc, page: 1 });
   };
 
   const handleRowClick = (item: MarketingCostListItemDto) => {
@@ -93,11 +121,13 @@ const MarketingCostsList: React.FC = () => {
 
   const handlePageChange = (page: number) => {
     setPageNumber(page);
+    updateSearchParams({ page });
   };
 
   const handlePageSizeChange = (size: number) => {
     setPageSize(size);
     setPageNumber(1);
+    updateSearchParams({ pageSize: size, page: 1 });
   };
 
   const SortableHeader = ({ column, label }: { column: string; label: string }) => (
