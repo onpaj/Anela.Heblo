@@ -13,7 +13,7 @@ const E2E_USER: UserInfo = {
   name: "E2E Test User",
   email: "e2e@anela-heblo.com",
   initials: "E2E",
-  roles: ["finance_reader"],
+  roles: ["finance_reader", "marketing_reader"],
 };
 
 /**
