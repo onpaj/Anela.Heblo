@@ -36,7 +36,8 @@ public class CatalogMcpTools
         [Description("Page number for pagination (default: 1)")]
         int pageNumber = 1,
         [Description("Page size for pagination (default: 50, max: 100)")]
-        int pageSize = 50)
+        int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
         var request = new GetCatalogListRequest
         {
@@ -46,7 +47,7 @@ public class CatalogMcpTools
             PageSize = pageSize
         };
 
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
         return JsonSerializer.Serialize(response);
     }
 
@@ -55,7 +56,8 @@ public class CatalogMcpTools
         [Description("Product code (e.g., 'AKL001', 'SLU000001')")]
         string productCode,
         [Description("Number of months to look back for transaction history (default: 13)")]
-        int monthsBack = 13)
+        int monthsBack = 13,
+        CancellationToken cancellationToken = default)
     {
         var request = new GetCatalogDetailRequest
         {
@@ -63,7 +65,7 @@ public class CatalogMcpTools
             MonthsBack = monthsBack
         };
 
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
 
         if (!response.Success)
         {
@@ -76,10 +78,11 @@ public class CatalogMcpTools
     [McpServerTool]
     public async Task<string> GetProductComposition(
         [Description("Product code (e.g., 'AKL001')")]
-        string productCode)
+        string productCode,
+        CancellationToken cancellationToken = default)
     {
         var request = new GetProductCompositionRequest { ProductCode = productCode };
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
 
         if (!response.Success)
         {
@@ -90,10 +93,10 @@ public class CatalogMcpTools
     }
 
     [McpServerTool]
-    public async Task<string> GetMaterialsForPurchase()
+    public async Task<string> GetMaterialsForPurchase(CancellationToken cancellationToken = default)
     {
         var request = new GetMaterialsForPurchaseRequest();
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
         return JsonSerializer.Serialize(response);
     }
 
@@ -104,7 +107,8 @@ public class CatalogMcpTools
         [Description("Maximum number of results to return (default: 20)")]
         int limit = 20,
         [Description("Filter by product types")]
-        ProductType[]? productTypes = null)
+        ProductType[]? productTypes = null,
+        CancellationToken cancellationToken = default)
     {
         var request = new GetCatalogListRequest
         {
@@ -114,17 +118,18 @@ public class CatalogMcpTools
             ProductTypes = productTypes
         };
 
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
         return JsonSerializer.Serialize(response);
     }
 
     [McpServerTool]
     public async Task<string> GetProductUsage(
         [Description("Product code (e.g., 'AKL001')")]
-        string productCode)
+        string productCode,
+        CancellationToken cancellationToken = default)
     {
         var request = new GetProductUsageRequest { ProductCode = productCode };
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
 
         if (!response.Success)
         {
@@ -135,10 +140,10 @@ public class CatalogMcpTools
     }
 
     [McpServerTool]
-    public async Task<string> GetWarehouseStatistics()
+    public async Task<string> GetWarehouseStatistics(CancellationToken cancellationToken = default)
     {
         var request = new GetWarehouseStatisticsRequest();
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
         return JsonSerializer.Serialize(response);
     }
 }
