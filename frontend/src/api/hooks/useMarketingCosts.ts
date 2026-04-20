@@ -51,7 +51,7 @@ export interface GetMarketingCostDetailResponse {
   success: boolean;
 }
 
-const marketingCostsKeys = {
+export const marketingCostsKeys = {
   all: ["marketing-costs"] as const,
   lists: () => [...marketingCostsKeys.all, "list"] as const,
   list: (filters: GetMarketingCostsRequest) =>
@@ -64,7 +64,7 @@ export const useMarketingCostsQuery = (request: GetMarketingCostsRequest) => {
   return useQuery({
     queryKey: marketingCostsKeys.list(request),
     queryFn: async () => {
-      const apiClient = getAuthenticatedApiClient();
+      const apiClient = await getAuthenticatedApiClient();
       const relativeUrl = `/api/marketing-costs`;
       const params = new URLSearchParams();
 
@@ -73,9 +73,9 @@ export const useMarketingCostsQuery = (request: GetMarketingCostsRequest) => {
       if (request.dateTo) params.append("DateTo", request.dateTo);
       if (request.isSynced !== null && request.isSynced !== undefined)
         params.append("IsSynced", request.isSynced.toString());
-      if (request.pageNumber)
+      if (request.pageNumber !== undefined)
         params.append("PageNumber", request.pageNumber.toString());
-      if (request.pageSize)
+      if (request.pageSize !== undefined)
         params.append("PageSize", request.pageSize.toString());
       if (request.sortBy) params.append("SortBy", request.sortBy);
       if (request.sortDescending !== undefined)
@@ -103,7 +103,7 @@ export const useMarketingCostDetailQuery = (id: number | null) => {
   return useQuery({
     queryKey: marketingCostsKeys.detail(id!),
     queryFn: async () => {
-      const apiClient = getAuthenticatedApiClient();
+      const apiClient = await getAuthenticatedApiClient();
       const fullUrl = `${(apiClient as any).baseUrl}/api/marketing-costs/${id}`;
 
       const response = await (apiClient as any).http.fetch(fullUrl, {
