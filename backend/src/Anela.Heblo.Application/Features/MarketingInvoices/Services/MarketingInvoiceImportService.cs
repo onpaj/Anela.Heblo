@@ -57,6 +57,9 @@ public class MarketingInvoiceImportService
                     TransactionDate = transaction.TransactionDate,
                     ImportedAt = DateTime.UtcNow,
                     IsSynced = false,
+                    Description = transaction.Description,
+                    Currency = transaction.Currency,
+                    RawData = transaction.RawData,
                 });
             }
             catch (Exception ex)
