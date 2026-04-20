@@ -172,6 +172,24 @@ public static class ApplicationBuilderExtensions
         // SPA fallback - must be after MapControllers
         if (!app.Environment.IsDevelopment())
         {
+            // Reject non-GET/HEAD requests before the SPA fallback to avoid a 500 when
+            // index.html is absent (e.g. scanners POSTing to /index.html). Standards-
+            // compliant clients receive 405 Method Not Allowed instead of an unhandled exception.
+            app.Use(async (context, next) =>
+            {
+                // Only reject non-GET/HEAD when no endpoint matched this request.
+                // If an API controller matched, context.GetEndpoint() is non-null here
+                // (UseRouting already ran), so we let it through.
+                if (context.GetEndpoint() is null &&
+                    !HttpMethods.IsGet(context.Request.Method) &&
+                    !HttpMethods.IsHead(context.Request.Method))
+                {
+                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                    return;
+                }
+                await next();
+            });
+
             app.UseSpa(spa =>
             {
                 spa.Options.SourcePath = "wwwroot";
