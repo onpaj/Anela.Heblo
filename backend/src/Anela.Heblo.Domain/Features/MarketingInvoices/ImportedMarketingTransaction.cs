@@ -12,4 +12,7 @@ public class ImportedMarketingTransaction : IEntity<int>
     public DateTime ImportedAt { get; set; }
     public bool IsSynced { get; set; } = false;
     public string? ErrorMessage { get; set; }
+    public string? Description { get; set; }
+    public string? Currency { get; set; }
+    public string? RawData { get; set; }
 }
