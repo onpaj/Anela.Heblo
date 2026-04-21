@@ -115,6 +115,10 @@ public static class ApplicationBuilderExtensions
 
         app.MapControllers();
 
+        // MCP bad-request diagnostics — blocks probes without valid Accept header (returns 404)
+        // and logs structured context for GET /mcp 400 responses to identify bad clients (#593).
+        app.UseMiddleware<McpBadRequestMiddleware>();
+
         // MCP diagnostics — logs structured context for GET /mcp 404 responses to
         // aid investigation of session-resumption failures (issue #599).
         app.UseMiddleware<McpDiagnosticsMiddleware>();
