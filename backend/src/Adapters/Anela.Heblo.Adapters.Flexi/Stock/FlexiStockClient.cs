@@ -64,6 +64,22 @@ public class FlexiStockClient : IErpStockClient
                 warehouseId, date);
             throw;
         }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex,
+                "FlexiBee stav-skladu-k-datu request timed out (internal HttpClient timeout). " +
+                "WarehouseId: {WarehouseId}, Date: {Date}",
+                warehouseId, date);
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation(
+                "FlexiBee stav-skladu-k-datu request was canceled by the caller (client abort). " +
+                "WarehouseId: {WarehouseId}, Date: {Date}",
+                warehouseId, date);
+            throw;
+        }
     }
 
     private Task<IReadOnlyList<ErpStock>> ListByWarehouse(int warehouseId, ProductType productType,
@@ -89,6 +105,22 @@ public class FlexiStockClient : IErpStockClient
         {
             _logger.LogError(ex,
                 "FlexiBee stav-skladu-k-datu returned 501 NotImplemented — endpoint may be disabled or unsupported on this instance. " +
+                "WarehouseId: {WarehouseId}, ProductTypes: {ProductTypes}",
+                warehouseId, string.Join(", ", productTypes));
+            throw;
+        }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex,
+                "FlexiBee stav-skladu-k-datu request timed out (internal HttpClient timeout). " +
+                "WarehouseId: {WarehouseId}, ProductTypes: {ProductTypes}",
+                warehouseId, string.Join(", ", productTypes));
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation(
+                "FlexiBee stav-skladu-k-datu request was canceled by the caller (client abort). " +
                 "WarehouseId: {WarehouseId}, ProductTypes: {ProductTypes}",
                 warehouseId, string.Join(", ", productTypes));
             throw;
