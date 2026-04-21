@@ -24,12 +24,17 @@ public class ShoptetInvoiceMapper
         var currencyCode = src.Price?.CurrencyCode ?? "CZK";
         var items = src.Items.Select(item => MapItem(item, currencyCode)).ToList();
 
-        // Playwright computes WithoutVat and Vat by summing items (not from invoice totals).
-        // The REST API price.withoutVat field can differ (e.g. tax-base breakdown), so we mirror
-        // the Playwright approach to keep the two adapters in sync.
+        // Mirror Playwright's IssuedInvoiceMapping price calculation:
+        //   WithVat    = sum of TotalWithVat for taxable items only (VatRate != "none")
+        //              — mirrors Playwright's PriceHighSum which excludes zero-VAT items (e.g. billing fees)
+        //              — the REST price.withVat total includes zero-rate items; PriceHighSum does not
+        //   WithoutVat = sum of per-unit prices for ALL items (ItemPrice.WithoutVat = unitWithoutVat)
+        //              — Playwright sums ItemPrice.WithoutVat (per-unit) not TotalWithoutVat (line total)
+        //   Vat        = WithVat - WithoutVat (derived, consistent with Playwright)
         var price = MapInvoicePrice(src.Price);
-        price.WithoutVat = items.Sum(i => i.ItemPrice.TotalWithoutVat);
-        price.Vat = price.WithVat - price.WithoutVat;
+        price.WithVat = items.Where(i => i.ItemPrice.VatRate != "none").Sum(i => i.ItemPrice.TotalWithVat);
+        price.WithoutVat = items.Sum(i => i.ItemPrice.WithoutVat);
+        price.Vat = items.Sum(i => i.ItemPrice.Vat);
 
         return new IssuedInvoiceDetail
         {

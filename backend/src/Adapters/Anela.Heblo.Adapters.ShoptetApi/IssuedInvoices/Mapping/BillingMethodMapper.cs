@@ -9,9 +9,13 @@ public class BillingMethodMapper
     private static readonly Dictionary<string, BillingMethod> CodeMap = new(StringComparer.OrdinalIgnoreCase)
     {
         ["bankTransfer"] = BillingMethod.BankTransfer,
+        // Czech-language billing method names returned by the Shoptet REST API
+        ["Převodem"] = BillingMethod.BankTransfer,
         ["cash"] = BillingMethod.Cash,
         ["cashOnDelivery"] = BillingMethod.CoD,
         ["creditCard"] = BillingMethod.CreditCard,
+        // "Kartou" is the Czech-language billing method name the REST API returns for card payments.
+        ["Kartou"] = BillingMethod.CreditCard,
         ["comgate"] = BillingMethod.Comgate,
     };
 

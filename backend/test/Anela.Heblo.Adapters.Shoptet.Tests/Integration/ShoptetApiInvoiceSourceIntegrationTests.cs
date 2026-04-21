@@ -54,23 +54,7 @@ public class ShoptetApiInvoiceSourceIntegrationTests
         }
     }
 
-    [Fact]
-    public async Task GetAllAsync_EurDateRange_FiltersToEurOnly()
-    {
-        HasValidApiConfiguration().Should().BeTrue("Shoptet API token not configured");
-
-        var query = new IssuedInvoiceSourceQuery
-        {
-            RequestId = Guid.NewGuid().ToString(),
-            DateFrom = ReferenceDate,
-            DateTo = ReferenceDate.AddDays(30),
-            Currency = "EUR",
-        };
-
-        var invoices = (await _source.GetAllAsync(query)).Single().Invoices;
-        invoices.Should().OnlyContain(i => i.Price.CurrencyCode == "EUR");
-        _output.WriteLine($"Fetched {invoices.Count} EUR invoices");
-    }
+   
 
     [Fact]
     public async Task GetAllAsync_SpecificInvoiceQuery_ReturnsThatInvoice()

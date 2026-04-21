@@ -96,10 +96,14 @@ public class ShoptetInvoiceMapperTests
     [Fact]
     public void Map_InvoicePrice_ParsedFromStringFields()
     {
+        // BuildMinimalDto has 1 item: amount=2, unitPrice.withoutVat=100.
+        // Invoice WithoutVat = sum of per-unit prices (mirroring Playwright adapter) = 100, not the line total 200.
         var detail = BuildSut().Map(BuildMinimalDto());
         detail.Price.WithVat.Should().Be(242m);
-        detail.Price.WithoutVat.Should().Be(200m);
-        detail.Price.Vat.Should().Be(42m);
+        detail.Price.WithoutVat.Should().Be(100m, "sums per-unit prices per item to mirror Playwright adapter");
+        // Vat = items.Sum(ItemPrice.Vat) = per-unit vat, mirroring Playwright's items.Sum(s.ItemPrice.Vat).
+        // For amount=2, unitVat=21: Vat = 21, not 142 (which would be WithVat - WithoutVat = 242 - 100).
+        detail.Price.Vat.Should().Be(21m);
         detail.Price.CurrencyCode.Should().Be("CZK");
         detail.Price.ExchangeRate.Should().Be(1m);
     }
@@ -135,10 +139,12 @@ public class ShoptetInvoiceMapperTests
     }
 
     [Fact]
-    public void Map_InvoicePrice_WithoutVatSumsTotalsNotUnitPrices_WhenQuantityGtOne()
+    public void Map_InvoicePrice_WithoutVatSumsUnitPrices_WhenQuantityGtOne()
     {
-        // Regression: WithoutVat was summing unit prices instead of line totals.
-        // For amount=3 × unitWithoutVat=100 the invoice WithoutVat must be 300, not 100.
+        // Parity with Playwright adapter: invoice WithoutVat sums per-unit prices (ItemPrice.WithoutVat),
+        // not line totals. Pohoda XML CalculateItemPrice sets ItemPrice.WithoutVat = unitPrice,
+        // and IssuedInvoiceMapping sums those per-unit prices for the invoice total.
+        // For amount=3 × unitWithoutVat=100 the invoice WithoutVat is 100 (unit price), not 300 (line total).
         var dto = BuildMinimalDto();
         dto.Items =
         [
@@ -166,8 +172,10 @@ public class ShoptetInvoiceMapperTests
         var detail = BuildSut().Map(dto);
 
         detail.Price.WithVat.Should().Be(363m);
-        detail.Price.WithoutVat.Should().Be(300m, "must sum line totals (3×100), not unit price (100)");
-        detail.Price.Vat.Should().Be(63m);
+        detail.Price.WithoutVat.Should().Be(100m, "must sum per-unit prices to mirror Playwright adapter (not line totals)");
+        // Vat = items.Sum(ItemPrice.Vat) = per-unit vat sum, same as Playwright.
+        // For amount=3, unitVat=21: Vat = 21, not 263 (which would be WithVat - WithoutVat = 363 - 100).
+        detail.Price.Vat.Should().Be(21m);
     }
 
     [Fact]
