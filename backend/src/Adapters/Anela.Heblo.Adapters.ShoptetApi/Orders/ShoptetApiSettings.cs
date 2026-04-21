@@ -1,3 +1,5 @@
+using Anela.Heblo.Domain.Features.Invoices;
+
 namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 
 public class ShoptetApiSettings
@@ -15,4 +17,10 @@ public class ShoptetApiSettings
     /// Most single-warehouse stores use id 1. Configure per environment in user secrets: Shoptet:StockId
     /// </summary>
     public int StockId { get; set; } = 1;
+
+    /// <summary>
+    /// Maps shipping GUID strings → ShippingMethod enum for invoice import.
+    /// Configure per environment in user secrets: Shoptet:InvoiceShippingGuidMap:{guid}
+    /// </summary>
+    public Dictionary<string, ShippingMethod> InvoiceShippingGuidMap { get; set; } = new();
 }

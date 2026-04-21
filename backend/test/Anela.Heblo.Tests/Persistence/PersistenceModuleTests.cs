@@ -89,6 +89,46 @@ public class PersistenceModuleTests
         context.Should().NotBeNull();
     }
 
+    /// <summary>
+    /// Regression test: Database:MaxPoolSize configuration must be applied to NpgsqlDataSource.
+    ///
+    /// Bug: appsettings.Staging.json was missing Database:MaxPoolSize, leaving the Npgsql
+    /// connection pool uncapped (default 100). Under load, the pool exhausted the PostgreSQL
+    /// server's max_connections, causing PostgresException 53300 (too_many_connections).
+    ///
+    /// Fix: Add Database:MaxPoolSize to all environment appsettings files, and verify the
+    /// config value is correctly wired into NpgsqlDataSourceBuilder.ConnectionStringBuilder.MaxPoolSize.
+    /// </summary>
+    [Fact]
+    public void AddPersistenceServices_WithMaxPoolSizeConfigured_AppliesItToNpgsqlDataSource()
+    {
+        // Arrange
+        const int configuredMaxPoolSize = 20;
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["UseInMemoryDatabase"] = "false",
+                ["ConnectionStrings:Test"] = "Host=localhost;Database=test;Username=test;Password=test",
+                ["Database:MaxPoolSize"] = configuredMaxPoolSize.ToString()
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddPersistenceServices(configuration, new FakeHostEnvironment("Test"));
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var dataSource = provider.GetRequiredService<NpgsqlDataSource>();
+
+        // Assert
+        var csb = new NpgsqlConnectionStringBuilder(dataSource.ConnectionString);
+        csb.MaxPoolSize.Should().Be(configuredMaxPoolSize,
+            "Database:MaxPoolSize must be applied to NpgsqlDataSource to cap the connection pool " +
+            "and prevent PostgresException 53300 (too_many_connections)");
+    }
+
     [Fact]
     public void AddPersistenceServices_WithoutConnectionString_Throws()
     {
@@ -109,38 +149,6 @@ public class PersistenceModuleTests
 
         action.Should().Throw<Exception>()
             .WithMessage("*No connection string*");
-    }
-
-    /// <summary>
-    /// Regression test: Database:MaxPoolSize config must be applied to the NpgsqlDataSource
-    /// connection pool to prevent PostgresException 53300 (too_many_connections) spikes.
-    /// See issue #591.
-    /// </summary>
-    [Fact]
-    public void AddPersistenceServices_WithMaxPoolSize_AppliesCapToDataSource()
-    {
-        // Arrange
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["UseInMemoryDatabase"] = "false",
-                ["ConnectionStrings:Test"] = "Host=localhost;Database=test;Username=user;Password=pass",
-                ["Database:MaxPoolSize"] = "7"
-            })
-            .Build();
-
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddPersistenceServices(configuration, new FakeHostEnvironment("Test"));
-
-        // Act
-        var provider = services.BuildServiceProvider();
-        var dataSource = provider.GetRequiredService<NpgsqlDataSource>();
-        var csb = new NpgsqlConnectionStringBuilder(dataSource.ConnectionString);
-
-        // Assert
-        csb.MaxPoolSize.Should().Be(7,
-            "Database:MaxPoolSize config must be applied so the pool is capped below server max_connections");
     }
 
     /// <summary>

@@ -17,7 +17,7 @@ public class ShoptetPlaywrightInvoiceSourceIntegrationTests
     private readonly IIssuedInvoiceSource _invoiceSource;
     private readonly ITestOutputHelper _output;
 
-    private static DateTime ReferenceDate => new DateTime(2025, 07, 1);
+    private static DateTime ReferenceDate => new DateTime(2026, 04, 21);
 
     public ShoptetPlaywrightInvoiceSourceIntegrationTests(
         ShoptetIntegrationTestFixture fixture,

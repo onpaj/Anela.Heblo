@@ -21,7 +21,7 @@ public class ShoptetPlaywrightInvoiceSource : IIssuedInvoiceSource
         _logger = logger;
     }
 
-    public async Task<List<IssuedInvoiceDetailBatch>> GetAllAsync(IssuedInvoiceSourceQuery query)
+    public async Task<List<IssuedInvoiceDetailBatch>> GetAllAsync(IssuedInvoiceSourceQuery query, CancellationToken cancellationToken = default)
     {
         if (!query.QueryByInvoice && !query.QueryByDate)
         {

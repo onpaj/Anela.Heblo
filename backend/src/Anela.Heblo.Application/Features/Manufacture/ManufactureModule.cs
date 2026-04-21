@@ -24,6 +24,11 @@ public static class ManufactureModule
             configuration.GetSection("ManufactureAnalysis").Bind(options);
         });
 
+        services.Configure<ManufactureErpOptions>(options =>
+        {
+            configuration.GetSection("ManufactureErp").Bind(options);
+        });
+
         // Register domain services for manufacturing stock analysis
         services.AddScoped<ITimePeriodCalculator, TimePeriodCalculator>();
         services.AddScoped<IConsumptionRateCalculator, ConsumptionRateCalculator>();
