@@ -791,6 +791,9 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("DocumentId");
 
+                    b.HasIndex("DocumentId", "ChunkIndex")
+                        .HasDatabaseName("ix_knowledgebase_chunks_document_chunk");
+
                     b.ToTable("KnowledgeBaseChunks", "dbo");
                 });
 
@@ -845,6 +848,9 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("ContentType")
+                        .HasDatabaseName("ix_knowledgebase_documents_contenttype");
 
                     b.ToTable("KnowledgeBaseDocuments", "dbo");
                 });

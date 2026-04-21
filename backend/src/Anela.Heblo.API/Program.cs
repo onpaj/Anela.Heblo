@@ -93,6 +93,9 @@ public partial class Program
         // MCP server
         builder.Services.AddMcpServices();
 
+        // Request timeouts — required for .WithRequestTimeout() on MCP and other endpoints
+        builder.Services.AddRequestTimeouts();
+
         // Hangfire background jobs
         builder.Services.AddHangfireServices(builder.Configuration, builder.Environment);
         builder.Services.AddRecurringJobs(); // Register all IRecurringJob implementations and discovery service

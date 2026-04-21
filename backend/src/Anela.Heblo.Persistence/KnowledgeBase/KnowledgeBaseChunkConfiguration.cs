@@ -31,5 +31,8 @@ public class KnowledgeBaseChunkConfiguration : IEntityTypeConfiguration<Knowledg
         builder.Ignore(e => e.Embedding);
 
         builder.HasIndex(e => e.DocumentId);
+
+        builder.HasIndex(e => new { e.DocumentId, e.ChunkIndex })
+            .HasDatabaseName("ix_knowledgebase_chunks_document_chunk");
     }
 }

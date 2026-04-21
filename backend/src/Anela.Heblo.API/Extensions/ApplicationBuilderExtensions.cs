@@ -88,6 +88,9 @@ public static class ApplicationBuilderExtensions
         app.UseAuthentication();
         app.UseAuthorization();
 
+        // Request timeouts middleware — must be after auth so timeout policies can be applied per-endpoint
+        app.UseRequestTimeouts();
+
         // Add Hangfire authentication middleware before Hangfire dashboard
         // This middleware handles redirects to login when user is not authenticated
         app.UseMiddleware<HangfireAuthenticationMiddleware>();
@@ -117,7 +120,10 @@ public static class ApplicationBuilderExtensions
         app.UseMiddleware<McpDiagnosticsMiddleware>();
 
         // MCP server endpoint — requires authentication (Microsoft Entra ID)
-        app.MapMcp("/mcp").RequireAuthorization();
+        // 5-minute session timeout terminates zombie SSE connections that linger after client disconnect.
+        app.MapMcp("/mcp")
+            .RequireAuthorization()
+            .WithRequestTimeout(TimeSpan.FromMinutes(5));
 
         // OAuth 2.0 authorization server metadata — required for MCP clients (e.g. Claude Desktop)
         // to discover the real authorization server (Microsoft Entra ID) instead of hitting the SPA fallback.
