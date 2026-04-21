@@ -18,7 +18,7 @@ public class IssuedInvoiceParityIntegrationTests
     private readonly ShoptetApiInvoiceSource _rest;
     private readonly ITestOutputHelper _output;
 
-    private static DateTime ReferenceDate => new DateTime(2026, 04, 15);
+    private static DateTime ReferenceDate => new DateTime(2026, 04, 21);
 
     public IssuedInvoiceParityIntegrationTests(ShoptetIntegrationTestFixture fixture, ITestOutputHelper output)
     {
@@ -150,6 +150,9 @@ public class IssuedInvoiceParityIntegrationTests
                 // virtual shipping/billing line items. The REST API returns null for these items.
                 // Real product item codes are present in both adapters — this exclusion is intentional.
                 .Excluding(info => info.Path.Contains("Items[") && info.Path.EndsWith(".Code"))
+                // AmountUnit: Pohoda XML / Playwright adapter does not expose this field (always null).
+                // The REST adapter correctly captures it (e.g. "ks"). Cannot compare — excluded.
+                .Excluding(info => info.Path.Contains("Items[") && info.Path.EndsWith(".AmountUnit"))
                 .Using<decimal>(ctx => ctx.Subject.Should().BeApproximately(ctx.Expectation, 0.02m)).WhenTypeIs<decimal>()
                 .Using<DateTime>(ctx => ctx.Subject.Date.Should().Be(ctx.Expectation.Date)).WhenTypeIs<DateTime>(),
                 $"Invoice {pw.Code} field mismatch");
