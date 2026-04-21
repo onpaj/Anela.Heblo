@@ -19,6 +19,17 @@ public class ShoptetInvoiceDto
     [JsonPropertyName("creationTime")]
     public string? CreationTime { get; set; }
 
+    /// <summary>ISO 8601 date string, e.g. "2024-06-15T00:00:00"</summary>
+    [JsonPropertyName("dueDate")]
+    public string? DueDate { get; set; }
+
+    /// <summary>ISO 8601 date string for tax purposes.</summary>
+    [JsonPropertyName("taxDate")]
+    public string? TaxDate { get; set; }
+
+    [JsonPropertyName("shipping")]
+    public ShoptetInvoiceShippingDto? Shipping { get; set; }
+
     [JsonPropertyName("billingMethod")]
     public ShoptetBillingMethodDto? BillingMethod { get; set; }
 

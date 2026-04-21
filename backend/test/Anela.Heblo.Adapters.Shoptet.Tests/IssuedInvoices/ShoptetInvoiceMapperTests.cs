@@ -41,7 +41,7 @@ public class ShoptetInvoiceMapperTests
                     WithoutVat = "100",
                     Vat = "21",
                     WithVat = "121",
-                    VatRate = 21m,
+                    VatRate = "21",
                 },
             }
         },
@@ -113,7 +113,7 @@ public class ShoptetInvoiceMapperTests
             WithVat = "10",
             WithoutVat = "8.26",
             CurrencyCode = "EUR",
-            ExchangeRate = 25.5m,
+            ExchangeRate = "25.5",
         };
         var detail = BuildSut().Map(dto);
         detail.Price.CurrencyCode.Should().Be("EUR");
@@ -132,6 +132,42 @@ public class ShoptetInvoiceMapperTests
         item.ItemPrice.TotalWithoutVat.Should().Be(200m);
         item.ItemPrice.TotalWithVat.Should().Be(242m);
         item.ItemPrice.CurrencyCode.Should().Be("CZK");
+    }
+
+    [Fact]
+    public void Map_InvoicePrice_WithoutVatSumsTotalsNotUnitPrices_WhenQuantityGtOne()
+    {
+        // Regression: WithoutVat was summing unit prices instead of line totals.
+        // For amount=3 × unitWithoutVat=100 the invoice WithoutVat must be 300, not 100.
+        var dto = BuildMinimalDto();
+        dto.Items =
+        [
+            new ShoptetInvoiceItemDto
+            {
+                Code = "A",
+                Name = "Product A",
+                Amount = "3",
+                UnitPrice = new ShoptetInvoiceUnitPriceDto
+                {
+                    WithoutVat = "100",
+                    Vat = "21",
+                    WithVat = "121",
+                    VatRate = "21",
+                },
+            },
+        ];
+        dto.Price = new ShoptetInvoicePriceDto
+        {
+            WithVat = "363",
+            WithoutVat = "300",
+            CurrencyCode = "CZK",
+        };
+
+        var detail = BuildSut().Map(dto);
+
+        detail.Price.WithVat.Should().Be(363m);
+        detail.Price.WithoutVat.Should().Be(300m, "must sum line totals (3×100), not unit price (100)");
+        detail.Price.Vat.Should().Be(63m);
     }
 
     [Fact]

@@ -25,46 +25,51 @@ public class ShoptetApiInvoiceSource : IIssuedInvoiceSource
         IssuedInvoiceSourceQuery query,
         CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<ShoptetInvoiceDto> invoices;
-
         if (query.QueryByInvoice)
         {
             var single = await _client.GetInvoiceAsync(query.InvoiceId!, cancellationToken);
-            invoices = single != null
-                ? new[] { single }
-                : Array.Empty<ShoptetInvoiceDto>();
-        }
-        else
-        {
-            invoices = await _client.ListInvoicesAsync(query.DateFrom, query.DateTo, cancellationToken);
+            var invoices = single != null ? new[] { single } : Array.Empty<ShoptetInvoiceDto>();
+            var details = invoices.Select(i => _mapper.Map(i)).ToList();
+            return new List<IssuedInvoiceDetailBatch>
+            {
+                new IssuedInvoiceDetailBatch { BatchId = query.RequestId, Invoices = details },
+            };
         }
 
-        var total = invoices.Count;
+        // Shoptet /api/invoices list endpoint returns minimal data (no addresses, items, dates).
+        // We fetch the list to get codes and filter by currency, then fetch each detail separately.
+        var listItems = await _client.ListInvoicesAsync(query.DateFrom, query.DateTo, cancellationToken);
+        var total = listItems.Count;
 
         // Shoptet /api/invoices does not support currency filtering as a query parameter,
         // so we filter in memory after fetching. For the typical volume (hundreds per month)
         // this is acceptable; revisit if Shoptet adds server-side currency filtering.
-        var filtered = invoices
+        var matchingCodes = listItems
             .Where(i => string.Equals(
                 i.Price?.CurrencyCode,
                 query.Currency,
                 StringComparison.OrdinalIgnoreCase))
+            .Select(i => i.Code)
             .ToList();
 
         _logger.LogInformation(
             "ShoptetApiInvoiceSource fetched {Total} invoices, {Filtered} match currency {Currency}",
             total,
-            filtered.Count,
+            matchingCodes.Count,
             query.Currency);
 
-        var details = filtered
-            .Select(i => _mapper.Map(i))
-            .ToList();
+        var detailDtos = new List<ShoptetInvoiceDto>(matchingCodes.Count);
+        foreach (var code in matchingCodes)
+        {
+            var detail = await _client.GetInvoiceAsync(code, cancellationToken);
+            if (detail != null)
+                detailDtos.Add(detail);
+        }
 
         var batch = new IssuedInvoiceDetailBatch
         {
             BatchId = query.RequestId,
-            Invoices = details,
+            Invoices = detailDtos.Select(i => _mapper.Map(i)).ToList(),
         };
 
         return new List<IssuedInvoiceDetailBatch> { batch };

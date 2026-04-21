@@ -20,5 +20,5 @@ public class ShoptetInvoicePriceDto
     public string? CurrencyCode { get; set; }
 
     [JsonPropertyName("exchangeRate")]
-    public decimal? ExchangeRate { get; set; }
+    public string? ExchangeRate { get; set; }
 }

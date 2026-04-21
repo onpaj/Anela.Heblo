@@ -13,7 +13,7 @@ public class ShoptetInvoiceUnitPriceDto
     [JsonPropertyName("vat")]
     public string? Vat { get; set; }
 
-    /// <summary>VAT rate as a percentage number, e.g. 21.0</summary>
+    /// <summary>VAT rate as a quoted string, e.g. "21.0" — same pattern as all other Shoptet price fields.</summary>
     [JsonPropertyName("vatRate")]
-    public decimal? VatRate { get; set; }
+    public string? VatRate { get; set; }
 }

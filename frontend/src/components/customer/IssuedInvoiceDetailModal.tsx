@@ -454,7 +454,7 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                                           Zobrazit raw data z tohoto pokusu
                                         </summary>
                                         <pre className="mt-2 p-2 bg-white border rounded text-xs overflow-x-auto whitespace-pre-wrap font-mono text-gray-600 max-h-40">
-                                          {sync.data}
+                                          {(() => { try { return JSON.stringify(JSON.parse(sync.data), null, 2); } catch { return sync.data; } })()}
                                         </pre>
                                       </details>
                                     </div>

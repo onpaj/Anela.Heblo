@@ -24,6 +24,12 @@ public partial class Program
 {
     public static async Task Main(string[] args)
     {
+        // Server APIs must not depend on the OS locale for number/date formatting.
+        // The FlexiBee SDK (and other third-party XML/JSON serializers) call decimal.ToString()
+        // without explicit culture, which produces "1,000" instead of "1.000" on Czech OS.
+        System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+        System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
+
         var builder = WebApplication.CreateBuilder(args);
 
         // Add User Secrets for Development, Test, Staging, and Production environments
