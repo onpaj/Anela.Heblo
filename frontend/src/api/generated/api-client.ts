@@ -15902,6 +15902,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
     targetDaysCoverage?: number | undefined;
     productConstraints?: ProductSizeConstraint[];
     manufactureType?: ManufactureType | undefined;
+    directSemiproductAmount?: number | undefined;
 
     constructor(data?: ICalculateBatchPlanRequest) {
         if (data) {
@@ -15928,6 +15929,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
                     this.productConstraints!.push(ProductSizeConstraint.fromJS(item));
             }
             this.manufactureType = _data["manufactureType"];
+            this.directSemiproductAmount = _data["directSemiproductAmount"];
         }
     }
 
@@ -15954,6 +15956,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
                 data["productConstraints"].push(item.toJSON());
         }
         data["manufactureType"] = this.manufactureType;
+        data["directSemiproductAmount"] = this.directSemiproductAmount;
         return data;
     }
 }
@@ -15969,6 +15972,7 @@ export interface ICalculateBatchPlanRequest {
     targetDaysCoverage?: number | undefined;
     productConstraints?: ProductSizeConstraint[];
     manufactureType?: ManufactureType | undefined;
+    directSemiproductAmount?: number | undefined;
 }
 
 export class ProductSizeConstraint implements IProductSizeConstraint {
@@ -16508,6 +16512,7 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
     plannedDate!: Date;
     responsiblePerson?: string | undefined;
     manufactureType?: ManufactureType;
+    directSemiproductAmount?: number | undefined;
 
     constructor(data?: ICreateManufactureOrderRequest) {
         if (data) {
@@ -16533,6 +16538,7 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
             this.plannedDate = _data["plannedDate"] ? new Date(_data["plannedDate"].toString()) : <any>undefined;
             this.responsiblePerson = _data["responsiblePerson"];
             this.manufactureType = _data["manufactureType"];
+            this.directSemiproductAmount = _data["directSemiproductAmount"];
         }
     }
 
@@ -16558,6 +16564,7 @@ export class CreateManufactureOrderRequest implements ICreateManufactureOrderReq
         data["plannedDate"] = this.plannedDate ? formatDate(this.plannedDate) : <any>undefined;
         data["responsiblePerson"] = this.responsiblePerson;
         data["manufactureType"] = this.manufactureType;
+        data["directSemiproductAmount"] = this.directSemiproductAmount;
         return data;
     }
 }
@@ -16572,6 +16579,7 @@ export interface ICreateManufactureOrderRequest {
     plannedDate: Date;
     responsiblePerson?: string | undefined;
     manufactureType?: ManufactureType;
+    directSemiproductAmount?: number | undefined;
 }
 
 export class CreateManufactureOrderProductRequest implements ICreateManufactureOrderProductRequest {
