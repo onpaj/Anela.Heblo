@@ -24,6 +24,9 @@ public class IssuedInvoiceSyncDataConfiguration : IEntityTypeConfiguration<Issue
         builder.Property(e => e.Data)
             .HasColumnName("Data");
 
+        builder.Property(e => e.AdapterResponse)
+            .HasColumnName("AdapterResponse");
+
         builder.Property(e => e.IsSuccess)
             .HasColumnName("IsSuccess")
             .IsRequired();

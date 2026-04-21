@@ -561,20 +561,20 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InvoiceDate")
-                        .HasDatabaseName("IX_IssuedInvoice_InvoiceDate");
-
-                    b.HasIndex("LastSyncTime")
-                        .HasDatabaseName("IX_IssuedInvoice_LastSyncTime");
-
-                    b.HasIndex("IsSynced")
-                        .HasDatabaseName("IX_IssuedInvoice_IsSynced");
+                    b.HasIndex("CustomerName")
+                        .HasDatabaseName("IX_IssuedInvoice_CustomerName");
 
                     b.HasIndex("ErrorType")
                         .HasDatabaseName("IX_IssuedInvoice_ErrorType");
 
-                    b.HasIndex("CustomerName")
-                        .HasDatabaseName("IX_IssuedInvoice_CustomerName");
+                    b.HasIndex("InvoiceDate")
+                        .HasDatabaseName("IX_IssuedInvoice_InvoiceDate");
+
+                    b.HasIndex("IsSynced")
+                        .HasDatabaseName("IX_IssuedInvoice_IsSynced");
+
+                    b.HasIndex("LastSyncTime")
+                        .HasDatabaseName("IX_IssuedInvoice_LastSyncTime");
 
                     b.ToTable("IssuedInvoice", "dbo");
                 });
@@ -587,6 +587,10 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnName("Id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdapterResponse")
+                        .HasColumnType("text")
+                        .HasColumnName("AdapterResponse");
 
                     b.Property<string>("Data")
                         .HasColumnType("text")
@@ -1127,27 +1131,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("timestamp");
 
-                    b.Property<string>("ErpDiscardResidueDocumentNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("ErpDiscardResidueDocumentNumberDate")
-                        .HasColumnType("timestamp");
-
-                    b.Property<string>("ErpOrderNumberProduct")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("ErpOrderNumberProductDate")
-                        .HasColumnType("timestamp");
-
-                    b.Property<string>("ErpOrderNumberSemiproduct")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime?>("ErpOrderNumberSemiproductDate")
-                        .HasColumnType("timestamp");
-
                     b.Property<string>("DocMaterialIssueForProduct")
                         .HasColumnType("text");
 
@@ -1176,6 +1159,27 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("DocSemiProductReceiptDate")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("ErpDiscardResidueDocumentNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("ErpDiscardResidueDocumentNumberDate")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("ErpOrderNumberProduct")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("ErpOrderNumberProductDate")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("ErpOrderNumberSemiproduct")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("ErpOrderNumberSemiproductDate")
                         .HasColumnType("timestamp");
 
                     b.Property<bool>("ManualActionRequired")
@@ -1382,6 +1386,58 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasDatabaseName("IX_ManufactureOrderSemiProducts_ProductCode");
 
                     b.ToTable("ManufactureOrderSemiProducts", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingInvoices.ImportedMarketingTransaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("Id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("Amount");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text")
+                        .HasColumnName("ErrorMessage");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("ImportedAt");
+
+                    b.Property<bool>("IsSynced")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsSynced");
+
+                    b.Property<string>("Platform")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("Platform");
+
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("TransactionDate");
+
+                    b.Property<string>("TransactionId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("TransactionId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Platform", "TransactionId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_imported_marketing_transactions_Platform_TransactionId");
+
+                    b.ToTable("imported_marketing_transactions", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", b =>

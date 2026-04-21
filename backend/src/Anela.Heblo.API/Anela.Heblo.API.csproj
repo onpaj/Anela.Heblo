@@ -47,6 +47,8 @@
     <ItemGroup>
         <ProjectReference Include="../Anela.Heblo.Application/Anela.Heblo.Application.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Comgate\Anela.Heblo.Adapters.Comgate.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.MetaAds\Anela.Heblo.Adapters.MetaAds.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.GoogleAds\Anela.Heblo.Adapters.GoogleAds.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Flexi\Anela.Heblo.Adapters.Flexi.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Shoptet\Anela.Heblo.Adapters.Shoptet.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.ShoptetApi\Anela.Heblo.Adapters.ShoptetApi.csproj" />

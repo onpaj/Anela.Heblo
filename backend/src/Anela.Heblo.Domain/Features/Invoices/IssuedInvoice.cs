@@ -52,34 +52,34 @@ public class IssuedInvoice : IEntity<string>
 
     public bool IsCriticalError => ErrorType != null && ErrorType != IssuedInvoiceErrorType.InvoicePaired;
 
-    public void SyncSucceeded(object syncedInvoice)
+    public void SyncSucceeded(object syncedInvoice, string? adapterResponse = null)
     {
         var lastSync = new IssuedInvoiceSyncData()
         {
             IsSuccess = true,
             Error = null,
             SyncTime = DateTime.Now.ToUniversalTime(),
-            Data = JsonSerializer.Serialize(syncedInvoice)
+            Data = JsonSerializer.Serialize(syncedInvoice),
+            AdapterResponse = adapterResponse
         };
 
         SetLastSync(lastSync);
     }
 
-
-
-    public void SyncFailed(object syncedInvoice, string error)
+    public void SyncFailed(object syncedInvoice, string error, string? adapterResponse = null)
     {
-        SyncFailed(syncedInvoice, new IssuedInvoiceError() { Message = error, Code = "GENERAL_ERROR" });
+        SyncFailed(syncedInvoice, new IssuedInvoiceError() { Message = error, Code = "GENERAL_ERROR" }, adapterResponse);
     }
 
-    public void SyncFailed(object syncedInvoice, IssuedInvoiceError error)
+    public void SyncFailed(object syncedInvoice, IssuedInvoiceError error, string? adapterResponse = null)
     {
         var lastSync = new IssuedInvoiceSyncData()
         {
             IsSuccess = false,
             Error = error,
             SyncTime = DateTime.Now.ToUniversalTime(),
-            Data = JsonSerializer.Serialize(syncedInvoice)
+            Data = JsonSerializer.Serialize(syncedInvoice),
+            AdapterResponse = adapterResponse
         };
 
         SetLastSync(lastSync);
@@ -104,6 +104,7 @@ public class IssuedInvoiceSyncData : IEntity<int>
     public int Id { get; set; }
 
     public string? Data { get; set; }
+    public string? AdapterResponse { get; set; }
     public bool IsSuccess { get; set; } = true;
     public IssuedInvoiceError? Error { get; set; }
     public DateTime SyncTime { get; set; }

@@ -38,7 +38,7 @@ public class InvoiceImportService : IInvoiceImportService
     {
         _logger.LogInformation("Starting async invoice import with query: {Query}", JsonSerializer.Serialize(query));
 
-        var batches = await _issuedInvoiceSource.GetAllAsync(query);
+        var batches = await _issuedInvoiceSource.GetAllAsync(query, cancellationToken);
 
         var resultDto = new ImportResultDto()
         {
@@ -85,6 +85,9 @@ public class InvoiceImportService : IInvoiceImportService
 
             var invoice = await GetOrCreateAsync(invoiceDetail.Code, () => _mapper.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail), cancellationToken);
 
+            // Always refresh core data fields from source (handles re-imports where data may have changed or was missing)
+            _mapper.Map(invoiceDetail, invoice);
+
             // Apply transformations to domain model
             var transformedInvoice = invoiceDetail;
             foreach (var transformation in _importTransformations)
@@ -95,16 +98,17 @@ public class InvoiceImportService : IInvoiceImportService
             try
             {
                 // Send to external system via abstraction
-                await _issuedInvoiceClient.SaveAsync(transformedInvoice, cancellationToken);
-                invoice.SyncSucceeded(transformedInvoice);
+                var adapterResponse = await _issuedInvoiceClient.SaveAsync(transformedInvoice, cancellationToken);
+                invoice.SyncSucceeded(transformedInvoice, adapterResponse);
                 _logger.LogInformation(
                     "Successfully imported invoice: {InvoiceNumber}: {InvoiceValue} ({Currency})",
                     invoiceDetail.Code, invoiceDetail.Price.WithVat, invoiceDetail.Price.CurrencyCode);
             }
             catch (Exception ex)
             {
+                var adapterResponse = (ex as IssuedInvoiceClientException)?.RawAdapterResponse;
                 _logger.LogError(ex, "FlexiBee rejected invoice {InvoiceCode}: {Error}", transformedInvoice.Code, ex.Message);
-                invoice.SyncFailed(transformedInvoice, ex.Message);
+                invoice.SyncFailed(transformedInvoice, ex.Message, adapterResponse);
             }
 
             await _repository.UpdateAsync(invoice, cancellationToken);

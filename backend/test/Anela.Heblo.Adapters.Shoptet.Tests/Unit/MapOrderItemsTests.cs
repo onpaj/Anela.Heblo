@@ -88,12 +88,12 @@ public class MapOrderItemsTests
             Items =
             [
                 new ExpeditionOrderItemDto { ItemType = "product-set", ItemId = 10, Name = "Kit Alpha", Amount = 1 },
-                new ExpeditionOrderItemDto { ItemType = "product-set", ItemId = 20, Name = "Kit Beta",  Amount = 2 },
+                new ExpeditionOrderItemDto { ItemType = "product-set", ItemId = 20, Name = "Kit Beta", Amount = 2 },
             ],
             Completion =
             [
                 new ExpeditionCompletionItemDto { ItemType = "product-set-item", ItemId = 101, ParentProductSetItemId = 10, Code = "A1", Name = "Alpha Part", Amount = 1 },
-                new ExpeditionCompletionItemDto { ItemType = "product-set-item", ItemId = 201, ParentProductSetItemId = 20, Code = "B1", Name = "Beta Part",  Amount = 3 },
+                new ExpeditionCompletionItemDto { ItemType = "product-set-item", ItemId = 201, ParentProductSetItemId = 20, Code = "B1", Name = "Beta Part", Amount = 3 },
             ],
         };
 
