@@ -297,11 +297,11 @@ public class BackgroundRefreshSchedulerServiceTests
         var orchestratorTask = _orchestrator.StartAsync(cts.Token);
         await _orchestrator.WaitForHydrationCompletionAsync();
 
-        var schedulerTask = scheduler.StartAsync(cts.Token);
-        await Task.Delay(100);
+        await scheduler.StartAsync(cts.Token);
+        await scheduler.StopAsync(CancellationToken.None);
 
         cts.Cancel();
-        await Task.WhenAll(orchestratorTask, schedulerTask);
+        await orchestratorTask;
 
         // Assert - verify logging occurred for skipped task
         _loggerMock.Verify(
