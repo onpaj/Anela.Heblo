@@ -52,6 +52,14 @@ public static class PersistenceModule
                 dataSourceBuilder.ConnectionStringBuilder.MaxPoolSize = maxPoolSize.Value;
             }
 
+            // Prune stale connections left over after a DB restart or maintenance window.
+            // Without these settings the pool holds dead sockets until the caller hits a
+            // SocketException (observed spike: 112 SocketExceptions in 24 h, 6.1× the
+            // 7-day average, coinciding with a pg_terminate_backend / server restart).
+            dataSourceBuilder.ConnectionStringBuilder.KeepAlive = 30;              // TCP keepalive every 30 s
+            dataSourceBuilder.ConnectionStringBuilder.ConnectionIdleLifetime = 120; // retire idle connections after 2 min
+            dataSourceBuilder.ConnectionStringBuilder.ConnectionLifetime = 600;     // retire any connection older than 10 min
+
             dataSourceBuilder.UseVector();
             dataSource = dataSourceBuilder.Build();
             services.AddSingleton(dataSource); // Register for DI-managed disposal

@@ -187,6 +187,9 @@ public class ShoptetTestEnvironmentHydrationTests
             .Where(s => s.Stock > 0)
             .Select(s => s.Code)
             .Where(c => !string.IsNullOrWhiteSpace(c))
+            // Exclude placeholder/test-only product codes that do not exist in FlexiBee
+            // (e.g. TEST_PRODUKT3). Only real Anela variant codes (OCH001030, etc.) are valid.
+            .Where(c => !c.StartsWith("TEST_", StringComparison.OrdinalIgnoreCase))
             .Distinct()
             .ToList();
 

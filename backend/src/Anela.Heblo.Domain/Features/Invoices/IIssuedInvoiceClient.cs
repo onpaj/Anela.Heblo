@@ -5,7 +5,7 @@ namespace Anela.Heblo.Domain.Features.Invoices;
 /// </summary>
 public interface IIssuedInvoiceClient
 {
-    Task SaveAsync(IssuedInvoiceDetail invoiceDetail, CancellationToken cancellationToken = default);
+    Task<string?> SaveAsync(IssuedInvoiceDetail invoiceDetail, CancellationToken cancellationToken = default);
     Task<IssuedInvoiceDetail> GetAsync(string invoiceId, CancellationToken cancellationToken = default);
 }
 

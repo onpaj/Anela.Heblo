@@ -21,4 +21,7 @@ public class IssuedInvoiceSyncDataDto
 
     [JsonPropertyName("error")]
     public IssuedInvoiceErrorDto? Error { get; set; }
+
+    [JsonPropertyName("adapterResponse")]
+    public string? AdapterResponse { get; set; }
 }

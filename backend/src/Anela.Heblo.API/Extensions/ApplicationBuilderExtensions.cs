@@ -88,6 +88,9 @@ public static class ApplicationBuilderExtensions
         app.UseAuthentication();
         app.UseAuthorization();
 
+        // Request timeouts middleware — must be after auth so timeout policies can be applied per-endpoint
+        app.UseRequestTimeouts();
+
         // Add Hangfire authentication middleware before Hangfire dashboard
         // This middleware handles redirects to login when user is not authenticated
         app.UseMiddleware<HangfireAuthenticationMiddleware>();
@@ -116,8 +119,15 @@ public static class ApplicationBuilderExtensions
         // and logs structured context for GET /mcp 400 responses to identify bad clients (#593).
         app.UseMiddleware<McpBadRequestMiddleware>();
 
+        // MCP diagnostics — logs structured context for GET /mcp 404 responses to
+        // aid investigation of session-resumption failures (issue #599).
+        app.UseMiddleware<McpDiagnosticsMiddleware>();
+
         // MCP server endpoint — requires authentication (Microsoft Entra ID)
-        app.MapMcp("/mcp").RequireAuthorization();
+        // 5-minute session timeout terminates zombie SSE connections that linger after client disconnect.
+        app.MapMcp("/mcp")
+            .RequireAuthorization()
+            .WithRequestTimeout(TimeSpan.FromMinutes(5));
 
         // OAuth 2.0 authorization server metadata — required for MCP clients (e.g. Claude Desktop)
         // to discover the real authorization server (Microsoft Entra ID) instead of hitting the SPA fallback.
@@ -186,11 +196,18 @@ public static class ApplicationBuilderExtensions
                     }
                 };
 
-                // IMPORTANT: Configure SPA to NOT intercept API routes
+                // IMPORTANT: Configure SPA to NOT intercept API or MCP routes
                 spa.ApplicationBuilder.UseRouting();
                 spa.ApplicationBuilder.UseEndpoints(endpoints =>
                 {
                     endpoints.Map("/api/{**catch-all}", context =>
+                    {
+                        context.Response.StatusCode = 404;
+                        return Task.CompletedTask;
+                    });
+                    // Prevent SPA from serving index.html for MCP sub-paths (e.g. /mcp/sse)
+                    // that are not handled by MapMcp but must not fall through to the SPA.
+                    endpoints.Map("/mcp/{**catch-all}", context =>
                     {
                         context.Response.StatusCode = 404;
                         return Task.CompletedTask;

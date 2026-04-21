@@ -1,9 +1,11 @@
+using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -24,7 +26,8 @@ public class SubmitManufactureHandlerTests
             _repositoryMock.Object,
             _transformerMock.Object,
             TimeProvider.System,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            Options.Create(new ManufactureErpOptions()));
     }
 
     [Fact]
@@ -179,6 +182,59 @@ public class SubmitManufactureHandlerTests
         // Assert
         capturedClientRequest.Should().NotBeNull();
         capturedClientRequest!.ValidateIngredientStock.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_WhenErpTimesOut_PropagatesOperationCanceledException()
+    {
+        // Arrange — simulate Flexi taking longer than the configured timeout.
+        // Use a very short timeout (1 ms) so the test doesn't actually wait.
+        var handlerWithShortTimeout = new SubmitManufactureHandler(
+            _clientMock.Object,
+            _repositoryMock.Object,
+            _transformerMock.Object,
+            TimeProvider.System,
+            _loggerMock.Object,
+            Options.Create(new ManufactureErpOptions { ErpTimeoutSeconds = 1 }));
+
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .Returns(async (SubmitManufactureClientRequest _, CancellationToken ct) =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5), ct);
+                return new SubmitManufactureClientResponse { ManufactureId = "NEVER" };
+            });
+
+        // Act
+        var act = async () => await handlerWithShortTimeout.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert — the timeout CTS cancels, which propagates as OperationCanceledException
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _transformerMock.Verify(t => t.Transform(It.IsAny<Exception>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTimeoutDisabled_DoesNotApplyCancelAfter()
+    {
+        // Arrange — ErpTimeoutSeconds = 0 means no application-level timeout.
+        var handlerNoTimeout = new SubmitManufactureHandler(
+            _clientMock.Object,
+            _repositoryMock.Object,
+            _transformerMock.Object,
+            TimeProvider.System,
+            _loggerMock.Object,
+            Options.Create(new ManufactureErpOptions { ErpTimeoutSeconds = 0 }));
+
+        _clientMock
+            .Setup(c => c.SubmitManufactureAsync(It.IsAny<SubmitManufactureClientRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new SubmitManufactureClientResponse { ManufactureId = "MAN-NOTIMEOUT" });
+
+        // Act
+        var result = await handlerNoTimeout.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert — call succeeds; no timeout was enforced
+        result.Success.Should().BeTrue();
+        result.ManufactureId.Should().Be("MAN-NOTIMEOUT");
     }
 
     private static SubmitManufactureRequest BuildRequest() => new()

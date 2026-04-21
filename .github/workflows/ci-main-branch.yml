@@ -16,7 +16,7 @@ concurrency:
 # - Docker image build and push to Docker Hub
 # - Git tag creation
 # - GitHub release creation with formatted changelog
-# - Manual approval gates for staging and production deployments
+# - Manual approval gate for production deployment
 # - Azure Web App deployment with health checks
 # - Comprehensive smoke tests with retries
 # - Teams webhook notification on successful production deployment
@@ -351,10 +351,7 @@ jobs:
           echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
           echo "1. Go to the **Actions** tab" >> $GITHUB_STEP_SUMMARY
           echo "2. Click on this workflow run" >> $GITHUB_STEP_SUMMARY
-          echo "3. **Approve staging deployment** in the 'deploy-staging' job" >> $GITHUB_STEP_SUMMARY
-          echo "4. **Approve production deployment** in the 'deploy-production' job" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "You can approve both at once, or approve them at different times." >> $GITHUB_STEP_SUMMARY
+          echo "3. **Approve production deployment** in the 'deploy-production' job" >> $GITHUB_STEP_SUMMARY
 
       - name: 🏷️ Create and Push Git Tag
         run: |
@@ -424,117 +421,6 @@ jobs:
           echo "✅ GitHub release $VERSION created successfully!"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # Deploy to Staging - MANUAL APPROVAL REQUIRED
-  deploy-staging:
-    name: 🚀 Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: [build-and-push]
-    environment: staging-approval
-    outputs:
-      webapp-hostname: ${{ steps.deploy.outputs.hostname }}
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🔐 Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS_TEST }}
-
-      - name: 🚀 Deploy to Azure Web App (Staging)
-        id: deploy
-        run: |
-          WEBAPP_NAME="heblo-test"
-          VERSION="${{ needs.build-and-push.outputs.version }}"
-          DOCKER_IMAGE="${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$VERSION"
-
-          echo "🎯 Deploying to staging: $WEBAPP_NAME"
-          echo "🐳 Docker image: $DOCKER_IMAGE"
-
-          # Configure container deployment
-          az webapp config set \
-            --name $WEBAPP_NAME \
-            --resource-group rgHeblo \
-            --linux-fx-version "DOCKER|$DOCKER_IMAGE" \
-            --output none
-
-          az webapp config container set \
-            --name $WEBAPP_NAME \
-            --resource-group rgHeblo \
-            --container-image-name "$DOCKER_IMAGE" \
-            --container-registry-url https://index.docker.io/v1/ \
-            --output none
-
-          # Restart and wait
-          az webapp restart --name $WEBAPP_NAME --resource-group rgHeblo --output none
-          sleep 15
-
-          # Get hostname
-          WEBAPP_HOSTNAME=$(az webapp show \
-            --name $WEBAPP_NAME \
-            --resource-group rgHeblo \
-            --query "defaultHostName" \
-            --output tsv)
-
-          echo "hostname=$WEBAPP_HOSTNAME" >> $GITHUB_OUTPUT
-          echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_ENV
-
-      - name: 🔧 Configure App Settings
-        run: |
-          az webapp config appsettings set \
-            --resource-group rgHeblo \
-            --name $WEBAPP_NAME \
-            --settings \
-              ASPNETCORE_ENVIRONMENT=Staging \
-              WEBSITES_PORT=8080 \
-              WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
-              DOCKER_REGISTRY_SERVER_URL=https://index.docker.io \
-              SCM_DO_BUILD_DURING_DEPLOYMENT=false \
-              APP_VERSION="${{ needs.build-and-push.outputs.version }}" \
-              DEPLOYMENT_SOURCE="CI-Main"
-
-      - name: ⏳ Wait for deployment to be ready
-        run: |
-          echo "⏳ Waiting for deployment to be ready..."
-
-          # Initial wait for container startup (increased from 30s to 60s)
-          sleep 60
-
-          # Liveness check with retries - uses /health/live to avoid waiting for background service hydration
-          # (increased from 10 to 20 attempts with 15s intervals = 5 minutes total)
-          MAX_ATTEMPTS=20
-          ATTEMPT=1
-
-          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-            echo "🔍 Liveness check attempt $ATTEMPT/$MAX_ATTEMPTS..."
-
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.deploy.outputs.hostname }}/health/live || echo "000")
-
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "✅ Deployment is live! (attempt $ATTEMPT/$MAX_ATTEMPTS)"
-              break
-            fi
-
-            if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-              echo "❌ Deployment failed to become live after $MAX_ATTEMPTS attempts"
-              echo "Last HTTP status code: $HTTP_CODE"
-              exit 1
-            fi
-
-            echo "⏳ Waiting for deployment... (HTTP $HTTP_CODE, attempt $ATTEMPT/$MAX_ATTEMPTS)"
-            sleep 15
-            ATTEMPT=$((ATTEMPT + 1))
-          done
-
-      - name: 📝 Deployment Summary
-        run: |
-          echo "## 🚀 Staging Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version**: ${{ needs.build-and-push.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **URL**: https://${{ steps.deploy.outputs.hostname }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment**: Staging" >> $GITHUB_STEP_SUMMARY
-          echo "- **Deployed at**: $(date)" >> $GITHUB_STEP_SUMMARY
 
   # Deploy to Production - MANUAL APPROVAL REQUIRED
   deploy-production:

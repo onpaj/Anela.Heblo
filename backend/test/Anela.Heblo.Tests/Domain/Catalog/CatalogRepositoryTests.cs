@@ -6,6 +6,7 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
+using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
@@ -33,6 +34,7 @@ public class CatalogRepositoryTests
     private readonly Mock<ILotsClient> _lotsClientMock;
     private readonly Mock<IProductPriceEshopClient> _productPriceEshopClientMock;
     private readonly Mock<IProductPriceErpClient> _productPriceErpClientMock;
+    private readonly Mock<IProductEshopUrlClient> _productEshopUrlClientMock;
     private readonly Mock<ITransportBoxRepository> _transportBoxRepositoryMock;
     private readonly Mock<IStockTakingRepository> _stockTakingRepositoryMock;
     private readonly Mock<IManufactureClient> _manufactureClientMock;
@@ -61,6 +63,9 @@ public class CatalogRepositoryTests
         _lotsClientMock = new Mock<ILotsClient>();
         _productPriceEshopClientMock = new Mock<IProductPriceEshopClient>();
         _productPriceErpClientMock = new Mock<IProductPriceErpClient>();
+        _productEshopUrlClientMock = new Mock<IProductEshopUrlClient>();
+        _productEshopUrlClientMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ProductEshopUrl>());
         _transportBoxRepositoryMock = new Mock<ITransportBoxRepository>();
         _stockTakingRepositoryMock = new Mock<IStockTakingRepository>();
         _manufactureClientMock = new Mock<IManufactureClient>();
@@ -116,6 +121,7 @@ public class CatalogRepositoryTests
             _lotsClientMock.Object,
             _productPriceEshopClientMock.Object,
             _productPriceErpClientMock.Object,
+            _productEshopUrlClientMock.Object,
             _transportBoxRepositoryMock.Object,
             _stockTakingRepositoryMock.Object,
             _manufactureClientMock.Object,

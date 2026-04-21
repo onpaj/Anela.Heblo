@@ -25,10 +25,10 @@ public class ManufactureOrderMcpTools
     }
 
     [McpServerTool]
-    public async Task<string> GetManufactureOrders()
+    public async Task<string> GetManufactureOrders(CancellationToken cancellationToken = default)
     {
         var request = new GetManufactureOrdersRequest();
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
 
         if (!response.Success)
         {
@@ -41,11 +41,12 @@ public class ManufactureOrderMcpTools
     [McpServerTool]
     public async Task<string> GetManufactureOrder(
         [Description("Manufacture order ID")]
-        int id
+        int id,
+        CancellationToken cancellationToken = default
     )
     {
         var request = new GetManufactureOrderRequest { Id = id };
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
 
         if (!response.Success)
         {
@@ -56,10 +57,10 @@ public class ManufactureOrderMcpTools
     }
 
     [McpServerTool]
-    public async Task<string> GetCalendarView()
+    public async Task<string> GetCalendarView(CancellationToken cancellationToken = default)
     {
         var request = new GetCalendarViewRequest();
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
 
         if (!response.Success)
         {
@@ -72,11 +73,12 @@ public class ManufactureOrderMcpTools
     [McpServerTool]
     public async Task<string> GetResponsiblePersons(
         [Description("Microsoft Entra ID group ID for manufacture team")]
-        string groupId
+        string groupId,
+        CancellationToken cancellationToken = default
     )
     {
         var request = new GetGroupMembersRequest { GroupId = groupId };
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
 
         if (!response.Success)
         {

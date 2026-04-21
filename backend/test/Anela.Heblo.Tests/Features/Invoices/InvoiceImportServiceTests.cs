@@ -59,14 +59,14 @@ public class InvoiceImportServiceTests
         var batch = CreateTestBatch("batch-1", invoiceDetail);
         var invoice = CreateTestIssuedInvoice("INV-001");
 
-        _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
         _mockRepository.Setup(x => x.GetByIdAsync("INV-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IssuedInvoice?)null);
         _mockMapper.Setup(x => x.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail))
             .Returns(invoice);
         _mockInvoiceClient.Setup(x => x.SaveAsync(invoiceDetail, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((string?)null);
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IssuedInvoice i, CancellationToken c) => i);
         _mockRepository.Setup(x => x.UpdateAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
@@ -97,7 +97,7 @@ public class InvoiceImportServiceTests
         var invoice1 = CreateTestIssuedInvoice("INV-001");
         var invoice2 = CreateTestIssuedInvoice("INV-002");
 
-        _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
 
         // Setup successful invoice
@@ -106,7 +106,7 @@ public class InvoiceImportServiceTests
         _mockMapper.Setup(x => x.Map<IssuedInvoiceDetail, IssuedInvoice>(successInvoice))
             .Returns(invoice1);
         _mockInvoiceClient.Setup(x => x.SaveAsync(successInvoice, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((string?)null);
 
         // Setup failed invoice - repository throws exception
         _mockRepository.Setup(x => x.GetByIdAsync("INV-002", It.IsAny<CancellationToken>()))
@@ -134,7 +134,7 @@ public class InvoiceImportServiceTests
         var batch = CreateTestBatch("batch-1", invoiceDetail);
         var invoice = CreateTestIssuedInvoice("INV-003");
 
-        _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
         _mockRepository.Setup(x => x.GetByIdAsync("INV-003", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IssuedInvoice?)null);
@@ -166,6 +166,47 @@ public class InvoiceImportServiceTests
     }
 
     [Fact]
+    public async Task ImportInvoicesAsync_WhenFlexiBeeRejectsInvoice_LogsErrorWithInvoiceCodeAndMessage()
+    {
+        // Arrange
+        var query = new IssuedInvoiceSourceQuery { RequestId = "test-flexi-400" };
+        var invoiceDetail = CreateTestInvoiceDetail("INV-FLEXI-400");
+        var batch = CreateTestBatch("batch-1", invoiceDetail);
+        var invoice = CreateTestIssuedInvoice("INV-FLEXI-400");
+        var flexiError = new ApplicationException("Pole 'kod' je povinné.");
+
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
+        _mockRepository.Setup(x => x.GetByIdAsync("INV-FLEXI-400", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IssuedInvoice?)null);
+        _mockMapper.Setup(x => x.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail))
+            .Returns(invoice);
+        _mockInvoiceClient.Setup(x => x.SaveAsync(invoiceDetail, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(flexiError);
+        _mockRepository.Setup(x => x.AddAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IssuedInvoice i, CancellationToken c) => i);
+        _mockRepository.Setup(x => x.UpdateAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        await _service.ImportInvoicesAsync("test-description", query);
+
+        // Assert — LogError must be called with the invoice code and the FlexiBee error message
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("INV-FLEXI-400") &&
+                    v.ToString()!.Contains("Pole 'kod' je povinné.")),
+                flexiError,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task ImportInvoicesAsync_WithTransformations_AppliesAllTransformations()
     {
         // Arrange
@@ -188,7 +229,7 @@ public class InvoiceImportServiceTests
             _mockMapper.Object,
             _mockLogger.Object);
 
-        _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
         _mockRepository.Setup(x => x.GetByIdAsync("INV-004", It.IsAny<CancellationToken>()))
             .ReturnsAsync((IssuedInvoice?)null);
@@ -201,7 +242,7 @@ public class InvoiceImportServiceTests
             .ReturnsAsync(transformedInvoice2);
 
         _mockInvoiceClient.Setup(x => x.SaveAsync(transformedInvoice2, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((string?)null);
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IssuedInvoice i, CancellationToken c) => i);
         _mockRepository.Setup(x => x.UpdateAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
@@ -228,12 +269,12 @@ public class InvoiceImportServiceTests
         var batch = CreateTestBatch("batch-1", invoiceDetail);
         var existingInvoice = CreateTestIssuedInvoice("INV-005");
 
-        _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
         _mockRepository.Setup(x => x.GetByIdAsync("INV-005", It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingInvoice); // Invoice already exists
         _mockInvoiceClient.Setup(x => x.SaveAsync(invoiceDetail, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((string?)null);
         _mockRepository.Setup(x => x.UpdateAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -250,6 +291,41 @@ public class InvoiceImportServiceTests
     }
 
     [Fact]
+    public async Task ImportInvoicesAsync_WithExistingInvoice_RefreshesCoreDataFromSource()
+    {
+        // Arrange — simulates re-import of an invoice that was previously saved with stale data
+        var query = new IssuedInvoiceSourceQuery { RequestId = "test-refresh-data" };
+        var invoiceDetail = CreateTestInvoiceDetail("INV-006");
+        var batch = CreateTestBatch("batch-1", invoiceDetail);
+        var existingInvoice = new IssuedInvoice
+        {
+            Id = "INV-006",
+            InvoiceDate = DateTime.MinValue, // stale — default value from a broken earlier import
+            CustomerName = null,             // stale — was never populated
+            Price = 0,
+            Currency = "CZK",
+            ExtraProperties = "{}"
+        };
+
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
+        _mockRepository.Setup(x => x.GetByIdAsync("INV-006", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingInvoice);
+        _mockInvoiceClient.Setup(x => x.SaveAsync(invoiceDetail, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string?)null);
+        _mockRepository.Setup(x => x.UpdateAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        await _service.ImportInvoicesAsync("test-description", query);
+
+        // Assert — mapper must be called to refresh the existing entity with fresh source data
+        _mockMapper.Verify(x => x.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail, existingInvoice), Times.Once);
+    }
+
+    [Fact]
     public async Task ImportInvoicesAsync_WithMultipleBatches_ProcessesSequentially()
     {
         // Arrange
@@ -261,7 +337,7 @@ public class InvoiceImportServiceTests
         var domainInvoice1 = CreateTestIssuedInvoice("INV-BATCH1");
         var domainInvoice2 = CreateTestIssuedInvoice("INV-BATCH2");
 
-        _mockInvoiceSource.Setup(x => x.GetAllAsync(query))
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch1, batch2 });
         _mockRepository.Setup(x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IssuedInvoice?)null);
@@ -270,7 +346,7 @@ public class InvoiceImportServiceTests
         _mockMapper.Setup(x => x.Map<IssuedInvoiceDetail, IssuedInvoice>(invoice2))
             .Returns(domainInvoice2);
         _mockInvoiceClient.Setup(x => x.SaveAsync(It.IsAny<IssuedInvoiceDetail>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((string?)null);
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IssuedInvoice i, CancellationToken c) => i);
         _mockRepository.Setup(x => x.UpdateAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
@@ -287,6 +363,75 @@ public class InvoiceImportServiceTests
         Assert.Contains("INV-BATCH2", result.Succeeded);
         _mockInvoiceSource.Verify(x => x.CommitAsync(batch1, It.IsAny<string>()), Times.Once);
         _mockInvoiceSource.Verify(x => x.CommitAsync(batch2, It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportInvoicesAsync_WhenSuccessful_SyncHistorySavesAdapterResponse()
+    {
+        // Arrange
+        var query = new IssuedInvoiceSourceQuery { RequestId = "test-adapter-response-success" };
+        var invoiceDetail = CreateTestInvoiceDetail("INV-007");
+        var batch = CreateTestBatch("batch-1", invoiceDetail);
+        var invoice = CreateTestIssuedInvoice("INV-007");
+        var rawFlexiResponse = """{"winstrom":{"vydana-faktura":[{"id":"12345"}]}}""";
+
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
+        _mockRepository.Setup(x => x.GetByIdAsync("INV-007", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IssuedInvoice?)null);
+        _mockMapper.Setup(x => x.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail))
+            .Returns(invoice);
+        _mockInvoiceClient.Setup(x => x.SaveAsync(invoiceDetail, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rawFlexiResponse);
+        _mockRepository.Setup(x => x.AddAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IssuedInvoice i, CancellationToken c) => i);
+        _mockRepository.Setup(x => x.UpdateAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        await _service.ImportInvoicesAsync("test-description", query);
+
+        // Assert
+        var syncEntry = invoice.SyncHistory.Single();
+        Assert.True(syncEntry.IsSuccess);
+        Assert.Equal(rawFlexiResponse, syncEntry.AdapterResponse);
+    }
+
+    [Fact]
+    public async Task ImportInvoicesAsync_WhenFlexiRejectsInvoice_SyncHistorySavesAdapterResponse()
+    {
+        // Arrange
+        var query = new IssuedInvoiceSourceQuery { RequestId = "test-adapter-response-failure" };
+        var invoiceDetail = CreateTestInvoiceDetail("INV-008");
+        var batch = CreateTestBatch("batch-1", invoiceDetail);
+        var invoice = CreateTestIssuedInvoice("INV-008");
+        var rawFlexiResponse = """{"winstrom":{"@version":"1.0","errors":[{"message":"Pole 'kod' je povinn\u00e9."}]}}""";
+        var flexiException = new IssuedInvoiceClientException("Pole 'kod' je povinné.", rawFlexiResponse);
+
+        _mockInvoiceSource.Setup(x => x.GetAllAsync(query, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<IssuedInvoiceDetailBatch> { batch });
+        _mockRepository.Setup(x => x.GetByIdAsync("INV-008", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IssuedInvoice?)null);
+        _mockMapper.Setup(x => x.Map<IssuedInvoiceDetail, IssuedInvoice>(invoiceDetail))
+            .Returns(invoice);
+        _mockInvoiceClient.Setup(x => x.SaveAsync(invoiceDetail, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(flexiException);
+        _mockRepository.Setup(x => x.AddAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IssuedInvoice i, CancellationToken c) => i);
+        _mockRepository.Setup(x => x.UpdateAsync(It.IsAny<IssuedInvoice>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        await _service.ImportInvoicesAsync("test-description", query);
+
+        // Assert
+        var syncEntry = invoice.SyncHistory.Single();
+        Assert.False(syncEntry.IsSuccess);
+        Assert.Equal(rawFlexiResponse, syncEntry.AdapterResponse);
     }
 
     private static IssuedInvoiceDetail CreateTestInvoiceDetail(string code)
