@@ -46,7 +46,7 @@ public class GetFinancialOverviewHandlerTests
             Summary = new FinancialSummaryDto()
         };
 
-        _financialAnalysisServiceMock.Setup(x => x.GetFinancialOverviewAsync(6, false, It.IsAny<CancellationToken>()))
+        _financialAnalysisServiceMock.Setup(x => x.GetFinancialOverviewAsync(6, false, It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
@@ -54,7 +54,7 @@ public class GetFinancialOverviewHandlerTests
 
         // Assert
         result.Data.Count.Should().Be(6);
-        _financialAnalysisServiceMock.Verify(x => x.GetFinancialOverviewAsync(6, false, It.IsAny<CancellationToken>()), Times.Once);
+        _financialAnalysisServiceMock.Verify(x => x.GetFinancialOverviewAsync(6, false, It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -69,14 +69,56 @@ public class GetFinancialOverviewHandlerTests
             Summary = new FinancialSummaryDto()
         };
 
-        _financialAnalysisServiceMock.Setup(x => x.GetFinancialOverviewAsync(3, false, It.IsAny<CancellationToken>()))
+        _financialAnalysisServiceMock.Setup(x => x.GetFinancialOverviewAsync(3, false, It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        _financialAnalysisServiceMock.Verify(x => x.GetFinancialOverviewAsync(3, false, It.IsAny<CancellationToken>()), Times.Once);
+        _financialAnalysisServiceMock.Verify(x => x.GetFinancialOverviewAsync(3, false, It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ForwardsExcludedDepartments_ToService()
+    {
+        // Arrange
+        var excludedDepartments = new List<string> { "Marketing", "Sales" };
+        var request = new GetFinancialOverviewRequest
+        {
+            Months = 6,
+            IncludeStockData = false,
+            ExcludedDepartments = excludedDepartments
+        };
+
+        var expectedResponse = new GetFinancialOverviewResponse
+        {
+            Data = new List<MonthlyFinancialDataDto>(),
+            Summary = new FinancialSummaryDto()
+        };
+
+        _financialAnalysisServiceMock
+            .Setup(x => x.GetFinancialOverviewAsync(
+                6,
+                false,
+                It.Is<IReadOnlyList<string>>(d => d.Count == 2 && d.Contains("Marketing") && d.Contains("Sales")),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        _financialAnalysisServiceMock.Verify(
+            x => x.GetFinancialOverviewAsync(
+                6,
+                false,
+                It.Is<IReadOnlyList<string>>(d => d.Count == 2 && d.Contains("Marketing") && d.Contains("Sales")),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
@@ -105,7 +147,7 @@ public class GetFinancialOverviewHandlerTests
             }
         };
 
-        _financialAnalysisServiceMock.Setup(x => x.GetFinancialOverviewAsync(3, true, It.IsAny<CancellationToken>()))
+        _financialAnalysisServiceMock.Setup(x => x.GetFinancialOverviewAsync(3, true, It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
@@ -114,7 +156,7 @@ public class GetFinancialOverviewHandlerTests
         // Assert
         result.Summary.StockSummary.Should().NotBeNull();
         result.Summary.StockSummary.TotalStockValueChange.Should().Be(100m);
-        _financialAnalysisServiceMock.Verify(x => x.GetFinancialOverviewAsync(3, true, It.IsAny<CancellationToken>()), Times.Once);
+        _financialAnalysisServiceMock.Verify(x => x.GetFinancialOverviewAsync(3, true, It.IsAny<IReadOnlyList<string>>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
 
         // Verify stock data was included in response
         var monthWithStock = result.Data.FirstOrDefault(d => d.StockChanges != null);

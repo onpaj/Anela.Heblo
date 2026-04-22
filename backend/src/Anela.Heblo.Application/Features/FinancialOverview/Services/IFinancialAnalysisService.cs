@@ -3,11 +3,15 @@ namespace Anela.Heblo.Application.Features.FinancialOverview.Services;
 public interface IFinancialAnalysisService
 {
     /// <summary>
-    /// Gets financial overview data, preferably from cache
+    /// Gets financial overview data, preferably from cache.
+    /// When <paramref name="excludedDepartments"/> is null or empty and <paramref name="includeCurrentMonth"/> is false,
+    /// the cached path is used. Otherwise, a real-time calculation is performed.
     /// </summary>
     Task<GetFinancialOverviewResponse> GetFinancialOverviewAsync(
         int months,
         bool includeStockData,
+        IReadOnlyList<string>? excludedDepartments = null,
+        bool includeCurrentMonth = false,
         CancellationToken cancellationToken = default);
 
     /// <summary>

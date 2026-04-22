@@ -58,5 +58,8 @@ public class KnowledgeBaseDocumentConfiguration : IEntityTypeConfiguration<Knowl
             .IsUnique();
 
         builder.HasIndex(e => e.Status);
+
+        builder.HasIndex(e => e.ContentType)
+            .HasDatabaseName("ix_knowledgebase_documents_contenttype");
     }
 }

@@ -801,6 +801,10 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AdapterResponse")
+                        .HasColumnType("text")
+                        .HasColumnName("AdapterResponse");
+
                     b.Property<string>("Data")
                         .HasColumnType("text")
                         .HasColumnName("Data");
@@ -1000,6 +1004,9 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("DocumentId");
 
+                    b.HasIndex("DocumentId", "ChunkIndex")
+                        .HasDatabaseName("ix_knowledgebase_chunks_document_chunk");
+
                     b.ToTable("KnowledgeBaseChunks", "dbo");
                 });
 
@@ -1054,6 +1061,9 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("ContentType")
+                        .HasDatabaseName("ix_knowledgebase_documents_contenttype");
 
                     b.ToTable("KnowledgeBaseDocuments", "dbo");
                 });
@@ -1589,6 +1599,58 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasDatabaseName("IX_ManufactureOrderSemiProducts_ProductCode");
 
                     b.ToTable("ManufactureOrderSemiProducts", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingInvoices.ImportedMarketingTransaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("Id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("Amount");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text")
+                        .HasColumnName("ErrorMessage");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("ImportedAt");
+
+                    b.Property<bool>("IsSynced")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsSynced");
+
+                    b.Property<string>("Platform")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("Platform");
+
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("TransactionDate");
+
+                    b.Property<string>("TransactionId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("TransactionId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Platform", "TransactionId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_imported_marketing_transactions_Platform_TransactionId");
+
+                    b.ToTable("imported_marketing_transactions", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", b =>

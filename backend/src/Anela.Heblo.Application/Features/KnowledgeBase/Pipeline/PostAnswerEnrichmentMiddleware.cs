@@ -5,7 +5,7 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 
 /// <summary>
 /// M.E.AI pipeline middleware that enriches KB answers by replacing (CODE) product annotations
-/// with inline references: [Name (CODE)](url) when a URL is present, or Name (CODE) otherwise.
+/// with inline references: [Name](url) when a URL is present, or Name (CODE) otherwise.
 /// Product data is resolved from <see cref="IProductEnrichmentCache"/>.
 /// </summary>
 public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
@@ -39,7 +39,7 @@ public class PostAnswerEnrichmentMiddleware : DelegatingChatClient
 
             return string.IsNullOrEmpty(entry.Url)
                 ? $"{entry.ProductName} ({code})"
-                : $"[{entry.ProductName} ({code})]({entry.Url})";
+                : $"[{entry.ProductName}]({entry.Url})";
         });
 
         if (enriched == rawText)

@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.Campaigns;
 using Anela.Heblo.Domain.Features.GridLayouts;
@@ -89,6 +90,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<Ad> Ads { get; set; } = null!;
     public DbSet<AdDailyMetric> AdDailyMetrics { get; set; } = null!;
     public DbSet<AdSyncLog> AdSyncLogs { get; set; } = null!;
+
+    // Marketing Invoices module
+    public DbSet<ImportedMarketingTransaction> ImportedMarketingTransactions { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

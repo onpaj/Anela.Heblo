@@ -8,8 +8,13 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
+    <PackageReference Include="Polly" Version="8.4.1" />
+    <PackageReference Include="Polly.Extensions" Version="8.4.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Anela.Heblo.Domain\Anela.Heblo.Domain.csproj" />
+    <ProjectReference Include="..\..\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Anela.Heblo.Tests" />
   </ItemGroup>
 </Project>

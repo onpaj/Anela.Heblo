@@ -28,6 +28,8 @@ public class GetFinancialOverviewHandler : IRequestHandler<GetFinancialOverviewR
         return await _financialAnalysisService.GetFinancialOverviewAsync(
             months,
             request.IncludeStockData,
+            request.ExcludedDepartments,
+            request.IncludeCurrentMonth,
             cancellationToken);
     }
 

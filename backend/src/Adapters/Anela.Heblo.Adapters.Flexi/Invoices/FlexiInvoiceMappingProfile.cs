@@ -53,7 +53,7 @@ public class FlexiInvoiceMappingProfile : BaseFlexiProfile
 
         // Map domain invoice items to FlexiBee items
         CreateMap<IssuedInvoiceDetailItem, IssuedInvoiceItemFlexiDto>()
-            .ForMember(dest => dest.Code, opt => opt.MapFrom(src => src.Code))
+            .ForMember(dest => dest.Code, opt => opt.MapFrom(src => string.IsNullOrEmpty(src.Code) ? null : src.Code))
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
             .ForMember(dest => dest.Amount, opt => opt.MapFrom(src => src.Amount))
             .ForMember(dest => dest.PricePerUnit, opt => opt.MapFrom(src => src.ItemPrice.WithoutVat))
@@ -62,8 +62,8 @@ public class FlexiInvoiceMappingProfile : BaseFlexiProfile
             .ForMember(dest => dest.SumTotal, opt => opt.MapFrom(src => src.ItemPrice.CurrencyCode == "CZK" ? (decimal?)Math.Round(src.ItemPrice.TotalWithVat, 2) : null))
             .ForMember(dest => dest.SumTotalC, opt => opt.MapFrom(src => src.ItemPrice.CurrencyCode != "CZK" ? (decimal?)Math.Round(src.ItemPrice.TotalWithVat, 2) : null))
             .ForMember(dest => dest.Currency, opt => opt.MapFrom(src => $"code:{src.ItemPrice.CurrencyCode}"))
-            .ForMember(dest => dest.PriceList, opt => opt.MapFrom(src => src.Code.StartsWith("SHIPPING") || src.Code.StartsWith("BILLING") ? null : $"code:{src.Code}"))
-            .ForMember(dest => dest.Store, opt => opt.MapFrom(src => src.Code.StartsWith("SHIPPING") || src.Code.StartsWith("BILLING") ? null : "code:ZBOZI"))
+            .ForMember(dest => dest.PriceList, opt => opt.MapFrom(src => string.IsNullOrEmpty(src.Code) || src.Code.StartsWith("SHIPPING") || src.Code.StartsWith("BILLING") ? null : $"code:{src.Code}"))
+            .ForMember(dest => dest.Store, opt => opt.MapFrom(src => string.IsNullOrEmpty(src.Code) || src.Code.StartsWith("SHIPPING") || src.Code.StartsWith("BILLING") ? null : "code:ZBOZI"))
             .ForMember(dest => dest.VatRateType, opt => opt.MapFrom(src => MapVatRateType(src.ItemPrice.VatRate)))
             .ForMember(dest => dest.PriceVatType, opt => opt.MapFrom(src => "typCeny.bezDph"))
             .ForMember(dest => dest.CopyCategoryVatReport, opt => opt.MapFrom(src => true))
