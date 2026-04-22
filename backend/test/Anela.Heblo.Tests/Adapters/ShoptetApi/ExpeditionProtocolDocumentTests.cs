@@ -338,4 +338,64 @@ public class ExpeditionProtocolDocumentTests
         // File intentionally kept for visual inspection — open manually from temp path printed below
         Console.WriteLine($"PDF saved to: {outputPath}");
     }
+
+    [Fact]
+    public void Generate_Order126000038_WithNotes_SavesToDiskForVisualInspection()
+    {
+        // Visual inspection test for order 126000038 with both customer and eshop remarks.
+        // Output: <temp>/ExpeditionList_126000038_WithNotes.pdf
+        var data = new ExpeditionProtocolData
+        {
+            CarrierDisplayName = "PPL (do ruky)",
+            Orders = new List<ExpeditionOrder>
+            {
+                new()
+                {
+                    Code = "126000038",
+                    CustomerName = "Jana Nováková",
+                    Address = "Testovací 42, 110 00 Praha 1",
+                    Phone = "+420 725 191 660",
+                    CustomerRemark = "Prosím zabalit jako dárek, děkuji.",
+                    EshopRemark = "Zákazník volal — doručit po 14:00.",
+                    Items = new List<ExpeditionOrderItem>
+                    {
+                        new()
+                        {
+                            ProductCode = "OCH009030",
+                            Name = "Klidný dech dětský prsní balzám",
+                            Variant = "Obsah: 30 ml",
+                            WarehousePosition = "A04-2",
+                            Quantity = 1,
+                            StockCount = 89,
+                            StockDemand = 1,
+                            UnitPrice = 340.00m,
+                            Unit = "ks",
+                        },
+                        new()
+                        {
+                            ProductCode = "OCH001030",
+                            Name = "Tělový olej levandule",
+                            Variant = "Obsah: 30 ml",
+                            WarehousePosition = "A28-3",
+                            Quantity = 2,
+                            StockCount = 55,
+                            StockDemand = 3,
+                            UnitPrice = 290.00m,
+                            Unit = "ks",
+                        },
+                    },
+                },
+            },
+        };
+
+        var pdfBytes = ExpeditionProtocolDocument.Generate(data);
+
+        var outputPath = Path.Combine(Path.GetTempPath(), "ExpeditionList_126000038_WithNotes.pdf");
+        File.WriteAllBytes(outputPath, pdfBytes);
+
+        pdfBytes.Should().NotBeNullOrEmpty();
+        File.Exists(outputPath).Should().BeTrue();
+
+        Console.WriteLine($"PDF saved to: {outputPath}");
+    }
 }

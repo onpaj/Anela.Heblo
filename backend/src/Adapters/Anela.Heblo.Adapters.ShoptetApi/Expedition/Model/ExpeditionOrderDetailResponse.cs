@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Expedition.Model;
 
@@ -39,6 +40,9 @@ public class ExpeditionOrderDetail
 
     [JsonPropertyName("completion")]
     public List<ExpeditionCompletionItemDto> Completion { get; set; } = new();
+
+    [JsonPropertyName("notes")]
+    public OrderNotes? Notes { get; set; }
 }
 
 public class ExpeditionAddress
