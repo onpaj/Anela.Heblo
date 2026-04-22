@@ -109,6 +109,33 @@ public class SyncGoogleAdsHandlerTests
                 It.Is<AdDailyMetric>(m => m.Date == metricDto.Date && m.Impressions == 1000 && m.Clicks == 50),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(3));
+    }
+
+    [Fact]
+    public async Task Handle_WithTwoCampaigns_UpsertsBothCampaigns()
+    {
+        // Arrange
+        var campaign1 = new GoogleCampaignDto { Id = "camp1", Name = "Campaign 1", Status = "ENABLED" };
+        var campaign2 = new GoogleCampaignDto { Id = "camp2", Name = "Campaign 2", Status = "ENABLED" };
+
+        _googleAdsClientMock.Setup(c => c.GetCampaignsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<GoogleCampaignDto> { campaign1, campaign2 });
+        _googleAdsClientMock.Setup(c => c.GetAdGroupsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<GoogleAdGroupDto>());
+
+        // Act
+        await _handler.Handle(new SyncGoogleAdsRequest(), CancellationToken.None);
+
+        // Assert
+        _repositoryMock.Verify(r => r.UpsertCampaignAsync(
+            It.Is<AdCampaign>(c => c.PlatformCampaignId == "camp1"),
+            It.IsAny<CancellationToken>()), Times.Once());
+
+        _repositoryMock.Verify(r => r.UpsertCampaignAsync(
+            It.Is<AdCampaign>(c => c.PlatformCampaignId == "camp2"),
+            It.IsAny<CancellationToken>()), Times.Once());
     }
 
     [Fact]
