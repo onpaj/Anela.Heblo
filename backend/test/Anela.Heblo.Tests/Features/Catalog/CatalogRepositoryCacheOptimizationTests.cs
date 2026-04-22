@@ -6,6 +6,7 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
+using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
@@ -33,6 +34,7 @@ public class CatalogRepositoryCacheOptimizationTests
     private readonly Mock<ILotsClient> _lotsClientMock;
     private readonly Mock<IProductPriceEshopClient> _productPriceEshopClientMock;
     private readonly Mock<IProductPriceErpClient> _productPriceErpClientMock;
+    private readonly Mock<IProductEshopUrlClient> _productEshopUrlClientMock;
     private readonly Mock<ITransportBoxRepository> _transportBoxRepositoryMock;
     private readonly Mock<IStockTakingRepository> _stockTakingRepositoryMock;
     private readonly Mock<IManufactureClient> _manufactureClientMock;
@@ -63,6 +65,9 @@ public class CatalogRepositoryCacheOptimizationTests
         _lotsClientMock = new Mock<ILotsClient>();
         _productPriceEshopClientMock = new Mock<IProductPriceEshopClient>();
         _productPriceErpClientMock = new Mock<IProductPriceErpClient>();
+        _productEshopUrlClientMock = new Mock<IProductEshopUrlClient>();
+        _productEshopUrlClientMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ProductEshopUrl>());
         _transportBoxRepositoryMock = new Mock<ITransportBoxRepository>();
         _stockTakingRepositoryMock = new Mock<IStockTakingRepository>();
         _manufactureClientMock = new Mock<IManufactureClient>();
@@ -125,6 +130,7 @@ public class CatalogRepositoryCacheOptimizationTests
             _lotsClientMock.Object,
             _productPriceEshopClientMock.Object,
             _productPriceErpClientMock.Object,
+            _productEshopUrlClientMock.Object,
             _transportBoxRepositoryMock.Object,
             _stockTakingRepositoryMock.Object,
             _manufactureClientMock.Object,
@@ -429,5 +435,40 @@ public class CatalogRepositoryCacheOptimizationTests
         // Cache should be populated after priority merge
         var currentCache = _cache.Get<List<CatalogAggregate>>("CatalogData_Current");
         currentCache.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task RefreshSalesData_WhenResilienceServiceThrows_RetainsStaleCacheAndLogsWarning()
+    {
+        // Arrange - pre-populate the cache to simulate previously loaded data
+        var staleRecords = new List<CatalogSaleRecord> { new CatalogSaleRecord { ProductCode = "STALE001" } };
+        _cache.Set("CachedSalesData", staleRecords);
+
+        // Configure resilience mock to throw for the IList<CatalogSaleRecord> call made by RefreshSalesData
+        _resilienceServiceMock
+            .Setup(x => x.ExecuteWithResilienceAsync(
+                It.IsAny<Func<CancellationToken, Task<IList<CatalogSaleRecord>>>>(),
+                "RefreshSalesData",
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("External service is temporarily unavailable"));
+
+        // Act - should NOT throw; stale fallback should be retained
+        await _repository.RefreshSalesData(CancellationToken.None);
+
+        // Assert - stale records are still in the cache
+        var cached = _cache.Get<List<CatalogSaleRecord>>("CachedSalesData");
+        cached.Should().NotBeNull();
+        cached!.Should().HaveCount(1);
+        cached.First().ProductCode.Should().Be("STALE001");
+
+        // Verify warning was logged about retaining stale cache
+        _loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("retaining stale cache")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 }

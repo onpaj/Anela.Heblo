@@ -17,4 +17,10 @@ public class GetFinancialOverviewRequest : IRequest<GetFinancialOverviewResponse
     /// When populated, a real-time calculation is performed with in-memory department filtering.
     /// </summary>
     public List<string>? ExcludedDepartments { get; set; }
+
+    /// <summary>
+    /// When true, includes the current (incomplete) month in the data.
+    /// Bypasses cache and uses real-time calculation.
+    /// </summary>
+    public bool IncludeCurrentMonth { get; set; } = false;
 }

@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.Manufacture;
+using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
 using Rem.FlexiBeeSDK.Model.Products.StockMovement;
 
@@ -7,21 +8,43 @@ namespace Anela.Heblo.Adapters.Flexi.Manufacture;
 public class FlexiManufactureHistoryClient : IManufactureHistoryClient
 {
     private readonly IStockItemsMovementClient _stockItemsMovementClient;
+    private readonly ILogger<FlexiManufactureHistoryClient> _logger;
 
     private const int ManufactureDocumentTypeId = 56;
 
     public FlexiManufactureHistoryClient(
-        IStockItemsMovementClient stockItemsMovementClient
-    )
+        IStockItemsMovementClient stockItemsMovementClient,
+        ILogger<FlexiManufactureHistoryClient> logger)
     {
         _stockItemsMovementClient = stockItemsMovementClient;
+        _logger = logger;
     }
 
 
     public async Task<List<ManufactureHistoryRecord>> GetHistoryAsync(DateTime dateFrom, DateTime dateTo, string? productCode = null,
         CancellationToken cancellationToken = default)
     {
-        var movements = await _stockItemsMovementClient.GetAsync(dateFrom, dateTo, StockMovementDirection.In, documentTypeId: ManufactureDocumentTypeId, cancellationToken: cancellationToken);
+        IReadOnlyList<StockItemMovementFlexiDto> movements;
+        try
+        {
+            movements = await _stockItemsMovementClient.GetAsync(dateFrom, dateTo, StockMovementDirection.In, documentTypeId: ManufactureDocumentTypeId, cancellationToken: cancellationToken);
+        }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex,
+                "FlexiBee uzivatelsky-dotaz request timed out (internal HttpClient timeout). " +
+                "DateFrom: {DateFrom}, DateTo: {DateTo}",
+                dateFrom, dateTo);
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation(
+                "FlexiBee uzivatelsky-dotaz request was canceled by the caller (client abort). " +
+                "DateFrom: {DateFrom}, DateTo: {DateTo}",
+                dateFrom, dateTo);
+            throw;
+        }
 
         var query = movements.AsQueryable();
 

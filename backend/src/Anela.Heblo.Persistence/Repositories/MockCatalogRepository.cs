@@ -391,6 +391,7 @@ public class MockCatalogRepository : ICatalogRepository
     public DateTime? LotsLoadDate => DateTime.UtcNow;
     public DateTime? EshopPricesLoadDate => DateTime.UtcNow;
     public DateTime? ErpPricesLoadDate => DateTime.UtcNow;
+    public DateTime? EshopUrlLoadDate => DateTime.UtcNow;
     public DateTime? ManufactureDifficultySettingsLoadDate => DateTime.UtcNow;
     public DateTime? ManufactureDifficultyLoadDate => DateTime.UtcNow;
     public DateTime? ManufactureCostLoadDate => DateTime.UtcNow;
@@ -416,6 +417,7 @@ public class MockCatalogRepository : ICatalogRepository
     public Task RefreshLotsData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshEshopPricesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshErpPricesData(CancellationToken ct) => Task.CompletedTask;
+    public Task RefreshEshopUrlData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct) => Task.CompletedTask;
 
     public Task<List<CatalogAggregate>> GetProductsWithSalesInPeriod(DateTime fromDate, DateTime toDate, ProductType[] productTypes,

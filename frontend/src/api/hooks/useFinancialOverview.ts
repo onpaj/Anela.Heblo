@@ -21,14 +21,16 @@ export const useFinancialOverviewQuery = (
   months: number = 6,
   includeStockData: boolean = true,
   excludedDepartments: string[] = [],
+  includeCurrentMonth: boolean = false,
 ) => {
   return useQuery<GetFinancialOverviewResponse, Error>({
-    queryKey: [...QUERY_KEYS.financialOverview, months, includeStockData, excludedDepartments],
+    queryKey: [...QUERY_KEYS.financialOverview, months, includeStockData, excludedDepartments, includeCurrentMonth],
     queryFn: async () => {
       const apiClient = getAuthenticatedApiClient();
       const params = new URLSearchParams();
       params.set('months', String(months));
       params.set('includeStockData', String(includeStockData));
+      params.set('includeCurrentMonth', String(includeCurrentMonth));
       excludedDepartments.forEach(d => params.append('excludedDepartments', d));
       const relativeUrl = `/api/FinancialOverview?${params.toString()}`;
       const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;

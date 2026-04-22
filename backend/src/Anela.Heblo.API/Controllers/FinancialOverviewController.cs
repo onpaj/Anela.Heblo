@@ -25,13 +25,15 @@ public class FinancialOverviewController : ControllerBase
     public async Task<IActionResult> GetFinancialOverview(
         [FromQuery] int? months = 6,
         [FromQuery] bool includeStockData = true,
-        [FromQuery] List<string>? excludedDepartments = null)
+        [FromQuery] List<string>? excludedDepartments = null,
+        [FromQuery] bool includeCurrentMonth = false)
     {
         var request = new GetFinancialOverviewRequest
         {
             Months = months,
             IncludeStockData = includeStockData,
-            ExcludedDepartments = excludedDepartments
+            ExcludedDepartments = excludedDepartments,
+            IncludeCurrentMonth = includeCurrentMonth
         };
         var response = await _mediator.Send(request);
 

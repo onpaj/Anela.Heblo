@@ -49,7 +49,7 @@ public class ProductEnrichmentCache : IProductEnrichmentCache
                 {
                     ProductCode = p.ProductCode,
                     ProductName = p.ProductName,
-                    Url = null
+                    Url = p.Url
                 });
 
             _lastLoaded = DateTime.UtcNow;

@@ -427,6 +427,42 @@ public class ShoptetApiExpeditionListSourceTests
     }
 
     [Fact]
+    public void MapOrderItems_GiftItemType_IncludedLikeProduct()
+    {
+        // "Darek" (gift) items have itemType="gift" — they must appear on the expedition list
+        // the same as regular products, not be silently dropped.
+        var detail = new ExpeditionOrderDetail
+        {
+            Code = "126000038",
+            Items = new List<ExpeditionOrderItemDto>
+            {
+                new()
+                {
+                    ItemType = "product",
+                    Code = "OCH009030",
+                    Name = "Klidný dech balzám",
+                    Amount = 1m,
+                    ItemPriceWithVat = "340.00",
+                },
+                new()
+                {
+                    ItemType = "gift",
+                    Code = "DAR001",
+                    Name = "Darek",
+                    Amount = 1m,
+                    ItemPriceWithVat = "0.00",
+                },
+            },
+            Completion = new List<ExpeditionCompletionItemDto>(),
+        };
+
+        var items = ShoptetApiExpeditionListSource.MapOrderItems(detail);
+
+        items.Should().HaveCount(2);
+        items.Should().ContainSingle(i => i.ProductCode == "DAR001" && i.Name == "Darek");
+    }
+
+    [Fact]
     public async Task CreatePickingList_WritesPdfsToSystemTempFolder()
     {
         // Arrange

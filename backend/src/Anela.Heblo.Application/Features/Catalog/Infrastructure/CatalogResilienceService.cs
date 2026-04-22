@@ -68,8 +68,8 @@ public class CatalogResilienceService : ICatalogResilienceService
                 UseJitter = true,
                 OnRetry = args =>
                 {
-                    _logger.LogWarning("Retrying operation. Attempt {AttemptNumber} of {MaxRetryAttempts}. Exception: {Exception}",
-                        args.AttemptNumber + 1, 3, args.Outcome.Exception?.Message);
+                    _logger.LogWarning("Retrying operation '{OperationName}'. Attempt {AttemptNumber} of {MaxRetryAttempts}. Exception: {Exception}",
+                        args.Context.OperationKey, args.AttemptNumber + 1, 3, args.Outcome.Exception?.Message);
                     return ValueTask.CompletedTask;
                 }
             })
@@ -85,17 +85,20 @@ public class CatalogResilienceService : ICatalogResilienceService
                 BreakDuration = TimeSpan.FromSeconds(30), // How long to keep circuit open
                 OnOpened = args =>
                 {
-                    _logger.LogWarning("Circuit breaker opened due to {Exception}", args.Outcome.Exception?.Message);
+                    _logger.LogWarning("Circuit breaker opened for '{OperationName}' due to {Exception}",
+                        args.Context.OperationKey, args.Outcome.Exception?.Message);
                     return ValueTask.CompletedTask;
                 },
                 OnClosed = args =>
                 {
-                    _logger.LogInformation("Circuit breaker closed - service is healthy again");
+                    _logger.LogInformation("Circuit breaker closed for '{OperationName}' - service is healthy again",
+                        args.Context.OperationKey);
                     return ValueTask.CompletedTask;
                 },
                 OnHalfOpened = args =>
                 {
-                    _logger.LogInformation("Circuit breaker half-opened - testing service health");
+                    _logger.LogInformation("Circuit breaker half-opened for '{OperationName}' - testing service health",
+                        args.Context.OperationKey);
                     return ValueTask.CompletedTask;
                 }
             })

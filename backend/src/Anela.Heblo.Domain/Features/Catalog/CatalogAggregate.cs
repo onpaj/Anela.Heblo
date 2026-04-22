@@ -40,6 +40,7 @@ public class CatalogAggregate : Entity<string>
     public ProductPriceEshop? EshopPrice { get; set; }
     public ProductPriceErp? ErpPrice { get; set; }
 
+    public string? Url { get; set; }
     public decimal? PriceWithVat => GetSafeProductPrice();
     public decimal? PriceWithoutVat => GetSafeProductPrideWithoutVat();
 

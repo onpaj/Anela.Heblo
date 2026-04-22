@@ -153,8 +153,8 @@ public class KnowledgeBaseOptions
         - Zohledni typ pleti a potíže zákazníka
         - Odpovídej v češtině, přátelsky ale odborně
         - Pokud kontext obsahuje více podobných případů, syntetizuj je
-        - Pokud zmiňuješ produkt Anela, nahraď celý název produktu jeho kódem
-          v závorce (např. (AKL001)). Použij pouze kódy z přiloženého seznamu produktů.
+        - Pokud zmiňuješ produkt Anela, uveď jeho produktový kódem
+          v závorce (přesně takto: (AKL001)), nikdy ne jeho název. Použij pouze kódy z přiloženého seznamu produktů.
 
         Kontext z podobných konverzací:
         {context}
