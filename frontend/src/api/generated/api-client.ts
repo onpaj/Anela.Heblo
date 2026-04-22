@@ -12749,6 +12749,7 @@ export class IssuedInvoiceSyncDataDto implements IIssuedInvoiceSyncDataDto {
     isSuccess?: boolean;
     syncTime?: Date;
     error?: IssuedInvoiceErrorDto | undefined;
+    adapterResponse?: string | undefined;
 
     constructor(data?: IIssuedInvoiceSyncDataDto) {
         if (data) {
@@ -12766,6 +12767,7 @@ export class IssuedInvoiceSyncDataDto implements IIssuedInvoiceSyncDataDto {
             this.isSuccess = _data["isSuccess"];
             this.syncTime = _data["syncTime"] ? new Date(_data["syncTime"].toString()) : <any>undefined;
             this.error = _data["error"] ? IssuedInvoiceErrorDto.fromJS(_data["error"]) : <any>undefined;
+            this.adapterResponse = _data["adapterResponse"];
         }
     }
 
@@ -12783,6 +12785,7 @@ export class IssuedInvoiceSyncDataDto implements IIssuedInvoiceSyncDataDto {
         data["isSuccess"] = this.isSuccess;
         data["syncTime"] = this.syncTime ? this.syncTime.toISOString() : <any>undefined;
         data["error"] = this.error ? this.error.toJSON() : <any>undefined;
+        data["adapterResponse"] = this.adapterResponse;
         return data;
     }
 }
@@ -12793,6 +12796,7 @@ export interface IIssuedInvoiceSyncDataDto {
     isSuccess?: boolean;
     syncTime?: Date;
     error?: IssuedInvoiceErrorDto | undefined;
+    adapterResponse?: string | undefined;
 }
 
 export class IssuedInvoiceErrorDto implements IIssuedInvoiceErrorDto {

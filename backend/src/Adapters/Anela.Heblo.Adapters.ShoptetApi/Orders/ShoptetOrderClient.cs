@@ -203,7 +203,7 @@ public class ShoptetOrderClient : IEshopOrderClient
 
     public async Task<ExpeditionOrderDetail> GetExpeditionOrderDetailAsync(string code, CancellationToken ct = default)
     {
-        var response = await _http.GetAsync($"/api/orders/{code}?include=stockLocation", ct);
+        var response = await _http.GetAsync($"/api/orders/{code}?include=stockLocation,notes", ct);
         response.EnsureSuccessStatusCode();
 
         var data = await response.Content.ReadFromJsonAsync<ExpeditionOrderDetailResponse>(JsonOptions, ct);
