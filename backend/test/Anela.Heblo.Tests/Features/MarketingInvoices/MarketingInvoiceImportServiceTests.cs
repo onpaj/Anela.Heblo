@@ -46,11 +46,11 @@ public class MarketingInvoiceImportServiceTests
         _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
+        _mockRepository.Setup(x => x.AddRangeAsync(It.IsAny<IEnumerable<ImportedMarketingTransaction>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
+            .ReturnsAsync(2);
 
         // Act
         var result = await _service.ImportAsync(from, to);
@@ -59,8 +59,12 @@ public class MarketingInvoiceImportServiceTests
         Assert.Equal(2, result.Imported);
         Assert.Equal(0, result.Skipped);
         Assert.Equal(0, result.Failed);
-        _mockRepository.Verify(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-        _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _mockRepository.Verify(
+            x => x.AddRangeAsync(
+                It.Is<IEnumerable<ImportedMarketingTransaction>>(entities => entities.Count() == 2),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -89,11 +93,12 @@ public class MarketingInvoiceImportServiceTests
         Assert.Equal(0, result.Imported);
         Assert.Equal(1, result.Skipped);
         Assert.Equal(0, result.Failed);
-        _mockRepository.Verify(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockRepository.Verify(x => x.AddRangeAsync(It.IsAny<IEnumerable<ImportedMarketingTransaction>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task ImportAsync_PerTransactionError_CountsAsFailed_DoesNotAbortRun()
+    public async Task ImportAsync_ExistsCheckThrows_CountsAsFailed_DoesNotAbortRun()
     {
         // Arrange
         var from = new DateTime(2026, 4, 1);
@@ -108,18 +113,19 @@ public class MarketingInvoiceImportServiceTests
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
-        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        // First transaction check throws
+        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", "TX-001", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("DB read failed"));
+
+        // Second transaction succeeds
+        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", "TX-002", It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        // First transaction succeeds
-        _mockRepository.Setup(x => x.AddAsync(It.Is<ImportedMarketingTransaction>(t => t.TransactionId == "TX-001"), It.IsAny<CancellationToken>()))
+        _mockRepository.Setup(x => x.AddRangeAsync(It.IsAny<IEnumerable<ImportedMarketingTransaction>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
-
-        // Second transaction throws on AddAsync
-        _mockRepository.Setup(x => x.AddAsync(It.Is<ImportedMarketingTransaction>(t => t.TransactionId == "TX-002"), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("DB write failed"));
 
         // Act
         var result = await _service.ImportAsync(from, to);
@@ -128,5 +134,37 @@ public class MarketingInvoiceImportServiceTests
         Assert.Equal(1, result.Imported);
         Assert.Equal(0, result.Skipped);
         Assert.Equal(1, result.Failed);
+    }
+
+    [Fact]
+    public async Task ImportAsync_EmptyTransactionList_ReturnsZeroCounts()
+    {
+        // Arrange
+        var from = new DateTime(2026, 4, 1);
+        var to = new DateTime(2026, 4, 2);
+
+        _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingTransaction>());
+
+        // Act
+        var result = await _service.ImportAsync(from, to);
+
+        // Assert
+        Assert.Equal(0, result.Imported);
+        Assert.Equal(0, result.Skipped);
+        Assert.Equal(0, result.Failed);
+        _mockRepository.Verify(x => x.AddRangeAsync(It.IsAny<IEnumerable<ImportedMarketingTransaction>>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportAsync_FromAfterTo_ThrowsArgumentException()
+    {
+        // Arrange
+        var from = new DateTime(2026, 4, 5);
+        var to = new DateTime(2026, 4, 1);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.ImportAsync(from, to));
     }
 }
