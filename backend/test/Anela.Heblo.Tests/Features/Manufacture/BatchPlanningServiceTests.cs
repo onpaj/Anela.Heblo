@@ -303,6 +303,62 @@ public class BatchPlanningServiceTests
         Assert.Equal(125, fixedProduct2.TotalVolumeRequired);
     }
 
+    [Fact]
+    public async Task CalculateBatchPlan_WithDirectSemiproductAmount_ReducesAvailableVolume()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.0,
+            DirectSemiproductAmount = 200, // Reserve 200g as direct output
+            FromDate = DateTime.Now.AddDays(-30),
+            ToDate = DateTime.Now
+        };
+
+        var semiproduct = CreateSemiproduct("SEMI001", 1000); // MMQ = 1000g
+        var templates = CreateManufactureTemplates();
+        var products = CreateProducts();
+
+        SetupRepositoryMocks(semiproduct, templates, products);
+
+        // Act
+        var result = await _service.CalculateBatchPlan(request, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
+        // Available volume for optimization = MMQ (1000) - direct amount (200) = 800
+        Assert.Equal(200, result.DirectSemiproductAmount);
+        Assert.True(result.TotalVolumeAvailable <= 800, $"Available volume should be at most 800 but was {result.TotalVolumeAvailable}");
+    }
+
+    [Fact]
+    public async Task CalculateBatchPlan_WithoutDirectSemiproductAmount_EchoesZero()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.0,
+            DirectSemiproductAmount = null
+        };
+
+        var semiproduct = CreateSemiproduct("SEMI001", 1000);
+        var templates = CreateManufactureTemplates();
+        var products = CreateProducts();
+
+        SetupRepositoryMocks(semiproduct, templates, products);
+
+        // Act
+        var result = await _service.CalculateBatchPlan(request, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.Equal(0, result.DirectSemiproductAmount);
+    }
+
     private CatalogAggregate CreateSemiproduct(string code, double stock)
     {
         return new CatalogAggregate

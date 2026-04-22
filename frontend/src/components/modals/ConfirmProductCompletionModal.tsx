@@ -19,6 +19,7 @@ interface ConfirmProductCompletionModalProps {
   onSubmit: (request: ConfirmProductCompletionRequest) => Promise<void>;
   orderId: number;
   products: ProductQuantityData[];
+  semiProductCode?: string;
   isLoading?: boolean;
   distributionPreview?: ResidueDistributionDto;
   onConfirmDistribution: () => Promise<void>;
@@ -31,6 +32,7 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
   onSubmit,
   orderId,
   products,
+  semiProductCode,
   isLoading = false,
   distributionPreview,
   onConfirmDistribution,
@@ -261,15 +263,25 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
 
           {/* Products */}
           <div className="space-y-2">
-            {products.map((product) => (
-              <div key={product.id} className="border border-gray-200 rounded-lg p-3">
+            {products.map((product) => {
+              const isDirectRow = semiProductCode != null && product.productCode === semiProductCode;
+              const unit = isDirectRow ? "g" : "ks";
+              return (
+              <div key={product.id} className={`border rounded-lg p-3 ${isDirectRow ? "border-amber-300 bg-amber-50/40" : "border-gray-200"}`}>
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-gray-900 truncate text-sm">{product.productName}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-medium text-gray-900 truncate text-sm">{product.productName}</h4>
+                      {isDirectRow && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                          přímý
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-3 mt-1">
                       <p className="text-xs text-gray-600">{product.productCode}</p>
                       <p className="text-xs text-gray-500">
-                        Plánované: <span className="font-medium">{product.plannedQuantity}</span>
+                        Plánované: <span className="font-medium">{product.plannedQuantity} {unit}</span>
                       </p>
                     </div>
                   </div>
@@ -292,10 +304,12 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
                       disabled={isLoading}
                       required
                     />
+                    <span className="text-xs text-gray-500">{unit}</span>
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Error Message */}

@@ -149,6 +149,7 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
         var semiProduct = order.SemiProduct;
         var manufactureName = _nameBuilder.Build(order, ErpManufactureType.Product);
         var items = order.Products
+            .Where(p => p.ProductCode != semiProduct.ProductCode)
             .Select(p => new SubmitManufactureRequestItem
             {
                 ProductCode = p.ProductCode,

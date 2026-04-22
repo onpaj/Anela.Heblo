@@ -60,6 +60,9 @@ const BatchPlanningCalculator: React.FC = () => {
   
   // State to track if recalculation is needed
   const [needsRecalculation, setNeedsRecalculation] = useState(false);
+
+  // Direct semiproduct amount (grams to reserve as sellable bulk output)
+  const [directSemiproductAmount, setDirectSemiproductAmount] = useState<number | null>(null);
   
   // Mutation
   const batchPlanMutation = useBatchPlanningMutation();
@@ -308,6 +311,10 @@ const BatchPlanningCalculator: React.FC = () => {
         break;
     }
 
+    if (directSemiproductAmount != null && directSemiproductAmount > 0) {
+      requestData.directSemiproductAmount = directSemiproductAmount;
+    }
+
     const request = new CalculateBatchPlanRequest(requestData);
     batchPlanMutation.mutate(request);
     setNeedsRecalculation(false); // Clear the flag after calculation
@@ -345,6 +352,10 @@ const BatchPlanningCalculator: React.FC = () => {
         break;
     }
 
+    if (directSemiproductAmount != null && directSemiproductAmount > 0) {
+      requestData.directSemiproductAmount = directSemiproductAmount;
+    }
+
     const request = new CalculateBatchPlanRequest(requestData);
     batchPlanMutation.mutate(request);
     setNeedsRecalculation(false); // Clear the flag after calculation
@@ -360,6 +371,7 @@ const BatchPlanningCalculator: React.FC = () => {
     setControlMode(BatchPlanControlMode.MmqMultiplier); // Reset to default mode
     // Clear constraints when changing product
     setProductConstraints(new Map());
+    setDirectSemiproductAmount(null);
     setNeedsRecalculation(false); // Clear recalculation flag when selecting new product
     
     // Auto-trigger calculation immediately after product selection
@@ -476,7 +488,8 @@ const BatchPlanningCalculator: React.FC = () => {
         })),
         plannedDate: plannedDate,
         responsiblePerson: undefined,
-        manufactureType: response.manufactureType
+        manufactureType: response.manufactureType,
+        directSemiproductAmount: directSemiproductAmount != null && directSemiproductAmount > 0 ? directSemiproductAmount : undefined
       });
 
       const orderResponse = await createOrderMutation.mutateAsync(orderRequest);
@@ -785,12 +798,35 @@ const BatchPlanningCalculator: React.FC = () => {
                         </button>
                       </div>
                     </div>
+
+                    {/* Direct semiproduct amount input */}
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                        Přímý výstup (g):
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={directSemiproductAmount ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value === "" ? null : Number(e.target.value);
+                          setDirectSemiproductAmount(val);
+                          setNeedsRecalculation(true);
+                        }}
+                        placeholder="Volitelně"
+                        className="w-28 px-3 py-2 text-sm border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                      />
+                      <span className="text-xs text-gray-500">
+                        Množství polotovaru prodávaného přímo jako výstup (bez dalšího zpracování)
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
 
-            
+
 
             {/* Product Grid - Only show if semiproduct is selected */}
             {selectedSemiproduct && (

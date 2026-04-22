@@ -13,6 +13,9 @@ public class CalculateBatchPlanResponse : BaseResponse
     public double TotalVolumeAvailable { get; set; }
     public ManufactureType ManufactureType { get; set; }
 
+    // Grams reserved as direct semiproduct output (echoed from request)
+    public double DirectSemiproductAmount { get; set; }
+
     public CalculateBatchPlanResponse() : base() { }
 
     public CalculateBatchPlanResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null) : base(errorCode, parameters) { }

@@ -358,6 +358,10 @@ public class BatchPlanningService : IBatchPlanningService
 
         var availableVolume = request.TotalWeightToUse ?? (request.MmqMultiplier ?? 1.0) * semiproduct.MinimalManufactureQuantity;
 
+        // Subtract reserved direct semiproduct output from available volume
+        var directSemiproductAmount = request.DirectSemiproductAmount ?? 0;
+        availableVolume -= directSemiproductAmount;
+
         // 2. Find all products that use this semiproduct
         var productTemplates = await _manufactureClient.FindByIngredientAsync(request.ProductCode, cancellationToken);
         if (productTemplates.Count == 0)
@@ -382,6 +386,9 @@ public class BatchPlanningService : IBatchPlanningService
 
         // 4. Apply optimization algorithm based on control mode
         var response = ApplyOptimization(batchPlanItems, request, availableVolume, semiproduct);
+
+        // Echo the direct semiproduct amount back in the response
+        response.DirectSemiproductAmount = directSemiproductAmount;
 
         return response;
     }

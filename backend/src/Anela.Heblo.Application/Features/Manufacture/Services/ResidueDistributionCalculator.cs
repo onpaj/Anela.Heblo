@@ -25,6 +25,12 @@ public class ResidueDistributionCalculator : IResidueDistributionCalculator
 
         var actualSemiProduct = order.SemiProduct.ActualQuantity ?? order.SemiProduct.PlannedQuantity;
 
+        // Subtract grams that exit as direct semiproduct output (virtual row where ProductCode == SemiProduct.ProductCode)
+        var directRowGrams = order.Products
+            .Where(p => p.ProductCode == order.SemiProduct.ProductCode)
+            .Sum(p => p.ActualQuantity ?? p.PlannedQuantity);
+        var effectiveActual = actualSemiProduct - directRowGrams;
+
         var productData = await BuildProductDataAsync(order, cancellationToken);
         if (productData.Count == 0)
             return new ResidueDistribution { IsWithinAllowedThreshold = true };
@@ -34,17 +40,17 @@ public class ResidueDistributionCalculator : IResidueDistributionCalculator
         var semiProductCatalog = await _catalogRepository.GetByIdAsync(order.SemiProduct.ProductCode, cancellationToken);
         var allowedResiduePercentage = semiProductCatalog?.Properties.AllowedResiduePercentage ?? 0;
 
-        var difference = actualSemiProduct - totalTheoretical;
+        var difference = effectiveActual - totalTheoretical;
         var differencePercentage = totalTheoretical > 0
             ? (double)Math.Abs(difference) / (double)totalTheoretical * 100
             : 0;
         var isWithinThreshold = differencePercentage <= allowedResiduePercentage;
 
-        var distributions = ComputeDistributions(productData, actualSemiProduct, totalTheoretical);
+        var distributions = ComputeDistributions(productData, effectiveActual, totalTheoretical);
 
         return new ResidueDistribution
         {
-            ActualSemiProductQuantity = actualSemiProduct,
+            ActualSemiProductQuantity = effectiveActual,
             TheoreticalConsumption = totalTheoretical,
             Difference = difference,
             DifferencePercentage = differencePercentage,
@@ -62,6 +68,10 @@ public class ResidueDistributionCalculator : IResidueDistributionCalculator
 
         foreach (var product in order.Products)
         {
+            // Skip direct semiproduct output rows — they have no manufacture template
+            if (product.ProductCode == order.SemiProduct?.ProductCode)
+                continue;
+
             var actualPieces = product.ActualQuantity ?? product.PlannedQuantity;
             if (actualPieces <= 0)
                 continue;

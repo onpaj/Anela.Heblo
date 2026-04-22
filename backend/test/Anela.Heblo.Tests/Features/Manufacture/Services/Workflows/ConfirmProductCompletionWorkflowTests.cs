@@ -445,6 +445,86 @@ public class ConfirmProductCompletionWorkflowTests
         capturedStatusRequest.ManualActionRequired.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task ExecuteAsync_WhenDirectRowPresent_ExcludesItFromErpSubmitItems()
+    {
+        // Arrange — order has one regular product AND a direct-row (ProductCode == SemiProduct.ProductCode)
+        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m }, { 2, 500.0m } };
+        var distribution = CreateDistributionWithinThreshold();
+        var submitResponse = CreateSuccessfulSubmitManufactureResponse("ERP_PRODUCT_999");
+        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
+
+        var orderWithDirectRow = new UpdateManufactureOrderResponse
+        {
+            Success = true,
+            Order = new UpdateManufactureOrderDto
+            {
+                OrderNumber = "MO-2024-DIRECT",
+                SemiProduct = new UpdateManufactureOrderSemiProductDto
+                {
+                    ProductCode = "SP001001",
+                    ProductName = "Semi Product 1",
+                    ActualQuantity = 10500m,
+                    PlannedQuantity = 10500m,
+                    LotNumber = "LOT-DIRECT",
+                    ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
+                },
+                Products = new List<UpdateManufactureOrderProductDto>
+                {
+                    // Regular product
+                    new UpdateManufactureOrderProductDto
+                    {
+                        ProductCode = "P001",
+                        ProductName = "Product 1",
+                        ActualQuantity = 5.0m,
+                        PlannedQuantity = 5.0m,
+                    },
+                    // Direct semiproduct output row — same code as SemiProduct
+                    new UpdateManufactureOrderProductDto
+                    {
+                        ProductCode = "SP001001",
+                        ProductName = "Semi Product 1",
+                        ActualQuantity = 500m,
+                        PlannedQuantity = 500m,
+                    },
+                },
+            },
+        };
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(orderWithDirectRow);
+
+        SubmitManufactureRequest? capturedSubmit = null;
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<SubmitManufactureRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<IRequest<SubmitManufactureResponse>, CancellationToken>(
+                (r, _) => capturedSubmit = (SubmitManufactureRequest)r)
+            .ReturnsAsync(submitResponse);
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(updateStatusResponse);
+
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateBoMIngredientAmountRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UpdateBoMIngredientAmountResponse { Success = true });
+
+        _residueCalculatorMock
+            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(distribution);
+
+        // Act
+        var result = await _workflow.ExecuteAsync(ValidOrderId, productQuantities, false, ValidChangeReason, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        capturedSubmit.Should().NotBeNull();
+        capturedSubmit!.Items.Should().HaveCount(1);
+        capturedSubmit.Items.Should().Contain(i => i.ProductCode == "P001");
+        capturedSubmit.Items.Should().NotContain(i => i.ProductCode == "SP001001");
+    }
+
     #region Helper Methods
 
     private void SetupMediatorResponses(

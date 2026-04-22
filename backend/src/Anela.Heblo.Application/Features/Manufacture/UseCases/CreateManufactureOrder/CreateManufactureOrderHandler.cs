@@ -116,6 +116,24 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
         }
 
 
+        // Append virtual direct semiproduct output row when applicable
+        if (request.ManufactureType == ManufactureType.MultiPhase
+            && request.DirectSemiproductAmount is > 0
+            && order.SemiProduct != null)
+        {
+            var directRow = new ManufactureOrderProduct
+            {
+                ProductCode = order.SemiProduct.ProductCode,
+                ProductName = order.SemiProduct.ProductName,
+                SemiProductCode = order.SemiProduct.ProductCode,
+                PlannedQuantity = (decimal)request.DirectSemiproductAmount.Value,
+                ActualQuantity = (decimal)request.DirectSemiproductAmount.Value,
+                ExpirationDate = expirationDate,
+                LotNumber = lotNumber,
+            };
+            order.Products.Add(directRow);
+        }
+
         // Save the order
         var createdOrder = await _repository.AddOrderAsync(order, cancellationToken);
 

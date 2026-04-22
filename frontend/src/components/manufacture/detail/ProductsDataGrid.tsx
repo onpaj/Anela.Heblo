@@ -32,24 +32,35 @@ export const ProductsDataGrid: React.FC<ProductsDataGridProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {order.products.map((product: any, index: number) => (
-                <tr key={index} className="hover:bg-gray-50">
+              {order.products.map((product: any, index: number) => {
+                const isDirectRow = product.productCode === order.semiProduct?.productCode;
+                const unit = isDirectRow ? "g" : "ks";
+                return (
+                <tr key={index} className={isDirectRow ? "hover:bg-amber-50 bg-amber-50/40" : "hover:bg-gray-50"}>
                   <td className="px-4 py-3 text-sm font-medium text-gray-900">
                     {product.productCode || "-"}
+                    {isDirectRow && (
+                      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                        přímý
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">
                     {product.productName || "-"}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">
                     {canEditFields ? (
-                      <input
-                        type="number"
-                        value={editableProductQuantities[index] || ""}
-                        onChange={(e) => onProductQuantityChange(index, e.target.value)}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
-                        min="0"
-                        step="1"
-                      />
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          value={editableProductQuantities[index] || ""}
+                          onChange={(e) => onProductQuantityChange(index, e.target.value)}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded text-center"
+                          min="0"
+                          step="1"
+                        />
+                        <span className="text-xs text-gray-500">{unit}</span>
+                      </div>
                     ) : (
                       <div>
                         {(() => {
@@ -59,16 +70,16 @@ export const ProductsDataGrid: React.FC<ProductsDataGridProps> = ({
                           if (hasActual && hasPlanned && product.actualQuantity !== product.plannedQuantity) {
                             return (
                               <>
-                                {product.actualQuantity}
+                                {product.actualQuantity} {unit}
                                 <span className="text-xs text-gray-500 ml-1">
-                                  (plán: {product.plannedQuantity})
+                                  (plán: {product.plannedQuantity} {unit})
                                 </span>
                               </>
                             );
                           } else if (hasActual) {
-                            return product.actualQuantity;
+                            return <>{product.actualQuantity} {unit}</>;
                           } else if (hasPlanned) {
-                            return product.plannedQuantity;
+                            return <>{product.plannedQuantity} {unit}</>;
                           } else {
                             return "-";
                           }
@@ -77,7 +88,8 @@ export const ProductsDataGrid: React.FC<ProductsDataGridProps> = ({
                     )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

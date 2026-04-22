@@ -270,6 +270,115 @@ public class ResidueDistributionCalculatorTests
         productA.AdjustedGramsPerUnit.Should().Be(productA.AdjustedConsumption / productA.ActualPieces);
     }
 
+    [Fact]
+    public async Task CalculateAsync_WithDirectRow_SubtractsDirectGramsBeforeDistribution()
+    {
+        // actualSemiProduct = 4500g, direct row = 500g → effectiveActual = 4000g
+        // Product A: 30 × 100g = 3000g, Product B: 80 × 10g = 800g → theoretical = 3800g
+        // difference = 4000 - 3800 = 200g → 5.26% < 10%
+        var products = new[]
+        {
+            (ProductCodeA, "Product A", pieces: 30m, gramsPerUnit: 100.0),
+            (ProductCodeB, "Product B", pieces: 80m, gramsPerUnit: 10.0)
+        };
+        SetupTemplatesForProducts(products);
+        SetupCatalogWithThreshold(SemiProductCode, allowedResiduePercentage: 10.0);
+
+        var order = new UpdateManufactureOrderDto
+        {
+            SemiProduct = new UpdateManufactureOrderSemiProductDto
+            {
+                ProductCode = SemiProductCode,
+                ProductName = "Semi Product",
+                PlannedQuantity = 4500m,
+                ActualQuantity = 4500m
+            },
+            Products = new List<UpdateManufactureOrderProductDto>
+            {
+                // direct semiproduct output row
+                new UpdateManufactureOrderProductDto
+                {
+                    ProductCode = SemiProductCode,
+                    ProductName = "Semi Product",
+                    SemiProductCode = SemiProductCode,
+                    PlannedQuantity = 500m,
+                    ActualQuantity = 500m
+                },
+                new UpdateManufactureOrderProductDto
+                {
+                    ProductCode = ProductCodeA,
+                    ProductName = "Product A",
+                    SemiProductCode = SemiProductCode,
+                    PlannedQuantity = 30m,
+                    ActualQuantity = 30m
+                },
+                new UpdateManufactureOrderProductDto
+                {
+                    ProductCode = ProductCodeB,
+                    ProductName = "Product B",
+                    SemiProductCode = SemiProductCode,
+                    PlannedQuantity = 80m,
+                    ActualQuantity = 80m
+                }
+            }
+        };
+
+        var result = await _calculator.CalculateAsync(order);
+
+        result.IsWithinAllowedThreshold.Should().BeTrue();
+        result.ActualSemiProductQuantity.Should().Be(4000m);  // 4500 - 500 direct
+        result.TheoreticalConsumption.Should().Be(3800m);
+        result.Difference.Should().Be(200m);
+        result.Products.Should().HaveCount(2);
+        result.Products.Sum(p => p.AdjustedConsumption).Should().Be(4000m);
+
+        // Direct row must not appear in distributions
+        result.Products.Should().NotContain(p => p.ProductCode == SemiProductCode);
+
+        // GetManufactureTemplateAsync must NOT be called for the direct row
+        _manufactureClientMock.Verify(
+            x => x.GetManufactureTemplateAsync(SemiProductCode, It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_WithDirectRow_NoOtherProducts_ReturnsWithinThreshold()
+    {
+        // All non-semiproduct products have quantity 0; only direct row remains → should short-circuit
+        SetupCatalogWithThreshold(SemiProductCode, allowedResiduePercentage: 10.0);
+
+        var order = new UpdateManufactureOrderDto
+        {
+            SemiProduct = new UpdateManufactureOrderSemiProductDto
+            {
+                ProductCode = SemiProductCode,
+                ProductName = "Semi Product",
+                PlannedQuantity = 1000m,
+                ActualQuantity = 1000m
+            },
+            Products = new List<UpdateManufactureOrderProductDto>
+            {
+                new UpdateManufactureOrderProductDto
+                {
+                    ProductCode = SemiProductCode,
+                    ProductName = "Semi Product",
+                    SemiProductCode = SemiProductCode,
+                    PlannedQuantity = 1000m,
+                    ActualQuantity = 1000m
+                }
+            }
+        };
+
+        var result = await _calculator.CalculateAsync(order);
+
+        // all products are direct row → early return
+        result.IsWithinAllowedThreshold.Should().BeTrue();
+        result.Products.Should().BeEmpty();
+        _manufactureClientMock.Verify(
+            x => x.GetManufactureTemplateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     // ---- Helpers ----
 
     private UpdateManufactureOrderDto BuildOrder(

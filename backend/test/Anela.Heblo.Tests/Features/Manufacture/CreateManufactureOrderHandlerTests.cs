@@ -414,6 +414,111 @@ public class CreateManufactureOrderHandlerTests
             .WithMessage("Order number generation failed");
     }
 
+    [Fact]
+    public async Task Handle_WithDirectSemiproductAmount_ShouldAppendDirectRow()
+    {
+        var request = CreateValidRequest();
+        request.ManufactureType = ManufactureType.MultiPhase;
+        request.DirectSemiproductAmount = 250.0;
+
+        ManufactureOrder? capturedOrder = null;
+
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
+
+        _repositoryMock
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GeneratedOrderNumber);
+
+        _repositoryMock
+            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
+            {
+                capturedOrder = order;
+                order.Id = 1;
+                return order;
+            });
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        capturedOrder.Should().NotBeNull();
+        // 1 regular product + 1 direct row
+        capturedOrder!.Products.Should().HaveCount(2);
+
+        var directRow = capturedOrder.Products.First(p => p.ProductCode == ValidProductCode);
+        directRow.ProductCode.Should().Be(ValidProductCode);
+        directRow.SemiProductCode.Should().Be(ValidProductCode);
+        directRow.PlannedQuantity.Should().Be(250.0m);
+        directRow.ActualQuantity.Should().Be(250.0m);
+    }
+
+    [Fact]
+    public async Task Handle_WithNullDirectSemiproductAmount_ShouldNotAppendDirectRow()
+    {
+        var request = CreateValidRequest();
+        request.ManufactureType = ManufactureType.MultiPhase;
+        request.DirectSemiproductAmount = null;
+
+        ManufactureOrder? capturedOrder = null;
+
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
+
+        _repositoryMock
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GeneratedOrderNumber);
+
+        _repositoryMock
+            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
+            {
+                capturedOrder = order;
+                order.Id = 1;
+                return order;
+            });
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        capturedOrder.Should().NotBeNull();
+        capturedOrder!.Products.Should().HaveCount(1);
+        capturedOrder.Products.Should().NotContain(p => p.ProductCode == ValidProductCode);
+    }
+
+    [Fact]
+    public async Task Handle_SinglePhase_WithDirectSemiproductAmount_ShouldNotAppendDirectRow()
+    {
+        var request = CreateValidRequest();
+        request.ManufactureType = ManufactureType.SinglePhase;
+        request.DirectSemiproductAmount = 250.0;
+
+        ManufactureOrder? capturedOrder = null;
+
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
+
+        _repositoryMock
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GeneratedOrderNumber);
+
+        _repositoryMock
+            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
+            {
+                capturedOrder = order;
+                order.Id = 1;
+                return order;
+            });
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        capturedOrder.Should().NotBeNull();
+        // Only the regular product — no direct row for SinglePhase
+        capturedOrder!.Products.Should().HaveCount(1);
+    }
+
     private static CreateManufactureOrderRequest CreateValidRequest()
     {
         return new CreateManufactureOrderRequest
