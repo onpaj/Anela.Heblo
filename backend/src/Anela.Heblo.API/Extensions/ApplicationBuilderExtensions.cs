@@ -115,6 +115,10 @@ public static class ApplicationBuilderExtensions
 
         app.MapControllers();
 
+        // MCP bad-request diagnostics — blocks probes without valid Accept header (returns 404)
+        // and logs structured context for GET /mcp 400 responses to identify bad clients (#593).
+        app.UseMiddleware<McpBadRequestMiddleware>();
+
         // MCP diagnostics — logs structured context for GET /mcp 404 responses to
         // aid investigation of session-resumption failures (issue #599).
         app.UseMiddleware<McpDiagnosticsMiddleware>();
@@ -178,6 +182,24 @@ public static class ApplicationBuilderExtensions
         // SPA fallback - must be after MapControllers
         if (!app.Environment.IsDevelopment())
         {
+            // Reject non-GET/HEAD requests before the SPA fallback to avoid a 500 when
+            // index.html is absent (e.g. scanners POSTing to /index.html). Standards-
+            // compliant clients receive 405 Method Not Allowed instead of an unhandled exception.
+            app.Use(async (context, next) =>
+            {
+                // Only reject non-GET/HEAD when no endpoint matched this request.
+                // If an API controller matched, context.GetEndpoint() is non-null here
+                // (UseRouting already ran), so we let it through.
+                if (context.GetEndpoint() is null &&
+                    !HttpMethods.IsGet(context.Request.Method) &&
+                    !HttpMethods.IsHead(context.Request.Method))
+                {
+                    context.Response.StatusCode = StatusCodes.Status405MethodNotAllowed;
+                    return;
+                }
+                await next();
+            });
+
             app.UseSpa(spa =>
             {
                 spa.Options.SourcePath = "wwwroot";
