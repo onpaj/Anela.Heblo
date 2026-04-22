@@ -2,14 +2,13 @@ namespace Anela.Heblo.Adapters.MetaAds;
 
 public class MetaAdsSettings
 {
-    public const string ConfigurationKey = "MetaAds";
+    public static string ConfigKey => "MetaAds";
 
-    /// <summary>Ad account ID in the form "act_123456789".</summary>
-    public string AdAccountId { get; set; } = string.Empty;
-
-    /// <summary>System User token from Meta Business Manager. Store in secrets.json / Key Vault.</summary>
-    public string AccessToken { get; set; } = string.Empty;
-
-    /// <summary>Graph API version, e.g. "v21.0".</summary>
+    public string AccessToken { get; set; } = null!;
+    public string AccountId { get; set; } = null!;
     public string ApiVersion { get; set; } = "v21.0";
+    public string BaseUrl { get; set; } = "https://graph.facebook.com";
+
+    /// <summary>Number of days back to sync daily metrics (default 30).</summary>
+    public int SyncDaysBack { get; set; } = 30;
 }

@@ -87,6 +87,7 @@ public class ApplicationDbContext : DbContext
     // Marketing Invoices module
     public DbSet<ImportedMarketingTransaction> ImportedMarketingTransactions { get; set; } = null!;
 
+
     // Campaigns module
     public DbSet<AdCampaign> AdCampaigns { get; set; } = null!;
     public DbSet<AdAdSet> AdAdSets { get; set; } = null!;
