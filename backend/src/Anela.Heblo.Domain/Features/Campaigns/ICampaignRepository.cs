@@ -1,3 +1,5 @@
+using Anela.Heblo.Domain.Features.Campaigns.Dtos;
+
 namespace Anela.Heblo.Domain.Features.Campaigns;
 
 public interface ICampaignRepository
@@ -12,7 +14,10 @@ public interface ICampaignRepository
     Task AddSyncLogAsync(AdSyncLog log, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 
-    // Query stubs (implemented in plan 4)
-    Task<List<AdCampaign>> GetCampaignsByPlatformAsync(AdPlatform platform, CancellationToken ct = default);
-    Task<List<AdDailyMetric>> GetMetricsByDateRangeAsync(DateTime from, DateTime to, CancellationToken ct = default);
+    // Query methods
+    Task<IReadOnlyList<AdCampaign>> GetCampaignsByPlatformAsync(AdPlatform platform, CancellationToken ct = default);
+    Task<IReadOnlyList<AdDailyMetric>> GetMetricsByDateRangeAsync(DateTime from, DateTime to, CancellationToken ct = default);
+    Task<CampaignDashboardDto> GetDashboardAsync(DateOnly from, DateOnly to, AdPlatform? platform, CancellationToken ct = default);
+    Task<IReadOnlyList<CampaignSummaryDto>> GetCampaignListAsync(DateOnly from, DateOnly to, AdPlatform? platform, CancellationToken ct = default);
+    Task<CampaignDetailDto> GetCampaignDetailAsync(Guid campaignId, DateOnly from, DateOnly to, CancellationToken ct = default);
 }
