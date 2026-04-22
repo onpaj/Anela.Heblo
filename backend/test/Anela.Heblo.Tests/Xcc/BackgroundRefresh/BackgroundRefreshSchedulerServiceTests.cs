@@ -298,7 +298,10 @@ public class BackgroundRefreshSchedulerServiceTests
         await _orchestrator.WaitForHydrationCompletionAsync();
 
         var schedulerTask = scheduler.StartAsync(cts.Token);
-        await Task.Delay(100);
+
+        // ExecuteAsync exits immediately when all tasks are disabled (no loops to wait on).
+        // Give it time to run before asserting — consistent with the other tests in this class.
+        await Task.Delay(200);
 
         cts.Cancel();
         await Task.WhenAll(orchestratorTask, schedulerTask);
