@@ -119,4 +119,82 @@ public class InvoiceDqtJobRunnerTests
         Assert.Equal(DqtRunStatus.Failed, run.Status);
         _repositoryMock.Verify(r => r.UpdateAsync(run, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task RunForDateRangeAsync_CreatesRunAddsAndExecutes_ReturnsRunId()
+    {
+        // Arrange
+        var result = new InvoiceDqtComparisonResult
+        {
+            TotalChecked = 7,
+            Mismatches = new List<InvoiceDqtMismatch>()
+        };
+        _comparerMock.Setup(c => c.CompareAsync(From, To, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
+        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<DqtRun>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DqtRun r, CancellationToken _) => r);
+        _repositoryMock.Setup(r => r.UpdateAsync(It.IsAny<DqtRun>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var runId = await _sut.RunForDateRangeAsync(From, To, DqtTriggerType.Scheduled);
+
+        // Assert
+        Assert.NotEqual(Guid.Empty, runId);
+        _repositoryMock.Verify(r => r.AddAsync(It.Is<DqtRun>(r =>
+            r.DateFrom == From && r.DateTo == To && r.TriggerType == DqtTriggerType.Scheduled), It.IsAny<CancellationToken>()), Times.Once);
+        _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<DqtRun>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RunForDateRangeAsync_CompletesRun_StatusIsCompleted()
+    {
+        // Arrange
+        var mismatches = new List<InvoiceDqtMismatch>
+        {
+            new() { InvoiceCode = "INV-999", MismatchType = InvoiceMismatchType.TotalWithVatDiffers, ShoptetValue = "200", FlexiValue = "205", Details = "Differs" }
+        };
+        var result = new InvoiceDqtComparisonResult { TotalChecked = 3, Mismatches = mismatches };
+        _comparerMock.Setup(c => c.CompareAsync(From, To, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
+        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<DqtRun>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DqtRun r, CancellationToken _) => r);
+
+        DqtRun? capturedRun = null;
+        _repositoryMock.Setup(r => r.UpdateAsync(It.IsAny<DqtRun>(), It.IsAny<CancellationToken>()))
+            .Callback<DqtRun, CancellationToken>((r, _) => capturedRun = r)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _sut.RunForDateRangeAsync(From, To, DqtTriggerType.Scheduled);
+
+        // Assert
+        Assert.NotNull(capturedRun);
+        Assert.Equal(DqtRunStatus.Completed, capturedRun!.Status);
+        Assert.Equal(3, capturedRun.TotalChecked);
+        Assert.Equal(1, capturedRun.TotalMismatches);
+    }
+
+    [Fact]
+    public async Task RunForDateRangeAsync_ComparerThrows_FailsRun()
+    {
+        // Arrange
+        _comparerMock.Setup(c => c.CompareAsync(From, To, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new Exception("Service unavailable"));
+        _repositoryMock.Setup(r => r.AddAsync(It.IsAny<DqtRun>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DqtRun r, CancellationToken _) => r);
+
+        DqtRun? capturedRun = null;
+        _repositoryMock.Setup(r => r.UpdateAsync(It.IsAny<DqtRun>(), It.IsAny<CancellationToken>()))
+            .Callback<DqtRun, CancellationToken>((r, _) => capturedRun = r)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _sut.RunForDateRangeAsync(From, To, DqtTriggerType.Scheduled);
+
+        // Assert
+        Assert.NotNull(capturedRun);
+        Assert.Equal(DqtRunStatus.Failed, capturedRun!.Status);
+        _repositoryMock.Verify(r => r.UpdateAsync(It.IsAny<DqtRun>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

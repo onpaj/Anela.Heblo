@@ -28,8 +28,21 @@ public class InvoiceDqtJobRunner : IInvoiceDqtJobRunner
             return;
         }
 
+        await ExecuteRunAsync(run, cancellationToken);
+    }
+
+    public async Task<Guid> RunForDateRangeAsync(DateOnly from, DateOnly to, DqtTriggerType triggerType, CancellationToken cancellationToken = default)
+    {
+        var run = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, from, to, triggerType);
+        run = await _repository.AddAsync(run, cancellationToken);
+        await ExecuteRunAsync(run, cancellationToken);
+        return run.Id;
+    }
+
+    private async Task ExecuteRunAsync(DqtRun run, CancellationToken cancellationToken)
+    {
         _logger.LogInformation("Starting DQT run {DqtRunId} ({TestType}) for {DateFrom} to {DateTo}",
-            dqtRunId, run.TestType, run.DateFrom, run.DateTo);
+            run.Id, run.TestType, run.DateFrom, run.DateTo);
 
         try
         {
@@ -50,11 +63,11 @@ public class InvoiceDqtJobRunner : IInvoiceDqtJobRunner
             await _repository.UpdateAsync(run, cancellationToken);
 
             _logger.LogInformation("DQT run {DqtRunId} completed: {Checked} checked, {Mismatches} mismatches",
-                dqtRunId, result.TotalChecked, result.Mismatches.Count);
+                run.Id, result.TotalChecked, result.Mismatches.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "DQT run {DqtRunId} failed", dqtRunId);
+            _logger.LogError(ex, "DQT run {DqtRunId} failed", run.Id);
             run.Fail(ex.Message);
             await _repository.UpdateAsync(run, cancellationToken);
         }

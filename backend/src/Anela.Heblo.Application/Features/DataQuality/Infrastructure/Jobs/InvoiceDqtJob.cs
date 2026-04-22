@@ -7,27 +7,24 @@ namespace Anela.Heblo.Application.Features.DataQuality.Infrastructure.Jobs;
 
 public class InvoiceDqtJob : IRecurringJob
 {
-    private readonly IDqtRunRepository _repository;
     private readonly IInvoiceDqtJobRunner _jobRunner;
     private readonly IRecurringJobStatusChecker _statusChecker;
     private readonly ILogger<InvoiceDqtJob> _logger;
 
     public RecurringJobMetadata Metadata { get; } = new()
     {
-        JobName = "daily-invoice-dqt",
-        DisplayName = "Daily Invoice Data Quality Test",
-        Description = "Compares issued invoices between Shoptet and ABRA Flexi for the previous day",
-        CronExpression = "0 5 * * *", // Daily at 5:00 AM
+        JobName = "weekly-invoice-dqt",
+        DisplayName = "Weekly Invoice DQT (Shoptet ↔ Flexi)",
+        Description = "Compares issued invoices between Shoptet and ABRA Flexi for the previous complete week (Mon–Sun)",
+        CronExpression = "0 21 * * 1", // Monday at 21:00 UTC = 23:00 CEST
         DefaultIsEnabled = true
     };
 
     public InvoiceDqtJob(
-        IDqtRunRepository repository,
         IInvoiceDqtJobRunner jobRunner,
         IRecurringJobStatusChecker statusChecker,
         ILogger<InvoiceDqtJob> logger)
     {
-        _repository = repository;
         _jobRunner = jobRunner;
         _statusChecker = statusChecker;
         _logger = logger;
@@ -41,13 +38,14 @@ public class InvoiceDqtJob : IRecurringJob
             return;
         }
 
-        var yesterday = DateOnly.FromDateTime(DateTime.Today.AddDays(-1));
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        var daysToLastMonday = ((int)today.DayOfWeek + 6) % 7 + 7;
+        var lastMonday = today.AddDays(-daysToLastMonday);
+        var lastSunday = lastMonday.AddDays(6);
 
-        _logger.LogInformation("Starting {JobName} for {Date}", Metadata.JobName, yesterday);
+        _logger.LogInformation("Starting {JobName} for week {DateFrom} to {DateTo}",
+            Metadata.JobName, lastMonday, lastSunday);
 
-        var run = DqtRun.Start(DqtTestType.IssuedInvoiceComparison, yesterday, yesterday, DqtTriggerType.Scheduled);
-        await _repository.AddAsync(run, cancellationToken);
-
-        await _jobRunner.RunAsync(run.Id, cancellationToken);
+        await _jobRunner.RunForDateRangeAsync(lastMonday, lastSunday, DqtTriggerType.Scheduled, cancellationToken);
     }
 }
