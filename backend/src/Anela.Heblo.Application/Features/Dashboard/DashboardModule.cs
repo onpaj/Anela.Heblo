@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Dashboard.Tiles;
+using Anela.Heblo.Application.Features.DataQuality.DashboardTiles;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,6 +13,7 @@ public static class DashboardModule
 
         // Register dashboard tiles
         services.RegisterTile<PurchaseOrdersInTransitTile>();
+        services.RegisterTile<DataQualityStatusTile>();
 
         return services;
     }
