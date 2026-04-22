@@ -92,6 +92,9 @@ public class GoogleAdsClientWrapper : IGoogleAdsClientDomain
 
     public async Task<IReadOnlyList<GoogleAdGroupDto>> GetAdGroupsAsync(string campaignId, CancellationToken ct = default)
     {
+        if (!long.TryParse(campaignId, out _))
+            throw new ArgumentException($"Invalid campaignId: {campaignId}", nameof(campaignId));
+
         var (service, customerId) = CreateService();
 
         var query = $"""
@@ -131,11 +134,16 @@ public class GoogleAdsClientWrapper : IGoogleAdsClientDomain
             }
         }
 
+        _logger.LogDebug("GoogleAds: fetched {Count} ad groups for campaign {CampaignId}", results.Count, campaignId);
+
         return results;
     }
 
     public async Task<IReadOnlyList<GoogleAdDto>> GetAdsAsync(string adGroupId, CancellationToken ct = default)
     {
+        if (!long.TryParse(adGroupId, out _))
+            throw new ArgumentException($"Invalid adGroupId: {adGroupId}", nameof(adGroupId));
+
         var (service, customerId) = CreateService();
 
         var query = $"""
@@ -173,6 +181,8 @@ public class GoogleAdsClientWrapper : IGoogleAdsClientDomain
             }
         }
 
+        _logger.LogDebug("GoogleAds: fetched {Count} ads for ad group {AdGroupId}", results.Count, adGroupId);
+
         return results;
     }
 
@@ -182,6 +192,9 @@ public class GoogleAdsClientWrapper : IGoogleAdsClientDomain
         DateTime until,
         CancellationToken ct = default)
     {
+        if (!long.TryParse(adId, out _))
+            throw new ArgumentException($"Invalid adId: {adId}", nameof(adId));
+
         var (service, customerId) = CreateService();
 
         var fromStr = since.ToString("yyyy-MM-dd");
@@ -234,6 +247,8 @@ public class GoogleAdsClientWrapper : IGoogleAdsClientDomain
                 });
             }
         }
+
+        _logger.LogDebug("GoogleAds: fetched {Count} metric rows for ad {AdId}", results.Count, adId);
 
         return results;
     }
