@@ -7,10 +7,13 @@ using Anela.Heblo.Adapters.MetaAds;
 using Anela.Heblo.Adapters.Flexi;
 using Anela.Heblo.Adapters.OpenAI;
 using Anela.Heblo.Adapters.Shoptet;
+using Anela.Heblo.Adapters.Shoptet.Playwright;
 using Anela.Heblo.Adapters.ShoptetApi;
+using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application;
+using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Services.Dashboard;
@@ -21,6 +24,12 @@ public partial class Program
 {
     public static async Task Main(string[] args)
     {
+        // Server APIs must not depend on the OS locale for number/date formatting.
+        // The FlexiBee SDK (and other third-party XML/JSON serializers) call decimal.ToString()
+        // without explicit culture, which produces "1,000" instead of "1.000" on Czech OS.
+        System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+        System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
+
         var builder = WebApplication.CreateBuilder(args);
 
         // Add User Secrets for Development, Test, Staging, and Production environments
@@ -64,11 +73,28 @@ public partial class Program
         builder.Services.AddOpenAiAdapter(builder.Configuration);
         builder.Services.AddSendGridAdapter(builder.Configuration);
 
+        // Bind IIssuedInvoiceSource to the implementation selected by Invoices:Source config flag.
+        // Valid values: "RestApi" | "Playwright" (default)
+        var invoicesSource = builder.Configuration["Invoices:Source"] ?? "Playwright";
+        if (string.Equals(invoicesSource, "RestApi", StringComparison.OrdinalIgnoreCase))
+        {
+            builder.Services.AddSingleton<IIssuedInvoiceSource>(
+                sp => sp.GetRequiredService<ShoptetApiInvoiceSource>());
+        }
+        else
+        {
+            builder.Services.AddSingleton<IIssuedInvoiceSource>(
+                sp => sp.GetRequiredService<ShoptetPlaywrightInvoiceSource>());
+        }
+
         // Print queue sink — valid values: "FileSystem" (default), "AzureBlob", "Cups", "Combined"
         builder.Services.AddPrintQueueSink(builder.Configuration);
 
         // MCP server
         builder.Services.AddMcpServices();
+
+        // Request timeouts — required for .WithRequestTimeout() on MCP and other endpoints
+        builder.Services.AddRequestTimeouts();
 
         // Hangfire background jobs
         builder.Services.AddHangfireServices(builder.Configuration, builder.Environment);

@@ -588,6 +588,10 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AdapterResponse")
+                        .HasColumnType("text")
+                        .HasColumnName("AdapterResponse");
+
                     b.Property<string>("Data")
                         .HasColumnType("text")
                         .HasColumnName("Data");
@@ -787,6 +791,9 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("DocumentId");
 
+                    b.HasIndex("DocumentId", "ChunkIndex")
+                        .HasDatabaseName("ix_knowledgebase_chunks_document_chunk");
+
                     b.ToTable("KnowledgeBaseChunks", "dbo");
                 });
 
@@ -841,6 +848,9 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("ContentType")
+                        .HasDatabaseName("ix_knowledgebase_documents_contenttype");
 
                     b.ToTable("KnowledgeBaseDocuments", "dbo");
                 });
@@ -1216,6 +1226,9 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("OrderNumber")
                         .IsUnique()
                         .HasDatabaseName("IX_ManufactureOrders_OrderNumber");
+
+                    b.HasIndex("PlannedDate")
+                        .HasDatabaseName("IX_ManufactureOrders_PlannedDate");
 
                     b.HasIndex("ResponsiblePerson")
                         .HasDatabaseName("IX_ManufactureOrders_ResponsiblePerson");

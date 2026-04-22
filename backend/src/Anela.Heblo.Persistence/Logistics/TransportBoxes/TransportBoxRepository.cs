@@ -165,4 +165,29 @@ public class TransportBoxRepository : BaseRepository<TransportBox, int>, ITransp
 
         return receivedBoxes;
     }
+
+    public async Task<Dictionary<TransportBoxState, int>> GetStateSummaryAsync(
+        string? code = null,
+        string? productCode = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = DbSet.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(code))
+        {
+            query = query.Where(x => x.Code != null && x.Code.ToUpper().Contains(code.ToUpper()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(productCode))
+        {
+            query = query.Where(x => x.Items.Any(item => item.ProductCode != null && item.ProductCode.ToUpper().Contains(productCode.ToUpper())));
+        }
+
+        var counts = await query
+            .GroupBy(x => x.State)
+            .Select(g => new { State = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        return counts.ToDictionary(x => x.State, x => x.Count);
+    }
 }

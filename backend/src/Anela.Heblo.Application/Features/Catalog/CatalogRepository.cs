@@ -7,6 +7,7 @@ using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
+using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
@@ -32,6 +33,7 @@ public class CatalogRepository : ICatalogRepository
     private readonly ILotsClient _lotsClient;
     private readonly IProductPriceEshopClient _productPriceEshopClient;
     private readonly IProductPriceErpClient _productPriceErpClient;
+    private readonly IProductEshopUrlClient _productEshopUrlClient;
     private readonly ITransportBoxRepository _transportBoxRepository;
     private readonly IStockTakingRepository _stockTakingRepository;
     private readonly IManufactureClient _manufactureClient;
@@ -67,6 +69,7 @@ public class CatalogRepository : ICatalogRepository
         ILotsClient lotsClient,
         IProductPriceEshopClient productPriceEshopClient,
         IProductPriceErpClient productPriceErpClient,
+        IProductEshopUrlClient productEshopUrlClient,
         ITransportBoxRepository transportBoxRepository,
         IStockTakingRepository stockTakingRepository,
         IManufactureClient manufactureClient,
@@ -91,6 +94,7 @@ public class CatalogRepository : ICatalogRepository
         _lotsClient = lotsClient;
         _productPriceEshopClient = productPriceEshopClient;
         _productPriceErpClient = productPriceErpClient;
+        _productEshopUrlClient = productEshopUrlClient;
         _transportBoxRepository = transportBoxRepository;
         _stockTakingRepository = stockTakingRepository;
         _manufactureClient = manufactureClient ?? throw new ArgumentNullException(nameof(manufactureClient));
@@ -139,12 +143,19 @@ public class CatalogRepository : ICatalogRepository
 
     public async Task RefreshSalesData(CancellationToken ct)
     {
-        CachedSalesData = await _resilienceService.ExecuteWithResilienceAsync(
-            async (cancellationToken) => await _salesClient.GetAsync(
-                _timeProvider.GetUtcNow().Date.AddDays(-1 * _options.Value.SalesHistoryDays),
-                _timeProvider.GetUtcNow().Date,
-                cancellationToken: cancellationToken),
-            "RefreshSalesData", ct);
+        try
+        {
+            CachedSalesData = await _resilienceService.ExecuteWithResilienceAsync(
+                async (cancellationToken) => await _salesClient.GetAsync(
+                    _timeProvider.GetUtcNow().Date.AddDays(-1 * _options.Value.SalesHistoryDays),
+                    _timeProvider.GetUtcNow().Date,
+                    cancellationToken: cancellationToken),
+                "RefreshSalesData", ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "RefreshSalesData failed after all retries — retaining stale cache. Items in cache: {Count}", CachedSalesData.Count);
+        }
     }
 
     public async Task RefreshAttributesData(CancellationToken ct)
@@ -198,6 +209,11 @@ public class CatalogRepository : ICatalogRepository
     public async Task RefreshErpPricesData(CancellationToken ct)
     {
         CachedErpPriceData = (await _productPriceErpClient.GetAllAsync(false, ct)).ToList();
+    }
+
+    public async Task RefreshEshopUrlData(CancellationToken ct)
+    {
+        CachedEshopUrlData = (await _productEshopUrlClient.GetAllAsync(ct)).ToList();
     }
 
     public async Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct)
@@ -346,6 +362,7 @@ public class CatalogRepository : ICatalogRepository
             .ToDictionary(k => k.Key, v => v.ToList());
         var eshopPriceMap = CachedEshopPriceData.ToDictionary(k => k.ProductCode, v => v);
         var erpPriceMap = CachedErpPriceData.ToDictionary(k => k.ProductCode, v => v);
+        var eshopUrlMap = CachedEshopUrlData.ToDictionary(k => k.ProductCode, v => v.Url);
 
         foreach (var product in products)
         {
@@ -435,6 +452,11 @@ public class CatalogRepository : ICatalogRepository
             if (erpPriceMap.TryGetValue(product.ProductCode, out var erpPrice))
             {
                 product.ErpPrice = erpPrice;
+            }
+
+            if (eshopUrlMap.TryGetValue(product.ProductCode, out var eshopUrl))
+            {
+                product.Url = eshopUrl;
             }
 
             // Set ManufactureDifficultySettings with historical data and current value
@@ -709,6 +731,17 @@ public class CatalogRepository : ICatalogRepository
         }
     }
 
+    private IList<ProductEshopUrl> CachedEshopUrlData
+    {
+        get => _cache.Get<List<ProductEshopUrl>>(nameof(CachedEshopUrlData)) ?? new List<ProductEshopUrl>();
+        set
+        {
+            _cache.Set(nameof(CachedEshopUrlData), value);
+            InvalidateSourceData(nameof(CachedEshopUrlData));
+            SetLoadDateInCache(nameof(CachedEshopUrlData));
+        }
+    }
+
     [Obsolete($"{nameof(IMarginCalculationService)} should be used instead")]
     private IDictionary<string, List<ManufactureCost>> CachedManufactureCostData
     {
@@ -749,6 +782,7 @@ public class CatalogRepository : ICatalogRepository
     public DateTime? LotsLoadDate => GetLoadDateFromCache(nameof(CachedLotsData));
     public DateTime? EshopPricesLoadDate => GetLoadDateFromCache(nameof(CachedEshopPriceData));
     public DateTime? ErpPricesLoadDate => GetLoadDateFromCache(nameof(CachedErpPriceData));
+    public DateTime? EshopUrlLoadDate => GetLoadDateFromCache(nameof(CachedEshopUrlData));
     public DateTime? ManufactureDifficultySettingsLoadDate => GetLoadDateFromCache(nameof(CachedManufactureDifficultySettingsData));
     public DateTime? ManufactureCostLoadDate => GetLoadDateFromCache(nameof(CachedManufactureCostData));
 
@@ -784,6 +818,7 @@ public class CatalogRepository : ICatalogRepository
                 LotsLoadDate,
                 EshopPricesLoadDate,
                 ErpPricesLoadDate,
+                EshopUrlLoadDate,
                 ManufactureDifficultySettingsLoadDate,
             };
 

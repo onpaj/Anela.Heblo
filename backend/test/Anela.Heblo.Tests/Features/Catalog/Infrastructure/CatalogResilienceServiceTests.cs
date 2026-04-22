@@ -57,12 +57,12 @@ public class CatalogResilienceServiceTests
         result.Should().Be(expectedResult);
         attemptCount.Should().Be(2); // First attempt failed, second succeeded
 
-        // Verify retry warning was logged
+        // Verify retry warning was logged with operation name
         _loggerMock.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Retrying operation")),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Retrying operation") && v.ToString()!.Contains(operationName)),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);

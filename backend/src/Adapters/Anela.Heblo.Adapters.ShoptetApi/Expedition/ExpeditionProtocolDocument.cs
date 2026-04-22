@@ -64,6 +64,22 @@ public class ExpeditionProtocolDocument : IDocument
                             $"{order.CustomerName}, {order.Address} {order.Phone}".Trim())
                             .FontSize(8);
 
+                        // Notes — shown only when at least one remark is present
+                        var hasCustomerRemark = !string.IsNullOrWhiteSpace(order.CustomerRemark);
+                        var hasEshopRemark = !string.IsNullOrWhiteSpace(order.EshopRemark);
+                        if (hasCustomerRemark || hasEshopRemark)
+                        {
+                            orderCol.Item().PaddingTop(2).Column(notesCol =>
+                            {
+                                if (hasCustomerRemark)
+                                    notesCol.Item().Text($"Poznámka zákazníka: {order.CustomerRemark}")
+                                        .FontSize(8).Italic();
+                                if (hasEshopRemark)
+                                    notesCol.Item().Text($"Interní poznámka: {order.EshopRemark}")
+                                        .FontSize(8).Italic();
+                            });
+                        }
+
                         orderCol.Item().PaddingTop(2);
 
                         // Items table

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { MessageSquare, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import {
   useKnowledgeBaseAskMutation,
@@ -110,8 +111,8 @@ const KnowledgeBaseAskTab: React.FC = () => {
 
       {ask.data && (
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-gray-800 whitespace-pre-wrap">{ask.data.answer}</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 prose prose-sm prose-blue max-w-none">
+            <ReactMarkdown>{ask.data.answer}</ReactMarkdown>
           </div>
           <SourceAccordion sources={ask.data.sources} onViewSource={handleViewSource} />
         </div>

@@ -14,28 +14,20 @@ public class GetTransportBoxSummaryHandler : IRequestHandler<GetTransportBoxSumm
 
     public async Task<GetTransportBoxSummaryResponse> Handle(GetTransportBoxSummaryRequest request, CancellationToken cancellationToken)
     {
-        var result = await _repository.GetPagedListAsync(
-            skip: 0,
-            take: int.MaxValue, // Get all for summary
+        var stateSummary = await _repository.GetStateSummaryAsync(
             code: request.Code,
-            state: null, // Don't filter by state for summary
             productCode: request.ProductCode,
-            sortBy: null,
-            sortDescending: false
-        );
+            cancellationToken: cancellationToken);
 
-        var allBoxes = result.items;
-        var totalBoxes = allBoxes.Count;
-        var activeBoxes = allBoxes.Count(b => b.State != TransportBoxState.Closed);
+        var totalBoxes = stateSummary.Values.Sum();
+        var activeBoxes = stateSummary
+            .Where(kv => kv.Key != TransportBoxState.Closed)
+            .Sum(kv => kv.Value);
 
-        var stateCounts = new Dictionary<string, int>();
-
-        // Count boxes by state
-        foreach (var state in Enum.GetValues<TransportBoxState>())
-        {
-            var count = allBoxes.Count(b => b.State == state);
-            stateCounts[state.ToString()] = count;
-        }
+        var stateCounts = Enum.GetValues<TransportBoxState>()
+            .ToDictionary(
+                state => state.ToString(),
+                state => stateSummary.GetValueOrDefault(state, 0));
 
         return new GetTransportBoxSummaryResponse
         {

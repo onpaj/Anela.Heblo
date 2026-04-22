@@ -454,14 +454,14 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                                           Zobrazit raw data z tohoto pokusu
                                         </summary>
                                         <pre className="mt-2 p-2 bg-white border rounded text-xs overflow-x-auto whitespace-pre-wrap font-mono text-gray-600 max-h-40">
-                                          {sync.data}
+                                          {(() => { try { return JSON.stringify(JSON.parse(sync.data), null, 2); } catch { return sync.data; } })()}
                                         </pre>
                                       </details>
                                     </div>
                                   )}
 
                                   {/* Synchronization result from external system */}
-                                  {sync.data && (
+                                  {sync.adapterResponse && (
                                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                                       <details className="text-sm">
                                         <summary className="font-medium text-blue-700 cursor-pointer hover:text-blue-900 mb-2">
@@ -470,48 +470,67 @@ const IssuedInvoiceDetailModal: React.FC<IssuedInvoiceDetailModalProps> = ({
                                         <div className="mt-2 space-y-2">
                                           {(() => {
                                             try {
-                                              const parsed = JSON.parse(sync.data);
-                                              return (
-                                                <div className="p-2 bg-white border rounded text-xs">
-                                                  <div className="space-y-1">
-                                                    {parsed.id && (
-                                                      <div>
-                                                        <span className="font-medium text-blue-700">ID faktury:</span>
-                                                        <span className="ml-2 font-mono">{parsed.id}</span>
-                                                      </div>
-                                                    )}
-                                                    {parsed.kod && (
-                                                      <div>
-                                                        <span className="font-medium text-blue-700">Kód faktury:</span>
-                                                        <span className="ml-2 font-mono">{parsed.kod}</span>
-                                                      </div>
-                                                    )}
-                                                    {parsed.datVyst && (
-                                                      <div>
-                                                        <span className="font-medium text-blue-700">Datum vystavení:</span>
-                                                        <span className="ml-2">{parsed.datVyst}</span>
-                                                      </div>
-                                                    )}
-                                                    {parsed.mena && (
-                                                      <div>
-                                                        <span className="font-medium text-blue-700">Měna:</span>
-                                                        <span className="ml-2">{parsed.mena}</span>
-                                                      </div>
-                                                    )}
-                                                    {parsed.nazFirmy && (
-                                                      <div>
-                                                        <span className="font-medium text-blue-700">Zákazník:</span>
-                                                        <span className="ml-2">{parsed.nazFirmy}</span>
-                                                      </div>
-                                                    )}
-                                                    {parsed.polozkyDokladu && Array.isArray(parsed.polozkyDokladu) && (
-                                                      <div>
-                                                        <span className="font-medium text-blue-700">Počet položek:</span>
-                                                        <span className="ml-2">{parsed.polozkyDokladu.length}</span>
-                                                      </div>
-                                                    )}
+                                              const parsed = JSON.parse(sync.adapterResponse!);
+                                              const winstrom = parsed?.winstrom;
+                                              const invoice = winstrom?.['vydana-faktura']?.[0];
+                                              const errors = winstrom?.errors;
+                                              if (errors && Array.isArray(errors) && errors.length > 0) {
+                                                return (
+                                                  <div className="p-2 bg-white border border-red-200 rounded text-xs space-y-1">
+                                                    {errors.map((e: { message?: string }, i: number) => (
+                                                      <div key={i} className="text-red-700">{e.message ?? JSON.stringify(e)}</div>
+                                                    ))}
                                                   </div>
-                                                </div>
+                                                );
+                                              }
+                                              if (invoice) {
+                                                return (
+                                                  <div className="p-2 bg-white border rounded text-xs">
+                                                    <div className="space-y-1">
+                                                      {invoice.id && (
+                                                        <div>
+                                                          <span className="font-medium text-blue-700">ID faktury:</span>
+                                                          <span className="ml-2 font-mono">{invoice.id}</span>
+                                                        </div>
+                                                      )}
+                                                      {invoice.kod && (
+                                                        <div>
+                                                          <span className="font-medium text-blue-700">Kód faktury:</span>
+                                                          <span className="ml-2 font-mono">{invoice.kod}</span>
+                                                        </div>
+                                                      )}
+                                                      {invoice.datVyst && (
+                                                        <div>
+                                                          <span className="font-medium text-blue-700">Datum vystavení:</span>
+                                                          <span className="ml-2">{invoice.datVyst}</span>
+                                                        </div>
+                                                      )}
+                                                      {invoice.mena && (
+                                                        <div>
+                                                          <span className="font-medium text-blue-700">Měna:</span>
+                                                          <span className="ml-2">{invoice.mena}</span>
+                                                        </div>
+                                                      )}
+                                                      {invoice.nazFirmy && (
+                                                        <div>
+                                                          <span className="font-medium text-blue-700">Zákazník:</span>
+                                                          <span className="ml-2">{invoice.nazFirmy}</span>
+                                                        </div>
+                                                      )}
+                                                      {invoice.polozkyDokladu && Array.isArray(invoice.polozkyDokladu) && (
+                                                        <div>
+                                                          <span className="font-medium text-blue-700">Počet položek:</span>
+                                                          <span className="ml-2">{invoice.polozkyDokladu.length}</span>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                );
+                                              }
+                                              return (
+                                                <pre className="p-2 bg-white border rounded text-xs overflow-x-auto whitespace-pre-wrap font-mono text-gray-600">
+                                                  {JSON.stringify(parsed, null, 2)}
+                                                </pre>
                                               );
                                             } catch {
                                               return (

@@ -12,6 +12,8 @@ public class ExpeditionOrder
     public string CustomerName { get; set; } = null!;
     public string Address { get; set; } = null!;
     public string Phone { get; set; } = null!;
+    public string? CustomerRemark { get; set; }
+    public string? EshopRemark { get; set; }
     public List<ExpeditionOrderItem> Items { get; set; } = new();
 }
 

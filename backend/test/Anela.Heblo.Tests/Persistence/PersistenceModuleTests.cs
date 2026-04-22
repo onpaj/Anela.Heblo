@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Npgsql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Infrastructure;
@@ -88,6 +89,46 @@ public class PersistenceModuleTests
         context.Should().NotBeNull();
     }
 
+    /// <summary>
+    /// Regression test: Database:MaxPoolSize configuration must be applied to NpgsqlDataSource.
+    ///
+    /// Bug: appsettings.Staging.json was missing Database:MaxPoolSize, leaving the Npgsql
+    /// connection pool uncapped (default 100). Under load, the pool exhausted the PostgreSQL
+    /// server's max_connections, causing PostgresException 53300 (too_many_connections).
+    ///
+    /// Fix: Add Database:MaxPoolSize to all environment appsettings files, and verify the
+    /// config value is correctly wired into NpgsqlDataSourceBuilder.ConnectionStringBuilder.MaxPoolSize.
+    /// </summary>
+    [Fact]
+    public void AddPersistenceServices_WithMaxPoolSizeConfigured_AppliesItToNpgsqlDataSource()
+    {
+        // Arrange
+        const int configuredMaxPoolSize = 20;
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["UseInMemoryDatabase"] = "false",
+                ["ConnectionStrings:Test"] = "Host=localhost;Database=test;Username=test;Password=test",
+                ["Database:MaxPoolSize"] = configuredMaxPoolSize.ToString()
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddPersistenceServices(configuration, new FakeHostEnvironment("Test"));
+
+        var provider = services.BuildServiceProvider();
+
+        // Act
+        var dataSource = provider.GetRequiredService<NpgsqlDataSource>();
+
+        // Assert
+        var csb = new NpgsqlConnectionStringBuilder(dataSource.ConnectionString);
+        csb.MaxPoolSize.Should().Be(configuredMaxPoolSize,
+            "Database:MaxPoolSize must be applied to NpgsqlDataSource to cap the connection pool " +
+            "and prevent PostgresException 53300 (too_many_connections)");
+    }
+
     [Fact]
     public void AddPersistenceServices_WithoutConnectionString_Throws()
     {
@@ -108,6 +149,41 @@ public class PersistenceModuleTests
 
         action.Should().Throw<Exception>()
             .WithMessage("*No connection string*");
+    }
+
+    /// <summary>
+    /// Regression test: Database:ConnectionIdleLifetime and Database:ConnectionPruningInterval
+    /// must be applied to the NpgsqlDataSource to reclaim idle connections faster after burst load.
+    /// See issue #592.
+    /// </summary>
+    [Fact]
+    public void AddPersistenceServices_WithIdleLifetimeSettings_AppliesThemToDataSource()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["UseInMemoryDatabase"] = "false",
+                ["ConnectionStrings:Test"] = "Host=localhost;Database=test;Username=user;Password=pass",
+                ["Database:ConnectionIdleLifetime"] = "60",
+                ["Database:ConnectionPruningInterval"] = "10"
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddPersistenceServices(configuration, new FakeHostEnvironment("Test"));
+
+        // Act
+        var provider = services.BuildServiceProvider();
+        var dataSource = provider.GetRequiredService<NpgsqlDataSource>();
+        var csb = new NpgsqlConnectionStringBuilder(dataSource.ConnectionString);
+
+        // Assert
+        csb.ConnectionIdleLifetime.Should().Be(60,
+            "Database:ConnectionIdleLifetime must be applied to reclaim idle connections faster after burst load");
+        csb.ConnectionPruningInterval.Should().Be(10,
+            "Database:ConnectionPruningInterval must be applied to control how often idle connections are pruned");
     }
 
     private sealed class FakeHostEnvironment : IHostEnvironment

@@ -46,10 +46,32 @@ public static class PersistenceModule
         if (!useInMemory && connectionString != "InMemory")
         {
             var maxPoolSize = configuration.GetValue<int?>("Database:MaxPoolSize");
+            var connectionIdleLifetime = configuration.GetValue<int?>("Database:ConnectionIdleLifetime");
+            var connectionPruningInterval = configuration.GetValue<int?>("Database:ConnectionPruningInterval");
+
             var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
             if (maxPoolSize.HasValue)
             {
                 dataSourceBuilder.ConnectionStringBuilder.MaxPoolSize = maxPoolSize.Value;
+            }
+
+            // Prune stale connections left over after a DB restart or maintenance window.
+            // Without these settings the pool holds dead sockets until the caller hits a
+            // SocketException (observed spike: 112 SocketExceptions in 24 h, 6.1× the
+            // 7-day average, coinciding with a pg_terminate_backend / server restart).
+            dataSourceBuilder.ConnectionStringBuilder.KeepAlive = 30;         // TCP keepalive every 30 s
+            dataSourceBuilder.ConnectionStringBuilder.ConnectionLifetime = 600; // retire any connection older than 10 min
+
+            // Reclaim idle connections faster after burst load to avoid holding
+            // connections that block other processes (e.g. migrations, Hangfire).
+            if (connectionIdleLifetime.HasValue)
+            {
+                dataSourceBuilder.ConnectionStringBuilder.ConnectionIdleLifetime = connectionIdleLifetime.Value;
+            }
+
+            if (connectionPruningInterval.HasValue)
+            {
+                dataSourceBuilder.ConnectionStringBuilder.ConnectionPruningInterval = connectionPruningInterval.Value;
             }
 
             dataSourceBuilder.UseVector();

@@ -118,6 +118,7 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             await connection.OpenAsync(ct);
 
         // Cosine distance: lower = more similar. Score = 1 - distance.
+        // CommandTimeout set to 120s — vector similarity search can be slow without a warm HNSW index.
         await using var cmd = new NpgsqlCommand(
             """
             SELECT c."Id", c."DocumentId", c."ChunkIndex", c."Content",
@@ -128,7 +129,10 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             ORDER BY c."Embedding" <=> @embedding
             LIMIT @topK
             """,
-            connection);
+            connection)
+        {
+            CommandTimeout = 120
+        };
 
         cmd.Parameters.AddWithValue("embedding", vector);
         cmd.Parameters.AddWithValue("topK", topK);

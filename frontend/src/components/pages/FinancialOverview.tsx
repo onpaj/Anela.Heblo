@@ -11,6 +11,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useFinancialOverviewQuery } from "../../api/hooks/useFinancialOverview";
+import { useDepartments } from "../../api/hooks/useDepartments";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 
 type PeriodType =
@@ -24,7 +25,10 @@ const FinancialOverview: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] =
     useState<PeriodType>("current-year");
   const [includeStockData, setIncludeStockData] = useState<boolean>(true);
+  const [includeCurrentMonth, setIncludeCurrentMonth] = useState<boolean>(false);
+  const [excludedDepartments, setExcludedDepartments] = useState<string[]>([]);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const initialDefaultsSet = React.useRef(false);
 
   React.useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -32,14 +36,31 @@ const FinancialOverview: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Convert period type to months for API call
+  const { data: departments } = useDepartments();
+
+  React.useEffect(() => {
+    if (departments && !initialDefaultsSet.current) {
+      initialDefaultsSet.current = true;
+      const buvol = departments.find((d) => d.name === "Buvol");
+      if (buvol) {
+        setExcludedDepartments([buvol.id]);
+      }
+    }
+  }, [departments]);
+
+  // Convert period type to months for API call.
+  // For "current-year" periods, we count completed months only (now.getMonth() = 0-indexed).
+  // The +1 for includeCurrentMonth is handled by the backend via the includeCurrentMonth flag,
+  // but we still need to pass the correct total month count.
   const getMonthsFromPeriod = (period: PeriodType): number => {
     const now = new Date();
+    const currentMonthOffset = includeCurrentMonth ? 1 : 0;
     switch (period) {
       case "current-year":
-        return now.getMonth() + 1; // Months from January to current month
+        // now.getMonth() is 0-indexed: 0=Jan, 3=Apr → completed months = getMonth()
+        return now.getMonth() + currentMonthOffset;
       case "current-and-previous-year":
-        return now.getMonth() + 1 + 12; // Current year months + 12 previous months
+        return now.getMonth() + currentMonthOffset + 12;
       case "last-6-months":
         return 6;
       case "last-13-months":
@@ -55,6 +76,8 @@ const FinancialOverview: React.FC = () => {
   const { data, isLoading, error, isRefetching } = useFinancialOverviewQuery(
     months,
     includeStockData,
+    excludedDepartments,
+    includeCurrentMonth,
   );
 
   const formatCurrency = (amount: number) => {
@@ -304,23 +327,76 @@ const FinancialOverview: React.FC = () => {
               >
                 Zobrazení dat:
               </label>
-              <div className="flex items-center">
-                <input
-                  id="stock-toggle"
-                  type="checkbox"
-                  checked={includeStockData}
-                  onChange={(e) => setIncludeStockData(e.target.checked)}
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label
-                  htmlFor="stock-toggle"
-                  className="ml-2 block text-sm text-gray-900 flex items-center"
-                >
-                  <Package className="w-4 h-4 mr-1" />
-                  Zahrnout skladová data
-                </label>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center">
+                  <input
+                    id="stock-toggle"
+                    type="checkbox"
+                    checked={includeStockData}
+                    onChange={(e) => setIncludeStockData(e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="stock-toggle"
+                    className="ml-2 block text-sm text-gray-900 flex items-center"
+                  >
+                    <Package className="w-4 h-4 mr-1" />
+                    Zahrnout skladová data
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    id="current-month-toggle"
+                    type="checkbox"
+                    checked={includeCurrentMonth}
+                    onChange={(e) => setIncludeCurrentMonth(e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label
+                    htmlFor="current-month-toggle"
+                    className="ml-2 block text-sm text-gray-900 flex items-center"
+                  >
+                    <Calendar className="w-4 h-4 mr-1" />
+                    Zobrazit aktuální měsíc
+                  </label>
+                </div>
               </div>
             </div>
+
+            {departments && departments.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Střediska:
+                </label>
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  {departments.map((department) => (
+                    <div key={department.id} className="flex items-center">
+                      <input
+                        id={`dept-${department.id}`}
+                        type="checkbox"
+                        checked={!excludedDepartments.includes(department.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setExcludedDepartments(prev =>
+                              prev.filter(id => id !== department.id)
+                            );
+                          } else {
+                            setExcludedDepartments(prev => [...prev, department.id]);
+                          }
+                        }}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <label
+                        htmlFor={`dept-${department.id}`}
+                        className="ml-2 block text-sm text-gray-900"
+                      >
+                        {department.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {isRefetching && (

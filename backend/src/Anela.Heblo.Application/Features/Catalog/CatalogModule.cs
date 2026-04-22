@@ -196,6 +196,11 @@ public static class CatalogModule
         );
 
         services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshEshopUrlData),
+            (r, ct) => r.RefreshEshopUrlData(ct)
+        );
+
+        services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshManufactureDifficultySettingsData),
             (r, ct) => r.RefreshManufactureDifficultySettingsData(null, ct)
         );
