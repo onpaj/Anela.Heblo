@@ -57,6 +57,7 @@ export interface IssuedInvoiceSyncHistoryDto {
   syncTime: string;
   isSuccess: boolean;
   data: string | null;
+  adapterResponse: string | null;
   error: {
     message: string;
     code?: string;

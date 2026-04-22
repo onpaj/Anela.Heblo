@@ -8,6 +8,7 @@ using Anela.Heblo.Domain.Features.Logistics.Picking;
 using Anela.Heblo.Xcc;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Anela.Heblo.Adapters.Shoptet.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Anela.Heblo.Tests")]
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 
@@ -233,6 +234,8 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             CustomerName = customerName,
             Address = address,
             Phone = detail.Phone ?? string.Empty,
+            CustomerRemark = detail.Notes?.CustomerRemark,
+            EshopRemark = detail.Notes?.EshopRemark,
             Items = MapOrderItems(detail),
         };
     }
@@ -249,7 +252,8 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
 
         foreach (var item in detail.Items)
         {
-            if (string.Equals(item.ItemType, "product", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(item.ItemType, "product", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(item.ItemType, "gift", StringComparison.OrdinalIgnoreCase))
             {
                 result.Add(new ExpeditionOrderItem
                 {
