@@ -81,8 +81,8 @@ public class ShoptetInvoiceClient : IShoptetInvoiceClient
 
     private static string BuildListUrl(DateTime? dateFrom, DateTime? dateTo, int page)
     {
-        var from = (dateFrom ?? DateTime.UtcNow.AddDays(-1)).ToString("s") + "Z";
-        var to = (dateTo ?? DateTime.UtcNow).ToString("s") + "Z";
+        var from = (dateFrom ?? DateTime.UtcNow.AddDays(-1)).Date.ToString("s") + "Z";
+        var to = (dateTo ?? DateTime.UtcNow).Date.AddDays(1).ToString("s") + "Z";
         return $"/api/invoices?creationTimeFrom={Uri.EscapeDataString(from)}&creationTimeTo={Uri.EscapeDataString(to)}&page={page}&itemsPerPage={DefaultItemsPerPage}";
     }
 }
