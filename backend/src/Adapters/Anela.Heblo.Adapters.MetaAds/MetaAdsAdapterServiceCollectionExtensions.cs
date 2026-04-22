@@ -23,6 +23,7 @@ public static class MetaAdsAdapterServiceCollectionExtensions
         })
         .AddHttpMessageHandler<MetaTokenRefreshHandler>();
 
+
         return services;
     }
 }

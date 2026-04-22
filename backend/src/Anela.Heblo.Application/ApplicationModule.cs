@@ -70,8 +70,8 @@ public static class ApplicationModule
         services.AddExpeditionListArchiveModule();
         services.AddShoptetOrdersModule(configuration);
         services.AddGridLayoutsModule();
-        services.AddMarketingInvoicesModule();
         services.AddCampaignsModule();
+        services.AddMarketingInvoicesModule();
         // services.AddOrdersModule();
 
         return services;

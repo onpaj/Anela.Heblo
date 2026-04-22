@@ -72,7 +72,6 @@ public partial class Program
         builder.Services.AddAnthropicAdapter(builder.Configuration);
         builder.Services.AddOpenAiAdapter(builder.Configuration);
         builder.Services.AddSendGridAdapter(builder.Configuration);
-        builder.Services.AddMetaAdsAdapter(builder.Configuration);
 
         // Bind IIssuedInvoiceSource to the implementation selected by Invoices:Source config flag.
         // Valid values: "RestApi" | "Playwright" (default)
