@@ -163,6 +163,7 @@ public class SyncGoogleAdsHandlerTests
         capturedLog.Should().NotBeNull();
         capturedLog!.Status.Should().Be(AdSyncStatus.Failed);
         capturedLog.ErrorMessage.Should().Contain(exceptionMessage);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.AtLeast(2));
     }
 
     [Fact]
