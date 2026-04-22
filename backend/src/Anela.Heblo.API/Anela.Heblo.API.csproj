@@ -55,6 +55,7 @@
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Azure\Anela.Heblo.Adapters.Azure.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Cups\Anela.Heblo.Adapters.Cups.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.SendGrid\Anela.Heblo.Adapters.SendGrid.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.MetaAds\Anela.Heblo.Adapters.MetaAds.csproj" />
         <ProjectReference Include="..\Anela.Heblo.Persistence\Anela.Heblo.Persistence.csproj" />
         <ProjectReference Include="..\Anela.Heblo.Xcc\Anela.Heblo.Xcc.csproj" />
     </ItemGroup>
