@@ -80,4 +80,9 @@ public class FlexiIssuedInvoiceClient : Anela.Heblo.Domain.Features.Invoices.IIs
             throw;
         }
     }
+
+    public Task<List<IssuedInvoiceDetail>> GetAllAsync(DateOnly from, DateOnly to, CancellationToken ct)
+    {
+        throw new NotImplementedException("GetAllAsync is blocked on FlexiBee SDK support.");
+    }
 }
