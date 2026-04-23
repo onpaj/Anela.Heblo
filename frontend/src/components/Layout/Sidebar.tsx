@@ -18,6 +18,7 @@ import {
   ExternalLink,
   FileText,
   Database,
+  TrendingUp,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
 import { useAuth } from "../../auth/useAuth";
@@ -294,6 +295,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         ...(hasRole('knowledge_base_manager')
           ? [{ id: 'kb-feedback', name: 'Feedback', href: '/knowledge-base/feedback' }]
           : []),
+      ],
+    },
+    {
+      id: 'marketing',
+      name: 'Marketing',
+      icon: TrendingUp,
+      type: 'section' as const,
+      items: [
+        { id: 'campaigns', name: 'Campaigns', href: '/campaigns' },
       ],
     },
   ];

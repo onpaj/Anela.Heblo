@@ -37,6 +37,7 @@ import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
+import CampaignsPage from "./components/pages/Campaigns/CampaignsPage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -457,6 +458,10 @@ function App() {
                         <Route
                           path="/knowledge-base/feedback"
                           element={<KnowledgeBaseFeedbackPage />}
+                        />
+                        <Route
+                          path="/campaigns"
+                          element={<CampaignsPage />}
                         />
                       </Routes>
                     </Layout>
