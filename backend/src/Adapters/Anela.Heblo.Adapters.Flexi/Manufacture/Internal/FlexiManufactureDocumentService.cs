@@ -307,6 +307,55 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
         return productionResult?.Result?.Results?.FirstOrDefault()?.Code;
     }
 
+    public async Task<string?> SubmitDirectSemiProductOutputAsync(
+        SubmitManufactureClientRequest request,
+        CancellationToken cancellationToken)
+    {
+        var warehouseId = FlexiStockClient.SemiProductsWarehouseId;
+        var stockItems = await _stockClient.StockToDateAsync(request.Date, warehouseId, cancellationToken);
+        var stockItem = stockItems.FirstOrDefault(s => s.ProductCode == request.DirectSemiProductOutputCode);
+        var unitPrice = stockItem != null ? (double)stockItem.Price : 0;
+
+        var amount = Math.Round((double)request.DirectSemiProductOutputAmount, 4);
+
+        var movementItem = new StockItemsMovementUpsertRequestItemFlexiDto
+        {
+            ProductCode = request.DirectSemiProductOutputCode!,
+            ProductName = request.DirectSemiProductOutputName ?? request.DirectSemiProductOutputCode!,
+            Amount = amount,
+            AmountIssued = amount,
+            LotNumber = request.LotNumber,
+            Expiration = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            UnitPrice = unitPrice,
+        };
+
+        var discardRequest = new StockItemsMovementUpsertRequestFlexiDto
+        {
+            CreatedBy = request.CreatedBy,
+            AccountingDate = request.Date,
+            IssueDate = request.Date,
+            StockItems = new List<StockItemsMovementUpsertRequestItemFlexiDto> { movementItem },
+            Description = request.ManufactureInternalNumber,
+            DocumentTypeCode = WarehouseDocumentType_OutboundSemiProduct,
+            StockMovementDirection = StockMovementDirection.Out,
+            Note = request.ManufactureOrderCode,
+            WarehouseId = warehouseId.ToString(),
+        };
+
+        var result = await _stockMovementClient.SaveAsync(discardRequest, cancellationToken);
+
+        if (result != null && !result.IsSuccess)
+        {
+            throw new FlexiManufactureException(
+                FlexiManufactureOperationKind.ConsumptionMovement,
+                "Failed to create discard stock movement for direct semiproduct output",
+                warehouseId: warehouseId,
+                rawFlexiError: result.GetErrorMessage());
+        }
+
+        return result?.Result?.Results?.FirstOrDefault()?.Code;
+    }
+
     private static string GetProductionDocumentType(ErpManufactureType manufactureType)
     {
         return manufactureType switch
