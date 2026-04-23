@@ -1,9 +1,10 @@
+using System.Net.Http.Headers;
 using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.MetaAds;
 
 /// <summary>
-/// DelegatingHandler that appends the Meta access_token query parameter to every request.
+/// DelegatingHandler that attaches the Meta access token as a Bearer Authorization header on every request.
 /// </summary>
 public class MetaTokenRefreshHandler : DelegatingHandler
 {
@@ -18,14 +19,7 @@ public class MetaTokenRefreshHandler : DelegatingHandler
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        if (request.RequestUri is not null)
-        {
-            var uriBuilder = new UriBuilder(request.RequestUri);
-            var query = uriBuilder.Query;
-            var separator = string.IsNullOrEmpty(query) ? "?" : "&";
-            uriBuilder.Query = (query.TrimStart('?') + separator + "access_token=" + Uri.EscapeDataString(_settings.AccessToken)).TrimStart('&');
-            request.RequestUri = uriBuilder.Uri;
-        }
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _settings.AccessToken);
 
         return base.SendAsync(request, cancellationToken);
     }

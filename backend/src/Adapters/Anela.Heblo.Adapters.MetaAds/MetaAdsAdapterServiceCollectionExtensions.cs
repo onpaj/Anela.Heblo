@@ -12,7 +12,9 @@ public static class MetaAdsAdapterServiceCollectionExtensions
         IConfiguration configuration)
     {
         services.AddOptions<MetaAdsSettings>()
-            .Bind(configuration.GetSection(MetaAdsSettings.ConfigKey));
+            .Bind(configuration.GetSection(MetaAdsSettings.ConfigKey))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         services.AddTransient<MetaTokenRefreshHandler>();
 
@@ -22,7 +24,6 @@ public static class MetaAdsAdapterServiceCollectionExtensions
             client.BaseAddress = new Uri(settings.BaseUrl);
         })
         .AddHttpMessageHandler<MetaTokenRefreshHandler>();
-
 
         return services;
     }
