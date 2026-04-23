@@ -455,7 +455,7 @@ public class CreateManufactureOrderHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithZeroDirectSemiproductAmount_ShouldNotAddVirtualDirectRow()
+    public async Task Handle_WithZeroDirectSemiproductAmount_ShouldAddVirtualDirectRowWithZeroQuantity()
     {
         // Arrange
         var request = CreateValidRequest();
@@ -466,10 +466,12 @@ public class CreateManufactureOrderHandlerTests
         // Act
         await _handler.Handle(request, CancellationToken.None);
 
-        // Assert: zero amount means no direct row is added — only the regular "PROD001" row
+        // Assert: zero amount still adds the direct row so it is visible in the order
+        // and can be edited after creation.
         capturedOrder.Value.Should().NotBeNull();
-        capturedOrder.Value!.Products.Should().HaveCount(1);
-        capturedOrder.Value.Products.Single().ProductCode.Should().Be("PROD001");
+        capturedOrder.Value!.Products.Should().HaveCount(2);
+        var directRow = capturedOrder.Value.Products.Single(p => p.ProductCode == ValidProductCode);
+        directRow.PlannedQuantity.Should().Be(0);
     }
 
     [Fact]

@@ -117,9 +117,10 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
 
         // Add a virtual direct output row for the semiproduct itself (MultiPhase only).
         // This row represents the portion of the batch sold as unprocessed bulk semiproduct.
+        // Always include the row when DirectSemiproductAmount is provided (even 0) so the field
+        // is visible in the order and can be edited after creation.
         if (request.ManufactureType == ManufactureType.MultiPhase
-            && request.DirectSemiproductAmount.HasValue
-            && request.DirectSemiproductAmount.Value > 0)
+            && request.DirectSemiproductAmount.HasValue)
         {
             var directRow = new ManufactureOrderProduct
             {

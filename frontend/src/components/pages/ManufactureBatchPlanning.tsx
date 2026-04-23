@@ -483,7 +483,7 @@ const BatchPlanningCalculator: React.FC = () => {
         plannedDate: plannedDate,
         responsiblePerson: undefined,
         manufactureType: response.manufactureType,
-        directSemiproductAmount: directSemiproductAmount > 0 ? directSemiproductAmount : undefined,
+        directSemiproductAmount: response.manufactureType !== ManufactureType.SinglePhase ? directSemiproductAmount : undefined,
       });
 
       const orderResponse = await createOrderMutation.mutateAsync(orderRequest);
