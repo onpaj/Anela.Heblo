@@ -19,4 +19,7 @@ public class SubmitManufactureRequest : IRequest<SubmitManufactureResponse>
     public string? LotNumber { get; set; }
     public DateOnly? ExpirationDate { get; set; }
     public ResidueDistribution? ResidueDistribution { get; set; }
+    public string? DirectSemiProductOutputCode { get; set; }
+    public string? DirectSemiProductOutputName { get; set; }
+    public decimal DirectSemiProductOutputAmount { get; set; }
 }
