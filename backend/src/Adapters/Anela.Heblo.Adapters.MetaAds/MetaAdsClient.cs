@@ -23,7 +23,7 @@ public class MetaAdsClient : IMetaAdsClient
 
     public async Task<IReadOnlyList<MetaCampaignDto>> GetCampaignsAsync(CancellationToken ct = default)
     {
-        var url = $"/{_settings.ApiVersion}/act_{_settings.AccountId}/campaigns" +
+        var url = $"/{_settings.ApiVersion}/act_{_settings.AdAccountId}/campaigns" +
                   "?fields=id,name,status,objective,daily_budget,lifetime_budget,start_time,stop_time" +
                   "&limit=100";
 
