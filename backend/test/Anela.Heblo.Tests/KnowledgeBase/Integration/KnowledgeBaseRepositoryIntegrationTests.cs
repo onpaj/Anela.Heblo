@@ -57,9 +57,8 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             CREATE EXTENSION IF NOT EXISTS vector;
-            CREATE SCHEMA IF NOT EXISTS dbo;
 
-            CREATE TABLE IF NOT EXISTS dbo."KnowledgeBaseDocuments" (
+            CREATE TABLE IF NOT EXISTS public."KnowledgeBaseDocuments" (
                 "Id"           uuid NOT NULL PRIMARY KEY,
                 "Filename"     varchar(500) NOT NULL,
                 "SourcePath"   varchar(1000) NOT NULL UNIQUE,
@@ -71,9 +70,9 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
                 "IndexedAt"    timestamp NULL
             );
 
-            CREATE TABLE IF NOT EXISTS dbo."KnowledgeBaseChunks" (
+            CREATE TABLE IF NOT EXISTS public."KnowledgeBaseChunks" (
                 "Id"           uuid NOT NULL PRIMARY KEY,
-                "DocumentId"   uuid NOT NULL REFERENCES dbo."KnowledgeBaseDocuments"("Id") ON DELETE CASCADE,
+                "DocumentId"   uuid NOT NULL REFERENCES public."KnowledgeBaseDocuments"("Id") ON DELETE CASCADE,
                 "ChunkIndex"   integer NOT NULL,
                 "Content"      text NOT NULL DEFAULT '',
                 "Summary"      text NOT NULL DEFAULT '',
@@ -82,7 +81,7 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
             );
 
             CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding
-                ON dbo."KnowledgeBaseChunks"
+                ON public."KnowledgeBaseChunks"
                 USING hnsw ("Embedding" vector_cosine_ops)
                 WITH (m = 16, ef_construction = 64);
             """;

@@ -9,7 +9,7 @@ public class UserDashboardTileConfiguration : IEntityTypeConfiguration<UserDashb
 {
     public void Configure(EntityTypeBuilder<UserDashboardTile> builder)
     {
-        builder.ToTable("UserDashboardTiles");
+        builder.ToTable("UserDashboardTiles", "public");
 
         builder.HasKey(x => x.Id);
 

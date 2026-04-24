@@ -8,38 +8,31 @@ public class GiftPackageManufactureLogConfiguration : IEntityTypeConfiguration<G
 {
     public void Configure(EntityTypeBuilder<GiftPackageManufactureLog> builder)
     {
-        builder.ToTable("gift_package_manufacture_logs");
+        builder.ToTable("GiftPackageManufactureLogs", "public");
 
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Id)
-            .HasColumnName("id")
             .ValueGeneratedOnAdd();
 
         builder.Property(x => x.GiftPackageCode)
-            .HasColumnName("gift_package_code")
             .HasMaxLength(50)
             .IsRequired();
 
         builder.Property(x => x.QuantityCreated)
-            .HasColumnName("quantity_created")
             .IsRequired();
 
         builder.Property(x => x.StockOverrideApplied)
-            .HasColumnName("stock_override_applied")
             .IsRequired();
 
         builder.Property(x => x.CreatedAt)
-            .HasColumnName("created_at")
             .HasColumnType("timestamp without time zone")
             .IsRequired();
 
         builder.Property(x => x.CreatedBy)
-            .HasColumnName("created_by")
             .IsRequired();
 
         builder.Property(x => x.OperationType)
-            .HasColumnName("operation_type")
             .HasConversion<int>()
             .IsRequired();
 
@@ -51,12 +44,12 @@ public class GiftPackageManufactureLogConfiguration : IEntityTypeConfiguration<G
 
         // Index for performance
         builder.HasIndex(x => x.CreatedAt)
-            .HasDatabaseName("ix_gift_package_manufacture_logs_created_at");
+            .HasDatabaseName("IX_GiftPackageManufactureLogs_CreatedAt");
 
         builder.HasIndex(x => x.GiftPackageCode)
-            .HasDatabaseName("ix_gift_package_manufacture_logs_gift_package_code");
+            .HasDatabaseName("IX_GiftPackageManufactureLogs_GiftPackageCode");
 
         builder.HasIndex(x => x.OperationType)
-            .HasDatabaseName("ix_gift_package_manufacture_logs_operation_type");
+            .HasDatabaseName("IX_GiftPackageManufactureLogs_OperationType");
     }
 }

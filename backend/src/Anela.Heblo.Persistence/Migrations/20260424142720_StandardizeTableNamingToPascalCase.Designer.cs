@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424142720_StandardizeTableNamingToPascalCase")]
+    partial class StandardizeTableNamingToPascalCase
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -207,7 +210,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("StockTakingRecords", "public");
+                    b.ToTable("StockTakingResults", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.Stock.StockUpOperation", b =>
@@ -635,21 +638,21 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerName")
-                        .HasDatabaseName("IX_IssuedInvoices_CustomerName");
+                        .HasDatabaseName("IX_IssuedInvoice_CustomerName");
 
                     b.HasIndex("ErrorType")
-                        .HasDatabaseName("IX_IssuedInvoices_ErrorType");
+                        .HasDatabaseName("IX_IssuedInvoice_ErrorType");
 
                     b.HasIndex("InvoiceDate")
-                        .HasDatabaseName("IX_IssuedInvoices_InvoiceDate");
+                        .HasDatabaseName("IX_IssuedInvoice_InvoiceDate");
 
                     b.HasIndex("IsSynced")
-                        .HasDatabaseName("IX_IssuedInvoices_IsSynced");
+                        .HasDatabaseName("IX_IssuedInvoice_IsSynced");
 
                     b.HasIndex("LastSyncTime")
-                        .HasDatabaseName("IX_IssuedInvoices_LastSyncTime");
+                        .HasDatabaseName("IX_IssuedInvoice_LastSyncTime");
 
-                    b.ToTable("IssuedInvoices", "public");
+                    b.ToTable("IssuedInvoice", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSyncData", b =>
@@ -1106,7 +1109,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TransportBoxes", "public");
+                    b.ToTable("TransportBox", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBoxItem", b =>
@@ -1143,7 +1146,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("TransportBoxId");
 
-                    b.ToTable("TransportBoxItems", "public");
+                    b.ToTable("TransportBoxItem", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBoxStateLog", b =>
@@ -1174,7 +1177,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("TransportBoxId");
 
-                    b.ToTable("TransportBoxStateLogs", "public");
+                    b.ToTable("TransportBoxStateLog", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", b =>
@@ -1656,9 +1659,9 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
-                        .HasDatabaseName("IX_PackingMaterials_Name");
+                        .HasDatabaseName("IX_PackingMaterial_Name");
 
-                    b.ToTable("PackingMaterials", "public");
+                    b.ToTable("PackingMaterial", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterialLog", b =>
@@ -1694,15 +1697,15 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("LogType")
-                        .HasDatabaseName("IX_PackingMaterialLogs_LogType");
+                        .HasDatabaseName("IX_PackingMaterialLog_LogType");
 
                     b.HasIndex("PackingMaterialId")
-                        .HasDatabaseName("IX_PackingMaterialLogs_PackingMaterialId");
+                        .HasDatabaseName("IX_PackingMaterialLog_PackingMaterialId");
 
                     b.HasIndex("PackingMaterialId", "Date")
-                        .HasDatabaseName("IX_PackingMaterialLogs_MaterialId_Date");
+                        .HasDatabaseName("IX_PackingMaterialLog_MaterialId_Date");
 
-                    b.ToTable("PackingMaterialLogs", "public");
+                    b.ToTable("PackingMaterialLog", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Purchase.PurchaseOrder", b =>
