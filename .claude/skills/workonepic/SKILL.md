@@ -170,10 +170,11 @@ Push directly to the epic branch — no separate PR is needed per subtask:
 git push origin <epic-branch>
 ```
 
-### 14. Mark subtask as solved — swap label "agent-wip" → "agent-solved"
+### 14. Mark subtask as solved — swap label "agent-wip" → "agent-solved" and close the issue
 
 ```bash
 gh issue edit <subtask-number> --remove-label "agent-wip" --add-label "agent-solved"
+gh issue close <subtask-number>
 ```
 
 ## Hard Gates
