@@ -181,6 +181,7 @@ public class AskQuestionHandlerTests
     [InlineData(typeof(HttpRequestException))]
     [InlineData(typeof(TimeoutException))]
     [InlineData(typeof(TaskCanceledException))]
+    [InlineData(typeof(ObjectDisposedException))]
     public async Task Handle_ChatClientThrowsTransientException_ReturnsAiUnavailableError(Type exceptionType)
     {
         SetupEmptyCache();
