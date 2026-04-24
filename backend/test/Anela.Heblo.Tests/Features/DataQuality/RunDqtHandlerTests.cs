@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.DataQuality.Services;
 using Anela.Heblo.Application.Features.DataQuality.UseCases.RunDqt;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.DataQuality;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -11,6 +12,7 @@ public class RunDqtHandlerTests
 {
     private readonly Mock<IDqtRunRepository> _repositoryMock = new();
     private readonly Mock<IInvoiceDqtJobRunner> _jobRunnerMock = new();
+    private readonly Mock<IServiceScopeFactory> _scopeFactoryMock = new();
     private readonly RunDqtHandler _sut;
 
     private static readonly DateOnly From = new(2026, 1, 1);
@@ -18,9 +20,17 @@ public class RunDqtHandlerTests
 
     public RunDqtHandlerTests()
     {
+        var scopeMock = new Mock<IServiceScope>();
+        var serviceProviderMock = new Mock<IServiceProvider>();
+        serviceProviderMock
+            .Setup(sp => sp.GetService(typeof(IInvoiceDqtJobRunner)))
+            .Returns(_jobRunnerMock.Object);
+        scopeMock.Setup(s => s.ServiceProvider).Returns(serviceProviderMock.Object);
+        _scopeFactoryMock.Setup(f => f.CreateScope()).Returns(scopeMock.Object);
+
         _sut = new RunDqtHandler(
             _repositoryMock.Object,
-            _jobRunnerMock.Object,
+            _scopeFactoryMock.Object,
             NullLogger<RunDqtHandler>.Instance);
     }
 

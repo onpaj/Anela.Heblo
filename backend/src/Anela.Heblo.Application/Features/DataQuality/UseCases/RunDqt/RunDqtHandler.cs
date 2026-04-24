@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.DataQuality.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.DataQuality;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.DataQuality.UseCases.RunDqt;
@@ -9,16 +10,16 @@ namespace Anela.Heblo.Application.Features.DataQuality.UseCases.RunDqt;
 public class RunDqtHandler : IRequestHandler<RunDqtRequest, RunDqtResponse>
 {
     private readonly IDqtRunRepository _repository;
-    private readonly IInvoiceDqtJobRunner _jobRunner;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<RunDqtHandler> _logger;
 
     public RunDqtHandler(
         IDqtRunRepository repository,
-        IInvoiceDqtJobRunner jobRunner,
+        IServiceScopeFactory scopeFactory,
         ILogger<RunDqtHandler> logger)
     {
         _repository = repository;
-        _jobRunner = jobRunner;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -38,7 +39,15 @@ public class RunDqtHandler : IRequestHandler<RunDqtRequest, RunDqtResponse>
             var run = DqtRun.Start(request.TestType, request.DateFrom, request.DateTo, DqtTriggerType.Manual);
             await _repository.AddAsync(run, cancellationToken);
 
-            _ = Task.Run(() => _jobRunner.RunAsync(run.Id), CancellationToken.None);
+            // Fire-and-forget in a dedicated scope — the HTTP request scope is disposed
+            // before RunAsync completes, so capturing _jobRunner directly would cause
+            // ObjectDisposedException on the DbContext.
+            _ = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var runner = scope.ServiceProvider.GetRequiredService<IInvoiceDqtJobRunner>();
+                await runner.RunAsync(run.Id);
+            }, CancellationToken.None);
 
             _logger.LogInformation("DQT run {DqtRunId} started for {TestType} from {DateFrom} to {DateTo}",
                 run.Id, run.TestType, run.DateFrom, run.DateTo);

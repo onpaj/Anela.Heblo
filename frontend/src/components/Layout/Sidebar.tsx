@@ -279,9 +279,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           onClick: openHangfireDashboard,
         },
         {
-          id: 'data-quality',
-          name: 'Kvalita dat',
-          href: '/data-quality',
+          id: "data-quality",
+          name: "Kvalita dat",
+          href: "/automation/data-quality",
         },
       ],
     },
