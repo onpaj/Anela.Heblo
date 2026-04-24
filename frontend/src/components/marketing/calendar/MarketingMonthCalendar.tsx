@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { DndContext, closestCenter, DragOverlay } from "@dnd-kit/core";
 import type { CalendarEvent, EventSegment } from "./useCalendarLayout";
 import { useCalendarLayout } from "./useCalendarLayout";
@@ -11,7 +11,7 @@ import CalendarDayCell from "./CalendarDayCell";
 import CalendarDragOverlay from "./CalendarDragOverlay";
 import { useCalendarDnd } from "./useCalendarDnd";
 import { useCreateByDrag } from "./useCreateByDrag";
-import { toDateString } from "./calendarDateUtils";
+import { toDateString, clampDateString } from "./calendarDateUtils";
 import type { CalendarDndCallbacks } from "./calendarDndTypes";
 
 const WEEK_DAYS = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
@@ -36,6 +36,12 @@ interface DayCell {
   col: number; // 1–7
 }
 
+interface ResizeDragState {
+  type: 'start' | 'end';
+  eventId: number;
+  currentDate: string; // the date the pointer is currently over
+}
+
 const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
   year,
   month,
@@ -48,6 +54,7 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
 }) => {
   const today = new Date();
 
+  // --- Move drag via dnd-kit ---
   const callbacks: CalendarDndCallbacks = useMemo(
     () => ({ onEventMove, onEventResize, onCreateRange }),
     [onEventMove, onEventResize, onCreateRange],
@@ -63,7 +70,78 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
     handleDragCancel,
   } = useCalendarDnd(events, callbacks);
 
-  const segments = useCalendarLayout(previewEvents, year, month);
+  // --- Resize drag via pointer events ---
+  const [resizeDrag, setResizeDrag] = useState<ResizeDragState | null>(null);
+
+  // Stable refs so the pointerup handler always reads the latest values
+  const eventsRef = useRef(events);
+  eventsRef.current = events;
+  const onEventResizeRef = useRef(onEventResize);
+  onEventResizeRef.current = onEventResize;
+
+  const handleResizePointerDown = useCallback(
+    (type: 'start' | 'end', eventId: number) => {
+      const ev = events.find((x) => x.id === eventId);
+      if (!ev) return;
+      setResizeDrag({
+        type,
+        eventId,
+        currentDate: type === 'start' ? ev.dateFrom : ev.dateTo,
+      });
+    },
+    [events],
+  );
+
+  const handleResizeCellEnter = useCallback((date: string) => {
+    setResizeDrag((prev) => {
+      if (!prev || prev.currentDate === date) return prev;
+      return { ...prev, currentDate: date };
+    });
+  }, []);
+
+  // Commit or cancel resize on pointerup / pointercancel anywhere on the page
+  useEffect(() => {
+    if (!resizeDrag) return;
+
+    const commit = () => {
+      setResizeDrag((drag) => {
+        if (!drag) return null;
+        const ev = eventsRef.current.find((x) => x.id === drag.eventId);
+        if (ev) {
+          if (drag.type === 'start') {
+            const newFrom = clampDateString(drag.currentDate, ev.dateTo);
+            onEventResizeRef.current(drag.eventId, newFrom, ev.dateTo);
+          } else {
+            const newTo = drag.currentDate < ev.dateFrom ? ev.dateFrom : drag.currentDate;
+            onEventResizeRef.current(drag.eventId, ev.dateFrom, newTo);
+          }
+        }
+        return null;
+      });
+    };
+
+    document.addEventListener('pointerup', commit);
+    document.addEventListener('pointercancel', commit);
+    return () => {
+      document.removeEventListener('pointerup', commit);
+      document.removeEventListener('pointercancel', commit);
+    };
+  }, [resizeDrag]);
+
+  // Apply resize preview on top of move preview
+  const resizePreviewEvents = useMemo<CalendarEvent[]>(() => {
+    if (!resizeDrag) return previewEvents;
+    return previewEvents.map((ev) => {
+      if (ev.id !== resizeDrag.eventId) return ev;
+      if (resizeDrag.type === 'start') {
+        return { ...ev, dateFrom: clampDateString(resizeDrag.currentDate, ev.dateTo) };
+      }
+      const newTo = resizeDrag.currentDate < ev.dateFrom ? ev.dateFrom : resizeDrag.currentDate;
+      return { ...ev, dateTo: newTo };
+    });
+  }, [resizeDrag, previewEvents]);
+
+  const segments = useCalendarLayout(resizePreviewEvents, year, month);
 
   // Build day cells
   const { dayCells, weekCount, weekStarts } = useMemo(() => {
@@ -141,10 +219,14 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
     return map;
   }, [segments]);
 
-  // Determine first/last segment keys for each event (for resize handle visibility)
+  // Determine first/last segment keys per event (for resize handle visibility).
+  // Only consider segments within the visible weekCount — events may extend into
+  // trimmed rows, which would otherwise incorrectly mark the last visible
+  // segment as non-last.
   const eventSegmentBounds = useMemo(() => {
     const bounds = new Map<number, { firstKey: string; lastKey: string }>();
     for (const seg of segments) {
+      if (seg.weekRow >= weekCount) continue;
       const key = `${seg.weekRow}-${seg.startCol}`;
       const existing = bounds.get(seg.event.id);
       if (!existing) {
@@ -154,7 +236,7 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
       }
     }
     return bounds;
-  }, [segments]);
+  }, [segments, weekCount]);
 
   const isDateInSelection = (dateStr: string) => {
     if (!selectionRange) return false;
@@ -199,7 +281,7 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
                 className="relative flex-1 grid grid-cols-7 border-b border-gray-200 last:border-b-0"
                 style={{ minHeight: rowMinHeights[w] }}
               >
-                {/* Day cells (droppable) */}
+                {/* Day cells (droppable + resize hover target) */}
                 {rowCells.map((cell) => (
                   <CalendarDayCell
                     key={cell.dateStr}
@@ -210,6 +292,7 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
                     isHighlighted={isDateInSelection(cell.dateStr)}
                     onMouseDown={() => createMouseDown(cell.dateStr)}
                     onMouseEnter={() => createMouseEnter(cell.dateStr)}
+                    onPointerEnter={() => handleResizeCellEnter(cell.dateStr)}
                   />
                 ))}
 
@@ -231,8 +314,10 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
                         weekRowStartDate={weekStarts[w]}
                         isFirstSegment={bounds?.firstKey === segKey}
                         isLastSegment={bounds?.lastKey === segKey}
-                        isDragActive={dragState?.eventId === seg.event.id}
+                        isDragActive={dragState?.type === 'move' && dragState?.eventId === seg.event.id}
+                        isResizing={resizeDrag?.eventId === seg.event.id}
                         onClick={onEventClick}
+                        onResizePointerDown={handleResizePointerDown}
                       />
                     );
                   })}

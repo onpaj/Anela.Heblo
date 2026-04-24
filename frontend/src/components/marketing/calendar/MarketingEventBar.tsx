@@ -22,7 +22,9 @@ interface MarketingEventBarProps {
   isFirstSegment: boolean;
   isLastSegment: boolean;
   isDragActive: boolean;
+  isResizing: boolean;
   onClick: (id: number) => void;
+  onResizePointerDown?: (type: 'start' | 'end', eventId: number) => void;
 }
 
 const MarketingEventBar: React.FC<MarketingEventBarProps> = ({
@@ -34,7 +36,9 @@ const MarketingEventBar: React.FC<MarketingEventBarProps> = ({
   isFirstSegment,
   isLastSegment,
   isDragActive,
+  isResizing,
   onClick,
+  onResizePointerDown,
 }) => {
   const colorClass = ACTION_TYPE_COLORS[event.actionType] ?? ACTION_TYPE_COLORS.Other;
   const top = TOP_OFFSET_PX + lane * (BAR_HEIGHT_PX + BAR_GAP_PX);
@@ -44,7 +48,7 @@ const MarketingEventBar: React.FC<MarketingEventBarProps> = ({
   originDate.setDate(weekRowStartDate.getDate() + (startCol - 1));
   const originDateStr = toDateString(originDate);
 
-  // Move draggable (body)
+  // Move draggable (body only — resize is handled via pointer events, not dnd-kit)
   const moveData: CalendarDragData = {
     type: 'move',
     eventId: event.id,
@@ -58,38 +62,6 @@ const MarketingEventBar: React.FC<MarketingEventBarProps> = ({
   } = useDraggable({
     id: `move-${event.id}-${startCol}-${lane}`,
     data: moveData,
-  });
-
-  // Resize-start draggable (left handle)
-  const resizeStartData: CalendarDragData = {
-    type: 'resize-start',
-    eventId: event.id,
-    event,
-  };
-  const {
-    attributes: resizeStartAttrs,
-    listeners: resizeStartListeners,
-    setNodeRef: setResizeStartRef,
-  } = useDraggable({
-    id: `resize-start-${event.id}`,
-    data: resizeStartData,
-    disabled: !isFirstSegment,
-  });
-
-  // Resize-end draggable (right handle)
-  const resizeEndData: CalendarDragData = {
-    type: 'resize-end',
-    eventId: event.id,
-    event,
-  };
-  const {
-    attributes: resizeEndAttrs,
-    listeners: resizeEndListeners,
-    setNodeRef: setResizeEndRef,
-  } = useDraggable({
-    id: `resize-end-${event.id}`,
-    data: resizeEndData,
-    disabled: !isLastSegment,
   });
 
   return (
@@ -112,7 +84,7 @@ const MarketingEventBar: React.FC<MarketingEventBarProps> = ({
         left: 2,
         right: 2,
         zIndex: 10,
-        pointerEvents: 'auto',
+        pointerEvents: isResizing ? 'none' : 'auto',
         opacity: isDragActive ? 0.3 : 1,
       }}
       className={`
@@ -122,32 +94,28 @@ const MarketingEventBar: React.FC<MarketingEventBarProps> = ({
         hover:opacity-80 transition-opacity select-none
       `}
     >
-      {/* Left resize handle */}
+      {/* Left resize handle — pointer events only, no dnd-kit */}
       {isFirstSegment && (
         <div
-          ref={setResizeStartRef}
-          {...resizeStartAttrs}
-          {...resizeStartListeners}
           onPointerDown={(e) => {
             e.stopPropagation();
+            onResizePointerDown?.('start', event.id);
           }}
-          className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 bg-white/30 rounded-l"
+          className="absolute left-0 top-0 bottom-0 w-3 cursor-col-resize opacity-0 group-hover:opacity-100 bg-white/30 rounded-l"
         />
       )}
 
       {/* Title text */}
       <span className="relative z-0">{event.title}</span>
 
-      {/* Right resize handle */}
+      {/* Right resize handle — pointer events only, no dnd-kit */}
       {isLastSegment && (
         <div
-          ref={setResizeEndRef}
-          {...resizeEndAttrs}
-          {...resizeEndListeners}
           onPointerDown={(e) => {
             e.stopPropagation();
+            onResizePointerDown?.('end', event.id);
           }}
-          className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 bg-white/30 rounded-r"
+          className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize opacity-0 group-hover:opacity-100 bg-white/30 rounded-r"
         />
       )}
     </div>

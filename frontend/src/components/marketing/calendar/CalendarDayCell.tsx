@@ -10,6 +10,7 @@ interface CalendarDayCellProps {
   isHighlighted?: boolean;
   onMouseDown?: (e: React.MouseEvent) => void;
   onMouseEnter?: (e: React.MouseEvent) => void;
+  onPointerEnter?: () => void;
 }
 
 const CalendarDayCell: React.FC<CalendarDayCellProps> = ({
@@ -20,6 +21,7 @@ const CalendarDayCell: React.FC<CalendarDayCellProps> = ({
   isHighlighted,
   onMouseDown,
   onMouseEnter,
+  onPointerEnter,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `day-${dateStr}`,
@@ -32,6 +34,7 @@ const CalendarDayCell: React.FC<CalendarDayCellProps> = ({
       data-date={dateStr}
       onMouseDown={onMouseDown}
       onMouseEnter={onMouseEnter}
+      onPointerEnter={onPointerEnter}
       className={`
         border-r border-gray-100 last:border-r-0 p-1
         ${!isCurrentMonth ? "bg-gray-50" : ""}
