@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Plus, Calendar, List } from "lucide-react";
 import CalendarNavigation from "../../manufacture/calendar/CalendarNavigation";
 import MarketingMonthCalendar from "../calendar/MarketingMonthCalendar";
@@ -13,6 +13,7 @@ import {
   useMarketingCalendar,
   useMarketingActions,
   useMarketingAction,
+  useUpdateMarketingAction,
 } from "../../../api/hooks/useMarketingCalendar";
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
 
@@ -33,6 +34,22 @@ const CZECH_MONTHS = [
 
 type ViewMode = "calendar" | "list";
 
+const ACTION_TYPE_TO_INT: Record<string, number> = {
+  General: 0,
+  SocialMedia: 0,
+  Promotion: 1,
+  Launch: 2,
+  Email: 2,
+  Campaign: 3,
+  PR: 3,
+  Event: 4,
+  Photoshoot: 4,
+  Other: 99,
+};
+
+const resolveActionTypeToInt = (actionType: string): number =>
+  ACTION_TYPE_TO_INT[actionType] ?? 99;
+
 const MarketingCalendarPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("calendar");
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -43,6 +60,8 @@ const MarketingCalendarPage: React.FC = () => {
   const [editingAction, setEditingAction] = useState<MarketingActionDto | null>(
     null,
   );
+  const [prefillDates, setPrefillDates] = useState<{ dateFrom: string; dateTo: string } | null>(null);
+  const updateMutation = useUpdateMarketingAction();
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -110,6 +129,7 @@ const MarketingCalendarPage: React.FC = () => {
 
   const openCreate = () => {
     setEditingAction(null);
+    setPrefillDates(null);
     setIsModalOpen(true);
   };
 
@@ -122,7 +142,53 @@ const MarketingCalendarPage: React.FC = () => {
     setIsModalOpen(false);
     setEditingAction(null);
     setSelectedActionId(null);
+    setPrefillDates(null);
   };
+
+  const handleEventMove = useCallback(
+    (eventId: number, newDateFrom: string, newDateTo: string) => {
+      const event = calendarEvents.find((e: any) => e.id === eventId);
+      if (!event) return;
+      updateMutation.mutate({
+        id: eventId,
+        request: {
+          title: event.title,
+          actionType: resolveActionTypeToInt(event.actionType),
+          startDate: new Date(newDateFrom),
+          endDate: new Date(newDateTo),
+          associatedProducts: event.associatedProducts,
+        },
+      });
+    },
+    [calendarEvents, updateMutation],
+  );
+
+  const handleEventResize = useCallback(
+    (eventId: number, newDateFrom: string, newDateTo: string) => {
+      const event = calendarEvents.find((e: any) => e.id === eventId);
+      if (!event) return;
+      updateMutation.mutate({
+        id: eventId,
+        request: {
+          title: event.title,
+          actionType: resolveActionTypeToInt(event.actionType),
+          startDate: new Date(newDateFrom),
+          endDate: new Date(newDateTo),
+          associatedProducts: event.associatedProducts,
+        },
+      });
+    },
+    [calendarEvents, updateMutation],
+  );
+
+  const handleCreateRange = useCallback(
+    (dateFrom: string, dateTo: string) => {
+      setPrefillDates({ dateFrom, dateTo });
+      setEditingAction(null);
+      setIsModalOpen(true);
+    },
+    [],
+  );
 
   // Sync detail data into editingAction when it arrives
   React.useEffect(() => {
@@ -211,6 +277,9 @@ const MarketingCalendarPage: React.FC = () => {
                   month={month}
                   events={calendarEvents}
                   onEventClick={openEdit}
+                  onEventMove={handleEventMove}
+                  onEventResize={handleEventResize}
+                  onCreateRange={handleCreateRange}
                   className="h-full"
                 />
               </div>
@@ -248,6 +317,7 @@ const MarketingCalendarPage: React.FC = () => {
         isOpen={isModalOpen}
         onClose={closeModal}
         existingAction={editingAction}
+        prefillDates={prefillDates}
       />
     </div>
   );
