@@ -48,6 +48,9 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     bool ChangesPendingForMerge { get; }
     Task WaitForCurrentMergeAsync(CancellationToken cancellationToken = default);
 
+    // Bulk lookup
+    Task<List<CatalogAggregate>> GetByIdsAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default);
+
     // Analytics methods
     Task<List<CatalogAggregate>> GetProductsWithSalesInPeriod(
         DateTime fromDate,
