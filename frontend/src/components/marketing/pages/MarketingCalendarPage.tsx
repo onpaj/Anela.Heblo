@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { Plus, Calendar, List } from "lucide-react";
 import CalendarNavigation from "../../manufacture/calendar/CalendarNavigation";
 import MarketingMonthCalendar from "../calendar/MarketingMonthCalendar";
+import type { CalendarEvent } from "../calendar/useCalendarLayout";
 import MarketingActionGrid from "../list/MarketingActionGrid";
 import type { MarketingActionDto } from "../list/MarketingActionGrid";
 import MarketingActionFilters, {
@@ -147,7 +148,7 @@ const MarketingCalendarPage: React.FC = () => {
 
   const handleEventMove = useCallback(
     (eventId: number, newDateFrom: string, newDateTo: string) => {
-      const event = calendarEvents.find((e) => e.id === eventId);
+      const event = calendarEvents.find((e: CalendarEvent) => e.id === eventId);
       if (!event) return;
       updateMutation.mutate({
         id: eventId,
@@ -165,7 +166,7 @@ const MarketingCalendarPage: React.FC = () => {
 
   const handleEventResize = useCallback(
     (eventId: number, newDateFrom: string, newDateTo: string) => {
-      const event = calendarEvents.find((e) => e.id === eventId);
+      const event = calendarEvents.find((e: CalendarEvent) => e.id === eventId);
       if (!event) return;
       updateMutation.mutate({
         id: eventId,
