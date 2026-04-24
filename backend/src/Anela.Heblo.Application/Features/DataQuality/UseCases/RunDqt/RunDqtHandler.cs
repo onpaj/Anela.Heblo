@@ -38,6 +38,7 @@ public class RunDqtHandler : IRequestHandler<RunDqtRequest, RunDqtResponse>
         {
             var run = DqtRun.Start(request.TestType, request.DateFrom, request.DateTo, DqtTriggerType.Manual);
             await _repository.AddAsync(run, cancellationToken);
+            await _repository.SaveChangesAsync(cancellationToken);
 
             // Fire-and-forget in a dedicated scope — the HTTP request scope is disposed
             // before RunAsync completes, so capturing _jobRunner directly would cause
