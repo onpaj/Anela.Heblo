@@ -460,7 +460,7 @@ function App() {
                           element={<KnowledgeBaseFeedbackPage />}
                         />
                         <Route
-                          path="/data-quality"
+                          path="/automation/data-quality"
                           element={<DataQualityPage />}
                         />
                       </Routes>

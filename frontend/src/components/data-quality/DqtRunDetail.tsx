@@ -8,7 +8,7 @@ interface DqtRunDetailProps {
 
 const MISMATCH_FLAG_LABELS: Record<string, string> = {
   MissingInFlexi: 'Chybí ve Flexi',
-  MissingInShoptet: 'Chybí v Shoптету',
+  MissingInShoptet: 'Chybí v Shoptetu',
   TotalWithVatDiffers: 'Celkem s DPH',
   TotalWithoutVatDiffers: 'Celkem bez DPH',
   ItemsDiffer: 'Položky',

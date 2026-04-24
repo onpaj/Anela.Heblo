@@ -44,7 +44,6 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
   // Initialize with planned quantities when modal opens.
   // Intentionally omit `products` from deps — re-renders caused by optimistic
   // cache updates must not reset values the user has already entered.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isOpen && products.length > 0) {
       const initialQuantities: { [key: number]: string } = {};
@@ -54,6 +53,7 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
       setActualQuantities(initialQuantities);
       setError('');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const handleQuantityChange = (productId: number, value: string) => {
