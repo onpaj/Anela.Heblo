@@ -35,19 +35,19 @@ public class InvoiceDqtJobRunner : IInvoiceDqtJobRunner
         {
             var result = await _comparer.CompareAsync(run.DateFrom, run.DateTo, cancellationToken);
 
-            foreach (var mismatch in result.Mismatches)
-            {
-                run.Results.Add(InvoiceDqtResult.Create(
-                    run.Id,
-                    mismatch.InvoiceCode,
-                    mismatch.MismatchType,
-                    mismatch.ShoptetValue,
-                    mismatch.FlexiValue,
-                    mismatch.Details));
-            }
+            var resultEntities = result.Mismatches
+                .Select(m => InvoiceDqtResult.Create(run.Id, m.InvoiceCode, m.MismatchType, m.ShoptetValue, m.FlexiValue, m.Details))
+                .ToList();
+
+            foreach (var entity in resultEntities)
+                run.Results.Add(entity);
+
+            // Explicitly register with EF — FindAsync without Include() does not set up
+            // a change-tracking collection, so items added to run.Results are invisible
+            // to the context until explicitly added here.
+            await _repository.AddResultsAsync(resultEntities, cancellationToken);
 
             run.Complete(result.TotalChecked, result.Mismatches.Count);
-            await _repository.UpdateAsync(run, cancellationToken);
 
             _logger.LogInformation("DQT run {DqtRunId} completed: {Checked} checked, {Mismatches} mismatches",
                 dqtRunId, result.TotalChecked, result.Mismatches.Count);
@@ -56,7 +56,10 @@ public class InvoiceDqtJobRunner : IInvoiceDqtJobRunner
         {
             _logger.LogError(ex, "DQT run {DqtRunId} failed", dqtRunId);
             run.Fail(ex.Message);
-            await _repository.UpdateAsync(run, cancellationToken);
+        }
+        finally
+        {
+            await _repository.SaveChangesAsync(cancellationToken);
         }
     }
 }

@@ -48,6 +48,11 @@ public class DqtRunRepository : BaseRepository<DqtRun, Guid>, IDqtRunRepository
         return (items, totalCount);
     }
 
+    public async Task AddResultsAsync(IEnumerable<InvoiceDqtResult> results, CancellationToken cancellationToken = default)
+    {
+        await Context.Set<InvoiceDqtResult>().AddRangeAsync(results, cancellationToken);
+    }
+
     public async Task<DqtRun?> GetWithResultsAsync(Guid id, int resultPage, int resultPageSize, CancellationToken cancellationToken = default)
     {
         var run = await DbSet
