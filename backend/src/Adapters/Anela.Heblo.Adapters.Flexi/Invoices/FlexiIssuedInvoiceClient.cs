@@ -1,5 +1,5 @@
+using System.Globalization;
 using System.Text.Json;
-using System.Xml.Linq;
 using Anela.Heblo.Domain.Features.Invoices;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
@@ -81,8 +81,72 @@ public class FlexiIssuedInvoiceClient : Anela.Heblo.Domain.Features.Invoices.IIs
         }
     }
 
-    public Task<List<IssuedInvoiceDetail>> GetAllAsync(DateOnly from, DateOnly to, CancellationToken ct)
+    public async Task<List<IssuedInvoiceDetail>> GetAllAsync(DateOnly from, DateOnly to, CancellationToken ct)
     {
-        throw new NotImplementedException("GetAllAsync is blocked on FlexiBee SDK support.");
+        try
+        {
+            _logger.LogDebug("Getting all invoices from FlexiBee for period {From} to {To}", from, to);
+
+            var dateFrom = from.ToDateTime(TimeOnly.MinValue);
+            var dateTo = to.ToDateTime(TimeOnly.MaxValue);
+
+            var flexiInvoices = await _flexiClient.GetAllAsync(dateFrom, dateTo, ct);
+
+            _logger.LogDebug("FlexiBee returned {Count} invoices for period {From}–{To}", flexiInvoices.Count, from, to);
+
+            return flexiInvoices.Select(MapToDomain).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching all invoices from FlexiBee: {From} to {To}", from, to);
+            throw;
+        }
+    }
+
+    private static IssuedInvoiceDetail MapToDomain(IssuedInvoiceDetailFlexiDto dto)
+    {
+        var items = dto.Items.Select(MapItemToDomain).ToList();
+
+        return new IssuedInvoiceDetail
+        {
+            Code = dto.Code ?? string.Empty,
+            Price = new InvoicePrice
+            {
+                TotalWithVat = ParseDecimal(dto.SumTotal),
+                TotalWithoutVat = items.Sum(i => i.ItemPrice.TotalWithoutVat),
+            },
+            Items = items,
+        };
+    }
+
+    private static IssuedInvoiceDetailItem MapItemToDomain(IssuedInvoiceItemFlexiDto item)
+    {
+        var amount = ParseDecimal(item.Amount);
+        var totalWithVat = item.SumTotal ?? item.SumTotalC ?? 0m;
+        var totalWithoutVat = item.SumBase ?? item.SumBaseC ?? 0m;
+
+        return new IssuedInvoiceDetailItem
+        {
+            Code = item.Code ?? string.Empty,
+            Name = item.Name ?? string.Empty,
+            Amount = amount,
+            ItemPrice = new InvoicePrice
+            {
+                TotalWithVat = totalWithVat,
+                TotalWithoutVat = totalWithoutVat,
+                WithoutVat = item.PricePerUnit,
+                WithVat = amount > 0 ? Math.Round(totalWithVat / amount, 4) : 0m,
+            },
+        };
+    }
+
+    private static decimal ParseDecimal(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return 0m;
+
+        return decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var result)
+            ? result
+            : 0m;
     }
 }
