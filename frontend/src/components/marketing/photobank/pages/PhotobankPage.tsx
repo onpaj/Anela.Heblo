@@ -1,14 +1,23 @@
 import React, { useCallback, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Settings } from "lucide-react";
+import { useMsal } from "@azure/msal-react";
 import TagSidebar from "../TagSidebar";
 import PhotoGrid from "../PhotoGrid";
 import PhotoDrawer from "../PhotoDrawer";
 import { usePhotos, usePhotoTags } from "../../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../../api/hooks/usePhotobank";
 
+const ADMIN_ROLE = "administrator";
+
 const DEFAULT_PAGE_SIZE = 48;
 const SIDEBAR_WIDTH = "220px";
 
 const PhotobankPage: React.FC = () => {
+  const { accounts } = useMsal();
+  const isAdmin =
+    (accounts[0]?.idTokenClaims as any)?.roles?.includes(ADMIN_ROLE) ?? false;
+
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -66,7 +75,19 @@ const PhotobankPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
+      {isAdmin && (
+        <div className="flex justify-end px-3 py-1.5 border-b border-gray-100">
+          <Link
+            to="/marketing/photobank/settings"
+            aria-label="Nastavení fotobanky"
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <Settings className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
+      <div className="flex flex-1 overflow-hidden">
       {/* Left sidebar */}
       <div style={{ width: SIDEBAR_WIDTH }} className="flex-shrink-0">
         <TagSidebar
@@ -97,6 +118,7 @@ const PhotobankPage: React.FC = () => {
       {selectedPhoto && (
         <PhotoDrawer photo={selectedPhoto} onClose={handleDrawerClose} />
       )}
+      </div>
     </div>
   );
 };
