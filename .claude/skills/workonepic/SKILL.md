@@ -170,11 +170,34 @@ Push directly to the epic branch — no separate PR is needed per subtask:
 git push origin <epic-branch>
 ```
 
-### 14. Mark subtask as solved — swap label "agent-wip" → "agent-solved"
+### 14. Mark subtask as solved — swap label "agent-wip" → "agent-solved" and close the issue
 
 ```bash
 gh issue edit <subtask-number> --remove-label "agent-wip" --add-label "agent-solved"
+gh issue close <subtask-number>
 ```
+
+### 15. If this was the last subtask — mark the epic as "agent-solved"
+
+Check whether all subtasks in the epic's task list are now closed:
+
+```bash
+# Get all subtask numbers from the epic body
+gh issue view $ARGUMENTS --json body | jq -r '.body' | grep -oP '(?<=- \[[ x]\] #)\d+'
+
+# Check state of each subtask
+for num in <subtask-numbers>; do
+  gh issue view $num --json state,number | jq '{number, state}'
+done
+```
+
+If **every** subtask is in `CLOSED` state, add `agent-solved` to the epic:
+
+```bash
+gh issue edit $ARGUMENTS --add-label "agent-solved"
+```
+
+Do **not** close the epic issue itself — only add the label. The epic may be closed manually by the team after final review.
 
 ## Hard Gates
 
@@ -190,3 +213,5 @@ gh issue edit <subtask-number> --remove-label "agent-wip" --add-label "agent-sol
 - The commit message **MUST** contain `@claude`
 - Changes are pushed directly to the epic branch — **no per-subtask PR** is created
 - The subtask label **MUST** be updated at both the start (`agent` → `agent-wip`) and end (`agent-wip` → `agent-solved`)
+- The subtask issue **MUST** be closed (`gh issue close`) after the label is updated to `agent-solved`
+- After closing the subtask, **ALWAYS** check if all epic subtasks are now closed — if they are, add `agent-solved` to the epic issue (do not close the epic itself)
