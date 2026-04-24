@@ -16,7 +16,7 @@ public class MetaAdsTransactionSourceTests
     {
         settings ??= new MetaAdsSettings
         {
-            AdAccountId = "act_123456789",
+            AccountId = "act_123456789",
             AccessToken = "test-token",
             ApiVersion = "v21.0"
         };
@@ -149,6 +149,57 @@ public class MetaAdsTransactionSourceTests
         transactions.Select(t => t.TransactionId).Should().Contain(["TX-001", "TX-002"]);
     }
 
+    /// <summary>
+    /// Regression test for #726: verifies that the account ID from MetaAdsSettings.AccountId
+    /// is correctly used in the request URL. Before the fix, the property was named AdAccountId
+    /// which did not match the configuration key "AccountId", causing the value to be null and
+    /// producing malformed URLs → HTTP 400 from Facebook Graph API.
+    /// </summary>
+    [Fact]
+    public async Task GetTransactionsAsync_UsesAccountIdFromSettings_InRequestUrl()
+    {
+        // Arrange
+        const string expectedAccountId = "act_987654321";
+        var capturedUrl = (string?)null;
+
+        var json = """
+            {
+              "data": [],
+              "paging": {}
+            }
+            """;
+
+        var capturingHandler = new CapturingHandler(HttpStatusCode.OK, json, url => capturedUrl = url);
+
+        var settings = new MetaAdsSettings
+        {
+            AccountId = expectedAccountId,
+            AccessToken = "test-token",
+            ApiVersion = "v21.0"
+        };
+
+        var httpClient = new HttpClient(capturingHandler)
+        {
+            BaseAddress = new Uri("https://graph.facebook.com/")
+        };
+
+        var source = new MetaAdsTransactionSource(
+            httpClient,
+            Options.Create(settings),
+            NullLogger<MetaAdsTransactionSource>.Instance);
+
+        var from = DateTime.UtcNow.AddDays(-1);
+        var to = DateTime.UtcNow.AddDays(1);
+
+        // Act
+        await source.GetTransactionsAsync(from, to, CancellationToken.None);
+
+        // Assert — URL must contain the AccountId value, not be empty/null
+        capturedUrl.Should().NotBeNull();
+        capturedUrl.Should().Contain(expectedAccountId,
+            because: "MetaAdsSettings.AccountId must be bound from configuration and used in the Facebook Graph API URL");
+    }
+
     [Fact]
     public async Task GetTransactionsAsync_RateLimitRetry_SucceedsOnSecondAttempt()
     {
@@ -169,7 +220,7 @@ public class MetaAdsTransactionSourceTests
         // Build source with a fast-retry pipeline (no delay) for test speed
         var settings = new MetaAdsSettings
         {
-            AdAccountId = "act_123456789",
+            AccountId = "act_123456789",
             AccessToken = "test-token",
             ApiVersion = "v21.0"
         };
@@ -202,6 +253,20 @@ file sealed class StaticResponseHandler(HttpStatusCode statusCode, string body) 
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        var response = new HttpResponseMessage(statusCode)
+        {
+            Content = new StringContent(body, Encoding.UTF8, "application/json")
+        };
+        return Task.FromResult(response);
+    }
+}
+
+/// <summary>Returns a fixed response and captures the request URL for assertion.</summary>
+file sealed class CapturingHandler(HttpStatusCode statusCode, string body, Action<string> onRequest) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        onRequest(request.RequestUri?.ToString() ?? string.Empty);
         var response = new HttpResponseMessage(statusCode)
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")
