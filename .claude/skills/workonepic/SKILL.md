@@ -1,11 +1,11 @@
 ---
 name: workonepic
-description: Use when the user says "work on epic", "pick up epic task", "workonepic", or provides an epic issue number to work on. Finds the oldest open subtask of the epic tagged "agent", creates a branch from the epic's branch, backmerges main, implements the task, validates against spec, runs all tests, commits with @claude marker, pushes, creates a PR to the epic branch, and marks the subtask as solved.
+description: Use when the user says "work on epic", "pick up epic task", "workonepic", or provides an epic issue number to work on. Finds the oldest open subtask of the epic tagged "agent", checks out the epic branch, backmerges main, implements the task directly on the epic branch, validates against spec, runs all tests, commits with @claude marker, pushes, and marks the subtask as solved.
 ---
 
 # Work on Epic — Pick Up and Implement Next Agent Subtask
 
-End-to-end workflow for picking up the oldest open "agent"-tagged subtask of a given epic, implementing it, and delivering a PR back to the epic branch.
+End-to-end workflow for picking up the oldest open "agent"-tagged subtask of a given epic, implementing it directly on the epic branch inside a worktree, and pushing the result.
 
 ## Usage
 
@@ -64,17 +64,20 @@ Pick the **oldest** (earliest `createdAt` / lowest number) open subtask that:
 gh issue edit <subtask-number> --remove-label "agent" --add-label "agent-wip"
 ```
 
-### 4. Create a feature branch from the epic branch
+### 4. Set up a git worktree for the epic branch
+
+Invoke `superpowers:using-git-worktrees` to create an isolated worktree checked out to the epic branch. This keeps the working directory clean and avoids disturbing the main checkout.
 
 ```bash
-git checkout <epic-branch>
+git fetch origin
+git worktree add ../worktrees/<epic-branch-slug> <epic-branch>
+cd ../worktrees/<epic-branch-slug>
 git pull origin <epic-branch>
-git checkout -b feat/<subtask-number>-<kebab-slug-from-title>
 ```
 
-Branch naming: always prefix with `feat/` and include the subtask issue number.
+All work for this subtask happens directly on the epic branch inside this worktree — do **not** create a separate feature branch.
 
-### 5. Backmerge main into the new branch
+### 5. Backmerge main into the epic branch
 
 ```bash
 git fetch origin main
@@ -101,18 +104,35 @@ Invoke `superpowers:writing-plans` skill to create a detailed, step-by-step plan
 
 ### 9. Implement with subagents
 
-Invoke `superpowers:subagent-driven-development` skill to carry out the plan. **Do not implement manually** — always delegate to subagents.
+**MANDATORY:** Invoke `superpowers:subagent-driven-development` skill to carry out the plan. **Do not implement manually** — always delegate to subagents. This is non-negotiable.
 
-### 10. Validate against the specification
+Each task in the plan **MUST** include writing tests as part of the task itself — not as a follow-up step. Every implemented feature or change requires:
+- **Backend tests** (unit or integration) covering the new/changed .NET code
+- **Frontend tests** (Jest + React Testing Library) covering the new/changed React code
 
-After implementation, re-read the subtask body and verify every acceptance criterion is met:
+A task is **not complete** until both its implementation and its tests are written and passing.
+
+### 10. Code review (hard gate after each task)
+
+After each task is implemented (including its tests), invoke the `code-reviewer` agent to validate the result:
+
+```
+Use the code-reviewer agent to review the implementation of [task description].
+Verify: code quality, test coverage for both backend and frontend, alignment with spec, no security issues.
+```
+
+**STOP if the code-reviewer flags any CRITICAL or HIGH issues.** Fix them before proceeding to the next task.
+
+### 11. Validate against the specification
+
+After all tasks are complete, re-read the subtask body and verify every acceptance criterion is met:
 - All described behaviour is implemented
 - No required fields, endpoints, or UI elements are missing
 - Edge cases mentioned in the spec are handled
 
 If anything is missing, fix it before proceeding.
 
-### 11. Run all tests (hard gate)
+### 12. Run all tests (hard gate)
 
 Run backend tests:
 ```bash
@@ -132,26 +152,25 @@ cd frontend && npm run lint
 
 **STOP if any test or lint check fails.** Fix failures first, then re-run. E2E tests are **not** required here.
 
-### 12. Commit, push, and open a PR
+### 13. Commit and push to the epic branch
 
 Stage all changes and create a conventional commit with `@claude` in the body:
 
 ```
 feat: <description of what was implemented>
 
+Implements #<subtask-number>
+
 @claude
 ```
 
-Push and create a PR — **target the epic branch**, not `main`:
+Push directly to the epic branch — no separate PR is needed per subtask:
 
 ```bash
-git push -u origin <feature-branch>
-gh pr create --base <epic-branch> \
-  --title "feat: <description>" \
-  --body "<summary of changes>\n\nCloses #<subtask-number>"
+git push origin <epic-branch>
 ```
 
-### 13. Mark subtask as solved — swap label "agent-wip" → "agent-solved"
+### 14. Mark subtask as solved — swap label "agent-wip" → "agent-solved"
 
 ```bash
 gh issue edit <subtask-number> --remove-label "agent-wip" --add-label "agent-solved"
@@ -159,11 +178,15 @@ gh issue edit <subtask-number> --remove-label "agent-wip" --add-label "agent-sol
 
 ## Hard Gates
 
-- **ALWAYS** create a new branch from the epic branch — never work directly on the epic branch or on `main`
-- **ALWAYS** backmerge `main` before starting implementation
+- **ALWAYS** use a git worktree — invoke `superpowers:using-git-worktrees` to set up a worktree for the epic branch before doing any implementation work
+- **ALWAYS** work directly on the epic branch — never create a per-subtask feature branch
+- **NEVER** work on `main` directly
+- **ALWAYS** backmerge `main` into the epic branch before starting implementation
 - **ALWAYS** validate the implementation against the full subtask spec before running tests
-- **ALWAYS** use subagent-driven development for implementation
+- **ALWAYS** use `superpowers:subagent-driven-development` for implementation — never implement manually
+- **EVERY** task **MUST** include both backend (.NET) AND frontend (Jest/RTL) tests — implementation without tests is not complete
+- **EVERY** task **MUST** be reviewed by the `code-reviewer` agent before moving to the next task — CRITICAL/HIGH issues must be fixed
 - All BE and FE tests (excluding E2E) **MUST** pass before pushing
 - The commit message **MUST** contain `@claude`
-- The PR **MUST** target the epic branch, not `main`
+- Changes are pushed directly to the epic branch — **no per-subtask PR** is created
 - The subtask label **MUST** be updated at both the start (`agent` → `agent-wip`) and end (`agent-wip` → `agent-solved`)
