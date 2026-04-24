@@ -50,7 +50,13 @@ Pick the **oldest** (earliest `createdAt` / lowest number) open subtask that:
 - Is **not** closed
 - Appears in the epic's task list
 
-If no such subtask exists, stop and inform the user.
+**STOP immediately if no candidate is found.** Do not proceed to step 3. Report the reason clearly:
+
+| Situation | Message to user |
+|-----------|----------------|
+| Epic has no open subtasks at all | "Epic #N has no open subtasks remaining. All work may be complete." |
+| Open subtasks exist but none have label `agent` | "Epic #N has open subtasks but none are labelled `agent`. Label a subtask `agent` to queue it for automated work." |
+| `agent`-labelled issues exist but none belong to this epic | "No `agent`-labelled issues found in epic #N's task list. Verify the subtasks are linked in the epic body." |
 
 ### 3. Claim the subtask — swap label "agent" → "agent-wip"
 
