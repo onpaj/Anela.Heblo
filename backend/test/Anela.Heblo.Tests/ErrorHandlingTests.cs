@@ -86,6 +86,7 @@ public class ErrorHandlingTests
         var shoptetOrdersErrors = errorCodes.Where(code => code >= 2100 && code < 2200).ToList(); // 21XX range
         var dataQualityErrors = errorCodes.Where(code => code >= 2200 && code < 2300).ToList(); // 22XX range
         var marketingErrors = errorCodes.Where(code => code >= 2300 && code < 2400).ToList(); // 23XX range
+        var photobankErrors = errorCodes.Where(code => code >= 2400 && code < 2500).ToList(); // 24XX range
         var externalServiceErrors = errorCodes.Where(code => code >= 9000 && code < 9100).ToList(); // 90XX range
 
         // Ensure we have some errors in the expected categories
@@ -102,6 +103,7 @@ public class ErrorHandlingTests
         Assert.True(shoptetOrdersErrors.Count > 0, "Should have Shoptet orders errors in 21XX range");
         Assert.True(dataQualityErrors.Count > 0, "Should have Data Quality errors in 22XX range");
         Assert.True(marketingErrors.Count > 0, "Should have Marketing Calendar errors in 23XX range");
+        Assert.True(photobankErrors.Count > 0, "Should have Photobank errors in 24XX range");
         Assert.True(externalServiceErrors.Count > 0, "Should have external service errors in 90XX range");
 
         // Ensure all error codes fall into defined module ranges
@@ -109,7 +111,8 @@ public class ErrorHandlingTests
                               manufactureErrors.Count + catalogErrors.Count + transportErrors.Count +
                               configErrors.Count + journalErrors.Count + analyticsErrors.Count +
                               fileStorageErrors.Count + backgroundJobsErrors.Count + knowledgeBaseErrors.Count +
-                              shoptetOrdersErrors.Count + dataQualityErrors.Count + marketingErrors.Count + externalServiceErrors.Count;
+                              shoptetOrdersErrors.Count + dataQualityErrors.Count + marketingErrors.Count +
+                              photobankErrors.Count + externalServiceErrors.Count;
 
         Assert.Equal(errorCodes.Count, categorizedCount);
     }

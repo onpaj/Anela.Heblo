@@ -232,6 +232,14 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.Forbidden)]
     UnauthorizedMarketingAccess = 2302,
 
+    // Photobank errors (24XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotoNotFound = 2401,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotobankRootNotFound = 2402,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotobankRuleNotFound = 2403,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

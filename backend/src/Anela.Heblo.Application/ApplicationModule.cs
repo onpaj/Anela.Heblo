@@ -17,6 +17,7 @@ using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.Journal;
 using Anela.Heblo.Application.Features.Marketing;
+using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Application.Features.Logistics;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture;
 using Anela.Heblo.Application.Features.Manufacture;
@@ -59,6 +60,7 @@ public static class ApplicationModule
         services.AddFinancialOverviewModule(configuration);
         services.AddJournalModule();
         services.AddMarketingModule();
+        services.AddPhotobankModule();
         services.AddManufactureModule(configuration);
         services.AddTransportModule();
         services.AddGiftPackageManufactureModule();
