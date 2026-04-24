@@ -86,7 +86,7 @@ export function useCalendarLayout(
 
     const segments: EventSegment[] = [];
 
-    for (const [, rowSegs] of byRow) {
+    for (const [, rowSegs] of Array.from(byRow)) {
       const sorted = [...rowSegs].sort((a, b) => a.startCol - b.startCol);
       // laneEnd[i] = endCol of the last segment placed in lane i
       const laneEnd: number[] = [];
