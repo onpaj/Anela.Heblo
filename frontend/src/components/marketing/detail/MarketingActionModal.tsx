@@ -68,6 +68,7 @@ interface MarketingActionModalProps {
   isOpen: boolean;
   onClose: () => void;
   existingAction?: MarketingActionDto | null;
+  prefillDates?: { dateFrom: string; dateTo: string } | null;
 }
 
 const toDateInputValue = (d: string | Date | undefined): string => {
@@ -87,6 +88,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
   isOpen,
   onClose,
   existingAction,
+  prefillDates,
 }) => {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
@@ -113,11 +115,17 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
         })),
         productInput: "",
       });
+    } else if (prefillDates) {
+      setForm({
+        ...EMPTY_FORM,
+        dateFrom: prefillDates.dateFrom,
+        dateTo: prefillDates.dateTo,
+      });
     } else {
       setForm(EMPTY_FORM);
     }
     setError(null);
-  }, [existingAction, isOpen]);
+  }, [existingAction, prefillDates, isOpen]);
 
   if (!isOpen) return null;
 
