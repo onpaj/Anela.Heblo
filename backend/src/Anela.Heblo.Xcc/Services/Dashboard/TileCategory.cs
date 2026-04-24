@@ -8,5 +8,6 @@ public enum TileCategory
     Purchase,
     Finance,
     Orders,
-    Error
+    Error,
+    DataQuality
 }

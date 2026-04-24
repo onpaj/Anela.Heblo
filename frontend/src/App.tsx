@@ -41,6 +41,7 @@ import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
+import DataQualityPage from "./pages/customer/DataQualityPage";
 import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
 import { UserStorage } from "./auth/userStorage";
@@ -457,6 +458,10 @@ function App() {
                         <Route
                           path="/knowledge-base/feedback"
                           element={<KnowledgeBaseFeedbackPage />}
+                        />
+                        <Route
+                          path="/data-quality"
+                          element={<DataQualityPage />}
                         />
                       </Routes>
                     </Layout>
