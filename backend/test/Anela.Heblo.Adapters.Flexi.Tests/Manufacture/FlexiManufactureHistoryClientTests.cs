@@ -1,6 +1,8 @@
 using Anela.Heblo.Adapters.Flexi.Manufacture;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
 using Rem.FlexiBeeSDK.Model.Products.StockMovement;
@@ -12,15 +14,18 @@ public class FlexiManufactureHistoryClientTests
 {
     private readonly Mock<IStockItemsMovementClient> _mockMovementClient;
     private readonly Mock<ILogger<FlexiManufactureHistoryClient>> _mockLogger;
+    private readonly IMemoryCache _cache;
     private readonly FlexiManufactureHistoryClient _client;
 
     public FlexiManufactureHistoryClientTests()
     {
         _mockMovementClient = new Mock<IStockItemsMovementClient>();
         _mockLogger = new Mock<ILogger<FlexiManufactureHistoryClient>>();
+        _cache = new MemoryCache(new MemoryCacheOptions());
 
         _client = new FlexiManufactureHistoryClient(
             _mockMovementClient.Object,
+            _cache,
             _mockLogger.Object);
     }
 
@@ -76,5 +81,27 @@ public class FlexiManufactureHistoryClientTests
                 It.IsAny<Exception?>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task GetHistoryAsync_SecondCallWithSameDates_ReturnsCachedResultWithoutHittingFlexiBee()
+    {
+        // Arrange
+        var dateFrom = new DateTime(2024, 1, 1);
+        var dateTo = new DateTime(2024, 3, 31);
+
+        _mockMovementClient
+            .Setup(x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<StockMovementDirection>(), It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<StockItemMovementFlexiDto>());
+
+        // Act — call twice with the same parameters
+        var result1 = await _client.GetHistoryAsync(dateFrom, dateTo);
+        var result2 = await _client.GetHistoryAsync(dateFrom, dateTo);
+
+        // Assert — FlexiBee called only once; second call served from cache
+        _mockMovementClient.Verify(
+            x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<StockMovementDirection>(), It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        result1.Should().BeEquivalentTo(result2);
     }
 }
