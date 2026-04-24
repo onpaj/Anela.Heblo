@@ -9,7 +9,7 @@ public class PackingMaterialLogConfiguration : IEntityTypeConfiguration<PackingM
 {
     public void Configure(EntityTypeBuilder<PackingMaterialLog> builder)
     {
-        builder.ToTable("PackingMaterialLog", "public");
+        builder.ToTable("PackingMaterialLogs", "public");
 
         builder.HasKey(e => e.Id);
 
@@ -45,14 +45,14 @@ public class PackingMaterialLogConfiguration : IEntityTypeConfiguration<PackingM
 
         // Index for efficient date range queries
         builder.HasIndex(e => new { e.PackingMaterialId, e.Date })
-            .HasDatabaseName("IX_PackingMaterialLog_MaterialId_Date");
+            .HasDatabaseName("IX_PackingMaterialLogs_MaterialId_Date");
 
         // Index for log type queries
         builder.HasIndex(e => e.LogType)
-            .HasDatabaseName("IX_PackingMaterialLog_LogType");
+            .HasDatabaseName("IX_PackingMaterialLogs_LogType");
 
         // Foreign key relationship to PackingMaterial table
         builder.HasIndex(e => e.PackingMaterialId)
-            .HasDatabaseName("IX_PackingMaterialLog_PackingMaterialId");
+            .HasDatabaseName("IX_PackingMaterialLogs_PackingMaterialId");
     }
 }

@@ -6,13 +6,13 @@ namespace Anela.Heblo.Persistence.Features.Invoices;
 
 /// <summary>
 /// EF Core configuration for IssuedInvoice entity
-/// Maps to existing public.IssuedInvoice table
+/// Maps to existing public.IssuedInvoices table
 /// </summary>
 public class IssuedInvoiceConfiguration : IEntityTypeConfiguration<IssuedInvoice>
 {
     public void Configure(EntityTypeBuilder<IssuedInvoice> builder)
     {
-        builder.ToTable("IssuedInvoice", "public");
+        builder.ToTable("IssuedInvoices", "public");
         builder.HasKey(e => e.Id);
 
         // Primary properties
@@ -127,18 +127,18 @@ public class IssuedInvoiceConfiguration : IEntityTypeConfiguration<IssuedInvoice
 
         // Indexes for efficient queries
         builder.HasIndex(e => e.InvoiceDate)
-            .HasDatabaseName("IX_IssuedInvoice_InvoiceDate");
+            .HasDatabaseName("IX_IssuedInvoices_InvoiceDate");
 
         builder.HasIndex(e => e.LastSyncTime)
-            .HasDatabaseName("IX_IssuedInvoice_LastSyncTime");
+            .HasDatabaseName("IX_IssuedInvoices_LastSyncTime");
 
         builder.HasIndex(e => e.IsSynced)
-            .HasDatabaseName("IX_IssuedInvoice_IsSynced");
+            .HasDatabaseName("IX_IssuedInvoices_IsSynced");
 
         builder.HasIndex(e => e.ErrorType)
-            .HasDatabaseName("IX_IssuedInvoice_ErrorType");
+            .HasDatabaseName("IX_IssuedInvoices_ErrorType");
 
         builder.HasIndex(e => e.CustomerName)
-            .HasDatabaseName("IX_IssuedInvoice_CustomerName");
+            .HasDatabaseName("IX_IssuedInvoices_CustomerName");
     }
 }
