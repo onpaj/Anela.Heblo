@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424150000_AddPhotobankIndexRootColumns")]
+    partial class AddPhotobankIndexRootColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -27,49 +30,57 @@ namespace Anela.Heblo.Persistence.Migrations
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("id");
 
                     b.Property<string>("CronExpression")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("cron_expression");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("display_name");
 
                     b.Property<bool>("IsEnabled")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
 
                     b.Property<string>("JobName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("job_name");
 
                     b.Property<DateTime>("LastModifiedAt")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("last_modified_at");
 
                     b.Property<string>("LastModifiedBy")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("last_modified_by");
 
                     b.HasKey("Id");
 
                     b.HasIndex("IsEnabled")
-                        .HasDatabaseName("IX_RecurringJobConfigurations_IsEnabled");
+                        .HasDatabaseName("IX_recurring_job_configurations_is_enabled");
 
                     b.HasIndex("JobName")
                         .IsUnique()
-                        .HasDatabaseName("IX_RecurringJobConfigurations_JobName");
+                        .HasDatabaseName("IX_recurring_job_configurations_job_name");
 
-                    b.ToTable("RecurringJobConfigurations", "public");
+                    b.ToTable("recurring_job_configurations", (string)null);
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Bank.BankStatementImport", b =>
@@ -128,7 +139,7 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_BankStatements_TransferId");
 
-                    b.ToTable("BankStatements", "public");
+                    b.ToTable("BankStatements", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.ManufactureDifficultySetting", b =>
@@ -169,7 +180,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("ProductCode", "ValidFrom", "ValidTo")
                         .HasDatabaseName("IX_ManufactureDifficultySettings_ProductCode_Validity");
 
-                    b.ToTable("ManufactureDifficultySettings", "public", t =>
+                    b.ToTable("ManufactureDifficultySettings", null, t =>
                         {
                             t.HasCheckConstraint("CK_ManufactureDifficultySettings_ValidDates", "\"ValidFrom\" IS NULL OR \"ValidTo\" IS NULL OR \"ValidFrom\" < \"ValidTo\"");
                         });
@@ -207,7 +218,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("StockTakingRecords", "public");
+                    b.ToTable("StockTakingResults", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.Stock.StockUpOperation", b =>
@@ -275,81 +286,99 @@ namespace Anela.Heblo.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("completed_at");
 
                     b.Property<DateOnly>("DateFrom")
-                        .HasColumnType("date");
+                        .HasColumnType("date")
+                        .HasColumnName("date_from");
 
                     b.Property<DateOnly>("DateTo")
-                        .HasColumnType("date");
+                        .HasColumnType("date")
+                        .HasColumnName("date_to");
 
                     b.Property<string>("ErrorMessage")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("error_message");
 
                     b.Property<DateTime>("StartedAt")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("started_at");
 
                     b.Property<int>("Status")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
 
                     b.Property<int>("TestType")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("test_type");
 
                     b.Property<int>("TotalChecked")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("total_checked");
 
                     b.Property<int>("TotalMismatches")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("total_mismatches");
 
                     b.Property<int>("TriggerType")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("trigger_type");
 
                     b.HasKey("Id");
 
                     b.HasIndex("TestType", "StartedAt")
-                        .HasDatabaseName("IX_DqtRuns_TestType_StartedAt");
+                        .HasDatabaseName("IX_dqt_runs_test_type_started_at");
 
-                    b.ToTable("DqtRuns", "public");
+                    b.ToTable("dqt_runs", (string)null);
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.DataQuality.InvoiceDqtResult", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<string>("Details")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("details");
 
                     b.Property<Guid>("DqtRunId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("dqt_run_id");
 
                     b.Property<string>("FlexiValue")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("flexi_value");
 
                     b.Property<string>("InvoiceCode")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("invoice_code");
 
                     b.Property<int>("MismatchType")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("mismatch_type");
 
                     b.Property<string>("ShoptetValue")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("shoptet_value");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DqtRunId")
-                        .HasDatabaseName("IX_InvoiceDqtResults_DqtRunId");
+                        .HasDatabaseName("IX_invoice_dqt_results_dqt_run_id");
 
                     b.HasIndex("InvoiceCode")
-                        .HasDatabaseName("IX_InvoiceDqtResults_InvoiceCode");
+                        .HasDatabaseName("IX_invoice_dqt_results_invoice_code");
 
-                    b.ToTable("InvoiceDqtResults", "public");
+                    b.ToTable("invoice_dqt_results", (string)null);
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.GridLayouts.GridLayout", b =>
@@ -382,7 +411,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("UserId", "GridKey")
                         .IsUnique();
 
-                    b.ToTable("GridLayouts", "public");
+                    b.ToTable("GridLayouts", (string)null);
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.InvoiceClassification.ClassificationHistory", b =>
@@ -460,7 +489,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("Timestamp")
                         .HasDatabaseName("IX_ClassificationHistory_Timestamp");
 
-                    b.ToTable("ClassificationHistory", "public");
+                    b.ToTable("ClassificationHistory", (string)null);
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.InvoiceClassification.ClassificationRule", b =>
@@ -526,7 +555,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("RuleTypeIdentifier", "Pattern")
                         .HasDatabaseName("IX_ClassificationRules_RuleTypeIdentifier_Pattern");
 
-                    b.ToTable("ClassificationRules", "public");
+                    b.ToTable("ClassificationRules", (string)null);
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Invoices.IssuedInvoice", b =>
@@ -635,21 +664,21 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerName")
-                        .HasDatabaseName("IX_IssuedInvoices_CustomerName");
+                        .HasDatabaseName("IX_IssuedInvoice_CustomerName");
 
                     b.HasIndex("ErrorType")
-                        .HasDatabaseName("IX_IssuedInvoices_ErrorType");
+                        .HasDatabaseName("IX_IssuedInvoice_ErrorType");
 
                     b.HasIndex("InvoiceDate")
-                        .HasDatabaseName("IX_IssuedInvoices_InvoiceDate");
+                        .HasDatabaseName("IX_IssuedInvoice_InvoiceDate");
 
                     b.HasIndex("IsSynced")
-                        .HasDatabaseName("IX_IssuedInvoices_IsSynced");
+                        .HasDatabaseName("IX_IssuedInvoice_IsSynced");
 
                     b.HasIndex("LastSyncTime")
-                        .HasDatabaseName("IX_IssuedInvoices_LastSyncTime");
+                        .HasDatabaseName("IX_IssuedInvoice_LastSyncTime");
 
-                    b.ToTable("IssuedInvoices", "public");
+                    b.ToTable("IssuedInvoice", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Invoices.IssuedInvoiceSyncData", b =>
@@ -686,7 +715,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("IssuedInvoiceId");
 
-                    b.ToTable("IssuedInvoiceSyncData", "public");
+                    b.ToTable("IssuedInvoiceSyncData", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Journal.JournalEntry", b =>
@@ -867,7 +896,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("DocumentId", "ChunkIndex")
                         .HasDatabaseName("ix_knowledgebase_chunks_document_chunk");
 
-                    b.ToTable("KnowledgeBaseChunks", "public");
+                    b.ToTable("KnowledgeBaseChunks", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.KnowledgeBase.KnowledgeBaseDocument", b =>
@@ -925,7 +954,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("KnowledgeBaseDocuments", "public");
+                    b.ToTable("KnowledgeBaseDocuments", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.KnowledgeBase.KnowledgeBaseQuestionLog", b =>
@@ -968,80 +997,91 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("KnowledgeBaseQuestionLogs", "public");
+                    b.ToTable("KnowledgeBaseQuestionLogs", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture.GiftPackageManufactureItem", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("ManufactureLogId")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("manufacture_log_id");
 
                     b.Property<string>("ProductCode")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("product_code");
 
                     b.Property<int>("QuantityConsumed")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity_consumed");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ManufactureLogId")
-                        .HasDatabaseName("IX_GiftPackageManufactureItems_ManufactureLogId");
+                        .HasDatabaseName("ix_gift_package_manufacture_items_manufacture_log_id");
 
                     b.HasIndex("ProductCode")
-                        .HasDatabaseName("IX_GiftPackageManufactureItems_ProductCode");
+                        .HasDatabaseName("ix_gift_package_manufacture_items_product_code");
 
-                    b.ToTable("GiftPackageManufactureItems", "public");
+                    b.ToTable("gift_package_manufacture_items", (string)null);
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture.GiftPackageManufactureLog", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("created_at");
 
                     b.Property<string>("CreatedBy")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("created_by");
 
                     b.Property<string>("GiftPackageCode")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("gift_package_code");
 
                     b.Property<int>("OperationType")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("operation_type");
 
                     b.Property<int>("QuantityCreated")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity_created");
 
                     b.Property<bool>("StockOverrideApplied")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("stock_override_applied");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CreatedAt")
-                        .HasDatabaseName("IX_GiftPackageManufactureLogs_CreatedAt");
+                        .HasDatabaseName("ix_gift_package_manufacture_logs_created_at");
 
                     b.HasIndex("GiftPackageCode")
-                        .HasDatabaseName("IX_GiftPackageManufactureLogs_GiftPackageCode");
+                        .HasDatabaseName("ix_gift_package_manufacture_logs_gift_package_code");
 
                     b.HasIndex("OperationType")
-                        .HasDatabaseName("IX_GiftPackageManufactureLogs_OperationType");
+                        .HasDatabaseName("ix_gift_package_manufacture_logs_operation_type");
 
-                    b.ToTable("GiftPackageManufactureLogs", "public");
+                    b.ToTable("gift_package_manufacture_logs", (string)null);
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBox", b =>
@@ -1106,7 +1146,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TransportBoxes", "public");
+                    b.ToTable("TransportBox", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBoxItem", b =>
@@ -1143,7 +1183,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("TransportBoxId");
 
-                    b.ToTable("TransportBoxItems", "public");
+                    b.ToTable("TransportBoxItem", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.Transport.TransportBoxStateLog", b =>
@@ -1174,7 +1214,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("TransportBoxId");
 
-                    b.ToTable("TransportBoxStateLogs", "public");
+                    b.ToTable("TransportBoxStateLog", "public");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", b =>
@@ -1450,129 +1490,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("ManufactureOrderSemiProducts", "public");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Marketing.MarketingAction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ActionType")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp");
-
-                    b.Property<string>("CreatedByUserId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("CreatedByUsername")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp");
-
-                    b.Property<string>("DeletedByUserId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("DeletedByUsername")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(5000)
-                        .HasColumnType("character varying(5000)");
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("timestamp");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime>("ModifiedAt")
-                        .HasColumnType("timestamp");
-
-                    b.Property<string>("ModifiedByUserId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("ModifiedByUsername")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActionType")
-                        .HasDatabaseName("IX_MarketingActions_ActionType");
-
-                    b.HasIndex("EndDate")
-                        .HasDatabaseName("IX_MarketingActions_EndDate");
-
-                    b.HasIndex("StartDate")
-                        .HasDatabaseName("IX_MarketingActions_StartDate");
-
-                    b.HasIndex("IsDeleted", "StartDate", "EndDate")
-                        .HasDatabaseName("IX_MarketingActions_IsDeleted_StartDate_EndDate");
-
-                    b.ToTable("MarketingActions", "public");
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Marketing.MarketingActionFolderLink", b =>
-                {
-                    b.Property<int>("MarketingActionId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("FolderKey")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp");
-
-                    b.Property<int>("FolderType")
-                        .HasColumnType("integer");
-
-                    b.HasKey("MarketingActionId", "FolderKey");
-
-                    b.HasIndex("MarketingActionId")
-                        .HasDatabaseName("IX_MarketingActionFolderLinks_MarketingActionId");
-
-                    b.ToTable("MarketingActionFolderLinks", "public");
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Marketing.MarketingActionProduct", b =>
-                {
-                    b.Property<int>("MarketingActionId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ProductCodePrefix")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp");
-
-                    b.HasKey("MarketingActionId", "ProductCodePrefix");
-
-                    b.HasIndex("ProductCodePrefix")
-                        .HasDatabaseName("IX_MarketingActionProducts_ProductCodePrefix");
-
-                    b.ToTable("MarketingActionProducts", "public");
-                });
-
             modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingInvoices.ImportedMarketingTransaction", b =>
                 {
                     b.Property<int>("Id")
@@ -1620,9 +1537,9 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("Platform", "TransactionId")
                         .IsUnique()
-                        .HasDatabaseName("IX_ImportedMarketingTransactions_Platform_TransactionId");
+                        .HasDatabaseName("IX_imported_marketing_transactions_Platform_TransactionId");
 
-                    b.ToTable("ImportedMarketingTransactions", "public");
+                    b.ToTable("imported_marketing_transactions", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", b =>
@@ -1656,9 +1573,9 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
-                        .HasDatabaseName("IX_PackingMaterials_Name");
+                        .HasDatabaseName("IX_PackingMaterial_Name");
 
-                    b.ToTable("PackingMaterials", "public");
+                    b.ToTable("PackingMaterial", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterialLog", b =>
@@ -1694,15 +1611,15 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("LogType")
-                        .HasDatabaseName("IX_PackingMaterialLogs_LogType");
+                        .HasDatabaseName("IX_PackingMaterialLog_LogType");
 
                     b.HasIndex("PackingMaterialId")
-                        .HasDatabaseName("IX_PackingMaterialLogs_PackingMaterialId");
+                        .HasDatabaseName("IX_PackingMaterialLog_PackingMaterialId");
 
                     b.HasIndex("PackingMaterialId", "Date")
-                        .HasDatabaseName("IX_PackingMaterialLogs_MaterialId_Date");
+                        .HasDatabaseName("IX_PackingMaterialLog_MaterialId_Date");
 
-                    b.ToTable("PackingMaterialLogs", "public");
+                    b.ToTable("PackingMaterialLog", "dbo");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Photobank.Photo", b =>
@@ -1712,10 +1629,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("DriveId")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -2056,7 +1969,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("UserDashboardSettings", "public");
+                    b.ToTable("UserDashboardSettings", (string)null);
                 });
 
             modelBuilder.Entity("Anela.Heblo.Xcc.Domain.UserDashboardTile", b =>
@@ -2093,7 +2006,7 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("UserId", "TileId")
                         .IsUnique();
 
-                    b.ToTable("UserDashboardTiles", "public");
+                    b.ToTable("UserDashboardTiles", (string)null);
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.DataQuality.InvoiceDqtResult", b =>
@@ -2148,7 +2061,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                             b1.HasKey("IssuedInvoiceSyncDataId");
 
-                            b1.ToTable("IssuedInvoiceSyncData", "public");
+                            b1.ToTable("IssuedInvoiceSyncData", "dbo");
 
                             b1.WithOwner()
                                 .HasForeignKey("IssuedInvoiceSyncDataId");
@@ -2257,28 +2170,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("ManufactureOrder");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Marketing.MarketingActionFolderLink", b =>
-                {
-                    b.HasOne("Anela.Heblo.Domain.Features.Marketing.MarketingAction", "MarketingAction")
-                        .WithMany("FolderLinks")
-                        .HasForeignKey("MarketingActionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MarketingAction");
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Marketing.MarketingActionProduct", b =>
-                {
-                    b.HasOne("Anela.Heblo.Domain.Features.Marketing.MarketingAction", "MarketingAction")
-                        .WithMany("ProductAssociations")
-                        .HasForeignKey("MarketingActionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MarketingAction");
-                });
-
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterialLog", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", null)
@@ -2383,13 +2274,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("Products");
 
                     b.Navigation("SemiProduct");
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Marketing.MarketingAction", b =>
-                {
-                    b.Navigation("FolderLinks");
-
-                    b.Navigation("ProductAssociations");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", b =>

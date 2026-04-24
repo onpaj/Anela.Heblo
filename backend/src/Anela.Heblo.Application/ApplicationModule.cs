@@ -23,6 +23,7 @@ using Anela.Heblo.Application.Features.Manufacture;
 using Anela.Heblo.Application.Features.OrgChart;
 using Anela.Heblo.Application.Features.PackingMaterials;
 using Anela.Heblo.Application.Features.DataQuality;
+using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.UserManagement;
 using Anela.Heblo.Xcc.Services.Dashboard;
@@ -74,6 +75,7 @@ public static class ApplicationModule
         services.AddGridLayoutsModule();
         services.AddMarketingInvoicesModule();
         services.AddDataQualityModule();
+        services.AddPhotobankModule(configuration);
         // services.AddOrdersModule();
 
         return services;
