@@ -1,8 +1,6 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
-using Anela.Heblo.Domain.Features.Marketing;
-using Anela.Heblo.Persistence.Marketing;
 using Anela.Heblo.Persistence.GridLayouts;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
@@ -123,9 +121,6 @@ public static class PersistenceModule
 
         // Grid Layouts repositories
         services.AddScoped<IGridLayoutRepository, GridLayoutRepository>();
-
-        // Marketing Calendar repositories
-        services.AddScoped<IMarketingActionRepository, MarketingActionRepository>();
 
         return services;
     }

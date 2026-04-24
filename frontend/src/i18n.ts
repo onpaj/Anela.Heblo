@@ -198,6 +198,10 @@ const resources = {
         ShoptetOrderInvalidSourceState: "Objednávku nelze zablokovat – není ve povoleném stavu",
         ShoptetOrderNotFound: "Objednávka nebyla nalezena",
 
+        // Marketing Calendar module errors
+        MarketingActionNotFound: "Marketingová akce nebyla nalezena",
+        UnauthorizedMarketingAccess: "Nemáte oprávnění k této marketingové akci",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",
