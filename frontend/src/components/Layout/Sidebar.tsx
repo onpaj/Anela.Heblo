@@ -277,7 +277,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Hangfire",
           href: "#",
           onClick: openHangfireDashboard,
-        }
+        },
+        {
+          id: 'data-quality',
+          name: 'Kvalita dat',
+          href: '/data-quality',
+        },
       ],
     },
     {
@@ -295,13 +300,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           ? [{ id: 'kb-feedback', name: 'Feedback', href: '/knowledge-base/feedback' }]
           : []),
       ],
-    },
-    {
-      id: 'data-quality',
-      name: 'Kvalita dat',
-      href: '/data-quality',
-      icon: Database,
-      type: 'single' as const,
     },
   ];
 
