@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchBySize;
@@ -101,12 +102,8 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             .ReturnsAsync(product);
 
         _mockCatalogRepository
-            .Setup(x => x.GetByIdAsync("INGREDIENT-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ingredient1);
-
-        _mockCatalogRepository
-            .Setup(x => x.GetByIdAsync("INGREDIENT-2", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ingredient2);
+            .Setup(x => x.FindAsync(It.IsAny<Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate> { ingredient1, ingredient2 });
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -179,8 +176,8 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             .ReturnsAsync(product);
 
         _mockCatalogRepository
-            .Setup(x => x.GetByIdAsync("INGREDIENT-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ingredient);
+            .Setup(x => x.FindAsync(It.IsAny<Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate> { ingredient });
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -239,8 +236,8 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             .ReturnsAsync(product);
 
         _mockCatalogRepository
-            .Setup(x => x.GetByIdAsync("INGREDIENT-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CatalogAggregate?)null); // Ingredient not found
+            .Setup(x => x.FindAsync(It.IsAny<Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate>()); // No ingredient found
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -253,5 +250,61 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
         var resultIngredient = result.Ingredients.First();
         Assert.Null(resultIngredient.LastStockTaking);
         Assert.Equal(0m, resultIngredient.StockTotal);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldUseSingleBatchLoad_ForAllIngredients()
+    {
+        // Arrange — verifies N+1 is fixed: FindAsync called once regardless of ingredient count
+        var productCode = "TEST-PRODUCT";
+        var request = new CalculatedBatchSizeRequest
+        {
+            ProductCode = productCode,
+            DesiredBatchSize = 1000.0
+        };
+
+        var template = new ManufactureTemplate
+        {
+            ProductCode = productCode,
+            ProductName = "Test Product",
+            OriginalAmount = 500.0,
+            BatchSize = 500.0,
+            Ingredients = new List<Ingredient>
+            {
+                new Ingredient { ProductCode = "ING-1", ProductName = "Ingredient 1", Amount = 100.0, Price = 1.0m },
+                new Ingredient { ProductCode = "ING-2", ProductName = "Ingredient 2", Amount = 200.0, Price = 2.0m },
+                new Ingredient { ProductCode = "ING-3", ProductName = "Ingredient 3", Amount = 300.0, Price = 3.0m },
+            }
+        };
+
+        var product = new CatalogAggregate { ProductCode = productCode, MinimalManufactureQuantity = 500.0 };
+
+        _mockManufactureClient
+            .Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+
+        _mockCatalogRepository
+            .Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+
+        _mockCatalogRepository
+            .Setup(x => x.FindAsync(It.IsAny<Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CatalogAggregate>());
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert — FindAsync called exactly once for all 3 ingredients (not 3 separate calls)
+        _mockCatalogRepository.Verify(
+            x => x.FindAsync(It.IsAny<Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        // GetByIdAsync called only once — for the product itself, not ingredients
+        _mockCatalogRepository.Verify(
+            x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        Assert.True(result.Success);
+        Assert.Equal(3, result.Ingredients.Count);
     }
 }
