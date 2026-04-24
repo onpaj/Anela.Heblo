@@ -17,7 +17,8 @@ namespace Anela.Heblo.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // These tables were orphaned and are not recreated in rollback
+            throw new NotSupportedException(
+                "DropOrphanedDboTables is irreversible. The dbo.Jobs and dbo.ScheduledTask tables cannot be restored by rollback.");
         }
     }
 }
