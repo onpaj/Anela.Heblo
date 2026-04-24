@@ -101,18 +101,35 @@ Invoke `superpowers:writing-plans` skill to create a detailed, step-by-step plan
 
 ### 9. Implement with subagents
 
-Invoke `superpowers:subagent-driven-development` skill to carry out the plan. **Do not implement manually** — always delegate to subagents.
+**MANDATORY:** Invoke `superpowers:subagent-driven-development` skill to carry out the plan. **Do not implement manually** — always delegate to subagents. This is non-negotiable.
 
-### 10. Validate against the specification
+Each task in the plan **MUST** include writing tests as part of the task itself — not as a follow-up step. Every implemented feature or change requires:
+- **Backend tests** (unit or integration) covering the new/changed .NET code
+- **Frontend tests** (Jest + React Testing Library) covering the new/changed React code
 
-After implementation, re-read the subtask body and verify every acceptance criterion is met:
+A task is **not complete** until both its implementation and its tests are written and passing.
+
+### 10. Code review (hard gate after each task)
+
+After each task is implemented (including its tests), invoke the `code-reviewer` agent to validate the result:
+
+```
+Use the code-reviewer agent to review the implementation of [task description].
+Verify: code quality, test coverage for both backend and frontend, alignment with spec, no security issues.
+```
+
+**STOP if the code-reviewer flags any CRITICAL or HIGH issues.** Fix them before proceeding to the next task.
+
+### 11. Validate against the specification
+
+After all tasks are complete, re-read the subtask body and verify every acceptance criterion is met:
 - All described behaviour is implemented
 - No required fields, endpoints, or UI elements are missing
 - Edge cases mentioned in the spec are handled
 
 If anything is missing, fix it before proceeding.
 
-### 11. Run all tests (hard gate)
+### 12. Run all tests (hard gate)
 
 Run backend tests:
 ```bash
@@ -132,7 +149,7 @@ cd frontend && npm run lint
 
 **STOP if any test or lint check fails.** Fix failures first, then re-run. E2E tests are **not** required here.
 
-### 12. Commit, push, and open a PR
+### 13. Commit, push, and open a PR
 
 Stage all changes and create a conventional commit with `@claude` in the body:
 
@@ -151,7 +168,7 @@ gh pr create --base <epic-branch> \
   --body "<summary of changes>\n\nCloses #<subtask-number>"
 ```
 
-### 13. Mark subtask as solved — swap label "agent-wip" → "agent-solved"
+### 14. Mark subtask as solved — swap label "agent-wip" → "agent-solved"
 
 ```bash
 gh issue edit <subtask-number> --remove-label "agent-wip" --add-label "agent-solved"
@@ -162,7 +179,9 @@ gh issue edit <subtask-number> --remove-label "agent-wip" --add-label "agent-sol
 - **ALWAYS** create a new branch from the epic branch — never work directly on the epic branch or on `main`
 - **ALWAYS** backmerge `main` before starting implementation
 - **ALWAYS** validate the implementation against the full subtask spec before running tests
-- **ALWAYS** use subagent-driven development for implementation
+- **ALWAYS** use `superpowers:subagent-driven-development` for implementation — never implement manually
+- **EVERY** task **MUST** include both backend (.NET) AND frontend (Jest/RTL) tests — implementation without tests is not complete
+- **EVERY** task **MUST** be reviewed by the `code-reviewer` agent before moving to the next task — CRITICAL/HIGH issues must be fixed
 - All BE and FE tests (excluding E2E) **MUST** pass before pushing
 - The commit message **MUST** contain `@claude`
 - The PR **MUST** target the epic branch, not `main`
