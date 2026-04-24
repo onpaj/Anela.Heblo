@@ -8,21 +8,33 @@ import {
 } from "../../../api/hooks/useMarketingCalendar";
 
 const ACTION_TYPE_OPTIONS = [
-  { value: 0, label: "Sociální sítě" },
-  { value: 1, label: "Událost" },
-  { value: 2, label: "Email" },
-  { value: 3, label: "PR" },
-  { value: 4, label: "Fotografie" },
-  { value: 5, label: "Ostatní" },
+  { value: 0, label: "Sociální sítě", backendName: "General" },
+  { value: 1, label: "Událost", backendName: "Promotion" },
+  { value: 2, label: "Email", backendName: "Launch" },
+  { value: 3, label: "PR", backendName: "Campaign" },
+  { value: 4, label: "Fotografie", backendName: "Event" },
+  { value: 99, label: "Ostatní", backendName: "Other" },
 ];
 
 const FOLDER_TYPE_OPTIONS = [
-  { value: 0, label: "Obrázky" },
-  { value: 1, label: "Texty" },
-  { value: 2, label: "Videa" },
-  { value: 3, label: "Grafika" },
-  { value: 4, label: "Ostatní" },
+  { value: 0, label: "Obrázky", backendName: "General" },
+  { value: 1, label: "Texty", backendName: "Seasonal" },
+  { value: 2, label: "Videa", backendName: "ProductLine" },
+  { value: 3, label: "Grafika", backendName: "Campaign" },
+  { value: 99, label: "Ostatní", backendName: "Other" },
 ];
+
+const resolveOptionValue = (
+  options: Array<{ value: number; backendName: string }>,
+  raw: string | number | undefined,
+): number => {
+  if (raw == null) return options[0]?.value ?? 0;
+  const numeric = Number(raw);
+  const byValue = options.find((o) => !isNaN(numeric) && o.value === numeric);
+  if (byValue) return byValue.value;
+  const byName = options.find((o) => o.backendName === String(raw));
+  return byName?.value ?? options[0]?.value ?? 0;
+};
 
 interface FolderLinkInput {
   path: string;
@@ -58,6 +70,17 @@ interface MarketingActionModalProps {
   existingAction?: MarketingActionDto | null;
 }
 
+const toDateInputValue = (d: string | Date | undefined): string => {
+  if (!d) return "";
+  if (d instanceof Date) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+  return String(d).substring(0, 10);
+};
+
 const FORM_ID = "marketing-action-form";
 
 const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
@@ -79,23 +102,14 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
       setForm({
         title: existingAction.title ?? "",
         detail: existingAction.detail ?? "",
-        actionType:
-          ACTION_TYPE_OPTIONS.findIndex(
-            (o) =>
-              o.label === existingAction.actionType ||
-              o.value.toString() === existingAction.actionType,
-          ) ?? 0,
-        dateFrom: existingAction.dateFrom
-          ? String(existingAction.dateFrom)
-          : "",
-        dateTo: existingAction.dateTo ? String(existingAction.dateTo) : "",
+        actionType: resolveOptionValue(ACTION_TYPE_OPTIONS, existingAction.actionType),
+        dateFrom: toDateInputValue(existingAction.dateFrom),
+        dateTo: toDateInputValue(existingAction.dateTo),
         associatedProducts: existingAction.associatedProducts ?? [],
         folderLinks: (existingAction.folderLinks ?? []).map((fl) => ({
           path: fl.path ?? "",
           label: fl.label ?? "",
-          folderType:
-            FOLDER_TYPE_OPTIONS.findIndex((o) => o.label === fl.folderType) ??
-            0,
+          folderType: resolveOptionValue(FOLDER_TYPE_OPTIONS, fl.folderType),
         })),
         productInput: "",
       });
@@ -155,7 +169,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
     const payload = {
       title: form.title.trim(),
       description: form.detail.trim() || undefined,
-      actionType: ACTION_TYPE_OPTIONS[form.actionType]?.label ?? "Other",
+      actionType: form.actionType,
       startDate: new Date(form.dateFrom),
       endDate: form.dateTo ? new Date(form.dateTo) : undefined,
       associatedProducts: form.associatedProducts,
@@ -163,8 +177,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
         .filter((fl) => fl.path.trim())
         .map((fl) => ({
           folderKey: fl.path.trim(),
-          folderType:
-            FOLDER_TYPE_OPTIONS[fl.folderType]?.label ?? "Ostatní",
+          folderType: fl.folderType,
         })),
     };
 

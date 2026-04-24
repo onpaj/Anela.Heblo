@@ -21,22 +21,22 @@ interface GetMarketingCalendarParams {
 interface CreateMarketingActionPayload {
   title: string;
   description?: string;
-  actionType: string;
+  actionType: number;
   startDate: Date;
   endDate?: Date;
   associatedProducts?: string[];
-  folderLinks?: Array<{ folderKey: string; folderType: string }>;
+  folderLinks?: Array<{ folderKey: string; folderType: number }>;
 }
 
 interface UpdateMarketingActionPayload {
   id: number;
   title: string;
   description?: string;
-  actionType: string;
+  actionType: number;
   startDate: Date;
   endDate?: Date;
   associatedProducts?: string[];
-  folderLinks?: Array<{ folderKey: string; folderType: string }>;
+  folderLinks?: Array<{ folderKey: string; folderType: number }>;
 }
 
 export const useMarketingActions = (

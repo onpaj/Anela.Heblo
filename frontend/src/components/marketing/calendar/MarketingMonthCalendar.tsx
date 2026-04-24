@@ -17,6 +17,7 @@ interface MarketingMonthCalendarProps {
   month: number; // 0-based
   events: CalendarEvent[];
   onEventClick: (id: number) => void;
+  className?: string;
 }
 
 interface DayCell {
@@ -31,6 +32,7 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
   month,
   events,
   onEventClick,
+  className,
 }) => {
   const today = new Date();
   const segments = useCalendarLayout(events, year, month);
@@ -109,9 +111,9 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
   }, [segments]);
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+    <div className={`flex flex-col border border-gray-200 rounded-lg overflow-hidden bg-white${className ? ` ${className}` : ""}`}>
       {/* Header row */}
-      <div className="grid grid-cols-7 border-b border-gray-200">
+      <div className="grid grid-cols-7 border-b border-gray-200 flex-shrink-0">
         {WEEK_DAYS.map((day) => (
           <div
             key={day}
@@ -123,6 +125,7 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
       </div>
 
       {/* Week rows */}
+      <div className="flex flex-col flex-1">
       {Array.from({ length: weekCount }, (_, w) => {
         const rowCells = dayCells.filter((c) => c.weekRow === w);
         const rowSegs = segmentsByRow.get(w) ?? [];
@@ -130,7 +133,7 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
         return (
           <div
             key={w}
-            className="relative grid grid-cols-7 border-b border-gray-200 last:border-b-0"
+            className="relative flex-1 grid grid-cols-7 border-b border-gray-200 last:border-b-0"
             style={{ minHeight: rowMinHeights[w] }}
           >
             {/* Background: day cells */}
@@ -159,34 +162,26 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
               </div>
             ))}
 
-            {/* Overlay: event bars — absolutely positioned over the grid */}
+            {/* Overlay: event bars — direct absolutely positioned grid children */}
             <div
               className="absolute inset-0 grid grid-cols-7"
               style={{ pointerEvents: "none" }}
             >
               {rowSegs.map((seg) => (
-                <div
+                <MarketingEventBar
                   key={`${seg.event.id}-${seg.weekRow}`}
-                  style={{
-                    gridColumn: "1 / -1",
-                    position: "relative",
-                    gridRow: 1,
-                    pointerEvents: "auto",
-                  }}
-                >
-                  <MarketingEventBar
-                    event={seg.event}
-                    startCol={seg.startCol}
-                    endCol={seg.endCol}
-                    lane={seg.lane}
-                    onClick={onEventClick}
-                  />
-                </div>
+                  event={seg.event}
+                  startCol={seg.startCol}
+                  endCol={seg.endCol}
+                  lane={seg.lane}
+                  onClick={onEventClick}
+                />
               ))}
             </div>
           </div>
         );
       })}
+      </div>
     </div>
   );
 };

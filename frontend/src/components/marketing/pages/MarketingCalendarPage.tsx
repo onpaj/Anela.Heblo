@@ -187,13 +187,15 @@ const MarketingCalendarPage: React.FC = () => {
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
         {viewMode === "calendar" ? (
-          <div className="space-y-4">
-            <CalendarNavigation
-              onPrevious={goToPrev}
-              onNext={goToNext}
-              onToday={goToToday}
-              currentPeriodLabel={periodLabel}
-            />
+          <div className="flex flex-col h-full gap-4">
+            <div className="flex-shrink-0">
+              <CalendarNavigation
+                onPrevious={goToPrev}
+                onNext={goToNext}
+                onToday={goToToday}
+                currentPeriodLabel={periodLabel}
+              />
+            </div>
             {calendarQuery.isLoading ? (
               <div className="text-center py-12 text-gray-500 text-sm">
                 Načítání...
@@ -203,12 +205,15 @@ const MarketingCalendarPage: React.FC = () => {
                 Chyba při načítání kalendáře.
               </div>
             ) : (
-              <MarketingMonthCalendar
-                year={year}
-                month={month}
-                events={calendarEvents}
-                onEventClick={openEdit}
-              />
+              <div className="flex-1 min-h-0">
+                <MarketingMonthCalendar
+                  year={year}
+                  month={month}
+                  events={calendarEvents}
+                  onEventClick={openEdit}
+                  className="h-full"
+                />
+              </div>
             )}
           </div>
         ) : (

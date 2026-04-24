@@ -43,12 +43,14 @@ const MarketingEventBar: React.FC<MarketingEventBarProps> = ({
       style={{
         gridColumnStart: startCol,
         gridColumnEnd: endCol + 1,
+        gridRow: 1,
         top,
         height: BAR_HEIGHT_PX,
         position: "absolute",
         left: 2,
         right: 2,
         zIndex: 10,
+        pointerEvents: "auto",
       }}
       className={`
         ${colorClass}
