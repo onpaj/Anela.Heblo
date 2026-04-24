@@ -1,4 +1,6 @@
 using Anela.Heblo.Application.Features.Photobank.Services;
+using Anela.Heblo.Domain.Features.Photobank;
+using Anela.Heblo.Persistence.Photobank;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -8,6 +10,8 @@ public static class PhotobankModule
 {
     public static IServiceCollection AddPhotobankModule(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<IPhotobankRepository, PhotobankRepository>();
+
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
         var bypassJwtValidation = configuration.GetValue<bool>("BypassJwtValidation", false);
 

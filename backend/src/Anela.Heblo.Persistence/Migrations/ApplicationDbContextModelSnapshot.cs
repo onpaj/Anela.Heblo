@@ -1487,6 +1487,129 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("ManufactureOrderSemiProducts", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Marketing.MarketingAction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ActionType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CreatedByUsername")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("DeletedByUserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("DeletedByUsername")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("ModifiedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("ModifiedByUserId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ModifiedByUsername")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionType")
+                        .HasDatabaseName("IX_MarketingActions_ActionType");
+
+                    b.HasIndex("EndDate")
+                        .HasDatabaseName("IX_MarketingActions_EndDate");
+
+                    b.HasIndex("StartDate")
+                        .HasDatabaseName("IX_MarketingActions_StartDate");
+
+                    b.HasIndex("IsDeleted", "StartDate", "EndDate")
+                        .HasDatabaseName("IX_MarketingActions_IsDeleted_StartDate_EndDate");
+
+                    b.ToTable("MarketingActions", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Marketing.MarketingActionFolderLink", b =>
+                {
+                    b.Property<int>("MarketingActionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FolderKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.Property<int>("FolderType")
+                        .HasColumnType("integer");
+
+                    b.HasKey("MarketingActionId", "FolderKey");
+
+                    b.HasIndex("MarketingActionId")
+                        .HasDatabaseName("IX_MarketingActionFolderLinks_MarketingActionId");
+
+                    b.ToTable("MarketingActionFolderLinks", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Marketing.MarketingActionProduct", b =>
+                {
+                    b.Property<int>("MarketingActionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProductCodePrefix")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp");
+
+                    b.HasKey("MarketingActionId", "ProductCodePrefix");
+
+                    b.HasIndex("ProductCodePrefix")
+                        .HasDatabaseName("IX_MarketingActionProducts_ProductCodePrefix");
+
+                    b.ToTable("MarketingActionProducts", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.MarketingInvoices.ImportedMarketingTransaction", b =>
                 {
                     b.Property<int>("Id")
@@ -2167,6 +2290,28 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("ManufactureOrder");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Marketing.MarketingActionFolderLink", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Marketing.MarketingAction", "MarketingAction")
+                        .WithMany("FolderLinks")
+                        .HasForeignKey("MarketingActionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MarketingAction");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Marketing.MarketingActionProduct", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Marketing.MarketingAction", "MarketingAction")
+                        .WithMany("ProductAssociations")
+                        .HasForeignKey("MarketingActionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MarketingAction");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterialLog", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", null)
@@ -2271,6 +2416,13 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("Products");
 
                     b.Navigation("SemiProduct");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Marketing.MarketingAction", b =>
+                {
+                    b.Navigation("FolderLinks");
+
+                    b.Navigation("ProductAssociations");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", b =>

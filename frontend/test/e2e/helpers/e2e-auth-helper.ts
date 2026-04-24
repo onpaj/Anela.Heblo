@@ -130,16 +130,18 @@ export async function navigateToApp(page: any): Promise<void> {
 async function navigateToAppWithServicePrincipal(page: any): Promise<void> {
   // First, establish E2E session with backend
   const apiBaseUrl = process.env.PLAYWRIGHT_BASE_URL;
+  // When frontend runs on a separate port (local dev), PLAYWRIGHT_FRONTEND_URL overrides the
+  // navigation target. Falls back to apiBaseUrl for single-origin envs (staging/production).
+  const frontendBaseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || apiBaseUrl;
   const e2eAppUrl = `${apiBaseUrl}/api/e2etest/app`;
-  
+
   await page.goto(e2eAppUrl);
   await page.waitForLoadState('domcontentloaded');
-  
+
   // Extract E2E session cookie and set it for frontend domain
   const cookies = await page.context().cookies();
   const e2eCookie = cookies.find(c => c.name === 'E2ETestSession');
   if (e2eCookie) {
-    // Use the staging domain for the cookie, not localhost
     const stagingDomain = new URL(apiBaseUrl).hostname;
     await page.context().addCookies([{
       name: e2eCookie.name,
@@ -150,9 +152,9 @@ async function navigateToAppWithServicePrincipal(page: any): Promise<void> {
       sameSite: 'Lax'
     }]);
   }
-  
-  // Navigate to root first with E2E flag
-  const frontendWithE2E = `${apiBaseUrl}?e2e=true`;
+
+  // Navigate to the React frontend with E2E flag
+  const frontendWithE2E = `${frontendBaseUrl}?e2e=true`;
   
   // Get token for sessionStorage
   const token = await getServicePrincipalToken();
@@ -215,7 +217,7 @@ export async function navigateToTransportBoxes(page: any): Promise<void> {
   
   // If UI navigation fails, go directly to the path and handle the page differently
   console.log('🔄 Trying direct navigation...');
-  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+  const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
   await page.goto(`${baseUrl}/logistics/transport-boxes`);
   await page.waitForLoadState('domcontentloaded');
   await waitForPageLoad(page);
@@ -250,7 +252,7 @@ export async function navigateToCatalog(page: any): Promise<void> {
     }
   } catch (e) {
     // If UI navigation fails, go directly to the path
-    const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+    const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
     await page.goto(`${baseUrl}/catalog`);
     await page.waitForLoadState('domcontentloaded');
     await waitForLoadingComplete(page);
@@ -264,7 +266,7 @@ export async function navigateToStockOperations(page: any): Promise<void> {
   await waitForLoadingComplete(page);
 
   // Direct navigation to stock operations
-  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+  const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
   await page.goto(`${baseUrl}/stock-operations`);
   await page.waitForLoadState('domcontentloaded');
   await waitForLoadingComplete(page);
@@ -308,7 +310,7 @@ export async function navigateToTransportBoxReceive(page: any): Promise<void> {
 
   // If UI navigation fails, go directly to the path
   console.log('🔄 Trying direct navigation to transport box receive...');
-  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+  const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
   await page.goto(`${baseUrl}/warehouse/transport-box-receive`);
   await page.waitForLoadState('domcontentloaded');
   await waitForPageLoad(page);
@@ -352,7 +354,7 @@ export async function navigateToInvoiceClassification(page: any): Promise<void> 
 
   // If UI navigation fails, go directly to the path
   console.log('🔄 Trying direct navigation to invoice classification...');
-  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+  const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
   await page.goto(`${baseUrl}/purchase/invoice-classification`);
   await page.waitForLoadState('domcontentloaded');
   await waitForPageLoad(page);
@@ -396,10 +398,47 @@ export async function navigateToIssuedInvoices(page: any): Promise<void> {
 
   // If UI navigation fails, go directly to the path
   console.log('🔄 Trying direct navigation to issued invoices...');
-  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+  const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
   await page.goto(`${baseUrl}/customer/issued-invoices`);
   await page.waitForLoadState('domcontentloaded');
   await waitForLoadingComplete(page);
 
   console.log('✅ Direct navigation to issued invoices completed');
+}
+
+export async function navigateToMarketingCalendar(page: any): Promise<void> {
+  await navigateToApp(page);
+
+  await waitForLoadingComplete(page);
+
+  const baseUrl = process.env.PLAYWRIGHT_FRONTEND_URL || process.env.PLAYWRIGHT_BASE_URL || 'https://heblo.stg.anela.cz';
+
+  // Try sidebar navigation first
+  try {
+    console.log('🧭 Attempting UI navigation to marketing calendar via sidebar...');
+    const marketingSection = page.locator('button').filter({ hasText: 'Marketing' }).first();
+    if (await marketingSection.isVisible({ timeout: 5000 })) {
+      await marketingSection.click();
+      await waitForLoadingComplete(page);
+
+      const calendarLink = page.locator('text="Kalendář"').first();
+      if (await calendarLink.isVisible({ timeout: 5000 })) {
+        await calendarLink.click();
+        await page.waitForLoadState('domcontentloaded');
+        await waitForLoadingComplete(page);
+        console.log('✅ UI navigation to marketing calendar successful');
+        return;
+      }
+    }
+  } catch (e) {
+    console.log('❌ UI navigation failed:', (e as Error).message);
+  }
+
+  // Fall back to direct navigation
+  console.log('🔄 Trying direct navigation to marketing calendar...');
+  await page.goto(`${baseUrl}/marketing/calendar`);
+  await page.waitForLoadState('domcontentloaded');
+  await waitForLoadingComplete(page);
+
+  console.log('✅ Direct navigation to marketing calendar completed');
 }

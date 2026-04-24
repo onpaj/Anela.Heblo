@@ -114,6 +114,11 @@ export default defineConfig({
       testDir: './test/e2e/core',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'marketing',
+      testDir: './test/e2e/marketing',
+      use: { ...devices['Desktop Chrome'] },
+    },
   ],
 
   /* Run your local dev server before starting the tests */
