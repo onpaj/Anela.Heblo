@@ -297,6 +297,11 @@ const resources = {
         UnauthorizedJournalAccess: "You can only access your own {{resource}}",
         DuplicateJournalTag: "Tag with name {{tagName}} already exists",
         InvalidJournalEntryData: "Invalid journal entry data: {{field}}",
+
+        // DataQuality module errors
+        DqtRunNotFound: "Data quality test run not found (ID: {{runId}})",
+        DqtInvalidDateRange: "Invalid date range: DateFrom must be before or equal to DateTo",
+        DqtExternalServiceError: "External service error during data quality test: {{service}}",
       },
     },
   },

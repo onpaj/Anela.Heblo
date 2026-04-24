@@ -218,6 +218,14 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.NotFound)]
     ShoptetOrderNotFound = 2102,
 
+    // DataQuality module errors (22XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    DqtRunNotFound = 2201,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    DqtInvalidDateRange = 2202,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    DqtExternalServiceError = 2203,
+
     // Marketing Calendar errors (23XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
     MarketingActionNotFound = 2301,

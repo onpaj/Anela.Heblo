@@ -296,6 +296,13 @@ const Sidebar: React.FC<SidebarProps> = ({
           : []),
       ],
     },
+    {
+      id: 'data-quality',
+      name: 'Kvalita dat',
+      href: '/data-quality',
+      icon: Database,
+      type: 'single' as const,
+    },
   ];
 
   const toggleSection = (sectionId: string) => {
