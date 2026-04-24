@@ -385,6 +385,7 @@ export const QUERY_KEYS = {
   productMarginSummary: ["productMarginSummary"] as const,
   financialOverview: ["financialOverview"] as const,
   journal: ["journal"] as const,
+  marketingCalendar: ["marketing-calendar"] as const,
   transportBox: ["transport-boxes"] as const,
   transportBoxTransitions: ["transportBoxTransitions"] as const,
   manufactureOutput: ["manufacture-output"] as const,

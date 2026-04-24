@@ -37,6 +37,7 @@ import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
+import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -386,6 +387,10 @@ function App() {
                           element={<ProductMarginsList />}
                         />
                         <Route path="/journal" element={<JournalList />} />
+                        <Route
+                          path="/marketing/calendar"
+                          element={<MarketingCalendarPage />}
+                        />
                         <Route
                           path="/journal/new"
                           element={<JournalEntryNew />}

@@ -226,6 +226,12 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     DqtExternalServiceError = 2203,
 
+    // Marketing Calendar errors (23XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    MarketingActionNotFound = 2301,
+    [HttpStatusCode(HttpStatusCode.Forbidden)]
+    UnauthorizedMarketingAccess = 2302,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
