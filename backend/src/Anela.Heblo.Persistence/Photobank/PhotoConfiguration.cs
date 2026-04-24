@@ -16,6 +16,7 @@ namespace Anela.Heblo.Persistence.Photobank
             builder.Property(x => x.FolderPath).HasMaxLength(2000).IsRequired();
             builder.Property(x => x.FileName).HasMaxLength(200).IsRequired();
             builder.Property(x => x.SharePointWebUrl).HasMaxLength(2000);
+            builder.Property(x => x.DriveId).HasMaxLength(500);
             builder.Property(x => x.MimeType).HasMaxLength(50);
             builder.Property(x => x.IndexedAt).IsRequired().AsUtcTimestamp();
             builder.Property(x => x.ModifiedAt).IsRequired().AsUtcTimestamp();

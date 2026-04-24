@@ -87,7 +87,7 @@ public class PhotobankIndexJob : IRecurringJob
                 }
                 else
                 {
-                    await UpsertPhotoAsync(item, activeTagRules, ct);
+                    await UpsertPhotoAsync(item, activeTagRules, root.DriveId, ct);
                     upserted++;
                 }
             }
@@ -108,7 +108,7 @@ public class PhotobankIndexJob : IRecurringJob
         }
     }
 
-    private async Task UpsertPhotoAsync(GraphPhotoItem item, List<TagRule> tagRules, CancellationToken ct)
+    private async Task UpsertPhotoAsync(GraphPhotoItem item, List<TagRule> tagRules, string? driveId, CancellationToken ct)
     {
         var photo = await _db.Photos.FirstOrDefaultAsync(p => p.SharePointFileId == item.ItemId, ct);
 
@@ -127,6 +127,7 @@ public class PhotobankIndexJob : IRecurringJob
         photo.SharePointWebUrl = item.WebUrl;
         photo.FileSizeBytes = item.FileSizeBytes;
         photo.ModifiedAt = item.LastModifiedAt ?? DateTime.UtcNow;
+        photo.DriveId = driveId;
 
         await _db.SaveChangesAsync(ct);
 

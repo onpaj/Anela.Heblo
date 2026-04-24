@@ -1750,6 +1750,10 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("DriveId")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasMaxLength(200)

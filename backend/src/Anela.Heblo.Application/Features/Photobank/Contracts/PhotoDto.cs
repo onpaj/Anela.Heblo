@@ -7,6 +7,7 @@ namespace Anela.Heblo.Application.Features.Photobank.Contracts
     {
         public int Id { get; set; }
         public string SharePointFileId { get; set; } = null!;
+        public string? DriveId { get; set; }
         public string Name { get; set; } = null!;
         public string FolderPath { get; set; } = null!;
         public string? SharePointWebUrl { get; set; }

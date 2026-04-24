@@ -38,6 +38,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
         {
             Id = photo.Id,
             SharePointFileId = photo.SharePointFileId,
+            DriveId = photo.DriveId,
             Name = photo.FileName,
             FolderPath = photo.FolderPath,
             SharePointWebUrl = photo.SharePointWebUrl,

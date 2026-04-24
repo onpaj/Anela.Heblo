@@ -23,6 +23,9 @@ namespace Anela.Heblo.Domain.Features.Photobank
         [MaxLength(2000)]
         public string? SharePointWebUrl { get; set; }
 
+        [MaxLength(500)]
+        public string? DriveId { get; set; }
+
         [MaxLength(50)]
         public string? MimeType { get; set; }
 

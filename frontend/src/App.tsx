@@ -38,6 +38,7 @@ import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
 import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
+import PhotobankPage from "./components/marketing/photobank/pages/PhotobankPage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -390,6 +391,10 @@ function App() {
                         <Route
                           path="/marketing/calendar"
                           element={<MarketingCalendarPage />}
+                        />
+                        <Route
+                          path="/marketing/photobank"
+                          element={<PhotobankPage />}
                         />
                         <Route
                           path="/journal/new"
