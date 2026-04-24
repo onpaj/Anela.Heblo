@@ -18,6 +18,7 @@ import {
   ExternalLink,
   FileText,
   Database,
+  Megaphone,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
 import { useAuth } from "../../auth/useAuth";
@@ -134,6 +135,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         { id: "catalog", name: "Katalog", href: "/catalog" },
         { id: "marze-produktu", name: "Marže", href: "/products/margins" },
         { id: "journal", name: "Deník", href: "/journal" },
+      ],
+    },
+    {
+      id: "marketing",
+      name: "Marketing",
+      icon: Megaphone,
+      type: "section" as const,
+      items: [
+        { id: "marketing-calendar", name: "Kalendář", href: "/marketing/calendar" },
       ],
     },
     {
