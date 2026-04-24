@@ -7,6 +7,21 @@ const mockCreateMutateAsync = jest.fn();
 const mockUpdateMutateAsync = jest.fn();
 const mockDeleteMutateAsync = jest.fn();
 
+jest.mock("../../../common/CatalogAutocomplete", () => ({
+  CatalogAutocomplete: ({ placeholder, onSelect }: { placeholder?: string; onSelect: (v: string | null) => void }) => (
+    <input
+      data-testid="catalog-autocomplete"
+      placeholder={placeholder}
+      onChange={(e) => onSelect(e.target.value || null)}
+    />
+  ),
+}));
+
+jest.mock("../../../common/CatalogAutocompleteAdapters", () => ({
+  catalogItemToProductCode: (item: any) => item,
+  PRODUCT_TYPE_FILTERS: { ALL: "all" },
+}));
+
 jest.mock("../../../../api/hooks/useMarketingCalendar", () => ({
   useCreateMarketingAction: () => ({
     mutateAsync: mockCreateMutateAsync,
