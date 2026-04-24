@@ -14,7 +14,7 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
     direction: 'asc' | 'desc';
   } | null>(null);
 
-  const ingredients = data?.ingredients || [];
+  const ingredients = React.useMemo(() => data?.ingredients ?? [], [data?.ingredients]);
 
   const sortedIngredients = React.useMemo(() => {
     if (!sortConfig) return ingredients;

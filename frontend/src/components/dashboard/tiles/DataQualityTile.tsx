@@ -19,7 +19,7 @@ export const DataQualityTile: React.FC<DataQualityTileProps> = ({ data }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate('/data-quality');
+    navigate('/automation/data-quality');
   };
 
   if (data.status === 'error') {
