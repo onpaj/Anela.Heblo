@@ -331,6 +331,15 @@ public class MockCatalogRepository : ICatalogRepository
         return _mockData.FirstOrDefault(x => x.Id == id);
     }
 
+    public Task<IReadOnlyDictionary<string, CatalogAggregate>> GetByIdsAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
+    {
+        var idSet = new HashSet<string>(ids);
+        IReadOnlyDictionary<string, CatalogAggregate> result = _mockData
+            .Where(p => idSet.Contains(p.ProductCode))
+            .ToDictionary(p => p.ProductCode, p => p);
+        return Task.FromResult(result);
+    }
+
     public async Task<IEnumerable<CatalogAggregate>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         await Task.Delay(50, cancellationToken); // Simulate async operation
