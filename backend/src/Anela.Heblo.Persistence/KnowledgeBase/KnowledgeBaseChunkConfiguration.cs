@@ -8,7 +8,7 @@ public class KnowledgeBaseChunkConfiguration : IEntityTypeConfiguration<Knowledg
 {
     public void Configure(EntityTypeBuilder<KnowledgeBaseChunk> builder)
     {
-        builder.ToTable("KnowledgeBaseChunks", "dbo");
+        builder.ToTable("KnowledgeBaseChunks", "public");
 
         builder.HasKey(e => e.Id);
 
