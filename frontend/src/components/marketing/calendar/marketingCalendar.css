@@ -1,0 +1,101 @@
+/* FullCalendar overrides to match Anela Heblo design system */
+
+/* Remove default border, use our rounded container */
+.marketing-calendar .fc {
+  height: 100%;
+  font-family: inherit;
+}
+
+/* Column headers: Po, Út, St, Čt, Pá, So, Ne */
+.marketing-calendar .fc-col-header-cell-cushion {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  padding: 8px 4px;
+  text-decoration: none;
+}
+
+/* Day number styling */
+.marketing-calendar .fc-daygrid-day-number {
+  font-size: 0.875rem;
+  color: #111827;
+  padding: 4px 6px;
+  text-decoration: none;
+  line-height: 1.5rem;
+}
+
+/* Today's day number — indigo circle */
+.marketing-calendar .fc-day-today .fc-daygrid-day-number {
+  background-color: #4f46e5;
+  color: #ffffff;
+  border-radius: 9999px;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 4px 6px;
+  font-weight: 700;
+}
+
+/* Today cell — no colored background, just the number circle */
+.marketing-calendar .fc-day-today {
+  background-color: transparent !important;
+}
+
+/* Non-current-month days */
+.marketing-calendar .fc-day-other {
+  background-color: #f9fafb;
+}
+
+.marketing-calendar .fc-day-other .fc-daygrid-day-number {
+  color: #9ca3af;
+}
+
+/* Event bars */
+.marketing-calendar .fc-event {
+  border: none !important;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.marketing-calendar .fc-event:hover {
+  opacity: 0.85;
+}
+
+.marketing-calendar .fc-event .fc-event-main {
+  padding: 1px 4px;
+}
+
+/* Remove dotted outline on event focus */
+.marketing-calendar .fc-event:focus {
+  box-shadow: none;
+  outline: 2px solid #4f46e5;
+  outline-offset: 1px;
+}
+
+/* Selection highlight */
+.marketing-calendar .fc-highlight {
+  background-color: rgba(99, 102, 241, 0.12);
+}
+
+/* Grid borders */
+.marketing-calendar .fc-theme-standard td,
+.marketing-calendar .fc-theme-standard th {
+  border-color: #e5e7eb;
+}
+
+.marketing-calendar .fc-theme-standard .fc-scrollgrid {
+  border-color: #e5e7eb;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* More events link */
+.marketing-calendar .fc-daygrid-more-link {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
