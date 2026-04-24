@@ -361,6 +361,26 @@ This includes:
 
 **Why:** Shoptet has no sandbox — everything runs against a live store. Undocumented assumptions cause data corruption or flaky tests.
 
+### 10. Build Validation Before Completion
+
+**MANDATORY**: Both backend AND frontend builds must pass before any task, PR, or feature is declared done.
+
+```bash
+# Backend
+dotnet build
+
+# Frontend
+npm run build   # runs tsc — catches type errors Jest/Babel misses
+```
+
+**CRITICAL:** Jest uses Babel to transform TypeScript — it strips types without checking them. A test suite can pass 100% while the production build fails due to TypeScript errors. `npm run build` is the only gate that runs `tsc`.
+
+**Rule:** Run both builds as the **final step**, after all commits including code review fixes. If a review fix is applied, re-run both builds before pushing.
+
+**Enforcement:**
+- NEVER declare a task complete without a passing `npm run build` (FE) and `dotnet build` (BE)
+- Build failures block push — fix first, then re-verify
+
 ## Testing Strategy
 
 **Three types of tests:**
@@ -407,10 +427,13 @@ See `docs/architecture/filesystem.md` for complete feature organization patterns
 1. **Make changes** to code
 2. **For UI changes**: Test locally with `npm start` (port 3000)
 3. **For E2E testing**: Use staging environment (`./scripts/run-playwright-tests.sh`)
-4. **Validate builds**: Run `dotnet build` (BE) or `npm run build` (FE) before finishing
-5. **Format code**: Run `dotnet format` (BE) or `npm run lint` (FE)
-6. **Follow best practices**: YAGNI, SOLID, KISS, DRY
-7. **Ask for clarification** if unsure about implementation details
+4. **Run tests**: `dotnet test` (BE) and `CI=true npm test -- --no-coverage` (FE)
+5. **Validate builds**: `dotnet build` (BE) and `npm run build` (FE) — MANDATORY, catches TypeScript errors that tests miss
+6. **Format code**: Run `dotnet format` (BE) or `npm run lint` (FE)
+7. **Follow best practices**: YAGNI, SOLID, KISS, DRY
+8. **Ask for clarification** if unsure about implementation details
+
+**Steps 4 and 5 must be repeated after any code review fixes before pushing.**
 
 See `docs/development/setup.md` for detailed development commands and setup instructions.
 
