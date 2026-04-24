@@ -127,7 +127,7 @@ public class FlexiIssuedInvoiceClient : Anela.Heblo.Domain.Features.Invoices.IIs
 
         return new IssuedInvoiceDetailItem
         {
-            Code = item.Code ?? string.Empty,
+            Code = ResolveItemCode(item.Code, item.PriceList),
             Name = item.Name ?? string.Empty,
             Amount = amount,
             ItemPrice = new InvoicePrice
@@ -138,6 +138,17 @@ public class FlexiIssuedInvoiceClient : Anela.Heblo.Domain.Features.Invoices.IIs
                 WithVat = amount > 0 ? Math.Round(totalWithVat / amount, 4) : 0m,
             },
         };
+    }
+
+    // PriceList ("code:PRODUCT-CODE") is the reliable product identifier on read-back from FlexiBee.
+    // Code is often null or an internal FlexiBee item ID.
+    private static string ResolveItemCode(string? code, string? priceList)
+    {
+        if (!string.IsNullOrEmpty(code))
+            return code;
+        if (!string.IsNullOrEmpty(priceList))
+            return priceList.StartsWith("code:") ? priceList[5..] : priceList;
+        return string.Empty;
     }
 
     private static decimal ParseDecimal(string? value)

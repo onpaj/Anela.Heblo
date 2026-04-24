@@ -110,8 +110,14 @@ public class InvoiceDqtComparer : IInvoiceDqtComparer
 
     private static string? CompareItems(List<IssuedInvoiceDetailItem> shoptetItems, List<IssuedInvoiceDetailItem> flexiItems)
     {
-        var shoptetByCode = shoptetItems.ToDictionary(i => i.Code);
-        var flexiByCode = flexiItems.ToDictionary(i => i.Code);
+        // Items without a product code (unidentifiable shipping/billing/discount lines) cannot
+        // be matched cross-system — skip them to avoid duplicate-key crashes.
+        var shoptetByCode = shoptetItems
+            .Where(i => !string.IsNullOrEmpty(i.Code))
+            .ToDictionary(i => i.Code);
+        var flexiByCode = flexiItems
+            .Where(i => !string.IsNullOrEmpty(i.Code))
+            .ToDictionary(i => i.Code);
         var allCodes = shoptetByCode.Keys.Union(flexiByCode.Keys);
 
         var diffs = new List<string>();
