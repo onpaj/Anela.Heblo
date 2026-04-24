@@ -11,7 +11,7 @@ public class BankStatementImportConfiguration : IEntityTypeConfiguration<BankSta
 {
     public void Configure(EntityTypeBuilder<BankStatementImport> builder)
     {
-        builder.ToTable("BankStatements", "dbo");
+        builder.ToTable("BankStatements", "public");
 
         builder.HasKey(e => e.Id);
 
