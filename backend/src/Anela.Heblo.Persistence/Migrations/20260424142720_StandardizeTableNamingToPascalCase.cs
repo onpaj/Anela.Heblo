@@ -32,7 +32,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
             migrationBuilder.DropPrimaryKey(
                 name: "PK_imported_marketing_transactions",
-                schema: "public",
+                schema: "dbo",
                 table: "imported_marketing_transactions");
 
             migrationBuilder.DropPrimaryKey(
@@ -64,7 +64,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
             migrationBuilder.RenameTable(
                 name: "imported_marketing_transactions",
-                schema: "public",
+                schema: "dbo",
                 newName: "ImportedMarketingTransactions",
                 newSchema: "public");
 
@@ -490,7 +490,7 @@ namespace Anela.Heblo.Persistence.Migrations
                 name: "ImportedMarketingTransactions",
                 schema: "public",
                 newName: "imported_marketing_transactions",
-                newSchema: "public");
+                newSchema: "dbo");
 
             migrationBuilder.RenameTable(
                 name: "GiftPackageManufactureLogs",
@@ -626,7 +626,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
             migrationBuilder.RenameIndex(
                 name: "IX_ImportedMarketingTransactions_Platform_TransactionId",
-                schema: "public",
+                schema: "dbo",
                 table: "imported_marketing_transactions",
                 newName: "IX_imported_marketing_transactions_Platform_TransactionId");
 
@@ -812,7 +812,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
             migrationBuilder.AddPrimaryKey(
                 name: "PK_imported_marketing_transactions",
-                schema: "public",
+                schema: "dbo",
                 table: "imported_marketing_transactions",
                 column: "Id");
 

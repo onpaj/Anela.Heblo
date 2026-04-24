@@ -12,12 +12,12 @@ namespace Anela.Heblo.Persistence.Migrations
         {
             migrationBuilder.DropForeignKey(
                 name: "FK_IssuedInvoiceSyncData_IssuedInvoice_IssuedInvoiceId",
-                schema: "public",
+                schema: "dbo",
                 table: "IssuedInvoiceSyncData");
 
             migrationBuilder.DropForeignKey(
                 name: "FK_PackingMaterialLog_PackingMaterial_PackingMaterialId",
-                schema: "public",
+                schema: "dbo",
                 table: "PackingMaterialLog");
 
             migrationBuilder.DropForeignKey(
@@ -47,22 +47,22 @@ namespace Anela.Heblo.Persistence.Migrations
 
             migrationBuilder.DropPrimaryKey(
                 name: "PK_StockTakingResults",
-                schema: "public",
+                schema: "dbo",
                 table: "StockTakingResults");
 
             migrationBuilder.DropPrimaryKey(
                 name: "PK_PackingMaterialLog",
-                schema: "public",
+                schema: "dbo",
                 table: "PackingMaterialLog");
 
             migrationBuilder.DropPrimaryKey(
                 name: "PK_PackingMaterial",
-                schema: "public",
+                schema: "dbo",
                 table: "PackingMaterial");
 
             migrationBuilder.DropPrimaryKey(
                 name: "PK_IssuedInvoice",
-                schema: "public",
+                schema: "dbo",
                 table: "IssuedInvoice");
 
             migrationBuilder.RenameTable(
@@ -85,25 +85,25 @@ namespace Anela.Heblo.Persistence.Migrations
 
             migrationBuilder.RenameTable(
                 name: "StockTakingResults",
-                schema: "public",
+                schema: "dbo",
                 newName: "StockTakingRecords",
                 newSchema: "public");
 
             migrationBuilder.RenameTable(
                 name: "PackingMaterialLog",
-                schema: "public",
+                schema: "dbo",
                 newName: "PackingMaterialLogs",
                 newSchema: "public");
 
             migrationBuilder.RenameTable(
                 name: "PackingMaterial",
-                schema: "public",
+                schema: "dbo",
                 newName: "PackingMaterials",
                 newSchema: "public");
 
             migrationBuilder.RenameTable(
                 name: "IssuedInvoice",
-                schema: "public",
+                schema: "dbo",
                 newName: "IssuedInvoices",
                 newSchema: "public");
 
@@ -143,35 +143,37 @@ namespace Anela.Heblo.Persistence.Migrations
                 table: "PackingMaterials",
                 newName: "IX_PackingMaterials_Name");
 
-            migrationBuilder.RenameIndex(
-                name: "IX_IssuedInvoice_LastSyncTime",
-                schema: "public",
-                table: "IssuedInvoices",
-                newName: "IX_IssuedInvoices_LastSyncTime");
-
-            migrationBuilder.RenameIndex(
-                name: "IX_IssuedInvoice_IsSynced",
-                schema: "public",
-                table: "IssuedInvoices",
-                newName: "IX_IssuedInvoices_IsSynced");
-
-            migrationBuilder.RenameIndex(
-                name: "IX_IssuedInvoice_InvoiceDate",
-                schema: "public",
-                table: "IssuedInvoices",
-                newName: "IX_IssuedInvoices_InvoiceDate");
-
-            migrationBuilder.RenameIndex(
-                name: "IX_IssuedInvoice_ErrorType",
-                schema: "public",
-                table: "IssuedInvoices",
-                newName: "IX_IssuedInvoices_ErrorType");
-
-            migrationBuilder.RenameIndex(
-                name: "IX_IssuedInvoice_CustomerName",
-                schema: "public",
-                table: "IssuedInvoices",
-                newName: "IX_IssuedInvoices_CustomerName");
+            // Rename-or-create pattern: staging may be missing these indexes if
+            // AddIssuedInvoiceFilterIndexes was never applied (no Designer.cs).
+            migrationBuilder.Sql(@"
+                DO $$ BEGIN
+                    IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='public' AND indexname='IX_IssuedInvoice_LastSyncTime') THEN
+                        ALTER INDEX public.""IX_IssuedInvoice_LastSyncTime"" RENAME TO ""IX_IssuedInvoices_LastSyncTime"";
+                    ELSE
+                        CREATE INDEX IF NOT EXISTS ""IX_IssuedInvoices_LastSyncTime"" ON public.""IssuedInvoices"" (""LastSyncTime"");
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='public' AND indexname='IX_IssuedInvoice_IsSynced') THEN
+                        ALTER INDEX public.""IX_IssuedInvoice_IsSynced"" RENAME TO ""IX_IssuedInvoices_IsSynced"";
+                    ELSE
+                        CREATE INDEX IF NOT EXISTS ""IX_IssuedInvoices_IsSynced"" ON public.""IssuedInvoices"" (""IsSynced"");
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='public' AND indexname='IX_IssuedInvoice_InvoiceDate') THEN
+                        ALTER INDEX public.""IX_IssuedInvoice_InvoiceDate"" RENAME TO ""IX_IssuedInvoices_InvoiceDate"";
+                    ELSE
+                        CREATE INDEX IF NOT EXISTS ""IX_IssuedInvoices_InvoiceDate"" ON public.""IssuedInvoices"" (""InvoiceDate"");
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='public' AND indexname='IX_IssuedInvoice_ErrorType') THEN
+                        ALTER INDEX public.""IX_IssuedInvoice_ErrorType"" RENAME TO ""IX_IssuedInvoices_ErrorType"";
+                    ELSE
+                        CREATE INDEX IF NOT EXISTS ""IX_IssuedInvoices_ErrorType"" ON public.""IssuedInvoices"" (""ErrorType"");
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='public' AND indexname='IX_IssuedInvoice_CustomerName') THEN
+                        ALTER INDEX public.""IX_IssuedInvoice_CustomerName"" RENAME TO ""IX_IssuedInvoices_CustomerName"";
+                    ELSE
+                        CREATE INDEX IF NOT EXISTS ""IX_IssuedInvoices_CustomerName"" ON public.""IssuedInvoices"" (""CustomerName"");
+                    END IF;
+                END $$;
+            ");
 
             migrationBuilder.AddPrimaryKey(
                 name: "PK_TransportBoxStateLogs",
@@ -217,7 +219,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
             migrationBuilder.AddForeignKey(
                 name: "FK_IssuedInvoiceSyncData_IssuedInvoices_IssuedInvoiceId",
-                schema: "public",
+                schema: "dbo",
                 table: "IssuedInvoiceSyncData",
                 column: "IssuedInvoiceId",
                 principalSchema: "public",
@@ -261,7 +263,7 @@ namespace Anela.Heblo.Persistence.Migrations
         {
             migrationBuilder.DropForeignKey(
                 name: "FK_IssuedInvoiceSyncData_IssuedInvoices_IssuedInvoiceId",
-                schema: "public",
+                schema: "dbo",
                 table: "IssuedInvoiceSyncData");
 
             migrationBuilder.DropForeignKey(
@@ -336,25 +338,25 @@ namespace Anela.Heblo.Persistence.Migrations
                 name: "StockTakingRecords",
                 schema: "public",
                 newName: "StockTakingResults",
-                newSchema: "public");
+                newSchema: "dbo");
 
             migrationBuilder.RenameTable(
                 name: "PackingMaterials",
                 schema: "public",
                 newName: "PackingMaterial",
-                newSchema: "public");
+                newSchema: "dbo");
 
             migrationBuilder.RenameTable(
                 name: "PackingMaterialLogs",
                 schema: "public",
                 newName: "PackingMaterialLog",
-                newSchema: "public");
+                newSchema: "dbo");
 
             migrationBuilder.RenameTable(
                 name: "IssuedInvoices",
                 schema: "public",
                 newName: "IssuedInvoice",
-                newSchema: "public");
+                newSchema: "dbo");
 
             migrationBuilder.RenameIndex(
                 name: "IX_TransportBoxStateLogs_TransportBoxId",
@@ -370,57 +372,47 @@ namespace Anela.Heblo.Persistence.Migrations
 
             migrationBuilder.RenameIndex(
                 name: "IX_PackingMaterials_Name",
-                schema: "public",
+                schema: "dbo",
                 table: "PackingMaterial",
                 newName: "IX_PackingMaterial_Name");
 
             migrationBuilder.RenameIndex(
                 name: "IX_PackingMaterialLogs_PackingMaterialId",
-                schema: "public",
+                schema: "dbo",
                 table: "PackingMaterialLog",
                 newName: "IX_PackingMaterialLog_PackingMaterialId");
 
             migrationBuilder.RenameIndex(
                 name: "IX_PackingMaterialLogs_MaterialId_Date",
-                schema: "public",
+                schema: "dbo",
                 table: "PackingMaterialLog",
                 newName: "IX_PackingMaterialLog_MaterialId_Date");
 
             migrationBuilder.RenameIndex(
                 name: "IX_PackingMaterialLogs_LogType",
-                schema: "public",
+                schema: "dbo",
                 table: "PackingMaterialLog",
                 newName: "IX_PackingMaterialLog_LogType");
 
-            migrationBuilder.RenameIndex(
-                name: "IX_IssuedInvoices_LastSyncTime",
-                schema: "public",
-                table: "IssuedInvoice",
-                newName: "IX_IssuedInvoice_LastSyncTime");
-
-            migrationBuilder.RenameIndex(
-                name: "IX_IssuedInvoices_IsSynced",
-                schema: "public",
-                table: "IssuedInvoice",
-                newName: "IX_IssuedInvoice_IsSynced");
-
-            migrationBuilder.RenameIndex(
-                name: "IX_IssuedInvoices_InvoiceDate",
-                schema: "public",
-                table: "IssuedInvoice",
-                newName: "IX_IssuedInvoice_InvoiceDate");
-
-            migrationBuilder.RenameIndex(
-                name: "IX_IssuedInvoices_ErrorType",
-                schema: "public",
-                table: "IssuedInvoice",
-                newName: "IX_IssuedInvoice_ErrorType");
-
-            migrationBuilder.RenameIndex(
-                name: "IX_IssuedInvoices_CustomerName",
-                schema: "public",
-                table: "IssuedInvoice",
-                newName: "IX_IssuedInvoice_CustomerName");
+            migrationBuilder.Sql(@"
+                DO $$ BEGIN
+                    IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='dbo' AND indexname='IX_IssuedInvoices_LastSyncTime') THEN
+                        ALTER INDEX dbo.""IX_IssuedInvoices_LastSyncTime"" RENAME TO ""IX_IssuedInvoice_LastSyncTime"";
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='dbo' AND indexname='IX_IssuedInvoices_IsSynced') THEN
+                        ALTER INDEX dbo.""IX_IssuedInvoices_IsSynced"" RENAME TO ""IX_IssuedInvoice_IsSynced"";
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='dbo' AND indexname='IX_IssuedInvoices_InvoiceDate') THEN
+                        ALTER INDEX dbo.""IX_IssuedInvoices_InvoiceDate"" RENAME TO ""IX_IssuedInvoice_InvoiceDate"";
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='dbo' AND indexname='IX_IssuedInvoices_ErrorType') THEN
+                        ALTER INDEX dbo.""IX_IssuedInvoices_ErrorType"" RENAME TO ""IX_IssuedInvoice_ErrorType"";
+                    END IF;
+                    IF EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='dbo' AND indexname='IX_IssuedInvoices_CustomerName') THEN
+                        ALTER INDEX dbo.""IX_IssuedInvoices_CustomerName"" RENAME TO ""IX_IssuedInvoice_CustomerName"";
+                    END IF;
+                END $$;
+            ");
 
             migrationBuilder.AddPrimaryKey(
                 name: "PK_TransportBoxStateLog",
@@ -442,44 +434,44 @@ namespace Anela.Heblo.Persistence.Migrations
 
             migrationBuilder.AddPrimaryKey(
                 name: "PK_StockTakingResults",
-                schema: "public",
+                schema: "dbo",
                 table: "StockTakingResults",
                 column: "Id");
 
             migrationBuilder.AddPrimaryKey(
                 name: "PK_PackingMaterial",
-                schema: "public",
+                schema: "dbo",
                 table: "PackingMaterial",
                 column: "Id");
 
             migrationBuilder.AddPrimaryKey(
                 name: "PK_PackingMaterialLog",
-                schema: "public",
+                schema: "dbo",
                 table: "PackingMaterialLog",
                 column: "Id");
 
             migrationBuilder.AddPrimaryKey(
                 name: "PK_IssuedInvoice",
-                schema: "public",
+                schema: "dbo",
                 table: "IssuedInvoice",
                 column: "Id");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_IssuedInvoiceSyncData_IssuedInvoice_IssuedInvoiceId",
-                schema: "public",
+                schema: "dbo",
                 table: "IssuedInvoiceSyncData",
                 column: "IssuedInvoiceId",
-                principalSchema: "public",
+                principalSchema: "dbo",
                 principalTable: "IssuedInvoice",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_PackingMaterialLog_PackingMaterial_PackingMaterialId",
-                schema: "public",
+                schema: "dbo",
                 table: "PackingMaterialLog",
                 column: "PackingMaterialId",
-                principalSchema: "public",
+                principalSchema: "dbo",
                 principalTable: "PackingMaterial",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Cascade);
