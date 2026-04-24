@@ -26,4 +26,9 @@ internal interface IFlexiManufactureDocumentService
         SubmitManufactureClientRequest request,
         double totalConsumptionCost,
         CancellationToken cancellationToken);
+
+    // Direct semiproduct output discard
+    Task<string?> SubmitDirectSemiProductOutputAsync(
+        SubmitManufactureClientRequest request,
+        CancellationToken cancellationToken);
 }

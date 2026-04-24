@@ -194,6 +194,7 @@ export const ConfirmationDialogs: React.FC<ConfirmationDialogsProps> = ({
             productName: product.productName || "",
             plannedQuantity: product.plannedQuantity || 0
           }))}
+          semiProductCode={order.semiProduct?.productCode}
           isLoading={isProductCompletionLoading}
           distributionPreview={distributionPreview}
           onConfirmDistribution={onConfirmDistribution}

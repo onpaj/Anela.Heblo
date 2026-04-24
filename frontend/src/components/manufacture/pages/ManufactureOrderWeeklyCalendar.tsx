@@ -623,17 +623,20 @@ const ManufactureOrderWeeklyCalendar: React.FC<ManufactureOrderWeeklyCalendarPro
                                   <span>Produkty ({event.products.length}):</span>
                                 </div>
                                 <div className="space-y-1 flex-1">
-                                  {event.products.map((product, idx) => (
-                                    <div key={idx} className="text-xs p-2 bg-white bg-opacity-30 rounded">
-                                      <div className="font-medium truncate" title={product.productName}>
+                                  {event.products.map((product, idx) => {
+                                    const isDirect = product.productCode === event.semiProduct?.productCode;
+                                    return (
+                                    <div key={idx} className={`text-xs p-2 rounded ${isDirect ? 'bg-amber-100 bg-opacity-70 border border-amber-300' : 'bg-white bg-opacity-30'}`}>
+                                      <div className={`font-medium truncate ${isDirect ? 'text-amber-800' : ''}`} title={product.productName}>
                                         {product.productName}
                                       </div>
-                                      <div className="text-gray-600 flex items-center justify-between">
+                                      <div className={`flex items-center justify-between ${isDirect ? 'text-amber-700' : 'text-gray-600'}`}>
                                         <span className="truncate">{product.productCode}</span>
-                                        <span>{(product.actualQuantity ?? product.plannedQuantity)?.toFixed(2)} ks</span>
+                                        <span>{(product.actualQuantity ?? product.plannedQuantity)?.toFixed(2)} {isDirect ? 'g' : 'ks'}</span>
                                       </div>
                                     </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </div>
                             )}

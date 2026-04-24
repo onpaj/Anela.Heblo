@@ -52,6 +52,11 @@ public class CalculateBatchPlanRequestValidator : AbstractValidator<CalculateBat
 
         RuleForEach(x => x.ProductConstraints)
             .SetValidator(new ProductSizeConstraintValidator());
+
+        RuleFor(x => x.DirectSemiproductAmount)
+            .GreaterThanOrEqualTo(0)
+            .When(x => x.DirectSemiproductAmount.HasValue)
+            .WithMessage("Direct semiproduct amount must be greater than or equal to 0.");
     }
 }
 

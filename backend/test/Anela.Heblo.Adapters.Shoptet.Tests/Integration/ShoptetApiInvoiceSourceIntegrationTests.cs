@@ -54,7 +54,7 @@ public class ShoptetApiInvoiceSourceIntegrationTests
         }
     }
 
-   
+
 
     [Fact]
     public async Task GetAllAsync_SpecificInvoiceQuery_ReturnsThatInvoice()
