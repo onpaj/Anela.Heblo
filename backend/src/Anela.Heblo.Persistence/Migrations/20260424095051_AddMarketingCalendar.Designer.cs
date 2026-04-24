@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260424095051_AddMarketingCalendar")]
+    partial class AddMarketingCalendar
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -277,105 +280,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasDatabaseName("IX_StockUpOperations_State_CreatedAt");
 
                     b.ToTable("StockUpOperations", "public");
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.DataQuality.DqtRun", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("timestamp without time zone")
-                        .HasColumnName("completed_at");
-
-                    b.Property<DateOnly>("DateFrom")
-                        .HasColumnType("date")
-                        .HasColumnName("date_from");
-
-                    b.Property<DateOnly>("DateTo")
-                        .HasColumnType("date")
-                        .HasColumnName("date_to");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasColumnType("text")
-                        .HasColumnName("error_message");
-
-                    b.Property<DateTime>("StartedAt")
-                        .HasColumnType("timestamp without time zone")
-                        .HasColumnName("started_at");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer")
-                        .HasColumnName("status");
-
-                    b.Property<int>("TestType")
-                        .HasColumnType("integer")
-                        .HasColumnName("test_type");
-
-                    b.Property<int>("TotalChecked")
-                        .HasColumnType("integer")
-                        .HasColumnName("total_checked");
-
-                    b.Property<int>("TotalMismatches")
-                        .HasColumnType("integer")
-                        .HasColumnName("total_mismatches");
-
-                    b.Property<int>("TriggerType")
-                        .HasColumnType("integer")
-                        .HasColumnName("trigger_type");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TestType", "StartedAt")
-                        .HasDatabaseName("IX_dqt_runs_test_type_started_at");
-
-                    b.ToTable("dqt_runs", (string)null);
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.DataQuality.InvoiceDqtResult", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Details")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)")
-                        .HasColumnName("details");
-
-                    b.Property<Guid>("DqtRunId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("dqt_run_id");
-
-                    b.Property<string>("FlexiValue")
-                        .HasColumnType("text")
-                        .HasColumnName("flexi_value");
-
-                    b.Property<string>("InvoiceCode")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("invoice_code");
-
-                    b.Property<int>("MismatchType")
-                        .HasColumnType("integer")
-                        .HasColumnName("mismatch_type");
-
-                    b.Property<string>("ShoptetValue")
-                        .HasColumnType("text")
-                        .HasColumnName("shoptet_value");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DqtRunId")
-                        .HasDatabaseName("IX_invoice_dqt_results_dqt_run_id");
-
-                    b.HasIndex("InvoiceCode")
-                        .HasDatabaseName("IX_invoice_dqt_results_invoice_code");
-
-                    b.ToTable("invoice_dqt_results", (string)null);
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.GridLayouts.GridLayout", b =>
@@ -1950,15 +1854,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("UserDashboardTiles", (string)null);
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.DataQuality.InvoiceDqtResult", b =>
-                {
-                    b.HasOne("Anela.Heblo.Domain.Features.DataQuality.DqtRun", null)
-                        .WithMany("Results")
-                        .HasForeignKey("DqtRunId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Anela.Heblo.Domain.Features.InvoiceClassification.ClassificationHistory", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.InvoiceClassification.ClassificationRule", "ClassificationRule")
@@ -2170,11 +2065,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("DashboardSettings");
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.DataQuality.DqtRun", b =>
-                {
-                    b.Navigation("Results");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Invoices.IssuedInvoice", b =>

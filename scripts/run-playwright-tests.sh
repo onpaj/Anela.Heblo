@@ -78,7 +78,7 @@ export PLAYWRIGHT_BASE_URL="$STAGING_URL"
 export CI=false  # Disable CI mode for better debugging
 
 # Define available modules
-MODULES=("catalog" "issued-invoices" "stock-operations" "transport" "manufacturing" "core")
+MODULES=("catalog" "issued-invoices" "stock-operations" "transport" "manufacturing" "core" "marketing")
 
 # Build test command
 PLAYWRIGHT_CMD="npx playwright test"
