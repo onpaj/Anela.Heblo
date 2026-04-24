@@ -20,5 +20,16 @@ namespace Anela.Heblo.Domain.Features.Photobank
 
         [MaxLength(100)]
         public string? CreatedByUserId { get; set; }
+
+        [MaxLength(500)]
+        public string? DriveId { get; set; }
+
+        [MaxLength(500)]
+        public string? RootItemId { get; set; }
+
+        [MaxLength(2000)]
+        public string? DeltaLink { get; set; }
+
+        public DateTime? LastIndexedAt { get; set; }
     }
 }

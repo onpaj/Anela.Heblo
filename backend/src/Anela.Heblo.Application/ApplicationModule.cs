@@ -17,13 +17,13 @@ using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.Journal;
 using Anela.Heblo.Application.Features.Marketing;
-using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Application.Features.Logistics;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture;
 using Anela.Heblo.Application.Features.Manufacture;
 using Anela.Heblo.Application.Features.OrgChart;
 using Anela.Heblo.Application.Features.PackingMaterials;
 using Anela.Heblo.Application.Features.DataQuality;
+using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.UserManagement;
 using Anela.Heblo.Xcc.Services.Dashboard;
@@ -60,7 +60,6 @@ public static class ApplicationModule
         services.AddFinancialOverviewModule(configuration);
         services.AddJournalModule();
         services.AddMarketingModule();
-        services.AddPhotobankModule();
         services.AddManufactureModule(configuration);
         services.AddTransportModule();
         services.AddGiftPackageManufactureModule();
@@ -76,6 +75,7 @@ public static class ApplicationModule
         services.AddGridLayoutsModule();
         services.AddMarketingInvoicesModule();
         services.AddDataQualityModule();
+        services.AddPhotobankModule(configuration);
         // services.AddOrdersModule();
 
         return services;
