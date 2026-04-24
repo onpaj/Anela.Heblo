@@ -9,7 +9,7 @@ public class PackingMaterialLogConfiguration : IEntityTypeConfiguration<PackingM
 {
     public void Configure(EntityTypeBuilder<PackingMaterialLog> builder)
     {
-        builder.ToTable("PackingMaterialLog", "dbo");
+        builder.ToTable("PackingMaterialLog", "public");
 
         builder.HasKey(e => e.Id);
 

@@ -8,7 +8,7 @@ public class StockTakingConfiguration : IEntityTypeConfiguration<StockTakingReco
 {
     public void Configure(EntityTypeBuilder<StockTakingRecord> builder)
     {
-        builder.ToTable("StockTakingResults", "dbo");
+        builder.ToTable("StockTakingResults", "public");
         builder.HasKey(p => p.Id);
 
         // Configure Date column to use 'timestamp without time zone' for PostgreSQL

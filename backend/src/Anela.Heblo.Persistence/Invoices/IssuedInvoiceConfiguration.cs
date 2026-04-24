@@ -6,13 +6,13 @@ namespace Anela.Heblo.Persistence.Features.Invoices;
 
 /// <summary>
 /// EF Core configuration for IssuedInvoice entity
-/// Maps to existing dbo.IssuedInvoice table
+/// Maps to existing public.IssuedInvoice table
 /// </summary>
 public class IssuedInvoiceConfiguration : IEntityTypeConfiguration<IssuedInvoice>
 {
     public void Configure(EntityTypeBuilder<IssuedInvoice> builder)
     {
-        builder.ToTable("IssuedInvoice", "dbo");
+        builder.ToTable("IssuedInvoice", "public");
         builder.HasKey(e => e.Id);
 
         // Primary properties

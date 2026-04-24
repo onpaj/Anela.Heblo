@@ -8,7 +8,7 @@ public class ImportedMarketingTransactionConfiguration : IEntityTypeConfiguratio
 {
     public void Configure(EntityTypeBuilder<ImportedMarketingTransaction> builder)
     {
-        builder.ToTable("imported_marketing_transactions", "dbo");
+        builder.ToTable("imported_marketing_transactions", "public");
 
         builder.HasKey(e => e.Id);
 
