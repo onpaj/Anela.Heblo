@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { Plus, Calendar, List } from 'lucide-react';
-import FullCalendar from '@fullcalendar/react';
+import type FullCalendar from '@fullcalendar/react';
 import CalendarNavigation from '../../manufacture/calendar/CalendarNavigation';
 import MarketingMonthCalendar from '../calendar/MarketingMonthCalendar';
 import MarketingActionGrid from '../list/MarketingActionGrid';
