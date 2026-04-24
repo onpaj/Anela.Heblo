@@ -1,5 +1,14 @@
 import type { CalendarEvent } from "./useCalendarLayout";
 
+export const ACTION_TYPE_COLORS: Record<string, string> = {
+  SocialMedia: "bg-blue-500 text-white",
+  Event: "bg-purple-500 text-white",
+  Email: "bg-green-500 text-white",
+  PR: "bg-yellow-500 text-gray-900",
+  Photoshoot: "bg-pink-500 text-white",
+  Other: "bg-gray-500 text-white",
+};
+
 export type DragType = "move" | "resize-start" | "resize-end";
 
 export interface MoveDragData {

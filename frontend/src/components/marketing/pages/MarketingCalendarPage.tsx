@@ -147,7 +147,7 @@ const MarketingCalendarPage: React.FC = () => {
 
   const handleEventMove = useCallback(
     (eventId: number, newDateFrom: string, newDateTo: string) => {
-      const event = calendarEvents.find((e: any) => e.id === eventId);
+      const event = calendarEvents.find((e) => e.id === eventId);
       if (!event) return;
       updateMutation.mutate({
         id: eventId,
@@ -165,7 +165,7 @@ const MarketingCalendarPage: React.FC = () => {
 
   const handleEventResize = useCallback(
     (eventId: number, newDateFrom: string, newDateTo: string) => {
-      const event = calendarEvents.find((e: any) => e.id === eventId);
+      const event = calendarEvents.find((e) => e.id === eventId);
       if (!event) return;
       updateMutation.mutate({
         id: eventId,

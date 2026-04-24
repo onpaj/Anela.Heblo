@@ -1,17 +1,8 @@
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import type { CalendarEvent } from './useCalendarLayout';
-import type { CalendarDragData } from './calendarDndTypes';
+import { type CalendarDragData, ACTION_TYPE_COLORS } from './calendarDndTypes';
 import { toDateString } from './calendarDateUtils';
-
-const ACTION_TYPE_COLORS: Record<string, string> = {
-  SocialMedia: 'bg-blue-500 text-white',
-  Event: 'bg-purple-500 text-white',
-  Email: 'bg-green-500 text-white',
-  PR: 'bg-yellow-500 text-gray-900',
-  Photoshoot: 'bg-pink-500 text-white',
-  Other: 'bg-gray-500 text-white',
-};
 
 export const BAR_HEIGHT_PX = 22;
 export const BAR_GAP_PX = 2;
@@ -139,7 +130,6 @@ const MarketingEventBar: React.FC<MarketingEventBarProps> = ({
           {...resizeStartListeners}
           onPointerDown={(e) => {
             e.stopPropagation();
-            resizeStartListeners?.onPointerDown?.(e as any);
           }}
           className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 bg-white/30 rounded-l"
         />
@@ -156,7 +146,6 @@ const MarketingEventBar: React.FC<MarketingEventBarProps> = ({
           {...resizeEndListeners}
           onPointerDown={(e) => {
             e.stopPropagation();
-            resizeEndListeners?.onPointerDown?.(e as any);
           }}
           className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize opacity-0 group-hover:opacity-100 bg-white/30 rounded-r"
         />

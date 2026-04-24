@@ -15,8 +15,7 @@ export function parseDateString(dateStr: string): Date {
 /** Add days to a "YYYY-MM-DD" string, returns new "YYYY-MM-DD". */
 export function addDaysToDateString(dateStr: string, days: number): string {
   const date = parseDateString(dateStr);
-  date.setDate(date.getDate() + days);
-  return toDateString(date);
+  return toDateString(new Date(date.getFullYear(), date.getMonth(), date.getDate() + days));
 }
 
 /** Number of days from dateA to dateB (positive if B is after A). */
