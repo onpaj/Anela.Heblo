@@ -8,7 +8,7 @@ public class InvoiceDqtResultConfiguration : IEntityTypeConfiguration<InvoiceDqt
 {
     public void Configure(EntityTypeBuilder<InvoiceDqtResult> builder)
     {
-        builder.ToTable("invoice_dqt_results");
+        builder.ToTable("invoice_dqt_results", "public");
 
         builder.HasKey(e => e.Id);
 

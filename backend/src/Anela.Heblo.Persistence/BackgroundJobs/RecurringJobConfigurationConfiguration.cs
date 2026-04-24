@@ -11,7 +11,7 @@ public class RecurringJobConfigurationConfiguration : IEntityTypeConfiguration<R
 {
     public void Configure(EntityTypeBuilder<RecurringJobConfiguration> builder)
     {
-        builder.ToTable("recurring_job_configurations");
+        builder.ToTable("recurring_job_configurations", "public");
 
         // Primary key is Id (inherited from Entity<string>), which is set to JobName
         builder.HasKey(e => e.Id);

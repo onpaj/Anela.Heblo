@@ -8,7 +8,7 @@ public class DqtRunConfiguration : IEntityTypeConfiguration<DqtRun>
 {
     public void Configure(EntityTypeBuilder<DqtRun> builder)
     {
-        builder.ToTable("dqt_runs");
+        builder.ToTable("dqt_runs", "public");
 
         builder.HasKey(e => e.Id);
 

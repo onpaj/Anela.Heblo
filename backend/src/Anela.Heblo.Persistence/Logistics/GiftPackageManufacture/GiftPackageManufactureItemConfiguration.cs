@@ -8,7 +8,7 @@ public class GiftPackageManufactureItemConfiguration : IEntityTypeConfiguration<
 {
     public void Configure(EntityTypeBuilder<GiftPackageManufactureItem> builder)
     {
-        builder.ToTable("gift_package_manufacture_items");
+        builder.ToTable("gift_package_manufacture_items", "public");
 
         builder.HasKey(x => x.Id);
 
