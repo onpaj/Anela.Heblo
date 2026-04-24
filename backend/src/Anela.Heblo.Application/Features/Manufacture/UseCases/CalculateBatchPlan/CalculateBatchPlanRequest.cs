@@ -25,6 +25,9 @@ public class CalculateBatchPlanRequest : IRequest<CalculateBatchPlanResponse>
     // Product size constraints
     public List<ProductSizeConstraint> ProductConstraints { get; set; } = new();
 
+    // Direct semiproduct output - amount (grams) reserved as sellable bulk output
+    public double? DirectSemiproductAmount { get; set; }
+
     // Manufacturing type - set internally by handler
     public ManufactureType? ManufactureType { get; set; }
 }

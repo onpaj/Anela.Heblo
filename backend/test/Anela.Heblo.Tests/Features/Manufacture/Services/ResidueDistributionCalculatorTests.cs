@@ -270,6 +270,132 @@ public class ResidueDistributionCalculatorTests
         productA.AdjustedGramsPerUnit.Should().Be(productA.AdjustedConsumption / productA.ActualPieces);
     }
 
+    [Fact]
+    public async Task CalculateAsync_WithDirectSemiproductRow_ExcludesDirectRowAndAdjustsActual()
+    {
+        // Arrange
+        // Batch: 5000 g actual. 200 g sold direct (direct row). 4800 g for variants.
+        // Variants: A = 30 units × 100 g = 3000 g theoretical, B = 80 units × 10 g = 800 g theoretical
+        // totalTheoretical = 3800 g, actualSemiProduct for residue = 5000 - 200 = 4800 g
+        // difference = 4800 - 3800 = 1000 g, 26.3% — but threshold = 50%, so within threshold
+        var order = new UpdateManufactureOrderDto
+        {
+            SemiProduct = new UpdateManufactureOrderSemiProductDto
+            {
+                ProductCode = SemiProductCode,
+                ProductName = "Semi Product",
+                PlannedQuantity = 5000m,
+                ActualQuantity = 5000m
+            },
+            Products = new List<UpdateManufactureOrderProductDto>
+            {
+                new UpdateManufactureOrderProductDto
+                {
+                    ProductCode = ProductCodeA,
+                    ProductName = "Product A",
+                    SemiProductCode = SemiProductCode,
+                    PlannedQuantity = 30m,
+                    ActualQuantity = 30m
+                },
+                new UpdateManufactureOrderProductDto
+                {
+                    ProductCode = ProductCodeB,
+                    ProductName = "Product B",
+                    SemiProductCode = SemiProductCode,
+                    PlannedQuantity = 80m,
+                    ActualQuantity = 80m
+                },
+                // Direct semiproduct output row — ProductCode == SemiProductCode
+                new UpdateManufactureOrderProductDto
+                {
+                    ProductCode = SemiProductCode,
+                    ProductName = "Semi Product (direct)",
+                    SemiProductCode = SemiProductCode,
+                    PlannedQuantity = 200m,
+                    ActualQuantity = 200m
+                }
+            }
+        };
+
+        SetupCatalogWithThreshold(SemiProductCode, allowedResiduePercentage: 50.0);
+
+        var templateA = new ManufactureTemplate
+        {
+            ProductCode = ProductCodeA,
+            ProductName = ProductCodeA,
+            Ingredients = new List<Ingredient>
+            {
+                new Ingredient { ProductCode = SemiProductCode, ProductName = "Semi Product", Amount = 100.0, ProductType = ProductType.SemiProduct }
+            }
+        };
+        var templateB = new ManufactureTemplate
+        {
+            ProductCode = ProductCodeB,
+            ProductName = ProductCodeB,
+            Ingredients = new List<Ingredient>
+            {
+                new Ingredient { ProductCode = SemiProductCode, ProductName = "Semi Product", Amount = 10.0, ProductType = ProductType.SemiProduct }
+            }
+        };
+
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(ProductCodeA, It.IsAny<CancellationToken>())).ReturnsAsync(templateA);
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(ProductCodeB, It.IsAny<CancellationToken>())).ReturnsAsync(templateB);
+
+        // Act
+        var result = await _calculator.CalculateAsync(order);
+
+        // Assert
+        // The direct row should be excluded — only 2 variant rows in output
+        result.Products.Should().HaveCount(2);
+        result.Products.Should().NotContain(p => p.ProductCode == SemiProductCode);
+
+        // actualSemiProduct used for residue = 5000 - 200 = 4800
+        result.ActualSemiProductQuantity.Should().Be(4800m);
+        result.TheoreticalConsumption.Should().Be(3800m); // 30×100 + 80×10
+        result.Difference.Should().Be(1000m);
+
+        // Distributions sum to the adjusted actual (4800), not the full batch size
+        result.Products.Sum(p => p.AdjustedConsumption).Should().Be(4800m);
+
+        // The template for the semiproduct code itself should never be fetched
+        _manufactureClientMock.Verify(
+            x => x.GetManufactureTemplateAsync(SemiProductCode, It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_WithDirectSemiproductRow_ZeroDirectAmount_BehavesAsNormal()
+    {
+        // Edge case: direct row exists but has 0 actual/planned quantity.
+        // It should be skipped by the existing "actualPieces <= 0" guard and not affect anything.
+        var order = BuildOrder(
+            actualSemiProduct: 4000m,
+            products: new[]
+            {
+                (ProductCodeA, "Product A", pieces: 30m, gramsPerUnit: 100.0),
+                (ProductCodeB, "Product B", pieces: 80m, gramsPerUnit: 10.0)
+            });
+
+        // Inject a zero-quantity direct row
+        order.Products.Add(new UpdateManufactureOrderProductDto
+        {
+            ProductCode = SemiProductCode,
+            ProductName = "Semi Product (direct)",
+            SemiProductCode = SemiProductCode,
+            PlannedQuantity = 0m,
+            ActualQuantity = 0m
+        });
+
+        SetupCatalogWithThreshold(SemiProductCode, allowedResiduePercentage: 10.0);
+
+        var result = await _calculator.CalculateAsync(order);
+
+        // Zero direct row → directOutputTotal = 0 → actualSemiProduct unchanged = 4000
+        result.ActualSemiProductQuantity.Should().Be(4000m);
+        result.Products.Should().HaveCount(2);
+        result.Products.Sum(p => p.AdjustedConsumption).Should().Be(4000m);
+    }
+
     // ---- Helpers ----
 
     private UpdateManufactureOrderDto BuildOrder(

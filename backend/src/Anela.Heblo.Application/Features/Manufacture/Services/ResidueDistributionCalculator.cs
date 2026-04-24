@@ -23,7 +23,13 @@ public class ResidueDistributionCalculator : IResidueDistributionCalculator
         if (order.Products.All(p => p.ProductCode == order.SemiProduct.ProductCode))
             return new ResidueDistribution { IsWithinAllowedThreshold = true };
 
-        var actualSemiProduct = order.SemiProduct.ActualQuantity ?? order.SemiProduct.PlannedQuantity;
+        // Subtract direct semiproduct output rows (ProductCode == SemiProduct.ProductCode) from
+        // the actual semiproduct quantity before computing residue across the processed variants.
+        var directOutputTotal = order.Products
+            .Where(p => p.ProductCode == order.SemiProduct.ProductCode)
+            .Sum(p => p.ActualQuantity ?? p.PlannedQuantity);
+
+        var actualSemiProduct = (order.SemiProduct.ActualQuantity ?? order.SemiProduct.PlannedQuantity) - directOutputTotal;
 
         var productData = await BuildProductDataAsync(order, cancellationToken);
         if (productData.Count == 0)
@@ -62,6 +68,11 @@ public class ResidueDistributionCalculator : IResidueDistributionCalculator
 
         foreach (var product in order.Products)
         {
+            // Skip direct semiproduct output rows — they have no recipe template and are
+            // accounted for by subtracting directOutputTotal from actualSemiProduct.
+            if (product.ProductCode == order.SemiProduct!.ProductCode)
+                continue;
+
             var actualPieces = product.ActualQuantity ?? product.PlannedQuantity;
             if (actualPieces <= 0)
                 continue;

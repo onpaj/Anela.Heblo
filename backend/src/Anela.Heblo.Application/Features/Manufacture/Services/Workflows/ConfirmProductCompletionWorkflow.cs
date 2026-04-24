@@ -148,7 +148,17 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
     {
         var semiProduct = order.SemiProduct;
         var manufactureName = _nameBuilder.Build(order, ErpManufactureType.Product);
+
+        // Calculate direct semiproduct output total (rows where ProductCode == SemiProduct.ProductCode)
+        var directOutputTotal = order.Products
+            .Where(p => p.ProductCode == semiProduct.ProductCode)
+            .Sum(p => p.ActualQuantity ?? p.PlannedQuantity);
+
+        // Exclude direct semiproduct output rows from the ERP submission.
+        // These rows (ProductCode == SemiProduct.ProductCode) represent bulk semiproduct
+        // sold as-is and should not be reported as finished product output to the ERP.
         var items = order.Products
+            .Where(p => p.ProductCode != semiProduct.ProductCode)
             .Select(p => new SubmitManufactureRequestItem
             {
                 ProductCode = p.ProductCode,
@@ -169,6 +179,9 @@ public class ConfirmProductCompletionWorkflow : IConfirmProductCompletionWorkflo
             LotNumber = semiProduct.LotNumber,
             ExpirationDate = semiProduct.ExpirationDate,
             ResidueDistribution = distribution,
+            DirectSemiProductOutputCode = directOutputTotal > 0 ? semiProduct.ProductCode : null,
+            DirectSemiProductOutputName = directOutputTotal > 0 ? semiProduct.ProductName : null,
+            DirectSemiProductOutputAmount = directOutputTotal,
         };
 
         var submitResult = await _mediator.Send(submitRequest, cancellationToken);

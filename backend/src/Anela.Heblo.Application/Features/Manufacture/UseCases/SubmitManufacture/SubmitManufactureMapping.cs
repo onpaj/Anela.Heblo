@@ -22,6 +22,9 @@ internal static class SubmitManufactureMapping
             LotNumber = request.LotNumber,
             ExpirationDate = request.ExpirationDate,
             ResidueDistribution = request.ResidueDistribution,
+            DirectSemiProductOutputCode = request.DirectSemiProductOutputCode,
+            DirectSemiProductOutputName = request.DirectSemiProductOutputName,
+            DirectSemiProductOutputAmount = request.DirectSemiProductOutputAmount,
         };
     }
 }

@@ -8,4 +8,5 @@ public class SubmitManufactureClientResponse
     public string? SemiProductIssueForProductDocCode { get; set; }
     public string? MaterialIssueForProductDocCode { get; set; }
     public string? ProductReceiptDocCode { get; set; }
+    public string? DirectSemiProductOutputDocCode { get; set; }
 }

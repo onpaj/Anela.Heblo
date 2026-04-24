@@ -19,6 +19,7 @@ interface ConfirmProductCompletionModalProps {
   onSubmit: (request: ConfirmProductCompletionRequest) => Promise<void>;
   orderId: number;
   products: ProductQuantityData[];
+  semiProductCode?: string;
   isLoading?: boolean;
   distributionPreview?: ResidueDistributionDto;
   onConfirmDistribution: () => Promise<void>;
@@ -31,6 +32,7 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
   onSubmit,
   orderId,
   products,
+  semiProductCode,
   isLoading = false,
   distributionPreview,
   onConfirmDistribution,
@@ -261,41 +263,57 @@ const ConfirmProductCompletionModal: React.FC<ConfirmProductCompletionModalProps
 
           {/* Products */}
           <div className="space-y-2">
-            {products.map((product) => (
-              <div key={product.id} className="border border-gray-200 rounded-lg p-3">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-gray-900 truncate text-sm">{product.productName}</h4>
-                    <div className="flex items-center gap-3 mt-1">
-                      <p className="text-xs text-gray-600">{product.productCode}</p>
-                      <p className="text-xs text-gray-500">
-                        Plánované: <span className="font-medium">{product.plannedQuantity}</span>
-                      </p>
+            {products.map((product) => {
+              const isDirectRow = semiProductCode && product.productCode === semiProductCode;
+              return (
+                <div
+                  key={product.id}
+                  className={`border rounded-lg p-3 ${isDirectRow ? "border-amber-300 bg-amber-50" : "border-gray-200"}`}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium text-gray-900 truncate text-sm">{product.productName}</h4>
+                        {isDirectRow && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-200 text-amber-800 flex-shrink-0">
+                            Přímý výstup
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1">
+                        <p className="text-xs text-gray-600">{product.productCode}</p>
+                        <p className="text-xs text-gray-500">
+                          Plánované: <span className="font-medium">{product.plannedQuantity}{isDirectRow ? "g" : ""}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <label
+                        htmlFor={`quantity-${product.id}`}
+                        className="text-sm font-medium text-gray-700 whitespace-nowrap"
+                      >
+                        Skutečné <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          id={`quantity-${product.id}`}
+                          value={actualQuantities[product.id] || ''}
+                          onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                          className="w-20 px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center font-semibold text-sm"
+                          min="0"
+                          step={isDirectRow ? "0.1" : "1"}
+                          disabled={isLoading}
+                          required
+                        />
+                        {isDirectRow && <span className="text-sm text-gray-600">g</span>}
+                      </div>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <label
-                      htmlFor={`quantity-${product.id}`}
-                      className="text-sm font-medium text-gray-700 whitespace-nowrap"
-                    >
-                      Skutečné <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      id={`quantity-${product.id}`}
-                      value={actualQuantities[product.id] || ''}
-                      onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                      className="w-20 px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center font-semibold text-sm"
-                      min="0"
-                      step="1"
-                      disabled={isLoading}
-                      required
-                    />
-                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Error Message */}
