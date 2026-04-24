@@ -46,6 +46,12 @@
   background-color: transparent !important;
 }
 
+/* Weekend day background */
+.marketing-calendar .fc-day-sat,
+.marketing-calendar .fc-day-sun {
+  background-color: #f3f4f6;
+}
+
 /* Non-current-month days */
 .marketing-calendar .fc-day-other {
   background-color: #f9fafb;

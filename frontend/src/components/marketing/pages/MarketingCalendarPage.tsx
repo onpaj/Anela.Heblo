@@ -16,7 +16,7 @@ import {
   useMarketingAction,
   useUpdateMarketingAction,
 } from '../../../api/hooks/useMarketingCalendar';
-import { ACTION_TYPE_TO_INT } from '../calendar/fullcalendarAdapters';
+import { ACTION_TYPE_TO_INT, formatDateStr } from '../calendar/fullcalendarAdapters';
 import type { CalendarEvent } from '../calendar/fullcalendarAdapters';
 import { PAGE_CONTAINER_HEIGHT } from '../../../constants/layout';
 
@@ -25,11 +25,22 @@ const CZECH_MONTHS = [
   'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec',
 ];
 
+// Returns the Monday that starts the 5-week window with today in week 2.
+function getCalendarStartForToday(): Date {
+  const today = new Date();
+  const dow = today.getDay(); // 0 = Sunday
+  const daysToMonday = dow === 0 ? 6 : dow - 1;
+  const start = new Date(today);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(today.getDate() - daysToMonday - 7); // one week before today's week
+  return start;
+}
+
 type ViewMode = 'calendar' | 'list';
 
 const MarketingCalendarPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(getCalendarStartForToday);
   const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date } | null>(null);
   const [filters, setFilters] = useState<MarketingFilters>(EMPTY_FILTERS);
   const [pageNumber, setPageNumber] = useState(1);
@@ -40,23 +51,17 @@ const MarketingCalendarPage: React.FC = () => {
 
   const calendarRef = useRef<FullCalendar>(null);
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-
   // API query range comes from FullCalendar's visible range (set via datesSet callback).
   // Fall back to a manual calculation on first render before datesSet fires.
   const { startDate, endDate } = useMemo(() => {
     if (visibleRange) {
       return { startDate: visibleRange.start, endDate: visibleRange.end };
     }
-    const first = new Date(year, month, 1);
-    const firstMonday = new Date(first);
-    const dow = first.getDay();
-    firstMonday.setDate(first.getDate() + (dow === 0 ? -6 : 1 - dow));
-    const lastSunday = new Date(firstMonday);
-    lastSunday.setDate(firstMonday.getDate() + 41);
-    return { startDate: firstMonday, endDate: lastSunday };
-  }, [visibleRange, year, month]);
+    const start = getCalendarStartForToday();
+    const end = new Date(start);
+    end.setDate(start.getDate() + 35);
+    return { startDate: start, endDate: end };
+  }, [visibleRange]);
 
   const calendarQuery = useMarketingCalendar({ startDate, endDate });
   const listQuery = useMarketingActions({
@@ -74,8 +79,8 @@ const MarketingCalendarPage: React.FC = () => {
         id: a.id!,
         title: a.title ?? '',
         actionType: a.actionType ?? 'Other',
-        dateFrom: String(a.dateFrom ?? a.startDate ?? ''),
-        dateTo: String(a.dateTo ?? a.endDate ?? ''),
+        dateFrom: a.startDate instanceof Date ? formatDateStr(a.startDate) : (a.dateFrom ?? ''),
+        dateTo: a.endDate instanceof Date ? formatDateStr(a.endDate) : (a.dateTo ?? ''),
         associatedProducts: a.associatedProducts ?? [],
       })),
     [calendarQuery.data],
@@ -98,12 +103,32 @@ const MarketingCalendarPage: React.FC = () => {
 
   const totalPages: number = (listQuery.data as any)?.totalPages ?? 1;
 
-  const periodLabel = `${CZECH_MONTHS[month]} ${year}`;
+  const periodLabel = useMemo(() => {
+    const start = visibleRange?.start ?? currentDate;
+    const rawEnd = visibleRange?.end ?? currentDate;
+    // end is exclusive — step back one day for display
+    const end = new Date(rawEnd);
+    end.setDate(end.getDate() - 1);
+
+    const startMonth = start.getMonth();
+    const startYear = start.getFullYear();
+    const endMonth = end.getMonth();
+    const endYear = end.getFullYear();
+
+    if (startYear === endYear && startMonth === endMonth) {
+      return `${CZECH_MONTHS[startMonth]} ${startYear}`;
+    }
+    if (startYear === endYear) {
+      return `${CZECH_MONTHS[startMonth]} – ${CZECH_MONTHS[endMonth]} ${startYear}`;
+    }
+    return `${CZECH_MONTHS[startMonth]} ${startYear} – ${CZECH_MONTHS[endMonth]} ${endYear}`;
+  }, [visibleRange, currentDate]);
 
   // CalendarNavigation drives FullCalendar; datesSet callback syncs currentDate back
   const goToPrev = () => calendarRef.current?.getApi().prev();
   const goToNext = () => calendarRef.current?.getApi().next();
-  const goToToday = () => calendarRef.current?.getApi().today();
+  // Navigate to the window where today is in week 2
+  const goToToday = () => calendarRef.current?.getApi().gotoDate(getCalendarStartForToday());
 
   const handleDatesSet = useCallback(
     (_visibleStart: Date, _visibleEnd: Date, currentStart: Date) => {

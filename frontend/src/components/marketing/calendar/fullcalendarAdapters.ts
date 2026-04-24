@@ -10,25 +10,21 @@ export interface CalendarEvent {
 }
 
 export const ACTION_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
-  SocialMedia: { bg: '#3b82f6', text: '#ffffff' },
-  Event:       { bg: '#a855f7', text: '#ffffff' },
-  Email:       { bg: '#22c55e', text: '#ffffff' },
-  PR:          { bg: '#eab308', text: '#111827' },
-  Photoshoot:  { bg: '#ec4899', text: '#ffffff' },
-  Other:       { bg: '#6b7280', text: '#ffffff' },
+  General:   { bg: '#3b82f6', text: '#ffffff' }, // Sociální sítě
+  Promotion: { bg: '#a855f7', text: '#ffffff' }, // Událost
+  Launch:    { bg: '#22c55e', text: '#ffffff' }, // Email
+  Campaign:  { bg: '#eab308', text: '#111827' }, // PR
+  Event:     { bg: '#ec4899', text: '#ffffff' }, // Fotografie
+  Other:     { bg: '#6b7280', text: '#ffffff' }, // Ostatní
 };
 
 export const ACTION_TYPE_TO_INT: Record<string, number> = {
-  General:    0,
-  SocialMedia: 0,
-  Promotion:  1,
-  Launch:     2,
-  Email:      2,
-  Campaign:   3,
-  PR:         3,
-  Event:      4,
-  Photoshoot: 4,
-  Other:      99,
+  General:   0,
+  Promotion: 1,
+  Launch:    2,
+  Campaign:  3,
+  Event:     4,
+  Other:     99,
 };
 
 export function formatDateStr(d: Date): string {

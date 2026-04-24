@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { X, Plus, Trash2 } from "lucide-react";
+import { X, Plus, Trash2, Search, Type } from "lucide-react";
 import type { MarketingActionDto } from "../list/MarketingActionGrid";
 import {
   useCreateMarketingAction,
   useUpdateMarketingAction,
   useDeleteMarketingAction,
 } from "../../../api/hooks/useMarketingCalendar";
+import { CatalogAutocomplete } from "../../common/CatalogAutocomplete";
+import {
+  catalogItemToProductCode,
+  PRODUCT_TYPE_FILTERS,
+} from "../../common/CatalogAutocompleteAdapters";
 
 const ACTION_TYPE_OPTIONS = [
   { value: 0, label: "Sociální sítě", backendName: "General" },
@@ -50,7 +55,6 @@ interface FormState {
   dateTo: string;
   associatedProducts: string[];
   folderLinks: FolderLinkInput[];
-  productInput: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -61,7 +65,6 @@ const EMPTY_FORM: FormState = {
   dateTo: "",
   associatedProducts: [],
   folderLinks: [],
-  productInput: "",
 };
 
 interface MarketingActionModalProps {
@@ -92,6 +95,9 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
 }) => {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
+  const [currentProduct, setCurrentProduct] = useState<string | null>(null);
+  const [useTextInput, setUseTextInput] = useState(false);
+  const [currentTextProduct, setCurrentTextProduct] = useState("");
 
   const createMutation = useCreateMarketingAction();
   const updateMutation = useUpdateMarketingAction();
@@ -113,7 +119,6 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
           label: fl.label ?? "",
           folderType: resolveOptionValue(FOLDER_TYPE_OPTIONS, fl.folderType),
         })),
-        productInput: "",
       });
     } else if (prefillDates) {
       setForm({ ...EMPTY_FORM, dateFrom: prefillDates.dateFrom, dateTo: prefillDates.dateTo });
@@ -128,12 +133,19 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const addProduct = () => {
-    const code = form.productInput.trim().toUpperCase();
+  const handleProductSelect = (code: string | null) => {
     if (code && !form.associatedProducts.includes(code)) {
       set("associatedProducts", [...form.associatedProducts, code]);
-      set("productInput", "");
     }
+    setCurrentProduct(null);
+  };
+
+  const handleTextProductSubmit = () => {
+    const code = currentTextProduct.trim().toUpperCase();
+    if (code && !form.associatedProducts.includes(code)) {
+      set("associatedProducts", [...form.associatedProducts, code]);
+    }
+    setCurrentTextProduct("");
   };
 
   const removeProduct = (code: string) =>
@@ -313,42 +325,82 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
 
           {/* Products */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Produkty
-            </label>
-            <div className="flex gap-2">
-              <input
-                value={form.productInput}
-                onChange={(e) => set("productInput", e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && (e.preventDefault(), addProduct())
-                }
-                placeholder="Kód produktu (Enter)"
-                className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <button
-                type="button"
-                onClick={addProduct}
-                className="px-3 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-            {form.associatedProducts.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {form.associatedProducts.map((code) => (
-                  <span
-                    key={code}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded text-xs"
-                  >
-                    {code}
-                    <button type="button" onClick={() => removeProduct(code)}>
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Přiřazené produkty
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUseTextInput(false)}
+                  className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                    !useTextInput
+                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  }`}
+                >
+                  <Search className="h-3 w-3 mr-1" />
+                  Autocomplete
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUseTextInput(true)}
+                  className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                    useTextInput
+                      ? "bg-indigo-100 text-indigo-800 border border-indigo-200"
+                      : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  }`}
+                >
+                  <Type className="h-3 w-3 mr-1" />
+                  Text
+                </button>
               </div>
+            </div>
+
+            {useTextInput ? (
+              <input
+                type="text"
+                value={currentTextProduct}
+                onChange={(e) => setCurrentTextProduct(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleTextProductSubmit();
+                  }
+                }}
+                onBlur={handleTextProductSubmit}
+                placeholder="Zadejte produktový kód nebo prefix..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+              />
+            ) : (
+              <CatalogAutocomplete<string>
+                value={currentProduct}
+                onSelect={handleProductSelect}
+                placeholder="Začněte psát název nebo kód produktu..."
+                productTypes={PRODUCT_TYPE_FILTERS.ALL}
+                itemAdapter={catalogItemToProductCode}
+                displayValue={(value) => value}
+                size="md"
+              />
             )}
+
+            <div className="flex flex-wrap gap-2 mt-3">
+              {form.associatedProducts.map((code) => (
+                <span
+                  key={code}
+                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"
+                >
+                  {code}
+                  <button
+                    type="button"
+                    onClick={() => removeProduct(code)}
+                    className="ml-1 text-indigo-600 hover:text-indigo-800"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
           </div>
 
           {/* Folder links */}

@@ -69,7 +69,13 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, interactionPlugin]}
-        initialView="dayGridMonth"
+        initialView="fiveWeeks"
+        views={{
+          fiveWeeks: {
+            type: 'dayGrid',
+            duration: { weeks: 5 },
+          },
+        }}
         locale={csLocale}
         initialDate={initialDate}
         headerToolbar={false}
@@ -77,7 +83,6 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
         editable={true}
         selectable={true}
         selectMirror={true}
-        fixedWeekCount={false}
         dayMaxEvents={true}
         height="100%"
         eventClick={handleEventClick}
