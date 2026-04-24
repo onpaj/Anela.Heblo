@@ -8,41 +8,34 @@ public class InvoiceDqtResultConfiguration : IEntityTypeConfiguration<InvoiceDqt
 {
     public void Configure(EntityTypeBuilder<InvoiceDqtResult> builder)
     {
-        builder.ToTable("invoice_dqt_results", "public");
+        builder.ToTable("InvoiceDqtResults", "public");
 
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.Id)
-            .HasColumnName("id")
             .IsRequired();
 
         builder.Property(e => e.DqtRunId)
-            .HasColumnName("dqt_run_id")
             .IsRequired();
 
         builder.Property(e => e.InvoiceCode)
-            .HasColumnName("invoice_code")
             .IsRequired();
 
         builder.Property(e => e.MismatchType)
-            .HasColumnName("mismatch_type")
             .HasConversion<int>()
             .IsRequired();
 
-        builder.Property(e => e.ShoptetValue)
-            .HasColumnName("shoptet_value");
+        builder.Property(e => e.ShoptetValue);
 
-        builder.Property(e => e.FlexiValue)
-            .HasColumnName("flexi_value");
+        builder.Property(e => e.FlexiValue);
 
         builder.Property(e => e.Details)
-            .HasColumnName("details")
             .HasMaxLength(4000);
 
         builder.HasIndex(e => e.DqtRunId)
-            .HasDatabaseName("IX_invoice_dqt_results_dqt_run_id");
+            .HasDatabaseName("IX_InvoiceDqtResults_DqtRunId");
 
         builder.HasIndex(e => e.InvoiceCode)
-            .HasDatabaseName("IX_invoice_dqt_results_invoice_code");
+            .HasDatabaseName("IX_InvoiceDqtResults_InvoiceCode");
     }
 }

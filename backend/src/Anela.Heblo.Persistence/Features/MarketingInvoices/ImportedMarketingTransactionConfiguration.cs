@@ -8,7 +8,7 @@ public class ImportedMarketingTransactionConfiguration : IEntityTypeConfiguratio
 {
     public void Configure(EntityTypeBuilder<ImportedMarketingTransaction> builder)
     {
-        builder.ToTable("imported_marketing_transactions", "public");
+        builder.ToTable("ImportedMarketingTransactions", "public");
 
         builder.HasKey(e => e.Id);
 
@@ -56,6 +56,6 @@ public class ImportedMarketingTransactionConfiguration : IEntityTypeConfiguratio
 
         builder.HasIndex(e => new { e.Platform, e.TransactionId })
             .IsUnique()
-            .HasDatabaseName("IX_imported_marketing_transactions_Platform_TransactionId");
+            .HasDatabaseName("IX_ImportedMarketingTransactions_Platform_TransactionId");
     }
 }
