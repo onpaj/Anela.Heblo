@@ -48,4 +48,25 @@ public class SpaFallbackTests : IClassFixture<HebloWebApplicationFactory>
         response.StatusCode.Should().Be(HttpStatusCode.MethodNotAllowed,
             because: $"the SPA fallback must reject {method} requests to any unmatched path");
     }
+
+    [Fact]
+    public async Task Get_Request_To_SpaPath_Returns_503_When_IndexHtml_Missing()
+    {
+        // In the test environment, wwwroot/index.html does not exist (no frontend build).
+        // The guard added in ConfigureSpaFallback (issue #667) must return 503 instead of
+        // letting UseSpa throw InvalidOperationException (which would surface as a 500).
+        var response = await _client.GetAsync("/");
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable,
+            because: "when index.html is absent the SPA fallback must return 503, not 500");
+    }
+
+    [Fact]
+    public async Task Get_Request_To_Nested_SpaRoute_Returns_503_When_IndexHtml_Missing()
+    {
+        var response = await _client.GetAsync("/some/nested/route");
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable,
+            because: "all unmatched GET routes must return 503 when the frontend build is not deployed");
+    }
 }
