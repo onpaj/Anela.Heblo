@@ -19,5 +19,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
             DateTime from,
             DateTime to,
             CancellationToken cancellationToken = default);
+
+        Task<List<MarketingAction>> GetFailedOutlookSyncAsync(int batchSize, CancellationToken cancellationToken = default);
     }
 }

@@ -127,5 +127,15 @@ namespace Anela.Heblo.Persistence.Marketing
                 .OrderBy(x => x.StartDate)
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task<List<MarketingAction>> GetFailedOutlookSyncAsync(int batchSize, CancellationToken cancellationToken = default)
+        {
+            return await Context.Set<MarketingAction>()
+                .IgnoreQueryFilters()
+                .Where(x => x.OutlookSyncStatus == MarketingSyncStatus.Failed)
+                .OrderBy(x => x.Id)
+                .Take(batchSize)
+                .ToListAsync(cancellationToken);
+        }
     }
 }

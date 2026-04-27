@@ -38,6 +38,8 @@ namespace Anela.Heblo.Application.Features.Marketing
                 services.AddScoped<IOutlookCalendarSync, NoOpOutlookCalendarSync>();
             }
 
+            services.AddHostedService<OutlookSyncRetryHostedService>();
+
             // MediatR handlers are auto-registered by assembly scan
             return services;
         }
