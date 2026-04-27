@@ -798,6 +798,8 @@ The delivery address object itself can be `null`.
 
 > **Display vs. API items:** For invoices with coupon/volume discounts across multiple VAT rates, the API returns a single discount row while the admin/PDF shows multiple rows (one per VAT rate). Use `displayPrices` array on each item to get the printout representation.
 
+> **Observed on invoice 126000039 (per-line priceRatio discount):** The discount on this invoice is encoded as `priceRatio=0.0000` on the product line (`itemType=product`, `code=TON002030`). `itemPrice.withVat` reflects the discounted total (`0.00`), while `unitPrice.withVat` retains the original unit price (`180.00`). There is NO separate `discount-coupon` or `volume-discount` aggregate row — the discount is applied entirely per-line via `priceRatio`. The shipping (`itemType=shipping`) and billing (`itemType=billing`) rows have `priceRatio=1.0000` and are not discounted. Invoice totals: `price.withVat=158.00`, `price.toPay=158.00`.
+
 ### 10.13 VAT Modes
 
 | Value |
