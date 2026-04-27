@@ -35,6 +35,7 @@ public class FlexiManufactureClientTests
     private readonly Mock<ILotsClient> _mockLotsClient;
     private readonly Mock<ILogger<FlexiManufactureClient>> _mockLogger;
     private readonly Mock<IFlexiManufactureTemplateService> _mockTemplateService;
+    private readonly Mock<IManufactureHistoryCacheInvalidator> _mockHistoryCacheInvalidator;
     private readonly FlexiManufactureClient _client;
 
     public FlexiManufactureClientTests()
@@ -46,6 +47,7 @@ public class FlexiManufactureClientTests
         _mockLotsClient = new Mock<ILotsClient>();
         _mockLogger = new Mock<ILogger<FlexiManufactureClient>>();
         _mockTemplateService = new Mock<IFlexiManufactureTemplateService>();
+        _mockHistoryCacheInvalidator = new Mock<IManufactureHistoryCacheInvalidator>();
 
         var movementService = new FlexiManufactureDocumentService(
             _mockStockClient.Object,
@@ -62,7 +64,8 @@ public class FlexiManufactureClientTests
             new FlexiLotLoader(_mockLotsClient.Object),
             movementService,
             _mockStockMovementClient.Object,
-            TimeProvider.System);
+            TimeProvider.System,
+            _mockHistoryCacheInvalidator.Object);
     }
 
     #region Basic Flow Tests
@@ -1323,6 +1326,43 @@ public class FlexiManufactureClientTests
         _mockTemplateService
             .Setup(x => x.GetManufactureTemplateAsync(ManufactureTestData.Products.GiftBox.Code, It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
+    }
+
+    #endregion
+
+    #region Cache Invalidation Tests
+
+    [Fact]
+    public async Task SubmitManufactureAsync_OnSuccess_InvalidatesHistoryCache()
+    {
+        // Arrange
+        var request = ManufactureTestData.CreateManufactureRequest(ManufactureTestData.Products.ConfidentBar, 10m);
+        request.ManufactureType = ErpManufactureType.Product;
+        SetupSuccessfulManufacture(ManufactureTestData.Products.ConfidentBar, ManufactureTestData.Materials.Bisabolol, 5.0);
+
+        // Act
+        await _client.SubmitManufactureAsync(request);
+
+        // Assert — cache invalidated exactly once after successful submission
+        _mockHistoryCacheInvalidator.Verify(x => x.Invalidate(), Times.Once);
+    }
+
+    [Fact]
+    public async Task SubmitManufactureAsync_OnFailure_DoesNotInvalidateHistoryCache()
+    {
+        // Arrange — template service throws, so submit fails before writing to FlexiBee
+        var request = ManufactureTestData.CreateManufactureRequest(ManufactureTestData.Products.ConfidentBar, 10m);
+        request.ManufactureType = ErpManufactureType.Product;
+
+        _mockTemplateService
+            .Setup(x => x.GetManufactureTemplateAsync(ManufactureTestData.Products.ConfidentBar.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureTemplate?)null);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ApplicationException>(() => _client.SubmitManufactureAsync(request));
+
+        // Cache must NOT be invalidated when the submit throws
+        _mockHistoryCacheInvalidator.Verify(x => x.Invalidate(), Times.Never);
     }
 
     #endregion

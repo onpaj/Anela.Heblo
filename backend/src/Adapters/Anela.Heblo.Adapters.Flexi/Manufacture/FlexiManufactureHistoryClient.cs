@@ -1,29 +1,51 @@
 using Anela.Heblo.Domain.Features.Manufacture;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
 using Rem.FlexiBeeSDK.Model.Products.StockMovement;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture;
 
-public class FlexiManufactureHistoryClient : IManufactureHistoryClient
+public class FlexiManufactureHistoryClient : IManufactureHistoryClient, IManufactureHistoryCacheInvalidator
 {
     private readonly IStockItemsMovementClient _stockItemsMovementClient;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<FlexiManufactureHistoryClient> _logger;
 
     private const int ManufactureDocumentTypeId = 56;
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+
+    private CancellationTokenSource _invalidationCts = new();
 
     public FlexiManufactureHistoryClient(
         IStockItemsMovementClient stockItemsMovementClient,
+        IMemoryCache cache,
         ILogger<FlexiManufactureHistoryClient> logger)
     {
         _stockItemsMovementClient = stockItemsMovementClient;
+        _cache = cache;
         _logger = logger;
     }
 
+    public void Invalidate()
+    {
+        var oldCts = Interlocked.Exchange(ref _invalidationCts, new CancellationTokenSource());
+        oldCts.Cancel();
+        oldCts.Dispose();
+        _logger.LogInformation("Manufacture history cache invalidated");
+    }
 
     public async Task<List<ManufactureHistoryRecord>> GetHistoryAsync(DateTime dateFrom, DateTime dateTo, string? productCode = null,
         CancellationToken cancellationToken = default)
     {
+        var cacheKey = $"manufacture-history_{dateFrom:yyyyMMdd}_{dateTo:yyyyMMdd}_{productCode ?? "all"}";
+        if (_cache.TryGetValue(cacheKey, out List<ManufactureHistoryRecord>? cached))
+        {
+            _logger.LogDebug("Returning cached manufacture history for {DateFrom} to {DateTo}", dateFrom, dateTo);
+            return cached!;
+        }
+
         IReadOnlyList<StockItemMovementFlexiDto> movements;
         try
         {
@@ -73,6 +95,12 @@ public class FlexiManufactureHistoryClient : IManufactureHistoryClient
             .OrderBy(s => s.Date)
             .ThenBy(s => s.ProductCode)
             .ToList();
+
+        var cts = Volatile.Read(ref _invalidationCts);
+        var options = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(CacheDuration)
+            .AddExpirationToken(new CancellationChangeToken(cts.Token));
+        _cache.Set(cacheKey, statistics, options);
 
         return statistics;
     }

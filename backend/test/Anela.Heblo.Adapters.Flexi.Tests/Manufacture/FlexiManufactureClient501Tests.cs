@@ -3,6 +3,7 @@ using Anela.Heblo.Adapters.Flexi.Manufacture;
 using Anela.Heblo.Adapters.Flexi.Manufacture.Internal;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -45,7 +46,8 @@ public class FlexiManufactureClient501Tests
             new FlexiLotLoader(mockLotsClient.Object),
             movementService,
             mockStockMovementClient.Object,
-            TimeProvider.System);
+            TimeProvider.System,
+            new Mock<IManufactureHistoryCacheInvalidator>().Object);
     }
 
     [Fact]
