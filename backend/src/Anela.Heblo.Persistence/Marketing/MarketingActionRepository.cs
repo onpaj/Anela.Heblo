@@ -137,5 +137,19 @@ namespace Anela.Heblo.Persistence.Marketing
                 .Take(batchSize)
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task<List<MarketingAction>> GetByOutlookEventIdsAsync(
+            IEnumerable<string> outlookEventIds,
+            CancellationToken cancellationToken = default)
+        {
+            var ids = outlookEventIds.ToList();
+            if (ids.Count == 0)
+                return new List<MarketingAction>();
+
+            return await Context.Set<MarketingAction>()
+                .IgnoreQueryFilters()
+                .Where(x => x.OutlookEventId != null && ids.Contains(x.OutlookEventId))
+                .ToListAsync(cancellationToken);
+        }
     }
 }

@@ -1,5 +1,7 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -99,6 +101,21 @@ namespace Anela.Heblo.API.Controllers
         {
             var request = new DeleteMarketingActionRequest { Id = id };
             var response = await _mediator.Send(request);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Import marketing actions from the configured Outlook calendar (admin only)
+        /// </summary>
+        [HttpPost("import-from-outlook")]
+        [Authorize(Policy = AuthorizationConstants.Policies.KnowledgeBaseUpload)]
+        [ProducesResponseType(typeof(ImportFromOutlookResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<ImportFromOutlookResponse>> ImportFromOutlook(
+            [FromBody] ImportFromOutlookRequest request,
+            CancellationToken cancellationToken)
+        {
+            var response = await _mediator.Send(request, cancellationToken);
             return HandleResponse(response);
         }
     }
