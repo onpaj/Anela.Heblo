@@ -77,11 +77,10 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
                     action.MarkOutlookFailed(ex.Message, now);
                 }
 
-                await _repository.UpdateAsync(action, cancellationToken);
-
                 // Best-effort: persist Outlook sync status. A failure here is non-blocking.
                 try
                 {
+                    await _repository.UpdateAsync(action, cancellationToken);
                     await _repository.SaveChangesAsync(cancellationToken);
                 }
                 catch (Exception dbEx)
