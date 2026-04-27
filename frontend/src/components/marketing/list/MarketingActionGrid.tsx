@@ -17,20 +17,20 @@ export interface MarketingActionDto {
 }
 
 const ACTION_TYPE_BADGE: Record<string, string> = {
-  SocialMedia: "bg-blue-100 text-blue-800",
-  Event: "bg-purple-100 text-purple-800",
-  Email: "bg-green-100 text-green-800",
-  PR: "bg-yellow-100 text-yellow-800",
-  Photoshoot: "bg-pink-100 text-pink-800",
+  General: "bg-blue-100 text-blue-800",
+  Promotion: "bg-purple-100 text-purple-800",
+  Launch: "bg-green-100 text-green-800",
+  Campaign: "bg-yellow-100 text-yellow-800",
+  Event: "bg-pink-100 text-pink-800",
   Other: "bg-gray-100 text-gray-800",
 };
 
 const ACTION_TYPE_LABELS: Record<string, string> = {
-  SocialMedia: "Sociální sítě",
-  Event: "Událost",
-  Email: "Email",
-  PR: "PR",
-  Photoshoot: "Fotografie",
+  General: "Sociální sítě",
+  Promotion: "Událost",
+  Launch: "Email",
+  Campaign: "PR",
+  Event: "Fotografie",
   Other: "Ostatní",
 };
 
