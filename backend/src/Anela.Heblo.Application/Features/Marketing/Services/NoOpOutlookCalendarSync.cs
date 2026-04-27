@@ -8,7 +8,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
     /// or BypassJwtValidation is set. Logs a warning and returns empty/default results so
     /// the application starts cleanly without Azure AD token acquisition.
     /// </summary>
-    public class NoOpOutlookCalendarSync : IOutlookCalendarSync
+    public sealed class NoOpOutlookCalendarSync : IOutlookCalendarSync
     {
         private readonly ILogger<NoOpOutlookCalendarSync> _logger;
 
@@ -19,25 +19,25 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 
         public Task<string> CreateEventAsync(MarketingAction action, CancellationToken ct)
         {
-            _logger.LogWarning("Outlook sync disabled (mock auth or PushEnabled=false) — skipping CreateEvent for action {ActionId}", action.Id);
+            _logger.LogWarning("Outlook sync disabled (mock auth active (UseMockAuth or BypassJwtValidation)) — skipping CreateEvent for action {ActionId}", action.Id);
             return Task.FromResult(string.Empty);
         }
 
         public Task UpdateEventAsync(MarketingAction action, CancellationToken ct)
         {
-            _logger.LogWarning("Outlook sync disabled (mock auth or PushEnabled=false) — skipping UpdateEvent for action {ActionId}", action.Id);
+            _logger.LogWarning("Outlook sync disabled (mock auth active (UseMockAuth or BypassJwtValidation)) — skipping UpdateEvent for action {ActionId}", action.Id);
             return Task.CompletedTask;
         }
 
         public Task DeleteEventAsync(string outlookEventId, CancellationToken ct)
         {
-            _logger.LogWarning("Outlook sync disabled (mock auth or PushEnabled=false) — skipping DeleteEvent for outlookEventId {OutlookEventId}", outlookEventId);
+            _logger.LogWarning("Outlook sync disabled (mock auth active (UseMockAuth or BypassJwtValidation)) — skipping DeleteEvent for outlookEventId {OutlookEventId}", outlookEventId);
             return Task.CompletedTask;
         }
 
         public Task<IReadOnlyList<OutlookEventDto>> ListEventsAsync(DateTime fromUtc, DateTime toUtc, CancellationToken ct)
         {
-            _logger.LogWarning("Outlook sync disabled (mock auth or PushEnabled=false) — returning empty list for ListEvents");
+            _logger.LogWarning("Outlook sync disabled (mock auth active (UseMockAuth or BypassJwtValidation)) — returning empty list for ListEvents");
             return Task.FromResult<IReadOnlyList<OutlookEventDto>>(Array.Empty<OutlookEventDto>());
         }
     }
