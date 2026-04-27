@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="Google.Ads.GoogleAds" Version="21.1.0" />
     <PackageReference Include="Microsoft.Extensions.AI" Version="9.5.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="MockQueryable.EntityFrameworkCore" Version="7.0.3" />
@@ -31,6 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Anthropic\Anela.Heblo.Adapters.Anthropic.csproj" />
+    <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.GoogleAds\Anela.Heblo.Adapters.GoogleAds.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.MetaAds\Anela.Heblo.Adapters.MetaAds.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Comgate\Anela.Heblo.Adapters.Comgate.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.ShoptetApi\Anela.Heblo.Adapters.ShoptetApi.csproj" />
