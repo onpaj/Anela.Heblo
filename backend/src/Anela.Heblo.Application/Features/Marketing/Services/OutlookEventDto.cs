@@ -57,7 +57,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
         public List<OutlookEventDto> Value { get; set; } = new();
     }
 
-    internal class OutlookEventIdResponse
+    internal class OutlookEventIdPayload
     {
         [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;

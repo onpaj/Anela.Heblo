@@ -21,11 +21,22 @@ namespace Anela.Heblo.Application.Features.Marketing
 
             services.AddScoped<IMarketingActionRepository, MarketingActionRepository>();
 
-            // Graph HTTP client (safe to register multiple times — IHttpClientFactory deduplicates)
-            services.AddHttpClient("MicrosoftGraph");
+            // Outlook calendar sync — use real Graph-backed service only when real Azure AD
+            // authentication is active. Mock auth has no ITokenAcquisition registered, so DI
+            // validation would fail; NoOpOutlookCalendarSync is used in those environments instead.
+            var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
+            var bypassJwt = configuration.GetValue<bool>("BypassJwtValidation", false);
 
-            // Outlook calendar sync service
-            services.AddScoped<IOutlookCalendarSync, OutlookCalendarSyncService>();
+            if (!useMockAuth && !bypassJwt)
+            {
+                // Graph HTTP client (safe to register multiple times — IHttpClientFactory deduplicates)
+                services.AddHttpClient("MicrosoftGraph");
+                services.AddScoped<IOutlookCalendarSync, OutlookCalendarSyncService>();
+            }
+            else
+            {
+                services.AddScoped<IOutlookCalendarSync, NoOpOutlookCalendarSync>();
+            }
 
             // MediatR handlers are auto-registered by assembly scan
             return services;

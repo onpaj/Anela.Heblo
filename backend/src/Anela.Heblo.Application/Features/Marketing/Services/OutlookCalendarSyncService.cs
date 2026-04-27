@@ -62,7 +62,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             }
 
             var stream = await response.Content.ReadAsStreamAsync(ct);
-            var created = await JsonSerializer.DeserializeAsync<OutlookEventIdResponse>(stream, JsonOptions, ct)
+            var created = await JsonSerializer.DeserializeAsync<OutlookEventIdPayload>(stream, JsonOptions, ct)
                 ?? throw new InvalidOperationException("Graph CreateEvent response deserialised to null.");
 
             _logger.LogInformation("Created Outlook event {EventId} for marketing action {ActionId}", created.Id, action.Id);
