@@ -25,11 +25,11 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
         public string[] Categories { get; set; } = Array.Empty<string>();
 
         public DateTime StartUtc => Start is not null
-            ? DateTime.Parse(Start.DateTime, null, System.Globalization.DateTimeStyles.RoundtripKind)
+            ? DateTime.Parse(Start.DateTimeString, null, System.Globalization.DateTimeStyles.RoundtripKind)
             : DateTime.MinValue;
 
         public DateTime EndUtc => End is not null
-            ? DateTime.Parse(End.DateTime, null, System.Globalization.DateTimeStyles.RoundtripKind)
+            ? DateTime.Parse(End.DateTimeString, null, System.Globalization.DateTimeStyles.RoundtripKind)
             : DateTime.MinValue;
     }
 
@@ -45,7 +45,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
     public class GraphEventDateTime
     {
         [JsonPropertyName("dateTime")]
-        public string DateTime { get; set; } = string.Empty;
+        public string DateTimeString { get; set; } = string.Empty;
 
         [JsonPropertyName("timeZone")]
         public string TimeZone { get; set; } = string.Empty;
@@ -55,5 +55,11 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
     {
         [JsonPropertyName("value")]
         public List<OutlookEventDto> Value { get; set; } = new();
+    }
+
+    internal class OutlookEventIdResponse
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
     }
 }

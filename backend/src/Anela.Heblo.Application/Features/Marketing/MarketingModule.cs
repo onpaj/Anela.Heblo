@@ -11,8 +11,13 @@ namespace Anela.Heblo.Application.Features.Marketing
     {
         public static IServiceCollection AddMarketingModule(this IServiceCollection services, IConfiguration configuration)
         {
-            // Bind options
-            services.Configure<MarketingCalendarOptions>(configuration.GetSection(MarketingCalendarOptions.SectionName));
+            // Bind options — fail startup when PushEnabled is true but MailboxUpn is missing
+            services.AddOptions<MarketingCalendarOptions>()
+                .Bind(configuration.GetSection(MarketingCalendarOptions.SectionName))
+                .Validate(
+                    o => !string.IsNullOrWhiteSpace(o.MailboxUpn) || !o.PushEnabled,
+                    "MarketingCalendar:MailboxUpn must be configured when PushEnabled is true.")
+                .ValidateOnStart();
 
             services.AddScoped<IMarketingActionRepository, MarketingActionRepository>();
 

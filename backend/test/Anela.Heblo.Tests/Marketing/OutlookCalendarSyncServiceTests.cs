@@ -1,9 +1,9 @@
 using System.Net;
-using System.Text;
 using System.Text.Json;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Domain.Features.Marketing;
+using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -46,20 +46,34 @@ namespace Anela.Heblo.Tests.Marketing
                 NullLogger<OutlookCalendarSyncService>.Instance);
         }
 
-        private static MarketingAction BuildAction(string? outlookEventId = null) =>
-            new()
+        private static readonly DateTime DefaultStartDate = new(2026, 3, 1, 9, 0, 0, DateTimeKind.Utc);
+        private static readonly DateTime DefaultEndDate = new(2026, 3, 1, 11, 0, 0, DateTimeKind.Utc);
+
+        /// <summary>
+        /// Builds a <see cref="MarketingAction"/> for testing.
+        /// Pass <see cref="DateTime.MinValue"/> for <paramref name="endDate"/> to leave it null (no end date).
+        /// </summary>
+        private static MarketingAction BuildAction(
+            string? outlookEventId = null,
+            DateTime? startDate = null,
+            DateTime? endDate = null)
+        {
+            var resolvedEndDate = endDate == DateTime.MinValue ? (DateTime?)null : (endDate ?? DefaultEndDate);
+
+            return new MarketingAction
             {
                 Id = 42,
                 Title = "Spring Launch",
                 Description = "Big spring launch event",
                 ActionType = MarketingActionType.Launch,
-                StartDate = new DateTime(2026, 3, 1, 9, 0, 0, DateTimeKind.Utc),
-                EndDate = new DateTime(2026, 3, 1, 11, 0, 0, DateTimeKind.Utc),
+                StartDate = startDate ?? DefaultStartDate,
+                EndDate = resolvedEndDate,
                 CreatedAt = DateTime.UtcNow,
                 ModifiedAt = DateTime.UtcNow,
                 CreatedByUserId = "user-1",
                 OutlookEventId = outlookEventId
             };
+        }
 
         // ─── CreateEventAsync ─────────────────────────────────────────────────────
 
@@ -135,9 +149,9 @@ namespace Anela.Heblo.Tests.Marketing
             var responseJson = JsonSerializer.Serialize(new { id = "evt-999" });
             var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
             var service = CreateService(handler);
-            var action = BuildAction();
-            action.EndDate = null;
-            action.StartDate = new DateTime(2026, 4, 1, 10, 0, 0, DateTimeKind.Utc);
+            var action = BuildAction(
+                startDate: new DateTime(2026, 4, 1, 10, 0, 0, DateTimeKind.Utc),
+                endDate: DateTime.MinValue); // sentinel: no end date
 
             // Act
             await service.CreateEventAsync(action, CancellationToken.None);
@@ -255,7 +269,12 @@ namespace Anela.Heblo.Tests.Marketing
             // Act
             var result = await service.ListEventsAsync(from, to, CancellationToken.None);
 
-            // Assert
+            // Assert — URL uses calendarView endpoint with date-range query params
+            handler.LastRequestUri.Should().NotBeNull();
+            handler.LastRequestUri!.ToString().Should().Contain("calendarView");
+            handler.LastRequestUri.ToString().Should().Contain("startDateTime=");
+            handler.LastRequestUri.ToString().Should().Contain("endDateTime=");
+
             result.Should().HaveCount(2);
 
             result[0].Id.Should().Be("evt-a");
@@ -265,42 +284,6 @@ namespace Anela.Heblo.Tests.Marketing
 
             result[1].Id.Should().Be("evt-b");
             result[1].Subject.Should().Be("Brand Campaign");
-        }
-    }
-
-    /// <summary>
-    /// Fake HTTP message handler that captures the last outbound request
-    /// and returns a pre-configured response for testing HTTP-level interactions.
-    /// </summary>
-    public class FakeHttpMessageHandler : HttpMessageHandler
-    {
-        private readonly HttpStatusCode _statusCode;
-        private readonly string _responseBody;
-
-        public Uri? LastRequestUri { get; private set; }
-        public HttpMethod? LastMethod { get; private set; }
-        public string LastRequestBody { get; private set; } = string.Empty;
-
-        public FakeHttpMessageHandler(HttpStatusCode statusCode, string responseBody)
-        {
-            _statusCode = statusCode;
-            _responseBody = responseBody;
-        }
-
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            LastRequestUri = request.RequestUri;
-            LastMethod = request.Method;
-
-            if (request.Content is not null)
-            {
-                LastRequestBody = await request.Content.ReadAsStringAsync(cancellationToken);
-            }
-
-            return new HttpResponseMessage(_statusCode)
-            {
-                Content = new StringContent(_responseBody, Encoding.UTF8, "application/json")
-            };
         }
     }
 }

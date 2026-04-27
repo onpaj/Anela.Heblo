@@ -1,10 +1,10 @@
 namespace Anela.Heblo.Application.Features.Marketing.Configuration
 {
-    public class MarketingCalendarOptions
+    public sealed class MarketingCalendarOptions
     {
         public const string SectionName = "MarketingCalendar";
 
-        public string MailboxUpn { get; set; } = string.Empty;
-        public bool PushEnabled { get; set; }
+        public string MailboxUpn { get; init; } = string.Empty;
+        public bool PushEnabled { get; init; }
     }
 }

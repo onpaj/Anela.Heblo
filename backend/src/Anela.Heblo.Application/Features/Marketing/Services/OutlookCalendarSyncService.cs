@@ -1,7 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Domain.Features.Marketing;
 using Microsoft.Extensions.Logging;
@@ -10,6 +9,8 @@ using Microsoft.Identity.Web;
 
 namespace Anela.Heblo.Application.Features.Marketing.Services
 {
+    // PushEnabled flag is enforced by the caller (handler) before invoking this service.
+    // See Task 3 for the guard at the handler level.
     public class OutlookCalendarSyncService : IOutlookCalendarSync
     {
         private readonly ITokenAcquisition _tokenAcquisition;
@@ -19,6 +20,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 
         private const string GraphScope = "https://graph.microsoft.com/.default";
         private const string CalendarEventsBaseUrl = "https://graph.microsoft.com/v1.0/users/{0}/calendar/events";
+        private const string CalendarViewBaseUrl = "https://graph.microsoft.com/v1.0/users/{0}/calendarView";
         private const string TimeZone = "Europe/Prague";
         private const int MaxResponseBodyLength = 500;
 
@@ -120,9 +122,9 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-            var filter = $"start/dateTime ge '{fromUtc:O}' and end/dateTime le '{toUtc:O}'";
             var select = "id,subject,body,start,end,categories";
-            var url = $"{BuildBaseUrl()}?$filter={Uri.EscapeDataString(filter)}&$select={select}";
+            var calendarViewBase = string.Format(CalendarViewBaseUrl, Uri.EscapeDataString(_options.MailboxUpn));
+            var url = $"{calendarViewBase}?startDateTime={fromUtc:O}&endDateTime={toUtc:O}&$select={select}";
 
             var request = CreateRequest(HttpMethod.Get, url, token);
             var response = await client.SendAsync(request, ct);
@@ -189,11 +191,5 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                 truncatedBody,
                 $"Graph {operation} failed with status {(int)response.StatusCode} {response.StatusCode}.");
         }
-    }
-
-    internal class OutlookEventIdResponse
-    {
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
     }
 }
