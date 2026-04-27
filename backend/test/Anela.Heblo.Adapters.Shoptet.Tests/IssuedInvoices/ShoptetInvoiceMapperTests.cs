@@ -221,6 +221,7 @@ public class ShoptetInvoiceMapperTests
         result.Items[0].ItemPrice.WithVat.Should().Be(94.38m);      // 121 * 0.78
         result.Items[0].ItemPrice.TotalWithoutVat.Should().Be(156m); // 78 * 2
         result.Items[0].ItemPrice.TotalWithVat.Should().Be(188.76m); // 94.38 * 2
+        result.Items[0].ItemPrice.Vat.Should().Be(16.38m);  // 21 * 0.78
     }
 
     [Fact]
@@ -257,6 +258,7 @@ public class ShoptetInvoiceMapperTests
         result.Items[0].ItemPrice.WithVat.Should().Be(0m);        // 217.80 * 0.0
         result.Items[0].ItemPrice.TotalWithoutVat.Should().Be(0m);
         result.Items[0].ItemPrice.TotalWithVat.Should().Be(0m);
+        result.Items[0].ItemPrice.Vat.Should().Be(0m);  // 37.80 * 0.0
     }
 
     [Fact]

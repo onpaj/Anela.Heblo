@@ -187,9 +187,9 @@ public class ShoptetInvoiceMapper
         // priceRatio=0.78 → 22% discount; priceRatio=0.0 → 100% free; priceRatio=1.0 (or null) → no discount.
         // Use >= 0 to include the priceRatio=0.0 free-item case (real-world: invoice 126000039).
         var ratio = src.PriceRatio is { } r && r >= 0m && r < 1m ? r : 1m;
-        unitWithoutVat *= ratio;
-        unitWithVat *= ratio;
-        unitVat *= ratio;
+        var discountedWithoutVat = unitWithoutVat * ratio;
+        var discountedWithVat    = unitWithVat    * ratio;
+        var discountedVat        = unitVat        * ratio;
 
         return new IssuedInvoiceDetailItem
         {
@@ -199,11 +199,11 @@ public class ShoptetInvoiceMapper
             AmountUnit = src.AmountUnit,
             ItemPrice = new InvoicePrice
             {
-                WithoutVat = unitWithoutVat,
-                Vat = unitVat,
-                WithVat = unitWithVat,
-                TotalWithoutVat = Math.Round(amount * unitWithoutVat, 2),
-                TotalWithVat = Math.Round(amount * unitWithVat, 2),
+                WithoutVat = discountedWithoutVat,
+                Vat = discountedVat,
+                WithVat = discountedWithVat,
+                TotalWithoutVat = Math.Round(amount * discountedWithoutVat, 2),
+                TotalWithVat = Math.Round(amount * discountedWithVat, 2),
                 VatRate = MapVatRate(src.UnitPrice?.VatRate),
                 CurrencyCode = currencyCode,
             },
