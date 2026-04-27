@@ -10,6 +10,7 @@ namespace Anela.Heblo.Adapters.Shoptet.Tests.Integration;
 
 [Collection("ShoptetIntegration")]
 [Trait("Category", "Manual")]
+[Trait("Category", "Integration")]
 public class CaptureInvoice126000039Fixture
 {
     private readonly ShoptetIntegrationTestFixture _fixture;
