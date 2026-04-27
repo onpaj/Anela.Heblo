@@ -17,6 +17,12 @@ public class ShoptetInvoiceItemDto
     [JsonPropertyName("amountUnit")]
     public string? AmountUnit { get; set; }
 
+    [JsonPropertyName("itemType")]
+    public string? ItemType { get; set; }
+
+    [JsonPropertyName("priceRatio")]
+    public decimal? PriceRatio { get; set; }
+
     /// <summary>Total price for the line item (amount × unitPrice).</summary>
     [JsonPropertyName("itemPrice")]
     public ShoptetInvoiceUnitPriceDto? ItemPrice { get; set; }
