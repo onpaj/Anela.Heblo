@@ -12,8 +12,6 @@ public class ShoptetInvoiceMapperTests
     private static ShoptetInvoiceMapper BuildSut() =>
         new(new BillingMethodMapper(), new ShippingMethodMapper(Options.Create(new ShoptetApiSettings())));
 
-    private static ShoptetInvoiceMapper BuildMapper() => BuildSut();
-
     private static ShoptetInvoiceDto BuildMinimalDto() => new()
     {
         Code = "FAK-2025-001",
@@ -301,7 +299,7 @@ public class ShoptetInvoiceMapperTests
             },
             Price = new ShoptetInvoicePriceDto { CurrencyCode = "CZK", WithVat = "544.5", WithoutVat = "450", Vat = "94.5" }
         };
-        var mapper = BuildMapper();
+        var mapper = BuildSut();
 
         var result = mapper.Map(src);
 
@@ -334,7 +332,7 @@ public class ShoptetInvoiceMapperTests
             },
             Price = new ShoptetInvoicePriceDto { CurrencyCode = "CZK", WithVat = "121", WithoutVat = "100", Vat = "21" }
         };
-        var mapper = BuildMapper();
+        var mapper = BuildSut();
 
         var result = mapper.Map(src);
 

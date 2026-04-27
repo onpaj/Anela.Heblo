@@ -51,15 +51,16 @@ public class ShoptetInvoiceMapper
                     var newTotalWithoutVat = Math.Round(p.ItemPrice.TotalWithoutVat + weight * aggregateWithoutVat, 2);
                     var newTotalWithVat = Math.Round(p.ItemPrice.TotalWithVat + weight * aggregateWithVat, 2);
 
-                    p.ItemPrice.TotalWithoutVat = newTotalWithoutVat;
-                    p.ItemPrice.TotalWithVat = newTotalWithVat;
-                    p.ItemPrice.Vat = newTotalWithVat - newTotalWithoutVat;
-
-                    if (p.Amount != 0m)
+                    p.ItemPrice = new InvoicePrice
                     {
-                        p.ItemPrice.WithoutVat = Math.Round(newTotalWithoutVat / p.Amount, 4);
-                        p.ItemPrice.WithVat = Math.Round(newTotalWithVat / p.Amount, 4);
-                    }
+                        TotalWithoutVat = newTotalWithoutVat,
+                        TotalWithVat    = newTotalWithVat,
+                        Vat             = newTotalWithVat - newTotalWithoutVat,
+                        WithoutVat      = p.Amount != 0m ? Math.Round(newTotalWithoutVat / p.Amount, 4) : p.ItemPrice.WithoutVat,
+                        WithVat         = p.Amount != 0m ? Math.Round(newTotalWithVat    / p.Amount, 4) : p.ItemPrice.WithVat,
+                        VatRate         = p.ItemPrice.VatRate,
+                        CurrencyCode    = p.ItemPrice.CurrencyCode,
+                    };
                 }
             }
         }
