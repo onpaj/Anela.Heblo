@@ -1,12 +1,13 @@
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 using Rem.FlexiBeeSDK.Client.Clients.Products.StockMovement;
 using Rem.FlexiBeeSDK.Model.Products.StockMovement;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture;
 
-public class FlexiManufactureHistoryClient : IManufactureHistoryClient
+public class FlexiManufactureHistoryClient : IManufactureHistoryClient, IManufactureHistoryCacheInvalidator
 {
     private readonly IStockItemsMovementClient _stockItemsMovementClient;
     private readonly IMemoryCache _cache;
@@ -14,6 +15,8 @@ public class FlexiManufactureHistoryClient : IManufactureHistoryClient
 
     private const int ManufactureDocumentTypeId = 56;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+
+    private CancellationTokenSource _invalidationCts = new();
 
     public FlexiManufactureHistoryClient(
         IStockItemsMovementClient stockItemsMovementClient,
@@ -25,6 +28,13 @@ public class FlexiManufactureHistoryClient : IManufactureHistoryClient
         _logger = logger;
     }
 
+    public void Invalidate()
+    {
+        var oldCts = Interlocked.Exchange(ref _invalidationCts, new CancellationTokenSource());
+        oldCts.Cancel();
+        oldCts.Dispose();
+        _logger.LogInformation("Manufacture history cache invalidated");
+    }
 
     public async Task<List<ManufactureHistoryRecord>> GetHistoryAsync(DateTime dateFrom, DateTime dateTo, string? productCode = null,
         CancellationToken cancellationToken = default)
@@ -86,10 +96,11 @@ public class FlexiManufactureHistoryClient : IManufactureHistoryClient
             .ThenBy(s => s.ProductCode)
             .ToList();
 
-        _cache.Set(cacheKey, statistics, new MemoryCacheEntryOptions
-        {
-            SlidingExpiration = CacheDuration
-        });
+        var cts = Volatile.Read(ref _invalidationCts);
+        var options = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(CacheDuration)
+            .AddExpirationToken(new CancellationChangeToken(cts.Token));
+        _cache.Set(cacheKey, statistics, options);
 
         return statistics;
     }

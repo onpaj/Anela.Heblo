@@ -104,4 +104,40 @@ public class FlexiManufactureHistoryClientTests
             Times.Once);
         result1.Should().BeEquivalentTo(result2);
     }
+
+    [Fact]
+    public async Task GetHistoryAsync_AfterInvalidate_HitsFlexiBeeAgain()
+    {
+        // Arrange
+        var dateFrom = new DateTime(2024, 1, 1);
+        var dateTo = new DateTime(2024, 3, 31);
+
+        _mockMovementClient
+            .Setup(x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<StockMovementDirection>(), It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<StockItemMovementFlexiDto>());
+
+        // Act — first call populates cache, then invalidate, then second call should hit FlexiBee
+        await _client.GetHistoryAsync(dateFrom, dateTo);
+        _client.Invalidate();
+        await _client.GetHistoryAsync(dateFrom, dateTo);
+
+        // Assert — FlexiBee called twice: once before invalidate, once after
+        _mockMovementClient.Verify(
+            x => x.GetAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<StockMovementDirection>(), It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<string?>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+    }
+
+    [Fact]
+    public void Invalidate_WhenCalledMultipleTimes_DoesNotThrow()
+    {
+        // Act & Assert — no exception on repeated invalidations
+        var act = () =>
+        {
+            _client.Invalidate();
+            _client.Invalidate();
+            _client.Invalidate();
+        };
+
+        act.Should().NotThrow();
+    }
 }

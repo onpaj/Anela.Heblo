@@ -24,6 +24,7 @@ internal class FlexiManufactureClient : IManufactureClient
     private readonly IFlexiManufactureDocumentService _documentService;
     private readonly IStockItemsMovementClient _stockMovementClient;
     private readonly TimeProvider _timeProvider;
+    private readonly IManufactureHistoryCacheInvalidator _historyCacheInvalidator;
 
     public FlexiManufactureClient(
         IBoMClient bomClient,
@@ -36,7 +37,8 @@ internal class FlexiManufactureClient : IManufactureClient
         IFlexiLotLoader lotLoader,
         IFlexiManufactureDocumentService documentService,
         IStockItemsMovementClient stockMovementClient,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IManufactureHistoryCacheInvalidator historyCacheInvalidator)
     {
         _bomClient = bomClient;
         _productSetsClient = productSetsClient;
@@ -49,20 +51,25 @@ internal class FlexiManufactureClient : IManufactureClient
         _documentService = documentService ?? throw new ArgumentNullException(nameof(documentService));
         _stockMovementClient = stockMovementClient ?? throw new ArgumentNullException(nameof(stockMovementClient));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        _historyCacheInvalidator = historyCacheInvalidator ?? throw new ArgumentNullException(nameof(historyCacheInvalidator));
     }
 
     public async Task<SubmitManufactureClientResponse> SubmitManufactureAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken = default)
     {
+        SubmitManufactureClientResponse result;
         if (request.ManufactureType == ErpManufactureType.Product)
         {
             // For products, create separate consumption and production movements for each product
-            return await SubmitManufacturePerProductAsync(request, cancellationToken);
+            result = await SubmitManufacturePerProductAsync(request, cancellationToken);
         }
         else
         {
             // For semi-products, use aggregated approach (existing behavior)
-            return await SubmitManufactureAggregatedAsync(request, cancellationToken);
+            result = await SubmitManufactureAggregatedAsync(request, cancellationToken);
         }
+
+        _historyCacheInvalidator.Invalidate();
+        return result;
     }
 
     private async Task<SubmitManufactureClientResponse> SubmitManufactureAggregatedAsync(SubmitManufactureClientRequest request, CancellationToken cancellationToken)
