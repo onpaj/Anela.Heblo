@@ -5,6 +5,13 @@ namespace Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices.Mapping;
 
 public class ShoptetInvoiceMapper
 {
+    private static readonly HashSet<string> AggregateDiscountTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "discount-coupon",
+        "volume-discount",
+        "gift",
+    };
+
     private readonly BillingMethodMapper _billingMapper;
     private readonly ShippingMethodMapper _shippingMapper;
 
@@ -17,24 +24,50 @@ public class ShoptetInvoiceMapper
     public IssuedInvoiceDetail Map(ShoptetInvoiceDto src)
     {
         var billingAddress = MapAddress(src.BillingAddress);
-        var deliveryAddress = src.DeliveryAddress != null
-            ? MapAddress(src.DeliveryAddress)
-            : billingAddress;
+        var deliveryAddress = src.DeliveryAddress != null ? MapAddress(src.DeliveryAddress) : billingAddress;
 
         var currencyCode = src.Price?.CurrencyCode ?? "CZK";
-        var items = src.Items.Select(item => MapItem(item, currencyCode)).ToList();
 
-        // Mirror Playwright's IssuedInvoiceMapping price calculation:
-        //   WithVat    = sum of TotalWithVat for taxable items only (VatRate != "none")
-        //              — mirrors Playwright's PriceHighSum which excludes zero-VAT items (e.g. billing fees)
-        //              — the REST price.withVat total includes zero-rate items; PriceHighSum does not
-        //   WithoutVat = sum of per-unit prices for ALL items (ItemPrice.WithoutVat = unitWithoutVat)
-        //              — Playwright sums ItemPrice.WithoutVat (per-unit) not TotalWithoutVat (line total)
-        //   Vat        = WithVat - WithoutVat (derived, consistent with Playwright)
+        var products = src.Items
+            .Where(i => !IsAggregateDiscount(i.ItemType))
+            .Select(item => MapItem(item, currencyCode))
+            .ToList();
+
+        var aggregateWithoutVat = src.Items
+            .Where(i => IsAggregateDiscount(i.ItemType))
+            .Sum(i => ParseDecimal(i.ItemPrice?.WithoutVat ?? i.UnitPrice?.WithoutVat));
+        var aggregateWithVat = src.Items
+            .Where(i => IsAggregateDiscount(i.ItemType))
+            .Sum(i => ParseDecimal(i.ItemPrice?.WithVat ?? i.UnitPrice?.WithVat));
+
+        if ((aggregateWithoutVat != 0m || aggregateWithVat != 0m) && products.Count > 0)
+        {
+            var baseSum = products.Sum(p => p.ItemPrice.TotalWithoutVat);
+            if (baseSum != 0m)
+            {
+                foreach (var p in products)
+                {
+                    var weight = p.ItemPrice.TotalWithoutVat / baseSum;
+                    var newTotalWithoutVat = Math.Round(p.ItemPrice.TotalWithoutVat + weight * aggregateWithoutVat, 2);
+                    var newTotalWithVat = Math.Round(p.ItemPrice.TotalWithVat + weight * aggregateWithVat, 2);
+
+                    p.ItemPrice.TotalWithoutVat = newTotalWithoutVat;
+                    p.ItemPrice.TotalWithVat = newTotalWithVat;
+                    p.ItemPrice.Vat = newTotalWithVat - newTotalWithoutVat;
+
+                    if (p.Amount != 0m)
+                    {
+                        p.ItemPrice.WithoutVat = Math.Round(newTotalWithoutVat / p.Amount, 4);
+                        p.ItemPrice.WithVat = Math.Round(newTotalWithVat / p.Amount, 4);
+                    }
+                }
+            }
+        }
+
         var price = MapInvoicePrice(src.Price);
-        price.WithVat = items.Where(i => i.ItemPrice.VatRate != "none").Sum(i => i.ItemPrice.TotalWithVat);
-        price.WithoutVat = items.Sum(i => i.ItemPrice.WithoutVat);
-        price.Vat = items.Sum(i => i.ItemPrice.Vat);
+        price.WithVat = products.Where(i => i.ItemPrice.VatRate != "none").Sum(i => i.ItemPrice.TotalWithVat);
+        price.WithoutVat = products.Sum(i => i.ItemPrice.TotalWithoutVat);
+        price.Vat = price.WithVat - price.WithoutVat;
 
         return new IssuedInvoiceDetail
         {
@@ -45,15 +78,18 @@ public class ShoptetInvoiceMapper
             DueDate = ParseDate(src.DueDate),
             TaxDate = ParseDate(src.TaxDate),
             BillingMethod = _billingMapper.Map(src.BillingMethod?.Name),
-            ShippingMethod = ResolveShippingFromItemNames(items.Select(i => i.Name)),
+            ShippingMethod = ResolveShippingFromItemNames(products.Select(i => i.Name)),
             VatPayer = !string.IsNullOrEmpty(src.BillingAddress?.VatId),
             BillingAddress = billingAddress,
             DeliveryAddress = deliveryAddress,
             Customer = MapCustomer(src.BillingAddress),
             Price = price,
-            Items = items,
+            Items = products,
         };
     }
+
+    private static bool IsAggregateDiscount(string? itemType) =>
+        itemType is not null && AggregateDiscountTypes.Contains(itemType);
 
     /// <summary>
     /// Converts a Shoptet REST API numeric VAT rate string (e.g. "21.00") to a Pohoda named rate
@@ -171,6 +207,13 @@ public class ShoptetInvoiceMapper
         };
     }
 
+    private static decimal ParseDecimal(string? value)
+    {
+        _ = decimal.TryParse(value, System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out var d);
+        return d;
+    }
+
     private static IssuedInvoiceDetailItem MapItem(ShoptetInvoiceItemDto src, string currencyCode)
     {
         _ = decimal.TryParse(src.Amount, System.Globalization.NumberStyles.Any,
@@ -188,8 +231,8 @@ public class ShoptetInvoiceMapper
         // Use >= 0 to include the priceRatio=0.0 free-item case (real-world: invoice 126000039).
         var ratio = src.PriceRatio is { } r && r >= 0m && r < 1m ? r : 1m;
         var discountedWithoutVat = unitWithoutVat * ratio;
-        var discountedWithVat    = unitWithVat    * ratio;
-        var discountedVat        = unitVat        * ratio;
+        var discountedWithVat = unitWithVat * ratio;
+        var discountedVat = unitVat * ratio;
 
         return new IssuedInvoiceDetailItem
         {

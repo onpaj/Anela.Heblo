@@ -12,6 +12,8 @@ public class ShoptetInvoiceMapperTests
     private static ShoptetInvoiceMapper BuildSut() =>
         new(new BillingMethodMapper(), new ShippingMethodMapper(Options.Create(new ShoptetApiSettings())));
 
+    private static ShoptetInvoiceMapper BuildMapper() => BuildSut();
+
     private static ShoptetInvoiceDto BuildMinimalDto() => new()
     {
         Code = "FAK-2025-001",
@@ -97,13 +99,12 @@ public class ShoptetInvoiceMapperTests
     public void Map_InvoicePrice_ParsedFromStringFields()
     {
         // BuildMinimalDto has 1 item: amount=2, unitPrice.withoutVat=100.
-        // Invoice WithoutVat = sum of per-unit prices (mirroring Playwright adapter) = 100, not the line total 200.
+        // Invoice WithoutVat = sum of TotalWithoutVat (line totals) = 200.
         var detail = BuildSut().Map(BuildMinimalDto());
         detail.Price.WithVat.Should().Be(242m);
-        detail.Price.WithoutVat.Should().Be(100m, "sums per-unit prices per item to mirror Playwright adapter");
-        // Vat = items.Sum(ItemPrice.Vat) = per-unit vat, mirroring Playwright's items.Sum(s.ItemPrice.Vat).
-        // For amount=2, unitVat=21: Vat = 21, not 142 (which would be WithVat - WithoutVat = 242 - 100).
-        detail.Price.Vat.Should().Be(21m);
+        detail.Price.WithoutVat.Should().Be(200m, "sums line totals (TotalWithoutVat) for all items");
+        // Vat = WithVat - WithoutVat = 242 - 200 = 42.
+        detail.Price.Vat.Should().Be(42m);
         detail.Price.CurrencyCode.Should().Be("CZK");
         detail.Price.ExchangeRate.Should().Be(1m);
     }
@@ -139,12 +140,10 @@ public class ShoptetInvoiceMapperTests
     }
 
     [Fact]
-    public void Map_InvoicePrice_WithoutVatSumsUnitPrices_WhenQuantityGtOne()
+    public void Map_InvoicePrice_WithoutVatSumsLineTotals_WhenQuantityGtOne()
     {
-        // Parity with Playwright adapter: invoice WithoutVat sums per-unit prices (ItemPrice.WithoutVat),
-        // not line totals. Pohoda XML CalculateItemPrice sets ItemPrice.WithoutVat = unitPrice,
-        // and IssuedInvoiceMapping sums those per-unit prices for the invoice total.
-        // For amount=3 × unitWithoutVat=100 the invoice WithoutVat is 100 (unit price), not 300 (line total).
+        // Invoice WithoutVat sums line totals (TotalWithoutVat), not per-unit prices.
+        // For amount=3 × unitWithoutVat=100 the invoice WithoutVat is 300 (line total).
         var dto = BuildMinimalDto();
         dto.Items =
         [
@@ -172,10 +171,9 @@ public class ShoptetInvoiceMapperTests
         var detail = BuildSut().Map(dto);
 
         detail.Price.WithVat.Should().Be(363m);
-        detail.Price.WithoutVat.Should().Be(100m, "must sum per-unit prices to mirror Playwright adapter (not line totals)");
-        // Vat = items.Sum(ItemPrice.Vat) = per-unit vat sum, same as Playwright.
-        // For amount=3, unitVat=21: Vat = 21, not 263 (which would be WithVat - WithoutVat = 363 - 100).
-        detail.Price.Vat.Should().Be(21m);
+        detail.Price.WithoutVat.Should().Be(300m, "must sum line totals (TotalWithoutVat) for all items");
+        // Vat = WithVat - WithoutVat = 363 - 300 = 63.
+        detail.Price.Vat.Should().Be(63m);
     }
 
     [Fact]
@@ -283,5 +281,65 @@ public class ShoptetInvoiceMapperTests
 
         result.Items[0].ItemPrice.WithoutVat.Should().Be(100m);
         result.Items[1].ItemPrice.WithoutVat.Should().Be(50m);
+    }
+
+    [Fact]
+    public void Map_FoldsDiscountCouponInto_ProductLines_ProportionallyToBase()
+    {
+        var src = new ShoptetInvoiceDto
+        {
+            Code = "INV1",
+            OrderCode = "ORD1",
+            Items = new List<ShoptetInvoiceItemDto>
+            {
+                new() { Code = "P1", Name = "P1", Amount = "1", ItemType = "product", PriceRatio = 1.0m,
+                        UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "300", WithVat = "363", Vat = "63", VatRate = "21.00" } },
+                new() { Code = "P2", Name = "P2", Amount = "1", ItemType = "product", PriceRatio = 1.0m,
+                        UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "200", WithVat = "242", Vat = "42", VatRate = "21.00" } },
+                new() { Code = "COUPON", Name = "10% off", Amount = "1", ItemType = "discount-coupon", PriceRatio = 1.0m,
+                        UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "-50", WithVat = "-60.5", Vat = "-10.5", VatRate = "21.00" } },
+            },
+            Price = new ShoptetInvoicePriceDto { CurrencyCode = "CZK", WithVat = "544.5", WithoutVat = "450", Vat = "94.5" }
+        };
+        var mapper = BuildMapper();
+
+        var result = mapper.Map(src);
+
+        result.Items.Should().HaveCount(2); // coupon row dropped
+        // P1 weight = 300/500 = 0.6 → discount share = 0.6 * (-50) = -30 → TotalWithoutVat = 300 - 30 = 270
+        // P2 weight = 200/500 = 0.4 → discount share = 0.4 * (-50) = -20 → TotalWithoutVat = 200 - 20 = 180
+        result.Items.Single(i => i.Code == "P1").ItemPrice.TotalWithoutVat.Should().Be(270m);
+        result.Items.Single(i => i.Code == "P2").ItemPrice.TotalWithoutVat.Should().Be(180m);
+        result.Items.Single(i => i.Code == "P1").ItemPrice.WithoutVat.Should().Be(270m); // per unit (amount=1)
+        result.Items.Single(i => i.Code == "P2").ItemPrice.WithoutVat.Should().Be(180m);
+        result.Price.WithoutVat.Should().Be(450m);
+        result.Price.WithVat.Should().Be(544.5m);
+    }
+
+    [Fact]
+    public void Map_DropsZeroValueAggregateRows_GiftAndVolumeDiscount()
+    {
+        var src = new ShoptetInvoiceDto
+        {
+            Code = "INV1",
+            OrderCode = "ORD1",
+            Items = new List<ShoptetInvoiceItemDto>
+            {
+                new() { Code = "P1", Name = "P1", Amount = "1", ItemType = "product", PriceRatio = 1.0m,
+                        UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "100", WithVat = "121", Vat = "21", VatRate = "21.00" } },
+                new() { Code = "GIFT", Name = "Free sample", Amount = "1", ItemType = "gift", PriceRatio = 1.0m,
+                        UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "0", WithVat = "0", Vat = "0", VatRate = "21.00" } },
+                new() { Code = "VD", Name = "Volume", Amount = "1", ItemType = "volume-discount", PriceRatio = 1.0m,
+                        UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "0", WithVat = "0", Vat = "0", VatRate = "21.00" } },
+            },
+            Price = new ShoptetInvoicePriceDto { CurrencyCode = "CZK", WithVat = "121", WithoutVat = "100", Vat = "21" }
+        };
+        var mapper = BuildMapper();
+
+        var result = mapper.Map(src);
+
+        result.Items.Should().HaveCount(1);
+        result.Items[0].Code.Should().Be("P1");
+        result.Items[0].ItemPrice.TotalWithoutVat.Should().Be(100m);
     }
 }
