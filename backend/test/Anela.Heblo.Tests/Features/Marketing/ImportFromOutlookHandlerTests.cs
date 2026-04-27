@@ -48,7 +48,7 @@ public class ImportFromOutlookHandlerTests
             });
 
         _repositoryMock
-            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<MarketingAction>());
 
         _handler = new ImportFromOutlookHandler(
@@ -127,7 +127,7 @@ public class ImportFromOutlookHandlerTests
             .ReturnsAsync(new List<OutlookEventDto> { BuildEvent(id: "evt-existing") });
 
         _repositoryMock
-            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<MarketingAction> { existingAction });
 
         // Act
@@ -240,7 +240,7 @@ public class ImportFromOutlookHandlerTests
         // Assert
         result.Success.Should().BeTrue();
         result.Created.Should().Be(1);
-        result.Items.Should().ContainSingle(i => i.Status == "Created" && i.CreatedActionId == null);
+        result.Items.Should().ContainSingle(i => i.Status == ImportStatus.WouldCreate && i.CreatedActionId == null);
 
         _repositoryMock.Verify(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()), Times.Never);
         _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
@@ -272,7 +272,7 @@ public class ImportFromOutlookHandlerTests
         };
 
         _repositoryMock
-            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<MarketingAction> { importedAction });
 
         var secondResult = await _handler.Handle(BuildRequest(), CancellationToken.None);

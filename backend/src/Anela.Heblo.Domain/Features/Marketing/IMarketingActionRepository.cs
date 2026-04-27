@@ -22,6 +22,6 @@ namespace Anela.Heblo.Domain.Features.Marketing
 
         Task<List<MarketingAction>> GetFailedOutlookSyncAsync(int batchSize, CancellationToken cancellationToken = default);
 
-        Task<List<MarketingAction>> GetByOutlookEventIdsAsync(IEnumerable<string> outlookEventIds, CancellationToken cancellationToken = default);
+        Task<List<MarketingAction>> GetByOutlookEventIdsAsync(IReadOnlyCollection<string> outlookEventIds, CancellationToken cancellationToken = default);
     }
 }

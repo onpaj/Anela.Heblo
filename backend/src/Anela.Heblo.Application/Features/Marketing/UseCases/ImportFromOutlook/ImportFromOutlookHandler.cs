@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
@@ -15,6 +16,18 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
 {
     public class ImportFromOutlookHandler : IRequestHandler<ImportFromOutlookRequest, ImportFromOutlookResponse>
     {
+        private static readonly Regex ScriptStyleRegex = new(
+            @"<(script|style)[^>]*>.*?</(script|style)>",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+
+        private static readonly Regex HtmlTagRegex = new(
+            @"<[^>]+>",
+            RegexOptions.Compiled);
+
+        private static readonly Regex WhitespaceRegex = new(
+            @"\s+",
+            RegexOptions.Compiled);
+
         private readonly IMarketingActionRepository _repository;
         private readonly ICurrentUserService _currentUserService;
         private readonly IOutlookCalendarSync _outlookSync;
@@ -64,7 +77,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
                     {
                         OutlookEventId = evt.Id,
                         Subject = evt.Subject,
-                        Status = "Skipped",
+                        Status = ImportStatus.Skipped,
                     });
                     continue;
                 }
@@ -83,7 +96,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
                         {
                             OutlookEventId = evt.Id,
                             Subject = evt.Subject,
-                            Status = "Created",
+                            Status = ImportStatus.Created,
                             CreatedActionId = created.Id,
                         });
                     }
@@ -94,7 +107,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
                         {
                             OutlookEventId = evt.Id,
                             Subject = evt.Subject,
-                            Status = "Created",
+                            Status = ImportStatus.WouldCreate,
                         });
                     }
                 }
@@ -110,7 +123,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
                     {
                         OutlookEventId = evt.Id,
                         Subject = evt.Subject,
-                        Status = "Failed",
+                        Status = ImportStatus.Failed,
                         Error = ex.Message,
                     });
                 }
@@ -162,18 +175,14 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
             if (string.IsNullOrWhiteSpace(html)) return null;
 
             // Remove script/style blocks
-            var result = System.Text.RegularExpressions.Regex.Replace(
-                html,
-                @"<(script|style)[^>]*>.*?</(script|style)>",
-                string.Empty,
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
+            var result = ScriptStyleRegex.Replace(html, string.Empty);
 
             // Remove remaining tags
-            result = System.Text.RegularExpressions.Regex.Replace(result, @"<[^>]+>", string.Empty);
+            result = HtmlTagRegex.Replace(result, string.Empty);
 
             // Decode HTML entities and collapse whitespace
             result = System.Net.WebUtility.HtmlDecode(result);
-            result = System.Text.RegularExpressions.Regex.Replace(result, @"\s+", " ").Trim();
+            result = WhitespaceRegex.Replace(result, " ").Trim();
 
             return string.IsNullOrWhiteSpace(result) ? null : result;
         }

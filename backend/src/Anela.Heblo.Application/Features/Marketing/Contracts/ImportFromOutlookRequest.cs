@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Shared;
 using MediatR;
 
@@ -8,10 +7,8 @@ namespace Anela.Heblo.Application.Features.Marketing.Contracts
 {
     public class ImportFromOutlookRequest : IRequest<ImportFromOutlookResponse>
     {
-        [Required]
         public DateTime FromUtc { get; set; }
 
-        [Required]
         public DateTime ToUtc { get; set; }
 
         public bool DryRun { get; set; }
@@ -34,8 +31,21 @@ namespace Anela.Heblo.Application.Features.Marketing.Contracts
     {
         public string OutlookEventId { get; set; } = string.Empty;
         public string Subject { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty; // "Created" | "Skipped" | "Failed"
+
+        /// <summary>
+        /// One of <see cref="ImportStatus.Created"/>, <see cref="ImportStatus.WouldCreate"/>,
+        /// <see cref="ImportStatus.Skipped"/>, or <see cref="ImportStatus.Failed"/>.
+        /// </summary>
+        public string Status { get; set; } = string.Empty;
         public string? Error { get; set; }
         public int? CreatedActionId { get; set; }
+    }
+
+    public static class ImportStatus
+    {
+        public const string Created = "Created";
+        public const string WouldCreate = "WouldCreate";
+        public const string Skipped = "Skipped";
+        public const string Failed = "Failed";
     }
 }

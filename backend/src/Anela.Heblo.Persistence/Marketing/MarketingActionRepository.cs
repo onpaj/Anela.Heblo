@@ -139,16 +139,16 @@ namespace Anela.Heblo.Persistence.Marketing
         }
 
         public async Task<List<MarketingAction>> GetByOutlookEventIdsAsync(
-            IEnumerable<string> outlookEventIds,
+            IReadOnlyCollection<string> outlookEventIds,
             CancellationToken cancellationToken = default)
         {
-            var ids = outlookEventIds.ToList();
-            if (ids.Count == 0)
+            if (outlookEventIds.Count == 0)
                 return new List<MarketingAction>();
 
             return await Context.Set<MarketingAction>()
+                // Include soft-deleted records — a deleted import must not be re-created.
                 .IgnoreQueryFilters()
-                .Where(x => x.OutlookEventId != null && ids.Contains(x.OutlookEventId))
+                .Where(x => x.OutlookEventId != null && outlookEventIds.Contains(x.OutlookEventId))
                 .ToListAsync(cancellationToken);
         }
     }

@@ -1,7 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
-using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -108,7 +107,6 @@ namespace Anela.Heblo.API.Controllers
         /// Import marketing actions from the configured Outlook calendar (admin only)
         /// </summary>
         [HttpPost("import-from-outlook")]
-        [Authorize(Policy = AuthorizationConstants.Policies.KnowledgeBaseUpload)]
         [ProducesResponseType(typeof(ImportFromOutlookResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<ImportFromOutlookResponse>> ImportFromOutlook(
