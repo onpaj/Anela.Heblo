@@ -168,6 +168,12 @@ interface ImportFromOutlookPayload {
   dryRun?: boolean;
 }
 
+export interface ImportFromOutlookResult {
+  created: number;
+  skipped: number;
+  failed: number;
+}
+
 export const useImportFromOutlook = () => {
   const queryClient = useQueryClient();
 

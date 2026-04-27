@@ -100,8 +100,10 @@ const MarketingActionGrid: React.FC<MarketingActionGridProps> = ({
                     {action.title}
                     {action.outlookSyncStatus === 'Failed' && (
                       <span
+                        role="img"
+                        aria-label="Synchronizace s Outlookem selhala – bude opakována"
                         title="Synchronizace s Outlookem selhala – bude opakována"
-                        className="inline-block w-2 h-2 rounded-full bg-red-500 flex-shrink-0"
+                        className="block w-2 h-2 rounded-full bg-red-500 flex-shrink-0"
                       />
                     )}
                   </div>
