@@ -199,7 +199,7 @@ public class ShoptetInvoiceMapperTests
                     Name = "Product 1",
                     Amount = "2",
                     ItemType = "product",
-                    PriceRatio = 0.78m,
+                    PriceRatio = "0.78",
                     UnitPrice = new ShoptetInvoiceUnitPriceDto
                     {
                         WithoutVat = "100", WithVat = "121", Vat = "21", VatRate = "21.00"
@@ -236,7 +236,7 @@ public class ShoptetInvoiceMapperTests
                     Name = "Free product",
                     Amount = "1",
                     ItemType = "product",
-                    PriceRatio = 0.0m,
+                    PriceRatio = "0.0",
                     UnitPrice = new ShoptetInvoiceUnitPriceDto
                     {
                         WithoutVat = "180", WithVat = "217.80", Vat = "37.80", VatRate = "21.00"
@@ -268,7 +268,7 @@ public class ShoptetInvoiceMapperTests
             {
                 new() { Code = "P1", Name = "P1", Amount = "1", ItemType = "product", PriceRatio = null,
                         UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "100", WithVat = "121", Vat = "21", VatRate = "21.00" } },
-                new() { Code = "P2", Name = "P2", Amount = "1", ItemType = "product", PriceRatio = 1.0m,
+                new() { Code = "P2", Name = "P2", Amount = "1", ItemType = "product", PriceRatio = "1.0",
                         UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "50",  WithVat = "60.5", Vat = "10.5", VatRate = "21.00" } },
             },
             Price = new ShoptetInvoicePriceDto { CurrencyCode = "CZK", WithVat = "181.5", WithoutVat = "150", Vat = "31.5" }
@@ -290,11 +290,11 @@ public class ShoptetInvoiceMapperTests
             OrderCode = "ORD1",
             Items = new List<ShoptetInvoiceItemDto>
             {
-                new() { Code = "P1", Name = "P1", Amount = "1", ItemType = "product", PriceRatio = 1.0m,
+                new() { Code = "P1", Name = "P1", Amount = "1", ItemType = "product", PriceRatio = "1.0",
                         UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "300", WithVat = "363", Vat = "63", VatRate = "21.00" } },
-                new() { Code = "P2", Name = "P2", Amount = "1", ItemType = "product", PriceRatio = 1.0m,
+                new() { Code = "P2", Name = "P2", Amount = "1", ItemType = "product", PriceRatio = "1.0",
                         UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "200", WithVat = "242", Vat = "42", VatRate = "21.00" } },
-                new() { Code = "COUPON", Name = "10% off", Amount = "1", ItemType = "discount-coupon", PriceRatio = 1.0m,
+                new() { Code = "COUPON", Name = "10% off", Amount = "1", ItemType = "discount-coupon", PriceRatio = "1.0",
                         UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "-50", WithVat = "-60.5", Vat = "-10.5", VatRate = "21.00" } },
             },
             Price = new ShoptetInvoicePriceDto { CurrencyCode = "CZK", WithVat = "544.5", WithoutVat = "450", Vat = "94.5" }
@@ -323,11 +323,11 @@ public class ShoptetInvoiceMapperTests
             OrderCode = "ORD1",
             Items = new List<ShoptetInvoiceItemDto>
             {
-                new() { Code = "P1", Name = "P1", Amount = "1", ItemType = "product", PriceRatio = 1.0m,
+                new() { Code = "P1", Name = "P1", Amount = "1", ItemType = "product", PriceRatio = "1.0",
                         UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "100", WithVat = "121", Vat = "21", VatRate = "21.00" } },
-                new() { Code = "GIFT", Name = "Free sample", Amount = "1", ItemType = "gift", PriceRatio = 1.0m,
+                new() { Code = "GIFT", Name = "Free sample", Amount = "1", ItemType = "gift", PriceRatio = "1.0",
                         UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "0", WithVat = "0", Vat = "0", VatRate = "21.00" } },
-                new() { Code = "VD", Name = "Volume", Amount = "1", ItemType = "volume-discount", PriceRatio = 1.0m,
+                new() { Code = "VD", Name = "Volume", Amount = "1", ItemType = "volume-discount", PriceRatio = "1.0",
                         UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "0", WithVat = "0", Vat = "0", VatRate = "21.00" } },
             },
             Price = new ShoptetInvoicePriceDto { CurrencyCode = "CZK", WithVat = "121", WithoutVat = "100", Vat = "21" }

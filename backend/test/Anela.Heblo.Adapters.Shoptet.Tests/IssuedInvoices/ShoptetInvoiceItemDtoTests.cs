@@ -16,7 +16,7 @@ public class ShoptetInvoiceItemDtoTests
           "name": "Sample",
           "amount": "2.00",
           "itemType": "discount-coupon",
-          "priceRatio": 0.78,
+          "priceRatio": "0.78",
           "unitPrice": { "withVat": "100.00", "withoutVat": "82.64", "vat": "17.36", "vatRate": "21.0" },
           "itemPrice": { "withVat": "200.00", "withoutVat": "165.29", "vat": "34.71", "vatRate": "21.0" }
         }
@@ -25,7 +25,7 @@ public class ShoptetInvoiceItemDtoTests
         var dto = JsonSerializer.Deserialize<ShoptetInvoiceItemDto>(json)!;
 
         dto.ItemType.Should().Be("discount-coupon");
-        dto.PriceRatio.Should().Be(0.78m);
+        dto.PriceRatio.Should().Be("0.78");
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class ShoptetInvoiceItemDtoTests
           "name": "Product",
           "amount": "1.00",
           "itemType": "product",
-          "priceRatio": 0.0000,
+          "priceRatio": "0.0000",
           "unitPrice": { "withVat": "180.00", "withoutVat": "148.76", "vat": "31.24", "vatRate": "21.0" },
           "itemPrice": { "withVat": "0.00", "withoutVat": "0.00", "vat": "0.00", "vatRate": "21.0" }
         }
@@ -46,7 +46,7 @@ public class ShoptetInvoiceItemDtoTests
         var dto = JsonSerializer.Deserialize<ShoptetInvoiceItemDto>(json)!;
 
         dto.ItemType.Should().Be("product");
-        dto.PriceRatio.Should().Be(0.0000m);
+        dto.PriceRatio.Should().Be("0.0000");
     }
 
     [Fact]

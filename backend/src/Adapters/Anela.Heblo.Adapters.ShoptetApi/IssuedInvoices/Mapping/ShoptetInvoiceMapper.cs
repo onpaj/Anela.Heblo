@@ -54,12 +54,12 @@ public class ShoptetInvoiceMapper
                     p.ItemPrice = new InvoicePrice
                     {
                         TotalWithoutVat = newTotalWithoutVat,
-                        TotalWithVat    = newTotalWithVat,
-                        Vat             = newTotalWithVat - newTotalWithoutVat,
-                        WithoutVat      = p.Amount != 0m ? Math.Round(newTotalWithoutVat / p.Amount, 4) : p.ItemPrice.WithoutVat,
-                        WithVat         = p.Amount != 0m ? Math.Round(newTotalWithVat    / p.Amount, 4) : p.ItemPrice.WithVat,
-                        VatRate         = p.ItemPrice.VatRate,
-                        CurrencyCode    = p.ItemPrice.CurrencyCode,
+                        TotalWithVat = newTotalWithVat,
+                        Vat = newTotalWithVat - newTotalWithoutVat,
+                        WithoutVat = p.Amount != 0m ? Math.Round(newTotalWithoutVat / p.Amount, 4) : p.ItemPrice.WithoutVat,
+                        WithVat = p.Amount != 0m ? Math.Round(newTotalWithVat / p.Amount, 4) : p.ItemPrice.WithVat,
+                        VatRate = p.ItemPrice.VatRate,
+                        CurrencyCode = p.ItemPrice.CurrencyCode,
                     };
                 }
             }
@@ -230,7 +230,9 @@ public class ShoptetInvoiceMapper
         // Fold per-line discount: priceRatio is the fraction of unitPrice the customer actually paid.
         // priceRatio=0.78 → 22% discount; priceRatio=0.0 → 100% free; priceRatio=1.0 (or null) → no discount.
         // Use >= 0 to include the priceRatio=0.0 free-item case (real-world: invoice 126000039).
-        var ratio = src.PriceRatio is { } r && r >= 0m && r < 1m ? r : 1m;
+        _ = decimal.TryParse(src.PriceRatio, System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out var parsedRatio);
+        var ratio = src.PriceRatio is not null && parsedRatio >= 0m && parsedRatio < 1m ? parsedRatio : 1m;
         var discountedWithoutVat = unitWithoutVat * ratio;
         var discountedWithVat = unitWithVat * ratio;
         var discountedVat = unitVat * ratio;
