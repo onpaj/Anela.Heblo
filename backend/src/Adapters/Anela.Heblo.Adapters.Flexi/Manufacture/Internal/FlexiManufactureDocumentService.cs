@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Flexi.Stock;
+using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -97,11 +98,16 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
 
             if (consumptionResult != null && !consumptionResult.IsSuccess)
             {
+                var failedItems = warehouseGroup
+                    .Select(i => new FailedConsumptionItem(i.ProductCode, i.ProductName, i.LotNumber, i.Expiration, i.Amount))
+                    .ToList();
+
                 throw new FlexiManufactureException(
                     FlexiManufactureOperationKind.ConsumptionMovement,
                     $"Failed to create consumption stock movement for warehouse {warehouseId}",
                     warehouseId: warehouseId,
-                    rawFlexiError: consumptionResult.GetErrorMessage());
+                    rawFlexiError: consumptionResult.GetErrorMessage(),
+                    failedItems: failedItems);
             }
 
             var docCode = consumptionResult?.Result?.Results?.FirstOrDefault()?.Code;
@@ -242,11 +248,16 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
 
             if (consumptionResult != null && !consumptionResult.IsSuccess)
             {
+                var failedItems = warehouseGroup
+                    .Select(i => new FailedConsumptionItem(i.ProductCode, i.ProductName, i.LotNumber, i.Expiration, i.Amount))
+                    .ToList();
+
                 throw new FlexiManufactureException(
                     FlexiManufactureOperationKind.ConsumptionMovement,
                     $"Failed to create consumption stock movement for warehouse {warehouseId}",
                     warehouseId: warehouseId,
-                    rawFlexiError: consumptionResult.GetErrorMessage());
+                    rawFlexiError: consumptionResult.GetErrorMessage(),
+                    failedItems: failedItems);
             }
 
             capturedDocCode = consumptionResult?.Result?.Results?.FirstOrDefault()?.Code;
@@ -346,11 +357,22 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
 
         if (result != null && !result.IsSuccess)
         {
+            List<FailedConsumptionItem> failedItems =
+            [
+                new(
+                    request.DirectSemiProductOutputCode!,
+                    request.DirectSemiProductOutputName ?? request.DirectSemiProductOutputCode!,
+                    request.LotNumber,
+                    request.ExpirationDate,
+                    (double)request.DirectSemiProductOutputAmount)
+            ];
+
             throw new FlexiManufactureException(
                 FlexiManufactureOperationKind.ConsumptionMovement,
                 "Failed to create discard stock movement for direct semiproduct output",
                 warehouseId: warehouseId,
-                rawFlexiError: result.GetErrorMessage());
+                rawFlexiError: result.GetErrorMessage(),
+                failedItems: failedItems);
         }
 
         return result?.Result?.Results?.FirstOrDefault()?.Code;
