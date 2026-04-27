@@ -183,6 +183,14 @@ public class ShoptetInvoiceMapper
         _ = decimal.TryParse(src.UnitPrice?.Vat, System.Globalization.NumberStyles.Any,
             System.Globalization.CultureInfo.InvariantCulture, out var unitVat);
 
+        // Fold per-line discount: priceRatio is the fraction of unitPrice the customer actually paid.
+        // priceRatio=0.78 → 22% discount; priceRatio=0.0 → 100% free; priceRatio=1.0 (or null) → no discount.
+        // Use >= 0 to include the priceRatio=0.0 free-item case (real-world: invoice 126000039).
+        var ratio = src.PriceRatio is { } r && r >= 0m && r < 1m ? r : 1m;
+        unitWithoutVat *= ratio;
+        unitWithVat *= ratio;
+        unitVat *= ratio;
+
         return new IssuedInvoiceDetailItem
         {
             Code = src.Code ?? string.Empty,
@@ -194,8 +202,8 @@ public class ShoptetInvoiceMapper
                 WithoutVat = unitWithoutVat,
                 Vat = unitVat,
                 WithVat = unitWithVat,
-                TotalWithoutVat = amount * unitWithoutVat,
-                TotalWithVat = amount * unitWithVat,
+                TotalWithoutVat = Math.Round(amount * unitWithoutVat, 2),
+                TotalWithVat = Math.Round(amount * unitWithVat, 2),
                 VatRate = MapVatRate(src.UnitPrice?.VatRate),
                 CurrencyCode = currencyCode,
             },

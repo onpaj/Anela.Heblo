@@ -187,4 +187,99 @@ public class ShoptetInvoiceMapperTests
         detail.Customer.VatId.Should().Be("CZ12345678");
         detail.Customer.CompanyId.Should().Be("12345678");
     }
+
+    [Fact]
+    public void MapItem_AppliesPriceRatio_WhenLessThanOne()
+    {
+        var src = new ShoptetInvoiceDto
+        {
+            Code = "INV1",
+            OrderCode = "ORD1",
+            Items = new List<ShoptetInvoiceItemDto>
+            {
+                new()
+                {
+                    Code = "P1",
+                    Name = "Product 1",
+                    Amount = "2",
+                    ItemType = "product",
+                    PriceRatio = 0.78m,
+                    UnitPrice = new ShoptetInvoiceUnitPriceDto
+                    {
+                        WithoutVat = "100", WithVat = "121", Vat = "21", VatRate = "21.00"
+                    }
+                }
+            },
+            Price = new ShoptetInvoicePriceDto { CurrencyCode = "CZK", WithVat = "188.76", WithoutVat = "156.00", Vat = "32.76" }
+        };
+        var mapper = BuildSut();
+
+        var result = mapper.Map(src);
+
+        result.Items.Should().HaveCount(1);
+        result.Items[0].ItemPrice.WithoutVat.Should().Be(78m);      // 100 * 0.78
+        result.Items[0].ItemPrice.WithVat.Should().Be(94.38m);      // 121 * 0.78
+        result.Items[0].ItemPrice.TotalWithoutVat.Should().Be(156m); // 78 * 2
+        result.Items[0].ItemPrice.TotalWithVat.Should().Be(188.76m); // 94.38 * 2
+    }
+
+    [Fact]
+    public void MapItem_AppliesPriceRatioZero_ForFreeItem()
+    {
+        // Real-world case: invoice 126000039 has priceRatio=0.0 (100% free)
+        var src = new ShoptetInvoiceDto
+        {
+            Code = "INV1",
+            OrderCode = "ORD1",
+            Items = new List<ShoptetInvoiceItemDto>
+            {
+                new()
+                {
+                    Code = "TON002030",
+                    Name = "Free product",
+                    Amount = "1",
+                    ItemType = "product",
+                    PriceRatio = 0.0m,
+                    UnitPrice = new ShoptetInvoiceUnitPriceDto
+                    {
+                        WithoutVat = "180", WithVat = "217.80", Vat = "37.80", VatRate = "21.00"
+                    }
+                }
+            },
+            Price = new ShoptetInvoicePriceDto { CurrencyCode = "CZK", WithVat = "0.00", WithoutVat = "0.00", Vat = "0.00" }
+        };
+        var mapper = BuildSut();
+
+        var result = mapper.Map(src);
+
+        result.Items.Should().HaveCount(1);
+        result.Items[0].ItemPrice.WithoutVat.Should().Be(0m);     // 180 * 0.0
+        result.Items[0].ItemPrice.WithVat.Should().Be(0m);        // 217.80 * 0.0
+        result.Items[0].ItemPrice.TotalWithoutVat.Should().Be(0m);
+        result.Items[0].ItemPrice.TotalWithVat.Should().Be(0m);
+    }
+
+    [Fact]
+    public void MapItem_NoChange_WhenPriceRatioIsNullOrOne()
+    {
+        var src = new ShoptetInvoiceDto
+        {
+            Code = "INV1",
+            OrderCode = "ORD1",
+            Items = new List<ShoptetInvoiceItemDto>
+            {
+                new() { Code = "P1", Name = "P1", Amount = "1", ItemType = "product", PriceRatio = null,
+                        UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "100", WithVat = "121", Vat = "21", VatRate = "21.00" } },
+                new() { Code = "P2", Name = "P2", Amount = "1", ItemType = "product", PriceRatio = 1.0m,
+                        UnitPrice = new ShoptetInvoiceUnitPriceDto { WithoutVat = "50",  WithVat = "60.5", Vat = "10.5", VatRate = "21.00" } },
+            },
+            Price = new ShoptetInvoicePriceDto { CurrencyCode = "CZK", WithVat = "181.5", WithoutVat = "150", Vat = "31.5" }
+        };
+        var mapper = BuildSut();
+
+        var result = mapper.Map(src);
+
+        result.Items[0].ItemPrice.WithoutVat.Should().Be(100m);
+        result.Items[1].ItemPrice.WithoutVat.Should().Be(50m);
+    }
 }
