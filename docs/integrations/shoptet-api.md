@@ -800,6 +800,23 @@ The delivery address object itself can be `null`.
 
 > **Observed on invoice 126000039 (per-line priceRatio discount):** The discount on this invoice is encoded as `priceRatio=0.0000` on the product line (`itemType=product`, `code=TON002030`). `itemPrice.withVat` reflects the discounted total (`0.00`), while `unitPrice.withVat` retains the original unit price (`180.00`). There is NO separate `discount-coupon` or `volume-discount` aggregate row — the discount is applied entirely per-line via `priceRatio`. The shipping (`itemType=shipping`) and billing (`itemType=billing`) rows have `priceRatio=1.0000` and are not discounted. Invoice totals: `price.withVat=158.00`, `price.toPay=158.00`.
 
+#### 10.12.2 Discount handling in Heblo invoice import
+
+Heblo's `ShoptetInvoiceMapper` folds every discount into each product line's
+post-discount `PricePerUnit` so the Flexi/Abra mapping (`PricePerUnit = ItemPrice.WithoutVat`)
+carries the discount through unchanged. Concretely:
+
+1. Per-line `priceRatio < 1` (including `0.0` = 100% free) → multiply
+   `unitPrice.{withVat, withoutVat, vat}` by `priceRatio`.
+   Note: Shoptet sends `priceRatio` as a **quoted string** (e.g. `"0.0000"`), not a number.
+2. Aggregate rows with `itemType ∈ { discount-coupon, volume-discount, gift }` →
+   distribute their `itemPrice.withoutVat` / `itemPrice.withVat` across product lines
+   proportionally to each product line's pre-discount `TotalWithoutVat`, then drop the
+   aggregate row.
+
+There is no separate discount line in the resulting Flexi invoice. Visibility of the
+discount source is preserved only in the original Shoptet invoice and the Heblo import logs.
+
 ### 10.13 VAT Modes
 
 | Value |
