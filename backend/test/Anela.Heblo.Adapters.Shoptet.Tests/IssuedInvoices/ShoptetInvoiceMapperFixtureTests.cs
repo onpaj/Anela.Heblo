@@ -20,7 +20,6 @@ public class ShoptetInvoiceMapperFixtureTests
 
         var result = mapper.Map(dto);
 
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         var expectedWithVat = decimal.Parse(dto.Price!.WithVat!, System.Globalization.CultureInfo.InvariantCulture);
         var expectedWithoutVat = decimal.Parse(dto.Price!.WithoutVat!, System.Globalization.CultureInfo.InvariantCulture);
 
