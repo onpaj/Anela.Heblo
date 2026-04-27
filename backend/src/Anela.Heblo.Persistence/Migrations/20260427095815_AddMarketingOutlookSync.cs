@@ -33,7 +33,7 @@ namespace Anela.Heblo.Persistence.Migrations
                 table: "MarketingActions",
                 type: "text",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "NotSynced");
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "OutlookSyncedAt",

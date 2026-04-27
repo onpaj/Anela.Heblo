@@ -72,7 +72,8 @@ namespace Anela.Heblo.Persistence.Marketing
                 .HasMaxLength(500)
                 .IsRequired(false);
 
-            builder.Property(x => x.OutlookSyncedAt)
+            builder.Property(x => x.OutlookLastAttemptAt)
+                .HasColumnName("OutlookSyncedAt")
                 .IsRequired(false)
                 .AsUtcTimestamp();
 

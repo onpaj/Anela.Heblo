@@ -1520,7 +1520,8 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTime?>("OutlookSyncedAt")
+                    b.Property<DateTime?>("OutlookLastAttemptAt")
+                        .HasColumnName("OutlookSyncedAt")
                         .HasColumnType("timestamp");
 
                     b.Property<DateTime>("StartDate")

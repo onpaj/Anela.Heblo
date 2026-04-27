@@ -56,7 +56,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
         [MaxLength(500)]
         public string? OutlookEventId { get; set; }
 
-        public DateTime? OutlookSyncedAt { get; set; }
+        public DateTime? OutlookLastAttemptAt { get; set; }
 
         public MarketingSyncStatus OutlookSyncStatus { get; set; } = MarketingSyncStatus.NotSynced;
 
@@ -118,17 +118,17 @@ namespace Anela.Heblo.Domain.Features.Marketing
                 throw new ArgumentException("Event ID cannot be empty", nameof(eventId));
 
             OutlookEventId = eventId;
-            OutlookSyncedAt = utcNow;
+            OutlookLastAttemptAt = utcNow;
             OutlookSyncStatus = MarketingSyncStatus.Synced;
             OutlookSyncError = null;
         }
 
-        public void MarkOutlookFailed(string error, DateTime utcNow)
+        public void MarkOutlookFailed(string? error, DateTime utcNow)
         {
             const int maxErrorLength = 1000;
 
             OutlookSyncStatus = MarketingSyncStatus.Failed;
-            OutlookSyncedAt = utcNow;
+            OutlookLastAttemptAt = utcNow;
             OutlookSyncError = error?.Length > maxErrorLength
                 ? error[..maxErrorLength]
                 : error;
@@ -137,7 +137,7 @@ namespace Anela.Heblo.Domain.Features.Marketing
         public void ClearOutlookLink()
         {
             OutlookEventId = null;
-            OutlookSyncedAt = null;
+            OutlookLastAttemptAt = null;
             OutlookSyncStatus = MarketingSyncStatus.NotSynced;
             OutlookSyncError = null;
         }
