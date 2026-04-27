@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
+using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAction;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -18,6 +21,7 @@ public class CreateMarketingActionHandlerTests
     private readonly Mock<IMarketingActionRepository> _repositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<CreateMarketingActionHandler>> _loggerMock;
+    private readonly Mock<IOutlookCalendarSync> _outlookSyncMock;
     private readonly CreateMarketingActionHandler _handler;
 
     public CreateMarketingActionHandlerTests()
@@ -25,10 +29,18 @@ public class CreateMarketingActionHandlerTests
         _repositoryMock = new Mock<IMarketingActionRepository>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<CreateMarketingActionHandler>>();
+        _outlookSyncMock = new Mock<IOutlookCalendarSync>();
+
+        var options = new MarketingCalendarOptions { PushEnabled = false, MailboxUpn = "test@example.com" };
+        var mockOptions = new Mock<IOptions<MarketingCalendarOptions>>();
+        mockOptions.Setup(o => o.Value).Returns(options);
+
         _handler = new CreateMarketingActionHandler(
             _repositoryMock.Object,
             _currentUserServiceMock.Object,
-            _loggerMock.Object);
+            _loggerMock.Object,
+            _outlookSyncMock.Object,
+            mockOptions.Object);
     }
 
     [Fact]

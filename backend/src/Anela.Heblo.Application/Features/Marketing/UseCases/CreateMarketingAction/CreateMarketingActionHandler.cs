@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
+using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAction
 {
@@ -17,15 +20,21 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAct
         private readonly IMarketingActionRepository _repository;
         private readonly ICurrentUserService _currentUserService;
         private readonly ILogger<CreateMarketingActionHandler> _logger;
+        private readonly IOutlookCalendarSync _outlookSync;
+        private readonly IOptions<MarketingCalendarOptions> _options;
 
         public CreateMarketingActionHandler(
             IMarketingActionRepository repository,
             ICurrentUserService currentUserService,
-            ILogger<CreateMarketingActionHandler> logger)
+            ILogger<CreateMarketingActionHandler> logger,
+            IOutlookCalendarSync outlookSync,
+            IOptions<MarketingCalendarOptions> options)
         {
             _repository = repository;
             _currentUserService = currentUserService;
             _logger = logger;
+            _outlookSync = outlookSync;
+            _options = options;
         }
 
         public async Task<CreateMarketingActionResponse> Handle(
@@ -74,6 +83,22 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAct
 
             var created = await _repository.AddAsync(action, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
+
+            if (_options.Value.PushEnabled)
+            {
+                try
+                {
+                    var eventId = await _outlookSync.CreateEventAsync(created, cancellationToken);
+                    created.MarkOutlookSynced(eventId, DateTime.UtcNow);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to sync MarketingAction {ActionId} to Outlook; will retry", created.Id);
+                    created.MarkOutlookFailed(ex.Message, DateTime.UtcNow);
+                }
+
+                await _repository.SaveChangesAsync(cancellationToken);
+            }
 
             _logger.LogInformation(
                 "MarketingAction {ActionId} created by user {UserId}",
