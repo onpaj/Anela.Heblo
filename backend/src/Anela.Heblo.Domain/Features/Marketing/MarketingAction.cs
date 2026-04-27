@@ -52,6 +52,17 @@ namespace Anela.Heblo.Domain.Features.Marketing
         [MaxLength(100)]
         public string? DeletedByUsername { get; set; }
 
+        // Outlook sync fields
+        [MaxLength(500)]
+        public string? OutlookEventId { get; set; }
+
+        public DateTime? OutlookSyncedAt { get; set; }
+
+        public MarketingSyncStatus OutlookSyncStatus { get; set; } = MarketingSyncStatus.NotSynced;
+
+        [MaxLength(1000)]
+        public string? OutlookSyncError { get; set; }
+
         // Navigation properties
         public virtual ICollection<MarketingActionProduct> ProductAssociations { get; set; } = new List<MarketingActionProduct>();
         public virtual ICollection<MarketingActionFolderLink> FolderLinks { get; set; } = new List<MarketingActionFolderLink>();
@@ -99,6 +110,36 @@ namespace Anela.Heblo.Domain.Features.Marketing
             ModifiedAt = DateTime.UtcNow;
             ModifiedByUserId = userId;
             ModifiedByUsername = username;
+        }
+
+        public void MarkOutlookSynced(string eventId, DateTime utcNow)
+        {
+            if (string.IsNullOrWhiteSpace(eventId))
+                throw new ArgumentException("Event ID cannot be empty", nameof(eventId));
+
+            OutlookEventId = eventId;
+            OutlookSyncedAt = utcNow;
+            OutlookSyncStatus = MarketingSyncStatus.Synced;
+            OutlookSyncError = null;
+        }
+
+        public void MarkOutlookFailed(string error, DateTime utcNow)
+        {
+            const int maxErrorLength = 1000;
+
+            OutlookSyncStatus = MarketingSyncStatus.Failed;
+            OutlookSyncedAt = utcNow;
+            OutlookSyncError = error?.Length > maxErrorLength
+                ? error[..maxErrorLength]
+                : error;
+        }
+
+        public void ClearOutlookLink()
+        {
+            OutlookEventId = null;
+            OutlookSyncedAt = null;
+            OutlookSyncStatus = MarketingSyncStatus.NotSynced;
+            OutlookSyncError = null;
         }
     }
 }
