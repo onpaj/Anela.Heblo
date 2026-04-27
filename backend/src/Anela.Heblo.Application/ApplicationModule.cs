@@ -58,7 +58,7 @@ public static class ApplicationModule
         services.AddPurchaseModule();
         services.AddFinancialOverviewModule(configuration);
         services.AddJournalModule();
-        services.AddMarketingModule();
+        services.AddMarketingModule(configuration);
         services.AddManufactureModule(configuration);
         services.AddTransportModule();
         services.AddGiftPackageManufactureModule();
