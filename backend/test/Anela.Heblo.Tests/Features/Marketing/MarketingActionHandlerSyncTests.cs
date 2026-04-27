@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
@@ -16,7 +17,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
-namespace Anela.Heblo.Tests.Marketing
+namespace Anela.Heblo.Tests.Features.Marketing
 {
     public class MarketingActionHandlerSyncTests
     {
@@ -34,7 +35,7 @@ namespace Anela.Heblo.Tests.Marketing
         {
             _repositoryMock = new Mock<IMarketingActionRepository>();
             _currentUserServiceMock = new Mock<ICurrentUserService>();
-            _outlookSyncMock = new Mock<IOutlookCalendarSync>();
+            _outlookSyncMock = new Mock<IOutlookCalendarSync>(MockBehavior.Strict);
 
             _currentUserServiceMock.Setup(x => x.GetCurrentUser()).Returns(AuthenticatedUser);
 
@@ -168,7 +169,7 @@ namespace Anela.Heblo.Tests.Marketing
 
             _outlookSyncMock
                 .Setup(s => s.CreateEventAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new InvalidOperationException("Graph API error"));
+                .ThrowsAsync(new OutlookCalendarSyncException(HttpStatusCode.InternalServerError, null, "Graph API error"));
 
             var handler = BuildCreateHandler(pushEnabled: true);
 
@@ -197,9 +198,7 @@ namespace Anela.Heblo.Tests.Marketing
 
             // Assert
             result.Success.Should().BeTrue();
-            _outlookSyncMock.Verify(
-                s => s.CreateEventAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()),
-                Times.Never);
+            _outlookSyncMock.VerifyNoOtherCalls();
         }
 
         // ─── Update handler ───────────────────────────────────────────────────────
@@ -227,9 +226,7 @@ namespace Anela.Heblo.Tests.Marketing
             _outlookSyncMock.Verify(
                 s => s.UpdateEventAsync(existingAction, It.IsAny<CancellationToken>()),
                 Times.Once);
-            _outlookSyncMock.Verify(
-                s => s.CreateEventAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()),
-                Times.Never);
+            _outlookSyncMock.VerifyNoOtherCalls();
             existingAction.OutlookSyncStatus.Should().Be(MarketingSyncStatus.Synced);
         }
 
@@ -256,11 +253,32 @@ namespace Anela.Heblo.Tests.Marketing
             _outlookSyncMock.Verify(
                 s => s.CreateEventAsync(existingAction, It.IsAny<CancellationToken>()),
                 Times.Once);
-            _outlookSyncMock.Verify(
-                s => s.UpdateEventAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()),
-                Times.Never);
+            _outlookSyncMock.VerifyNoOtherCalls();
             existingAction.OutlookEventId.Should().Be("evt-new");
             existingAction.OutlookSyncStatus.Should().Be(MarketingSyncStatus.Synced);
+        }
+
+        [Fact]
+        public async Task UpdateHandler_SetsFailedStatus_WhenOutlookThrows()
+        {
+            // Arrange
+            var existingAction = BuildAction(outlookEventId: "evt-existing");
+            _repositoryMock
+                .Setup(x => x.GetByIdAsync(42, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(existingAction);
+
+            _outlookSyncMock
+                .Setup(s => s.UpdateEventAsync(existingAction, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new OutlookCalendarSyncException(HttpStatusCode.InternalServerError, null, "update failed"));
+
+            var handler = BuildUpdateHandler(pushEnabled: true);
+
+            // Act
+            var result = await handler.Handle(BuildUpdateRequest(), CancellationToken.None);
+
+            // Assert — handler returns success, but sync status is Failed
+            result.Success.Should().BeTrue();
+            existingAction.OutlookSyncStatus.Should().Be(MarketingSyncStatus.Failed);
         }
 
         // ─── Delete handler ───────────────────────────────────────────────────────
@@ -273,6 +291,10 @@ namespace Anela.Heblo.Tests.Marketing
             _repositoryMock
                 .Setup(x => x.GetByIdAsync(42, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(existingAction);
+
+            _repositoryMock
+                .Setup(x => x.DeleteSoftAsync(42, AuthenticatedUser.Id!, AuthenticatedUser.Name!, It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
 
             _outlookSyncMock
                 .Setup(s => s.DeleteEventAsync("evt-to-delete", It.IsAny<CancellationToken>()))
@@ -288,6 +310,7 @@ namespace Anela.Heblo.Tests.Marketing
             _outlookSyncMock.Verify(
                 s => s.DeleteEventAsync("evt-to-delete", It.IsAny<CancellationToken>()),
                 Times.Once);
+            _outlookSyncMock.VerifyNoOtherCalls();
             existingAction.OutlookEventId.Should().BeNull();
             existingAction.OutlookSyncStatus.Should().Be(MarketingSyncStatus.NotSynced);
         }
@@ -303,7 +326,7 @@ namespace Anela.Heblo.Tests.Marketing
 
             _outlookSyncMock
                 .Setup(s => s.DeleteEventAsync("evt-failing", It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new InvalidOperationException("Graph delete failed"));
+                .ThrowsAsync(new OutlookCalendarSyncException(HttpStatusCode.InternalServerError, null, "Graph delete failed"));
 
             _repositoryMock
                 .Setup(x => x.DeleteSoftAsync(42, AuthenticatedUser.Id!, AuthenticatedUser.Name!, It.IsAny<CancellationToken>()))

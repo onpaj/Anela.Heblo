@@ -58,6 +58,8 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
                 });
             }
 
+            var now = DateTime.UtcNow;
+
             if (_options.Value.PushEnabled && !string.IsNullOrEmpty(action.OutlookEventId))
             {
                 try
@@ -72,11 +74,22 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
                         "Failed to delete Outlook event {EventId} for MarketingAction {ActionId}; will retry",
                         action.OutlookEventId,
                         request.Id);
-                    action.MarkOutlookFailed(ex.Message, DateTime.UtcNow);
+                    action.MarkOutlookFailed(ex.Message, now);
                 }
 
                 await _repository.UpdateAsync(action, cancellationToken);
-                await _repository.SaveChangesAsync(cancellationToken);
+
+                // Best-effort: persist Outlook sync status. A failure here is non-blocking.
+                try
+                {
+                    await _repository.SaveChangesAsync(cancellationToken);
+                }
+                catch (Exception dbEx)
+                {
+                    _logger.LogWarning(dbEx,
+                        "Failed to persist Outlook sync status for MarketingAction {ActionId} before soft delete; continuing with delete",
+                        request.Id);
+                }
             }
 
             await _repository.DeleteSoftAsync(request.Id, currentUser.Id, currentUser.Name ?? "Unknown User", cancellationToken);

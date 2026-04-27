@@ -100,21 +100,31 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAct
                     if (!string.IsNullOrEmpty(action.OutlookEventId))
                     {
                         await _outlookSync.UpdateEventAsync(action, cancellationToken);
-                        action.MarkOutlookSynced(action.OutlookEventId, DateTime.UtcNow);
+                        action.MarkOutlookSynced(action.OutlookEventId, now);
                     }
                     else
                     {
                         var eventId = await _outlookSync.CreateEventAsync(action, cancellationToken);
-                        action.MarkOutlookSynced(eventId, DateTime.UtcNow);
+                        action.MarkOutlookSynced(eventId, now);
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Failed to sync MarketingAction {ActionId} to Outlook; will retry", action.Id);
-                    action.MarkOutlookFailed(ex.Message, DateTime.UtcNow);
+                    action.MarkOutlookFailed(ex.Message, now);
                 }
 
-                await _repository.SaveChangesAsync(cancellationToken);
+                // Best-effort: persist Outlook sync status. A failure here is non-blocking.
+                try
+                {
+                    await _repository.SaveChangesAsync(cancellationToken);
+                }
+                catch (Exception dbEx)
+                {
+                    _logger.LogWarning(dbEx,
+                        "Outlook sync status for MarketingAction {ActionId} could not be persisted to the database",
+                        action.Id);
+                }
             }
 
             _logger.LogInformation(
