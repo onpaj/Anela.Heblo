@@ -1,0 +1,19 @@
+{
+  "storage": {
+    "connection_string_env": "AZURE_STORAGE_CONNECTION_STRING",
+    "container": "heblo-pipeline"
+  },
+  "queues": {
+    "analyst-queue":   { "agent": ".agents/analyst.md" },
+    "architect-queue": { "agent": ".agents/architect.md" },
+    "designer-queue":  { "agent": ".agents/designer.md" },
+    "planner-queue":   { "agent": ".agents/planner.md" },
+    "developer-queue": { "agent": ".agents/developer.md" },
+    "review-queue":    { "agent": ".agents/reviewer.md" }
+  },
+  "defaults": {
+    "dead_letter_threshold": 3,
+    "max_revisions": 3,
+    "poll_interval_seconds": 1.0
+  }
+}
