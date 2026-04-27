@@ -48,4 +48,15 @@ public class ShoptetInvoiceItemDtoTests
         dto.ItemType.Should().Be("product");
         dto.PriceRatio.Should().Be(0.0000m);
     }
+
+    [Fact]
+    public void Deserializes_Omitted_ItemType_And_PriceRatio_As_Null()
+    {
+        const string json = """{ "code": "X", "name": "Y", "amount": "1.00" }""";
+
+        var dto = JsonSerializer.Deserialize<ShoptetInvoiceItemDto>(json)!;
+
+        dto.ItemType.Should().BeNull();
+        dto.PriceRatio.Should().BeNull();
+    }
 }

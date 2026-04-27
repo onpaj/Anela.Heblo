@@ -17,9 +17,11 @@ public class ShoptetInvoiceItemDto
     [JsonPropertyName("amountUnit")]
     public string? AmountUnit { get; set; }
 
+    /// <summary>Item type, e.g. "product", "discount-coupon", "shipping".</summary>
     [JsonPropertyName("itemType")]
     public string? ItemType { get; set; }
 
+    /// <summary>Discount ratio applied to unit price (0.0 = free, 1.0 = no discount).</summary>
     [JsonPropertyName("priceRatio")]
     public decimal? PriceRatio { get; set; }
 
