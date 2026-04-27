@@ -175,6 +175,31 @@ namespace Anela.Heblo.Tests.Features.Marketing
         }
 
         [Fact]
+        public async Task ProcessFailedSyncs_ClearsOutlookLink_ForSoftDeletedActionWithNoEventId()
+        {
+            // Arrange
+            var action = BuildAction(id: 4, isDeleted: true, outlookEventId: null);
+
+            _repositoryMock
+                .Setup(r => r.GetFailedOutlookSyncAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<MarketingAction> { action });
+
+            var service = CreateService();
+
+            // Act
+            await service.ProcessFailedSyncsAsync(CancellationToken.None);
+
+            // Assert
+            _outlookSyncMock.Verify(
+                s => s.DeleteEventAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            action.OutlookSyncStatus.Should().Be(MarketingSyncStatus.NotSynced);
+            _repositoryMock.Verify(
+                r => r.UpdateAsync(action, It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
         public async Task ProcessFailedSyncs_ContinuesWithNextAction_WhenOneActionFails()
         {
             // Arrange

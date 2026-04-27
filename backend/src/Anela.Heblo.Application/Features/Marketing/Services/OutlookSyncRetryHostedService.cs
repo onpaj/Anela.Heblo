@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Marketing.Services
 {
-    public class OutlookSyncRetryHostedService : BackgroundService
+    internal sealed class OutlookSyncRetryHostedService : BackgroundService
     {
         private static readonly TimeSpan RetryInterval = TimeSpan.FromMinutes(5);
         private const int BatchSize = 50;
@@ -25,8 +25,8 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                await Task.Delay(RetryInterval, stoppingToken);
                 await ProcessFailedSyncsAsync(stoppingToken);
+                await Task.Delay(RetryInterval, stoppingToken);
             }
         }
 
@@ -66,7 +66,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                     {
                         await outlookSync.DeleteEventAsync(action.OutlookEventId, ct);
                     }
-
+                    // Already no event to delete; clear the link to stop retrying.
                     action.ClearOutlookLink();
                 }
                 else if (string.IsNullOrEmpty(action.OutlookEventId))
@@ -86,12 +86,13 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                 await repository.SaveChangesAsync(ct);
                 _logger.LogInformation("Successfully retried Outlook sync for MarketingAction {ActionId}", action.Id);
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
-                _logger.LogWarning(
-                    ex,
-                    "Retry of Outlook sync for MarketingAction {ActionId} failed again; will retry in next cycle",
-                    action.Id);
+                _logger.LogWarning(ex, "Retry of Outlook sync for MarketingAction {ActionId} failed again; will retry in next cycle", action.Id);
                 // Leave status as Failed — next cycle will pick it up again
             }
         }
