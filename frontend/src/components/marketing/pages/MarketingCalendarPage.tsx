@@ -15,10 +15,12 @@ import {
   useMarketingActions,
   useMarketingAction,
   useUpdateMarketingAction,
+  useImportFromOutlook,
 } from '../../../api/hooks/useMarketingCalendar';
 import { ACTION_TYPE_TO_INT, formatDateStr } from '../calendar/fullcalendarAdapters';
 import type { CalendarEvent } from '../calendar/fullcalendarAdapters';
 import { PAGE_CONTAINER_HEIGHT } from '../../../constants/layout';
+import { useAuth } from '../../../auth/useAuth';
 
 const CZECH_MONTHS = [
   'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
@@ -48,8 +50,17 @@ const MarketingCalendarPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<MarketingActionDto | null>(null);
   const [prefillDates, setPrefillDates] = useState<{ dateFrom: string; dateTo: string } | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importFromDate, setImportFromDate] = useState('');
+  const [importToDate, setImportToDate] = useState('');
+  const [importDryRun, setImportDryRun] = useState(false);
+  const [importResult, setImportResult] = useState<{ created: number; skipped: number; failed: number } | null>(null);
 
   const calendarRef = useRef<FullCalendar>(null);
+
+  const { getUserInfo } = useAuth();
+  const isAdmin = getUserInfo()?.roles?.includes('KnowledgeBaseManager') ?? false;
+  const importMutation = useImportFromOutlook();
 
   // API query range comes from FullCalendar's visible range (set via datesSet callback).
   // Fall back to a manual calculation on first render before datesSet fires.
@@ -82,6 +93,7 @@ const MarketingCalendarPage: React.FC = () => {
         dateFrom: a.startDate instanceof Date ? formatDateStr(a.startDate) : (a.dateFrom ?? ''),
         dateTo: a.endDate instanceof Date ? formatDateStr(a.endDate) : (a.dateTo ?? ''),
         associatedProducts: a.associatedProducts ?? [],
+        outlookSyncStatus: a.outlookSyncStatus,
       })),
     [calendarQuery.data],
   );
@@ -97,6 +109,7 @@ const MarketingCalendarPage: React.FC = () => {
         dateTo: a.endDate ?? a.dateTo,
         associatedProducts: a.associatedProducts,
         folderLinks: a.folderLinks,
+        outlookSyncStatus: a.outlookSyncStatus,
       })),
     [listQuery.data],
   );
@@ -247,6 +260,20 @@ const MarketingCalendarPage: React.FC = () => {
             <Plus className="h-4 w-4" />
             Nová akce
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setImportFromDate('');
+                setImportToDate('');
+                setImportDryRun(false);
+                setImportResult(null);
+                setIsImportModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              Import z Outlooku
+            </button>
+          )}
         </div>
       </div>
 
@@ -320,6 +347,87 @@ const MarketingCalendarPage: React.FC = () => {
         existingAction={editingAction}
         prefillDates={prefillDates}
       />
+
+      {/* Import from Outlook modal */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Import z Outlooku</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Od</label>
+                <input
+                  type="date"
+                  value={importFromDate}
+                  onChange={(e) => setImportFromDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Do</label>
+                <input
+                  type="date"
+                  value={importToDate}
+                  onChange={(e) => setImportToDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  id="dryRun"
+                  type="checkbox"
+                  checked={importDryRun}
+                  onChange={(e) => setImportDryRun(e.target.checked)}
+                  className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                />
+                <label htmlFor="dryRun" className="text-sm text-gray-700">Jen simulace (dry run)</label>
+              </div>
+
+              {importResult && (
+                <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-sm text-gray-700">
+                  <p>Vytvořeno: <strong>{importResult.created}</strong></p>
+                  <p>Přeskočeno: <strong>{importResult.skipped}</strong></p>
+                  <p>Chyb: <strong>{importResult.failed}</strong></p>
+                </div>
+              )}
+
+              {importMutation.isError && (
+                <p className="text-sm text-red-600">Import selhal. Zkuste to znovu.</p>
+              )}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setIsImportModalOpen(false)}
+                className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Zavřít
+              </button>
+              <button
+                disabled={!importFromDate || !importToDate || importMutation.isPending}
+                onClick={async () => {
+                  if (!importFromDate || !importToDate) return;
+                  setImportResult(null);
+                  const result = await importMutation.mutateAsync({
+                    fromUtc: new Date(importFromDate),
+                    toUtc: new Date(importToDate + 'T23:59:59Z'),
+                    dryRun: importDryRun,
+                  });
+                  const data = result as any;
+                  setImportResult({
+                    created: data?.created ?? 0,
+                    skipped: data?.skipped ?? 0,
+                    failed: data?.failed ?? 0,
+                  });
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {importMutation.isPending ? 'Importuji...' : 'Importovat'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

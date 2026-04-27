@@ -161,3 +161,28 @@ export const useDeleteMarketingAction = () => {
     },
   });
 };
+
+interface ImportFromOutlookPayload {
+  fromUtc: Date;
+  toUtc: Date;
+  dryRun?: boolean;
+}
+
+export const useImportFromOutlook = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: ImportFromOutlookPayload) => {
+      const client = await getAuthenticatedApiClient();
+      return await (client as any).marketingCalendar_ImportFromOutlook(payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.marketingCalendar, 'actions'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.marketingCalendar, 'calendar'],
+      });
+    },
+  });
+};

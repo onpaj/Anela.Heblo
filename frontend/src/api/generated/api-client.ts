@@ -5508,6 +5508,51 @@ export class ApiClient {
         return Promise.resolve<GetMarketingCalendarResponse>(null as any);
     }
 
+    marketingCalendar_ImportFromOutlook(request: ImportFromOutlookRequest): Promise<ImportFromOutlookResponse> {
+        let url_ = this.baseUrl + "/api/MarketingCalendar/import-from-outlook";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingCalendar_ImportFromOutlook(_response);
+        });
+    }
+
+    protected processMarketingCalendar_ImportFromOutlook(response: Response): Promise<ImportFromOutlookResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ImportFromOutlookResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ImportFromOutlookResponse>(null as any);
+    }
+
     orgChart_GetOrganizationStructure(): Promise<OrgChartResponse> {
         let url_ = this.baseUrl + "/api/OrgChart";
         url_ = url_.replace(/[?&]$/, "");
@@ -19478,6 +19523,8 @@ export class MarketingActionDto implements IMarketingActionDto {
     modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     folderLinks?: MarketingActionFolderLinkDto[];
+    outlookSyncStatus?: string;
+    outlookEventId?: string | undefined;
 
     constructor(data?: IMarketingActionDto) {
         if (data) {
@@ -19512,6 +19559,8 @@ export class MarketingActionDto implements IMarketingActionDto {
                 for (let item of _data["folderLinks"])
                     this.folderLinks!.push(MarketingActionFolderLinkDto.fromJS(item));
             }
+            this.outlookSyncStatus = _data["outlookSyncStatus"];
+            this.outlookEventId = _data["outlookEventId"];
         }
     }
 
@@ -19546,6 +19595,8 @@ export class MarketingActionDto implements IMarketingActionDto {
             for (let item of this.folderLinks)
                 data["folderLinks"].push(item.toJSON());
         }
+        data["outlookSyncStatus"] = this.outlookSyncStatus;
+        data["outlookEventId"] = this.outlookEventId;
         return data;
     }
 }
@@ -19565,6 +19616,8 @@ export interface IMarketingActionDto {
     modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     folderLinks?: MarketingActionFolderLinkDto[];
+    outlookSyncStatus?: string;
+    outlookEventId?: string | undefined;
 }
 
 export class MarketingActionFolderLinkDto implements IMarketingActionFolderLinkDto {
@@ -19688,6 +19741,7 @@ export class MarketingActionCalendarDto implements IMarketingActionCalendarDto {
     startDate?: Date;
     endDate?: Date | undefined;
     associatedProducts?: string[];
+    outlookSyncStatus?: string;
 
     constructor(data?: IMarketingActionCalendarDto) {
         if (data) {
@@ -19710,6 +19764,7 @@ export class MarketingActionCalendarDto implements IMarketingActionCalendarDto {
                 for (let item of _data["associatedProducts"])
                     this.associatedProducts!.push(item);
             }
+            this.outlookSyncStatus = _data["outlookSyncStatus"];
         }
     }
 
@@ -19732,6 +19787,7 @@ export class MarketingActionCalendarDto implements IMarketingActionCalendarDto {
             for (let item of this.associatedProducts)
                 data["associatedProducts"].push(item);
         }
+        data["outlookSyncStatus"] = this.outlookSyncStatus;
         return data;
     }
 }
@@ -19743,6 +19799,7 @@ export interface IMarketingActionCalendarDto {
     startDate?: Date;
     endDate?: Date | undefined;
     associatedProducts?: string[];
+    outlookSyncStatus?: string;
 }
 
 export class CreateMarketingActionResponse extends BaseResponse implements ICreateMarketingActionResponse {
@@ -20075,6 +20132,155 @@ export class DeleteMarketingActionResponse extends BaseResponse implements IDele
 export interface IDeleteMarketingActionResponse extends IBaseResponse {
     id?: number;
     message?: string;
+}
+
+export class ImportFromOutlookResponse extends BaseResponse implements IImportFromOutlookResponse {
+    created?: number;
+    skipped?: number;
+    failed?: number;
+    items?: ImportedItemDto[];
+
+    constructor(data?: IImportFromOutlookResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.created = _data["created"];
+            this.skipped = _data["skipped"];
+            this.failed = _data["failed"];
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ImportedItemDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): ImportFromOutlookResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportFromOutlookResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["created"] = this.created;
+        data["skipped"] = this.skipped;
+        data["failed"] = this.failed;
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IImportFromOutlookResponse extends IBaseResponse {
+    created?: number;
+    skipped?: number;
+    failed?: number;
+    items?: ImportedItemDto[];
+}
+
+export class ImportedItemDto implements IImportedItemDto {
+    outlookEventId?: string;
+    subject?: string;
+    status?: string;
+    error?: string | undefined;
+    createdActionId?: number | undefined;
+
+    constructor(data?: IImportedItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.outlookEventId = _data["outlookEventId"];
+            this.subject = _data["subject"];
+            this.status = _data["status"];
+            this.error = _data["error"];
+            this.createdActionId = _data["createdActionId"];
+        }
+    }
+
+    static fromJS(data: any): ImportedItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportedItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["outlookEventId"] = this.outlookEventId;
+        data["subject"] = this.subject;
+        data["status"] = this.status;
+        data["error"] = this.error;
+        data["createdActionId"] = this.createdActionId;
+        return data;
+    }
+}
+
+export interface IImportedItemDto {
+    outlookEventId?: string;
+    subject?: string;
+    status?: string;
+    error?: string | undefined;
+    createdActionId?: number | undefined;
+}
+
+export class ImportFromOutlookRequest implements IImportFromOutlookRequest {
+    fromUtc?: Date;
+    toUtc?: Date;
+    dryRun?: boolean;
+
+    constructor(data?: IImportFromOutlookRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.fromUtc = _data["fromUtc"] ? new Date(_data["fromUtc"].toString()) : <any>undefined;
+            this.toUtc = _data["toUtc"] ? new Date(_data["toUtc"].toString()) : <any>undefined;
+            this.dryRun = _data["dryRun"];
+        }
+    }
+
+    static fromJS(data: any): ImportFromOutlookRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportFromOutlookRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["fromUtc"] = this.fromUtc ? this.fromUtc.toISOString() : <any>undefined;
+        data["toUtc"] = this.toUtc ? this.toUtc.toISOString() : <any>undefined;
+        data["dryRun"] = this.dryRun;
+        return data;
+    }
+}
+
+export interface IImportFromOutlookRequest {
+    fromUtc?: Date;
+    toUtc?: Date;
+    dryRun?: boolean;
 }
 
 export class OrgChartResponse extends BaseResponse implements IOrgChartResponse {

@@ -226,3 +226,53 @@ describe("MarketingActionGrid — pagination", () => {
     expect(onPageChange).toHaveBeenCalledWith(3);
   });
 });
+
+// ─── OutlookSyncStatus badge ──────────────────────────────────────────────────
+
+describe("MarketingActionGrid — OutlookSyncStatus badge", () => {
+  it("renders red dot badge when outlookSyncStatus is 'Failed'", () => {
+    const action: MarketingActionDto = {
+      id: 10,
+      title: "Akce se selháním",
+      actionType: "General",
+      dateFrom: "2026-03-01",
+      dateTo: "2026-03-15",
+      outlookSyncStatus: "Failed",
+    };
+    render(<MarketingActionGrid {...defaultProps} actions={[action]} />);
+    const badge = screen.getByTitle(
+      "Synchronizace s Outlookem selhala – bude opakována",
+    );
+    expect(badge).toBeInTheDocument();
+    expect(badge.classList.contains("bg-red-500")).toBe(true);
+  });
+
+  it("does not render red dot badge when outlookSyncStatus is 'Synced'", () => {
+    const action: MarketingActionDto = {
+      id: 11,
+      title: "Synchronizovaná akce",
+      actionType: "General",
+      dateFrom: "2026-03-01",
+      dateTo: "2026-03-15",
+      outlookSyncStatus: "Synced",
+    };
+    render(<MarketingActionGrid {...defaultProps} actions={[action]} />);
+    expect(
+      screen.queryByTitle("Synchronizace s Outlookem selhala – bude opakována"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not render red dot badge when outlookSyncStatus is undefined", () => {
+    const action: MarketingActionDto = {
+      id: 12,
+      title: "Akce bez statusu",
+      actionType: "General",
+      dateFrom: "2026-03-01",
+      dateTo: "2026-03-15",
+    };
+    render(<MarketingActionGrid {...defaultProps} actions={[action]} />);
+    expect(
+      screen.queryByTitle("Synchronizace s Outlookem selhala – bude opakována"),
+    ).not.toBeInTheDocument();
+  });
+});

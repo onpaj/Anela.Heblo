@@ -14,6 +14,7 @@ export interface MarketingActionDto {
     label?: string;
     folderType?: string;
   }>;
+  outlookSyncStatus?: string;
 }
 
 const ACTION_TYPE_BADGE: Record<string, string> = {
@@ -95,7 +96,15 @@ const MarketingActionGrid: React.FC<MarketingActionGridProps> = ({
                 className="hover:bg-gray-50 cursor-pointer transition-colors"
               >
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                  {action.title}
+                  <div className="flex items-center gap-1.5">
+                    {action.title}
+                    {action.outlookSyncStatus === 'Failed' && (
+                      <span
+                        title="Synchronizace s Outlookem selhala – bude opakována"
+                        className="inline-block w-2 h-2 rounded-full bg-red-500 flex-shrink-0"
+                      />
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3">
                   <span
