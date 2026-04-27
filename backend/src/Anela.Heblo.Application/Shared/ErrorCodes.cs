@@ -131,7 +131,7 @@ public enum ErrorCodes
     // Transport module errors (14XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
     TransportBoxNotFound = 1401,
-    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     TransportBoxStateChangeError = 1402,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     TransportBoxCreationError = 1403,
