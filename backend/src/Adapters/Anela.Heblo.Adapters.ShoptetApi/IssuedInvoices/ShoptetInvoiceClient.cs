@@ -63,6 +63,13 @@ public class ShoptetInvoiceClient : IShoptetInvoiceClient
         return data?.Data?.Invoice;
     }
 
+    public async Task<string> GetInvoiceRawJsonAsync(string code, CancellationToken cancellationToken)
+    {
+        var response = await _http.GetAsync($"/api/invoices/{Uri.EscapeDataString(code)}", cancellationToken);
+        EnsureSuccess(response);
+        return await response.Content.ReadAsStringAsync(cancellationToken);
+    }
+
     private static void EnsureSuccess(HttpResponseMessage response)
     {
         try
