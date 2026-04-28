@@ -126,19 +126,28 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             var calendarViewBase = string.Format(CalendarViewBaseUrl, Uri.EscapeDataString(_options.GroupId));
             var url = $"{calendarViewBase}?startDateTime={fromUtc:O}&endDateTime={toUtc:O}&$select={select}";
 
-            var request = CreateRequest(HttpMethod.Get, url, token);
-            var response = await client.SendAsync(request, ct);
+            var allEvents = new List<OutlookEventDto>();
+            string? nextUrl = url;
 
-            if (!response.IsSuccessStatusCode)
+            while (nextUrl is not null)
             {
-                await ThrowCalendarSyncException(response, "ListEvents", ct);
+                var request = CreateRequest(HttpMethod.Get, nextUrl, token);
+                var response = await client.SendAsync(request, ct);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    await ThrowCalendarSyncException(response, "ListEvents", ct);
+                }
+
+                var stream = await response.Content.ReadAsStreamAsync(ct);
+                var collection = await JsonSerializer.DeserializeAsync<GraphEventCollection>(stream, JsonOptions, ct)
+                    ?? throw new InvalidOperationException("Graph ListEvents response deserialised to null.");
+
+                allEvents.AddRange(collection.Value);
+                nextUrl = collection.NextLink;
             }
 
-            var stream = await response.Content.ReadAsStreamAsync(ct);
-            var collection = await JsonSerializer.DeserializeAsync<GraphEventCollection>(stream, JsonOptions, ct)
-                ?? throw new InvalidOperationException("Graph ListEvents response deserialised to null.");
-
-            return collection.Value.AsReadOnly();
+            return allEvents.AsReadOnly();
         }
 
         private string BuildBaseUrl() =>

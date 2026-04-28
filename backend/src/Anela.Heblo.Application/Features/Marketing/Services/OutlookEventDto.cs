@@ -55,6 +55,9 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
     {
         [JsonPropertyName("value")]
         public List<OutlookEventDto> Value { get; set; } = new();
+
+        [JsonPropertyName("@odata.nextLink")]
+        public string? NextLink { get; set; }
     }
 
     internal class OutlookEventIdPayload
