@@ -13,6 +13,7 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
 {
     private readonly IMemoryCache _cache;
     private readonly IBoMClient _bomClient;
+    private readonly ILogger<FlexiProductPriceErpClient> _clientLogger;
     private const string CacheKey = "FlexiProductPrices";
 
     public FlexiProductPriceErpClient(
@@ -21,12 +22,14 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
         IResultHandler resultHandler,
         IMemoryCache cache,
         ILogger<ReceivedInvoiceClient> logger,
-        IBoMClient bomClient
+        IBoMClient bomClient,
+        ILogger<FlexiProductPriceErpClient> clientLogger
     )
         : base(connection, httpClientFactory, resultHandler, logger)
     {
         _cache = cache;
         _bomClient = bomClient;
+        _clientLogger = clientLogger;
     }
 
     protected override int QueryId => 41;
@@ -64,7 +67,22 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
 
         if (data == null)
         {
-            data = await GetAsync(0, cancellationToken);
+            try
+            {
+                data = await GetAsync(0, cancellationToken);
+            }
+            catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                _clientLogger.LogWarning(ex,
+                    "FlexiBee uzivatelsky-dotaz/41 request timed out (internal HttpClient timeout).");
+                throw;
+            }
+            catch (OperationCanceledException)
+            {
+                _clientLogger.LogInformation(
+                    "FlexiBee uzivatelsky-dotaz/41 request was canceled by the caller (client abort).");
+                throw;
+            }
 
             // Safe cache set with disposed object protection
             try

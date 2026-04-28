@@ -1,7 +1,9 @@
 using Anela.Heblo.Domain.Accounting.Ledger;
 using AutoMapper;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client.Clients.Accounting.Ledger;
+using Rem.FlexiBeeSDK.Model.Accounting.Ledger;
 
 namespace Anela.Heblo.Adapters.Flexi.Accounting.Ledger;
 
@@ -10,12 +12,14 @@ public class LedgerService : ILedgerService
     private readonly ILedgerClient _ledgerClient;
     private readonly IMemoryCache _cache;
     private readonly IMapper _mapper;
+    private readonly ILogger<LedgerService> _logger;
 
-    public LedgerService(ILedgerClient ledgerClient, IMemoryCache cache, IMapper mapper)
+    public LedgerService(ILedgerClient ledgerClient, IMemoryCache cache, IMapper mapper, ILogger<LedgerService> logger)
     {
         _ledgerClient = ledgerClient ?? throw new ArgumentNullException(nameof(ledgerClient));
         _cache = cache ?? throw new ArgumentNullException(nameof(cache));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<IList<LedgerItem>> GetLedgerItems(DateTime dateFrom, DateTime dateTo, IEnumerable<string>? debitAccountPrefix = null, IEnumerable<string>? creditAccountPrefix = null, string? department = null, CancellationToken cancellationToken = default)
@@ -30,14 +34,34 @@ public class LedgerService : ILedgerService
             return cachedResult!;
         }
 
-        // Získání dat z FlexiBee pomocí ILedgerClient s filtry
-        var flexiData = await _ledgerClient.GetAsync(
-            dateFrom,
-            dateTo,
-            debitPrefixes,
-            creditPrefixes,
-            department,
-            cancellationToken: cancellationToken);
+        IReadOnlyList<LedgerItemFlexiDto> flexiData;
+        try
+        {
+            // Získání dat z FlexiBee pomocí ILedgerClient s filtry
+            flexiData = await _ledgerClient.GetAsync(
+                dateFrom,
+                dateTo,
+                debitPrefixes,
+                creditPrefixes,
+                department,
+                cancellationToken: cancellationToken);
+        }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex,
+                "FlexiBee ucetni-denik/query request timed out (internal HttpClient timeout). " +
+                "DateFrom: {DateFrom}, DateTo: {DateTo}",
+                dateFrom, dateTo);
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation(
+                "FlexiBee ucetni-denik/query request was canceled by the caller (client abort). " +
+                "DateFrom: {DateFrom}, DateTo: {DateTo}",
+                dateFrom, dateTo);
+            throw;
+        }
 
         var result = _mapper.Map<List<LedgerItem>>(flexiData);
 
