@@ -135,7 +135,7 @@ public class ExpeditionProtocolDocument : IDocument
                         Variant = first.Variant,
                         WarehousePosition = first.WarehousePosition,
                         Unit = first.Unit,
-                        TotalQuantity = (int)g.Sum(i => i.Quantity),
+                        TotalQuantity = g.Sum(i => i.Quantity),
                         StockCount = first.StockCount,
                         IsFromSet = first.IsFromSet,
                     };
