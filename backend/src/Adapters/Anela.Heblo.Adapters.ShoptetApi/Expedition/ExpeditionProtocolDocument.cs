@@ -152,14 +152,13 @@ public class ExpeditionProtocolDocument : IDocument
     {
         container.Table(table =>
         {
-            table.ColumnsDefinition(cols =>
+            table.ColumnsDefinition(columns =>
             {
-                cols.RelativeColumn(2);    // Kód
-                cols.RelativeColumn(5);    // Popis položky
-                cols.RelativeColumn(3);    // Varianta
-                cols.RelativeColumn(1.5f); // Množství
-                cols.RelativeColumn(2);    // Pozice
-                cols.RelativeColumn(2);    // Stav skladu
+                columns.RelativeColumn(KodCol);
+                columns.RelativeColumn(PopisCol);
+                columns.RelativeColumn(MnozstviCol);
+                columns.RelativeColumn(PoziceCol);
+                columns.RelativeColumn(StavCol);
             });
 
             // Header row
@@ -167,7 +166,6 @@ public class ExpeditionProtocolDocument : IDocument
             {
                 header.Cell().Element(HeaderCell).Text("Kód").Bold();
                 header.Cell().Element(HeaderCell).Text("Popis položky").Bold();
-                header.Cell().Element(HeaderCell).Text("Varianta").Bold();
                 header.Cell().Element(HeaderCellCenter).Text("Množství").Bold();
                 header.Cell().Element(HeaderCellCenter).Text("Pozice").Bold();
                 header.Cell().Element(HeaderCellCenter).Text("Stav skladu").Bold();
@@ -183,7 +181,6 @@ public class ExpeditionProtocolDocument : IDocument
             {
                 table.Cell().Element(DataCell).Text(item.ProductCode);
                 table.Cell().Element(DataCell).Element(c => { RenderDescriptionCell(c, item.Name, item.Variant, italic: false); return c; });
-                table.Cell().Element(DataCell).Text(FormatVariant(item.Variant)).FontSize(8);
                 table.Cell().Element(CenteredDataCell)
                     .Text(FormatAmount(item.Quantity, item.Unit)).FontSize(11).Bold();
                 table.Cell().Element(CenteredDataCell)
@@ -194,15 +191,14 @@ public class ExpeditionProtocolDocument : IDocument
 
             foreach (var group in setGroups)
             {
-                // Sub-header spanning all 6 columns
-                table.Cell().ColumnSpan(6).Element(SetHeaderCell)
+                // Sub-header spanning all 5 columns
+                table.Cell().ColumnSpan(5).Element(SetHeaderCell)
                     .Text($"Sada: {group.Key}").Bold().FontSize(8);
 
                 foreach (var item in group)
                 {
                     table.Cell().Element(DataCell).Text(item.ProductCode).Italic();
                     table.Cell().Element(DataCell).Element(c => { RenderDescriptionCell(c, item.Name, item.Variant, italic: true); return c; });
-                    table.Cell().Element(DataCell).Text(FormatVariant(item.Variant)).FontSize(8).Italic();
                     table.Cell().Element(CenteredDataCell)
                         .Text(FormatAmount(item.Quantity, item.Unit)).FontSize(11).Bold().Italic();
                     table.Cell().Element(CenteredDataCell)
@@ -218,21 +214,19 @@ public class ExpeditionProtocolDocument : IDocument
     {
         container.Table(table =>
         {
-            table.ColumnsDefinition(cols =>
+            table.ColumnsDefinition(columns =>
             {
-                cols.RelativeColumn(2);    // Kód
-                cols.RelativeColumn(5);    // Popis položky
-                cols.RelativeColumn(3);    // Varianta
-                cols.RelativeColumn(1.5f); // Množství
-                cols.RelativeColumn(2);    // Pozice
-                cols.RelativeColumn(2);    // Stav skladu
+                columns.RelativeColumn(KodCol);
+                columns.RelativeColumn(PopisCol);
+                columns.RelativeColumn(MnozstviCol);
+                columns.RelativeColumn(PoziceCol);
+                columns.RelativeColumn(StavCol);
             });
 
             table.Header(header =>
             {
                 header.Cell().Element(SummaryHeaderCell).Text("Kód").Bold();
                 header.Cell().Element(SummaryHeaderCell).Text("Popis položky").Bold();
-                header.Cell().Element(SummaryHeaderCell).Text("Varianta").Bold();
                 header.Cell().Element(HeaderCellCenter).Text("Množství").Bold();
                 header.Cell().Element(HeaderCellCenter).Text("Pozice").Bold();
                 header.Cell().Element(HeaderCellCenter).Text("Stav skladu").Bold();
@@ -244,7 +238,6 @@ public class ExpeditionProtocolDocument : IDocument
                 {
                     table.Cell().Element(DataCell).Text(row.ProductCode).Italic();
                     table.Cell().Element(DataCell).Element(c => { RenderDescriptionCell(c, row.Name, row.Variant, italic: true); return c; });
-                    table.Cell().Element(DataCell).Text(FormatVariant(row.Variant)).FontSize(8).Italic();
                     table.Cell().Element(CenteredDataCell)
                         .Text(FormatAmount(row.TotalQuantity, row.Unit)).FontSize(11).Bold().Italic();
                     table.Cell().Element(CenteredDataCell)
@@ -256,7 +249,6 @@ public class ExpeditionProtocolDocument : IDocument
                 {
                     table.Cell().Element(DataCell).Text(row.ProductCode);
                     table.Cell().Element(DataCell).Element(c => { RenderDescriptionCell(c, row.Name, row.Variant, italic: false); return c; });
-                    table.Cell().Element(DataCell).Text(FormatVariant(row.Variant)).FontSize(8);
                     table.Cell().Element(CenteredDataCell)
                         .Text(FormatAmount(row.TotalQuantity, row.Unit)).FontSize(11).Bold();
                     table.Cell().Element(CenteredDataCell)
