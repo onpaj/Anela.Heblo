@@ -16,11 +16,11 @@ public class ExpeditionProtocolDocument : IDocument
     private const float BorderPadding = 4f;
     private const float OrderGap = 6f;
     private const float VariantFontSize = 7f;
-    private static readonly string VariantColor = Colors.Grey.Darken1;
+    private static readonly Color VariantColor = Colors.Grey.Darken1;
 
     // Column relative widths for both per-order and summary tables.
     private const float KodCol = 2f;
-    private const float PopisCol = 8f;
+    private const float PopisCol = 8f; // absorbs former Varianta column (current 5 + 3)
     private const float MnozstviCol = 1.5f;
     private const float PoziceCol = 2f;
     private const float StavCol = 2f;
