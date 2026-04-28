@@ -70,7 +70,12 @@ public class ExpeditionProtocolDocument : IDocument
 
     private void ComposeOrderBlock(IContainer container, ExpeditionOrder order)
     {
-        container.Column(orderCol =>
+        container
+            .PaddingBottom(OrderGap)
+            .Border(BorderThickness)
+            .BorderColor(Colors.Grey.Darken2)
+            .Padding(BorderPadding)
+            .Column(orderCol =>
         {
             // Order heading: "Objednávka " + bold code — 30% larger than body (9 * 1.3 ≈ 12)
             orderCol.Item().Text(t =>
@@ -109,8 +114,6 @@ public class ExpeditionProtocolDocument : IDocument
             // Items table
             BuildItemsTable(orderCol.Item(), order.Items);
 
-            orderCol.Item().PaddingTop(5).PaddingBottom(3)
-                .LineHorizontal(1f).LineColor(Colors.Grey.Darken2);
         });
     }
 
