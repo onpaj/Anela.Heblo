@@ -22,7 +22,7 @@ import type { CalendarEvent } from '../calendar/fullcalendarAdapters';
 import { PAGE_CONTAINER_HEIGHT } from '../../../constants/layout';
 import { useAuth } from '../../../auth/useAuth';
 
-const MARKETING_IMPORT_ROLE = 'KnowledgeBaseManager';
+const MARKETING_IMPORT_ROLE = 'super_user';
 
 const CZECH_MONTHS = [
   'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
