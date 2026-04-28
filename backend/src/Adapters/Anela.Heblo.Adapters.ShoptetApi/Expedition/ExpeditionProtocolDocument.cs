@@ -110,16 +110,6 @@ public class ExpeditionProtocolDocument : IDocument
                             });
 
                             // Header row
-                            static IContainer HeaderCell(IContainer c) =>
-                                c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
-                                 .Background(Colors.Grey.Lighten3)
-                                 .Padding(2);
-
-                            static IContainer HeaderCellCenter(IContainer c) =>
-                                c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
-                                 .Background(Colors.Grey.Lighten3)
-                                 .Padding(2).AlignCenter();
-
                             table.Header(header =>
                             {
                                 header.Cell().Element(HeaderCell).Text("Kód").Bold();
@@ -129,18 +119,6 @@ public class ExpeditionProtocolDocument : IDocument
                                 header.Cell().Element(HeaderCellCenter).Text("Pozice").Bold();
                                 header.Cell().Element(HeaderCellCenter).Text("Stav skladu").Bold();
                             });
-
-                            static IContainer DataCell(IContainer c) =>
-                                c.Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(2);
-
-                            static IContainer CenteredDataCell(IContainer c) =>
-                                c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
-                                 .Padding(2).AlignCenter().AlignMiddle();
-
-                            static IContainer SetHeaderCell(IContainer c) =>
-                                c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
-                                 .Background(Colors.Grey.Lighten2)
-                                 .Padding(2);
 
                             var regularItems = order.Items.Where(i => i.SetName == null).ToList();
                             var setGroups = order.Items
@@ -226,57 +204,40 @@ public class ExpeditionProtocolDocument : IDocument
                         cols.RelativeColumn(2);   // Stav skladu
                     });
 
-                    static IContainer SummaryHeaderCell(IContainer c) =>
-                        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
-                         .Background(Colors.Grey.Lighten3)
-                         .Padding(3);
-
-                    static IContainer SummaryHeaderCellCenter(IContainer c) =>
-                        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
-                         .Background(Colors.Grey.Lighten3)
-                         .Padding(2).AlignCenter();
-
                     table.Header(header =>
                     {
                         header.Cell().Element(SummaryHeaderCell).Text("Kód").Bold();
                         header.Cell().Element(SummaryHeaderCell).Text("Popis položky").Bold();
                         header.Cell().Element(SummaryHeaderCell).Text("Varianta").Bold();
-                        header.Cell().Element(SummaryHeaderCellCenter).Text("Množství").Bold();
-                        header.Cell().Element(SummaryHeaderCellCenter).Text("Pozice").Bold();
-                        header.Cell().Element(SummaryHeaderCellCenter).Text("Stav skladu").Bold();
+                        header.Cell().Element(HeaderCellCenter).Text("Množství").Bold();
+                        header.Cell().Element(HeaderCellCenter).Text("Pozice").Bold();
+                        header.Cell().Element(HeaderCellCenter).Text("Stav skladu").Bold();
                     });
-
-                    static IContainer SummaryDataCell(IContainer c) =>
-                        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(2);
-
-                    static IContainer SummaryCenteredDataCell(IContainer c) =>
-                        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
-                         .Padding(2).AlignCenter().AlignMiddle();
 
                     foreach (var row in aggregated)
                     {
                         if (row.IsFromSet)
                         {
-                            table.Cell().Element(SummaryDataCell).Text(row.Code).Italic();
-                            table.Cell().Element(SummaryDataCell).Text(row.Name).Italic();
-                            table.Cell().Element(SummaryDataCell).Text(FormatVariant(row.Variant)).FontSize(8).Italic();
-                            table.Cell().Element(SummaryCenteredDataCell)
+                            table.Cell().Element(DataCell).Text(row.Code).Italic();
+                            table.Cell().Element(DataCell).Text(row.Name).Italic();
+                            table.Cell().Element(DataCell).Text(FormatVariant(row.Variant)).FontSize(8).Italic();
+                            table.Cell().Element(CenteredDataCell)
                                 .Text(FormatAmount(row.TotalQty, row.Unit)).FontSize(11).Bold().Italic();
-                            table.Cell().Element(SummaryCenteredDataCell)
+                            table.Cell().Element(CenteredDataCell)
                                 .Text(row.WarehousePosition ?? string.Empty).FontSize(8).Italic();
-                            table.Cell().Element(SummaryCenteredDataCell)
+                            table.Cell().Element(CenteredDataCell)
                                 .Text(row.StockCount.ToString("0.##")).Italic();
                         }
                         else
                         {
-                            table.Cell().Element(SummaryDataCell).Text(row.Code);
-                            table.Cell().Element(SummaryDataCell).Text(row.Name);
-                            table.Cell().Element(SummaryDataCell).Text(FormatVariant(row.Variant)).FontSize(8);
-                            table.Cell().Element(SummaryCenteredDataCell)
+                            table.Cell().Element(DataCell).Text(row.Code);
+                            table.Cell().Element(DataCell).Text(row.Name);
+                            table.Cell().Element(DataCell).Text(FormatVariant(row.Variant)).FontSize(8);
+                            table.Cell().Element(CenteredDataCell)
                                 .Text(FormatAmount(row.TotalQty, row.Unit)).FontSize(11).Bold();
-                            table.Cell().Element(SummaryCenteredDataCell)
+                            table.Cell().Element(CenteredDataCell)
                                 .Text(row.WarehousePosition ?? string.Empty).FontSize(8);
-                            table.Cell().Element(SummaryCenteredDataCell)
+                            table.Cell().Element(CenteredDataCell)
                                 .Text(row.StockCount.ToString("0.##"));
                         }
                     }
@@ -314,4 +275,32 @@ public class ExpeditionProtocolDocument : IDocument
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         return data.ToArray();
     }
+
+    // Cell style helpers — shared by per-order and summary tables.
+    private static IContainer HeaderCell(IContainer c) =>
+        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+         .Background(Colors.Grey.Lighten3)
+         .Padding(2);
+
+    private static IContainer HeaderCellCenter(IContainer c) =>
+        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+         .Background(Colors.Grey.Lighten3)
+         .Padding(2).AlignCenter();
+
+    private static IContainer SummaryHeaderCell(IContainer c) =>
+        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+         .Background(Colors.Grey.Lighten3)
+         .Padding(3);
+
+    private static IContainer SetHeaderCell(IContainer c) =>
+        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+         .Background(Colors.Grey.Lighten2)
+         .Padding(2);
+
+    private static IContainer DataCell(IContainer c) =>
+        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(2);
+
+    private static IContainer CenteredDataCell(IContainer c) =>
+        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1)
+         .Padding(2).AlignCenter().AlignMiddle();
 }
