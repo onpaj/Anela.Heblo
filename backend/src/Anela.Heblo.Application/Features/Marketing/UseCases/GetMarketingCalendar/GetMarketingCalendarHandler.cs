@@ -38,6 +38,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.GetMarketingCalend
                         .Select(pa => pa.ProductCodePrefix)
                         .Distinct()
                         .ToList(),
+                    OutlookSyncStatus = a.OutlookSyncStatus.ToString(),
                 }).ToList(),
             };
         }

@@ -7,6 +7,7 @@ export interface CalendarEvent {
   dateFrom: string; // YYYY-MM-DD
   dateTo: string;   // YYYY-MM-DD, inclusive
   associatedProducts: string[];
+  outlookSyncStatus?: string;
 }
 
 export const ACTION_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -52,6 +53,7 @@ export function toFcEvent(event: CalendarEvent): EventInput {
     extendedProps: {
       actionType: event.actionType,
       associatedProducts: event.associatedProducts,
+      outlookSyncStatus: event.outlookSyncStatus,
     },
   };
 }

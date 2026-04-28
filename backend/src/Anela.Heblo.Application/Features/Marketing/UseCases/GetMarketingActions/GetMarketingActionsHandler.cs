@@ -74,6 +74,8 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.GetMarketingAction
                         FolderType = fl.FolderType.ToString(),
                     })
                     .ToList(),
+                OutlookSyncStatus = action.OutlookSyncStatus.ToString(),
+                OutlookEventId = action.OutlookEventId,
             };
     }
 }

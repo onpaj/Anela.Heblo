@@ -127,5 +127,29 @@ namespace Anela.Heblo.Persistence.Marketing
                 .OrderBy(x => x.StartDate)
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task<List<MarketingAction>> GetFailedOutlookSyncAsync(int batchSize, CancellationToken cancellationToken = default)
+        {
+            return await Context.Set<MarketingAction>()
+                .IgnoreQueryFilters()
+                .Where(x => x.OutlookSyncStatus == MarketingSyncStatus.Failed)
+                .OrderBy(x => x.Id)
+                .Take(batchSize)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<MarketingAction>> GetByOutlookEventIdsAsync(
+            IReadOnlyCollection<string> outlookEventIds,
+            CancellationToken cancellationToken = default)
+        {
+            if (outlookEventIds.Count == 0)
+                return new List<MarketingAction>();
+
+            return await Context.Set<MarketingAction>()
+                // Include soft-deleted records — a deleted import must not be re-created.
+                .IgnoreQueryFilters()
+                .Where(x => x.OutlookEventId != null && outlookEventIds.Contains(x.OutlookEventId))
+                .ToListAsync(cancellationToken);
+        }
     }
 }

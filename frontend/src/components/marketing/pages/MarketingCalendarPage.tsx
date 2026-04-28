@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
-import { Plus, Calendar, List } from 'lucide-react';
+import { Plus, Calendar, List, Download } from 'lucide-react';
 import type FullCalendar from '@fullcalendar/react';
 import CalendarNavigation from '../../manufacture/calendar/CalendarNavigation';
 import MarketingMonthCalendar from '../calendar/MarketingMonthCalendar';
@@ -10,6 +10,7 @@ import MarketingActionFilters, {
   type MarketingFilters,
 } from '../list/MarketingActionFilters';
 import MarketingActionModal from '../detail/MarketingActionModal';
+import ImportFromOutlookModal from '../detail/ImportFromOutlookModal';
 import {
   useMarketingCalendar,
   useMarketingActions,
@@ -19,6 +20,9 @@ import {
 import { ACTION_TYPE_TO_INT, formatDateStr } from '../calendar/fullcalendarAdapters';
 import type { CalendarEvent } from '../calendar/fullcalendarAdapters';
 import { PAGE_CONTAINER_HEIGHT } from '../../../constants/layout';
+import { useAuth } from '../../../auth/useAuth';
+
+const MARKETING_IMPORT_ROLE = 'KnowledgeBaseManager';
 
 const CZECH_MONTHS = [
   'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
@@ -48,8 +52,12 @@ const MarketingCalendarPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<MarketingActionDto | null>(null);
   const [prefillDates, setPrefillDates] = useState<{ dateFrom: string; dateTo: string } | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const calendarRef = useRef<FullCalendar>(null);
+
+  const { getUserInfo } = useAuth();
+  const isAdmin = getUserInfo()?.roles?.includes(MARKETING_IMPORT_ROLE) ?? false;
 
   // API query range comes from FullCalendar's visible range (set via datesSet callback).
   // Fall back to a manual calculation on first render before datesSet fires.
@@ -82,6 +90,7 @@ const MarketingCalendarPage: React.FC = () => {
         dateFrom: a.startDate instanceof Date ? formatDateStr(a.startDate) : (a.dateFrom ?? ''),
         dateTo: a.endDate instanceof Date ? formatDateStr(a.endDate) : (a.dateTo ?? ''),
         associatedProducts: a.associatedProducts ?? [],
+        outlookSyncStatus: a.outlookSyncStatus,
       })),
     [calendarQuery.data],
   );
@@ -97,6 +106,7 @@ const MarketingCalendarPage: React.FC = () => {
         dateTo: a.endDate ?? a.dateTo,
         associatedProducts: a.associatedProducts,
         folderLinks: a.folderLinks,
+        outlookSyncStatus: a.outlookSyncStatus,
       })),
     [listQuery.data],
   );
@@ -247,6 +257,15 @@ const MarketingCalendarPage: React.FC = () => {
             <Plus className="h-4 w-4" />
             Nová akce
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              <Download className="h-4 w-4" />
+              Import z Outlooku
+            </button>
+          )}
         </div>
       </div>
 
@@ -319,6 +338,11 @@ const MarketingCalendarPage: React.FC = () => {
         onClose={closeModal}
         existingAction={editingAction}
         prefillDates={prefillDates}
+      />
+
+      <ImportFromOutlookModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
       />
     </div>
   );

@@ -11,5 +11,6 @@ namespace Anela.Heblo.Application.Features.Marketing.Contracts
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public List<string> AssociatedProducts { get; set; } = new();
+        public string OutlookSyncStatus { get; set; } = "NotSynced";
     }
 }
