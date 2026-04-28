@@ -183,7 +183,7 @@ public class ExpeditionProtocolDocument : IDocument
             foreach (var item in regularItems)
             {
                 table.Cell().Element(DataCell).Text(item.ProductCode);
-                table.Cell().Element(DataCell).Element(c => { RenderDescriptionCell(c, item.Name, item.Variant, italic: false); return c; });
+                RenderDescriptionCell(table.Cell().Element(DataCell), item.Name, item.Variant, italic: false);
                 table.Cell().Element(CenteredDataCell)
                     .Text(FormatAmount(item.Quantity, item.Unit)).FontSize(11).Bold();
                 table.Cell().Element(CenteredDataCell)
@@ -201,7 +201,7 @@ public class ExpeditionProtocolDocument : IDocument
                 foreach (var item in group)
                 {
                     table.Cell().Element(DataCell).Text(item.ProductCode).Italic();
-                    table.Cell().Element(DataCell).Element(c => { RenderDescriptionCell(c, item.Name, item.Variant, italic: true); return c; });
+                    RenderDescriptionCell(table.Cell().Element(DataCell), item.Name, item.Variant, italic: true);
                     table.Cell().Element(CenteredDataCell)
                         .Text(FormatAmount(item.Quantity, item.Unit)).FontSize(11).Bold().Italic();
                     table.Cell().Element(CenteredDataCell)
@@ -240,7 +240,7 @@ public class ExpeditionProtocolDocument : IDocument
                 if (row.IsFromSet)
                 {
                     table.Cell().Element(DataCell).Text(row.ProductCode).Italic();
-                    table.Cell().Element(DataCell).Element(c => { RenderDescriptionCell(c, row.Name, row.Variant, italic: true); return c; });
+                    RenderDescriptionCell(table.Cell().Element(DataCell), row.Name, row.Variant, italic: true);
                     table.Cell().Element(CenteredDataCell)
                         .Text(FormatAmount(row.TotalQuantity, row.Unit)).FontSize(11).Bold().Italic();
                     table.Cell().Element(CenteredDataCell)
@@ -251,7 +251,7 @@ public class ExpeditionProtocolDocument : IDocument
                 else
                 {
                     table.Cell().Element(DataCell).Text(row.ProductCode);
-                    table.Cell().Element(DataCell).Element(c => { RenderDescriptionCell(c, row.Name, row.Variant, italic: false); return c; });
+                    RenderDescriptionCell(table.Cell().Element(DataCell), row.Name, row.Variant, italic: false);
                     table.Cell().Element(CenteredDataCell)
                         .Text(FormatAmount(row.TotalQuantity, row.Unit)).FontSize(11).Bold();
                     table.Cell().Element(CenteredDataCell)
