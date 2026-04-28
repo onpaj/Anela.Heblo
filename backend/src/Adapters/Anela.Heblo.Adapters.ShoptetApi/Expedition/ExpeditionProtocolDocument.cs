@@ -11,6 +11,20 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 
 public class ExpeditionProtocolDocument : IDocument
 {
+    // Layout constants — single source of truth for visual tuning.
+    private const float BorderThickness = 1.5f;
+    private const float BorderPadding = 4f;
+    private const float OrderGap = 6f;
+    private const float VariantFontSize = 7f;
+    private static readonly string VariantColor = Colors.Grey.Darken1;
+
+    // Column relative widths for both per-order and summary tables.
+    private const float KodCol = 2f;
+    private const float PopisCol = 8f;
+    private const float MnozstviCol = 1.5f;
+    private const float PoziceCol = 2f;
+    private const float StavCol = 2f;
+
     private readonly ExpeditionProtocolData _data;
     public ExpeditionProtocolDocument(ExpeditionProtocolData data)
     {
