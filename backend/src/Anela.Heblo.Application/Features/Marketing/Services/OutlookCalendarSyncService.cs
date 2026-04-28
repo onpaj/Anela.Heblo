@@ -179,12 +179,18 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             return request;
         }
 
-        private static async Task ThrowCalendarSyncException(HttpResponseMessage response, string operation, CancellationToken ct)
+        private async Task ThrowCalendarSyncException(HttpResponseMessage response, string operation, CancellationToken ct)
         {
             var rawBody = await response.Content.ReadAsStringAsync(ct);
             var truncatedBody = rawBody.Length > MaxResponseBodyLength
                 ? rawBody[..MaxResponseBodyLength]
                 : rawBody;
+
+            _logger.LogError(
+                "Graph {Operation} failed with status {StatusCode}. Response: {GraphResponse}",
+                operation,
+                (int)response.StatusCode,
+                truncatedBody);
 
             throw new OutlookCalendarSyncException(
                 response.StatusCode,
