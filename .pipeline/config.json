@@ -15,6 +15,7 @@
   "defaults": {
     "dead_letter_threshold": 3,
     "max_revisions": 3,
-    "poll_interval_seconds": 1.0
+    "poll_interval_seconds": 1.0,
+    "github_poll_interval_seconds": 15.0
   }
 }
