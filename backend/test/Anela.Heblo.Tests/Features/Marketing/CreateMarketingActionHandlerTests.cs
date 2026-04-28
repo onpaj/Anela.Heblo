@@ -31,7 +31,7 @@ public class CreateMarketingActionHandlerTests
         _loggerMock = new Mock<ILogger<CreateMarketingActionHandler>>();
         _outlookSyncMock = new Mock<IOutlookCalendarSync>();
 
-        var options = new MarketingCalendarOptions { PushEnabled = false, MailboxUpn = "test@example.com" };
+        var options = new MarketingCalendarOptions { PushEnabled = false, GroupEmail = "test@example.com" };
         var mockOptions = new Mock<IOptions<MarketingCalendarOptions>>();
         mockOptions.Setup(o => o.Value).Returns(options);
 
