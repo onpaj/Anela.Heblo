@@ -297,6 +297,31 @@ public class ExpeditionProtocolDocument : IDocument
          .Background(Colors.Grey.Lighten2)
          .Padding(2);
 
+    private static void RenderDescriptionCell(
+        IContainer cell,
+        string name,
+        string? variant,
+        bool italic)
+    {
+        var formattedVariant = FormatVariant(variant);
+
+        cell.Text(text =>
+        {
+            var nameSpan = text.Span(name);
+            if (italic) nameSpan.Italic();
+
+            if (!string.IsNullOrEmpty(formattedVariant))
+            {
+                text.Line(string.Empty); // forces line break before variant
+                var variantSpan = text
+                    .Span(formattedVariant)
+                    .FontSize(VariantFontSize)
+                    .FontColor(VariantColor);
+                if (italic) variantSpan.Italic();
+            }
+        });
+    }
+
     private static IContainer DataCell(IContainer c) =>
         c.Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(2);
 
