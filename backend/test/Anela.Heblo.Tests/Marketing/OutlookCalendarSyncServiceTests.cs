@@ -14,7 +14,7 @@ namespace Anela.Heblo.Tests.Marketing
 {
     public class OutlookCalendarSyncServiceTests
     {
-        private const string TestGroupEmail = "calendar@example.com";
+        private const string TestGroupId = "calendar@example.com";
         private const string FakeToken = "fake-token";
 
         private readonly Mock<ITokenAcquisition> _tokenAcquisition;
@@ -35,7 +35,7 @@ namespace Anela.Heblo.Tests.Marketing
 
             var options = Options.Create(new MarketingCalendarOptions
             {
-                GroupEmail = TestGroupEmail,
+                GroupId = TestGroupId,
                 PushEnabled = true
             });
 
@@ -91,7 +91,7 @@ namespace Anela.Heblo.Tests.Marketing
 
             // Assert — URL contains mailbox UPN and /calendar/events
             handler.LastRequestUri.Should().NotBeNull();
-            handler.LastRequestUri!.ToString().Should().Contain(Uri.EscapeDataString(TestGroupEmail));
+            handler.LastRequestUri!.ToString().Should().Contain(Uri.EscapeDataString(TestGroupId));
             handler.LastRequestUri.ToString().Should().Contain("/calendar/events");
 
             // Assert — HTTP method

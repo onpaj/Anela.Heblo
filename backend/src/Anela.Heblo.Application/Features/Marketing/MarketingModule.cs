@@ -14,8 +14,8 @@ namespace Anela.Heblo.Application.Features.Marketing
             services.AddOptions<MarketingCalendarOptions>()
                 .Bind(configuration.GetSection(MarketingCalendarOptions.SectionName))
                 .Validate(
-                    o => !string.IsNullOrWhiteSpace(o.GroupEmail) || !o.PushEnabled,
-                    "MarketingCalendar:GroupEmail must be configured when PushEnabled is true.")
+                    o => !string.IsNullOrWhiteSpace(o.GroupId) || !o.PushEnabled,
+                    "MarketingCalendar:GroupId must be configured when PushEnabled is true.")
                 .ValidateOnStart();
 
             services.AddScoped<IMarketingActionRepository, MarketingActionRepository>();

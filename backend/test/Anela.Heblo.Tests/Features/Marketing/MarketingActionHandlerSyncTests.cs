@@ -50,7 +50,7 @@ namespace Anela.Heblo.Tests.Features.Marketing
 
         private CreateMarketingActionHandler BuildCreateHandler(bool pushEnabled)
         {
-            var options = new MarketingCalendarOptions { PushEnabled = pushEnabled, GroupEmail = "cal@example.com" };
+            var options = new MarketingCalendarOptions { PushEnabled = pushEnabled, GroupId = "cal@example.com" };
             var mockOptions = new Mock<IOptions<MarketingCalendarOptions>>();
             mockOptions.Setup(o => o.Value).Returns(options);
 
@@ -64,7 +64,7 @@ namespace Anela.Heblo.Tests.Features.Marketing
 
         private UpdateMarketingActionHandler BuildUpdateHandler(bool pushEnabled)
         {
-            var options = new MarketingCalendarOptions { PushEnabled = pushEnabled, GroupEmail = "cal@example.com" };
+            var options = new MarketingCalendarOptions { PushEnabled = pushEnabled, GroupId = "cal@example.com" };
             var mockOptions = new Mock<IOptions<MarketingCalendarOptions>>();
             mockOptions.Setup(o => o.Value).Returns(options);
 
@@ -78,7 +78,7 @@ namespace Anela.Heblo.Tests.Features.Marketing
 
         private DeleteMarketingActionHandler BuildDeleteHandler(bool pushEnabled)
         {
-            var options = new MarketingCalendarOptions { PushEnabled = pushEnabled, GroupEmail = "cal@example.com" };
+            var options = new MarketingCalendarOptions { PushEnabled = pushEnabled, GroupId = "cal@example.com" };
             var mockOptions = new Mock<IOptions<MarketingCalendarOptions>>();
             mockOptions.Setup(o => o.Value).Returns(options);
 

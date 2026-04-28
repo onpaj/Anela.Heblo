@@ -43,7 +43,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 
         public async Task<string> CreateEventAsync(MarketingAction action, CancellationToken ct)
         {
-            _logger.LogDebug("Creating Outlook event for marketing action {ActionId} in mailbox {Mailbox}", action.Id, _options.GroupEmail);
+            _logger.LogDebug("Creating Outlook event for marketing action {ActionId} in mailbox {Mailbox}", action.Id, _options.GroupId);
 
             var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
@@ -117,13 +117,13 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 
         public async Task<IReadOnlyList<OutlookEventDto>> ListEventsAsync(DateTime fromUtc, DateTime toUtc, CancellationToken ct)
         {
-            _logger.LogDebug("Listing Outlook events from {From} to {To} in mailbox {Mailbox}", fromUtc, toUtc, _options.GroupEmail);
+            _logger.LogDebug("Listing Outlook events from {From} to {To} in mailbox {Mailbox}", fromUtc, toUtc, _options.GroupId);
 
             var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
             var select = "id,subject,body,start,end,categories";
-            var calendarViewBase = string.Format(CalendarViewBaseUrl, Uri.EscapeDataString(_options.GroupEmail));
+            var calendarViewBase = string.Format(CalendarViewBaseUrl, Uri.EscapeDataString(_options.GroupId));
             var url = $"{calendarViewBase}?startDateTime={fromUtc:O}&endDateTime={toUtc:O}&$select={select}";
 
             var request = CreateRequest(HttpMethod.Get, url, token);
@@ -142,7 +142,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
         }
 
         private string BuildBaseUrl() =>
-            string.Format(CalendarEventsBaseUrl, Uri.EscapeDataString(_options.GroupEmail));
+            string.Format(CalendarEventsBaseUrl, Uri.EscapeDataString(_options.GroupId));
 
         private static string BuildEventBody(MarketingAction action)
         {

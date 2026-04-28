@@ -4,7 +4,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Configuration
     {
         public const string SectionName = "MarketingCalendar";
 
-        public string GroupEmail { get; init; } = string.Empty;
+        public string GroupId { get; init; } = string.Empty;
         public bool PushEnabled { get; init; }
     }
 }
