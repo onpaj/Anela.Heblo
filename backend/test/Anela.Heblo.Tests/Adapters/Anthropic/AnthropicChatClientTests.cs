@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
+using Polly;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Adapters.Anthropic;
@@ -21,9 +22,13 @@ public class AnthropicChatClientTests
         HttpTimeoutSeconds = 60
     };
 
+    private static readonly ResiliencePipeline InstantRetryPipeline =
+        AnthropicChatClient.BuildPipeline(TimeSpan.Zero);
+
     private static AnthropicChatClient CreateClient(
         AnthropicOptions? options = null,
-        HttpMessageHandler? handler = null)
+        HttpMessageHandler? handler = null,
+        ResiliencePipeline? pipeline = null)
     {
         var opts = options ?? DefaultOptions;
 
@@ -41,7 +46,8 @@ public class AnthropicChatClientTests
         return new AnthropicChatClient(
             Options.Create(opts),
             factoryMock.Object,
-            NullLogger<AnthropicChatClient>.Instance);
+            NullLogger<AnthropicChatClient>.Instance,
+            pipeline);
     }
 
     private static Mock<HttpMessageHandler> CreateHandlerMock(
@@ -100,12 +106,138 @@ public class AnthropicChatClientTests
             HttpStatusCode.TooManyRequests,
             """{"error":{"message":"Rate limit exceeded"}}""");
 
-        var client = CreateClient(handler: handlerMock.Object);
+        var client = CreateClient(handler: handlerMock.Object, pipeline: InstantRetryPipeline);
         var messages = new[] { new ChatMessage(ChatRole.User, "Hi") };
 
         // Polly will retry 3 times then propagate
         await Assert.ThrowsAsync<HttpRequestException>(
             () => client.GetResponseAsync(messages));
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_529Response_RetriesThreeTimes_ThenThrowsWithCorrectStatusCode()
+    {
+        int callCount = 0;
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                return new HttpResponseMessage((HttpStatusCode)529)
+                {
+                    Content = new StringContent("""{"type":"error","error":{"type":"overloaded_error"}}""")
+                };
+            });
+
+        var client = CreateClient(handler: handlerMock.Object, pipeline: InstantRetryPipeline);
+        var messages = new[] { new ChatMessage(ChatRole.User, "Hi") };
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(
+            () => client.GetResponseAsync(messages));
+
+        Assert.Equal((HttpStatusCode)529, ex.StatusCode);
+        Assert.Equal(4, callCount); // 1 initial + 3 retries
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_400Response_DoesNotRetry()
+    {
+        int callCount = 0;
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                return new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("""{"error":"bad_request"}""")
+                };
+            });
+
+        var client = CreateClient(handler: handlerMock.Object, pipeline: InstantRetryPipeline);
+        var messages = new[] { new ChatMessage(ChatRole.User, "Hi") };
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(
+            () => client.GetResponseAsync(messages));
+
+        Assert.Equal(HttpStatusCode.BadRequest, ex.StatusCode);
+        Assert.Equal(1, callCount); // no retries
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_529WithRetryAfterHeader_StoresRetryAfterInException()
+    {
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                var response = new HttpResponseMessage((HttpStatusCode)529)
+                {
+                    Content = new StringContent("""{"type":"error","error":{"type":"overloaded_error"}}""")
+                };
+                response.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(30));
+                return response;
+            });
+
+        // Use a pipeline that won't retry so we can inspect the thrown exception directly
+        var noRetryPipeline = ResiliencePipeline.Empty;
+        var client = CreateClient(handler: handlerMock.Object, pipeline: noRetryPipeline);
+        var messages = new[] { new ChatMessage(ChatRole.User, "Hi") };
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(
+            () => client.GetResponseAsync(messages));
+
+        Assert.Equal((HttpStatusCode)529, ex.StatusCode);
+        Assert.Equal(TimeSpan.FromSeconds(30), ex.Data["RetryAfter"]);
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_529SucceedsAfterRetry_ReturnsAnswer()
+    {
+        int callCount = 0;
+        var handlerMock = new Mock<HttpMessageHandler>();
+        handlerMock
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(() =>
+            {
+                callCount++;
+                if (callCount < 3)
+                    return new HttpResponseMessage((HttpStatusCode)529)
+                    {
+                        Content = new StringContent("""{"type":"error","error":{"type":"overloaded_error"}}""")
+                    };
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(BuildSuccessJson("Recovered answer"))
+                };
+            });
+
+        var client = CreateClient(handler: handlerMock.Object, pipeline: InstantRetryPipeline);
+        var messages = new[] { new ChatMessage(ChatRole.User, "Hi") };
+
+        var response = await client.GetResponseAsync(messages);
+
+        Assert.Equal("Recovered answer", response.Text);
+        Assert.Equal(3, callCount);
     }
 
     [Fact]
