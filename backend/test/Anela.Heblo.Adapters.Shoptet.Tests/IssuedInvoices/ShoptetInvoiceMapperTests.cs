@@ -101,6 +101,8 @@ public class ShoptetInvoiceMapperTests
         var detail = BuildSut().Map(BuildMinimalDto());
         detail.Price.WithVat.Should().Be(242m);
         detail.Price.WithoutVat.Should().Be(200m, "sums line totals (TotalWithoutVat) for all items");
+        detail.Price.TotalWithVat.Should().Be(242m, "header TotalWithVat must equal sum of item TotalWithVat for DQT");
+        detail.Price.TotalWithoutVat.Should().Be(200m, "header TotalWithoutVat must equal sum of item TotalWithoutVat for DQT");
         // Vat = WithVat - WithoutVat = 242 - 200 = 42.
         detail.Price.Vat.Should().Be(42m);
         detail.Price.CurrencyCode.Should().Be("CZK");
@@ -170,6 +172,8 @@ public class ShoptetInvoiceMapperTests
 
         detail.Price.WithVat.Should().Be(363m);
         detail.Price.WithoutVat.Should().Be(300m, "must sum line totals (TotalWithoutVat) for all items");
+        detail.Price.TotalWithVat.Should().Be(363m, "header TotalWithVat must equal sum of item TotalWithVat for DQT");
+        detail.Price.TotalWithoutVat.Should().Be(300m, "header TotalWithoutVat must equal sum of item TotalWithoutVat for DQT");
         // Vat = WithVat - WithoutVat = 363 - 300 = 63.
         detail.Price.Vat.Should().Be(63m);
     }
@@ -312,6 +316,8 @@ public class ShoptetInvoiceMapperTests
         result.Items.Single(i => i.Code == "P2").ItemPrice.WithoutVat.Should().Be(180m);
         result.Price.WithoutVat.Should().Be(450m);
         result.Price.WithVat.Should().Be(544.5m);
+        result.Price.TotalWithoutVat.Should().Be(450m, "header TotalWithoutVat must mirror WithoutVat for DQT");
+        result.Price.TotalWithVat.Should().Be(544.5m, "header TotalWithVat must mirror WithVat for DQT");
     }
 
     [Fact]

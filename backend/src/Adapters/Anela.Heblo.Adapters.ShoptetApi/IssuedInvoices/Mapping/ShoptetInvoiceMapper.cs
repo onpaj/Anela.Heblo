@@ -66,9 +66,13 @@ public class ShoptetInvoiceMapper
         }
 
         var price = MapInvoicePrice(src.Price);
-        price.WithVat = products.Where(i => i.ItemPrice.VatRate != "none").Sum(i => i.ItemPrice.TotalWithVat);
-        price.WithoutVat = products.Sum(i => i.ItemPrice.TotalWithoutVat);
-        price.Vat = price.WithVat - price.WithoutVat;
+        var totalWithVat = products.Where(i => i.ItemPrice.VatRate != "none").Sum(i => i.ItemPrice.TotalWithVat);
+        var totalWithoutVat = products.Sum(i => i.ItemPrice.TotalWithoutVat);
+        price.WithVat = totalWithVat;
+        price.WithoutVat = totalWithoutVat;
+        price.TotalWithVat = totalWithVat;
+        price.TotalWithoutVat = totalWithoutVat;
+        price.Vat = totalWithVat - totalWithoutVat;
 
         return new IssuedInvoiceDetail
         {

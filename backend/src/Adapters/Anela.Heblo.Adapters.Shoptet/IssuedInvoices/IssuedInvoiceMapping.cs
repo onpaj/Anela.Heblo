@@ -29,22 +29,30 @@ namespace Anela.Heblo.Adapters.Shoptet.IssuedInvoices
 
                     if (i.InvoiceSummary.ForeignCurrency != null)
                     {
+                        var withVatFc = i.InvoiceSummary.ForeignCurrency.PriceSum;
+                        var withoutVatFc = ii.Items.Sum(s => s.ItemPrice.WithoutVat);
                         ii.Price = new InvoicePrice()
                         {
-                            WithVat = i.InvoiceSummary.ForeignCurrency.PriceSum,
+                            WithVat = withVatFc,
                             Vat = ii.Items.Sum(s => s.ItemPrice.Vat),
-                            WithoutVat = ii.Items.Sum(s => s.ItemPrice.WithoutVat),
+                            WithoutVat = withoutVatFc,
+                            TotalWithVat = withVatFc,
+                            TotalWithoutVat = withoutVatFc,
                             CurrencyCode = i.InvoiceSummary.ForeignCurrency.Currency.Ids,
                             ExchangeRate = i.InvoiceSummary.ForeignCurrency.Rate
                         };
                     }
                     else
                     {
+                        var withVatHc = i.InvoiceSummary.HomeCurrency.PriceHighSum;
+                        var withoutVatHc = ii.Items.Sum(s => s.ItemPrice.WithoutVat);
                         ii.Price = new InvoicePrice()
                         {
-                            WithVat = i.InvoiceSummary.HomeCurrency.PriceHighSum,
+                            WithVat = withVatHc,
                             Vat = ii.Items.Sum(s => s.ItemPrice.Vat),
-                            WithoutVat = ii.Items.Sum(s => s.ItemPrice.WithoutVat),
+                            WithoutVat = withoutVatHc,
+                            TotalWithVat = withVatHc,
+                            TotalWithoutVat = withoutVatHc,
                             CurrencyCode = "CZK",
                             ExchangeRate = 1,
                         };
