@@ -31,7 +31,7 @@ Use the read-only SQL pair documented in `docs/development/setup.md` under "Diag
 
 ## Durable safeguard
 
-`DataQualitySchemaHealthCheck` is registered under `/health/ready` with the `ready`, `db`, and `schema` tags. It executes `_db.DqtRuns.AsNoTracking().AnyAsync(ct)` on every readiness poll. If the relation is missing, the check returns `HealthStatus.Unhealthy` with structured `data` (`entity`, `expectedTable`, `schema`, `sqlState`), Azure App Service removes the instance from rotation, and on-call sees a structured drift signal instead of a 500 spike.
+`DataQualitySchemaHealthCheck` is registered under `/health/ready` with the `ready`, `db`, and `schema` tags. It executes `_db.DqtRuns.AsNoTracking().AnyAsync(ct)` on every readiness poll. If the relation is missing (Postgres SQLSTATE `42P01`), the check returns `HealthStatus.Unhealthy` with structured `data` (`entity`, `expectedTable`, `schema`, `sqlState`), Azure App Service removes the instance from rotation, and on-call sees a structured drift signal instead of a 500 spike.
 
 ## Known limitation of the safeguard
 
