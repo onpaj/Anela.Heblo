@@ -1,0 +1,1 @@
+Wrote `spec.md` at the worktree root.
