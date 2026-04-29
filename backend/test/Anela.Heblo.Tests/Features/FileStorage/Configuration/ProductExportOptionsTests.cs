@@ -1,11 +1,10 @@
-using System;
 using Anela.Heblo.Domain.Features.Configuration;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 
 namespace Anela.Heblo.Tests.Features.FileStorage.Configuration;
 
-public class ProductExportOptionsTests
+public sealed class ProductExportOptionsTests
 {
     [Fact]
     public void Defaults_HeadTimeout_Is10Seconds()
@@ -63,5 +62,23 @@ public class ProductExportOptionsTests
 
         // Assert
         options.HeadTimeout.Should().Be(TimeSpan.FromSeconds(30));
+    }
+
+    [Fact]
+    public void Configuration_BindsMaxRetryAttempts_FromInteger()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "MaxRetryAttempts", "5" },
+            })
+            .Build();
+
+        // Act
+        var options = configuration.Get<ProductExportOptions>()!;
+
+        // Assert
+        options.MaxRetryAttempts.Should().Be(5);
     }
 }

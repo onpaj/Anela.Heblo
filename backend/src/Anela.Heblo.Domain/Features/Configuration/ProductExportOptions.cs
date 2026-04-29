@@ -1,5 +1,3 @@
-using System;
-
 namespace Anela.Heblo.Domain.Features.Configuration;
 
 /// <summary>
