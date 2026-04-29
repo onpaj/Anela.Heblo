@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Shared;
 using MediatR;
 
@@ -19,6 +20,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Contracts
         public int Created { get; set; }
         public int Skipped { get; set; }
         public int Failed { get; set; }
+        [Required]
         public List<string> UnmappedCategories { get; set; } = new();
         public List<ImportedItemDto> Items { get; set; } = new();
 
