@@ -1,5 +1,7 @@
 using System.Reflection;
 using Npgsql;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Anela.Heblo.API.HealthChecks.DataQuality;
 using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.Xcc.Telemetry;
 using Anela.Heblo.API.Infrastructure.Telemetry;
@@ -78,7 +80,11 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddHealthCheckServices(this IServiceCollection services, IConfiguration configuration)
     {
         var healthChecksBuilder = services.AddHealthChecks()
-            .AddCheck<Anela.Heblo.Application.Common.BackgroundServicesReadyHealthCheck>("background-services-ready", tags: new[] { "ready" });
+            .AddCheck<Anela.Heblo.Application.Common.BackgroundServicesReadyHealthCheck>("background-services-ready", tags: new[] { "ready" })
+            .AddCheck<DataQualitySchemaHealthCheck>(
+                name: "data-quality-schema",
+                failureStatus: HealthStatus.Unhealthy,
+                tags: new[] { "ready", "db", "schema" });
 
         // Add database health check if connection string exists
         var dbConnectionString = configuration.GetConnectionString(ConfigurationConstants.DEFAULT_CONNECTION);
