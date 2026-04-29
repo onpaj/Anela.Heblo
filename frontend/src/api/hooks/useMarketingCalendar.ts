@@ -172,6 +172,7 @@ export interface ImportFromOutlookResult {
   created: number;
   skipped: number;
   failed: number;
+  // Always present — normalized from the generated client's optional field via `?? []` in handleImport.
   unmappedCategories: string[];
 }
 

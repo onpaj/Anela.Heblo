@@ -110,8 +110,8 @@ const ImportFromOutlookModal: React.FC<ImportFromOutlookModalProps> = ({ isOpen,
             </div>
           )}
 
-          {result && (result.unmappedCategories?.length ?? 0) > 0 && (
-            <UnmappedCategoriesPanel categories={result.unmappedCategories!} />
+          {result && result.unmappedCategories.length > 0 && (
+            <UnmappedCategoriesPanel categories={result.unmappedCategories} />
           )}
 
           {importMutation.isError && (
