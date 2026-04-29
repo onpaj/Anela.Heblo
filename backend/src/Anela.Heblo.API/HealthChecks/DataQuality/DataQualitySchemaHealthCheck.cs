@@ -1,7 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -37,7 +34,7 @@ public sealed class DataQualitySchemaHealthCheck : IHealthCheck
                     ["entity"] = "DqtRun",
                     ["expectedTable"] = "DqtRuns",
                     ["schema"] = "public",
-                    ["sqlState"] = ex.SqlState ?? "42P01"
+                    ["sqlState"] = ex.SqlState
                 });
         }
         catch (Exception ex)
