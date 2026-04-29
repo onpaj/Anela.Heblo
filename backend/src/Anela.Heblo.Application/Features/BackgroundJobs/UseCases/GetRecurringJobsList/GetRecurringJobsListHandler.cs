@@ -37,6 +37,18 @@ public class GetRecurringJobsListHandler : IRequestHandler<GetRecurringJobsListR
         var jobDtos = _mapper.Map<List<RecurringJobDto>>(jobs);
 
         var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
+
+        TimeZoneInfo? tz = null;
+        try
+        {
+            tz = TimeZoneInfo.FindSystemTimeZoneById(RecurringJobMetadata.DefaultTimeZoneId);
+        }
+        catch (TimeZoneNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Timezone '{TimeZoneId}' not found on host, NextRunAt will be null for all jobs",
+                RecurringJobMetadata.DefaultTimeZoneId);
+        }
+
         foreach (var dto in jobDtos)
         {
             if (!dto.IsEnabled)
@@ -45,9 +57,14 @@ public class GetRecurringJobsListHandler : IRequestHandler<GetRecurringJobsListR
                 continue;
             }
 
+            if (tz is null)
+            {
+                dto.NextRunAt = null;
+                continue;
+            }
+
             try
             {
-                var tz = TimeZoneInfo.FindSystemTimeZoneById(RecurringJobMetadata.DefaultTimeZoneId);
                 var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(utcNow, tz);
                 var nextLocal = CrontabSchedule.Parse(dto.CronExpression).GetNextOccurrence(nowLocal);
                 var nextUtc = TimeZoneInfo.ConvertTimeToUtc(
@@ -58,12 +75,6 @@ public class GetRecurringJobsListHandler : IRequestHandler<GetRecurringJobsListR
             {
                 _logger.LogWarning(ex, "Invalid CRON expression '{CronExpression}' for job '{JobName}', NextRunAt will be null",
                     dto.CronExpression, dto.JobName);
-                dto.NextRunAt = null;
-            }
-            catch (TimeZoneNotFoundException ex)
-            {
-                _logger.LogWarning(ex, "Timezone '{TimeZoneId}' not found on host, NextRunAt will be null for job '{JobName}'",
-                    RecurringJobMetadata.DefaultTimeZoneId, dto.JobName);
                 dto.NextRunAt = null;
             }
         }

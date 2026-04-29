@@ -299,7 +299,7 @@ public class GetRecurringJobsListHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenCronExpressionIsInvalid_SetsNextRunAtToNull_AndLogsTimezoneWarning()
+    public async Task Handle_WhenCronExpressionIsInvalid_SetsNextRunAtToNull_DoesNotThrow()
     {
         // Arrange — "INVALID_CRON" is syntactically invalid and will cause CrontabSchedule.Parse to throw
         // The TimeZoneNotFoundException catch is defensive; the CrontabException is what fires here
