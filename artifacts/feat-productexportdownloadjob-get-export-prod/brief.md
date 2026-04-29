@@ -1,5 +1,3 @@
-# Feature Brief: ProductExportDownloadJob: GET /export/products.csv failing with Faulted status
-
 ## Telemetry
 
 **Date**: 2026-04-29 (last 24 h)
@@ -28,6 +26,3 @@ The App Insights dependency failure shows `resultCode = Faulted`, which in .NET'
 2. **Add an explicit timeout** in `DownloadFromUrlHandler` or in the named `HttpClient` registration to fail fast rather than wait 100 s.
 3. **Add retry logic** (e.g. Polly) in `ProductExportDownloadJob` or `DownloadFromUrlHandler` for transient network failures.
 4. **Investigate why 3 failures** appeared in 24 h for a once-daily job — check if there is a retry mechanism or a duplicate job trigger.
-
----
-*Converted from GitHub issue #842: https://github.com/onpaj/Anela.Heblo/issues/842*
