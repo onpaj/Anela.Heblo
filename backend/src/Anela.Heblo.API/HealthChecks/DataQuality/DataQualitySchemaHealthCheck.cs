@@ -34,7 +34,7 @@ public sealed class DataQualitySchemaHealthCheck : IHealthCheck
                     ["entity"] = "DqtRun",
                     ["expectedTable"] = "DqtRuns",
                     ["schema"] = "public",
-                    ["sqlState"] = ex.SqlState
+                    ["sqlState"] = "42P01"
                 });
         }
         catch (Exception ex)
