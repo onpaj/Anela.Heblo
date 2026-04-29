@@ -172,6 +172,7 @@ export interface ImportFromOutlookResult {
   created: number;
   skipped: number;
   failed: number;
+  unmappedCategories: string[];
 }
 
 export const useImportFromOutlook = () => {

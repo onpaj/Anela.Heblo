@@ -4,6 +4,7 @@ import {
   useImportFromOutlook,
   type ImportFromOutlookResult,
 } from '../../../api/hooks/useMarketingCalendar';
+import { UnmappedCategoriesPanel } from './UnmappedCategoriesPanel';
 
 interface ImportFromOutlookModalProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ const ImportFromOutlookModal: React.FC<ImportFromOutlookModalProps> = ({ isOpen,
         created: data?.created ?? 0,
         skipped: data?.skipped ?? 0,
         failed: data?.failed ?? 0,
+        unmappedCategories: data?.unmappedCategories ?? [],
       });
     } catch {
       // importMutation.isError is set by react-query
@@ -106,6 +108,10 @@ const ImportFromOutlookModal: React.FC<ImportFromOutlookModalProps> = ({ isOpen,
               <p>Přeskočeno: <strong>{result.skipped}</strong></p>
               <p>Chyb: <strong>{result.failed}</strong></p>
             </div>
+          )}
+
+          {result && (result.unmappedCategories?.length ?? 0) > 0 && (
+            <UnmappedCategoriesPanel categories={result.unmappedCategories!} />
           )}
 
           {importMutation.isError && (
