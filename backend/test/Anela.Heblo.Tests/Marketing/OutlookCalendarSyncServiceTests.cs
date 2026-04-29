@@ -18,6 +18,7 @@ namespace Anela.Heblo.Tests.Marketing
         private const string FakeToken = "fake-token";
 
         private readonly Mock<ITokenAcquisition> _tokenAcquisition;
+        private readonly Mock<IMarketingCategoryMapper> _mapperMock;
 
         public OutlookCalendarSyncServiceTests()
         {
@@ -25,6 +26,11 @@ namespace Anela.Heblo.Tests.Marketing
             _tokenAcquisition
                 .Setup(t => t.GetAccessTokenForAppAsync(It.IsAny<string>(), null, null))
                 .ReturnsAsync(FakeToken);
+
+            _mapperMock = new Mock<IMarketingCategoryMapper>();
+            _mapperMock
+                .Setup(m => m.MapToOutlookCategory(It.IsAny<MarketingActionType>()))
+                .Returns((MarketingActionType t) => t.ToString());
         }
 
         private OutlookCalendarSyncService CreateService(FakeHttpMessageHandler handler)
@@ -43,6 +49,7 @@ namespace Anela.Heblo.Tests.Marketing
                 _tokenAcquisition.Object,
                 factory.Object,
                 options,
+                _mapperMock.Object,
                 NullLogger<OutlookCalendarSyncService>.Instance);
         }
 
@@ -284,6 +291,102 @@ namespace Anela.Heblo.Tests.Marketing
 
             result[1].Id.Should().Be("evt-b");
             result[1].Subject.Should().Be("Brand Campaign");
+        }
+
+        // ─── BuildEventBody (mapper integration) ──────────────────────────────────
+
+        [Fact]
+        public async Task BuildEventBody_UsesMapperOutlookCategory_WhenConfigured()
+        {
+            // Arrange — use a plain ASCII name to avoid JSON unicode-escape differences
+            _mapperMock
+                .Setup(m => m.MapToOutlookCategory(MarketingActionType.Campaign))
+                .Returns("PR-Summer");
+
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-x" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = new MarketingAction
+            {
+                Id = 1,
+                Title = "Test",
+                Description = string.Empty,
+                ActionType = MarketingActionType.Campaign,
+                StartDate = DefaultStartDate,
+                EndDate = DefaultEndDate,
+                CreatedAt = DateTime.UtcNow,
+                ModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = "user-1"
+            };
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert
+            handler.LastRequestBody.Should().Contain("PR-Summer");
+        }
+
+        [Fact]
+        public async Task BuildEventBody_FallsBackToToString_WhenMapperReturnsEnumName()
+        {
+            // Arrange
+            _mapperMock
+                .Setup(m => m.MapToOutlookCategory(MarketingActionType.Campaign))
+                .Returns("Campaign");
+
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-x" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = new MarketingAction
+            {
+                Id = 1,
+                Title = "Test",
+                Description = string.Empty,
+                ActionType = MarketingActionType.Campaign,
+                StartDate = DefaultStartDate,
+                EndDate = DefaultEndDate,
+                CreatedAt = DateTime.UtcNow,
+                ModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = "user-1"
+            };
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert
+            handler.LastRequestBody.Should().Contain("Campaign");
+        }
+
+        [Fact]
+        public async Task BuildEventBody_UsesMapperOutput_NotDirectToString()
+        {
+            // Arrange
+            _mapperMock
+                .Setup(m => m.MapToOutlookCategory(MarketingActionType.Campaign))
+                .Returns("FOOBAR");
+
+            var responseJson = JsonSerializer.Serialize(new { id = "evt-x" });
+            var handler = new FakeHttpMessageHandler(HttpStatusCode.Created, responseJson);
+            var service = CreateService(handler);
+            var action = new MarketingAction
+            {
+                Id = 1,
+                Title = "Test",
+                Description = string.Empty,
+                ActionType = MarketingActionType.Campaign,
+                StartDate = DefaultStartDate,
+                EndDate = DefaultEndDate,
+                CreatedAt = DateTime.UtcNow,
+                ModifiedAt = DateTime.UtcNow,
+                CreatedByUserId = "user-1"
+            };
+
+            // Act
+            await service.CreateEventAsync(action, CancellationToken.None);
+
+            // Assert
+            handler.LastRequestBody.Should().Contain("FOOBAR");
+            handler.LastRequestBody.Should().NotContain("\"Campaign\"");
         }
     }
 }
