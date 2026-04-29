@@ -1,9 +1,9 @@
+using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.FileStorage.Services;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Moq.Protected;
 using System.Net;
 using System.Text;
 using Xunit;
@@ -14,23 +14,105 @@ public class AzureBlobStorageServiceTests
 {
     private readonly Mock<BlobServiceClient> _mockBlobServiceClient;
     private readonly Mock<ILogger<AzureBlobStorageService>> _mockLogger;
-    private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
+    private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
+    private readonly StubHttpMessageHandler _stubHandler;
     private readonly AzureBlobStorageService _service;
 
     public AzureBlobStorageServiceTests()
     {
         _mockBlobServiceClient = new Mock<BlobServiceClient>();
         _mockLogger = new Mock<ILogger<AzureBlobStorageService>>();
-        _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+        _stubHandler = new StubHttpMessageHandler(HttpStatusCode.OK, "test content");
 
-        var httpClient = new HttpClient(_mockHttpMessageHandler.Object);
+        var httpClient = new HttpClient(_stubHandler) { BaseAddress = new Uri("http://test/") };
+        _mockHttpClientFactory = new Mock<IHttpClientFactory>();
+        _mockHttpClientFactory
+            .Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
+            .Returns(httpClient);
 
         _service = new AzureBlobStorageService(
             _mockBlobServiceClient.Object,
-            httpClient,
+            _mockHttpClientFactory.Object,
             _mockLogger.Object
         );
     }
+
+    // ---------------------------------------------------------------------------
+    // IHttpClientFactory constructor and resolution tests
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task DownloadFromUrlAsync_ResolvesNamedClient_ProductExportDownload()
+    {
+        // Arrange
+        var fileUrl = "https://example.com/export.csv";
+        var containerName = "exports";
+
+        var mockContainerClient = new Mock<BlobContainerClient>();
+        var mockBlobClient = new Mock<BlobClient>();
+        mockBlobClient.Setup(x => x.Uri)
+            .Returns(new Uri($"https://testaccount.blob.core.windows.net/{containerName}/export.csv"));
+        mockBlobClient.Setup(x => x.UploadAsync(
+            It.IsAny<Stream>(),
+            It.IsAny<BlobUploadOptions>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
+        mockContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(mockBlobClient.Object);
+        mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
+            It.IsAny<PublicAccessType>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
+        _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
+
+        // Act
+        await _service.DownloadFromUrlAsync(fileUrl, containerName);
+
+        // Assert — factory must have been asked for the named client exactly once
+        _mockHttpClientFactory.Verify(
+            f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DownloadFromUrlAsync_ThrowsHttpRequestException_OnNon2xx()
+    {
+        // Arrange
+        var handler = new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable);
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
+
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
+               .Returns(client);
+
+        var service = new AzureBlobStorageService(
+            _mockBlobServiceClient.Object,
+            factory.Object,
+            _mockLogger.Object);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            service.DownloadFromUrlAsync("https://example.com/file", "exports"));
+    }
+
+    [Fact]
+    public async Task DownloadFromUrlAsync_ForwardsCancellationToken()
+    {
+        // Arrange — token that is already cancelled
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            _service.DownloadFromUrlAsync(
+                "https://example.com/file",
+                "exports",
+                cancellationToken: cts.Token));
+    }
+
+    // ---------------------------------------------------------------------------
+    // GetContentTypeFromExtension (tested indirectly)
+    // ---------------------------------------------------------------------------
 
     [Theory]
     [InlineData(".jpg", "image/jpeg")]
@@ -49,6 +131,10 @@ public class AzureBlobStorageServiceTests
         Assert.NotEmpty(fileName); // Placeholder assertion
         Assert.NotEmpty(expectedContentType); // Verify expected content type is provided
     }
+
+    // ---------------------------------------------------------------------------
+    // GetBlobUrl
+    // ---------------------------------------------------------------------------
 
     [Fact]
     public void GetBlobUrl_ValidContainerAndBlobName_ShouldReturnCorrectUrl()
@@ -72,6 +158,10 @@ public class AzureBlobStorageServiceTests
         Assert.Equal(expectedUrl.ToString(), result);
     }
 
+    // ---------------------------------------------------------------------------
+    // DownloadFromUrlAsync — content-type extension inference
+    // ---------------------------------------------------------------------------
+
     [Theory]
     [InlineData("image/jpeg", ".jpg")]
     [InlineData("image/png", ".png")]
@@ -85,41 +175,32 @@ public class AzureBlobStorageServiceTests
         var fileUrl = "https://example.com/file";
         var containerName = "documents";
 
+        // Build an HttpContent with the specific content-type header and wire it into the factory.
         var responseContent = new StringContent("test content");
         responseContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
 
-        var response = new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = responseContent
-        };
+        var handler = new StubHttpMessageHandler(HttpStatusCode.OK, overrideContent: responseContent);
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
+        _mockHttpClientFactory
+            .Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
+            .Returns(client);
 
-        _mockHttpMessageHandler
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(response);
-
-        // Mock Azure Blob Storage calls
-        var mockContainerClient = new Mock<BlobContainerClient>();
-        var mockBlobClient = new Mock<BlobClient>();
         var expectedBlobUrl = $"https://testaccount.blob.core.windows.net/{containerName}/downloaded-file-guid{expectedExtension}";
 
+        var mockContainerClient = new Mock<BlobContainerClient>();
+        var mockBlobClient = new Mock<BlobClient>();
         mockBlobClient.Setup(x => x.Uri).Returns(new Uri(expectedBlobUrl));
         mockBlobClient.Setup(x => x.UploadAsync(
             It.IsAny<Stream>(),
             It.IsAny<BlobUploadOptions>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContentInfo>>()));
-
         mockContainerClient.Setup(x => x.GetBlobClient(It.IsAny<string>())).Returns(mockBlobClient.Object);
         mockContainerClient.Setup(x => x.CreateIfNotExistsAsync(
             It.IsAny<PublicAccessType>(),
             It.IsAny<IDictionary<string, string>>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>()));
-
         _mockBlobServiceClient.Setup(x => x.GetBlobContainerClient(containerName)).Returns(mockContainerClient.Object);
 
         // Act
@@ -129,6 +210,10 @@ public class AzureBlobStorageServiceTests
         Assert.NotNull(result);
         Assert.Contains(containerName, result);
     }
+
+    // ---------------------------------------------------------------------------
+    // UploadAsync
+    // ---------------------------------------------------------------------------
 
     [Fact]
     public async Task UploadAsync_ValidStream_ShouldUploadSuccessfully()
@@ -218,6 +303,10 @@ public class AzureBlobStorageServiceTests
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    // ---------------------------------------------------------------------------
+    // DeleteAsync
+    // ---------------------------------------------------------------------------
+
     [Fact]
     public async Task DeleteAsync_ExistingBlob_ShouldReturnTrue()
     {
@@ -270,6 +359,10 @@ public class AzureBlobStorageServiceTests
         Assert.False(result);
     }
 
+    // ---------------------------------------------------------------------------
+    // ExistsAsync
+    // ---------------------------------------------------------------------------
+
     [Fact]
     public async Task ExistsAsync_ExistingBlob_ShouldReturnTrue()
     {
@@ -316,27 +409,36 @@ public class AzureBlobStorageServiceTests
         Assert.False(result);
     }
 
+    // ---------------------------------------------------------------------------
+    // DownloadFromUrlAsync — error propagation
+    // ---------------------------------------------------------------------------
+
     [Fact]
     public async Task DownloadAndUploadFromUrl_HttpRequestException_ShouldThrow()
     {
-        // Arrange
-        var fileUrl = "https://example.com/nonexistent.pdf";
-        var containerName = "documents";
+        // Arrange — factory returns a client whose handler throws HttpRequestException
+        var handler = new ThrowingHttpMessageHandler(new HttpRequestException("File not found"));
+        var client = new HttpClient(handler) { BaseAddress = new Uri("http://test/") };
 
-        _mockHttpMessageHandler
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .ThrowsAsync(new HttpRequestException("File not found"));
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient(FileStorageModule.ProductExportDownloadClientName))
+               .Returns(client);
+
+        var service = new AzureBlobStorageService(
+            _mockBlobServiceClient.Object,
+            factory.Object,
+            _mockLogger.Object);
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<HttpRequestException>(() =>
-            _service.DownloadFromUrlAsync(fileUrl, containerName));
+            service.DownloadFromUrlAsync("https://example.com/nonexistent.pdf", "documents"));
 
         Assert.Equal("File not found", exception.Message);
     }
+
+    // ---------------------------------------------------------------------------
+    // UploadAsync — container cache behaviour
+    // ---------------------------------------------------------------------------
 
     [Fact]
     public async Task UploadAsync_CalledMultipleTimes_ShouldCallCreateIfNotExistsOnlyOnce()
@@ -344,9 +446,10 @@ public class AzureBlobStorageServiceTests
         // Arrange — fresh instance so _containerExists cache is empty
         var mockBlobServiceClient = new Mock<BlobServiceClient>();
         var mockLogger = new Mock<ILogger<AzureBlobStorageService>>();
+        var factory = new Mock<IHttpClientFactory>();
         var service = new AzureBlobStorageService(
             mockBlobServiceClient.Object,
-            new HttpClient(),
+            factory.Object,
             mockLogger.Object);
 
         var containerName = "documents";
@@ -378,9 +481,10 @@ public class AzureBlobStorageServiceTests
         // Arrange — fresh instance so _containerExists cache is empty
         var mockBlobServiceClient = new Mock<BlobServiceClient>();
         var mockLogger = new Mock<ILogger<AzureBlobStorageService>>();
+        var factory = new Mock<IHttpClientFactory>();
         var service = new AzureBlobStorageService(
             mockBlobServiceClient.Object,
-            new HttpClient(),
+            factory.Object,
             mockLogger.Object);
 
         var containerA = "container-a";
@@ -452,5 +556,37 @@ public class AzureBlobStorageServiceTests
             _service.UploadAsync(stream, containerName, blobName, contentType));
 
         Assert.Equal("Storage error", exception.Message);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Stub handlers
+    // ---------------------------------------------------------------------------
+
+    private sealed class StubHttpMessageHandler(
+        HttpStatusCode statusCode,
+        string content = "",
+        HttpContent? overrideContent = null) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var response = new HttpResponseMessage(statusCode)
+            {
+                Content = overrideContent ?? new StringContent(content)
+            };
+            return Task.FromResult(response);
+        }
+    }
+
+    private sealed class ThrowingHttpMessageHandler(Exception exception) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromException<HttpResponseMessage>(exception);
+        }
     }
 }
