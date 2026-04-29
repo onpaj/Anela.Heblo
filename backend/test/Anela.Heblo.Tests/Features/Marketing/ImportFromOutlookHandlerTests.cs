@@ -91,6 +91,17 @@ public class ImportFromOutlookHandlerTests
     }
 
     [Fact]
+    public void ImportFromOutlookResponse_DefaultsUnmappedCategoriesToEmptyList()
+    {
+        // Arrange / Act
+        var response = new ImportFromOutlookResponse();
+
+        // Assert
+        response.UnmappedCategories.Should().NotBeNull();
+        response.UnmappedCategories.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Handle_WhenUserNotAuthenticated_ReturnsUnauthorizedError()
     {
         // Arrange

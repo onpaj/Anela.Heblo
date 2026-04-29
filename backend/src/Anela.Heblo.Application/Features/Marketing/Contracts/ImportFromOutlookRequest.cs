@@ -19,6 +19,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Contracts
         public int Created { get; set; }
         public int Skipped { get; set; }
         public int Failed { get; set; }
+        public List<string> UnmappedCategories { get; set; } = new();
         public List<ImportedItemDto> Items { get; set; } = new();
 
         public ImportFromOutlookResponse() : base() { }
