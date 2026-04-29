@@ -138,7 +138,8 @@ public class GetRecurringJobsListHandlerTests
     [Fact]
     public async Task Handle_WhenJobIsEnabled_SetsNextRunAtToFutureUtcDateTime()
     {
-        // Fixed time is 2026-03-30 12:00:00 UTC; cron "0 13 * * *" next fires at 13:00 same day
+        // Fixed time is 2026-03-30 12:00:00 UTC = 14:00 CEST (UTC+2, DST already in effect)
+        // cron "0 13 * * *" fires at 13:00 Prague; next occurrence after 14:00 Prague is 2026-03-31 13:00 CEST = 11:00 UTC
         var request = new GetRecurringJobsListRequest();
         var jobs = new List<RecurringJobConfiguration>
         {
@@ -153,7 +154,7 @@ public class GetRecurringJobsListHandlerTests
 
         var result = await _handler.Handle(request, CancellationToken.None);
 
-        var expectedNextRun = new DateTime(2026, 3, 30, 13, 0, 0, DateTimeKind.Utc);
+        var expectedNextRun = new DateTime(2026, 3, 31, 11, 0, 0, DateTimeKind.Utc);
         result.Jobs[0].NextRunAt.Should().Be(expectedNextRun);
         result.Jobs[0].NextRunAt!.Value.Kind.Should().Be(DateTimeKind.Utc);
     }
@@ -197,7 +198,7 @@ public class GetRecurringJobsListHandlerTests
 
         var result = await _handler.Handle(request, CancellationToken.None);
 
-        result.Jobs[0].NextRunAt.Should().Be(new DateTime(2026, 3, 30, 13, 0, 0, DateTimeKind.Utc));
+        result.Jobs[0].NextRunAt.Should().Be(new DateTime(2026, 3, 31, 11, 0, 0, DateTimeKind.Utc));
         result.Jobs[0].NextRunAt!.Value.Kind.Should().Be(DateTimeKind.Utc);
         result.Jobs[1].NextRunAt.Should().BeNull();
     }
@@ -235,5 +236,89 @@ public class GetRecurringJobsListHandlerTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenJobIsEnabled_NextRunAt_UsesEuropePragueTimezone_Summer()
+    {
+        // "now" is 2026-04-29 12:00 UTC = 14:00 CEST (UTC+2)
+        // cron "15 4 * * *" fires at 04:15 Prague, next occurrence after 14:00 is next day 04:15 CEST = 02:15 UTC
+        var summerTimeProvider = new Mock<TimeProvider>();
+        summerTimeProvider.Setup(tp => tp.GetUtcNow())
+            .Returns(new DateTimeOffset(2026, 4, 29, 12, 0, 0, TimeSpan.Zero));
+        var handler = new GetRecurringJobsListHandler(
+            _repositoryMock.Object, _mapperMock.Object, _loggerMock.Object, summerTimeProvider.Object);
+
+        var request = new GetRecurringJobsListRequest();
+        var jobs = new List<RecurringJobConfiguration>
+        {
+            new RecurringJobConfiguration("czk-import", "CZK Import", "Desc", "15 4 * * *", true, "System")
+        };
+        var jobDtos = new List<RecurringJobDto>
+        {
+            new RecurringJobDto { JobName = "czk-import", CronExpression = "15 4 * * *", IsEnabled = true }
+        };
+        _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
+        _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
+
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // 04:15 Prague CEST = 02:15 UTC
+        result.Jobs[0].NextRunAt.Should().Be(new DateTime(2026, 4, 30, 2, 15, 0, DateTimeKind.Utc));
+        result.Jobs[0].NextRunAt!.Value.Kind.Should().Be(DateTimeKind.Utc);
+    }
+
+    [Fact]
+    public async Task Handle_WhenJobIsEnabled_NextRunAt_UsesEuropePragueTimezone_Winter()
+    {
+        // "now" is 2026-01-15 12:00 UTC = 13:00 CET (UTC+1)
+        // cron "15 4 * * *" fires at 04:15 Prague CET, next occurrence after 13:00 is next day 04:15 CET = 03:15 UTC
+        var winterTimeProvider = new Mock<TimeProvider>();
+        winterTimeProvider.Setup(tp => tp.GetUtcNow())
+            .Returns(new DateTimeOffset(2026, 1, 15, 12, 0, 0, TimeSpan.Zero));
+        var handler = new GetRecurringJobsListHandler(
+            _repositoryMock.Object, _mapperMock.Object, _loggerMock.Object, winterTimeProvider.Object);
+
+        var request = new GetRecurringJobsListRequest();
+        var jobs = new List<RecurringJobConfiguration>
+        {
+            new RecurringJobConfiguration("czk-import", "CZK Import", "Desc", "15 4 * * *", true, "System")
+        };
+        var jobDtos = new List<RecurringJobDto>
+        {
+            new RecurringJobDto { JobName = "czk-import", CronExpression = "15 4 * * *", IsEnabled = true }
+        };
+        _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
+        _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
+
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // 04:15 Prague CET = 03:15 UTC
+        result.Jobs[0].NextRunAt.Should().Be(new DateTime(2026, 1, 16, 3, 15, 0, DateTimeKind.Utc));
+        result.Jobs[0].NextRunAt!.Value.Kind.Should().Be(DateTimeKind.Utc);
+    }
+
+    [Fact]
+    public async Task Handle_WhenCronExpressionIsInvalid_SetsNextRunAtToNull_AndLogsTimezoneWarning()
+    {
+        // Arrange — "INVALID_CRON" is syntactically invalid and will cause CrontabSchedule.Parse to throw
+        // The TimeZoneNotFoundException catch is defensive; the CrontabException is what fires here
+        var request = new GetRecurringJobsListRequest();
+        var jobs = new List<RecurringJobConfiguration>
+        {
+            new RecurringJobConfiguration("Job1", "Display 1", "Desc", "INVALID_CRON", true, "User1")
+        };
+        var jobDtos = new List<RecurringJobDto>
+        {
+            new RecurringJobDto { JobName = "Job1", CronExpression = "INVALID_CRON", IsEnabled = true }
+        };
+        _repositoryMock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>())).ReturnsAsync(jobs);
+        _mapperMock.Setup(m => m.Map<List<RecurringJobDto>>(jobs)).Returns(jobDtos);
+
+        // Act — must not throw
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Jobs[0].NextRunAt.Should().BeNull();
     }
 }

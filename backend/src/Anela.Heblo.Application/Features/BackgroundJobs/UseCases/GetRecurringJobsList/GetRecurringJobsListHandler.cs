@@ -47,14 +47,23 @@ public class GetRecurringJobsListHandler : IRequestHandler<GetRecurringJobsListR
 
             try
             {
-                dto.NextRunAt = DateTime.SpecifyKind(
-                    CrontabSchedule.Parse(dto.CronExpression).GetNextOccurrence(utcNow),
-                    DateTimeKind.Utc);
+                var tz = TimeZoneInfo.FindSystemTimeZoneById(RecurringJobMetadata.DefaultTimeZoneId);
+                var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(utcNow, tz);
+                var nextLocal = CrontabSchedule.Parse(dto.CronExpression).GetNextOccurrence(nowLocal);
+                var nextUtc = TimeZoneInfo.ConvertTimeToUtc(
+                    DateTime.SpecifyKind(nextLocal, DateTimeKind.Unspecified), tz);
+                dto.NextRunAt = DateTime.SpecifyKind(nextUtc, DateTimeKind.Utc);
             }
             catch (CrontabException ex)
             {
                 _logger.LogWarning(ex, "Invalid CRON expression '{CronExpression}' for job '{JobName}', NextRunAt will be null",
                     dto.CronExpression, dto.JobName);
+                dto.NextRunAt = null;
+            }
+            catch (TimeZoneNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "Timezone '{TimeZoneId}' not found on host, NextRunAt will be null for job '{JobName}'",
+                    RecurringJobMetadata.DefaultTimeZoneId, dto.JobName);
                 dto.NextRunAt = null;
             }
         }
