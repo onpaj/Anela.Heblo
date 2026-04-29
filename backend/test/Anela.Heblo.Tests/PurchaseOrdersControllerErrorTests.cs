@@ -1,5 +1,6 @@
 using System.Reflection;
 using Anela.Heblo.API.Controllers;
+using Anela.Heblo.API.Infrastructure;
 using Anela.Heblo.Application.Shared;
 using Microsoft.AspNetCore.Mvc;
 using Xunit;
@@ -66,7 +67,7 @@ public class PurchaseOrdersControllerErrorTests
     public void ErrorResponseHelper_ShouldCreateValidErrorResponse()
     {
         // Act
-        var response = API.Infrastructure.ErrorResponseHelper
+        var response = ErrorResponseHelper
             .CreateErrorResponse<TestResponse>(ErrorCodes.ValidationError,
                 new Dictionary<string, string> { { "field", "test" } });
 
@@ -81,7 +82,7 @@ public class PurchaseOrdersControllerErrorTests
     public void ErrorResponseHelper_ShouldCreateValidationError()
     {
         // Act
-        var response = API.Infrastructure.ErrorResponseHelper
+        var response = ErrorResponseHelper
             .CreateValidationError<TestResponse>("testField");
 
         // Assert
@@ -95,7 +96,7 @@ public class PurchaseOrdersControllerErrorTests
     public void ErrorResponseHelper_ShouldCreateNotFoundError()
     {
         // Act
-        var response = API.Infrastructure.ErrorResponseHelper
+        var response = ErrorResponseHelper
             .CreateNotFoundError<TestResponse>(ErrorCodes.PurchaseOrderNotFound, "123");
 
         // Assert
