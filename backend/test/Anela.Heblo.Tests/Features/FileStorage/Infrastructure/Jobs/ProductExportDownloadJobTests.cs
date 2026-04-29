@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -82,13 +83,21 @@ public sealed class ProductExportDownloadJobTests
     [Fact]
     public void Job_HasAutomaticRetryAttribute_WithZeroAttempts()
     {
-        // Arrange / Act
-        var attribute = typeof(ProductExportDownloadJob)
-            .GetCustomAttribute<AutomaticRetryAttribute>();
+        // Use CustomAttributeData to inspect without instantiating AutomaticRetryAttribute,
+        // whose constructor accesses Hangfire's global LogProvider which may reference a
+        // disposed ILoggerFactory from another test's WebApplicationFactory.
+        var attributeData = typeof(ProductExportDownloadJob)
+            .GetCustomAttributesData()
+            .FirstOrDefault(d => d.AttributeType == typeof(AutomaticRetryAttribute));
 
-        // Assert
-        attribute.Should().NotBeNull("ProductExportDownloadJob must have [AutomaticRetry] attribute");
-        attribute!.Attempts.Should().Be(0, "Hangfire retries must be disabled to avoid Polly x Hangfire retry multiplication");
+        attributeData.Should().NotBeNull("ProductExportDownloadJob must have [AutomaticRetry] attribute");
+
+        var attempts = attributeData!.NamedArguments
+            .Where(a => a.MemberName == nameof(AutomaticRetryAttribute.Attempts))
+            .Select(a => (int)a.TypedValue.Value!)
+            .FirstOrDefault();
+
+        attempts.Should().Be(0, "Hangfire retries must be disabled to avoid Polly x Hangfire retry multiplication");
     }
 
     [Fact]
