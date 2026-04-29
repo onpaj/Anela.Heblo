@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Xcc.Telemetry;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -26,14 +27,22 @@ public sealed class DownloadResilienceServiceTests
         return Options.Create(options);
     }
 
-    private static DownloadResilienceService CreateService(
+    // Returns (service, telemetryMock) so tests can configure the mock after creation.
+    // ITelemetryService is Scoped in production; the scope factory pattern mirrors that here.
+    private static (DownloadResilienceService Service, Mock<ITelemetryService> Telemetry) CreateService(
         IOptions<ProductExportOptions> options,
-        Mock<ITelemetryService>? telemetryMock = null,
         Mock<ILogger<DownloadResilienceService>>? loggerMock = null)
     {
-        telemetryMock ??= new Mock<ITelemetryService>();
+        var telemetryMock = new Mock<ITelemetryService>();
         loggerMock ??= new Mock<ILogger<DownloadResilienceService>>();
-        return new DownloadResilienceService(options, telemetryMock.Object, loggerMock.Object);
+
+        var services = new ServiceCollection();
+        services.AddSingleton(telemetryMock.Object);
+        var provider = services.BuildServiceProvider();
+        var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
+
+        var service = new DownloadResilienceService(options, scopeFactory, loggerMock.Object);
+        return (service, telemetryMock);
     }
 
     [Fact]
@@ -67,8 +76,7 @@ public sealed class DownloadResilienceServiceTests
     public async Task ExecuteWithResilienceAsync_ReturnsResult_OnFirstAttemptSuccess()
     {
         // Arrange
-        var telemetryMock = new Mock<ITelemetryService>();
-        var service = CreateService(CreateOptions(), telemetryMock);
+        var (service, telemetryMock) = CreateService(CreateOptions());
 
         // Act
         var result = await service.ExecuteWithResilienceAsync<int>(
@@ -86,16 +94,15 @@ public sealed class DownloadResilienceServiceTests
     public async Task ExecuteWithResilienceAsync_RetriesOn_HttpRequestException_ThenSucceeds()
     {
         // Arrange
-        var telemetryMock = new Mock<ITelemetryService>();
+        var (service, telemetryMock) = CreateService(
+            CreateOptions(maxRetryAttempts: 3, retryBaseDelay: TimeSpan.FromMilliseconds(1)));
+
         var capturedProperties = new List<Dictionary<string, string>?>();
         telemetryMock
             .Setup(t => t.TrackException(It.IsAny<Exception>(), It.IsAny<Dictionary<string, string>>()))
             .Callback<Exception, Dictionary<string, string>?>((_, props) => capturedProperties.Add(props));
 
         var callCount = 0;
-        var service = CreateService(
-            CreateOptions(maxRetryAttempts: 3, retryBaseDelay: TimeSpan.FromMilliseconds(1)),
-            telemetryMock);
 
         // Act
         var result = await service.ExecuteWithResilienceAsync<string>(
@@ -124,8 +131,7 @@ public sealed class DownloadResilienceServiceTests
     public async Task ExecuteWithResilienceAsync_DoesNotRetry_OnCallerCancel()
     {
         // Arrange
-        var telemetryMock = new Mock<ITelemetryService>();
-        var service = CreateService(CreateOptions(), telemetryMock);
+        var (service, telemetryMock) = CreateService(CreateOptions());
         using var cts = new CancellationTokenSource();
         cts.Cancel();
         var callerCt = cts.Token;
@@ -157,8 +163,7 @@ public sealed class DownloadResilienceServiceTests
             downloadTimeout: TimeSpan.FromMilliseconds(50),
             retryBaseDelay: TimeSpan.FromMilliseconds(1));
 
-        var telemetryMock = new Mock<ITelemetryService>();
-        var service = CreateService(options, telemetryMock);
+        var (service, telemetryMock) = CreateService(options);
         var callCount = 0;
 
         // Act & Assert
@@ -183,10 +188,8 @@ public sealed class DownloadResilienceServiceTests
     public async Task ExecuteWithResilienceAsync_ExhaustsRetries_OnPersistentHttpRequestException()
     {
         // Arrange
-        var telemetryMock = new Mock<ITelemetryService>();
-        var service = CreateService(
-            CreateOptions(maxRetryAttempts: 3, retryBaseDelay: TimeSpan.FromMilliseconds(1)),
-            telemetryMock);
+        var (service, telemetryMock) = CreateService(
+            CreateOptions(maxRetryAttempts: 3, retryBaseDelay: TimeSpan.FromMilliseconds(1)));
         var callCount = 0;
 
         // Act
@@ -210,8 +213,7 @@ public sealed class DownloadResilienceServiceTests
     public async Task ExecuteWithResilienceAsync_DoesNotRetry_OnNonRetryableException()
     {
         // Arrange
-        var telemetryMock = new Mock<ITelemetryService>();
-        var service = CreateService(CreateOptions(), telemetryMock);
+        var (service, telemetryMock) = CreateService(CreateOptions());
         var callCount = 0;
 
         // Act

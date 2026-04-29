@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Xcc.Telemetry;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Polly;
@@ -13,16 +14,16 @@ public sealed class DownloadResilienceService : IDownloadResilienceService
     private static readonly TimeSpan MaxWallClock = TimeSpan.FromMinutes(20);
 
     private readonly ILogger<DownloadResilienceService> _logger;
-    private readonly ITelemetryService _telemetry;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ProductExportOptions _options;
 
     public DownloadResilienceService(
         IOptions<ProductExportOptions> options,
-        ITelemetryService telemetry,
+        IServiceScopeFactory scopeFactory,
         ILogger<DownloadResilienceService> logger)
     {
         _logger = logger;
-        _telemetry = telemetry;
+        _scopeFactory = scopeFactory;
         _options = options.Value;
 
         var worstCase = TimeSpan.FromTicks(_options.DownloadTimeout.Ticks * (_options.MaxRetryAttempts + 1));
@@ -94,7 +95,11 @@ public sealed class DownloadResilienceService : IDownloadResilienceService
 
                     if (ex != null)
                     {
-                        _telemetry.TrackException(ex, new Dictionary<string, string>(3)
+                        // ITelemetryService is Scoped; resolve it in a short-lived scope so this
+                        // Singleton service does not capture a scoped dependency.
+                        using var scope = _scopeFactory.CreateScope();
+                        var telemetry = scope.ServiceProvider.GetRequiredService<ITelemetryService>();
+                        telemetry.TrackException(ex, new Dictionary<string, string>(3)
                         {
                             ["Job"] = operationName,
                             ["AttemptNumber"] = attemptNumber.ToString(),
