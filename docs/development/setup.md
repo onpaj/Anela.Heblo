@@ -419,3 +419,61 @@ E2E_BASE_URL=https://heblo.stg.anela.cz
 - **E2E Testing**: `docs/testing/playwright-e2e-testing.md`
 - **CI/CD**: `docs/architecture/application_infrastructure.md`
 - **UI Design**: `docs/design/ui_design_document.md`
+
+## Database Migrations Runbook
+
+Database migrations in this project are **manual**. They are not applied by the deployment pipeline. Code that depends on a new migration MUST NOT be deployed before the migration is applied to the target environment, or the application will return HTTP 500 with `Npgsql.PostgresException: 42P01: relation "<table>" does not exist`.
+
+### Pre-deploy checklist
+
+Before merging or deploying code that introduces or depends on a new EF Core migration:
+
+1. Identify the migration(s) the new code depends on (look at `backend/src/Anela.Heblo.Persistence/Migrations/` and `dotnet ef migrations list`).
+2. Connect to the target environment's database using your authorized read-only credentials. Do NOT embed credentials in source control or scripts.
+3. Run the diagnostic SQL pair below (substitute the `LIKE` patterns and table names for the migration in question).
+4. Confirm the migration ID is present in `__EFMigrationsHistory` AND the expected post-migration physical schema is in place.
+5. If the migration is missing, apply it via the project's standard manual migration procedure BEFORE rolling out the dependent application code.
+
+### Post-deploy verification
+
+After every deployment that touches schema or schema-mapping code:
+
+1. `curl https://<environment-host>/health/ready` (replace `<environment-host>` with the deployed environment URL).
+2. Confirm HTTP 200 and that the JSON body contains every health check with `status: "Healthy"`. In particular, confirm `data-quality-schema` is `Healthy`.
+3. If any check is `Unhealthy`, inspect the structured `data` field on that check (e.g., `entity`, `expectedTable`, `schema`, `sqlState`) — these point directly at the drift.
+4. If `data-quality-schema` reports `sqlState: "42P01"` with `expectedTable: "DqtRuns"`, the production DB is missing the `DqtRuns` rename. Apply `StandardizeTableNamingToPascalCase` (or the relevant pending migration) before allowing the instance back into rotation. Note that Azure App Service will already have removed the unhealthy instance from rotation automatically.
+
+### Ordering hazard
+
+The pair `AddDataQualityTables` (creates `dqt_runs`) → `StandardizeTableNamingToPascalCase` (renames to `DqtRuns`) is the canonical example of an ordering hazard: deploying the application code that depends on the rename before applying the rename migration produces user-facing 500s. Always confirm the most recent dependent migration is applied before deploying its consumer code.
+
+### Diagnostic SQL for suspected schema drift
+
+When you suspect a "relation does not exist" error is caused by code/DB migration drift, use this read-only diagnostic SQL pair. Substitute the `LIKE` patterns and table names for the suspect entity.
+
+Migration history check:
+
+```sql
+SELECT "MigrationId", "ProductVersion"
+FROM "__EFMigrationsHistory"
+WHERE "MigrationId" LIKE '%<migration-fragment-1>%'
+   OR "MigrationId" LIKE '%<migration-fragment-2>%'
+ORDER BY "MigrationId";
+```
+
+Physical table existence check:
+
+```sql
+SELECT table_schema, table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+  AND lower(table_name) IN ('<old-name-lower>', '<new-name-lower>');
+```
+
+Interpret the combined output as one of three states:
+
+- **State A** — both expected migrations present in history AND only the new (post-rename) physical table exists → code and DB are consistent. Investigate stale application instances; perform a rolling restart of Azure App Service.
+- **State B** — only the older migration present in history AND only the old physical table exists → the rename migration is unapplied. Apply it via the standard manual procedure. Inverse rollback (if ever needed) for a metadata-only rename is `ALTER TABLE "<NewName>" RENAME TO <old_name>;` — note this restores the table name but does not undo any other changes a multi-step migration may have included.
+- **State C** — both migrations present in history but the old physical table still exists (or both exist) → manual intervention required. Do not attempt automated remediation. Escalate.
+
+These diagnostic queries are read-only and safe to run against any environment.
