@@ -9,20 +9,20 @@ namespace Anela.Heblo.Application.Features.FileStorage.Services;
 /// <summary>
 /// Azure Blob Storage implementation of IBlobStorageService
 /// </summary>
-public class AzureBlobStorageService : IBlobStorageService
+public sealed class AzureBlobStorageService : IBlobStorageService
 {
     private readonly BlobServiceClient _blobServiceClient;
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AzureBlobStorageService> _logger;
     private readonly ConcurrentDictionary<string, bool> _containerExists = new();
 
     public AzureBlobStorageService(
         BlobServiceClient blobServiceClient,
-        HttpClient httpClient,
+        IHttpClientFactory httpClientFactory,
         ILogger<AzureBlobStorageService> logger)
     {
         _blobServiceClient = blobServiceClient;
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -33,8 +33,10 @@ public class AzureBlobStorageService : IBlobStorageService
         {
             _logger.LogInformation("Starting download from URL: {FileUrl}", fileUrl);
 
-            // Download file from URL
-            using var response = await _httpClient.GetAsync(fileUrl, cancellationToken);
+            // Download file from URL — resolve the named client per call so socket pooling
+            // is managed by IHttpClientFactory (SocketsHttpHandler with PooledConnectionLifetime).
+            var httpClient = _httpClientFactory.CreateClient(FileStorageModule.ProductExportDownloadClientName);
+            using var response = await httpClient.GetAsync(fileUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
 
             using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
