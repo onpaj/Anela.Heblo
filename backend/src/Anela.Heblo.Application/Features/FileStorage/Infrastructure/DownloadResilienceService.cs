@@ -8,7 +8,7 @@ using Polly.Timeout;
 
 namespace Anela.Heblo.Application.Features.FileStorage.Infrastructure;
 
-public class DownloadResilienceService : IDownloadResilienceService
+public sealed class DownloadResilienceService : IDownloadResilienceService
 {
     private static readonly TimeSpan MaxWallClock = TimeSpan.FromMinutes(20);
 
@@ -45,6 +45,8 @@ public class DownloadResilienceService : IDownloadResilienceService
             cancellationToken).ConfigureAwait(false);
     }
 
+    // Built per call because the retry predicate closes over callerCt.
+    // Do not cache or share pipeline instances across calls.
     private ResiliencePipeline<T> BuildPipeline<T>(string operationName, CancellationToken callerCt)
     {
         return new ResiliencePipelineBuilder<T>()
@@ -67,9 +69,11 @@ public class DownloadResilienceService : IDownloadResilienceService
                         return PredicateResult.True();
                     }
 
-                    // Inner-scope cancellation that is NOT the caller's token means a transient timeout
-                    if (args.Outcome.Exception is OperationCanceledException oce
-                        && oce.CancellationToken != callerCt)
+                    // Retry on OperationCanceledException only when the caller has NOT requested
+                    // cancellation — this handles linked tokens and Polly's internal timeouts
+                    // that surface as OperationCanceledException before wrapping in TimeoutRejectedException.
+                    if (args.Outcome.Exception is OperationCanceledException
+                        && !callerCt.IsCancellationRequested)
                     {
                         return PredicateResult.True();
                     }
@@ -90,7 +94,7 @@ public class DownloadResilienceService : IDownloadResilienceService
 
                     if (ex != null)
                     {
-                        _telemetry.TrackException(ex, new Dictionary<string, string>
+                        _telemetry.TrackException(ex, new Dictionary<string, string>(3)
                         {
                             ["Job"] = operationName,
                             ["AttemptNumber"] = attemptNumber.ToString(),
