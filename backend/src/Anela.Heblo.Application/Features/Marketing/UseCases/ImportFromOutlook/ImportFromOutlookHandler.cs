@@ -31,17 +31,20 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
         private readonly IMarketingActionRepository _repository;
         private readonly ICurrentUserService _currentUserService;
         private readonly IOutlookCalendarSync _outlookSync;
+        private readonly IMarketingCategoryMapper _mapper;
         private readonly ILogger<ImportFromOutlookHandler> _logger;
 
         public ImportFromOutlookHandler(
             IMarketingActionRepository repository,
             ICurrentUserService currentUserService,
             IOutlookCalendarSync outlookSync,
+            IMarketingCategoryMapper mapper,
             ILogger<ImportFromOutlookHandler> logger)
         {
             _repository = repository;
             _currentUserService = currentUserService;
             _outlookSync = outlookSync;
+            _mapper = mapper;
             _logger = logger;
         }
 
@@ -67,6 +70,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
 
             var utcNow = DateTime.UtcNow;
             var response = new ImportFromOutlookResponse();
+            var unmappedAccumulator = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var evt in events)
             {
@@ -84,7 +88,16 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
 
                 try
                 {
-                    var action = BuildAction(evt, currentUser, utcNow);
+                    var mapping = _mapper.MapToActionType(evt.Categories ?? Array.Empty<string>());
+                    var action = BuildAction(evt, currentUser, utcNow, mapping.ActionType);
+
+                    if (mapping.MatchedCategory is null && mapping.UnmappedCategories.Count > 0)
+                    {
+                        foreach (var name in mapping.UnmappedCategories)
+                        {
+                            unmappedAccumulator.Add(name);
+                        }
+                    }
 
                     if (!request.DryRun)
                     {
@@ -129,10 +142,25 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
                 }
             }
 
+            response.UnmappedCategories = unmappedAccumulator.ToList();
+
+            if (unmappedAccumulator.Count > 0)
+            {
+                _logger.LogInformation(
+                    "Marketing import completed with {Count} unmapped Outlook categor{Plural}: {Categories}",
+                    unmappedAccumulator.Count,
+                    unmappedAccumulator.Count == 1 ? "y" : "ies",
+                    string.Join(", ", unmappedAccumulator));
+            }
+
             return response;
         }
 
-        private static MarketingAction BuildAction(OutlookEventDto evt, CurrentUser currentUser, DateTime utcNow)
+        private static MarketingAction BuildAction(
+            OutlookEventDto evt,
+            CurrentUser currentUser,
+            DateTime utcNow,
+            MarketingActionType actionType)
         {
             var title = (evt.Subject ?? string.Empty).Length > 200
                 ? evt.Subject[..200]
@@ -142,11 +170,6 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
             var description = rawDescription?.Length > 5000
                 ? rawDescription[..5000]
                 : rawDescription;
-
-            var category = evt.Categories.FirstOrDefault();
-            var actionType = Enum.TryParse<MarketingActionType>(category, ignoreCase: true, out var parsed)
-                ? parsed
-                : MarketingActionType.General;
 
             var endDate = evt.EndUtc == DateTime.MinValue || evt.EndUtc == evt.StartUtc
                 ? (DateTime?)null
