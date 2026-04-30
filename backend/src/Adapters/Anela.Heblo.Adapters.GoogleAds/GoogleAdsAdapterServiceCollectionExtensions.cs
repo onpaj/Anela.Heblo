@@ -26,7 +26,6 @@ public static class GoogleAdsAdapterServiceCollectionExtensions
 
         // Campaign performance adapter
         services.AddScoped<IGoogleAdsClient, GoogleAdsClientWrapper>();
-        services.AddScoped<IRecurringJob, Anela.Heblo.Application.Features.Campaigns.Infrastructure.Jobs.SyncGoogleAdsJob>();
 
         return services;
     }
