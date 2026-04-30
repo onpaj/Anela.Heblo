@@ -119,6 +119,19 @@ public class InvoiceDqtComparerTests
     }
 
     [Fact]
+    public async Task RoundingDifferenceUnderHalfCrown_NoMismatch()
+    {
+        // After the toPay fix: Shoptet mapper uses toPay (14322.00) so both sides agree.
+        // This was previously a false "Celkem s DPH" mismatch (Shoptet=14321.5, Flexi=14322).
+        SetupShoptet(MakeInvoice("INV-126010118", totalWithVat: 14322.00m, totalWithoutVat: 11835.93m));
+        SetupFlexi(MakeInvoice("INV-126010118", totalWithVat: 14322.00m, totalWithoutVat: 11835.93m));
+
+        var result = await _sut.CompareAsync(From, To);
+
+        Assert.Empty(result.Mismatches);
+    }
+
+    [Fact]
     public async Task WithVatDiffers_FlagsTotalWithVatDiffers()
     {
         SetupShoptet(MakeInvoice("INV-005", totalWithVat: 100.00m));
