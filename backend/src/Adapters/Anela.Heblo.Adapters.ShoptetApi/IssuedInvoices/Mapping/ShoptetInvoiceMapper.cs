@@ -5,6 +5,10 @@ namespace Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices.Mapping;
 
 public class ShoptetInvoiceMapper
 {
+    // Shoptet rounds invoice totals to the nearest full crown (max ±0.50 Kč),
+    // so any difference within 1 crown is a rounding artefact, not a data discrepancy.
+    private const decimal RoundingToleranceCrowns = 1m;
+
     private static readonly HashSet<string> AggregateDiscountTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "discount-coupon",
@@ -76,7 +80,7 @@ public class ShoptetInvoiceMapper
         // toPay, or a data inconsistency in the Shoptet API), fall back to the item sum so parity with
         // the Playwright adapter is preserved.
         var headerDiff = Math.Abs(price.WithVat - totalWithVat);
-        var effectiveTotalWithVat = headerDiff < 1m ? price.WithVat : totalWithVat;
+        var effectiveTotalWithVat = headerDiff < RoundingToleranceCrowns ? price.WithVat : totalWithVat;
 
         price.WithVat = effectiveTotalWithVat;
         price.WithoutVat = totalWithoutVat;
@@ -218,7 +222,9 @@ public class ShoptetInvoiceMapper
         // to withVat so we compare the full invoice total, not the residual amount due.
         var toPay = ParseDecimal(src.ToPay);
         var roundingDifference = Math.Abs(toPay - withVat);
-        var effectiveWithVat = toPay > 0m && roundingDifference < 1m ? toPay : withVat;
+        var effectiveWithVat = src.ToPay is not null && toPay > 0m && roundingDifference < RoundingToleranceCrowns
+            ? toPay
+            : withVat;
 
         return new InvoicePrice
         {

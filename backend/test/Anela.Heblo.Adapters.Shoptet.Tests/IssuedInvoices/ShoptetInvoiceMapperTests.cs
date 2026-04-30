@@ -360,8 +360,46 @@ public class ShoptetInvoiceMapperTests
         detail.Price.TotalWithVat.Should().Be(14322.00m,
             "TotalWithVat uses toPay so DQT matches Flexi's rounded sumCelkem");
         detail.Price.WithVat.Should().Be(14322.00m);
-        detail.Price.TotalWithoutVat.Should().NotBe(14322.00m,
-            "TotalWithoutVat is from items, unaffected by invoice-level rounding");
+        detail.Price.TotalWithoutVat.Should().Be(11835.93m,
+            "TotalWithoutVat is from items (amount=1 × unitWithoutVat=11835.93), unaffected by invoice-level rounding");
+    }
+
+    [Fact]
+    public void Map_InvoicePrice_FallsBackToItemSum_WhenHeaderDivergesFromItemsByMoreThanOneCrown()
+    {
+        // Advance-deposit scenario: header withVat = 379 but items sum to 279 (deposit already applied
+        // to toPay by the payment processor). The ≥ 1 Kč divergence triggers fallback to item sum so
+        // DQT stays in parity with the Playwright adapter which sums items independently.
+        var dto = BuildMinimalDto();
+        dto.Items =
+        [
+            new ShoptetInvoiceItemDto
+            {
+                Code = "P1",
+                Name = "Product",
+                Amount = "1",
+                UnitPrice = new ShoptetInvoiceUnitPriceDto
+                {
+                    WithoutVat = "230.58",
+                    Vat = "48.42",
+                    WithVat = "279",
+                    VatRate = "21",
+                },
+            },
+        ];
+        dto.Price = new ShoptetInvoicePriceDto
+        {
+            WithoutVat = "230.58",
+            WithVat = "379",   // header claims 379 but items sum to 279
+            ToPay = "379",
+            CurrencyCode = "CZK",
+        };
+
+        var detail = BuildSut().Map(dto);
+
+        detail.Price.TotalWithVat.Should().Be(279m,
+            "falls back to item sum (279) when header diverges by ≥ 1 Kč (advance-deposit scenario)");
+        detail.Price.TotalWithoutVat.Should().Be(230.58m);
     }
 
     [Fact]
