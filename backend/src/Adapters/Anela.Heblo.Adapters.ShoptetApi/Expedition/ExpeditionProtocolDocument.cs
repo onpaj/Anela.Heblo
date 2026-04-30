@@ -15,9 +15,6 @@ public class ExpeditionProtocolDocument : IDocument
     private const float BorderThickness = 1.5f;
     private const float BorderPadding = 4f;
     private const float OrderGap = 6f;
-    private const float VariantFontSize = 7f;
-    private static readonly Color VariantColor = Colors.Grey.Darken1;
-
     // Column relative widths for both per-order and summary tables.
     private const float KodCol = 2f;
     private const float PopisCol = 8f; // absorbs former Varianta column (current 5 + 3)
@@ -330,10 +327,7 @@ public class ExpeditionProtocolDocument : IDocument
             if (!string.IsNullOrEmpty(formattedVariant))
             {
                 text.Line(string.Empty); // forces line break before variant
-                var variantSpan = text
-                    .Span(formattedVariant)
-                    .FontSize(VariantFontSize)
-                    .FontColor(VariantColor);
+                var variantSpan = text.Span(formattedVariant);
                 if (italic) variantSpan.Italic();
             }
         });
