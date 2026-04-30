@@ -30,11 +30,11 @@ namespace Anela.Heblo.Adapters.Shoptet.IssuedInvoices
                     if (i.InvoiceSummary.ForeignCurrency != null)
                     {
                         var withVatFc = i.InvoiceSummary.ForeignCurrency.PriceSum;
-                        var withoutVatFc = ii.Items.Sum(s => s.ItemPrice.WithoutVat);
+                        var withoutVatFc = ii.Items.Sum(s => s.ItemPrice.TotalWithoutVat);
                         ii.Price = new InvoicePrice()
                         {
                             WithVat = withVatFc,
-                            Vat = ii.Items.Sum(s => s.ItemPrice.Vat),
+                            Vat = withVatFc - withoutVatFc,
                             WithoutVat = withoutVatFc,
                             TotalWithVat = withVatFc,
                             TotalWithoutVat = withoutVatFc,
@@ -45,11 +45,11 @@ namespace Anela.Heblo.Adapters.Shoptet.IssuedInvoices
                     else
                     {
                         var withVatHc = i.InvoiceSummary.HomeCurrency.PriceHighSum;
-                        var withoutVatHc = ii.Items.Sum(s => s.ItemPrice.WithoutVat);
+                        var withoutVatHc = ii.Items.Sum(s => s.ItemPrice.TotalWithoutVat);
                         ii.Price = new InvoicePrice()
                         {
                             WithVat = withVatHc,
-                            Vat = ii.Items.Sum(s => s.ItemPrice.Vat),
+                            Vat = withVatHc - withoutVatHc,
                             WithoutVat = withoutVatHc,
                             TotalWithVat = withVatHc,
                             TotalWithoutVat = withoutVatHc,

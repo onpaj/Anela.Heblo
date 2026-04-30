@@ -743,6 +743,13 @@ The delivery address object itself can be `null`.
 
 > Price fields are returned as **strings with 2 decimal places** (e.g. `"242.00"`), not numbers.
 
+> **`withVat` vs `toPay` for DQT:** Czech invoices can include a "Zaokrouhlení" (rounding) line
+> that rounds the total to the nearest full crown. When this occurs, `withVat` holds the
+> pre-rounding sum (e.g. `"14321.50"`) and `toPay` holds the post-rounding "Částka k úhradě"
+> (e.g. `"14322.00"`). Flexi's `sumCelkem` equals `toPay`. For DQT `TotalWithVat` comparison,
+> use `toPay` — the mapper applies it automatically when `|toPay − withVat| < 1 Kč`.
+> When they match (no rounding), `withVat == toPay`.
+
 ### 10.10 Customer Object
 
 | Field | Type | Description |

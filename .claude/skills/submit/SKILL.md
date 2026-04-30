@@ -23,15 +23,7 @@ ls -t docs/superpowers/specs/*.md 2>/dev/null | head -1
 
 Use whichever returns a result. If both are empty, tell the user no spec was found and stop.
 
-### 2. Confirm with user
-
-Show the spec path and a one-line summary (first H1 heading from the file). Ask:
-
-> "Ready to submit `<path>` to the pipeline. Shall I go ahead?"
-
-Wait for confirmation before proceeding.
-
-### 3. Submit
+### 2. Submit
 
 ```bash
 agentharness submit <spec-path>
