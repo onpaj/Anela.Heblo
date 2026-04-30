@@ -97,10 +97,6 @@ public class LeafletIndexingServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(generatedEmbeddings);
 
-        _repo
-            .Setup(r => r.AddChunksAsync(It.IsAny<IEnumerable<LeafletChunk>>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
         IEnumerable<LeafletChunk>? capturedChunks = null;
         _repo
             .Setup(r => r.AddChunksAsync(It.IsAny<IEnumerable<LeafletChunk>>(), It.IsAny<CancellationToken>()))
