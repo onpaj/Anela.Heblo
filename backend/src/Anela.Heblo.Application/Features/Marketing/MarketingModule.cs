@@ -54,34 +54,13 @@ namespace Anela.Heblo.Application.Features.Marketing
             return services;
         }
 
-        /// <summary>
-        /// Validates that every value in <see cref="MarketingCalendarOptions.OutgoingCategories"/>
-        /// has a corresponding key in <see cref="MarketingCalendarOptions.CategoryMappings"/>
-        /// (case-insensitive, trimmed). Throws <see cref="InvalidOperationException"/> listing
-        /// all offending pairs when the round-trip check fails (FR-7).
-        /// </summary>
         internal static void ValidateRoundTrip(MarketingCalendarOptions options)
         {
-            if (options.OutgoingCategories.Count == 0)
-            {
-                return;
-            }
-
-            var keys = new HashSet<string>(
-                (options.CategoryMappings?.Keys ?? Enumerable.Empty<string>()).Select(k => k.Trim()),
-                StringComparer.OrdinalIgnoreCase);
-
-            var errors = new List<string>();
-
-            foreach (var kv in options.OutgoingCategories)
-            {
-                var name = (kv.Value ?? string.Empty).Trim();
-
-                if (string.IsNullOrEmpty(name) || !keys.Contains(name))
-                {
-                    errors.Add($"OutgoingCategories[{kv.Key}] = '{kv.Value}' has no matching key in CategoryMappings.");
-                }
-            }
+            var errors = options.CategoryMappings?
+                .Keys
+                .Where(string.IsNullOrWhiteSpace)
+                .Select(_ => "CategoryMappings contains a blank key.")
+                .ToList() ?? new List<string>();
 
             if (errors.Count > 0)
             {

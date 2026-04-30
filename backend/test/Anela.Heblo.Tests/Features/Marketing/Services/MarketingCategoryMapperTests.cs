@@ -106,7 +106,7 @@ public sealed class MarketingCategoryMapperTests
         var result = mapper.MapToActionType(Array.Empty<string>());
 
         // Assert
-        result.ActionType.Should().Be(MarketingActionType.General);
+        result.ActionType.Should().Be(MarketingActionType.SocialMedia);
         result.MatchedCategory.Should().BeNull();
         result.UnmappedCategories.Should().BeEmpty();
     }
@@ -121,7 +121,7 @@ public sealed class MarketingCategoryMapperTests
         var result = mapper.MapToActionType((IReadOnlyList<string>)null!);
 
         // Assert
-        result.ActionType.Should().Be(MarketingActionType.General);
+        result.ActionType.Should().Be(MarketingActionType.SocialMedia);
         result.MatchedCategory.Should().BeNull();
         result.UnmappedCategories.Should().BeEmpty();
     }
@@ -136,7 +136,7 @@ public sealed class MarketingCategoryMapperTests
         var result = mapper.MapToActionType(new[] { "", " ", "\t" });
 
         // Assert
-        result.ActionType.Should().Be(MarketingActionType.General);
+        result.ActionType.Should().Be(MarketingActionType.SocialMedia);
         result.MatchedCategory.Should().BeNull();
         result.UnmappedCategories.Should().BeEmpty();
     }
@@ -150,8 +150,8 @@ public sealed class MarketingCategoryMapperTests
             GroupId = "g",
             CategoryMappings = new Dictionary<string, MarketingActionType>(StringComparer.OrdinalIgnoreCase)
             {
-                ["PR – léto"] = MarketingActionType.Campaign,
-                ["Sociální sítě"] = MarketingActionType.General,
+                ["PR – léto"] = MarketingActionType.PR,
+                ["Sociální sítě"] = MarketingActionType.SocialMedia,
             },
         };
         var mapper = CreateMapper(opts);
@@ -160,7 +160,7 @@ public sealed class MarketingCategoryMapperTests
         var result = mapper.MapToActionType(new[] { "Random", "PR – léto", "Sociální sítě" });
 
         // Assert
-        result.ActionType.Should().Be(MarketingActionType.Campaign);
+        result.ActionType.Should().Be(MarketingActionType.PR);
         result.MatchedCategory.Should().Be("PR – léto");
         result.UnmappedCategories.Should().BeEmpty();
     }
@@ -175,7 +175,7 @@ public sealed class MarketingCategoryMapperTests
         var result = mapper.MapToActionType(new[] { "Random", " ", "Another" });
 
         // Assert
-        result.ActionType.Should().Be(MarketingActionType.General);
+        result.ActionType.Should().Be(MarketingActionType.SocialMedia);
         result.MatchedCategory.Should().BeNull();
         result.UnmappedCategories.Should().BeEquivalentTo(new[] { "Random", "Another" });
     }
@@ -189,7 +189,7 @@ public sealed class MarketingCategoryMapperTests
             GroupId = "g",
             CategoryMappings = new Dictionary<string, MarketingActionType>(StringComparer.OrdinalIgnoreCase)
             {
-                ["Sociální sítě"] = MarketingActionType.General,
+                ["Sociální sítě"] = MarketingActionType.SocialMedia,
             },
         };
         var mapper = CreateMapper(opts);
@@ -198,27 +198,27 @@ public sealed class MarketingCategoryMapperTests
         var result = mapper.MapToActionType(new[] { "sociální SÍTĚ" });
 
         // Assert
-        result.ActionType.Should().Be(MarketingActionType.General);
+        result.ActionType.Should().Be(MarketingActionType.SocialMedia);
         result.MatchedCategory.Should().Be("sociální SÍTĚ");
         result.UnmappedCategories.Should().BeEmpty();
     }
 
     [Fact]
-    public void MapToOutlookCategory_KnownActionType_ReturnsConfiguredName()
+    public void MapToOutlookCategory_KnownActionType_ReturnsFirstMappedOutlookCategory()
     {
         // Arrange
         var opts = new MarketingCalendarOptions
         {
             GroupId = "g",
-            OutgoingCategories = new Dictionary<MarketingActionType, string>
+            CategoryMappings = new Dictionary<string, MarketingActionType>(StringComparer.OrdinalIgnoreCase)
             {
-                [MarketingActionType.Campaign] = "PR – léto",
+                ["PR – léto"] = MarketingActionType.PR,
             },
         };
         var mapper = CreateMapper(opts);
 
         // Act
-        var result = mapper.MapToOutlookCategory(MarketingActionType.Campaign);
+        var result = mapper.MapToOutlookCategory(MarketingActionType.PR);
 
         // Assert
         result.Should().Be("PR – léto");
@@ -231,7 +231,7 @@ public sealed class MarketingCategoryMapperTests
         var mapper = CreateMapper(EmptyOptions());
 
         // Act
-        var result = mapper.MapToOutlookCategory(MarketingActionType.Campaign);
+        var result = mapper.MapToOutlookCategory(MarketingActionType.PR);
 
         // Assert
         result.Should().Be("Campaign");
@@ -249,14 +249,14 @@ public sealed class MarketingCategoryMapperTests
             GroupId = "g",
             CategoryMappings = new Dictionary<string, MarketingActionType>(StringComparer.OrdinalIgnoreCase)
             {
-                ["X"] = MarketingActionType.Promotion,
+                ["X"] = MarketingActionType.Blog,
             },
         });
 
         var result = mapper.MapToActionType(new[] { "X" });
 
         // Assert
-        result.ActionType.Should().Be(MarketingActionType.Promotion);
+        result.ActionType.Should().Be(MarketingActionType.Blog);
         result.MatchedCategory.Should().Be("X");
     }
 
@@ -269,7 +269,7 @@ public sealed class MarketingCategoryMapperTests
             GroupId = "g",
             CategoryMappings = new Dictionary<string, MarketingActionType>(StringComparer.OrdinalIgnoreCase)
             {
-                ["X"] = MarketingActionType.Promotion,
+                ["X"] = MarketingActionType.Blog,
             },
         };
 
@@ -277,7 +277,7 @@ public sealed class MarketingCategoryMapperTests
         var mapper = new MarketingCategoryMapper(monitor, NullLogger<MarketingCategoryMapper>.Instance);
 
         // Verify initial mapping works
-        mapper.MapToActionType(new[] { "X" }).ActionType.Should().Be(MarketingActionType.Promotion);
+        mapper.MapToActionType(new[] { "X" }).ActionType.Should().Be(MarketingActionType.Blog);
 
         // Act – trigger OnChange with null to force NullReferenceException inside BuildSnapshot
         // (null opts causes NRE when accessing opts.CategoryMappings)
@@ -285,7 +285,7 @@ public sealed class MarketingCategoryMapperTests
 
         // Assert – prior snapshot is retained
         var result = mapper.MapToActionType(new[] { "X" });
-        result.ActionType.Should().Be(MarketingActionType.Promotion);
+        result.ActionType.Should().Be(MarketingActionType.Blog);
         result.MatchedCategory.Should().Be("X");
     }
 
@@ -294,7 +294,7 @@ public sealed class MarketingCategoryMapperTests
     {
         // Arrange – simulate options bound from JSON (no OrdinalIgnoreCase comparer on CategoryMappings)
         const string json =
-            """{"MarketingCalendar":{"GroupId":"g","PushEnabled":true,"CategoryMappings":{"Sociální sítě":"General"},"OutgoingCategories":{}}}""";
+            """{"MarketingCalendar":{"GroupId":"g","PushEnabled":true,"CategoryMappings":{"Sociální sítě":"General"}}}""";
 
         var configuration = new ConfigurationBuilder()
             .AddJsonStream(new System.IO.MemoryStream(Encoding.UTF8.GetBytes(json)))
@@ -310,7 +310,7 @@ public sealed class MarketingCategoryMapperTests
         var result = mapper.MapToActionType(new[] { "sociální sítě" });
 
         // Assert
-        result.ActionType.Should().Be(MarketingActionType.General);
+        result.ActionType.Should().Be(MarketingActionType.SocialMedia);
         result.MatchedCategory.Should().Be("sociální sítě");
         result.UnmappedCategories.Should().BeEmpty();
     }

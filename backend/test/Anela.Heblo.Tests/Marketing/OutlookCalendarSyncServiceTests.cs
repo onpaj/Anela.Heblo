@@ -72,7 +72,7 @@ namespace Anela.Heblo.Tests.Marketing
                 Id = 42,
                 Title = "Spring Launch",
                 Description = "Big spring launch event",
-                ActionType = MarketingActionType.Launch,
+                ActionType = MarketingActionType.Newsletter,
                 StartDate = startDate ?? DefaultStartDate,
                 EndDate = resolvedEndDate,
                 CreatedAt = DateTime.UtcNow,
@@ -300,7 +300,7 @@ namespace Anela.Heblo.Tests.Marketing
         {
             // Arrange — use a plain ASCII name to avoid JSON unicode-escape differences
             _mapperMock
-                .Setup(m => m.MapToOutlookCategory(MarketingActionType.Campaign))
+                .Setup(m => m.MapToOutlookCategory(MarketingActionType.PR))
                 .Returns("PR-Summer");
 
             var responseJson = JsonSerializer.Serialize(new { id = "evt-x" });
@@ -311,7 +311,7 @@ namespace Anela.Heblo.Tests.Marketing
                 Id = 1,
                 Title = "Test",
                 Description = string.Empty,
-                ActionType = MarketingActionType.Campaign,
+                ActionType = MarketingActionType.PR,
                 StartDate = DefaultStartDate,
                 EndDate = DefaultEndDate,
                 CreatedAt = DateTime.UtcNow,
@@ -331,7 +331,7 @@ namespace Anela.Heblo.Tests.Marketing
         {
             // Arrange
             _mapperMock
-                .Setup(m => m.MapToOutlookCategory(MarketingActionType.Campaign))
+                .Setup(m => m.MapToOutlookCategory(MarketingActionType.PR))
                 .Returns("Campaign");
 
             var responseJson = JsonSerializer.Serialize(new { id = "evt-x" });
@@ -342,7 +342,7 @@ namespace Anela.Heblo.Tests.Marketing
                 Id = 1,
                 Title = "Test",
                 Description = string.Empty,
-                ActionType = MarketingActionType.Campaign,
+                ActionType = MarketingActionType.PR,
                 StartDate = DefaultStartDate,
                 EndDate = DefaultEndDate,
                 CreatedAt = DateTime.UtcNow,
@@ -362,7 +362,7 @@ namespace Anela.Heblo.Tests.Marketing
         {
             // Arrange
             _mapperMock
-                .Setup(m => m.MapToOutlookCategory(MarketingActionType.Campaign))
+                .Setup(m => m.MapToOutlookCategory(MarketingActionType.PR))
                 .Returns("FOOBAR");
 
             var responseJson = JsonSerializer.Serialize(new { id = "evt-x" });
@@ -373,7 +373,7 @@ namespace Anela.Heblo.Tests.Marketing
                 Id = 1,
                 Title = "Test",
                 Description = string.Empty,
-                ActionType = MarketingActionType.Campaign,
+                ActionType = MarketingActionType.PR,
                 StartDate = DefaultStartDate,
                 EndDate = DefaultEndDate,
                 CreatedAt = DateTime.UtcNow,

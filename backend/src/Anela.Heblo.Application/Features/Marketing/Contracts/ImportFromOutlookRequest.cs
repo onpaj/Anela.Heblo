@@ -18,6 +18,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Contracts
     public class ImportFromOutlookResponse : BaseResponse
     {
         public int Created { get; set; }
+        public int Updated { get; set; }
         public int Skipped { get; set; }
         public int Failed { get; set; }
         [Required]
@@ -48,6 +49,8 @@ namespace Anela.Heblo.Application.Features.Marketing.Contracts
     {
         public const string Created = "Created";
         public const string WouldCreate = "WouldCreate";
+        public const string Updated = "Updated";
+        public const string WouldUpdate = "WouldUpdate";
         public const string Skipped = "Skipped";
         public const string Failed = "Failed";
     }

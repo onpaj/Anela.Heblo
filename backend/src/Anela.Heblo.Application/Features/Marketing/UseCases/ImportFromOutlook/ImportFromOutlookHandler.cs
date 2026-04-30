@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
@@ -16,18 +15,6 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
 {
     public class ImportFromOutlookHandler : IRequestHandler<ImportFromOutlookRequest, ImportFromOutlookResponse>
     {
-        private static readonly Regex ScriptStyleRegex = new(
-            @"<(script|style)[^>]*>.*?</(script|style)>",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
-
-        private static readonly Regex HtmlTagRegex = new(
-            @"<[^>]+>",
-            RegexOptions.Compiled);
-
-        private static readonly Regex WhitespaceRegex = new(
-            @"\s+",
-            RegexOptions.Compiled);
-
         private readonly IMarketingActionRepository _repository;
         private readonly ICurrentUserService _currentUserService;
         private readonly IOutlookCalendarSync _outlookSync;
@@ -64,9 +51,9 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
 
             var eventIds = events.Select(e => e.Id).Where(id => !string.IsNullOrEmpty(id)).ToList();
             var existingActions = await _repository.GetByOutlookEventIdsAsync(eventIds, cancellationToken);
-            var knownEventIds = new HashSet<string>(
-                existingActions.Select(a => a.OutlookEventId!),
-                StringComparer.OrdinalIgnoreCase);
+            var existingByEventId = existingActions
+                .GroupBy(a => a.OutlookEventId!, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
             var utcNow = DateTime.UtcNow;
             var response = new ImportFromOutlookResponse();
@@ -74,22 +61,9 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
 
             foreach (var evt in events)
             {
-                if (knownEventIds.Contains(evt.Id))
-                {
-                    response.Skipped++;
-                    response.Items.Add(new ImportedItemDto
-                    {
-                        OutlookEventId = evt.Id,
-                        Subject = evt.Subject,
-                        Status = ImportStatus.Skipped,
-                    });
-                    continue;
-                }
-
                 try
                 {
                     var mapping = _mapper.MapToActionType(evt.Categories ?? Array.Empty<string>());
-                    var action = BuildAction(evt, currentUser, utcNow, mapping.ActionType);
 
                     if (mapping.MatchedCategory is null && mapping.UnmappedCategories.Count > 0)
                     {
@@ -99,29 +73,75 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
                         }
                     }
 
-                    if (!request.DryRun)
+                    if (existingByEventId.TryGetValue(evt.Id, out var existing))
                     {
-                        var created = await _repository.AddAsync(action, cancellationToken);
-                        await _repository.SaveChangesAsync(cancellationToken);
-
-                        response.Created++;
-                        response.Items.Add(new ImportedItemDto
+                        if (!OutlookEventImportMapper.HasChanges(existing, evt, mapping.ActionType))
                         {
-                            OutlookEventId = evt.Id,
-                            Subject = evt.Subject,
-                            Status = ImportStatus.Created,
-                            CreatedActionId = created.Id,
-                        });
+                            response.Skipped++;
+                            response.Items.Add(new ImportedItemDto
+                            {
+                                OutlookEventId = evt.Id,
+                                Subject = evt.Subject,
+                                Status = ImportStatus.Skipped,
+                            });
+                            continue;
+                        }
+
+                        OutlookEventImportMapper.ApplyChanges(existing, evt, mapping.ActionType, currentUser, utcNow);
+
+                        if (!request.DryRun)
+                        {
+                            await _repository.UpdateAsync(existing, cancellationToken);
+                            await _repository.SaveChangesAsync(cancellationToken);
+
+                            response.Updated++;
+                            response.Items.Add(new ImportedItemDto
+                            {
+                                OutlookEventId = evt.Id,
+                                Subject = evt.Subject,
+                                Status = ImportStatus.Updated,
+                                CreatedActionId = existing.Id,
+                            });
+                        }
+                        else
+                        {
+                            response.Updated++;
+                            response.Items.Add(new ImportedItemDto
+                            {
+                                OutlookEventId = evt.Id,
+                                Subject = evt.Subject,
+                                Status = ImportStatus.WouldUpdate,
+                            });
+                        }
                     }
                     else
                     {
-                        response.Created++;
-                        response.Items.Add(new ImportedItemDto
+                        var action = OutlookEventImportMapper.BuildAction(evt, currentUser, utcNow, mapping.ActionType);
+
+                        if (!request.DryRun)
                         {
-                            OutlookEventId = evt.Id,
-                            Subject = evt.Subject,
-                            Status = ImportStatus.WouldCreate,
-                        });
+                            var created = await _repository.AddAsync(action, cancellationToken);
+                            await _repository.SaveChangesAsync(cancellationToken);
+
+                            response.Created++;
+                            response.Items.Add(new ImportedItemDto
+                            {
+                                OutlookEventId = evt.Id,
+                                Subject = evt.Subject,
+                                Status = ImportStatus.Created,
+                                CreatedActionId = created.Id,
+                            });
+                        }
+                        else
+                        {
+                            response.Created++;
+                            response.Items.Add(new ImportedItemDto
+                            {
+                                OutlookEventId = evt.Id,
+                                Subject = evt.Subject,
+                                Status = ImportStatus.WouldCreate,
+                            });
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -156,58 +176,5 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.ImportFromOutlook
             return response;
         }
 
-        private static MarketingAction BuildAction(
-            OutlookEventDto evt,
-            CurrentUser currentUser,
-            DateTime utcNow,
-            MarketingActionType actionType)
-        {
-            var title = (evt.Subject ?? string.Empty).Length > 200
-                ? evt.Subject[..200]
-                : evt.Subject ?? string.Empty;
-
-            var rawDescription = StripHtml(evt.BodyText);
-            var description = rawDescription?.Length > 5000
-                ? rawDescription[..5000]
-                : rawDescription;
-
-            var endDate = evt.EndUtc == DateTime.MinValue || evt.EndUtc == evt.StartUtc
-                ? (DateTime?)null
-                : evt.EndUtc;
-
-            var action = new MarketingAction
-            {
-                Title = title,
-                Description = description,
-                ActionType = actionType,
-                StartDate = evt.StartUtc,
-                EndDate = endDate,
-                CreatedAt = utcNow,
-                ModifiedAt = utcNow,
-                CreatedByUserId = currentUser.Id!,
-                CreatedByUsername = currentUser.Name ?? "Unknown User",
-            };
-
-            action.MarkOutlookSynced(evt.Id, utcNow);
-
-            return action;
-        }
-
-        private static string? StripHtml(string? html)
-        {
-            if (string.IsNullOrWhiteSpace(html)) return null;
-
-            // Remove script/style blocks
-            var result = ScriptStyleRegex.Replace(html, string.Empty);
-
-            // Remove remaining tags
-            result = HtmlTagRegex.Replace(result, string.Empty);
-
-            // Decode HTML entities and collapse whitespace
-            result = System.Net.WebUtility.HtmlDecode(result);
-            result = WhitespaceRegex.Replace(result, " ").Trim();
-
-            return string.IsNullOrWhiteSpace(result) ? null : result;
-        }
     }
 }

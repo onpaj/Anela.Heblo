@@ -54,6 +54,10 @@ public class ImportFromOutlookHandlerTests
             .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<MarketingAction>());
 
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         // Default: nothing mapped — return General with all categories as unmapped
         _mapperMock
             .Setup(m => m.MapToActionType(It.IsAny<IReadOnlyList<string>>()))
@@ -61,7 +65,7 @@ public class ImportFromOutlookHandlerTests
             {
                 var nonEmpty = cats?.Where(c => !string.IsNullOrWhiteSpace(c)).ToList() ?? new List<string>();
                 return new CategoryMappingResult(
-                    MarketingActionType.General,
+                    MarketingActionType.SocialMedia,
                     null,
                     nonEmpty);
             });
@@ -150,15 +154,21 @@ public class ImportFromOutlookHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenEventAlreadyImported_SkipsIt()
+    public async Task Handle_WhenEventAlreadyImportedAndUnchanged_SkipsIt()
     {
-        // Arrange
+        // Arrange — existing record matches Outlook event exactly
+        var startUtc = new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc);
+        var endUtc = new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc);
+
         var existingAction = new MarketingAction
         {
             Id = 1,
             OutlookEventId = "evt-existing",
-            Title = "Old",
-            StartDate = DateTime.UtcNow,
+            Title = "Test Event",
+            Description = null,
+            StartDate = startUtc,
+            EndDate = endUtc,
+            ActionType = MarketingActionType.SocialMedia,
             CreatedAt = DateTime.UtcNow,
             ModifiedAt = DateTime.UtcNow,
             CreatedByUserId = "user-1",
@@ -178,10 +188,93 @@ public class ImportFromOutlookHandlerTests
         // Assert
         result.Success.Should().BeTrue();
         result.Skipped.Should().Be(1);
+        result.Updated.Should().Be(0);
         result.Created.Should().Be(0);
-        result.Items.Should().ContainSingle(i => i.Status == "Skipped" && i.OutlookEventId == "evt-existing");
+        result.Items.Should().ContainSingle(i => i.Status == ImportStatus.Skipped && i.OutlookEventId == "evt-existing");
 
         _repositoryMock.Verify(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_WhenEventAlreadyImportedAndChanged_UpdatesIt()
+    {
+        // Arrange — existing record has old title; Outlook has new title
+        var startUtc = new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc);
+        var endUtc = new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc);
+
+        var existingAction = new MarketingAction
+        {
+            Id = 5,
+            OutlookEventId = "evt-changed",
+            Title = "Old Title",
+            StartDate = startUtc,
+            EndDate = endUtc,
+            ActionType = MarketingActionType.SocialMedia,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "user-1",
+        };
+
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OutlookEventDto> { BuildEvent(id: "evt-changed", subject: "New Title") });
+
+        _repositoryMock
+            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction> { existingAction });
+
+        _repositoryMock
+            .Setup(x => x.UpdateAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.Updated.Should().Be(1);
+        result.Skipped.Should().Be(0);
+        result.Items.Should().ContainSingle(i => i.Status == ImportStatus.Updated && i.OutlookEventId == "evt-changed");
+
+        existingAction.Title.Should().Be("New Title");
+        _repositoryMock.Verify(x => x.UpdateAsync(existingAction, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenDryRunAndEventChanged_ReportsWouldUpdateWithoutPersisting()
+    {
+        // Arrange
+        var existingAction = new MarketingAction
+        {
+            Id = 5,
+            OutlookEventId = "evt-changed",
+            Title = "Old Title",
+            StartDate = new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc),
+            ActionType = MarketingActionType.SocialMedia,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "user-1",
+        };
+
+        _outlookSyncMock
+            .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<OutlookEventDto> { BuildEvent(id: "evt-changed", subject: "New Title") });
+
+        _repositoryMock
+            .Setup(x => x.GetByOutlookEventIdsAsync(It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingAction> { existingAction });
+
+        // Act
+        var result = await _handler.Handle(BuildRequest(dryRun: true), CancellationToken.None);
+
+        // Assert
+        result.Updated.Should().Be(1);
+        result.Items.Should().ContainSingle(i => i.Status == ImportStatus.WouldUpdate);
+
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -194,10 +287,10 @@ public class ImportFromOutlookHandlerTests
             .Setup(s => s.ListEventsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<OutlookEventDto> { evt });
 
-        // Specific setup: "Launch" maps to MarketingActionType.Launch
+        // Specific setup: "Launch" maps to MarketingActionType.Newsletter
         _mapperMock
             .Setup(m => m.MapToActionType(It.Is<IReadOnlyList<string>>(cats => cats.Contains("Launch"))))
-            .Returns(new CategoryMappingResult(MarketingActionType.Launch, "Launch", new List<string>()));
+            .Returns(new CategoryMappingResult(MarketingActionType.Newsletter, "Launch", new List<string>()));
 
         MarketingAction? capturedAction = null;
         _repositoryMock
@@ -215,7 +308,7 @@ public class ImportFromOutlookHandlerTests
 
         capturedAction.Should().NotBeNull();
         capturedAction!.Title.Should().Be("Summer Launch");
-        capturedAction.ActionType.Should().Be(MarketingActionType.Launch);
+        capturedAction.ActionType.Should().Be(MarketingActionType.Newsletter);
         capturedAction.OutlookEventId.Should().Be("evt-new");
         capturedAction.OutlookSyncStatus.Should().Be(MarketingSyncStatus.Synced);
         capturedAction.CreatedByUserId.Should().Be(AuthenticatedUser.Id);
@@ -241,7 +334,7 @@ public class ImportFromOutlookHandlerTests
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
 
         // Assert
-        capturedAction!.ActionType.Should().Be(MarketingActionType.General);
+        capturedAction!.ActionType.Should().Be(MarketingActionType.SocialMedia);
     }
 
     [Fact]
@@ -306,13 +399,16 @@ public class ImportFromOutlookHandlerTests
         // First call: event is new
         var firstResult = await _handler.Handle(BuildRequest(), CancellationToken.None);
 
-        // Second call: repo returns the imported action
+        // Second call: repo returns the imported action — fields match the Outlook event exactly
         var importedAction = new MarketingAction
         {
             Id = 100,
             OutlookEventId = "evt-idem",
             Title = "Test Event",
-            StartDate = DateTime.UtcNow,
+            Description = null,
+            StartDate = new DateTime(2026, 6, 10, 9, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 6, 10, 10, 0, 0, DateTimeKind.Utc),
+            ActionType = MarketingActionType.SocialMedia,
             CreatedAt = DateTime.UtcNow,
             ModifiedAt = DateTime.UtcNow,
             CreatedByUserId = "user-1",
@@ -377,7 +473,7 @@ public class ImportFromOutlookHandlerTests
 
         _mapperMock
             .Setup(m => m.MapToActionType(It.Is<IReadOnlyList<string>>(cats => cats.Contains("PR – léto"))))
-            .Returns(new CategoryMappingResult(MarketingActionType.Campaign, "PR – léto", new List<string>()));
+            .Returns(new CategoryMappingResult(MarketingActionType.PR, "PR – léto", new List<string>()));
 
         MarketingAction? capturedAction = null;
         _repositoryMock
@@ -390,7 +486,7 @@ public class ImportFromOutlookHandlerTests
 
         // Assert
         result.Success.Should().BeTrue();
-        capturedAction!.ActionType.Should().Be(MarketingActionType.Campaign);
+        capturedAction!.ActionType.Should().Be(MarketingActionType.PR);
         result.UnmappedCategories.Should().BeEmpty();
     }
 
@@ -406,7 +502,7 @@ public class ImportFromOutlookHandlerTests
 
         _mapperMock
             .Setup(m => m.MapToActionType(It.Is<IReadOnlyList<string>>(cats => cats.Contains("Random"))))
-            .Returns(new CategoryMappingResult(MarketingActionType.General, null, new List<string> { "Random", "Another" }));
+            .Returns(new CategoryMappingResult(MarketingActionType.SocialMedia, null, new List<string> { "Random", "Another" }));
 
         // Act
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
@@ -428,7 +524,7 @@ public class ImportFromOutlookHandlerTests
 
         _mapperMock
             .Setup(m => m.MapToActionType(It.Is<IReadOnlyList<string>>(cats => cats.Count == 0)))
-            .Returns(new CategoryMappingResult(MarketingActionType.General, null, new List<string>()));
+            .Returns(new CategoryMappingResult(MarketingActionType.SocialMedia, null, new List<string>()));
 
         // Act
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
@@ -452,15 +548,15 @@ public class ImportFromOutlookHandlerTests
 
         _mapperMock
             .Setup(m => m.MapToActionType(It.Is<IReadOnlyList<string>>(cats => cats.Contains("X"))))
-            .Returns(new CategoryMappingResult(MarketingActionType.General, null, new List<string> { "X" }));
+            .Returns(new CategoryMappingResult(MarketingActionType.SocialMedia, null, new List<string> { "X" }));
 
         _mapperMock
             .Setup(m => m.MapToActionType(It.Is<IReadOnlyList<string>>(cats => cats.Contains("x"))))
-            .Returns(new CategoryMappingResult(MarketingActionType.General, null, new List<string> { "x" }));
+            .Returns(new CategoryMappingResult(MarketingActionType.SocialMedia, null, new List<string> { "x" }));
 
         _mapperMock
             .Setup(m => m.MapToActionType(It.Is<IReadOnlyList<string>>(cats => cats.Contains("Y"))))
-            .Returns(new CategoryMappingResult(MarketingActionType.General, null, new List<string> { "Y" }));
+            .Returns(new CategoryMappingResult(MarketingActionType.SocialMedia, null, new List<string> { "Y" }));
 
         // Act
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
@@ -482,11 +578,11 @@ public class ImportFromOutlookHandlerTests
 
         _mapperMock
             .Setup(m => m.MapToActionType(It.Is<IReadOnlyList<string>>(cats => cats.Contains("PR – léto"))))
-            .Returns(new CategoryMappingResult(MarketingActionType.Campaign, "PR – léto", new List<string>()));
+            .Returns(new CategoryMappingResult(MarketingActionType.PR, "PR – léto", new List<string>()));
 
         _mapperMock
             .Setup(m => m.MapToActionType(It.Is<IReadOnlyList<string>>(cats => cats.Contains("Random"))))
-            .Returns(new CategoryMappingResult(MarketingActionType.General, null, new List<string> { "Random" }));
+            .Returns(new CategoryMappingResult(MarketingActionType.SocialMedia, null, new List<string> { "Random" }));
 
         // Act
         var result = await _handler.Handle(BuildRequest(), CancellationToken.None);
@@ -532,6 +628,6 @@ public class ImportFromOutlookHandlerTests
 
         // Assert
         await act.Should().NotThrowAsync();
-        capturedAction!.ActionType.Should().Be(MarketingActionType.General);
+        capturedAction!.ActionType.Should().Be(MarketingActionType.SocialMedia);
     }
 }

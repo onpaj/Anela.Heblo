@@ -13,8 +13,5 @@ namespace Anela.Heblo.Application.Features.Marketing.Configuration
 
         public Dictionary<string, MarketingActionType> CategoryMappings { get; init; }
             = new(StringComparer.OrdinalIgnoreCase);
-
-        public Dictionary<MarketingActionType, string> OutgoingCategories { get; init; }
-            = new();
     }
 }

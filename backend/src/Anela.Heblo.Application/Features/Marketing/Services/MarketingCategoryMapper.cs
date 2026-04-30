@@ -39,7 +39,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 
             if (outlookCategories is null || outlookCategories.Count == 0)
             {
-                return new CategoryMappingResult(MarketingActionType.General, null, Array.Empty<string>());
+                return new CategoryMappingResult(MarketingActionType.SocialMedia, null, Array.Empty<string>());
             }
 
             List<string>? unmapped = null;
@@ -60,7 +60,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             }
 
             return new CategoryMappingResult(
-                MarketingActionType.General,
+                MarketingActionType.SocialMedia,
                 null,
                 (IReadOnlyList<string>?)unmapped ?? Array.Empty<string>());
         }
@@ -94,9 +94,9 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 
             var outgoing = new Dictionary<MarketingActionType, string>();
 
-            foreach (var kv in opts.OutgoingCategories ?? new Dictionary<MarketingActionType, string>())
+            foreach (var kv in incoming)
             {
-                outgoing[kv.Key] = (kv.Value ?? string.Empty).Trim();
+                outgoing.TryAdd(kv.Value, kv.Key);
             }
 
             return new Snapshot(incoming, outgoing);

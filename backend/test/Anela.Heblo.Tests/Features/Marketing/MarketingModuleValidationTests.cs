@@ -15,15 +15,12 @@ public sealed class MarketingModuleValidationTests
     // ---------------------------------------------------------------------------
 
     private static MarketingCalendarOptions BuildOptions(
-        Dictionary<string, MarketingActionType>? categoryMappings = null,
-        Dictionary<MarketingActionType, string>? outgoingCategories = null)
+        Dictionary<string, MarketingActionType>? categoryMappings = null)
     {
         return new MarketingCalendarOptions
         {
             CategoryMappings = categoryMappings
-                ?? new Dictionary<string, MarketingActionType>(System.StringComparer.OrdinalIgnoreCase),
-            OutgoingCategories = outgoingCategories
-                ?? new Dictionary<MarketingActionType, string>(),
+                ?? new Dictionary<string, MarketingActionType>(StringComparer.OrdinalIgnoreCase),
         };
     }
 
@@ -32,7 +29,7 @@ public sealed class MarketingModuleValidationTests
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public void Validate_BothDictionariesEmpty_Passes()
+    public void Validate_EmptyMappings_Passes()
     {
         // Arrange
         var options = BuildOptions();
@@ -45,35 +42,14 @@ public sealed class MarketingModuleValidationTests
     }
 
     [Fact]
-    public void Validate_OnlyCategoryMappingsPopulated_Passes()
+    public void Validate_ValidMappings_Passes()
     {
         // Arrange
         var options = BuildOptions(
             categoryMappings: new Dictionary<string, MarketingActionType>
             {
-                ["Sociální sítě"] = MarketingActionType.General,
-            },
-            outgoingCategories: new Dictionary<MarketingActionType, string>());
-
-        // Act
-        var act = () => MarketingModule.ValidateRoundTrip(options);
-
-        // Assert
-        act.Should().NotThrow();
-    }
-
-    [Fact]
-    public void Validate_RoundTripValid_Passes()
-    {
-        // Arrange
-        var options = BuildOptions(
-            categoryMappings: new Dictionary<string, MarketingActionType>
-            {
-                ["Sociální sítě"] = MarketingActionType.General,
-            },
-            outgoingCategories: new Dictionary<MarketingActionType, string>
-            {
-                [MarketingActionType.General] = "Sociální sítě",
+                ["Sociální sítě"] = MarketingActionType.SocialMedia,
+                ["Email"] = MarketingActionType.Newsletter,
             });
 
         // Act
@@ -84,17 +60,13 @@ public sealed class MarketingModuleValidationTests
     }
 
     [Fact]
-    public void Validate_OutgoingValueMissingFromIncoming_Throws()
+    public void Validate_BlankKey_Throws()
     {
         // Arrange
         var options = BuildOptions(
             categoryMappings: new Dictionary<string, MarketingActionType>
             {
-                ["A"] = MarketingActionType.General,
-            },
-            outgoingCategories: new Dictionary<MarketingActionType, string>
-            {
-                [MarketingActionType.Campaign] = "B",
+                [""] = MarketingActionType.SocialMedia,
             });
 
         // Act
@@ -103,64 +75,17 @@ public sealed class MarketingModuleValidationTests
         // Assert
         act.Should()
             .Throw<InvalidOperationException>()
-            .WithMessage("*OutgoingCategories[Campaign] = 'B'*");
+            .WithMessage("*CategoryMappings contains a blank key*");
     }
 
     [Fact]
-    public void Validate_CaseInsensitiveMatch_Passes()
+    public void Validate_WhitespaceOnlyKey_Throws()
     {
         // Arrange
         var options = BuildOptions(
             categoryMappings: new Dictionary<string, MarketingActionType>
             {
-                ["Sociální Sítě"] = MarketingActionType.General,
-            },
-            outgoingCategories: new Dictionary<MarketingActionType, string>
-            {
-                [MarketingActionType.General] = "sociální sítě",
-            });
-
-        // Act
-        var act = () => MarketingModule.ValidateRoundTrip(options);
-
-        // Assert
-        act.Should().NotThrow();
-    }
-
-    [Fact]
-    public void Validate_TrimmedMatch_Passes()
-    {
-        // Arrange
-        var options = BuildOptions(
-            categoryMappings: new Dictionary<string, MarketingActionType>
-            {
-                ["Email"] = MarketingActionType.Launch,
-            },
-            outgoingCategories: new Dictionary<MarketingActionType, string>
-            {
-                [MarketingActionType.Launch] = "  Email  ",
-            });
-
-        // Act
-        var act = () => MarketingModule.ValidateRoundTrip(options);
-
-        // Assert
-        act.Should().NotThrow();
-    }
-
-    [Fact]
-    public void Validate_MultipleErrors_AllListedInMessage()
-    {
-        // Arrange
-        var options = BuildOptions(
-            categoryMappings: new Dictionary<string, MarketingActionType>
-            {
-                ["ValidKey"] = MarketingActionType.General,
-            },
-            outgoingCategories: new Dictionary<MarketingActionType, string>
-            {
-                [MarketingActionType.Campaign] = "MissingX",
-                [MarketingActionType.Launch] = "MissingY",
+                ["   "] = MarketingActionType.SocialMedia,
             });
 
         // Act
@@ -169,8 +94,19 @@ public sealed class MarketingModuleValidationTests
         // Assert
         act.Should()
             .Throw<InvalidOperationException>()
-            .Which.Message.Should()
-            .Contain("OutgoingCategories[Campaign]")
-            .And.Contain("OutgoingCategories[Launch]");
+            .WithMessage("*CategoryMappings contains a blank key*");
+    }
+
+    [Fact]
+    public void Validate_NullMappings_Passes()
+    {
+        // Arrange
+        var options = new MarketingCalendarOptions { CategoryMappings = null! };
+
+        // Act
+        var act = () => MarketingModule.ValidateRoundTrip(options);
+
+        // Assert
+        act.Should().NotThrow();
     }
 }

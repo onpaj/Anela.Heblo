@@ -11,21 +11,21 @@ export interface CalendarEvent {
 }
 
 export const ACTION_TYPE_COLORS: Record<string, { bg: string; text: string }> = {
-  General:   { bg: '#3b82f6', text: '#ffffff' }, // Sociální sítě
-  Promotion: { bg: '#a855f7', text: '#ffffff' }, // Událost
-  Launch:    { bg: '#22c55e', text: '#ffffff' }, // Email
-  Campaign:  { bg: '#eab308', text: '#111827' }, // PR
-  Event:     { bg: '#ec4899', text: '#ffffff' }, // Fotografie
-  Other:     { bg: '#6b7280', text: '#ffffff' }, // Ostatní
+  SocialMedia: { bg: '#eab308', text: '#111827' }, // Yellow Category
+  Blog:        { bg: '#22c55e', text: '#ffffff' }, // Green Category
+  Newsletter:  { bg: '#a855f7', text: '#ffffff' }, // Purple Category
+  PR:          { bg: '#f97316', text: '#ffffff' }, // Orange Category
+  Event:       { bg: '#ef4444', text: '#ffffff' }, // Red Category
+  Meeting:     { bg: '#14b8a6', text: '#ffffff' }, // Teal Category
 };
 
 export const ACTION_TYPE_TO_INT: Record<string, number> = {
-  General:   0,
-  Promotion: 1,
-  Launch:    2,
-  Campaign:  3,
-  Event:     4,
-  Other:     99,
+  SocialMedia: 0,
+  Blog:        1,
+  Newsletter:  2,
+  PR:          3,
+  Event:       4,
+  Meeting:     99,
 };
 
 export function formatDateStr(d: Date): string {
@@ -36,7 +36,7 @@ export function formatDateStr(d: Date): string {
 }
 
 export function toFcEvent(event: CalendarEvent): EventInput {
-  const colors = ACTION_TYPE_COLORS[event.actionType] ?? ACTION_TYPE_COLORS.Other;
+  const colors = ACTION_TYPE_COLORS[event.actionType] ?? ACTION_TYPE_COLORS.Meeting;
 
   // FullCalendar end is exclusive, API dateTo is inclusive → add 1 day
   const [y, mo, d] = event.dateTo.split('-').map(Number);
