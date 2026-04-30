@@ -5,6 +5,10 @@ namespace Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices.Mapping;
 
 public class ShoptetInvoiceMapper
 {
+    // Shoptet rounds invoice totals to the nearest full crown (max ±0.50 Kč),
+    // so any difference within 1 crown is a rounding artefact, not a data discrepancy.
+    private const decimal RoundingToleranceCrowns = 1m;
+
     private static readonly HashSet<string> AggregateDiscountTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "discount-coupon",
@@ -65,14 +69,19 @@ public class ShoptetInvoiceMapper
             }
         }
 
-        var price = MapInvoicePrice(src.Price);
+        var headerPrice = MapInvoicePrice(src.Price);   // WithVat is toPay (post-rounding) or withVat fallback
         var totalWithVat = products.Where(i => i.ItemPrice.VatRate != "none").Sum(i => i.ItemPrice.TotalWithVat);
         var totalWithoutVat = products.Sum(i => i.ItemPrice.TotalWithoutVat);
-        price.WithVat = totalWithVat;
-        price.WithoutVat = totalWithoutVat;
-        price.TotalWithVat = totalWithVat;
-        price.TotalWithoutVat = totalWithoutVat;
-        price.Vat = totalWithVat - totalWithoutVat;
+
+        // Use the header's effective WithVat (toPay when within rounding range, otherwise withVat) as the
+        // authoritative total when it is close to the item-sum. This handles the "Zaokrouhlení" (rounding)
+        // line: items sum to e.g. 14321.50 and toPay/header = 14322.00 — Flexi reports 14322.00.
+        // headerPrice.WithVat was already resolved by MapInvoicePrice (toPay if within RoundingToleranceCrowns
+        // of withVat, else withVat). This second guard handles the deposit-adjusted case where even the
+        // header's chosen value diverges from items by ≥ 1 Kč — fall back to the item sum to preserve
+        // parity with the Playwright adapter.
+        var headerDiff = Math.Abs(headerPrice.WithVat - totalWithVat);
+        var effectiveTotalWithVat = headerDiff < RoundingToleranceCrowns ? headerPrice.WithVat : totalWithVat;
 
         return new IssuedInvoiceDetail
         {
@@ -88,7 +97,16 @@ public class ShoptetInvoiceMapper
             BillingAddress = billingAddress,
             DeliveryAddress = deliveryAddress,
             Customer = MapCustomer(src.BillingAddress),
-            Price = price,
+            Price = new InvoicePrice
+            {
+                WithVat = effectiveTotalWithVat,
+                WithoutVat = totalWithoutVat,
+                TotalWithVat = effectiveTotalWithVat,
+                TotalWithoutVat = totalWithoutVat,
+                Vat = effectiveTotalWithVat - totalWithoutVat,
+                CurrencyCode = headerPrice.CurrencyCode,
+                ExchangeRate = headerPrice.ExchangeRate,
+            },
             Items = products,
         };
     }
@@ -196,16 +214,27 @@ public class ShoptetInvoiceMapper
             return new InvoicePrice();
         }
 
-        _ = decimal.TryParse(src.WithVat, System.Globalization.NumberStyles.Any,
-            System.Globalization.CultureInfo.InvariantCulture, out var withVat);
-        _ = decimal.TryParse(src.WithoutVat, System.Globalization.NumberStyles.Any,
-            System.Globalization.CultureInfo.InvariantCulture, out var withoutVat);
+        var withVat = ParseDecimal(src.WithVat);
+        var withoutVat = ParseDecimal(src.WithoutVat);
+
+        // Use toPay (post-rounding "Částka k úhradě") as the authoritative with-VAT total only when
+        // it differs from withVat by a rounding-sized amount (< 1 Kč). Shoptet invoices with a
+        // "Zaokrouhlení" line expose the pre-rounding sum as withVat and the final rounded total as
+        // toPay. Flexi's sumCelkem equals toPay, so we must use toPay here to avoid a false DQT
+        // mismatch on "Celkem s DPH".
+        // When toPay differs by ≥ 1 Kč (e.g. invoice with advance deposit already paid), fall back
+        // to withVat so we compare the full invoice total, not the residual amount due.
+        var toPay = ParseDecimal(src.ToPay);
+        var roundingDifference = Math.Abs(toPay - withVat);
+        var effectiveWithVat = src.ToPay is not null && toPay > 0m && roundingDifference < RoundingToleranceCrowns
+            ? toPay
+            : withVat;
 
         return new InvoicePrice
         {
-            WithVat = withVat,
+            WithVat = effectiveWithVat,
             WithoutVat = withoutVat,
-            Vat = withVat - withoutVat,
+            Vat = effectiveWithVat - withoutVat,
             CurrencyCode = src.CurrencyCode ?? "CZK",
             ExchangeRate = decimal.TryParse(src.ExchangeRate, System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out var exchangeRate) ? exchangeRate : 1m,
