@@ -69,24 +69,19 @@ public class ShoptetInvoiceMapper
             }
         }
 
-        var price = MapInvoicePrice(src.Price);   // price.WithVat is toPay (post-rounding) or withVat fallback
+        var headerPrice = MapInvoicePrice(src.Price);   // WithVat is toPay (post-rounding) or withVat fallback
         var totalWithVat = products.Where(i => i.ItemPrice.VatRate != "none").Sum(i => i.ItemPrice.TotalWithVat);
         var totalWithoutVat = products.Sum(i => i.ItemPrice.TotalWithoutVat);
 
         // Use the header's effective WithVat (toPay when within rounding range, otherwise withVat) as the
         // authoritative total when it is close to the item-sum. This handles the "Zaokrouhlení" (rounding)
         // line: items sum to e.g. 14321.50 and toPay/header = 14322.00 — Flexi reports 14322.00.
-        // When the header diverges from the item sum by ≥ 1 Kč (e.g. advance deposit already applied to
-        // toPay, or a data inconsistency in the Shoptet API), fall back to the item sum so parity with
-        // the Playwright adapter is preserved.
-        var headerDiff = Math.Abs(price.WithVat - totalWithVat);
-        var effectiveTotalWithVat = headerDiff < RoundingToleranceCrowns ? price.WithVat : totalWithVat;
-
-        price.WithVat = effectiveTotalWithVat;
-        price.WithoutVat = totalWithoutVat;
-        price.TotalWithVat = effectiveTotalWithVat;
-        price.TotalWithoutVat = totalWithoutVat;
-        price.Vat = effectiveTotalWithVat - totalWithoutVat;
+        // headerPrice.WithVat was already resolved by MapInvoicePrice (toPay if within RoundingToleranceCrowns
+        // of withVat, else withVat). This second guard handles the deposit-adjusted case where even the
+        // header's chosen value diverges from items by ≥ 1 Kč — fall back to the item sum to preserve
+        // parity with the Playwright adapter.
+        var headerDiff = Math.Abs(headerPrice.WithVat - totalWithVat);
+        var effectiveTotalWithVat = headerDiff < RoundingToleranceCrowns ? headerPrice.WithVat : totalWithVat;
 
         return new IssuedInvoiceDetail
         {
@@ -102,7 +97,16 @@ public class ShoptetInvoiceMapper
             BillingAddress = billingAddress,
             DeliveryAddress = deliveryAddress,
             Customer = MapCustomer(src.BillingAddress),
-            Price = price,
+            Price = new InvoicePrice
+            {
+                WithVat = effectiveTotalWithVat,
+                WithoutVat = totalWithoutVat,
+                TotalWithVat = effectiveTotalWithVat,
+                TotalWithoutVat = totalWithoutVat,
+                Vat = effectiveTotalWithVat - totalWithoutVat,
+                CurrencyCode = headerPrice.CurrencyCode,
+                ExchangeRate = headerPrice.ExchangeRate,
+            },
             Items = products,
         };
     }
