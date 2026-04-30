@@ -49,6 +49,7 @@ public class ShoptetInvoiceMapperTests
         {
             WithVat = "242",
             WithoutVat = "200",
+            ToPay = "242",      // equals WithVat: no rounding, fallback contract is explicit
             CurrencyCode = "CZK",
             ExchangeRate = null,
         },
@@ -101,7 +102,7 @@ public class ShoptetInvoiceMapperTests
         var detail = BuildSut().Map(BuildMinimalDto());
         detail.Price.WithVat.Should().Be(242m);
         detail.Price.WithoutVat.Should().Be(200m, "sums line totals (TotalWithoutVat) for all items");
-        detail.Price.TotalWithVat.Should().Be(242m, "header TotalWithVat must equal sum of item TotalWithVat for DQT");
+        detail.Price.TotalWithVat.Should().Be(242m, "header TotalWithVat mirrors toPay (post-rounding amount payable)");
         detail.Price.TotalWithoutVat.Should().Be(200m, "header TotalWithoutVat must equal sum of item TotalWithoutVat for DQT");
         // Vat = WithVat - WithoutVat = 242 - 200 = 42.
         detail.Price.Vat.Should().Be(42m);
@@ -172,7 +173,7 @@ public class ShoptetInvoiceMapperTests
 
         detail.Price.WithVat.Should().Be(363m);
         detail.Price.WithoutVat.Should().Be(300m, "must sum line totals (TotalWithoutVat) for all items");
-        detail.Price.TotalWithVat.Should().Be(363m, "header TotalWithVat must equal sum of item TotalWithVat for DQT");
+        detail.Price.TotalWithVat.Should().Be(363m, "header TotalWithVat mirrors toPay (post-rounding amount payable)");
         detail.Price.TotalWithoutVat.Should().Be(300m, "header TotalWithoutVat must equal sum of item TotalWithoutVat for DQT");
         // Vat = WithVat - WithoutVat = 363 - 300 = 63.
         detail.Price.Vat.Should().Be(63m);
@@ -317,7 +318,50 @@ public class ShoptetInvoiceMapperTests
         result.Price.WithoutVat.Should().Be(450m);
         result.Price.WithVat.Should().Be(544.5m);
         result.Price.TotalWithoutVat.Should().Be(450m, "header TotalWithoutVat must mirror WithoutVat for DQT");
-        result.Price.TotalWithVat.Should().Be(544.5m, "header TotalWithVat must mirror WithVat for DQT");
+        result.Price.TotalWithVat.Should().Be(544.5m, "header TotalWithVat mirrors toPay (post-rounding amount payable)");
+    }
+
+    [Fact]
+    public void Map_InvoicePrice_UsesToPayWhenRoundingPresent()
+    {
+        // Shoptet invoice with "Zaokrouhlení": items sum to 14321.50 with VAT, but rounding (+0.50)
+        // brings the final "Částka k úhradě" (toPay) to 14322.00. DQT must compare this rounded
+        // total against Flexi's sumCelkem (which includes the rounding).
+        // The item total deliberately matches the header withVat (14321.50) so the header diff
+        // check passes and toPay is used as the effective total.
+        var dto = BuildMinimalDto();
+        dto.Items =
+        [
+            new ShoptetInvoiceItemDto
+            {
+                Code = "TON001030S",
+                Name = "Tonikum 30ml",
+                Amount = "1",
+                UnitPrice = new ShoptetInvoiceUnitPriceDto
+                {
+                    WithoutVat = "11835.93",
+                    Vat = "2485.57",
+                    WithVat = "14321.50",
+                    VatRate = "21",
+                },
+            },
+        ];
+        dto.Price = new ShoptetInvoicePriceDto
+        {
+            WithoutVat = "11835.93",
+            WithVat = "14321.50",   // pre-rounding (equals item sum)
+            ToPay = "14322.00",     // post-rounding ("Částka k úhradě")
+            Vat = "2485.57",
+            CurrencyCode = "CZK",
+        };
+
+        var detail = BuildSut().Map(dto);
+
+        detail.Price.TotalWithVat.Should().Be(14322.00m,
+            "TotalWithVat uses toPay so DQT matches Flexi's rounded sumCelkem");
+        detail.Price.WithVat.Should().Be(14322.00m);
+        detail.Price.TotalWithoutVat.Should().NotBe(14322.00m,
+            "TotalWithoutVat is from items, unaffected by invoice-level rounding");
     }
 
     [Fact]
