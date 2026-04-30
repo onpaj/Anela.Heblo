@@ -96,7 +96,7 @@ namespace Anela.Heblo.Tests.Features.Marketing
             {
                 Id = 42,
                 Title = "Test Action",
-                ActionType = MarketingActionType.Campaign,
+                ActionType = MarketingActionType.PR,
                 StartDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc),
                 EndDate = new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc),
                 CreatedAt = DateTime.UtcNow,
@@ -111,7 +111,7 @@ namespace Anela.Heblo.Tests.Features.Marketing
             return new CreateMarketingActionRequest
             {
                 Title = "Test Action",
-                ActionType = MarketingActionType.Campaign,
+                ActionType = MarketingActionType.PR,
                 StartDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc),
                 EndDate = new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc),
             };
@@ -123,7 +123,7 @@ namespace Anela.Heblo.Tests.Features.Marketing
             {
                 Id = id,
                 Title = "Updated Action",
-                ActionType = MarketingActionType.Campaign,
+                ActionType = MarketingActionType.PR,
                 StartDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc),
                 EndDate = new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc),
             };

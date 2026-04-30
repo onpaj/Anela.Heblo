@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import MarketingActionModal from "../MarketingActionModal";
-import type { MarketingActionDto } from "../../list/MarketingActionGrid";
+import { MarketingActionDto } from "../../list/MarketingActionGrid";
 
 const mockCreateMutateAsync = jest.fn();
 const mockUpdateMutateAsync = jest.fn();
@@ -134,7 +134,7 @@ describe("MarketingActionModal — edit field population", () => {
     id: 1,
     title: "Existující akce",
     detail: "Popis akce",
-    actionType: "Other",
+    actionType: "Meeting",
     dateFrom: "2026-04-01T10:00:00",
     dateTo: "2026-04-30T23:59:00",
     associatedProducts: ["AKL001", "AKL002"],
@@ -169,17 +169,17 @@ describe("MarketingActionModal — edit field population", () => {
     expect(dates[0]).toHaveValue("2026-04-15");
   });
 
-  it('restores actionType "Other" (backend name) to select value 99', () => {
+  it('restores actionType "Meeting" (backend name) to select value 99', () => {
     render(<MarketingActionModal {...defaultProps} existingAction={existingAction} />);
     const actionTypeSelect = screen.getAllByRole("combobox")[0] as HTMLSelectElement;
     expect(actionTypeSelect.value).toBe("99");
   });
 
-  it("restores actionType by backend enum name (Launch → 2)", () => {
+  it("restores actionType by backend enum name (Newsletter → 2)", () => {
     render(
       <MarketingActionModal
         {...defaultProps}
-        existingAction={{ ...existingAction, actionType: "Launch" }}
+        existingAction={{ ...existingAction, actionType: "Newsletter" }}
       />,
     );
     const actionTypeSelect = screen.getAllByRole("combobox")[0] as HTMLSelectElement;
@@ -211,14 +211,14 @@ describe("MarketingActionModal — edit submit", () => {
     id: 1,
     title: "Existující akce",
     detail: "Popis",
-    actionType: "Other",
+    actionType: "Meeting",
     dateFrom: "2026-04-01T00:00:00",
     dateTo: "2026-04-30T00:00:00",
     associatedProducts: [],
     folderLinks: [{ path: "folder/key", label: "Složka", folderType: "Campaign" }],
   };
 
-  it("submits actionType as number 99 when editing Other", async () => {
+  it("submits actionType as number 99 when editing Meeting", async () => {
     render(<MarketingActionModal {...defaultProps} existingAction={existingAction} />);
     submitForm();
 
@@ -249,7 +249,7 @@ describe("MarketingActionModal — delete", () => {
   const existingAction: MarketingActionDto = {
     id: 42,
     title: "Ke smazání",
-    actionType: "General",
+    actionType: "SocialMedia",
     dateFrom: "2026-04-01",
     dateTo: "2026-04-30",
   };
@@ -305,7 +305,7 @@ describe("MarketingActionModal — closed", () => {
       <MarketingActionModal
         isOpen={true}
         onClose={jest.fn()}
-        existingAction={{ id: 1, title: "Test", actionType: "General" }}
+        existingAction={{ id: 1, title: "Test", actionType: "SocialMedia" }}
       />,
     );
     expect(screen.getByText("Upravit akci")).toBeInTheDocument();
@@ -409,7 +409,7 @@ describe("MarketingActionModal — products", () => {
     const existingAction = {
       id: 1,
       title: "Test",
-      actionType: "General",
+      actionType: "SocialMedia",
       dateFrom: "2026-01-01",
       dateTo: "2026-01-31",
       associatedProducts: ["AKL001"],
@@ -492,7 +492,7 @@ describe("MarketingActionModal — pending states", () => {
     render(
       <MarketingActionModal
         {...defaultProps}
-        existingAction={{ id: 1, title: "X", actionType: "General" }}
+        existingAction={{ id: 1, title: "X", actionType: "SocialMedia" }}
       />,
     );
     expect(screen.getByRole("button", { name: /^uložit$/i })).toBeInTheDocument();
@@ -507,7 +507,7 @@ describe("MarketingActionModal — pending states", () => {
     render(
       <MarketingActionModal
         {...defaultProps}
-        existingAction={{ id: 1, title: "X", actionType: "General" }}
+        existingAction={{ id: 1, title: "X", actionType: "SocialMedia" }}
       />,
     );
     expect(screen.getByRole("button", { name: /smazat/i })).toBeInTheDocument();

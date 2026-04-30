@@ -10,7 +10,7 @@ import type { CalendarEvent } from '../fullcalendarAdapters';
 const makeEvent = (overrides: Partial<CalendarEvent> = {}): CalendarEvent => ({
   id: 1,
   title: 'Test event',
-  actionType: 'General',
+  actionType: 'SocialMedia',
   dateFrom: '2026-04-20',
   dateTo: '2026-04-24',
   associatedProducts: ['product-1'],
@@ -39,18 +39,18 @@ describe('toFcEvent', () => {
   });
 
   it('sets backgroundColor from action type colors', () => {
-    const fc = toFcEvent(makeEvent({ actionType: 'Launch' }));
-    expect(fc.backgroundColor).toBe(ACTION_TYPE_COLORS.Launch.bg);
+    const fc = toFcEvent(makeEvent({ actionType: 'Newsletter' }));
+    expect(fc.backgroundColor).toBe(ACTION_TYPE_COLORS.Newsletter.bg);
   });
 
   it('sets textColor from action type colors', () => {
-    const fc = toFcEvent(makeEvent({ actionType: 'Campaign' }));
-    expect(fc.textColor).toBe(ACTION_TYPE_COLORS.Campaign.text);
+    const fc = toFcEvent(makeEvent({ actionType: 'PR' }));
+    expect(fc.textColor).toBe(ACTION_TYPE_COLORS.PR.text);
   });
 
-  it('falls back to Other colors for unknown action type', () => {
+  it('falls back to Meeting colors for unknown action type', () => {
     const fc = toFcEvent(makeEvent({ actionType: 'Unknown' }));
-    expect(fc.backgroundColor).toBe(ACTION_TYPE_COLORS.Other.bg);
+    expect(fc.backgroundColor).toBe(ACTION_TYPE_COLORS.Meeting.bg);
   });
 
   it('puts actionType in extendedProps', () => {
@@ -105,34 +105,34 @@ describe('formatDateStr', () => {
 });
 
 describe('ACTION_TYPE_TO_INT', () => {
-  it('maps General to 0', () => {
-    expect(ACTION_TYPE_TO_INT['General']).toBe(0);
+  it('maps SocialMedia to 0', () => {
+    expect(ACTION_TYPE_TO_INT['SocialMedia']).toBe(0);
   });
 
-  it('maps Promotion to 1', () => {
-    expect(ACTION_TYPE_TO_INT['Promotion']).toBe(1);
+  it('maps Blog to 1', () => {
+    expect(ACTION_TYPE_TO_INT['Blog']).toBe(1);
   });
 
-  it('maps Launch to 2', () => {
-    expect(ACTION_TYPE_TO_INT['Launch']).toBe(2);
+  it('maps Newsletter to 2', () => {
+    expect(ACTION_TYPE_TO_INT['Newsletter']).toBe(2);
   });
 
-  it('maps Campaign to 3', () => {
-    expect(ACTION_TYPE_TO_INT['Campaign']).toBe(3);
+  it('maps PR to 3', () => {
+    expect(ACTION_TYPE_TO_INT['PR']).toBe(3);
   });
 
   it('maps Event to 4', () => {
     expect(ACTION_TYPE_TO_INT['Event']).toBe(4);
   });
 
-  it('maps Other to 99', () => {
-    expect(ACTION_TYPE_TO_INT['Other']).toBe(99);
+  it('maps Meeting to 99', () => {
+    expect(ACTION_TYPE_TO_INT['Meeting']).toBe(99);
   });
 });
 
 describe('ACTION_TYPE_COLORS', () => {
   it('has entries for all known backend action types', () => {
-    const expected = ['General', 'Promotion', 'Launch', 'Campaign', 'Event', 'Other'];
+    const expected = ['SocialMedia', 'Blog', 'Newsletter', 'PR', 'Event', 'Meeting'];
     for (const type of expected) {
       expect(ACTION_TYPE_COLORS[type]).toBeDefined();
       expect(ACTION_TYPE_COLORS[type].bg).toBeTruthy();

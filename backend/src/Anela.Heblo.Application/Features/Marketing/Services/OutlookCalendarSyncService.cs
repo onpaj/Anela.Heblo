@@ -16,6 +16,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
         private readonly ITokenAcquisition _tokenAcquisition;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly MarketingCalendarOptions _options;
+        private readonly IMarketingCategoryMapper _mapper;
         private readonly ILogger<OutlookCalendarSyncService> _logger;
 
         private const string GraphScope = "https://graph.microsoft.com/.default";
@@ -33,11 +34,13 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             ITokenAcquisition tokenAcquisition,
             IHttpClientFactory httpClientFactory,
             IOptions<MarketingCalendarOptions> options,
+            IMarketingCategoryMapper mapper,
             ILogger<OutlookCalendarSyncService> logger)
         {
             _tokenAcquisition = tokenAcquisition;
             _httpClientFactory = httpClientFactory;
             _options = options.Value;
+            _mapper = mapper;
             _logger = logger;
         }
 
@@ -153,7 +156,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
         private string BuildBaseUrl() =>
             string.Format(CalendarEventsBaseUrl, Uri.EscapeDataString(_options.GroupId));
 
-        private static string BuildEventBody(MarketingAction action)
+        private string BuildEventBody(MarketingAction action)
         {
             var endDate = action.EndDate ?? action.StartDate.AddHours(1);
 
@@ -175,7 +178,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
                     dateTime = endDate.ToString("O"),
                     timeZone = TimeZone
                 },
-                categories = new[] { action.ActionType.ToString() }
+                categories = new[] { _mapper.MapToOutlookCategory(action.ActionType) }
             };
 
             return JsonSerializer.Serialize(bodyObj);

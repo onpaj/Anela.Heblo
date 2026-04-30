@@ -50,7 +50,7 @@ public class CreateMarketingActionHandlerTests
         var request = new CreateMarketingActionRequest
         {
             Title = "Summer Campaign",
-            ActionType = MarketingActionType.Campaign,
+            ActionType = MarketingActionType.PR,
             StartDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc),
             EndDate = new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc),
         };

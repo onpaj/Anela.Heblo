@@ -5545,6 +5545,13 @@ export class ApiClient {
             result401 = ProblemDetails.fromJS(resultData401);
             return throwException("A server side error occurred.", status, _responseText, _headers, result401);
             });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -20138,6 +20145,7 @@ export class ImportFromOutlookResponse extends BaseResponse implements IImportFr
     created?: number;
     skipped?: number;
     failed?: number;
+    unmappedCategories?: string[];
     items?: ImportedItemDto[];
 
     constructor(data?: IImportFromOutlookResponse) {
@@ -20150,6 +20158,11 @@ export class ImportFromOutlookResponse extends BaseResponse implements IImportFr
             this.created = _data["created"];
             this.skipped = _data["skipped"];
             this.failed = _data["failed"];
+            if (Array.isArray(_data["unmappedCategories"])) {
+                this.unmappedCategories = [] as any;
+                for (let item of _data["unmappedCategories"])
+                    this.unmappedCategories!.push(item);
+            }
             if (Array.isArray(_data["items"])) {
                 this.items = [] as any;
                 for (let item of _data["items"])
@@ -20170,6 +20183,11 @@ export class ImportFromOutlookResponse extends BaseResponse implements IImportFr
         data["created"] = this.created;
         data["skipped"] = this.skipped;
         data["failed"] = this.failed;
+        if (Array.isArray(this.unmappedCategories)) {
+            data["unmappedCategories"] = [];
+            for (let item of this.unmappedCategories)
+                data["unmappedCategories"].push(item);
+        }
         if (Array.isArray(this.items)) {
             data["items"] = [];
             for (let item of this.items)
@@ -20184,6 +20202,7 @@ export interface IImportFromOutlookResponse extends IBaseResponse {
     created?: number;
     skipped?: number;
     failed?: number;
+    unmappedCategories?: string[];
     items?: ImportedItemDto[];
 }
 
