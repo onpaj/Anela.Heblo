@@ -234,7 +234,7 @@ public sealed class MarketingCategoryMapperTests
         var result = mapper.MapToOutlookCategory(MarketingActionType.PR);
 
         // Assert
-        result.Should().Be("Campaign");
+        result.Should().Be("PR");
     }
 
     [Fact]
@@ -294,7 +294,7 @@ public sealed class MarketingCategoryMapperTests
     {
         // Arrange – simulate options bound from JSON (no OrdinalIgnoreCase comparer on CategoryMappings)
         const string json =
-            """{"MarketingCalendar":{"GroupId":"g","PushEnabled":true,"CategoryMappings":{"Sociální sítě":"General"}}}""";
+            """{"MarketingCalendar":{"GroupId":"g","PushEnabled":true,"CategoryMappings":{"Sociální sítě":"SocialMedia"}}}""";
 
         var configuration = new ConfigurationBuilder()
             .AddJsonStream(new System.IO.MemoryStream(Encoding.UTF8.GetBytes(json)))
