@@ -743,6 +743,13 @@ The delivery address object itself can be `null`.
 
 > Price fields are returned as **strings with 2 decimal places** (e.g. `"242.00"`), not numbers.
 
+> **`withVat` vs `toPay` for DQT:** Czech invoices can include a "Zaokrouhlení" (rounding) line
+> that rounds the total to the nearest full crown. When this occurs, `withVat` holds the
+> pre-rounding sum (e.g. `"14321.50"`) and `toPay` holds the post-rounding "Částka k úhradě"
+> (e.g. `"14322.00"`). Flexi's `sumCelkem` equals `toPay`. For DQT `TotalWithVat` comparison,
+> use `toPay` — the mapper applies it automatically when `|toPay − withVat| < 1 Kč`.
+> When they match (no rounding), `withVat == toPay`.
+
 ### 10.10 Customer Object
 
 | Field | Type | Description |
@@ -798,6 +805,25 @@ The delivery address object itself can be `null`.
 
 > **Display vs. API items:** For invoices with coupon/volume discounts across multiple VAT rates, the API returns a single discount row while the admin/PDF shows multiple rows (one per VAT rate). Use `displayPrices` array on each item to get the printout representation.
 
+> **Observed on invoice 126000039 (per-line priceRatio discount):** The discount on this invoice is encoded as `priceRatio=0.0000` on the product line (`itemType=product`, `code=TON002030`). `itemPrice.withVat` reflects the discounted total (`0.00`), while `unitPrice.withVat` retains the original unit price (`180.00`). There is NO separate `discount-coupon` or `volume-discount` aggregate row — the discount is applied entirely per-line via `priceRatio`. The shipping (`itemType=shipping`) and billing (`itemType=billing`) rows have `priceRatio=1.0000` and are not discounted. Invoice totals: `price.withVat=158.00`, `price.toPay=158.00`.
+
+#### 10.12.2 Discount handling in Heblo invoice import
+
+Heblo's `ShoptetInvoiceMapper` folds every discount into each product line's
+post-discount `PricePerUnit` so the Flexi/Abra mapping (`PricePerUnit = ItemPrice.WithoutVat`)
+carries the discount through unchanged. Concretely:
+
+1. Per-line `priceRatio < 1` (including `0.0` = 100% free) → multiply
+   `unitPrice.{withVat, withoutVat, vat}` by `priceRatio`.
+   Note: Shoptet sends `priceRatio` as a **quoted string** (e.g. `"0.0000"`), not a number.
+2. Aggregate rows with `itemType ∈ { discount-coupon, volume-discount, gift }` →
+   distribute their `itemPrice.withoutVat` / `itemPrice.withVat` across product lines
+   proportionally to each product line's pre-discount `TotalWithoutVat`, then drop the
+   aggregate row.
+
+There is no separate discount line in the resulting Flexi invoice. Visibility of the
+discount source is preserved only in the original Shoptet invoice and the Heblo import logs.
+
 ### 10.13 VAT Modes
 
 | Value |
@@ -819,3 +845,37 @@ The delivery address object itself can be `null`.
 | `varSymbol` type | string | **number** |
 | Price fields type | string (decimal) | string (decimal) |
 | Shipping field | Present on order | Not present on invoice |
+
+---
+
+## Product Export Download
+
+**Endpoint:** Shoptet CSV export host (full URL stored in `ProductExportOptions.Url` / `appsettings` — do NOT paste URLs with embedded tokens here).
+
+**Method:** `GET` (with a best-effort `HEAD` probe before the GET to estimate content size).
+
+**Frequency:** Once per day at 02:00 UTC, scheduled by `ProductExportDownloadJob` (Hangfire recurring job).
+
+**Observed behaviour (captured from staging — run the commands below if values are stale):**
+
+To refresh these values from staging, run:
+```bash
+curl -sS -I --max-time 30 "$PRODUCT_EXPORT_URL"
+curl -sS -o /dev/null -w "time_total=%{time_total}s\nhttp_code=%{http_code}\nsize_download=%{size_download}\n" --max-time 600 "$PRODUCT_EXPORT_URL"
+echo | openssl s_client -servername "$EXPORT_HOST" -connect "$EXPORT_HOST:443" 2>/dev/null | openssl x509 -noout -dates -subject
+```
+
+- HTTP status: Not yet observed from staging — update after first successful run post-deploy.
+- `Content-Type`: Not yet observed — expected `text/csv` or `application/octet-stream`.
+- `Content-Length`: Not yet observed — HEAD probe result will populate `FileSizeBytes` in telemetry.
+- Wall-clock latency for full GET: Not yet observed — check `ElapsedMs` in Application Insights `ProductExportDownload` business event.
+- TLS certificate: Not yet observed — run the openssl command above from staging.
+
+**Quirks / gotchas:**
+- HEAD support: Unknown until tested. If HEAD returns 405 or times out, the HEAD probe swallows the error and continues with `FileSizeBytes = 0`; this is expected and logged at `Debug` level.
+- Token in URL: The export URL likely contains a query-string token (`?token=…` or `?sig=…`). All failure telemetry redacts the query string (replaced with nothing — only the path is logged). Do NOT paste the full URL with token anywhere in this doc.
+- Shoptet has no sandbox — the export URL hits the live store. Avoid testing against production outside of normal scheduled windows.
+
+**Resilience configuration:** Per-attempt timeout 120 s, 3 Polly retries with exponential + jitter backoff (base 2 s). Hangfire auto-retry is disabled on this job (`[AutomaticRetry(Attempts = 0)]`); all retry logic lives in Polly only. See `ProductExportOptions` for tunables (`HeadTimeout`, `DownloadTimeout`, `MaxRetryAttempts`, `RetryBaseDelay`).
+
+**Related code:** `ProductExportDownloadJob`, `DownloadFromUrlHandler`, `DownloadResilienceService`, `AzureBlobStorageService.DownloadFromUrlAsync`.

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -12,29 +13,46 @@ namespace Anela.Heblo.Adapters.Anthropic;
 
 public class AnthropicChatClient : IChatClient
 {
-    private static readonly ResiliencePipeline Pipeline = new ResiliencePipelineBuilder()
-        .AddRetry(new RetryStrategyOptions
-        {
-            MaxRetryAttempts = 3,
-            Delay = TimeSpan.FromSeconds(2),
-            BackoffType = DelayBackoffType.Exponential,
-            ShouldHandle = new PredicateBuilder()
-                .Handle<HttpRequestException>()
-        })
-        .Build();
+    private const HttpStatusCode AnthropicOverloaded = (HttpStatusCode)529;
+
+    private static readonly ResiliencePipeline DefaultPipeline = BuildPipeline(TimeSpan.FromSeconds(2));
+
+    public static ResiliencePipeline BuildPipeline(TimeSpan baseDelay) =>
+        new ResiliencePipelineBuilder()
+            .AddRetry(new RetryStrategyOptions
+            {
+                MaxRetryAttempts = 3,
+                Delay = baseDelay,
+                BackoffType = DelayBackoffType.Exponential,
+                ShouldHandle = new PredicateBuilder()
+                    .Handle<HttpRequestException>(ex =>
+                        ex.StatusCode == HttpStatusCode.TooManyRequests ||
+                        ex.StatusCode == AnthropicOverloaded),
+                DelayGenerator = static args =>
+                {
+                    if (args.Outcome.Exception is HttpRequestException { Data: var data } &&
+                        data["RetryAfter"] is TimeSpan retryAfter)
+                        return new ValueTask<TimeSpan?>(retryAfter);
+                    return new ValueTask<TimeSpan?>((TimeSpan?)null);
+                }
+            })
+            .Build();
 
     private readonly AnthropicOptions _options;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AnthropicChatClient> _logger;
+    private readonly ResiliencePipeline _pipeline;
 
     public AnthropicChatClient(
         IOptions<AnthropicOptions> options,
         IHttpClientFactory httpClientFactory,
-        ILogger<AnthropicChatClient> logger)
+        ILogger<AnthropicChatClient> logger,
+        ResiliencePipeline? pipeline = null)
     {
         _options = options.Value;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _pipeline = pipeline ?? DefaultPipeline;
     }
 
     public async Task<ChatResponse> GetResponseAsync(
@@ -62,7 +80,7 @@ public class AnthropicChatClient : IChatClient
 
         var requestBody = BuildRequestBody(model, systemMessage, userMessages);
 
-        var httpResponse = await Pipeline.ExecuteAsync(async token =>
+        var httpResponse = await _pipeline.ExecuteAsync(async token =>
         {
             var client = _httpClientFactory.CreateClient("Anthropic");
             using var request = new HttpRequestMessage(HttpMethod.Post, _options.MessagesUrl);
@@ -79,7 +97,13 @@ public class AnthropicChatClient : IChatClient
             {
                 var errorBody = await response.Content.ReadAsStringAsync(token);
                 _logger.LogError("Anthropic API error {Status}: {Body}", response.StatusCode, errorBody);
-                throw new HttpRequestException($"Anthropic API returned {response.StatusCode}: {errorBody}");
+                var httpException = new HttpRequestException(
+                    $"Anthropic API returned {(int)response.StatusCode}: {errorBody}",
+                    null,
+                    response.StatusCode);
+                if (response.Headers.RetryAfter?.Delta is { } retryAfterDelta)
+                    httpException.Data["RetryAfter"] = retryAfterDelta;
+                throw httpException;
             }
 
             return response;

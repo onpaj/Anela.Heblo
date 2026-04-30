@@ -42,6 +42,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Anela.Heblo.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="Features\Analytics\Infrastructure\" />
     <Folder Include="Features\Configuration\UseCases\" />
     <Folder Include="Features\Journal\Infrastructure\" />

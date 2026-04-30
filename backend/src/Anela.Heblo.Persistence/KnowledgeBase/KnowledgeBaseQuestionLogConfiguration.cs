@@ -8,7 +8,7 @@ public class KnowledgeBaseQuestionLogConfiguration : IEntityTypeConfiguration<Kn
 {
     public void Configure(EntityTypeBuilder<KnowledgeBaseQuestionLog> builder)
     {
-        builder.ToTable("KnowledgeBaseQuestionLogs", "dbo");
+        builder.ToTable("KnowledgeBaseQuestionLogs", "public");
 
         builder.HasKey(x => x.Id);
 

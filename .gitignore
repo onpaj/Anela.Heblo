@@ -146,9 +146,15 @@ test-results/
 
 # Git worktrees
 .worktrees/
-BRIEF.md
 WORKLOG.md
 .ralph/
 .ralph-tui/
 .claude/worktrees
 .superpowers/
+
+arch-review.r*.md
+design.r*.md
+spec.md
+spec.r*.md
+task-plan.r*.md
+brief.md

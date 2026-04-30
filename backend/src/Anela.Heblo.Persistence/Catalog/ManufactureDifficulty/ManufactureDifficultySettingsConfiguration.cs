@@ -8,7 +8,7 @@ public class ManufactureDifficultySettingsConfiguration : IEntityTypeConfigurati
 {
     public void Configure(EntityTypeBuilder<ManufactureDifficultySetting> builder)
     {
-        builder.ToTable("ManufactureDifficultySettings");
+        builder.ToTable("ManufactureDifficultySettings", "public");
 
         builder.HasKey(x => x.Id);
 

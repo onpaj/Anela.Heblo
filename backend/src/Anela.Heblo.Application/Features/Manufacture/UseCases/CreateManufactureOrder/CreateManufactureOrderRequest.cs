@@ -29,6 +29,13 @@ public class CreateManufactureOrderRequest : IRequest<CreateManufactureOrderResp
     public string? ResponsiblePerson { get; set; }
 
     public ManufactureType ManufactureType { get; set; } = ManufactureType.MultiPhase;
+
+    /// <summary>
+    /// Optional amount of semiproduct reserved as direct sellable bulk output (grams).
+    /// Only applicable for MultiPhase orders. When set, a virtual product row is created
+    /// with ProductCode == the semiproduct code.
+    /// </summary>
+    public double? DirectSemiproductAmount { get; set; }
 }
 
 public class CreateManufactureOrderProductRequest

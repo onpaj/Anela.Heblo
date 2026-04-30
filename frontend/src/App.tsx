@@ -38,10 +38,12 @@ import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
 import CampaignsPage from "./components/pages/Campaigns/CampaignsPage";
+import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
+import DataQualityPage from "./pages/customer/DataQualityPage";
 import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
 import { UserStorage } from "./auth/userStorage";
@@ -387,6 +389,10 @@ function App() {
                         />
                         <Route path="/journal" element={<JournalList />} />
                         <Route
+                          path="/marketing/calendar"
+                          element={<MarketingCalendarPage />}
+                        />
+                        <Route
                           path="/journal/new"
                           element={<JournalEntryNew />}
                         />
@@ -462,6 +468,10 @@ function App() {
                         <Route
                           path="/campaigns"
                           element={<CampaignsPage />}
+                        />
+                        <Route
+                          path="/automation/data-quality"
+                          element={<DataQualityPage />}
                         />
                       </Routes>
                     </Layout>

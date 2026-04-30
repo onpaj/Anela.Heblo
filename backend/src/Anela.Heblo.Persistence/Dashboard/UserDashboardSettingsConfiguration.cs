@@ -9,7 +9,7 @@ public class UserDashboardSettingsConfiguration : IEntityTypeConfiguration<UserD
 {
     public void Configure(EntityTypeBuilder<UserDashboardSettings> builder)
     {
-        builder.ToTable("UserDashboardSettings");
+        builder.ToTable("UserDashboardSettings", "public");
 
         builder.HasKey(x => x.Id);
 

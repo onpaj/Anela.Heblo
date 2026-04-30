@@ -157,12 +157,22 @@ internal class FlexiManufactureClient : IManufactureClient
         // Phase 3: Create ONE produce document with all products
         var productReceiptDocCode = await _documentService.SubmitConsolidatedProductionAsync(request, productCosts, cancellationToken);
 
+        // Phase 4: Create discard document for direct semiproduct output (if any)
+        string? directOutputDocCode = null;
+        if (request.DirectSemiProductOutputAmount > 0
+            && !string.IsNullOrEmpty(request.DirectSemiProductOutputCode))
+        {
+            directOutputDocCode = await _documentService.SubmitDirectSemiProductOutputAsync(
+                request, cancellationToken);
+        }
+
         return new SubmitManufactureClientResponse
         {
             ManufactureId = request.ManufactureOrderCode,
             SemiProductIssueForProductDocCode = consumptionCodes.SemiProductIssueCode,
             MaterialIssueForProductDocCode = consumptionCodes.MaterialIssueCode,
             ProductReceiptDocCode = productReceiptDocCode,
+            DirectSemiProductOutputDocCode = directOutputDocCode,
         };
     }
 

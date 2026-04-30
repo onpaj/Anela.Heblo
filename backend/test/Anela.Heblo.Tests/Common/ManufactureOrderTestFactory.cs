@@ -95,6 +95,15 @@ public class TestCatalogRepository : ICatalogRepository
         return _testData.FirstOrDefault(x => x.Id == id);
     }
 
+    public Task<IReadOnlyDictionary<string, CatalogAggregate>> GetByIdsAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
+    {
+        var idSet = new HashSet<string>(ids);
+        IReadOnlyDictionary<string, CatalogAggregate> result = _testData
+            .Where(p => idSet.Contains(p.ProductCode))
+            .ToDictionary(p => p.ProductCode, p => p);
+        return Task.FromResult(result);
+    }
+
     public async Task<IEnumerable<CatalogAggregate>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         await Task.Delay(1, cancellationToken);

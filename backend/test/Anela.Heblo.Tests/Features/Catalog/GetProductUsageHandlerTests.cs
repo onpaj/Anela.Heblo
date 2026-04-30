@@ -30,6 +30,9 @@ public class GetProductUsageHandlerTests
         _manufactureClientMock.Setup(x => x.FindByIngredientAsync("NONEXISTENT", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureTemplate>());
 
+        _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
+
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
@@ -50,8 +53,11 @@ public class GetProductUsageHandlerTests
             .ReturnsAsync(originalTemplates);
 
         // Template product has no MMQ configured
-        _catalogRepositoryMock.Setup(x => x.GetByIdAsync("TEMPLATE001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateCatalogItem("TEMPLATE001", mmq: 0));
+        _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>
+            {
+                ["TEMPLATE001"] = CreateCatalogItem("TEMPLATE001", mmq: 0)
+            });
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -78,9 +84,11 @@ public class GetProductUsageHandlerTests
             .ReturnsAsync(originalTemplates);
 
         // Template product with MMQ configured
-        var templateProduct = CreateCatalogItem("TEMPLATE001", mmq: 5000); // MMQ = 5000g
-        _catalogRepositoryMock.Setup(x => x.GetByIdAsync("TEMPLATE001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(templateProduct);
+        _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>
+            {
+                ["TEMPLATE001"] = CreateCatalogItem("TEMPLATE001", mmq: 5000) // MMQ = 5000g
+            });
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -111,9 +119,11 @@ public class GetProductUsageHandlerTests
             .ReturnsAsync(originalTemplates);
 
         // Template product with smaller MMQ
-        var templateProduct = CreateCatalogItem("TEMPLATE001", mmq: 1250); // MMQ = 1250g (half of BatchSize)
-        _catalogRepositoryMock.Setup(x => x.GetByIdAsync("TEMPLATE001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(templateProduct);
+        _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>
+            {
+                ["TEMPLATE001"] = CreateCatalogItem("TEMPLATE001", mmq: 1250) // MMQ = 1250g (half of BatchSize)
+            });
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -156,10 +166,12 @@ public class GetProductUsageHandlerTests
         _manufactureClientMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(invalidTemplates);
 
-        // Template product with MMQ configured 
-        var templateProduct = CreateCatalogItem("TEMPLATE001", mmq: 5000);
-        _catalogRepositoryMock.Setup(x => x.GetByIdAsync("TEMPLATE001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(templateProduct);
+        // Template product with MMQ configured
+        _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>
+            {
+                ["TEMPLATE001"] = CreateCatalogItem("TEMPLATE001", mmq: 5000)
+            });
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -171,7 +183,7 @@ public class GetProductUsageHandlerTests
         var template = result.ManufactureTemplates.First();
 
         // Template should not be scaled due to invalid OriginalAmount (0)
-        template.Amount.Should().Be(0); // Original amount unchanged 
+        template.Amount.Should().Be(0); // Original amount unchanged
         template.OriginalAmount.Should().Be(0); // Set from Amount
         template.BatchSize.Should().Be(2500); // Not updated due to no scaling
     }
@@ -201,9 +213,11 @@ public class GetProductUsageHandlerTests
             .ReturnsAsync(templates);
 
         // Template product with MMQ configured
-        var templateProduct = CreateCatalogItem("TEMPLATE001", mmq: 1000);
-        _catalogRepositoryMock.Setup(x => x.GetByIdAsync("TEMPLATE001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(templateProduct);
+        _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>
+            {
+                ["TEMPLATE001"] = CreateCatalogItem("TEMPLATE001", mmq: 1000)
+            });
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -231,6 +245,9 @@ public class GetProductUsageHandlerTests
         _manufactureClientMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ManufactureTemplate>());
 
+        _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
+
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
@@ -238,6 +255,46 @@ public class GetProductUsageHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
         result.ManufactureTemplates.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Regression test for N+1 issue: verifies GetByIdsAsync is called exactly once
+    /// regardless of how many manufacture templates are returned.
+    /// </summary>
+    [Fact]
+    public async Task Handle_MultipleTemplates_MakesSingleBulkFetch()
+    {
+        // Arrange
+        var request = new GetProductUsageRequest { ProductCode = "INGREDIENT001" };
+
+        var templates = new List<ManufactureTemplate>
+        {
+            new ManufactureTemplate { TemplateId = 1, ProductCode = "PROD001", Amount = 1000, OriginalAmount = 1000, BatchSize = 1000, Ingredients = new List<Ingredient>() },
+            new ManufactureTemplate { TemplateId = 2, ProductCode = "PROD002", Amount = 2000, OriginalAmount = 2000, BatchSize = 2000, Ingredients = new List<Ingredient>() },
+            new ManufactureTemplate { TemplateId = 3, ProductCode = "PROD003", Amount = 3000, OriginalAmount = 3000, BatchSize = 3000, Ingredients = new List<Ingredient>() },
+        };
+
+        _manufactureClientMock.Setup(x => x.FindByIngredientAsync("INGREDIENT001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(templates);
+
+        _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>
+            {
+                ["PROD001"] = CreateCatalogItem("PROD001", mmq: 2000),
+                ["PROD002"] = CreateCatalogItem("PROD002", mmq: 4000),
+                ["PROD003"] = CreateCatalogItem("PROD003", mmq: 6000),
+            });
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert — bulk fetch called exactly once (not once per template)
+        _catalogRepositoryMock.Verify(
+            x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()),
+            Times.Once,
+            "GetByIdsAsync should be called exactly once to avoid N+1 DB queries");
+
+        result.ManufactureTemplates.Should().HaveCount(3);
     }
 
     private CatalogAggregate CreateCatalogItem(string productCode, double mmq)

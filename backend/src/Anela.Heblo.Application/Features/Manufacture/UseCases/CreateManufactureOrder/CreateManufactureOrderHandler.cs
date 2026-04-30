@@ -115,6 +115,25 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             order.Products.Add(product);
         }
 
+        // Add a virtual direct output row for the semiproduct itself (MultiPhase only).
+        // This row represents the portion of the batch sold as unprocessed bulk semiproduct.
+        // Always include the row when DirectSemiproductAmount is provided (even 0) so the field
+        // is visible in the order and can be edited after creation.
+        if (request.ManufactureType == ManufactureType.MultiPhase
+            && request.DirectSemiproductAmount.HasValue)
+        {
+            var directRow = new ManufactureOrderProduct
+            {
+                ProductCode = request.ProductCode,
+                ProductName = _productNameFormatter.ShortProductName(semiproduct.ProductName),
+                SemiProductCode = request.ProductCode,
+                PlannedQuantity = (decimal)request.DirectSemiproductAmount.Value,
+                ActualQuantity = (decimal)request.DirectSemiproductAmount.Value,
+                ExpirationDate = expirationDate,
+                LotNumber = lotNumber,
+            };
+            order.Products.Add(directRow);
+        }
 
         // Save the order
         var createdOrder = await _repository.AddOrderAsync(order, cancellationToken);

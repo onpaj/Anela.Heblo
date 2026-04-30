@@ -414,6 +414,137 @@ public class CreateManufactureOrderHandlerTests
             .WithMessage("Order number generation failed");
     }
 
+    [Fact]
+    public async Task Handle_WithDirectSemiproductAmount_ShouldAddVirtualDirectRow()
+    {
+        // Arrange
+        const double directAmount = 200.0;
+        var request = CreateValidRequest();
+        request.DirectSemiproductAmount = directAmount;
+
+        var capturedOrder = SetupCapturingMocks();
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert: 1 regular product row + 1 direct row = 2 total
+        capturedOrder.Value.Should().NotBeNull();
+        capturedOrder.Value!.Products.Should().HaveCount(2);
+
+        var directRow = capturedOrder.Value.Products.Single(p => p.ProductCode == ValidProductCode);
+        directRow.SemiProductCode.Should().Be(ValidProductCode);
+        directRow.PlannedQuantity.Should().Be((decimal)directAmount);
+        directRow.ActualQuantity.Should().Be((decimal)directAmount);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutDirectSemiproductAmount_ShouldNotAddVirtualDirectRow()
+    {
+        // Arrange: DirectSemiproductAmount is null by default
+        var request = CreateValidRequest();
+
+        var capturedOrder = SetupCapturingMocks();
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert: only the regular "PROD001" row, no direct semiproduct row
+        capturedOrder.Value.Should().NotBeNull();
+        capturedOrder.Value!.Products.Should().HaveCount(1);
+        capturedOrder.Value.Products.Single().ProductCode.Should().Be("PROD001");
+    }
+
+    [Fact]
+    public async Task Handle_WithZeroDirectSemiproductAmount_ShouldAddVirtualDirectRowWithZeroQuantity()
+    {
+        // Arrange
+        var request = CreateValidRequest();
+        request.DirectSemiproductAmount = 0.0;
+
+        var capturedOrder = SetupCapturingMocks();
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert: zero amount still adds the direct row so it is visible in the order
+        // and can be edited after creation.
+        capturedOrder.Value.Should().NotBeNull();
+        capturedOrder.Value!.Products.Should().HaveCount(2);
+        var directRow = capturedOrder.Value.Products.Single(p => p.ProductCode == ValidProductCode);
+        directRow.PlannedQuantity.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_SinglePhase_WithDirectSemiproductAmount_ShouldNotAddVirtualDirectRow()
+    {
+        // Arrange: direct rows are only for MultiPhase orders
+        var request = new CreateManufactureOrderRequest
+        {
+            ProductCode = ValidProductCode,
+            ProductName = ValidProductName,
+            OriginalBatchSize = ValidOriginalBatchSize,
+            NewBatchSize = ValidNewBatchSize,
+            ScaleFactor = ValidScaleFactor,
+            PlannedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7)),
+            ResponsiblePerson = ValidResponsiblePerson,
+            ManufactureType = ManufactureType.SinglePhase,
+            DirectSemiproductAmount = 300.0,
+            Products = new List<CreateManufactureOrderProductRequest>
+            {
+                new()
+                {
+                    ProductCode = "PROD001",
+                    ProductName = "Final Product 1",
+                    PlannedQuantity = 100.0
+                }
+            }
+        };
+
+        var capturedOrder = SetupCapturingMocks();
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert: SinglePhase orders must never add a direct row
+        capturedOrder.Value.Should().NotBeNull();
+        capturedOrder.Value!.Products.Should().HaveCount(1);
+        capturedOrder.Value.Products.Single().ProductCode.Should().Be("PROD001");
+    }
+
+    /// <summary>
+    /// Sets up the standard catalog and repository mocks that capture the saved order.
+    /// Returns a box holding the captured order (populated after Handle is called).
+    /// </summary>
+    private CapturedOrderBox SetupCapturingMocks()
+    {
+        var box = new CapturedOrderBox();
+
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
+
+        _repositoryMock
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GeneratedOrderNumber);
+
+        _repositoryMock
+            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
+            {
+                box.Value = order;
+                order.Id = 1;
+                return order;
+            });
+
+        return box;
+    }
+
+    // Simple mutable box so the lambda can write the captured order and the test can read it.
+    private sealed class CapturedOrderBox
+    {
+        public ManufactureOrder? Value { get; set; }
+    }
+
     private static CreateManufactureOrderRequest CreateValidRequest()
     {
         return new CreateManufactureOrderRequest

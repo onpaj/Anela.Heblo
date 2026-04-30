@@ -1,4 +1,6 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.DataQuality;
+using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.Campaigns;
@@ -93,6 +95,15 @@ public class ApplicationDbContext : DbContext
 
     // Marketing Invoices module
     public DbSet<ImportedMarketingTransaction> ImportedMarketingTransactions { get; set; } = null!;
+
+    // Data Quality module
+    public DbSet<DqtRun> DqtRuns { get; set; } = null!;
+    public DbSet<InvoiceDqtResult> InvoiceDqtResults { get; set; } = null!;
+
+    // Marketing Calendar module
+    public DbSet<MarketingAction> MarketingActions { get; set; } = null!;
+    public DbSet<MarketingActionProduct> MarketingActionProducts { get; set; } = null!;
+    public DbSet<MarketingActionFolderLink> MarketingActionFolderLinks { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

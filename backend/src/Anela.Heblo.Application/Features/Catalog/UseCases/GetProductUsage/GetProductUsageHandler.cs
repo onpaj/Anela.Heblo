@@ -23,18 +23,23 @@ public class GetProductUsageHandler : IRequestHandler<GetProductUsageRequest, Ge
         // Get manufacture templates
         var manufactureTemplates = await _manufactureClient.FindByIngredientAsync(request.ProductCode, cancellationToken);
 
+        // Bulk-fetch all referenced products in a single call to avoid N+1 DB queries
+        var productCodes = manufactureTemplates.Select(t => t.ProductCode).Distinct();
+        var products = await _catalogRepository.GetByIdsAsync(productCodes, cancellationToken);
+
         // Apply MMQ scaling if configured
         foreach (var template in manufactureTemplates)
         {
-            var ingredientProduct = await _catalogRepository.GetByIdAsync(template.ProductCode, cancellationToken);
             // Preserve original amounts for scaling reference
             if (template.OriginalAmount == 0)
             {
                 template.OriginalAmount = template.Amount; // Use current Amount as fallback
             }
 
-            // Skip scaling if MMQ is not configured or template base quantity is invalid
-            if (ingredientProduct == null || ingredientProduct.MinimalManufactureQuantity <= 0 || template.OriginalAmount <= 0)
+            // Skip scaling if product not found, MMQ is not configured, or template base quantity is invalid
+            if (!products.TryGetValue(template.ProductCode, out var ingredientProduct)
+                || ingredientProduct.MinimalManufactureQuantity <= 0
+                || template.OriginalAmount <= 0)
             {
                 continue; // No scaling applied
             }

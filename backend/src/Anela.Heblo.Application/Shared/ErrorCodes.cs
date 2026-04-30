@@ -131,7 +131,7 @@ public enum ErrorCodes
     // Transport module errors (14XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
     TransportBoxNotFound = 1401,
-    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     TransportBoxStateChangeError = 1402,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     TransportBoxCreationError = 1403,
@@ -217,6 +217,20 @@ public enum ErrorCodes
     ShoptetOrderInvalidSourceState = 2101,
     [HttpStatusCode(HttpStatusCode.NotFound)]
     ShoptetOrderNotFound = 2102,
+
+    // DataQuality module errors (22XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    DqtRunNotFound = 2201,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    DqtInvalidDateRange = 2202,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    DqtExternalServiceError = 2203,
+
+    // Marketing Calendar errors (23XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    MarketingActionNotFound = 2301,
+    [HttpStatusCode(HttpStatusCode.Forbidden)]
+    UnauthorizedMarketingAccess = 2302,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

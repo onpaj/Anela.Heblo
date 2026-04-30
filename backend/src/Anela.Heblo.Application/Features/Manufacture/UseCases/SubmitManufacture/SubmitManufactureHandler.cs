@@ -64,6 +64,7 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
                 SemiProductIssueForProductDocCode = clientResponse.SemiProductIssueForProductDocCode,
                 MaterialIssueForProductDocCode = clientResponse.MaterialIssueForProductDocCode,
                 ProductReceiptDocCode = clientResponse.ProductReceiptDocCode,
+                DirectSemiProductOutputDocCode = clientResponse.DirectSemiProductOutputDocCode,
             };
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -129,6 +130,12 @@ public class SubmitManufactureHandler : IRequestHandler<SubmitManufactureRequest
         {
             order.DocProductReceipt = clientResponse.ProductReceiptDocCode;
             order.DocProductReceiptDate = now;
+        }
+
+        if (clientResponse.DirectSemiProductOutputDocCode != null)
+        {
+            order.ErpDiscardResidueDocumentNumber = clientResponse.DirectSemiProductOutputDocCode;
+            order.ErpDiscardResidueDocumentNumberDate = now;
         }
 
         await _repository.UpdateOrderAsync(order, cancellationToken);

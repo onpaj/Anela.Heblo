@@ -56,7 +56,8 @@ public class BatchPlanningService : IBatchPlanningService
         List<BatchPlanItemDto> batchPlanItems,
         CalculateBatchPlanRequest request,
         double availableVolume,
-        CatalogAggregate semiproduct)
+        CatalogAggregate semiproduct,
+        double directSemiproductAmount = 0)
     {
         // First, handle fixed products
         var fixedProducts = batchPlanItems.Where(x => x.IsFixed).ToList();
@@ -106,7 +107,8 @@ public class BatchPlanningService : IBatchPlanningService
                 Summary = invalidSummary,
                 TargetDaysCoverage = request.TargetDaysCoverage ?? CalculateAverageCoverage(batchPlanItems),
                 TotalVolumeUsed = batchPlanItems.Sum(x => x.TotalVolumeRequired),
-                TotalVolumeAvailable = availableVolume
+                TotalVolumeAvailable = availableVolume,
+                DirectSemiproductAmount = directSemiproductAmount
             };
         }
 
@@ -139,7 +141,8 @@ public class BatchPlanningService : IBatchPlanningService
             Summary = summary,
             TargetDaysCoverage = request.TargetDaysCoverage ?? CalculateAverageCoverage(batchPlanItems),
             TotalVolumeUsed = batchPlanItems.Sum(x => x.TotalVolumeRequired),
-            TotalVolumeAvailable = availableVolume
+            TotalVolumeAvailable = availableVolume,
+            DirectSemiproductAmount = directSemiproductAmount
         };
     }
 
@@ -356,7 +359,11 @@ public class BatchPlanningService : IBatchPlanningService
             throw new ArgumentException($"Semiproduct with code '{request.ProductCode}' not found.");
         }
 
-        var availableVolume = request.TotalWeightToUse ?? (request.MmqMultiplier ?? 1.0) * semiproduct.MinimalManufactureQuantity;
+        var totalAvailableVolume = request.TotalWeightToUse ?? (request.MmqMultiplier ?? 1.0) * semiproduct.MinimalManufactureQuantity;
+
+        // Reserve volume for direct semiproduct output (sold as bulk without further processing)
+        var directSemiproductAmount = request.DirectSemiproductAmount ?? 0;
+        var availableVolume = totalAvailableVolume - directSemiproductAmount;
 
         // 2. Find all products that use this semiproduct
         var productTemplates = await _manufactureClient.FindByIngredientAsync(request.ProductCode, cancellationToken);
@@ -381,7 +388,7 @@ public class BatchPlanningService : IBatchPlanningService
         }
 
         // 4. Apply optimization algorithm based on control mode
-        var response = ApplyOptimization(batchPlanItems, request, availableVolume, semiproduct);
+        var response = ApplyOptimization(batchPlanItems, request, availableVolume, semiproduct, directSemiproductAmount);
 
         return response;
     }

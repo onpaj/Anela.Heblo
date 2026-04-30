@@ -1110,6 +1110,87 @@ public class FlexiManufactureClientTests
 
     #endregion
 
+    #region Direct Semiproduct Output Tests
+
+    [Fact]
+    public async Task SubmitManufactureAsync_WithDirectSemiproductOutput_CreatesDiscardDocument()
+    {
+        // Arrange — request has a single product plus direct semiproduct output
+        var request = ManufactureTestData.CreateManufactureRequest(
+            ManufactureTestData.Products.ConfidentBar, 10m);
+        request.ManufactureType = ErpManufactureType.Product;
+        request.DirectSemiProductOutputCode = ManufactureTestData.SemiProducts.SilkBar.Code;
+        request.DirectSemiProductOutputName = ManufactureTestData.SemiProducts.SilkBar.Name;
+        request.DirectSemiProductOutputAmount = 500m;
+
+        SetupSuccessfulManufacture(
+            ManufactureTestData.Products.ConfidentBar,
+            ManufactureTestData.Materials.Bisabolol, 5.0);
+
+        // Act
+        var result = await _client.SubmitManufactureAsync(request);
+
+        // Assert — 3 stock movements: 1 consumption + 1 production + 1 discard
+        VerifyStockMovementsCreated(times: 3);
+
+        // Verify the discard document is V-VYDEJ-POLOTOVAR from warehouse 20
+        _mockStockMovementClient.Verify(x => x.SaveAsync(
+            It.Is<StockItemsMovementUpsertRequestFlexiDto>(req =>
+                req.DocumentTypeCode == "V-VYDEJ-POLOTOVAR" &&
+                req.StockMovementDirection == StockMovementDirection.Out &&
+                req.WarehouseId == FlexiStockClient.SemiProductsWarehouseId.ToString() &&
+                req.StockItems.Count == 1 &&
+                req.StockItems[0].ProductCode == ManufactureTestData.SemiProducts.SilkBar.Code &&
+                req.StockItems[0].Amount == 500.0 &&
+                req.StockItems[0].LotNumber == "LOT123"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SubmitManufactureAsync_WithoutDirectSemiproductOutput_DoesNotCreateDiscardDocument()
+    {
+        // Arrange — no direct output
+        var request = ManufactureTestData.CreateManufactureRequest(
+            ManufactureTestData.Products.ConfidentBar, 10m);
+        request.ManufactureType = ErpManufactureType.Product;
+
+        SetupSuccessfulManufacture(
+            ManufactureTestData.Products.ConfidentBar,
+            ManufactureTestData.Materials.Bisabolol, 5.0);
+
+        // Act
+        var result = await _client.SubmitManufactureAsync(request);
+
+        // Assert — only 2 stock movements: 1 consumption + 1 production (no discard)
+        VerifyStockMovementsCreated(times: 2);
+        result.DirectSemiProductOutputDocCode.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SubmitManufactureAsync_WithDirectSemiproductOutput_CapturesDocCode()
+    {
+        // Arrange
+        var request = ManufactureTestData.CreateManufactureRequest(
+            ManufactureTestData.Products.ConfidentBar, 10m);
+        request.ManufactureType = ErpManufactureType.Product;
+        request.DirectSemiProductOutputCode = ManufactureTestData.SemiProducts.SilkBar.Code;
+        request.DirectSemiProductOutputName = ManufactureTestData.SemiProducts.SilkBar.Name;
+        request.DirectSemiProductOutputAmount = 500m;
+
+        SetupSuccessfulManufacture(
+            ManufactureTestData.Products.ConfidentBar,
+            ManufactureTestData.Materials.Bisabolol, 5.0);
+        SetupStockMovementsWithDocCodes();
+
+        // Act
+        var result = await _client.SubmitManufactureAsync(request);
+
+        // Assert — the discard doc code should be V-VYDEJ-POLOTOVAR's code
+        result.DirectSemiProductOutputDocCode.Should().Be("DOC-SP-OUT-001");
+    }
+
+    #endregion
+
     #region Helper Methods
 
     /// <summary>

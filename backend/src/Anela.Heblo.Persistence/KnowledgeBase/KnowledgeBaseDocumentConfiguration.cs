@@ -8,7 +8,7 @@ public class KnowledgeBaseDocumentConfiguration : IEntityTypeConfiguration<Knowl
 {
     public void Configure(EntityTypeBuilder<KnowledgeBaseDocument> builder)
     {
-        builder.ToTable("KnowledgeBaseDocuments", "dbo");
+        builder.ToTable("KnowledgeBaseDocuments", "public");
 
         builder.HasKey(e => e.Id);
 

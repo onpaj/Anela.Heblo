@@ -8,7 +8,7 @@ public class ClassificationHistoryConfiguration : IEntityTypeConfiguration<Class
 {
     public void Configure(EntityTypeBuilder<ClassificationHistory> builder)
     {
-        builder.ToTable("ClassificationHistory");
+        builder.ToTable("ClassificationHistory", "public");
 
         builder.HasKey(x => x.Id);
 

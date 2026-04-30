@@ -8,7 +8,7 @@ public class ClassificationRuleConfiguration : IEntityTypeConfiguration<Classifi
 {
     public void Configure(EntityTypeBuilder<ClassificationRule> builder)
     {
-        builder.ToTable("ClassificationRules");
+        builder.ToTable("ClassificationRules", "public");
 
         builder.HasKey(x => x.Id);
 

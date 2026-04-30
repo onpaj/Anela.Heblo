@@ -385,6 +385,7 @@ export const QUERY_KEYS = {
   productMarginSummary: ["productMarginSummary"] as const,
   financialOverview: ["financialOverview"] as const,
   journal: ["journal"] as const,
+  marketingCalendar: ["marketing-calendar"] as const,
   transportBox: ["transport-boxes"] as const,
   transportBoxTransitions: ["transportBoxTransitions"] as const,
   manufactureOutput: ["manufacture-output"] as const,
@@ -408,6 +409,7 @@ export const QUERY_KEYS = {
   recurringJobs: ["recurring-jobs"] as const,
   knowledgeBase: ["knowledge-base"] as const,
   expeditionListArchive: ["expedition-list-archive"] as const,
+  dataQuality: ["data-quality"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

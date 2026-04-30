@@ -33,7 +33,7 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             var embedding = new Vector(chunk.Embedding);
             await using var cmd = new NpgsqlCommand(
                 """
-                INSERT INTO dbo."KnowledgeBaseChunks" ("Id", "DocumentId", "ChunkIndex", "Content", "Summary", "DocumentType", "Embedding")
+                INSERT INTO public."KnowledgeBaseChunks" ("Id", "DocumentId", "ChunkIndex", "Content", "Summary", "DocumentType", "Embedding")
                 VALUES (@id, @documentId, @chunkIndex, @content, @summary, @documentType, @embedding)
                 ON CONFLICT ("Id") DO NOTHING
                 """,
@@ -124,8 +124,8 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             SELECT c."Id", c."DocumentId", c."ChunkIndex", c."Content",
                    1 - (c."Embedding" <=> @embedding) AS "Score",
                    d."Filename", d."SourcePath"
-            FROM dbo."KnowledgeBaseChunks" c
-            JOIN dbo."KnowledgeBaseDocuments" d ON c."DocumentId" = d."Id"
+            FROM public."KnowledgeBaseChunks" c
+            JOIN public."KnowledgeBaseDocuments" d ON c."DocumentId" = d."Id"
             ORDER BY c."Embedding" <=> @embedding
             LIMIT @topK
             """,

@@ -12,6 +12,7 @@ public class CalculateBatchPlanResponse : BaseResponse
     public double TotalVolumeUsed { get; set; }
     public double TotalVolumeAvailable { get; set; }
     public ManufactureType ManufactureType { get; set; }
+    public double DirectSemiproductAmount { get; set; }
 
     public CalculateBatchPlanResponse() : base() { }
 
