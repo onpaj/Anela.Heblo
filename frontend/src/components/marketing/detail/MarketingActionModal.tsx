@@ -13,12 +13,12 @@ import {
 } from "../../common/CatalogAutocompleteAdapters";
 
 const ACTION_TYPE_OPTIONS = [
-  { value: 0, label: "Sociální sítě", backendName: "General" },
-  { value: 1, label: "Událost", backendName: "Promotion" },
-  { value: 2, label: "Email", backendName: "Launch" },
-  { value: 3, label: "PR", backendName: "Campaign" },
-  { value: 4, label: "Fotografie", backendName: "Event" },
-  { value: 99, label: "Ostatní", backendName: "Other" },
+  { value: 0,  label: "Sociální sítě", backendName: "SocialMedia" },
+  { value: 1,  label: "Blog",          backendName: "Blog" },
+  { value: 2,  label: "Newsletter",    backendName: "Newsletter" },
+  { value: 3,  label: "PR",            backendName: "PR" },
+  { value: 4,  label: "Akce",          backendName: "Event" },
+  { value: 99, label: "Porada",        backendName: "Meeting" },
 ];
 
 const FOLDER_TYPE_OPTIONS = [
@@ -226,7 +226,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
@@ -318,7 +318,7 @@ const MarketingActionModal: React.FC<MarketingActionModalProps> = ({
             <textarea
               value={form.detail}
               onChange={(e) => set("detail", e.target.value)}
-              rows={3}
+              rows={7}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
           </div>
