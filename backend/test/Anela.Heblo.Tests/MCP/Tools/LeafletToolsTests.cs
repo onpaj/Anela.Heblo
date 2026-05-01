@@ -7,7 +7,7 @@ using ModelContextProtocol;
 using Moq;
 using Xunit;
 
-namespace Anela.Heblo.Tests.Features.Leaflet.MCP;
+namespace Anela.Heblo.Tests.MCP.Tools;
 
 public class LeafletToolsTests
 {
@@ -91,5 +91,14 @@ public class LeafletToolsTests
 
         // Assert
         Assert.DoesNotContain("internal db crash", exception.Message);
+
+        _logger.Verify(
+            l => l.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 }

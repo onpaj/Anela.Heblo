@@ -40,7 +40,7 @@ public class LeafletTools
             {
                 Topic = topic,
                 Audience = audienceEnum,
-                Length = lengthEnum,
+                Length = lengthEnum
             }, ct);
 
             return JsonSerializer.Serialize(response);
