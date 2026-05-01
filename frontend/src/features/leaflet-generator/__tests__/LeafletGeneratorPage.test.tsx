@@ -3,6 +3,7 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import LeafletGeneratorPage from '../LeafletGeneratorPage';
 import { getAuthenticatedApiClient } from '../../../api/client';
+import { GenerateLeafletRequest } from '../../../api/generated/api-client';
 
 // Stub that always exposes a clickable Submit button and an input to set the topic
 jest.mock('../LeafletForm', () => ({
@@ -92,8 +93,9 @@ describe('LeafletGeneratorPage', () => {
     });
 
     it('displays generated content on success', async () => {
+        const mockLeafletGenerate = jest.fn().mockResolvedValue({ content: 'Hello' });
         mockGetAuthenticatedApiClient.mockReturnValue({
-            leaflet_Generate: jest.fn().mockResolvedValue({ content: 'Hello' }),
+            leaflet_Generate: mockLeafletGenerate,
         });
 
         render(<LeafletGeneratorPage />);
@@ -103,6 +105,7 @@ describe('LeafletGeneratorPage', () => {
         await waitFor(() => {
             expect(screen.getByTestId('result')).toHaveTextContent('Hello');
         });
+        expect(mockLeafletGenerate).toHaveBeenCalledWith(expect.any(GenerateLeafletRequest));
     });
 
     it('shows insufficient-knowledge banner on 422', async () => {
