@@ -140,7 +140,6 @@ public class GenerateLeafletHandlerTests
     {
         // Arrange
         SetupEmbeddings();
-        SetupChatReturns("outline", "final leaflet");
 
         var leafletChunks = new List<(LeafletChunk Chunk, double Score)>
         {
@@ -152,6 +151,16 @@ public class GenerateLeafletHandlerTests
             .ReturnsAsync([]);
         _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(leafletChunks);
+
+        IEnumerable<ChatMessage>? capturedMessages = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>(
+                (msgs, _, _) => capturedMessages ??= msgs)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "outline")]));
 
         var handler = CreateHandler();
         var request = new GenerateLeafletRequest { Topic = "niacinamide", Audience = AudienceType.B2B, Length = LeafletLength.Long };
@@ -166,6 +175,9 @@ public class GenerateLeafletHandlerTests
             It.IsAny<IEnumerable<ChatMessage>>(),
             It.IsAny<ChatOptions?>(),
             It.IsAny<CancellationToken>()), Times.Exactly(2));
+
+        capturedMessages.Should().NotBeNull();
+        capturedMessages!.First(m => m.Role == ChatRole.System).Text.Should().Contain("(empty)");
     }
 
     [Fact]
@@ -218,15 +230,76 @@ public class GenerateLeafletHandlerTests
     }
 
     [Fact]
+    public async Task Handle_filters_below_threshold_leaflet_chunks()
+    {
+        // Arrange
+        SetupEmbeddings();
+
+        var threshold = 0.55;
+        var options = new LeafletOptions { MinSimilarityScore = threshold };
+
+        _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([KbHit(0.9, "kb above threshold")]);
+
+        var leafletChunks = new List<(LeafletChunk Chunk, double Score)>
+        {
+            LeafletHit(0.9, "leaflet above threshold"),
+            LeafletHit(0.4, "leaflet below 1"),
+            LeafletHit(0.3, "leaflet below 2"),
+            LeafletHit(0.2, "leaflet below 3"),
+        };
+
+        _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(leafletChunks);
+
+        IEnumerable<ChatMessage>? capturedStage2Messages = null;
+        var callCount = 0;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>(
+                (msgs, _, _) =>
+                {
+                    callCount++;
+                    if (callCount == 2)
+                    {
+                        capturedStage2Messages = msgs;
+                    }
+                })
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "response")]));
+
+        var handler = CreateHandler(options);
+        var request = new GenerateLeafletRequest { Topic = "retinol", Audience = AudienceType.EndConsumer, Length = LeafletLength.Short };
+
+        // Act
+        await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        capturedStage2Messages.Should().NotBeNull();
+        var stage2SystemMessage = capturedStage2Messages!.First(m => m.Role == ChatRole.System).Text!;
+        stage2SystemMessage.Should().Contain("leaflet above threshold");
+        stage2SystemMessage.Should().NotContain("leaflet below 1");
+        stage2SystemMessage.Should().NotContain("leaflet below 2");
+        stage2SystemMessage.Should().NotContain("leaflet below 3");
+    }
+
+    [Fact]
     public async Task Handle_uses_topic_embedding_only_once()
     {
         // Arrange
         SetupEmbeddings();
         SetupChatReturns();
 
+        float[]? capturedKbVector = null;
+        float[]? capturedLeafletVector = null;
+
         _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Callback<float[], int, CancellationToken>((v, _, _) => capturedKbVector = v)
             .ReturnsAsync([KbHit(0.9)]);
         _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Callback<float[], int, CancellationToken>((v, _, _) => capturedLeafletVector = v)
             .ReturnsAsync([LeafletHit(0.9)]);
 
         var handler = CreateHandler();
@@ -242,6 +315,10 @@ public class GenerateLeafletHandlerTests
                 It.IsAny<EmbeddingGenerationOptions?>(),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+
+        capturedKbVector.Should().NotBeNull();
+        capturedLeafletVector.Should().NotBeNull();
+        capturedKbVector.Should().BeEquivalentTo(capturedLeafletVector);
     }
 
     [Theory]
