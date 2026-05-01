@@ -2,7 +2,7 @@ import { useState } from 'react';
 import LeafletForm from './LeafletForm';
 import LeafletResult from './LeafletResult';
 import { getAuthenticatedApiClient } from '../../api/client';
-import { AudienceType, LeafletLength } from '../../api/generated/api-client';
+import { AudienceType, GenerateLeafletRequest, LeafletLength } from '../../api/generated/api-client';
 
 interface ErrorBanner {
     kind: 'insufficient' | 'transient';
@@ -22,7 +22,7 @@ export default function LeafletGeneratorPage() {
         setErrorBanner(null);
         try {
             const client = getAuthenticatedApiClient();
-            const response = await client.leaflet_Generate({ topic, audience, length });
+            const response = await client.leaflet_Generate(new GenerateLeafletRequest({ topic, audience, length }));
             setResult(response.content ?? '');
         } catch (err: unknown) {
             const status = (err as any)?.status;

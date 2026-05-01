@@ -36,6 +36,7 @@ import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
+import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
 import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
 import AuthGuard from "./components/auth/AuthGuard";
@@ -463,6 +464,10 @@ function App() {
                         <Route
                           path="/knowledge-base/feedback"
                           element={<KnowledgeBaseFeedbackPage />}
+                        />
+                        <Route
+                          path="/leaflet-generator"
+                          element={<LeafletGeneratorPage />}
                         />
                         <Route
                           path="/automation/data-quality"
