@@ -1,3 +1,5 @@
+using System.IO;
+using System.Net.Http;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
 using MediatR;
@@ -36,14 +38,18 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
         GenerateLeafletRequest request,
         CancellationToken cancellationToken)
     {
-        var topicVector = (await _embeddings.GenerateAsync([request.Topic], cancellationToken: cancellationToken))
+        var ct = cancellationToken;
+
+        var topicVector = (await RetryOnceAsync(
+                () => _embeddings.GenerateAsync([request.Topic], cancellationToken: ct),
+                ct))
             .First().Vector.ToArray();
 
-        var kbHits = (await _kb.SearchSimilarAsync(topicVector, _options.KbTopK, cancellationToken))
+        var kbHits = (await _kb.SearchSimilarAsync(topicVector, _options.KbTopK, ct))
             .Where(x => x.Score >= _options.MinSimilarityScore)
             .ToList();
 
-        var leafletHits = (await _leaflets.SearchSimilarAsync(topicVector, _options.LeafletTopK, cancellationToken))
+        var leafletHits = (await _leaflets.SearchSimilarAsync(topicVector, _options.LeafletTopK, ct))
             .Where(x => x.Score >= _options.MinSimilarityScore)
             .ToList();
 
@@ -65,11 +71,17 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
         var lengthWords = request.Length switch
         {
             LeafletLength.Short => _options.ShortWordTarget,
+            LeafletLength.Medium => _options.MediumWordTarget,
             LeafletLength.Long => _options.LongWordTarget,
-            _ => _options.MediumWordTarget
+            _ => throw new ArgumentOutOfRangeException(nameof(request.Length), request.Length, "Unknown leaflet length"),
         };
 
-        var audienceLabel = request.Audience == AudienceType.B2B ? "B2B" : "Koncový zákazník";
+        var audienceLabel = request.Audience switch
+        {
+            AudienceType.B2B => "B2B",
+            AudienceType.EndConsumer => "Koncový zákazník",
+            _ => throw new ArgumentOutOfRangeException(nameof(request.Audience), request.Audience, "Unknown audience type"),
+        };
 
         var kbContext = string.Join("\n\n---\n\n", kbHits.Select(h => h.Chunk.Content));
         var stage1System = _options.Stage1SystemPrompt
@@ -78,13 +90,17 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
             .Replace("{length}", lengthWords.ToString())
             .Replace("{kbContext}", string.IsNullOrWhiteSpace(kbContext) ? "(empty)" : kbContext);
 
-        var outlineResponse = await _chat.GetResponseAsync(
-            [
-                new ChatMessage(ChatRole.System, stage1System),
-                new ChatMessage(ChatRole.User, request.Topic)
-            ],
-            new ChatOptions { ModelId = _options.ChatModel, MaxOutputTokens = _options.ChatMaxTokens },
-            cancellationToken);
+        var chatOptions = new ChatOptions { ModelId = _options.ChatModel, MaxOutputTokens = _options.ChatMaxTokens };
+
+        var outlineResponse = await RetryOnceAsync(
+            () => _chat.GetResponseAsync(
+                [
+                    new ChatMessage(ChatRole.System, stage1System),
+                    new ChatMessage(ChatRole.User, request.Topic)
+                ],
+                chatOptions,
+                ct),
+            ct);
 
         var outline = outlineResponse.Text ?? string.Empty;
 
@@ -96,14 +112,38 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
             .Replace("{coldStart}", coldStart)
             .Replace("{leafletContext}", string.IsNullOrWhiteSpace(leafletContext) ? "(none)" : leafletContext);
 
-        var leafletResponse = await _chat.GetResponseAsync(
-            [
-                new ChatMessage(ChatRole.System, stage2System),
-                new ChatMessage(ChatRole.User, outline)
-            ],
-            new ChatOptions { ModelId = _options.ChatModel, MaxOutputTokens = _options.ChatMaxTokens },
-            cancellationToken);
+        var leafletResponse = await RetryOnceAsync(
+            () => _chat.GetResponseAsync(
+                [
+                    new ChatMessage(ChatRole.System, stage2System),
+                    new ChatMessage(ChatRole.User, outline)
+                ],
+                chatOptions,
+                ct),
+            ct);
 
         return new GenerateLeafletResponse { Content = leafletResponse.Text ?? string.Empty };
+    }
+
+    private async Task<T> RetryOnceAsync<T>(Func<Task<T>> operation, CancellationToken ct)
+    {
+        try
+        {
+            return await operation();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or TimeoutException or TaskCanceledException)
+        {
+            _logger.LogWarning(ex, "Transient error during leaflet generation, retrying once");
+            await Task.Delay(1000, ct);
+
+            try
+            {
+                return await operation();
+            }
+            catch (Exception retryEx)
+            {
+                throw new InvalidOperationException("Leaflet generation failed after retry.", retryEx);
+            }
+        }
     }
 }

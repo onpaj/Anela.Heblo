@@ -356,6 +356,52 @@ public class GenerateLeafletHandlerTests
         systemMessage.Should().Contain(expectedWordCount.ToString());
     }
 
+    [Fact]
+    public async Task Handle_sets_coldstart_true_in_stage2_prompt_when_leaflet_empty()
+    {
+        // Arrange
+        SetupEmbeddings();
+
+        _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([KbHit(0.9, "kb chunk above threshold")]);
+        _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        IEnumerable<ChatMessage>? capturedStage2Messages = null;
+        var callCount = 0;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>(
+                (msgs, _, _) =>
+                {
+                    callCount++;
+                    if (callCount == 2)
+                    {
+                        capturedStage2Messages = msgs;
+                    }
+                })
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "response")]));
+
+        var options = new LeafletOptions
+        {
+            Stage2SystemPrompt = "coldStart={coldStart}",
+        };
+
+        var handler = CreateHandler(options);
+        var request = new GenerateLeafletRequest { Topic = "retinol", Audience = AudienceType.EndConsumer, Length = LeafletLength.Short };
+
+        // Act
+        await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        capturedStage2Messages.Should().NotBeNull();
+        var stage2SystemMessage = capturedStage2Messages!.First(m => m.Role == ChatRole.System).Text!;
+        stage2SystemMessage.Should().Contain("true");
+    }
+
     [Theory]
     [InlineData(AudienceType.B2B, "B2B")]
     [InlineData(AudienceType.EndConsumer, "Koncový zákazník")]
