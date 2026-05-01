@@ -13,7 +13,7 @@
       "msBuildOutputPath": null,
       "verbose": true,
       "workingDirectory": null,
-      "aspNetCoreEnvironment": null,
+      "aspNetCoreEnvironment": "Development",
       "output": null,
       "newLineBehavior": "Auto"
     }
