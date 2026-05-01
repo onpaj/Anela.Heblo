@@ -152,6 +152,27 @@ public class LeafletIngestionJobTests
     }
 
     [Fact]
+    public async Task Execute_does_nothing_when_job_is_disabled()
+    {
+        _statusChecker
+            .Setup(s => s.IsJobEnabledAsync("leaflet-ingestion", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        var job = new LeafletIngestionJob(
+            _oneDrive.Object,
+            _mediator.Object,
+            _statusChecker.Object,
+            Options.Create(new LeafletOptions { DriveId = "d", InboxPath = "/i", ArchivedPath = "/a" }),
+            NullLogger<LeafletIngestionJob>.Instance);
+
+        await job.ExecuteAsync();
+
+        _oneDrive.Verify(
+            s => s.ListInboxFilesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public void Metadata_has_unique_job_name()
     {
         var job = CreateJob();

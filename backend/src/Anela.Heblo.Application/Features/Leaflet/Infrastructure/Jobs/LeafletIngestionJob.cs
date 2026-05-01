@@ -14,9 +14,8 @@ public class LeafletIngestionJob : IRecurringJob
     private readonly IRecurringJobStatusChecker _statusChecker;
     private readonly LeafletOptions _options;
     private readonly ILogger<LeafletIngestionJob> _logger;
-    private readonly RecurringJobMetadata _metadata;
 
-    public RecurringJobMetadata Metadata => _metadata;
+    public RecurringJobMetadata Metadata { get; }
 
     public LeafletIngestionJob(
         IOneDriveService oneDrive,
@@ -31,11 +30,11 @@ public class LeafletIngestionJob : IRecurringJob
         _options = options.Value;
         _logger = logger;
 
-        _metadata = new RecurringJobMetadata
+        Metadata = new RecurringJobMetadata
         {
             JobName = "leaflet-ingestion",
             DisplayName = "Leaflet Ingestion",
-            Description = "Polls OneDrive inbox folder and ingests new leaflet documents into the leaflet vector store",
+            Description = "Polls OneDrive Leaflets/Inbox folder and ingests new leaflet documents into the leaflet vector store",
             CronExpression = _options.IngestionCronExpression,
             DefaultIsEnabled = true
         };
