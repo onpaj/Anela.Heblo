@@ -93,4 +93,35 @@ describe("LeafletForm", () => {
 
     expect(onSubmit).not.toHaveBeenCalled();
   });
+
+  it("calls onAudienceChange when B2B radio is clicked", async () => {
+    const onAudienceChange = jest.fn();
+    const user = userEvent.setup();
+
+    renderForm({ onAudienceChange });
+
+    const b2bRadio = screen.getByRole("radio", { name: "B2B" });
+    await user.click(b2bRadio);
+
+    expect(onAudienceChange).toHaveBeenCalledWith(AudienceType.B2B);
+  });
+
+  it("calls onLengthChange when Dlouhý radio is clicked", async () => {
+    const onLengthChange = jest.fn();
+    const user = userEvent.setup();
+
+    renderForm({ onLengthChange });
+
+    const longRadio = screen.getByRole("radio", { name: "Dlouhý (~700 slov)" });
+    await user.click(longRadio);
+
+    expect(onLengthChange).toHaveBeenCalledWith(LeafletLength.Long);
+  });
+
+  it("does not call onSubmit when topic is whitespace-only", async () => {
+    renderForm({ topic: "   " });
+
+    const button = screen.getByRole("button", { name: "Vygenerovat leták" });
+    expect(button).toBeDisabled();
+  });
 });

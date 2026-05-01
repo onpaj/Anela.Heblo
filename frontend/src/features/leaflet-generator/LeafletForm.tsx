@@ -47,11 +47,11 @@ export default function LeafletForm({
           type="text"
           id="leaflet-topic"
           maxLength={MAX_TOPIC_LENGTH}
+          required
           value={topic}
           onChange={(e) => onTopicChange(e.target.value)}
           placeholder="např. Bisabolol pro citlivou pleť"
-          aria-label="Téma"
-          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
         />
         <span className="text-xs text-gray-500 text-right block">
           {topic.length}/{MAX_TOPIC_LENGTH}
@@ -126,6 +126,7 @@ export default function LeafletForm({
       <button
         type="submit"
         disabled={isSubmitDisabled}
+        aria-busy={isLoading}
         className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
       >
         Vygenerovat leták
