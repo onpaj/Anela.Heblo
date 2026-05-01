@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 
 interface LeafletResultProps {
@@ -6,15 +6,27 @@ interface LeafletResultProps {
   onRegenerate: () => void;
 }
 
-export function LeafletResult({ content, onRegenerate }: LeafletResultProps) {
+export default function LeafletResult({ content, onRegenerate }: LeafletResultProps) {
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   if (!content) return null;
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(content);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setCopied(true);
+      timerRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard unavailable — no feedback change
+    }
   };
 
   return (

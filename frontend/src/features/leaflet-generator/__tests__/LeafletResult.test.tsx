@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { LeafletResult } from '../LeafletResult';
+import LeafletResult from '../LeafletResult';
 
 jest.mock('react-markdown', () => ({
   __esModule: true,
@@ -59,7 +59,28 @@ describe('LeafletResult', () => {
       await screen.findByRole('button', { name: 'Zkopírováno' })
     ).toBeInTheDocument();
 
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Some content');
+
     act(() => jest.advanceTimersByTime(2000));
+
+    expect(screen.getByRole('button', { name: 'Kopírovat' })).toBeInTheDocument();
+  });
+
+  it('does not toggle label when clipboard write fails', async () => {
+    (navigator.clipboard.writeText as jest.Mock).mockRejectedValueOnce(
+      new Error('Clipboard unavailable')
+    );
+
+    render(
+      <LeafletResult content="Some content" onRegenerate={jest.fn()} />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Kopírovat' }));
+
+    // Allow the rejected promise to settle
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     expect(screen.getByRole('button', { name: 'Kopírovat' })).toBeInTheDocument();
   });
