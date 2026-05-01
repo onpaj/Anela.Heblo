@@ -108,7 +108,7 @@ describe('LeafletGeneratorPage', () => {
     it('shows insufficient-knowledge banner on 422', async () => {
         mockGetAuthenticatedApiClient.mockReturnValue({
             leaflet_Generate: jest.fn().mockRejectedValue({
-                response: { status: 422, data: { detail: 'Specific msg' } },
+                status: 422, detail: 'Specific msg',
             }),
         });
 
@@ -126,7 +126,7 @@ describe('LeafletGeneratorPage', () => {
     it('shows transient error banner on 502', async () => {
         mockGetAuthenticatedApiClient.mockReturnValue({
             leaflet_Generate: jest.fn().mockRejectedValue({
-                response: { status: 502 },
+                status: 502,
             }),
         });
 
@@ -144,7 +144,7 @@ describe('LeafletGeneratorPage', () => {
     it('clears banner on next successful submit', async () => {
         const leafletGenerate = jest
             .fn()
-            .mockRejectedValueOnce({ response: { status: 422, data: { detail: 'Error!' } } })
+            .mockRejectedValueOnce({ status: 422, detail: 'Error!' })
             .mockResolvedValueOnce({ content: 'Success result' });
 
         mockGetAuthenticatedApiClient.mockReturnValue({

@@ -22,16 +22,15 @@ export default function LeafletGeneratorPage() {
         setErrorBanner(null);
         try {
             const client = getAuthenticatedApiClient();
-            const response = await (client as any).leaflet_Generate({ topic, audience, length });
-            setResult(response.content);
-        } catch (err: any) {
-            const status = err?.response?.status ?? err?.status;
+            const response = await client.leaflet_Generate({ topic, audience, length });
+            setResult(response.content ?? '');
+        } catch (err: unknown) {
+            const status = (err as any)?.status;
             if (status === 422) {
                 setErrorBanner({
                     kind: 'insufficient',
                     message:
-                        err?.response?.data?.detail ??
-                        err?.detail ??
+                        (err as any)?.detail ??
                         'Knowledge Base zatím toto téma nepokrývá. Zkuste obecnější formulaci.',
                 });
             } else {
