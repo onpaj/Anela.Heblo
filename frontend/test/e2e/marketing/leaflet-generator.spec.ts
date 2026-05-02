@@ -3,7 +3,7 @@ import { navigateToApp } from '../helpers/e2e-auth-helper';
 
 const LEAFLET_GENERATOR_PATH = '/leaflet-generator';
 const TOPIC = 'Bisabolol pro citlivou pleť';
-const MIN_RESULT_LENGTH = 50;
+const MIN_RESULT_LENGTH = 100;
 const RESULT_TIMEOUT_MS = 30_000;
 
 test.describe('Leaflet Generator', () => {
