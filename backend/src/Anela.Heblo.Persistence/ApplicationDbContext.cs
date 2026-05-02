@@ -5,6 +5,7 @@ using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.Leaflet;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
@@ -81,6 +82,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<KnowledgeBaseDocument> KnowledgeBaseDocuments { get; set; } = null!;
     public DbSet<KnowledgeBaseChunk> KnowledgeBaseChunks { get; set; } = null!;
     public DbSet<KnowledgeBaseQuestionLog> KnowledgeBaseQuestionLogs { get; set; } = null!;
+
+    // Leaflet module
+    public DbSet<LeafletDocument> LeafletDocuments { get; set; } = null!;
+    public DbSet<LeafletChunk> LeafletChunks { get; set; } = null!;
 
     // Grid Layouts module
     public DbSet<GridLayout> GridLayouts { get; set; } = null!;
