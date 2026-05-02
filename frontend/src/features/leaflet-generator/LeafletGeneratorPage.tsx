@@ -5,8 +5,17 @@ import { getAuthenticatedApiClient } from '../../api/client';
 import { AudienceType, GenerateLeafletRequest, LeafletLength } from '../../api/generated/api-client';
 
 interface ErrorBanner {
-    kind: 'insufficient' | 'transient';
-    message: string;
+  kind: 'insufficient' | 'transient';
+  message: string;
+}
+
+interface ApiError {
+  status: number;
+  detail?: string;
+}
+
+function isApiError(err: unknown): err is ApiError {
+  return typeof err === 'object' && err !== null && typeof (err as Record<string, unknown>)['status'] === 'number';
 }
 
 export default function LeafletGeneratorPage() {
@@ -25,12 +34,11 @@ export default function LeafletGeneratorPage() {
             const response = await client.leaflet_Generate(new GenerateLeafletRequest({ topic, audience, length }));
             setResult(response.content ?? '');
         } catch (err: unknown) {
-            const status = (err as any)?.status;
-            if (status === 422) {
+            if (isApiError(err) && err.status === 422) {
                 setErrorBanner({
                     kind: 'insufficient',
                     message:
-                        (err as any)?.detail ??
+                        err.detail ??
                         'Knowledge Base zatím toto téma nepokrývá. Zkuste obecnější formulaci.',
                 });
             } else {
