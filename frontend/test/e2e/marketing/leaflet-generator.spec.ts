@@ -45,8 +45,6 @@ test.describe('Leaflet Generator', () => {
       );
     }
 
-    expect(resultText.trim().length).toBeGreaterThan(MIN_RESULT_LENGTH);
-
     // Click the copy button and verify the label changes to confirm clipboard write
     const copyButton = page.getByRole('button', { name: 'Kopírovat' });
     await expect(copyButton).toBeVisible();

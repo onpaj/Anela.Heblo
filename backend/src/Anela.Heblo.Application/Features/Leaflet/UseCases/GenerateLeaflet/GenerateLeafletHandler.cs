@@ -131,10 +131,12 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
         {
             return await operation();
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or TimeoutException or TaskCanceledException)
+        catch (OperationCanceledException)
         {
-            if (ct.IsCancellationRequested)
-                throw;
+            throw;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or TimeoutException)
+        {
             _logger.LogWarning(ex, "Transient error during leaflet generation, retrying once");
             await Task.Delay(1000, ct);
 

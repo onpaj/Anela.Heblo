@@ -72,6 +72,8 @@ namespace Anela.Heblo.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql(@"DROP INDEX IF EXISTS ""IX_LeafletChunks_Embedding_HNSW"";");
+
             migrationBuilder.DropTable(
                 name: "LeafletChunks");
 
