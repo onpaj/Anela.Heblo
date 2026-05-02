@@ -23,13 +23,13 @@ public class LeafletIndexingService : ILeafletIndexingService
         _logger = logger;
     }
 
-    public async Task IndexAsync(string text, LeafletDocument document, CancellationToken ct = default)
+    public async Task<int> IndexAsync(string text, LeafletDocument document, CancellationToken ct = default)
     {
         var chunks = _chunker.Chunk(text, document.Id);
         if (chunks.Count == 0)
         {
             _logger.LogWarning("Leaflet {DocumentId} produced zero chunks; skipping indexing", document.Id);
-            return;
+            return 0;
         }
 
         var inputs = chunks.Select(c => c.Content).ToList();
@@ -49,5 +49,6 @@ public class LeafletIndexingService : ILeafletIndexingService
 
         document.WordCount = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
         await _repo.AddChunksAsync(chunks, ct);
+        return chunks.Count;
     }
 }

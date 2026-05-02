@@ -19,6 +19,10 @@ public class IndexLeafletHandlerTests
         _repoMock = new Mock<ILeafletRepository>();
         _indexingMock = new Mock<ILeafletIndexingService>();
         _extractorMock = new Mock<IDocumentTextExtractor>();
+
+        _indexingMock
+            .Setup(s => s.IndexAsync(It.IsAny<string>(), It.IsAny<LeafletDocument>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
     }
 
     private IndexLeafletHandler CreateHandler(IEnumerable<IDocumentTextExtractor>? extractors = null)
