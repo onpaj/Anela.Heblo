@@ -10,8 +10,8 @@ allowed_tools:
   - write
   - task
 output_format: markdown
-visibility_timeout: 1800
-retry_limit: 3
+visibility_timeout: 7200
+retry_limit: 1
 output_parsing: none
 context_files:
   - ~/.claude/plugins/cache/superpowers-marketplace/superpowers/*/skills/subagent-driven-development/SKILL.md
