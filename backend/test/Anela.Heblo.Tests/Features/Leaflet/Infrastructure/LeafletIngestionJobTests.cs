@@ -7,7 +7,7 @@ using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
 using MediatR;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -20,6 +20,7 @@ public class LeafletIngestionJobTests
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IRecurringJobStatusChecker> _statusChecker = new();
     private readonly Mock<ILeafletRepository> _leafletRepository = new();
+    private readonly Mock<ILogger<LeafletIngestionJob>> _logger = new();
 
     private static LeafletOptions DefaultLeafletOptions() => new()
     {
@@ -49,7 +50,7 @@ public class LeafletIngestionJobTests
             _statusChecker.Object,
             _leafletRepository.Object,
             Options.Create(opts),
-            NullLogger<LeafletIngestionJob>.Instance);
+            _logger.Object);
     }
 
     [Fact]
@@ -187,7 +188,7 @@ public class LeafletIngestionJobTests
             _statusChecker.Object,
             _leafletRepository.Object,
             Options.Create(DefaultLeafletOptions()),
-            NullLogger<LeafletIngestionJob>.Instance);
+            _logger.Object);
 
         await job.ExecuteAsync();
 
@@ -261,6 +262,86 @@ public class LeafletIngestionJobTests
 
         _leafletRepository.Verify(
             r => r.UpdateSourcePathAsync(documentId, archiveUrl, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Execute_calls_UpdateSourcePathAsync_for_duplicate_document()
+    {
+        // UpdateSourcePathAsync must run even for duplicates so the DB SourcePath
+        // points to the new archive location, not the stale inbox path.
+        var documentId = Guid.NewGuid();
+        const string archiveUrl = "https://mock.sharepoint.com/archived/duplicate.pdf";
+        var job = CreateJob();
+
+        var file = new OneDriveFile("id-dup", "duplicate.pdf", "application/pdf", "/Leaflets/Inbox/duplicate.pdf");
+
+        _oneDrive
+            .Setup(s => s.ListInboxFilesAsync("test-drive", "/Leaflets/Inbox", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([file]);
+        _oneDrive
+            .Setup(s => s.DownloadFileAsync("test-drive", "id-dup", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([1, 2, 3]);
+        _oneDrive
+            .Setup(s => s.MoveToArchivedAsync("test-drive", "id-dup", "duplicate.pdf", "/Leaflets/Archived", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(archiveUrl);
+        _mediator
+            .Setup(m => m.Send(It.IsAny<IndexLeafletRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IndexLeafletResponse { DocumentId = documentId, WasDuplicate = true });
+
+        await job.ExecuteAsync();
+
+        _leafletRepository.Verify(
+            r => r.UpdateSourcePathAsync(documentId, archiveUrl, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Execute_logs_warning_and_continues_when_UpdateSourcePathAsync_throws()
+    {
+        // If MoveToArchivedAsync succeeds but UpdateSourcePathAsync throws, the job should:
+        // - log a targeted warning (not the generic "Failed to index" error)
+        // - continue processing the next file without incrementing failed
+        var documentId = Guid.NewGuid();
+        const string archiveUrl = "https://mock.sharepoint.com/archived/leaflet.pdf";
+
+        var file1 = new OneDriveFile("id-fail-path", "leaflet-a.pdf", "application/pdf", "/Leaflets/Inbox/leaflet-a.pdf");
+        var file2 = new OneDriveFile("id-ok", "leaflet-b.pdf", "application/pdf", "/Leaflets/Inbox/leaflet-b.pdf");
+
+        var job = CreateJob();
+
+        _oneDrive
+            .Setup(s => s.ListInboxFilesAsync("test-drive", "/Leaflets/Inbox", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([file1, file2]);
+        _oneDrive
+            .Setup(s => s.DownloadFileAsync("test-drive", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([1, 2, 3]);
+        _oneDrive
+            .Setup(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(archiveUrl);
+        _mediator
+            .Setup(m => m.Send(It.IsAny<IndexLeafletRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IndexLeafletResponse { DocumentId = documentId, WasDuplicate = false });
+
+        _leafletRepository
+            .Setup(r => r.UpdateSourcePathAsync(documentId, archiveUrl, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("DB connection lost"));
+
+        await job.ExecuteAsync();
+
+        // Warning logged with "Manual correction required" marker — distinct from generic "Failed to index"
+        _logger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Manual correction required")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+
+        // Both files were attempted — job continued past the SourcePath failure
+        _mediator.Verify(
+            m => m.Send(It.Is<IndexLeafletRequest>(r => r.Filename == "leaflet-b.pdf"), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }

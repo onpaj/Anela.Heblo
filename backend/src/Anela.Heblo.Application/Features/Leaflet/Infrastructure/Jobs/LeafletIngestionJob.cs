@@ -81,7 +81,20 @@ public class LeafletIngestionJob : IRecurringJob
                     }, cancellationToken);
 
                     var archiveUrl = await _oneDrive.MoveToArchivedAsync(folder.DriveId, file.Id, file.Name, folder.ArchivedPath, cancellationToken);
-                    await _leafletRepository.UpdateSourcePathAsync(result.DocumentId, archiveUrl, cancellationToken);
+
+                    // UpdateSourcePathAsync is called for both new and duplicate documents — intentional.
+                    // For duplicates the matched document's SourcePath is updated to the new archive location
+                    // so the DB link stays current even when the same content arrives again.
+                    try
+                    {
+                        await _leafletRepository.UpdateSourcePathAsync(result.DocumentId, archiveUrl, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex,
+                            "File {Name} was moved to archive but SourcePath update failed for document {DocumentId}. Manual correction required.",
+                            file.Name, result.DocumentId);
+                    }
 
                     if (result.WasDuplicate)
                     {

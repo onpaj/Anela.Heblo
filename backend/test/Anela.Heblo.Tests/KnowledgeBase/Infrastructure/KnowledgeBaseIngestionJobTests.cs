@@ -5,7 +5,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.IndexDocument;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using MediatR;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
@@ -18,6 +18,7 @@ public class KnowledgeBaseIngestionJobTests
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IRecurringJobStatusChecker> _statusChecker = new();
     private readonly Mock<IKnowledgeBaseRepository> _knowledgeBaseRepository = new();
+    private readonly Mock<ILogger<KnowledgeBaseIngestionJob>> _logger = new();
 
     private KnowledgeBaseIngestionJob CreateJob(KnowledgeBaseOptions options)
     {
@@ -28,7 +29,7 @@ public class KnowledgeBaseIngestionJobTests
             _statusChecker.Object,
             _knowledgeBaseRepository.Object,
             Options.Create(options),
-            NullLogger<KnowledgeBaseIngestionJob>.Instance);
+            _logger.Object);
     }
 
     private static KnowledgeBaseOptions OptionsWithTwoMappings() => new()
@@ -159,6 +160,78 @@ public class KnowledgeBaseIngestionJobTests
 
         _knowledgeBaseRepository.Verify(
             r => r.UpdateDocumentSourcePathAsync(documentId, archiveUrl, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_calls_UpdateDocumentSourcePathAsync_for_duplicate_document()
+    {
+        // UpdateDocumentSourcePathAsync must run even for duplicates so the DB SourcePath
+        // points to the new archive location, not the stale inbox path.
+        var documentId = Guid.NewGuid();
+        const string archiveUrl = "https://mock.sharepoint.com/archived/doc.pdf";
+        var options = OptionsWithTwoMappings();
+        var job = CreateJob(options);
+
+        var file = new OneDriveFile("id-dup-kb", "doc.pdf", "application/pdf", "/KnowledgeBase/Inbox/doc.pdf");
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-kb", "/KnowledgeBase/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([file]);
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-conv", "/Conversation/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _oneDrive.Setup(s => s.DownloadFileAsync("drive-kb", "id-dup-kb", It.IsAny<CancellationToken>())).ReturnsAsync([1, 2, 3]);
+        _oneDrive
+            .Setup(s => s.MoveToArchivedAsync("drive-kb", "id-dup-kb", "doc.pdf", "/KnowledgeBase/Archived", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(archiveUrl);
+        _mediator.Setup(m => m.Send(It.IsAny<IndexDocumentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IndexDocumentResponse { DocumentId = documentId, WasDuplicate = true });
+
+        await job.ExecuteAsync();
+
+        _knowledgeBaseRepository.Verify(
+            r => r.UpdateDocumentSourcePathAsync(documentId, archiveUrl, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_logs_warning_and_continues_when_UpdateDocumentSourcePathAsync_throws()
+    {
+        // If MoveToArchivedAsync succeeds but UpdateDocumentSourcePathAsync throws, the job should:
+        // - log a targeted warning (not the generic "Failed to index" error)
+        // - continue processing the next file without incrementing failed
+        var documentId = Guid.NewGuid();
+        const string archiveUrl = "https://mock.sharepoint.com/archived/manual.pdf";
+        var options = OptionsWithTwoMappings();
+        var job = CreateJob(options);
+
+        var file1 = new OneDriveFile("id-fail-path", "manual.pdf", "application/pdf", "/KnowledgeBase/Inbox/manual.pdf");
+        var file2 = new OneDriveFile("id-ok", "other.pdf", "application/pdf", "/KnowledgeBase/Inbox/other.pdf");
+
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-kb", "/KnowledgeBase/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([file1, file2]);
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-conv", "/Conversation/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _oneDrive.Setup(s => s.DownloadFileAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync([1, 2, 3]);
+        _oneDrive
+            .Setup(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(archiveUrl);
+        _mediator.Setup(m => m.Send(It.IsAny<IndexDocumentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IndexDocumentResponse { DocumentId = documentId, WasDuplicate = false });
+
+        _knowledgeBaseRepository
+            .Setup(r => r.UpdateDocumentSourcePathAsync(documentId, archiveUrl, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("DB connection lost"));
+
+        await job.ExecuteAsync();
+
+        // Warning logged with "Manual correction required" marker — distinct from generic "Failed to index"
+        _logger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Manual correction required")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+
+        // Both files were attempted — job continued past the SourcePath failure
+        _mediator.Verify(
+            m => m.Send(It.Is<IndexDocumentRequest>(r => r.Filename == "other.pdf"), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }
