@@ -176,18 +176,21 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
     public async Task<KnowledgeBaseDocument?> GetDocumentByHashAsync(string contentHash, CancellationToken ct = default)
     {
         return await _context.KnowledgeBaseDocuments
+            .AsNoTracking()
             .FirstOrDefaultAsync(d => d.ContentHash == contentHash, ct);
     }
 
     public async Task<KnowledgeBaseDocument?> GetDocumentBySourcePathAsync(string sourcePath, CancellationToken ct = default)
     {
         return await _context.KnowledgeBaseDocuments
+            .AsNoTracking()
             .FirstOrDefaultAsync(d => d.SourcePath == sourcePath, ct);
     }
 
     public async Task<KnowledgeBaseDocument?> GetDocumentByGraphItemIdAsync(string driveId, string graphItemId, CancellationToken ct = default)
     {
         return await _context.KnowledgeBaseDocuments
+            .AsNoTracking()
             .FirstOrDefaultAsync(d => d.DriveId == driveId && d.GraphItemId == graphItemId, ct);
     }
 
