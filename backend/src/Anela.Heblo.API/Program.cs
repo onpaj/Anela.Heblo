@@ -52,10 +52,13 @@ public partial class Program
         builder.Services.ConfigureAuthentication(builder, logger);
         builder.Services.AddApplicationInsightsServices(builder.Configuration, builder.Environment);
         builder.Services.AddCorsServices(builder.Configuration);
+
+        // Persistence must register NpgsqlDataSource before health checks probe DI for it.
+        builder.Services.AddPersistenceServices(builder.Configuration, builder.Environment);
+
         builder.Services.AddHealthCheckServices(builder.Configuration);
 
         // Add new architecture services
-        builder.Services.AddPersistenceServices(builder.Configuration, builder.Environment);
         builder.Services.AddApplicationServices(builder.Configuration, builder.Environment); // Vertical slice modules from Application layer
         builder.Services.AddXccServices(builder.Configuration); // Cross-cutting concerns (audit, telemetry, etc.)
         builder.Services.AddCrossCuttingServices(); // Cross-cutting services from API layer
