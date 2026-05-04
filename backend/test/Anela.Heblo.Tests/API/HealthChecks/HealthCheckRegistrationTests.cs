@@ -42,13 +42,15 @@ public class HealthCheckRegistrationTests
         // Arrange
         var services = BuildServices(useInMemory: true);
 
+        // Precondition: NpgsqlDataSource was not registered (PersistenceModule skipped it for InMemory).
+        services.Any(d => d.ServiceType == typeof(NpgsqlDataSource)).Should().BeFalse();
+
         // Act
         using var provider = services.BuildServiceProvider();
         var registrations = provider.GetRequiredService<IOptions<HealthCheckServiceOptions>>()
             .Value.Registrations.ToList();
 
         // Assert
-        services.Any(d => d.ServiceType == typeof(NpgsqlDataSource)).Should().BeFalse();
         registrations.Should().NotContain(r => r.Name == ConfigurationConstants.DATABASE_HEALTH_CHECK);
     }
 
@@ -64,6 +66,7 @@ public class HealthCheckRegistrationTests
             .Value.Registrations.ToList();
 
         // Assert
+        // "data-quality-schema" is defined as ProbeName in DataQualitySchemaHealthCheck (private const).
         var dataQuality = registrations.Single(r => r.Name == "data-quality-schema");
         var database = registrations.Single(r => r.Name == ConfigurationConstants.DATABASE_HEALTH_CHECK);
         dataQuality.Timeout.Should().Be(TimeSpan.FromSeconds(5));
@@ -89,6 +92,9 @@ public class HealthCheckRegistrationTests
         environment.SetupGet(e => e.EnvironmentName).Returns("UnitTest");
 
         var services = new ServiceCollection();
+        // Note: AddXccServices (which registers IBackgroundServiceReadinessTracker required by
+        // BackgroundServicesReadyHealthCheck) is intentionally omitted — these tests only inspect
+        // HealthCheckRegistration metadata, not resolve or invoke checks from the container.
         services.AddLogging(b => b.AddProvider(NullLoggerProvider.Instance));
         services.AddPersistenceServices(configuration, environment.Object);
         services.AddHealthCheckServices(configuration);
