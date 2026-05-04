@@ -13,6 +13,7 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
     private readonly IOneDriveService _oneDrive;
     private readonly IMediator _mediator;
     private readonly IRecurringJobStatusChecker _statusChecker;
+    private readonly IKnowledgeBaseRepository _knowledgeBaseRepository;
     private readonly KnowledgeBaseOptions _options;
     private readonly ILogger<KnowledgeBaseIngestionJob> _logger;
 
@@ -29,12 +30,14 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
         IOneDriveService oneDrive,
         IMediator mediator,
         IRecurringJobStatusChecker statusChecker,
+        IKnowledgeBaseRepository knowledgeBaseRepository,
         IOptions<KnowledgeBaseOptions> options,
         ILogger<KnowledgeBaseIngestionJob> logger)
     {
         _oneDrive = oneDrive;
         _mediator = mediator;
         _statusChecker = statusChecker;
+        _knowledgeBaseRepository = knowledgeBaseRepository;
         _options = options.Value;
         _logger = logger;
     }
@@ -72,10 +75,13 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
                         SourcePath = file.Path,
                         ContentType = file.ContentType,
                         Content = content,
-                        DocumentType = mapping.DocumentType
+                        DocumentType = mapping.DocumentType,
+                        DriveId = mapping.DriveId,
+                        GraphItemId = file.Id
                     }, cancellationToken);
 
-                    _ = await _oneDrive.MoveToArchivedAsync(mapping.DriveId, file.Id, file.Name, mapping.ArchivedPath, cancellationToken);
+                    var archiveUrl = await _oneDrive.MoveToArchivedAsync(mapping.DriveId, file.Id, file.Name, mapping.ArchivedPath, cancellationToken);
+                    await _knowledgeBaseRepository.UpdateDocumentSourcePathAsync(result.DocumentId, archiveUrl, cancellationToken);
 
                     if (result.WasDuplicate)
                     {

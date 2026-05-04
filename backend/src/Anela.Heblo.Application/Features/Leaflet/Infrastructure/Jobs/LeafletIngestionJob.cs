@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.IndexLeaflet;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.Leaflet;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,6 +14,7 @@ public class LeafletIngestionJob : IRecurringJob
     private readonly IOneDriveService _oneDrive;
     private readonly IMediator _mediator;
     private readonly IRecurringJobStatusChecker _statusChecker;
+    private readonly ILeafletRepository _leafletRepository;
     private readonly LeafletOptions _options;
     private readonly ILogger<LeafletIngestionJob> _logger;
 
@@ -22,12 +24,14 @@ public class LeafletIngestionJob : IRecurringJob
         IOneDriveService oneDrive,
         IMediator mediator,
         IRecurringJobStatusChecker statusChecker,
+        ILeafletRepository leafletRepository,
         IOptions<LeafletOptions> options,
         ILogger<LeafletIngestionJob> logger)
     {
         _oneDrive = oneDrive;
         _mediator = mediator;
         _statusChecker = statusChecker;
+        _leafletRepository = leafletRepository;
         _options = options.Value;
         _logger = logger;
 
@@ -71,10 +75,13 @@ public class LeafletIngestionJob : IRecurringJob
                         Filename = file.Name,
                         SourcePath = file.Path,
                         ContentType = file.ContentType,
-                        Content = content
+                        Content = content,
+                        DriveId = folder.DriveId,
+                        GraphItemId = file.Id
                     }, cancellationToken);
 
-                    _ = await _oneDrive.MoveToArchivedAsync(folder.DriveId, file.Id, file.Name, folder.ArchivedPath, cancellationToken);
+                    var archiveUrl = await _oneDrive.MoveToArchivedAsync(folder.DriveId, file.Id, file.Name, folder.ArchivedPath, cancellationToken);
+                    await _leafletRepository.UpdateSourcePathAsync(result.DocumentId, archiveUrl, cancellationToken);
 
                     if (result.WasDuplicate)
                     {

@@ -5,6 +5,7 @@ using Anela.Heblo.Application.Features.Leaflet.UseCases.IndexLeaflet;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.Leaflet;
 using MediatR;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -18,6 +19,7 @@ public class LeafletIngestionJobTests
     private readonly Mock<IOneDriveService> _oneDrive = new();
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IRecurringJobStatusChecker> _statusChecker = new();
+    private readonly Mock<ILeafletRepository> _leafletRepository = new();
 
     private static LeafletOptions DefaultLeafletOptions() => new()
     {
@@ -45,6 +47,7 @@ public class LeafletIngestionJobTests
             _oneDrive.Object,
             _mediator.Object,
             _statusChecker.Object,
+            _leafletRepository.Object,
             Options.Create(opts),
             NullLogger<LeafletIngestionJob>.Instance);
     }
@@ -63,6 +66,9 @@ public class LeafletIngestionJobTests
         _oneDrive
             .Setup(s => s.DownloadFileAsync("test-drive", It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([1, 2, 3]);
+        _oneDrive
+            .Setup(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("https://mock.sharepoint.com/archived/file.pdf");
         _mediator
             .Setup(m => m.Send(It.IsAny<IndexLeafletRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IndexLeafletResponse { WasDuplicate = false });
@@ -96,6 +102,9 @@ public class LeafletIngestionJobTests
         _oneDrive
             .Setup(s => s.DownloadFileAsync("test-drive", "id-dup", It.IsAny<CancellationToken>()))
             .ReturnsAsync([1, 2, 3]);
+        _oneDrive
+            .Setup(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("https://mock.sharepoint.com/archived/duplicate.pdf");
         _mediator
             .Setup(m => m.Send(It.IsAny<IndexLeafletRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IndexLeafletResponse { WasDuplicate = true });
@@ -145,6 +154,9 @@ public class LeafletIngestionJobTests
         _oneDrive
             .Setup(s => s.DownloadFileAsync("test-drive", It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([1, 2, 3]);
+        _oneDrive
+            .Setup(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("https://mock.sharepoint.com/archived/good.pdf");
         _mediator
             .Setup(m => m.Send(It.Is<IndexLeafletRequest>(r => r.Filename == "broken.pdf"), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Transient failure"));
@@ -173,6 +185,7 @@ public class LeafletIngestionJobTests
             _oneDrive.Object,
             _mediator.Object,
             _statusChecker.Object,
+            _leafletRepository.Object,
             Options.Create(DefaultLeafletOptions()),
             NullLogger<LeafletIngestionJob>.Instance);
 
@@ -189,5 +202,65 @@ public class LeafletIngestionJobTests
         var job = CreateJob();
 
         Assert.Equal("leaflet-ingestion", job.Metadata.JobName);
+    }
+
+    [Fact]
+    public async Task Execute_passes_DriveId_and_GraphItemId_in_request()
+    {
+        var job = CreateJob();
+
+        var file = new OneDriveFile("graph-item-id-abc", "leaflet.pdf", "application/pdf", "/Leaflets/Inbox/leaflet.pdf");
+
+        _oneDrive
+            .Setup(s => s.ListInboxFilesAsync("test-drive", "/Leaflets/Inbox", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([file]);
+        _oneDrive
+            .Setup(s => s.DownloadFileAsync("test-drive", "graph-item-id-abc", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([1, 2, 3]);
+        _oneDrive
+            .Setup(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("https://mock.sharepoint.com/archived/leaflet.pdf");
+        _mediator
+            .Setup(m => m.Send(It.IsAny<IndexLeafletRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IndexLeafletResponse { WasDuplicate = false });
+
+        await job.ExecuteAsync();
+
+        _mediator.Verify(
+            m => m.Send(
+                It.Is<IndexLeafletRequest>(r =>
+                    r.DriveId == "test-drive" &&
+                    r.GraphItemId == "graph-item-id-abc"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Execute_calls_UpdateSourcePathAsync_with_archive_url_after_move()
+    {
+        var documentId = Guid.NewGuid();
+        const string archiveUrl = "https://mock.sharepoint.com/archived/leaflet.pdf";
+        var job = CreateJob();
+
+        var file = new OneDriveFile("graph-item-id-xyz", "leaflet.pdf", "application/pdf", "/Leaflets/Inbox/leaflet.pdf");
+
+        _oneDrive
+            .Setup(s => s.ListInboxFilesAsync("test-drive", "/Leaflets/Inbox", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([file]);
+        _oneDrive
+            .Setup(s => s.DownloadFileAsync("test-drive", "graph-item-id-xyz", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([1, 2, 3]);
+        _oneDrive
+            .Setup(s => s.MoveToArchivedAsync("test-drive", "graph-item-id-xyz", "leaflet.pdf", "/Leaflets/Archived", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(archiveUrl);
+        _mediator
+            .Setup(m => m.Send(It.IsAny<IndexLeafletRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IndexLeafletResponse { DocumentId = documentId, WasDuplicate = false });
+
+        await job.ExecuteAsync();
+
+        _leafletRepository.Verify(
+            r => r.UpdateSourcePathAsync(documentId, archiveUrl, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

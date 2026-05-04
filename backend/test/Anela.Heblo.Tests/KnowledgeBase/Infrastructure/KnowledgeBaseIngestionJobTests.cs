@@ -17,6 +17,7 @@ public class KnowledgeBaseIngestionJobTests
     private readonly Mock<IOneDriveService> _oneDrive = new();
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IRecurringJobStatusChecker> _statusChecker = new();
+    private readonly Mock<IKnowledgeBaseRepository> _knowledgeBaseRepository = new();
 
     private KnowledgeBaseIngestionJob CreateJob(KnowledgeBaseOptions options)
     {
@@ -25,6 +26,7 @@ public class KnowledgeBaseIngestionJobTests
             _oneDrive.Object,
             _mediator.Object,
             _statusChecker.Object,
+            _knowledgeBaseRepository.Object,
             Options.Create(options),
             NullLogger<KnowledgeBaseIngestionJob>.Instance);
     }
@@ -48,6 +50,8 @@ public class KnowledgeBaseIngestionJobTests
         _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-kb", "/KnowledgeBase/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([kbFile]);
         _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-conv", "/Conversation/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([]);
         _oneDrive.Setup(s => s.DownloadFileAsync("drive-kb", "id-kb-1", It.IsAny<CancellationToken>())).ReturnsAsync([1, 2, 3]);
+        _oneDrive.Setup(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("https://mock.sharepoint.com/archived/manual.pdf");
         _mediator.Setup(m => m.Send(It.IsAny<IndexDocumentRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IndexDocumentResponse { WasDuplicate = false });
 
@@ -71,6 +75,8 @@ public class KnowledgeBaseIngestionJobTests
         _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-kb", "/KnowledgeBase/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([]);
         _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-conv", "/Conversation/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([convFile]);
         _oneDrive.Setup(s => s.DownloadFileAsync("drive-conv", "id-conv-1", It.IsAny<CancellationToken>())).ReturnsAsync([4, 5, 6]);
+        _oneDrive.Setup(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("https://mock.sharepoint.com/archived/chat.txt");
         _mediator.Setup(m => m.Send(It.IsAny<IndexDocumentRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IndexDocumentResponse { WasDuplicate = false });
 
@@ -94,6 +100,8 @@ public class KnowledgeBaseIngestionJobTests
         _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-kb", "/KnowledgeBase/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([file]);
         _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-conv", "/Conversation/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([]);
         _oneDrive.Setup(s => s.DownloadFileAsync("drive-kb", "id-1", It.IsAny<CancellationToken>())).ReturnsAsync([1, 2, 3]);
+        _oneDrive.Setup(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("https://mock.sharepoint.com/archived/doc.pdf");
         _mediator.Setup(m => m.Send(It.IsAny<IndexDocumentRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IndexDocumentResponse { WasDuplicate = true });
 
@@ -101,5 +109,56 @@ public class KnowledgeBaseIngestionJobTests
 
         _mediator.Verify(m => m.Send(It.IsAny<IndexDocumentRequest>(), default), Times.Once);
         _oneDrive.Verify(s => s.MoveToArchivedAsync("drive-kb", "id-1", "doc.pdf", "/KnowledgeBase/Archived", default), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_passes_DriveId_and_GraphItemId_in_request()
+    {
+        var options = OptionsWithTwoMappings();
+        var job = CreateJob(options);
+
+        var file = new OneDriveFile("graph-item-id-kb", "manual.pdf", "application/pdf", "/KnowledgeBase/Inbox/manual.pdf");
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-kb", "/KnowledgeBase/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([file]);
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-conv", "/Conversation/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _oneDrive.Setup(s => s.DownloadFileAsync("drive-kb", "graph-item-id-kb", It.IsAny<CancellationToken>())).ReturnsAsync([1, 2, 3]);
+        _oneDrive.Setup(s => s.MoveToArchivedAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("https://mock.sharepoint.com/archived/manual.pdf");
+        _mediator.Setup(m => m.Send(It.IsAny<IndexDocumentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IndexDocumentResponse { WasDuplicate = false });
+
+        await job.ExecuteAsync();
+
+        _mediator.Verify(
+            m => m.Send(
+                It.Is<IndexDocumentRequest>(r =>
+                    r.DriveId == "drive-kb" &&
+                    r.GraphItemId == "graph-item-id-kb"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_calls_UpdateDocumentSourcePathAsync_with_archive_url_after_move()
+    {
+        var documentId = Guid.NewGuid();
+        const string archiveUrl = "https://mock.sharepoint.com/archived/manual.pdf";
+        var options = OptionsWithTwoMappings();
+        var job = CreateJob(options);
+
+        var file = new OneDriveFile("graph-item-id-kb", "manual.pdf", "application/pdf", "/KnowledgeBase/Inbox/manual.pdf");
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-kb", "/KnowledgeBase/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([file]);
+        _oneDrive.Setup(s => s.ListInboxFilesAsync("drive-conv", "/Conversation/Inbox", It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _oneDrive.Setup(s => s.DownloadFileAsync("drive-kb", "graph-item-id-kb", It.IsAny<CancellationToken>())).ReturnsAsync([1, 2, 3]);
+        _oneDrive
+            .Setup(s => s.MoveToArchivedAsync("drive-kb", "graph-item-id-kb", "manual.pdf", "/KnowledgeBase/Archived", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(archiveUrl);
+        _mediator.Setup(m => m.Send(It.IsAny<IndexDocumentRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IndexDocumentResponse { DocumentId = documentId, WasDuplicate = false });
+
+        await job.ExecuteAsync();
+
+        _knowledgeBaseRepository.Verify(
+            r => r.UpdateDocumentSourcePathAsync(documentId, archiveUrl, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }
