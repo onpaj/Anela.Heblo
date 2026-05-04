@@ -25,4 +25,13 @@ public abstract class RagFeatureOptions
 
     [MinLength(1)]
     public List<OneDriveFolderMapping> OneDriveFolderMappings { get; set; } = [];
+
+    public bool QueryExpansionEnabled { get; set; } = true;
+
+    public string QueryExpansionModel { get; set; } = "claude-haiku-4-5-20251001";
+
+    public string QueryExpansionPrompt { get; set; } = string.Empty;
+
+    public RagQueryExpansionConfig ToExpansionConfig() =>
+        new(QueryExpansionEnabled, QueryExpansionModel, QueryExpansionPrompt);
 }

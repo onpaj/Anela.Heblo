@@ -42,7 +42,7 @@ public static class ApplicationModule
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment? environment = null)
     {
         // Register shared RAG infrastructure
-        services.AddScoped<IWordWindowChunker, WordWindowChunker>();
+        services.AddSharedRagModule();
 
         // Register MediatR
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApplicationModule).Assembly));
