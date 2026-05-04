@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Shared.Rag;
 
-public class RagQueryExpander : IRagQueryExpander
+public sealed class RagQueryExpander : IRagQueryExpander
 {
     private readonly IChatClient _chatClient;
     private readonly ILogger<RagQueryExpander> _logger;
@@ -16,7 +16,7 @@ public class RagQueryExpander : IRagQueryExpander
 
     public async Task<string> ExpandAsync(string query, RagQueryExpansionConfig config, CancellationToken ct)
     {
-        if (!config.Enabled || string.IsNullOrWhiteSpace(query))
+        if (!config.Enabled || string.IsNullOrWhiteSpace(query) || string.IsNullOrWhiteSpace(config.Prompt))
         {
             return query;
         }

@@ -146,4 +146,32 @@ public class RagQueryExpanderTests
         // Assert
         result.Should().Be("original query");
     }
+
+    [Fact]
+    public async Task ExpandAsync_when_enabled_sends_prompt_and_query_to_chat()
+    {
+        // Arrange
+        IEnumerable<ChatMessage>? capturedMessages = null;
+        var chatResponse = new ChatResponse([new ChatMessage(ChatRole.Assistant, "expanded")]);
+        _chatClient
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>(
+                (messages, _, _) => capturedMessages = messages)
+            .ReturnsAsync(chatResponse);
+
+        var config = EnabledConfig(prompt: "MyPrompt");
+        var expander = CreateExpander();
+
+        // Act
+        await expander.ExpandAsync("myquery", config, CancellationToken.None);
+
+        // Assert
+        capturedMessages.Should().NotBeNull();
+        var messageList = capturedMessages!.ToList();
+        messageList.Should().HaveCount(1);
+        messageList[0].Text.Should().Be("MyPrompt\nmyquery");
+    }
 }
