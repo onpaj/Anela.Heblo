@@ -106,6 +106,11 @@ public class GraphOneDriveService : IOneDriveService
         response.EnsureSuccessStatusCode();
 
         var movedItem = await GraphApiHelpers.DeserializeAsync<GraphDriveItem>(response, ct);
+
+        if (string.IsNullOrEmpty(movedItem.WebUrl))
+            throw new InvalidOperationException(
+                $"Graph PATCH response for item '{fileId}' in drive '{driveId}' did not include a webUrl.");
+
         return movedItem.WebUrl;
     }
 }

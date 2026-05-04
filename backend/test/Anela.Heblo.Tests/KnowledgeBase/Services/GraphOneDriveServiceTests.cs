@@ -65,6 +65,36 @@ public class GraphOneDriveServiceTests
         Assert.Equal(expectedWebUrl, result);
     }
 
+    [Fact]
+    public async Task MoveToArchivedAsync_ThrowsInvalidOperationException_WhenWebUrlMissingFromPatchResponse()
+    {
+        // Arrange
+        var folderJson = """{"id":"folder-id","name":"Archived","webUrl":"https://example.sharepoint.com/sites/anela/Archived"}""";
+        var movedItemJson = """{"id":"item-id","name":"doc.pdf"}""";
+
+        var handler = new SequentialResponseHandler(
+            // First call: GET folder item (path lookup)
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(folderJson, Encoding.UTF8, "application/json")
+            },
+            // Second call: PATCH drive item — response is missing webUrl
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(movedItemJson, Encoding.UTF8, "application/json")
+            });
+
+        var service = CreateService(handler);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.MoveToArchivedAsync(
+                driveId: "drive-id",
+                fileId: "file-id",
+                filename: "doc.pdf",
+                archivedPath: "Archived"));
+    }
+
     /// <summary>
     /// Feeds HTTP responses in sequence, one per call.
     /// </summary>
