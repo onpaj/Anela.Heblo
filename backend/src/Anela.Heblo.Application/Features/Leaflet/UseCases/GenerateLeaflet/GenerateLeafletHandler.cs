@@ -1,5 +1,3 @@
-using System.IO;
-using System.Net.Http;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
@@ -47,8 +45,9 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
         var queryToEmbed = await _expander.ExpandAsync(
             request.Topic, _options.ToExpansionConfig(), ct);
 
-        var topicVector = (await RetryOnceAsync(
+        var topicVector = (await ChatRetry.RetryOnceAsync(
                 () => _embeddings.GenerateAsync([queryToEmbed], cancellationToken: ct),
+                _logger,
                 ct))
             .First().Vector.ToArray();
 
@@ -99,7 +98,7 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
 
         var chatOptions = new ChatOptions { ModelId = _options.ChatModel, MaxOutputTokens = _options.ChatMaxTokens };
 
-        var outlineResponse = await RetryOnceAsync(
+        var outlineResponse = await ChatRetry.RetryOnceAsync(
             () => _chat.GetResponseAsync(
                 [
                     new ChatMessage(ChatRole.System, stage1System),
@@ -107,6 +106,7 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
                 ],
                 chatOptions,
                 ct),
+            _logger,
             ct);
 
         var outline = outlineResponse.Text ?? string.Empty;
@@ -119,7 +119,7 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
             .Replace("{coldStart}", coldStart)
             .Replace("{leafletContext}", string.IsNullOrWhiteSpace(leafletContext) ? "(none)" : leafletContext);
 
-        var leafletResponse = await RetryOnceAsync(
+        var leafletResponse = await ChatRetry.RetryOnceAsync(
             () => _chat.GetResponseAsync(
                 [
                     new ChatMessage(ChatRole.System, stage2System),
@@ -127,34 +127,9 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
                 ],
                 chatOptions,
                 ct),
+            _logger,
             ct);
 
         return new GenerateLeafletResponse { Content = leafletResponse.Text ?? string.Empty };
-    }
-
-    private async Task<T> RetryOnceAsync<T>(Func<Task<T>> operation, CancellationToken ct)
-    {
-        try
-        {
-            return await operation();
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or TimeoutException)
-        {
-            _logger.LogWarning(ex, "Transient error during leaflet generation, retrying once");
-            await Task.Delay(1000, ct);
-
-            try
-            {
-                return await operation();
-            }
-            catch (Exception retryEx)
-            {
-                throw new InvalidOperationException("Leaflet generation failed after retry.", retryEx);
-            }
-        }
     }
 }
