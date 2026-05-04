@@ -62,6 +62,7 @@ public class IndexLeafletHandler : IRequestHandler<IndexLeafletRequest, IndexLea
         };
 
         await _repo.AddDocumentAsync(doc, ct);
+        await _repo.SaveChangesAsync(ct);
 
         var chunkCount = await _indexing.IndexAsync(text, doc, ct);
         await _repo.SaveChangesAsync(ct);
