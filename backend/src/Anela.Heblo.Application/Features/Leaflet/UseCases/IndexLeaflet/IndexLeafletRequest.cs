@@ -8,4 +8,6 @@ public class IndexLeafletRequest : IRequest<IndexLeafletResponse>
     public string Filename { get; set; } = string.Empty;
     public string SourcePath { get; set; } = string.Empty;
     public string ContentType { get; set; } = string.Empty;
+    public string? DriveId { get; set; }
+    public string? GraphItemId { get; set; }
 }

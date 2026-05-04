@@ -189,4 +189,151 @@ public class IndexLeafletHandlerTests
             s => s.IndexAsync(It.IsAny<string>(), It.IsAny<LeafletDocument>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task Handle_graphItemId_provided_and_doc_exists_reuses_existing_document()
+    {
+        // Arrange
+        var existingId = Guid.NewGuid();
+        var existingDoc = new LeafletDocument
+        {
+            Id = existingId,
+            ContentHash = "differenthash",
+            DriveId = "drive-123",
+            GraphItemId = "item-abc",
+        };
+
+        _repoMock
+            .Setup(r => r.GetByHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LeafletDocument?)null);
+        _repoMock
+            .Setup(r => r.GetByGraphItemIdAsync("drive-123", "item-abc", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingDoc);
+
+        _extractorMock.Setup(e => e.CanHandle("application/pdf")).Returns(true);
+        _extractorMock
+            .Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("text");
+
+        var request = new IndexLeafletRequest
+        {
+            Content = new byte[] { 1, 2, 3 },
+            Filename = "file.pdf",
+            SourcePath = "https://inbox.example.com/file.pdf",
+            ContentType = "application/pdf",
+            DriveId = "drive-123",
+            GraphItemId = "item-abc",
+        };
+
+        var handler = CreateHandler();
+
+        // Act
+        var response = await handler.Handle(request, CancellationToken.None);
+
+        // Assert: existing doc reused, no new doc added
+        _repoMock.Verify(
+            r => r.GetByGraphItemIdAsync("drive-123", "item-abc", It.IsAny<CancellationToken>()),
+            Times.Once);
+        _repoMock.Verify(
+            r => r.GetBySourcePathAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _repoMock.Verify(
+            r => r.DeleteDocumentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _repoMock.Verify(
+            r => r.AddDocumentAsync(It.IsAny<LeafletDocument>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+        response.DocumentId.Should().NotBeEmpty();
+        response.WasDuplicate.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_graphItemId_provided_and_doc_does_not_exist_creates_new_doc_with_driveId_and_graphItemId()
+    {
+        // Arrange
+        _repoMock
+            .Setup(r => r.GetByHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LeafletDocument?)null);
+        _repoMock
+            .Setup(r => r.GetByGraphItemIdAsync("drive-456", "item-xyz", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LeafletDocument?)null);
+
+        _extractorMock.Setup(e => e.CanHandle("application/pdf")).Returns(true);
+        _extractorMock
+            .Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("extracted text");
+
+        var request = new IndexLeafletRequest
+        {
+            Content = new byte[] { 10, 20, 30 },
+            Filename = "catalog.pdf",
+            SourcePath = "https://onedrive.example.com/catalog.pdf",
+            ContentType = "application/pdf",
+            DriveId = "drive-456",
+            GraphItemId = "item-xyz",
+        };
+
+        LeafletDocument? capturedDoc = null;
+        _repoMock
+            .Setup(r => r.AddDocumentAsync(It.IsAny<LeafletDocument>(), It.IsAny<CancellationToken>()))
+            .Callback<LeafletDocument, CancellationToken>((doc, _) => capturedDoc = doc);
+
+        var handler = CreateHandler();
+
+        // Act
+        var response = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        _repoMock.Verify(
+            r => r.GetByGraphItemIdAsync("drive-456", "item-xyz", It.IsAny<CancellationToken>()),
+            Times.Once);
+        _repoMock.Verify(
+            r => r.GetBySourcePathAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        capturedDoc.Should().NotBeNull();
+        capturedDoc!.DriveId.Should().Be("drive-456");
+        capturedDoc.GraphItemId.Should().Be("item-xyz");
+        response.WasDuplicate.Should().BeFalse();
+        response.DocumentId.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_graphItemId_null_falls_back_to_getBySourcePath_upload_flow()
+    {
+        // Arrange
+        _repoMock
+            .Setup(r => r.GetByHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LeafletDocument?)null);
+        _repoMock
+            .Setup(r => r.GetBySourcePathAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LeafletDocument?)null);
+
+        _extractorMock.Setup(e => e.CanHandle("application/pdf")).Returns(true);
+        _extractorMock
+            .Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("text");
+
+        var request = new IndexLeafletRequest
+        {
+            Content = new byte[] { 5, 6, 7 },
+            Filename = "upload.pdf",
+            SourcePath = "upload/some-guid/upload.pdf",
+            ContentType = "application/pdf",
+            // DriveId and GraphItemId intentionally omitted (upload flow)
+        };
+
+        var handler = CreateHandler();
+
+        // Act
+        await handler.Handle(request, CancellationToken.None);
+
+        // Assert: upload flow uses GetBySourcePathAsync, never GetByGraphItemIdAsync
+        _repoMock.Verify(
+            r => r.GetBySourcePathAsync("upload/some-guid/upload.pdf", It.IsAny<CancellationToken>()),
+            Times.Once);
+        _repoMock.Verify(
+            r => r.GetByGraphItemIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 }

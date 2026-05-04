@@ -56,14 +56,18 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
             };
         }
 
-        // Duplicate detection by path — same path but new content, delete old document before re-indexing
-        var existingByPath = await _repository.GetDocumentBySourcePathAsync(request.SourcePath, cancellationToken);
-        if (existingByPath is not null)
+        // Duplicate detection by identity: use stable GraphItemId for OneDrive-sourced docs,
+        // fall back to SourcePath for manually uploaded docs (upload flow).
+        var existingByIdentity = string.IsNullOrEmpty(request.GraphItemId)
+            ? await _repository.GetDocumentBySourcePathAsync(request.SourcePath, cancellationToken)
+            : await _repository.GetDocumentByGraphItemIdAsync(request.DriveId!, request.GraphItemId, cancellationToken);
+
+        if (existingByIdentity is not null)
         {
             _logger.LogInformation(
-                "Document at {Path} has new content (hash changed). Deleting old document {Id} before re-indexing.",
-                request.SourcePath, existingByPath.Id);
-            await _repository.DeleteDocumentAsync(existingByPath.Id, cancellationToken);
+                "Replacing old document {Id} (identity match) before re-indexing.",
+                existingByIdentity.Id);
+            await _repository.DeleteDocumentAsync(existingByIdentity.Id, cancellationToken);
         }
 
         var document = new KnowledgeBaseDocument
@@ -75,7 +79,9 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
             ContentHash = contentHash,
             DocumentType = request.DocumentType,
             Status = DocumentStatus.Processing,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            DriveId = request.DriveId,
+            GraphItemId = request.GraphItemId,
         };
 
         await _repository.AddDocumentAsync(document, cancellationToken);

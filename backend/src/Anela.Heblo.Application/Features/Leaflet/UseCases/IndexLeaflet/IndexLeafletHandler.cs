@@ -38,11 +38,14 @@ public class IndexLeafletHandler : IRequestHandler<IndexLeafletRequest, IndexLea
             return new IndexLeafletResponse { DocumentId = existing.Id, WasDuplicate = true };
         }
 
-        var byPath = await _repo.GetBySourcePathAsync(request.SourcePath, ct);
-        if (byPath is not null)
+        var existingByIdentity = string.IsNullOrEmpty(request.GraphItemId)
+            ? await _repo.GetBySourcePathAsync(request.SourcePath, ct)
+            : await _repo.GetByGraphItemIdAsync(request.DriveId!, request.GraphItemId, ct);
+
+        if (existingByIdentity is not null)
         {
-            _logger.LogInformation("Source path collision, replacing old document {Id}", byPath.Id);
-            await _repo.DeleteDocumentAsync(byPath.Id, ct);
+            _logger.LogInformation("Replacing old document {Id} (identity match)", existingByIdentity.Id);
+            await _repo.DeleteDocumentAsync(existingByIdentity.Id, ct);
         }
 
         var extractor = _extractors.FirstOrDefault(e => e.CanHandle(request.ContentType))
@@ -59,6 +62,8 @@ public class IndexLeafletHandler : IRequestHandler<IndexLeafletRequest, IndexLea
             ContentHash = hash,
             IngestedAt = DateTime.UtcNow,
             WordCount = 0,
+            DriveId = request.DriveId,
+            GraphItemId = request.GraphItemId,
         };
 
         await _repo.AddDocumentAsync(doc, ct);
