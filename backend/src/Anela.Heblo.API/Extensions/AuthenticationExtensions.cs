@@ -109,6 +109,10 @@ public static class AuthenticationExtensions
             options.AddPolicy(AuthorizationConstants.Policies.KnowledgeBaseUpload, policy =>
                 policy.RequireAuthenticatedUser()
                       .RequireRole(AuthorizationConstants.Roles.KnowledgeBaseManager));
+
+            options.AddPolicy(AuthorizationConstants.Policies.LeafletUpload, policy =>
+                policy.RequireAuthenticatedUser()
+                      .RequireRole(AuthorizationConstants.Roles.LeafletManager));
         });
     }
 }

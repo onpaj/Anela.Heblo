@@ -11,5 +11,7 @@ public class LeafletDocument
     public int WordCount { get; set; }
     public string? DriveId { get; set; }
     public string? GraphItemId { get; set; }
+    public LeafletDocumentStatus Status { get; set; } = LeafletDocumentStatus.Processing;
+    public DateTime? IndexedAt { get; set; }
     public ICollection<LeafletChunk> Chunks { get; set; } = new List<LeafletChunk>();
 }
