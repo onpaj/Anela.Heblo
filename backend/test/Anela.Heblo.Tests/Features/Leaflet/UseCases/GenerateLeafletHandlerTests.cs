@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Leaflet;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
+using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
 using FluentAssertions;
@@ -16,10 +17,21 @@ public class GenerateLeafletHandlerTests
     private readonly Mock<IKnowledgeBaseRepository> _kb = new();
     private readonly Mock<ILeafletRepository> _leaflets = new();
     private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddings = new();
+    private readonly Mock<IRagQueryExpander> _expander = new();
     private readonly Mock<IChatClient> _chat = new();
     private readonly Mock<ILogger<GenerateLeafletHandler>> _logger = new();
 
     private static readonly float[] DefaultVector = [0.1f, 0.2f, 0.3f];
+
+    public GenerateLeafletHandlerTests()
+    {
+        _expander
+            .Setup(e => e.ExpandAsync(
+                It.IsAny<string>(),
+                It.IsAny<RagQueryExpansionConfig>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+    }
 
     private GenerateLeafletHandler CreateHandler(LeafletOptions? options = null)
     {
@@ -27,6 +39,7 @@ public class GenerateLeafletHandlerTests
             _kb.Object,
             _leaflets.Object,
             _embeddings.Object,
+            _expander.Object,
             _chat.Object,
             Options.Create(options ?? new LeafletOptions()),
             _logger.Object);
@@ -166,11 +179,9 @@ public class GenerateLeafletHandlerTests
         var request = new GenerateLeafletRequest { Topic = "niacinamide", Audience = AudienceType.B2B, Length = LeafletLength.Long };
 
         // Act
-        var act = () => handler.Handle(request, CancellationToken.None);
+        var result = await handler.Handle(request, CancellationToken.None);
 
         // Assert
-        await act.Should().NotThrowAsync();
-
         _chat.Verify(c => c.GetResponseAsync(
             It.IsAny<IEnumerable<ChatMessage>>(),
             It.IsAny<ChatOptions?>(),
@@ -178,6 +189,7 @@ public class GenerateLeafletHandlerTests
 
         capturedMessages.Should().NotBeNull();
         capturedMessages!.First(m => m.Role == ChatRole.System).Text.Should().Contain("(empty)");
+        result.Content.Should().NotBeEmpty("handler should produce leaflet content even when KB hits are empty");
     }
 
     [Fact]
@@ -434,5 +446,116 @@ public class GenerateLeafletHandlerTests
         // Assert
         var systemMessage = capturedMessages!.First(m => m.Role == ChatRole.System).Text!;
         systemMessage.Should().Contain(expectedLabel);
+    }
+
+    [Fact]
+    public async Task Handle_calls_expander_with_topic_and_uses_expanded_text_for_embedding_only()
+    {
+        // Arrange
+        const string topic = "retinol";
+        const string expandedQuery = "EXPANDED_QUERY";
+
+        _expander
+            .Setup(e => e.ExpandAsync(
+                It.IsAny<string>(),
+                It.IsAny<RagQueryExpansionConfig>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expandedQuery);
+
+        IEnumerable<string>? capturedEmbeddingInput = null;
+        _embeddings
+            .Setup(e => e.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<string>, EmbeddingGenerationOptions?, CancellationToken>(
+                (inputs, _, _) => capturedEmbeddingInput = inputs.ToList())
+            .ReturnsAsync(new GeneratedEmbeddings<Embedding<float>>(
+                [new Embedding<float>(new ReadOnlyMemory<float>(DefaultVector))]));
+
+        _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([KbHit(0.9)]);
+        _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([LeafletHit(0.9)]);
+
+        var stage1Messages = new List<IEnumerable<ChatMessage>>();
+        var callCount = 0;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>(
+                (msgs, _, _) =>
+                {
+                    callCount++;
+                    stage1Messages.Add(msgs.ToList());
+                })
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "outline text")]));
+
+        var handler = CreateHandler();
+        var request = new GenerateLeafletRequest { Topic = topic, Audience = AudienceType.EndConsumer, Length = LeafletLength.Short };
+
+        // Act
+        await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        capturedEmbeddingInput.Should().ContainSingle().Which.Should().Be(expandedQuery);
+
+        var stage1SystemText = stage1Messages[0].First(m => m.Role == ChatRole.System).Text!;
+        stage1SystemText.Should().Contain(topic);
+        stage1SystemText.Should().NotContain(expandedQuery);
+
+        var stage2UserText = stage1Messages[1].First(m => m.Role == ChatRole.User).Text!;
+        stage2UserText.Should().NotBe(expandedQuery);
+    }
+
+    [Fact]
+    public async Task Handle_returns_non_empty_content_when_expansion_returns_topic_unchanged()
+    {
+        // Arrange
+        SetupEmbeddings();
+        SetupChatReturns("outline", "final leaflet");
+
+        _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([KbHit(0.9)]);
+        _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([LeafletHit(0.9)]);
+
+        var handler = CreateHandler();
+        var request = new GenerateLeafletRequest { Topic = "niacinamide", Audience = AudienceType.EndConsumer, Length = LeafletLength.Medium };
+
+        // Act
+        var response = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Content.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_expander_called_once_per_generate_request()
+    {
+        // Arrange
+        SetupEmbeddings();
+        SetupChatReturns();
+
+        _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([KbHit(0.9)]);
+        _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([LeafletHit(0.9)]);
+
+        var handler = CreateHandler();
+        var request = new GenerateLeafletRequest { Topic = "vitamin c", Audience = AudienceType.B2B, Length = LeafletLength.Long };
+
+        // Act
+        await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        _expander.Verify(
+            e => e.ExpandAsync(
+                It.IsAny<string>(),
+                It.IsAny<RagQueryExpansionConfig>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }
