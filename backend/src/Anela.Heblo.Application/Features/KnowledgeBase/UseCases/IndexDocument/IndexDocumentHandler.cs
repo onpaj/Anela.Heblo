@@ -29,6 +29,8 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
         var contentType = ResolveContentType(request.ContentType, request.Filename);
         var contentHash = Convert.ToHexString(SHA256.HashData(request.Content));
 
+        var useGraphIdentity = !string.IsNullOrEmpty(request.GraphItemId) && !string.IsNullOrEmpty(request.DriveId);
+
         // Duplicate detection by hash — same content already indexed, skip
         var existingByHash = await _repository.GetDocumentByHashAsync(contentHash, cancellationToken);
         if (existingByHash is not null)
@@ -42,6 +44,15 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
             else
             {
                 _logger.LogDebug("Skipping already-indexed document {Filename} (hash match)", request.Filename);
+            }
+
+            if (useGraphIdentity && existingByHash.GraphItemId is null)
+            {
+                _logger.LogInformation(
+                    "Backfilling DriveId/GraphItemId for legacy document {Id}",
+                    existingByHash.Id);
+                await _repository.UpdateDocumentGraphItemIdAsync(
+                    existingByHash.Id, request.DriveId!, request.GraphItemId!, cancellationToken);
             }
 
             return new IndexDocumentResponse
@@ -58,9 +69,9 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
 
         // Duplicate detection by identity: use stable GraphItemId for OneDrive-sourced docs,
         // fall back to SourcePath for manually uploaded docs (upload flow).
-        var existingByIdentity = string.IsNullOrEmpty(request.GraphItemId)
-            ? await _repository.GetDocumentBySourcePathAsync(request.SourcePath, cancellationToken)
-            : await _repository.GetDocumentByGraphItemIdAsync(request.DriveId!, request.GraphItemId, cancellationToken);
+        var existingByIdentity = useGraphIdentity
+            ? await _repository.GetDocumentByGraphItemIdAsync(request.DriveId!, request.GraphItemId!, cancellationToken)
+            : await _repository.GetDocumentBySourcePathAsync(request.SourcePath, cancellationToken);
 
         if (existingByIdentity is not null)
         {
@@ -80,8 +91,8 @@ public class IndexDocumentHandler : IRequestHandler<IndexDocumentRequest, IndexD
             DocumentType = request.DocumentType,
             Status = DocumentStatus.Processing,
             CreatedAt = DateTime.UtcNow,
-            DriveId = request.DriveId,
-            GraphItemId = request.GraphItemId,
+            DriveId = useGraphIdentity ? request.DriveId : null,
+            GraphItemId = useGraphIdentity ? request.GraphItemId : null,
         };
 
         await _repository.AddDocumentAsync(document, cancellationToken);

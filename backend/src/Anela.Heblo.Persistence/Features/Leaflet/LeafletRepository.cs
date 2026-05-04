@@ -143,6 +143,15 @@ public class LeafletRepository : ILeafletRepository
             .ExecuteUpdateAsync(s => s.SetProperty(d => d.SourcePath, newPath), ct);
     }
 
+    public async Task UpdateGraphItemIdAsync(Guid documentId, string driveId, string graphItemId, CancellationToken ct = default)
+    {
+        await _context.LeafletDocuments
+            .Where(x => x.Id == documentId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(d => d.DriveId, driveId)
+                .SetProperty(d => d.GraphItemId, graphItemId), ct);
+    }
+
     public async Task SaveChangesAsync(CancellationToken ct = default)
     {
         await _context.SaveChangesAsync(ct);

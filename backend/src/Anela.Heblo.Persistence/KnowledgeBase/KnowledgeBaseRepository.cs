@@ -227,6 +227,15 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             .ExecuteUpdateAsync(s => s.SetProperty(d => d.SourcePath, newSourcePath), ct);
     }
 
+    public async Task UpdateDocumentGraphItemIdAsync(Guid documentId, string driveId, string graphItemId, CancellationToken ct = default)
+    {
+        await _context.KnowledgeBaseDocuments
+            .Where(d => d.Id == documentId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(d => d.DriveId, driveId)
+                .SetProperty(d => d.GraphItemId, graphItemId), ct);
+    }
+
     public async Task SaveChangesAsync(CancellationToken ct = default)
     {
         await _context.SaveChangesAsync(ct);

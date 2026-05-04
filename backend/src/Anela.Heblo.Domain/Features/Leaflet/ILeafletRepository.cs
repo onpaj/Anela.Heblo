@@ -11,5 +11,6 @@ public interface ILeafletRepository
     Task<List<(LeafletChunk Chunk, double Score)>> SearchSimilarAsync(
         float[] queryEmbedding, int topK, CancellationToken ct = default);
     Task UpdateSourcePathAsync(Guid documentId, string newPath, CancellationToken ct = default);
+    Task UpdateGraphItemIdAsync(Guid documentId, string driveId, string graphItemId, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }

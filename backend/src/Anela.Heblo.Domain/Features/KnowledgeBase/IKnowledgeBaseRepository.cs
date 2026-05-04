@@ -25,6 +25,7 @@ public interface IKnowledgeBaseRepository
     Task<KnowledgeBaseChunk?> GetChunkByIdAsync(Guid chunkId, CancellationToken ct = default);
     Task<Dictionary<Guid, Guid>> GetFirstChunkIdsByDocumentIdsAsync(IEnumerable<Guid> documentIds, CancellationToken ct = default);
     Task UpdateDocumentSourcePathAsync(Guid documentId, string newSourcePath, CancellationToken ct = default);
+    Task UpdateDocumentGraphItemIdAsync(Guid documentId, string driveId, string graphItemId, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
     Task SaveQuestionLogAsync(KnowledgeBaseQuestionLog log, CancellationToken ct = default);
     Task<KnowledgeBaseQuestionLog?> GetQuestionLogByIdAsync(Guid id, CancellationToken ct = default);

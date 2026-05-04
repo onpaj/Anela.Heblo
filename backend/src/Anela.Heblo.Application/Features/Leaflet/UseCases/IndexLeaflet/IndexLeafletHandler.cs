@@ -28,6 +28,7 @@ public class IndexLeafletHandler : IRequestHandler<IndexLeafletRequest, IndexLea
     public async Task<IndexLeafletResponse> Handle(IndexLeafletRequest request, CancellationToken ct)
     {
         var hash = ComputeHash(request.Content);
+        var useGraphIdentity = !string.IsNullOrEmpty(request.GraphItemId) && !string.IsNullOrEmpty(request.DriveId);
 
         var existing = await _repo.GetByHashAsync(hash, ct);
         if (existing is not null)
@@ -35,12 +36,21 @@ public class IndexLeafletHandler : IRequestHandler<IndexLeafletRequest, IndexLea
             _logger.LogInformation(
                 "Duplicate leaflet content detected, hash={Hash}, document={Id}",
                 hash, existing.Id);
+
+            if (useGraphIdentity && existing.GraphItemId is null)
+            {
+                _logger.LogInformation(
+                    "Backfilling DriveId/GraphItemId for legacy leaflet document {Id}",
+                    existing.Id);
+                await _repo.UpdateGraphItemIdAsync(existing.Id, request.DriveId!, request.GraphItemId!, ct);
+            }
+
             return new IndexLeafletResponse { DocumentId = existing.Id, WasDuplicate = true };
         }
 
-        var existingByIdentity = string.IsNullOrEmpty(request.GraphItemId)
-            ? await _repo.GetBySourcePathAsync(request.SourcePath, ct)
-            : await _repo.GetByGraphItemIdAsync(request.DriveId!, request.GraphItemId, ct);
+        var existingByIdentity = useGraphIdentity
+            ? await _repo.GetByGraphItemIdAsync(request.DriveId!, request.GraphItemId!, ct)
+            : await _repo.GetBySourcePathAsync(request.SourcePath, ct);
 
         if (existingByIdentity is not null)
         {
@@ -62,8 +72,8 @@ public class IndexLeafletHandler : IRequestHandler<IndexLeafletRequest, IndexLea
             ContentHash = hash,
             IngestedAt = DateTime.UtcNow,
             WordCount = 0,
-            DriveId = request.DriveId,
-            GraphItemId = request.GraphItemId,
+            DriveId = useGraphIdentity ? request.DriveId : null,
+            GraphItemId = useGraphIdentity ? request.GraphItemId : null,
         };
 
         await _repo.AddDocumentAsync(doc, ct);

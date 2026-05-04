@@ -336,4 +336,124 @@ public class IndexLeafletHandlerTests
             r => r.GetByGraphItemIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_graphItemId_provided_but_driveId_null_falls_back_to_getBySourcePath()
+    {
+        // Arrange
+        _repoMock
+            .Setup(r => r.GetByHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LeafletDocument?)null);
+        _repoMock
+            .Setup(r => r.GetBySourcePathAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((LeafletDocument?)null);
+
+        _extractorMock.Setup(e => e.CanHandle("application/pdf")).Returns(true);
+        _extractorMock
+            .Setup(e => e.ExtractTextAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("text");
+
+        var request = new IndexLeafletRequest
+        {
+            Content = new byte[] { 1, 2, 3 },
+            Filename = "partial.pdf",
+            SourcePath = "/inbox/partial.pdf",
+            ContentType = "application/pdf",
+            GraphItemId = "item-abc",
+            // DriveId intentionally omitted — should not crash or call GetByGraphItemIdAsync
+        };
+
+        var handler = CreateHandler();
+
+        // Act
+        await handler.Handle(request, CancellationToken.None);
+
+        // Assert: falls back to source path, GraphItemId lookup never called
+        _repoMock.Verify(
+            r => r.GetBySourcePathAsync("/inbox/partial.pdf", It.IsAny<CancellationToken>()),
+            Times.Once);
+        _repoMock.Verify(
+            r => r.GetByGraphItemIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_hash_match_legacy_doc_with_graph_identity_backfills_graph_item_id()
+    {
+        // Arrange
+        var content = new byte[] { 10, 20, 30 };
+        var existingId = Guid.NewGuid();
+        var legacyDoc = new LeafletDocument
+        {
+            Id = existingId,
+            ContentHash = "anyhash",
+            // DriveId/GraphItemId null — legacy row
+        };
+
+        _repoMock
+            .Setup(r => r.GetByHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(legacyDoc);
+
+        var request = new IndexLeafletRequest
+        {
+            Content = content,
+            Filename = "legacy.pdf",
+            SourcePath = "/inbox/legacy.pdf",
+            ContentType = "application/pdf",
+            DriveId = "drive-backfill",
+            GraphItemId = "item-backfill",
+        };
+
+        var handler = CreateHandler();
+
+        // Act
+        var response = await handler.Handle(request, CancellationToken.None);
+
+        // Assert: returned as duplicate and GraphItemId backfilled
+        response.WasDuplicate.Should().BeTrue();
+        response.DocumentId.Should().Be(existingId);
+        _repoMock.Verify(
+            r => r.UpdateGraphItemIdAsync(existingId, "drive-backfill", "item-backfill", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_hash_match_doc_already_has_graph_item_id_does_not_backfill()
+    {
+        // Arrange
+        var content = new byte[] { 10, 20, 30 };
+        var existingId = Guid.NewGuid();
+        var existingDoc = new LeafletDocument
+        {
+            Id = existingId,
+            ContentHash = "anyhash",
+            DriveId = "drive-existing",
+            GraphItemId = "item-existing",
+        };
+
+        _repoMock
+            .Setup(r => r.GetByHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingDoc);
+
+        var request = new IndexLeafletRequest
+        {
+            Content = content,
+            Filename = "existing.pdf",
+            SourcePath = "/inbox/existing.pdf",
+            ContentType = "application/pdf",
+            DriveId = "drive-existing",
+            GraphItemId = "item-existing",
+        };
+
+        var handler = CreateHandler();
+
+        // Act
+        var response = await handler.Handle(request, CancellationToken.None);
+
+        // Assert: no backfill call when GraphItemId already set
+        response.WasDuplicate.Should().BeTrue();
+        _repoMock.Verify(
+            r => r.UpdateGraphItemIdAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 }
