@@ -58,14 +58,19 @@ public class WriteArticleStep : IArticlePipelineStep
         context.SourceRefs = MapSources(parsed.SourcesUsed);
     }
 
-    private string BuildSystemPrompt(string? styleGuideText)
+    private const string SystemInstruction =
+        """
+        Jsi zkušený redaktor kosmetického obsahu. Píšeš výhradně v češtině.
+        Odpověz POUZE validním JSON bez markdown nebo code fences:
+        {"article_title":"...","article_html":"<article>...</article>","sources_used":[{"title":"...","url":"..."}]}
+        """;
+
+    private static string BuildSystemPrompt(string? styleGuideText)
     {
-        var template = _options.WriteArticleSystemPromptTemplate;
-
         if (styleGuideText == null)
-            return template;
+            return SystemInstruction;
 
-        return $"STYLE GUIDE — follow this exactly:\n{styleGuideText}\n\n{template}";
+        return $"STYLE GUIDE — follow this exactly:\n{styleGuideText}\n\n{SystemInstruction}";
     }
 
     private string BuildUserMessage(ArticlePipelineContext context)
