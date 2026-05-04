@@ -122,6 +122,61 @@ public class DataQualitySchemaHealthCheckTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task CheckHealthAsync_WhenCancellationTokenFires_ReturnsDegradedWithoutException()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(databaseName: $"cancelled-token-{Guid.NewGuid()}")
+            .Options;
+        await using var context = new ApplicationDbContext(options);
+        context.DqtRuns = BuildThrowingDbSet<DqtRun>(new OperationCanceledException("probe cancelled"));
+
+        var loggerMock = new Mock<ILogger<DataQualitySchemaHealthCheck>>();
+        var healthCheck = new DataQualitySchemaHealthCheck(context, loggerMock.Object);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        // Act
+        var result = await healthCheck.CheckHealthAsync(new HealthCheckContext(), cts.Token);
+
+        // Assert
+        result.Status.Should().Be(HealthStatus.Degraded);
+        result.Description.Should().Be("DataQuality probe was cancelled");
+        result.Exception.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CheckHealthAsync_WhenCancelled_LogsInformationWithProbeNameAndElapsed()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(databaseName: $"cancelled-log-{Guid.NewGuid()}")
+            .Options;
+        await using var context = new ApplicationDbContext(options);
+        context.DqtRuns = BuildThrowingDbSet<DqtRun>(new TaskCanceledException());
+
+        var loggerMock = new Mock<ILogger<DataQualitySchemaHealthCheck>>();
+        var healthCheck = new DataQualitySchemaHealthCheck(context, loggerMock.Object);
+
+        // Act
+        await healthCheck.CheckHealthAsync(new HealthCheckContext(), CancellationToken.None);
+
+        // Assert: exactly one Information log with ProbeName + ElapsedMs and NO exception payload.
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("data-quality-schema")
+                    && v.ToString()!.Contains("ElapsedMs")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+        loggerMock.VerifyNoOtherCalls();
+    }
+
     private static DbSet<T> BuildThrowingDbSet<T>(Exception toThrow) where T : class
     {
         var mockProvider = new Mock<IAsyncQueryProvider>();
