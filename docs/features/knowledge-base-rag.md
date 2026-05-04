@@ -205,8 +205,8 @@ Hangfire recurring job `knowledge-base-ingestion`, cron `*/15 * * * *` (every 15
 `DocumentChunker` uses **sliding-window word chunking**:
 - Splits text by whitespace into words
 - Window size: `ChunkSize` words (default: 512)
-- Overlap: `ChunkOverlapTokens` words (default: 50)
-- Step = `ChunkSize - ChunkOverlapTokens` = 462 words
+- Overlap: `ChunkOverlap` words (default: 50)
+- Step = `ChunkSize - ChunkOverlap` = 462 words
 
 > **Important:** The chunker treats words (whitespace-delimited tokens) as a proxy for LLM tokens. Actual token count is ~1.3× word count for English / Czech text. A 512-word chunk ≈ 650–700 tokens. This is well within OpenAI embedding and Claude context limits but does not map precisely to the `text-embedding-3-small` 8192-token context window.
 
@@ -380,7 +380,7 @@ Returns: JSON-serialized AskQuestionResponse
     "EmbeddingModel": "text-embedding-3-small",
     "EmbeddingDimensions": 1536,
     "ChunkSize": 512,
-    "ChunkOverlapTokens": 50,
+    "ChunkOverlap": 50,
     "MaxRetrievedChunks": 5,
     "ClaudeModel": "claude-sonnet-4-6",
     "ClaudeMaxTokens": 1024
@@ -405,7 +405,7 @@ API keys are set via environment variables or Azure Key Vault — never committe
 | `EmbeddingModel` | `text-embedding-3-small` | OpenAI embedding model name |
 | `EmbeddingDimensions` | `1536` | Embedding vector dimension — must match DB `vector(N)` |
 | `ChunkSize` | `512` | Words per chunk |
-| `ChunkOverlapTokens` | `50` | Overlap words between consecutive chunks |
+| `ChunkOverlap` | `50` | Overlap words between consecutive chunks |
 | `MaxRetrievedChunks` | `5` | Default `topK` for search and Q&A |
 | `ClaudeModel` | `claude-sonnet-4-6` | Claude model for Q&A generation |
 | `ClaudeMaxTokens` | `1024` | Max tokens in Claude response |

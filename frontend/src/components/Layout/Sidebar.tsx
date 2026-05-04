@@ -144,6 +144,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       type: "section" as const,
       items: [
         { id: "marketing-calendar", name: "Kalendář", href: "/marketing/calendar" },
+        { id: "leaflet-generator", name: "Generátor letáků", href: "/leaflet-generator" },
       ],
     },
     {

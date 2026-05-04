@@ -57,6 +57,7 @@ import { ChangelogProvider } from "./contexts/ChangelogContext";
 import { GlobalLoadingIndicator } from "./components/GlobalLoadingIndicator";
 import { AppInitializer } from "./components/AppInitializer";
 import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog";
+import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
 import "./i18n";
 
 let isRedirecting = false;
@@ -390,6 +391,10 @@ function App() {
                         <Route
                           path="/marketing/calendar"
                           element={<MarketingCalendarPage />}
+                        />
+                        <Route
+                          path="/leaflet-generator"
+                          element={<LeafletGeneratorPage />}
                         />
                         <Route
                           path="/journal/new"

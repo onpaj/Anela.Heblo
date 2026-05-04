@@ -4067,6 +4067,65 @@ export class ApiClient {
         return Promise.resolve<UploadDocumentResponse>(null as any);
     }
 
+    leaflet_Generate(request: GenerateLeafletRequest): Promise<GenerateLeafletResponse> {
+        let url_ = this.baseUrl + "/api/leaflet/generate";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLeaflet_Generate(_response);
+        });
+    }
+
+    protected processLeaflet_Generate(response: Response): Promise<GenerateLeafletResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GenerateLeafletResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 422) {
+            return response.text().then((_responseText) => {
+            let result422: any = null;
+            let resultData422 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result422 = ProblemDetails.fromJS(resultData422);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+            });
+        } else if (status === 502) {
+            return response.text().then((_responseText) => {
+            let result502: any = null;
+            let resultData502 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result502 = ProblemDetails.fromJS(resultData502);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result502);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GenerateLeafletResponse>(null as any);
+    }
+
     logistics_GetAvailableGiftPackages(salesCoefficient: number | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<GetAvailableGiftPackagesResponse> {
         let url_ = this.baseUrl + "/api/logistics/gift-packages/available?";
         if (salesCoefficient === null)
@@ -15153,6 +15212,94 @@ export class UploadDocumentResponse extends BaseResponse implements IUploadDocum
 
 export interface IUploadDocumentResponse extends IBaseResponse {
     document?: DocumentSummary | undefined;
+}
+
+export class GenerateLeafletResponse extends BaseResponse implements IGenerateLeafletResponse {
+    content?: string;
+
+    constructor(data?: IGenerateLeafletResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.content = _data["content"];
+        }
+    }
+
+    static override fromJS(data: any): GenerateLeafletResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GenerateLeafletResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["content"] = this.content;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGenerateLeafletResponse extends IBaseResponse {
+    content?: string;
+}
+
+export class GenerateLeafletRequest implements IGenerateLeafletRequest {
+    topic!: string;
+    audience!: AudienceType;
+    length!: LeafletLength;
+
+    constructor(data?: IGenerateLeafletRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.topic = _data["topic"];
+            this.audience = _data["audience"];
+            this.length = _data["length"];
+        }
+    }
+
+    static fromJS(data: any): GenerateLeafletRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new GenerateLeafletRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["topic"] = this.topic;
+        data["audience"] = this.audience;
+        data["length"] = this.length;
+        return data;
+    }
+}
+
+export interface IGenerateLeafletRequest {
+    topic: string;
+    audience: AudienceType;
+    length: LeafletLength;
+}
+
+export enum AudienceType {
+    EndConsumer = "EndConsumer",
+    B2B = "B2B",
+}
+
+export enum LeafletLength {
+    Short = "Short",
+    Medium = "Medium",
+    Long = "Long",
 }
 
 export class GetAvailableGiftPackagesResponse extends BaseResponse implements IGetAvailableGiftPackagesResponse {

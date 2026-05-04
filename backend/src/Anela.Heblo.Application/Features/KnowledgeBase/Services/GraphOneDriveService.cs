@@ -77,7 +77,7 @@ public class GraphOneDriveService : IOneDriveService
         return await response.Content.ReadAsByteArrayAsync(ct);
     }
 
-    public async Task MoveToArchivedAsync(string driveId, string fileId, string filename, string archivedPath, CancellationToken ct = default)
+    public async Task<string> MoveToArchivedAsync(string driveId, string fileId, string filename, string archivedPath, CancellationToken ct = default)
     {
         _logger.LogDebug("Moving file {Filename} ({FileId}) to {ArchivedPath} in drive {DriveId}", filename, fileId, archivedPath, driveId);
 
@@ -104,5 +104,13 @@ public class GraphOneDriveService : IOneDriveService
 
         var response = await client.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
+
+        var movedItem = await GraphApiHelpers.DeserializeAsync<GraphDriveItem>(response, ct);
+
+        if (string.IsNullOrEmpty(movedItem.WebUrl))
+            throw new InvalidOperationException(
+                $"Graph PATCH response for item '{fileId}' in drive '{driveId}' did not include a webUrl.");
+
+        return movedItem.WebUrl;
     }
 }
