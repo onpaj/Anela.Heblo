@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,6 +14,12 @@ public static class ArticleModule
             .Bind(configuration.GetSection(ArticleOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
+
+        services.AddScoped<PlanQueriesStep>();
+        services.AddScoped<GatherContextStep>();
+        services.AddScoped<AggregateFactsStep>();
+        services.AddScoped<ValidateFactsStep>();
+        services.AddScoped<WriteArticleStep>();
 
         return services;
     }
