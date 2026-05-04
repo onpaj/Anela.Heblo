@@ -92,8 +92,8 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex,
-                            "File {Name} was moved to archive but SourcePath update failed for document {DocumentId}. Manual correction required.",
-                            file.Name, result.DocumentId);
+                            "File {Name} was moved to archive {ArchiveUrl} but SourcePath update failed for document {DocumentId}. Manual correction required.",
+                            file.Name, archiveUrl, result.DocumentId);
                     }
 
                     if (result.WasDuplicate)

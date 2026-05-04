@@ -220,11 +220,12 @@ public class KnowledgeBaseIngestionJobTests
         await job.ExecuteAsync();
 
         // Warning logged with "Manual correction required" marker — distinct from generic "Failed to index"
+        // Verify it includes the archiveUrl in the log message
         _logger.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Manual correction required")),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Manual correction required") && v.ToString()!.Contains(archiveUrl)),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
