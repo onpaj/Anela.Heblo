@@ -203,7 +203,7 @@ const resources = {
         UnauthorizedMarketingAccess: "Nemáte oprávnění k této marketingové akci",
 
         // Article Generation errors
-        ArticleNotFound: "Článek nebyl nalezen (ID: {id})",
+        ArticleNotFound: "Článek nebyl nalezen (ID: {{id}})",
         ArticleGenerationFailed: "Generování článku selhalo. Zkuste to prosím znovu.",
         WebSearchUnavailable: "Webové vyhledávání je dočasně nedostupné.",
         StyleGuideFetchFailed: "Nepodařilo se načíst stylový průvodce.",
@@ -311,7 +311,7 @@ const resources = {
         DqtExternalServiceError: "External service error during data quality test: {{service}}",
 
         // Article Generation errors
-        ArticleNotFound: "Article not found (ID: {id})",
+        ArticleNotFound: "Article not found (ID: {{id}})",
         ArticleGenerationFailed: "Article generation failed. Please try again.",
         WebSearchUnavailable: "Web search is temporarily unavailable.",
         StyleGuideFetchFailed: "Failed to load style guide.",

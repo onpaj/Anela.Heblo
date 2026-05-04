@@ -239,7 +239,7 @@ public enum ErrorCodes
     ArticleGenerationFailed = 2402,
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     WebSearchUnavailable = 2403,
-    [HttpStatusCode(HttpStatusCode.BadGateway)]
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     StyleGuideFetchFailed = 2404,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     ArticleAlreadyGenerated = 2405,
