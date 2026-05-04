@@ -83,20 +83,6 @@ public class KnowledgeBaseOptions : RagFeatureOptions
     public int ProductEnrichmentCacheTtlMinutes { get; set; } = 60;
 
     /// <summary>
-    /// When true, user queries are rewritten into the structured summary format used
-    /// by stored embeddings before calling the embedding model (HyDE variant).
-    /// Set to false to skip the LLM call and embed the raw query directly.
-    /// </summary>
-    public bool QueryExpansionEnabled { get; set; } = true;
-
-    /// <summary>
-    /// Model ID used for query expansion. A lite/fast model is sufficient — the task
-    /// is purely mechanical (rewrite short informal question into structured template).
-    /// Defaults to claude-haiku-4-5 to minimise latency and cost.
-    /// </summary>
-    public string QueryExpansionModel { get; set; } = "claude-haiku-4-5-20251001";
-
-    /// <summary>
     /// Prompt prepended to the user query when requesting query expansion.
     /// The raw query is appended after a newline.
     /// </summary>

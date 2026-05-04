@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
+using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
@@ -13,7 +14,7 @@ public class SearchDocumentsHandlerTests
 {
     private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddingGenerator = new();
     private readonly Mock<IKnowledgeBaseRepository> _repository = new();
-    private readonly Mock<IChatClient> _chatClient = new();
+    private readonly Mock<IRagQueryExpander> _expander = new();
     private readonly Mock<ILogger<SearchDocumentsHandler>> _logger = new();
 
     private SearchDocumentsHandler CreateHandler(double minScore = 0.60, bool queryExpansionEnabled = false)
@@ -24,7 +25,7 @@ public class SearchDocumentsHandlerTests
             QueryExpansionEnabled = queryExpansionEnabled,
             QueryExpansionPrompt = "Expand:"
         });
-        return new SearchDocumentsHandler(_embeddingGenerator.Object, _repository.Object, options, _chatClient.Object, _logger.Object);
+        return new SearchDocumentsHandler(_embeddingGenerator.Object, _repository.Object, options, _expander.Object, _logger.Object);
     }
 
     private void SetupEmbeddingGenerator()
@@ -49,22 +50,15 @@ public class SearchDocumentsHandlerTests
         Document = new KnowledgeBaseDocument { Filename = "doc.pdf", SourcePath = "/inbox/doc.pdf" }
     };
 
-    private void SetupChatClient(string expandedText)
-    {
-        var chatResponse = new ChatResponse([new ChatMessage(ChatRole.Assistant, expandedText)]);
-        _chatClient
-            .Setup(c => c.GetResponseAsync(
-                It.IsAny<IEnumerable<ChatMessage>>(),
-                It.IsAny<ChatOptions?>(),
-                default))
-            .ReturnsAsync(chatResponse);
-    }
-
     [Fact]
     public async Task Handle_ReturnsChunksOrderedByScore()
     {
         SetupEmbeddingGenerator();
         var chunk = MakeChunk("Phenoxyethanol max 1.0% in Annex V");
+
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
@@ -88,6 +82,10 @@ public class SearchDocumentsHandlerTests
         var chunk1 = MakeChunk("Low relevance chunk A");
         var chunk2 = MakeChunk("Low relevance chunk B");
 
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
             .ReturnsAsync([(chunk1, 0.54), (chunk2, 0.58)]);
@@ -107,6 +105,10 @@ public class SearchDocumentsHandlerTests
         var goodChunk = MakeChunk("Good relevant content");
         var badChunk = MakeChunk("Weak noisy content");
 
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
             .ReturnsAsync([(goodChunk, 0.80), (badChunk, 0.45)]);
@@ -125,8 +127,10 @@ public class SearchDocumentsHandlerTests
     public async Task Handle_QueryExpansionEnabled_EmbedExpandedQuery()
     {
         const string expandedQuery = "Problém: popraskané ruce\nKontext: suchá kůže";
-        SetupEmbeddingGenerator();
-        SetupChatClient(expandedQuery);
+
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expandedQuery);
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
@@ -148,13 +152,19 @@ public class SearchDocumentsHandlerTests
             default);
 
         Assert.Equal(expandedQuery, capturedEmbeddingInput);
+        _expander.Verify(
+            e => e.ExpandAsync("poradis neco na popraskane ruce?", It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
-    public async Task Handle_QueryExpansionDisabled_EmbedRawQuery()
+    public async Task Handle_QueryExpansionDisabled_ExpanderCalledAndReturnsRawQuery()
     {
         const string rawQuery = "poradis neco na popraskane ruce?";
-        SetupEmbeddingGenerator();
+
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(rawQuery);
 
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
@@ -176,80 +186,9 @@ public class SearchDocumentsHandlerTests
             default);
 
         Assert.Equal(rawQuery, capturedEmbeddingInput);
-        _chatClient.Verify(
-            c => c.GetResponseAsync(It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), default),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_QueryExpansionEnabled_LlmThrowsTransientError_FallsBackToRawQuery()
-    {
-        const string rawQuery = "popraskane ruce?";
-        SetupEmbeddingGenerator();
-
-        _chatClient
-            .Setup(c => c.GetResponseAsync(
-                It.IsAny<IEnumerable<ChatMessage>>(),
-                It.IsAny<ChatOptions?>(),
-                default))
-            .ThrowsAsync(new HttpRequestException("Exception while reading from stream"));
-
-        _repository
-            .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
-            .ReturnsAsync([]);
-
-        string? capturedEmbeddingInput = null;
-        _embeddingGenerator
-            .Setup(s => s.GenerateAsync(
-                It.IsAny<IEnumerable<string>>(),
-                It.IsAny<EmbeddingGenerationOptions?>(),
-                default))
-            .Callback<IEnumerable<string>, EmbeddingGenerationOptions?, CancellationToken>(
-                (texts, _, _) => capturedEmbeddingInput = texts.First())
-            .ReturnsAsync(new GeneratedEmbeddings<Embedding<float>>(
-                [new Embedding<float>(new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f }))]));
-
-        await CreateHandler(queryExpansionEnabled: true).Handle(
-            new SearchDocumentsRequest { Query = rawQuery, TopK = 5 },
-            default);
-
-        Assert.Equal(rawQuery, capturedEmbeddingInput);
-    }
-
-    [Fact]
-    public async Task Handle_QueryExpansionEnabled_LlmReturnsEmpty_FallsBackToRawQuery()
-    {
-        const string rawQuery = "popraskane ruce?";
-        SetupEmbeddingGenerator();
-
-        var emptyResponse = new ChatResponse([new ChatMessage(ChatRole.Assistant, "   ")]);
-        _chatClient
-            .Setup(c => c.GetResponseAsync(
-                It.IsAny<IEnumerable<ChatMessage>>(),
-                It.IsAny<ChatOptions?>(),
-                default))
-            .ReturnsAsync(emptyResponse);
-
-        _repository
-            .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), 5, default))
-            .ReturnsAsync([]);
-
-        string? capturedEmbeddingInput = null;
-        _embeddingGenerator
-            .Setup(s => s.GenerateAsync(
-                It.IsAny<IEnumerable<string>>(),
-                It.IsAny<EmbeddingGenerationOptions?>(),
-                default))
-            .Callback<IEnumerable<string>, EmbeddingGenerationOptions?, CancellationToken>(
-                (texts, _, _) => capturedEmbeddingInput = texts.First())
-            .ReturnsAsync(new GeneratedEmbeddings<Embedding<float>>(
-                [new Embedding<float>(new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f }))]));
-
-        await CreateHandler(queryExpansionEnabled: true).Handle(
-            new SearchDocumentsRequest { Query = rawQuery, TopK = 5 },
-            default);
-
-        Assert.Equal(rawQuery, capturedEmbeddingInput);
+        _expander.Verify(
+            e => e.ExpandAsync(rawQuery, It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Theory]
@@ -259,6 +198,10 @@ public class SearchDocumentsHandlerTests
     [InlineData(typeof(TaskCanceledException))]
     public async Task Handle_EmbeddingGeneratorThrowsTransientException_ReturnsEmptyResponse(Type exceptionType)
     {
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+
         var exception = (Exception)Activator.CreateInstance(exceptionType, "Exception while reading from stream")!;
         _embeddingGenerator
             .Setup(s => s.GenerateAsync(
@@ -285,6 +228,10 @@ public class SearchDocumentsHandlerTests
     [InlineData(typeof(TaskCanceledException))]
     public async Task Handle_EmbeddingGeneratorThrowsTransientException_LogsWarningWithExceptionType(Type exceptionType)
     {
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+
         var exception = (Exception)Activator.CreateInstance(exceptionType, "stream error")!;
         _embeddingGenerator
             .Setup(s => s.GenerateAsync(
@@ -315,6 +262,11 @@ public class SearchDocumentsHandlerTests
     public async Task Handle_RepositoryThrowsTransientException_ReturnsEmptyResponse(Type exceptionType)
     {
         SetupEmbeddingGenerator();
+
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+
         var exception = (Exception)Activator.CreateInstance(exceptionType, "stream error from pgvector")!;
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), default))
@@ -336,6 +288,11 @@ public class SearchDocumentsHandlerTests
     public async Task Handle_RepositoryThrowsTransientException_LogsWarningWithExceptionType(Type exceptionType)
     {
         SetupEmbeddingGenerator();
+
+        _expander
+            .Setup(e => e.ExpandAsync(It.IsAny<string>(), It.IsAny<RagQueryExpansionConfig>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string q, RagQueryExpansionConfig _, CancellationToken _) => q);
+
         var exception = (Exception)Activator.CreateInstance(exceptionType, "stream error from pgvector")!;
         _repository
             .Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), default))
