@@ -14,7 +14,7 @@ public class LeafletDocumentConfiguration : IEntityTypeConfiguration<LeafletDocu
         builder.Property(x => x.SourcePath).IsRequired();
         builder.Property(x => x.ContentType).IsRequired();
         builder.Property(x => x.ContentHash).IsRequired().HasMaxLength(64);
-        builder.Property(x => x.IngestedAt).IsRequired();
+        builder.Property(x => x.IngestedAt).IsRequired().HasColumnType("timestamp without time zone");
         builder.Property(x => x.WordCount).IsRequired();
 
         builder.HasIndex(x => x.ContentHash)
