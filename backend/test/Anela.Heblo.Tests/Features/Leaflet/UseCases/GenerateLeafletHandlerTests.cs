@@ -179,11 +179,9 @@ public class GenerateLeafletHandlerTests
         var request = new GenerateLeafletRequest { Topic = "niacinamide", Audience = AudienceType.B2B, Length = LeafletLength.Long };
 
         // Act
-        var act = () => handler.Handle(request, CancellationToken.None);
+        var result = await handler.Handle(request, CancellationToken.None);
 
         // Assert
-        await act.Should().NotThrowAsync();
-
         _chat.Verify(c => c.GetResponseAsync(
             It.IsAny<IEnumerable<ChatMessage>>(),
             It.IsAny<ChatOptions?>(),
@@ -191,6 +189,7 @@ public class GenerateLeafletHandlerTests
 
         capturedMessages.Should().NotBeNull();
         capturedMessages!.First(m => m.Role == ChatRole.System).Text.Should().Contain("(empty)");
+        result.Content.Should().NotBeEmpty("handler should produce leaflet content even when KB hits are empty");
     }
 
     [Fact]
@@ -512,7 +511,7 @@ public class GenerateLeafletHandlerTests
     }
 
     [Fact]
-    public async Task Handle_when_expander_passthrough_existing_behavior_unchanged()
+    public async Task Handle_returns_non_empty_content_when_expansion_returns_topic_unchanged()
     {
         // Arrange
         SetupEmbeddings();

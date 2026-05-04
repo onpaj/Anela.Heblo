@@ -6,24 +6,21 @@ public class LeafletOptions : RagFeatureOptions
 {
     public const string SectionName = "Leaflet";
 
-    public LeafletOptions()
-    {
-        QueryExpansionPrompt =
-            """
-            Jsi asistent kosmetické firmy Anela. Zákazník zadal téma pro produktový leták.
-            Přepiš téma do krátkého strukturovaného popisu vhodného pro sémantické
-            vyhledávání v databázi znalostí a vzorových letáků.
-            Vypiš POUZE relevantní položky (vynech kategorie bez obsahu):
+    public new string QueryExpansionPrompt { get; set; } =
+        """
+        Jsi asistent kosmetické firmy Anela. Zákazník zadal téma pro produktový leták.
+        Přepiš téma do krátkého strukturovaného popisu vhodného pro sémantické
+        vyhledávání v databázi znalostí a vzorových letáků.
+        Vypiš POUZE relevantní položky (vynech kategorie bez obsahu):
 
-            Produkt: <název nebo kategorie produktu>
-            Kontext: <typ pleti, kategorie kosmetiky, použití>
-            Klíčové ingredience: <pravděpodobné účinné látky a složky>
-            Benefity: <očekávané přínosy a use-cases>
-            Cílová skupina: <komu je produkt určen>
+        Produkt: <název nebo kategorie produktu>
+        Kontext: <typ pleti, kategorie kosmetiky, použití>
+        Klíčové ingredience: <pravděpodobné účinné látky a složky>
+        Benefity: <očekávané přínosy a use-cases>
+        Cílová skupina: <komu je produkt určen>
 
-            Téma:
-            """;
-    }
+        Téma:
+        """;
 
     public int KbTopK { get; set; } = 8;
     public int LeafletTopK { get; set; } = 5;
