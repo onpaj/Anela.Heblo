@@ -11,6 +11,8 @@ public class KnowledgeBaseDocument
     public DocumentType DocumentType { get; set; } = DocumentType.KnowledgeBase;
     public DateTime CreatedAt { get; set; }
     public DateTime? IndexedAt { get; set; }
+    public string? DriveId { get; set; }
+    public string? GraphItemId { get; set; }
 
     public ICollection<KnowledgeBaseChunk> Chunks { get; set; } = new List<KnowledgeBaseChunk>();
 }

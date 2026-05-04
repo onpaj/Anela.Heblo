@@ -64,6 +64,13 @@ public class LeafletRepository : ILeafletRepository
             .FirstOrDefaultAsync(x => x.SourcePath == sourcePath, ct);
     }
 
+    public async Task<LeafletDocument?> GetByGraphItemIdAsync(string driveId, string graphItemId, CancellationToken ct = default)
+    {
+        return await _context.LeafletDocuments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.DriveId == driveId && x.GraphItemId == graphItemId, ct);
+    }
+
     public async Task DeleteDocumentAsync(Guid id, CancellationToken ct = default)
     {
         await _context.LeafletDocuments

@@ -59,6 +59,73 @@ public class LeafletRepositoryTests : IDisposable
         Assert.Equal(document.ContentHash, result.ContentHash);
     }
 
+    [Fact]
+    public async Task GetByGraphItemIdAsync_returns_null_when_missing()
+    {
+        // Act
+        var result = await _repository.GetByGraphItemIdAsync("nonexistent-drive-id", "nonexistent-item-id");
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetByGraphItemIdAsync_returns_document_when_driveId_and_graphItemId_match()
+    {
+        // Arrange
+        var document = new LeafletDocument
+        {
+            Id = Guid.NewGuid(),
+            Filename = "graph-test.pdf",
+            SourcePath = "/leaflets/graph-test.pdf",
+            ContentType = "application/pdf",
+            ContentHash = "graphhash001",
+            IngestedAt = DateTime.UtcNow,
+            WordCount = 100,
+            DriveId = "drive-abc",
+            GraphItemId = "item-xyz"
+        };
+
+        await _context.LeafletDocuments.AddAsync(document);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetByGraphItemIdAsync("drive-abc", "item-xyz");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(document.Id, result.Id);
+        Assert.Equal("drive-abc", result.DriveId);
+        Assert.Equal("item-xyz", result.GraphItemId);
+    }
+
+    [Fact]
+    public async Task GetByGraphItemIdAsync_returns_null_when_only_driveId_matches()
+    {
+        // Arrange
+        var document = new LeafletDocument
+        {
+            Id = Guid.NewGuid(),
+            Filename = "graph-partial.pdf",
+            SourcePath = "/leaflets/graph-partial.pdf",
+            ContentType = "application/pdf",
+            ContentHash = "graphhash002",
+            IngestedAt = DateTime.UtcNow,
+            WordCount = 100,
+            DriveId = "drive-abc",
+            GraphItemId = "item-xyz"
+        };
+
+        await _context.LeafletDocuments.AddAsync(document);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetByGraphItemIdAsync("drive-abc", "item-different");
+
+        // Assert
+        Assert.Null(result);
+    }
+
     [Fact(Skip = "ExecuteDeleteAsync is a relational operation not supported by the in-memory EF provider. Verified against real PostgreSQL.")]
     public async Task DeleteDocumentAsync_removes_document()
     {

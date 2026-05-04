@@ -6,6 +6,7 @@ public interface ILeafletRepository
     Task AddChunksAsync(IEnumerable<LeafletChunk> chunks, CancellationToken ct = default);
     Task<LeafletDocument?> GetByHashAsync(string contentHash, CancellationToken ct = default);
     Task<LeafletDocument?> GetBySourcePathAsync(string sourcePath, CancellationToken ct = default);
+    Task<LeafletDocument?> GetByGraphItemIdAsync(string driveId, string graphItemId, CancellationToken ct = default);
     Task DeleteDocumentAsync(Guid id, CancellationToken ct = default);
     Task<List<(LeafletChunk Chunk, double Score)>> SearchSimilarAsync(
         float[] queryEmbedding, int topK, CancellationToken ct = default);

@@ -185,6 +185,12 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             .FirstOrDefaultAsync(d => d.SourcePath == sourcePath, ct);
     }
 
+    public async Task<KnowledgeBaseDocument?> GetDocumentByGraphItemIdAsync(string driveId, string graphItemId, CancellationToken ct = default)
+    {
+        return await _context.KnowledgeBaseDocuments
+            .FirstOrDefaultAsync(d => d.DriveId == driveId && d.GraphItemId == graphItemId, ct);
+    }
+
     public async Task DeleteDocumentAsync(Guid documentId, CancellationToken ct = default)
     {
         await _context.KnowledgeBaseDocuments
