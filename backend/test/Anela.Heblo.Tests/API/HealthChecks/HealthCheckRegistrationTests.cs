@@ -1,5 +1,6 @@
 using System.Linq;
 using Anela.Heblo.API.Extensions;
+using Anela.Heblo.API.HealthChecks.DataQuality;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Persistence;
 using FluentAssertions;
@@ -66,8 +67,7 @@ public class HealthCheckRegistrationTests
             .Value.Registrations.ToList();
 
         // Assert
-        // "data-quality-schema" is defined as ProbeName in DataQualitySchemaHealthCheck (private const).
-        var dataQuality = registrations.Single(r => r.Name == "data-quality-schema");
+        var dataQuality = registrations.Single(r => r.Name == DataQualitySchemaHealthCheck.ProbeName);
         var database = registrations.Single(r => r.Name == ConfigurationConstants.DATABASE_HEALTH_CHECK);
         dataQuality.Timeout.Should().Be(TimeSpan.FromSeconds(5));
         database.Timeout.Should().Be(TimeSpan.FromSeconds(5));
@@ -81,7 +81,7 @@ public class HealthCheckRegistrationTests
             // PersistenceModule reads ConnectionStrings:<EnvironmentName>
             ["ConnectionStrings:UnitTest"] = useInMemory
                 ? "InMemory"
-                : "Host=localhost;Database=heblo_test;Username=u;Password=p",
+                : "Host=localhost;Database=heblo_test;Username=u;Password=p", // placeholder – not a real credential
             // Default 5s probe timeout (no override)
         };
         var configuration = new ConfigurationBuilder()

@@ -89,7 +89,7 @@ public static class ServiceCollectionExtensions
                 "background-services-ready",
                 tags: new[] { "ready" })
             .AddCheck<DataQualitySchemaHealthCheck>(
-                name: "data-quality-schema",
+                name: DataQualitySchemaHealthCheck.ProbeName,
                 failureStatus: HealthStatus.Unhealthy,
                 tags: new[] { "ready", "db", "schema" },
                 timeout: probeTimeout);

@@ -10,7 +10,7 @@ namespace Anela.Heblo.API.HealthChecks.DataQuality;
 
 public sealed class DataQualitySchemaHealthCheck : IHealthCheck
 {
-    private const string ProbeName = "data-quality-schema";
+    internal const string ProbeName = "data-quality-schema";
 
     private readonly ApplicationDbContext _db;
     private readonly ILogger<DataQualitySchemaHealthCheck> _logger;
@@ -59,6 +59,10 @@ public sealed class DataQualitySchemaHealthCheck : IHealthCheck
             return HealthCheckResult.Unhealthy(
                 description: "DataQuality probe failed",
                 exception: ex);
+        }
+        finally
+        {
+            stopwatch.Stop();
         }
     }
 }
