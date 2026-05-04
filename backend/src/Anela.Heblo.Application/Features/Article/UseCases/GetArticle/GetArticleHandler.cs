@@ -18,13 +18,12 @@ public sealed class GetArticleHandler : IRequestHandler<GetArticleRequest, GetAr
         CancellationToken cancellationToken)
     {
         if (request.Id == Guid.Empty)
-            return new GetArticleResponse(ErrorCodes.ResourceNotFound, new Dictionary<string, string> { { "id", "empty" } });
+            return new GetArticleResponse(ErrorCodes.ArticleNotFound, new Dictionary<string, string> { { "id", "empty" } });
 
         var article = await _repository.GetByIdAsync(request.Id, cancellationToken);
         if (article == null)
         {
-            // TODO: replace with ErrorCodes.ArticleNotFound once Task 9 adds the 24XX block
-            return new GetArticleResponse(ErrorCodes.ResourceNotFound, new Dictionary<string, string>
+            return new GetArticleResponse(ErrorCodes.ArticleNotFound, new Dictionary<string, string>
             {
                 { "id", request.Id.ToString() }
             });
