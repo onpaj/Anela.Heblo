@@ -38,6 +38,14 @@ Read the relevant doc **before** implementation work touches that area. No archi
 
 **Features** — `docs/features/` has per-feature specs.
 
+## Coding behavior
+
+**Think before coding.** State assumptions explicitly before starting. If multiple interpretations exist, present them — don't pick silently. If something is unclear, stop, name what's confusing, and ask. Push back when a simpler approach exists.
+
+**Surgical changes.** Touch only what the task requires. Don't improve adjacent code, comments, or formatting. Match existing style even if you'd do it differently. If you notice unrelated dead code, mention it — don't delete it. Every changed line should trace directly to the request.
+
+**Goal-driven execution.** For multi-step tasks, state a brief plan with a verifiable check per step before writing code. Strong success criteria let you loop independently; weak criteria require constant clarification.
+
 ## Project-specific rules
 
 These encode **project-specific** gotchas not covered by the global rules in `~/.claude/rules/`.
