@@ -49,7 +49,7 @@ export interface ListArticlesParams {
   pageSize?: number;
 }
 
-const POLLING_STATUSES = new Set<ArticleStatus>([
+export const IN_PROGRESS_STATUSES = new Set<ArticleStatus>([
   ArticleStatus.Queued,
   ArticleStatus.Researching,
   ArticleStatus.Writing,
@@ -138,9 +138,9 @@ export const useGetArticleQuery = (id: string | null) => {
     enabled: !!id,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status && POLLING_STATUSES.has(status) ? 3000 : false;
+      return status && IN_PROGRESS_STATUSES.has(status) ? 3000 : false;
     },
-    staleTime: 0,
+    staleTime: 10 * 1000,
     gcTime: 5 * 60 * 1000,
   });
 };

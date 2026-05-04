@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import { ArticleListItem } from '../../api/hooks/useArticles';
+import { ArticleListItem, IN_PROGRESS_STATUSES } from '../../api/hooks/useArticles';
 import { ArticleStatus } from '../../api/generated/api-client';
 
 interface ArticleListProps {
@@ -25,20 +25,16 @@ const STATUS_COLORS: Record<ArticleStatus, string> = {
   [ArticleStatus.Failed]: 'bg-red-100 text-red-700',
 };
 
-const IN_PROGRESS_STATUSES = new Set<ArticleStatus>([
-  ArticleStatus.Queued,
-  ArticleStatus.Researching,
-  ArticleStatus.Writing,
-]);
+const DATE_FORMATTER = new Intl.DateTimeFormat('cs-CZ', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
 
 function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat('cs-CZ', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(iso));
+  return DATE_FORMATTER.format(new Date(iso));
 }
 
 export default function ArticleList({ items, isLoading, selectedId, onSelect }: ArticleListProps) {

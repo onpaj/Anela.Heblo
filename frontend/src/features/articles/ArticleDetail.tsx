@@ -1,5 +1,5 @@
 import { Loader2, ExternalLink, BookOpen, Globe } from 'lucide-react';
-import { ArticleDetail as ArticleDetailType, ArticleSource, useGetArticleQuery } from '../../api/hooks/useArticles';
+import { ArticleDetail as ArticleDetailType, ArticleSource, useGetArticleQuery, IN_PROGRESS_STATUSES } from '../../api/hooks/useArticles';
 import { ArticleStatus } from '../../api/generated/api-client';
 
 interface ArticleDetailProps {
@@ -22,12 +22,6 @@ const STATUS_COLORS: Record<ArticleStatus, string> = {
   [ArticleStatus.Failed]: 'bg-red-100 text-red-700',
 };
 
-const IN_PROGRESS_STATUSES = new Set<ArticleStatus>([
-  ArticleStatus.Queued,
-  ArticleStatus.Researching,
-  ArticleStatus.Writing,
-]);
-
 function SourceIcon({ type }: { type: string }) {
   if (type === 'Web') return <Globe className="w-4 h-4 text-blue-500 shrink-0" />;
   return <BookOpen className="w-4 h-4 text-green-600 shrink-0" />;
@@ -40,8 +34,8 @@ function SourceList({ sources }: { sources: ArticleSource[] }) {
     <div className="mt-6 border-t pt-4">
       <h3 className="text-sm font-semibold text-gray-700 mb-2">Zdroje</h3>
       <ul className="space-y-1">
-        {sources.map((source, i) => (
-          <li key={i} className="flex items-start gap-2 text-sm">
+        {sources.map((source) => (
+          <li key={`${source.type}:${source.url ?? source.title}`} className="flex items-start gap-2 text-sm">
             <SourceIcon type={source.type} />
             {source.url ? (
               <a

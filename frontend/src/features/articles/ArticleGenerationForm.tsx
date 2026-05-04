@@ -34,14 +34,15 @@ export default function ArticleGenerationForm({ onArticleCreated }: ArticleGener
   const [styleGuideDriveId, setStyleGuideDriveId] = useState('');
   const [styleGuideItemPath, setStyleGuideItemPath] = useState('');
 
-  const isValid = topic.trim().length >= 3;
+  const trimmedTopic = topic.trim();
+  const isValid = trimmedTopic.length >= 3 && trimmedTopic.length <= 500;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid || isPending) return;
 
     const request = new GenerateArticleRequest({
-      topic: topic.trim(),
+      topic: trimmedTopic,
       scope,
       length,
       audience: audience.trim() || undefined,
