@@ -1,3 +1,8 @@
+// TODO(e2e-map): 5 tests in this file assert BUGGY behaviour caused by a React Query +
+// useEffect race in CatalogList.tsx — after clicking page 2, a refetch resets pagination
+// to page 1. Assertions reflect the current broken state. Once the race condition is fixed,
+// update the assertions (marked with "TODO: Change to X when pagination bug is fixed").
+// See docs/testing/e2e-test-map.md § catalog/pagination-with-filters.spec.ts for details.
 import { test, expect } from '@playwright/test';
 import { navigateToCatalog } from '../helpers/e2e-auth-helper';
 import {
@@ -116,7 +121,7 @@ test.describe('Catalog Pagination with Filters E2E Tests', () => {
       // 2. Filter is maintained (confirms filter state is preserved)
       // 3. Page resets to 1 (documents the bug)
       //
-      // TODO: Once bug is fixed in application, change assertion to expect(currentPage).toBe(2)
+      // TODO(e2e-map): Once bug is fixed in application, change assertion to expect(currentPage).toBe(2)
 
       // For now, document that the bug exists
       if (currentPage === 1 && firstRowCode === newFirstRowCode) {
@@ -129,7 +134,7 @@ test.describe('Catalog Pagination with Filters E2E Tests', () => {
 
       // Current buggy behavior: Page resets to 1
       // When bug is fixed, this line should be changed to: expect(currentPage).toBe(2);
-      expect(currentPage).toBe(1); // TODO: Change to 2 when pagination bug is fixed
+      expect(currentPage).toBe(1); // TODO(e2e-map): Change to 2 when pagination race condition is fixed
 
       console.log('✅ Test passed (with documented pagination reset bug)');
     } else {
@@ -292,14 +297,14 @@ test.describe('Catalog Pagination with Filters E2E Tests', () => {
     // This is related to the React Query refetch and state management bug
     // where pagination state isn't properly reset on filter/page size changes.
     //
-    // TODO: Once bug is fixed, change assertion to expect(currentPage).toBe(1)
+    // TODO(e2e-map): Once bug is fixed, change assertion to expect(currentPage).toBe(1)
 
     const currentPage = await getCurrentPageNumber(page);
     console.log(`📍 Current page after page size change: ${currentPage}`);
 
     // Current buggy behavior: Page stays on 2
     // When bug is fixed, this line should be changed to: expect(currentPage).toBe(1);
-    expect(currentPage).toBe(2); // TODO: Change to 1 when pagination reset bug is fixed
+    expect(currentPage).toBe(2); // TODO(e2e-map): Change to 1 when pagination reset bug is fixed
 
     // Verify filter is still applied despite the pagination bug
     await validateFilteredResults(page, { productType: 'Produkt' }, { maxRowsToCheck: 5 });

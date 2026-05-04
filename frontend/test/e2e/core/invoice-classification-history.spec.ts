@@ -22,101 +22,54 @@ test.describe('Invoice Classification History', () => {
   });
 
   test('pagination functionality', async ({ page }) => {
-    // Check if there's a table with data
-    const tableExists = await page.locator('table').count() > 0;
+    // Arrange: page must show either a data table or an explicit empty-state message.
+    const tableLocator = page.locator('table');
+    const emptyStateLocator = page.locator(':text("Nebyly nalezeny žádné záznamy")');
 
-    if (!tableExists) {
-      // If no table, check if there's a "no records" message
-      const noRecordsMsg = await page.locator(':text("Nebyly nalezeny žádné záznamy")').count();
-      if (noRecordsMsg > 0) {
-        console.log('No classification history data available - test passed (no data to paginate)');
-        return;
-      }
-      throw new Error('Expected either a table with data or a "no records" message');
-    }
+    await expect(tableLocator.or(emptyStateLocator).first()).toBeVisible({ timeout: 15000 });
 
-    // Table exists, now check for pagination controls
-    // Pagination only shows when totalPages > 1 (line 359 in ClassificationHistoryPage.tsx)
-    const paginationNav = page.locator('nav[aria-label="Pagination"]');
-    const hasPagination = await paginationNav.count() > 0;
-
-    if (!hasPagination) {
-      // Single page of results - pagination not expected
-      console.log('Single page of results - pagination controls not visible (expected behavior)');
-
-      // Verify we can still see the page size selector
-      const pageSizeSelector = page.locator('select').filter({ hasText: /10|20|50|100/ });
-      const hasPageSizeSelector = await pageSizeSelector.count() > 0;
-
-      if (hasPageSizeSelector) {
-        // Test page size selector works
-        await pageSizeSelector.selectOption('10');
-        await page.waitForTimeout(500);
-
-        const selectedValue = await pageSizeSelector.inputValue();
-        expect(selectedValue).toBe('10');
-        console.log('Page size selector works correctly');
-      }
-
+    // If the page has no data, there is nothing to paginate — pass early.
+    const hasTable = await tableLocator.count() > 0;
+    if (!hasTable) {
       return;
     }
 
-    // Multiple pages - test full pagination
-    console.log('Multiple pages detected - testing pagination controls');
+    // The page-size select is always rendered when the table is present.
+    const pageSizeSelect = page.locator('select').filter({ hasText: /10|20|50|100/ }).first();
+    await expect(pageSizeSelect).toBeVisible();
 
-    // Test page size selector
-    const pageSizeSelector = page.locator('select').filter({ hasText: /10|20|50|100/ });
-    expect(await pageSizeSelector.count()).toBeGreaterThan(0);
+    // Act: change page size and verify the select reflects the new value.
+    await pageSizeSelect.selectOption('10');
+    await expect(pageSizeSelect).toHaveValue('10');
 
-    // Change page size to 10
-    await pageSizeSelector.selectOption('10');
-    await page.waitForTimeout(3000); // Wait for table to reload
-
-    // After changing to page size 10, pagination might disappear if data fits on 1 page
-    // Check if pagination still exists
-    const paginationAfter10 = await page.locator('nav[aria-label="Pagination"]').count();
-    if (paginationAfter10 > 0) {
-      // Pagination still exists, verify page size
-      const newPageSizeSelector = page.locator('select').filter({ hasText: /10|20|50|100/ });
-      expect(await newPageSizeSelector.inputValue()).toBe('10');
-
-      // Change back to 50 to ensure we have multiple pages
-      await newPageSizeSelector.selectOption('50');
-      await page.waitForTimeout(3000);
-
-      // Test navigation buttons if pagination still exists after changing to 50
-      const paginationAfter50 = await page.locator('nav[aria-label="Pagination"]').count();
-      if (paginationAfter50 > 0) {
-        const nextButton = page.locator('nav[aria-label="Pagination"] button').last();
-        const prevButton = page.locator('nav[aria-label="Pagination"] button').first();
-
-        // Check if next button is enabled (meaning there's a next page)
-        const nextButtonEnabled = !(await nextButton.isDisabled());
-
-        if (nextButtonEnabled) {
-          // Click next page
-          await nextButton.click();
-          await page.waitForTimeout(1000);
-
-          // Verify we moved to page 2
-          const currentPage = page.locator('nav[aria-label="Pagination"] button.z-10');
-          const pageText = await currentPage.textContent();
-          expect(pageText).toBe('2');
-
-          // Go back to page 1
-          await prevButton.click();
-          await page.waitForTimeout(1000);
-
-          // Verify we're back on page 1
-          const firstPageText = await currentPage.textContent();
-          expect(firstPageText).toBe('1');
-        }
-      }
-    } else {
-      console.log('Pagination hidden after changing to page size 10 (data fits on 1 page) - skipping remaining pagination tests');
+    // Pagination nav only renders when totalPages > 1.
+    const paginationNav = page.locator('nav[aria-label="Pagination"]');
+    const hasPagination = await paginationNav.count() > 0;
+    if (!hasPagination) {
+      // Single-page result set — no navigation controls expected.
+      return;
     }
 
-    console.log('Pagination functionality test completed successfully');
+    // Expand to 50 per page to maximise chance of multiple pages being present.
+    await pageSizeSelect.selectOption('50');
+    await page.waitForTimeout(1000);
+
+    const nextButton = paginationNav.locator('button').last();
+    const prevButton = paginationNav.locator('button').first();
+    const activePageButton = paginationNav.locator('button.z-10');
+
+    if (await nextButton.isDisabled()) {
+      // Still only one page — nothing more to assert.
+      return;
+    }
+
+    // Act: navigate to page 2.
+    await nextButton.click();
+    await expect(activePageButton).toHaveText('2');
+
+    // Act: navigate back to page 1.
+    await prevButton.click();
+    await expect(activePageButton).toHaveText('1');
   });
 
   test('filters functionality', async ({ page }) => {
