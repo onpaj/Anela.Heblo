@@ -79,20 +79,32 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddHealthCheckServices(this IServiceCollection services, IConfiguration configuration)
     {
+        var probeTimeoutSeconds = configuration.GetValue<int>("HealthChecks:ProbeTimeoutSeconds", 5);
+        var probeTimeout = probeTimeoutSeconds > 0
+            ? TimeSpan.FromSeconds(probeTimeoutSeconds)
+            : default; // 0 or negative disables per-check timeout
+
         var healthChecksBuilder = services.AddHealthChecks()
-            .AddCheck<Anela.Heblo.Application.Common.BackgroundServicesReadyHealthCheck>("background-services-ready", tags: new[] { "ready" })
+            .AddCheck<Anela.Heblo.Application.Common.BackgroundServicesReadyHealthCheck>(
+                "background-services-ready",
+                tags: new[] { "ready" })
             .AddCheck<DataQualitySchemaHealthCheck>(
                 name: "data-quality-schema",
                 failureStatus: HealthStatus.Unhealthy,
-                tags: new[] { "ready", "db", "schema" });
+                tags: new[] { "ready", "db", "schema" },
+                timeout: probeTimeout);
 
-        // Add database health check if connection string exists
-        var dbConnectionString = configuration.GetConnectionString(ConfigurationConstants.DEFAULT_CONNECTION);
-        if (!string.IsNullOrEmpty(dbConnectionString))
+        // Register the database health check only when an NpgsqlDataSource is registered
+        // (PersistenceModule skips it when UseInMemoryDatabase=true or connectionString=="InMemory").
+        var hasNpgsqlDataSource = services.Any(d => d.ServiceType == typeof(NpgsqlDataSource));
+        if (hasNpgsqlDataSource)
         {
-            healthChecksBuilder.AddNpgSql(dbConnectionString,
+            healthChecksBuilder.AddNpgSql(
+                sp => sp.GetRequiredService<NpgsqlDataSource>(),
                 name: ConfigurationConstants.DATABASE_HEALTH_CHECK,
-                tags: new[] { ConfigurationConstants.DB_TAG, ConfigurationConstants.POSTGRESQL_TAG });
+                failureStatus: HealthStatus.Unhealthy,
+                tags: new[] { ConfigurationConstants.DB_TAG, ConfigurationConstants.POSTGRESQL_TAG },
+                timeout: probeTimeout);
         }
 
         return services;
