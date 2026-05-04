@@ -6,6 +6,23 @@ public class KnowledgeBaseOptions : RagFeatureOptions
 {
     public const string SectionName = "KnowledgeBase";
 
+    public KnowledgeBaseOptions()
+    {
+        QueryExpansionPrompt =
+            """
+            Jsi asistent kosmetické firmy Anela. Přepiš zákazníkův dotaz do strukturovaného
+            formátu vhodného pro sémantické vyhledávání v databázi zákaznických konverzací.
+            Vypiš POUZE relevantní položky (vynech kategorie bez obsahu):
+
+            Problém: <co zákazník řeší, formuluj jako zákazníkův dotaz>
+            Kontext: <typ pleti, stávající rutina, situace>
+            Doporučení: <co by mohlo být doporučeno>
+            Ingredience: <účinné látky, složky>
+
+            Dotaz:
+            """;
+    }
+
     public int MaxRetrievedChunks { get; set; } = 5;
 
     /// <summary>
@@ -81,24 +98,6 @@ public class KnowledgeBaseOptions : RagFeatureOptions
     /// before a fresh load from the catalog repository is triggered.
     /// </summary>
     public int ProductEnrichmentCacheTtlMinutes { get; set; } = 60;
-
-    /// <summary>
-    /// Prompt prepended to the user query when requesting query expansion.
-    /// The raw query is appended after a newline.
-    /// </summary>
-    public string QueryExpansionPrompt { get; set; } =
-        """
-        Jsi asistent kosmetické firmy Anela. Přepiš zákazníkův dotaz do strukturovaného
-        formátu vhodného pro sémantické vyhledávání v databázi zákaznických konverzací.
-        Vypiš POUZE relevantní položky (vynech kategorie bez obsahu):
-
-        Problém: <co zákazník řeší, formuluj jako zákazníkův dotaz>
-        Kontext: <typ pleti, stávající rutina, situace>
-        Doporučení: <co by mohlo být doporučeno>
-        Ingredience: <účinné látky, složky>
-
-        Dotaz:
-        """;
 
     /// <summary>
     /// System prompt used by AskQuestionHandler. Supports {context}, {products} and {query} placeholders.
