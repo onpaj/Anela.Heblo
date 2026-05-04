@@ -1,5 +1,6 @@
 using System.IO;
 using System.Net.Http;
+using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
 using MediatR;
@@ -14,6 +15,7 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
     private readonly IKnowledgeBaseRepository _kb;
     private readonly ILeafletRepository _leaflets;
     private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddings;
+    private readonly IRagQueryExpander _expander;
     private readonly IChatClient _chat;
     private readonly LeafletOptions _options;
     private readonly ILogger<GenerateLeafletHandler> _logger;
@@ -22,6 +24,7 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
         IKnowledgeBaseRepository kb,
         ILeafletRepository leaflets,
         IEmbeddingGenerator<string, Embedding<float>> embeddings,
+        IRagQueryExpander expander,
         IChatClient chat,
         IOptions<LeafletOptions> options,
         ILogger<GenerateLeafletHandler> logger)
@@ -29,6 +32,7 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
         _kb = kb;
         _leaflets = leaflets;
         _embeddings = embeddings;
+        _expander = expander;
         _chat = chat;
         _options = options.Value;
         _logger = logger;
@@ -40,8 +44,11 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
     {
         var ct = cancellationToken;
 
+        var queryToEmbed = await _expander.ExpandAsync(
+            request.Topic, _options.ToExpansionConfig(), ct);
+
         var topicVector = (await RetryOnceAsync(
-                () => _embeddings.GenerateAsync([request.Topic], cancellationToken: ct),
+                () => _embeddings.GenerateAsync([queryToEmbed], cancellationToken: ct),
                 ct))
             .First().Vector.ToArray();
 
