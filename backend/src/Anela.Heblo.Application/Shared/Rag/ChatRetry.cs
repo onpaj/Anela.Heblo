@@ -31,6 +31,8 @@ public static class ChatRetry
             }
             catch (Exception retryEx)
             {
+                if (retryEx is OperationCanceledException)
+                    throw;
                 throw new InvalidOperationException("Operation failed after retry.", retryEx);
             }
         }
