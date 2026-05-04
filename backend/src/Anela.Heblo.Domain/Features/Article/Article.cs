@@ -1,13 +1,16 @@
 namespace Anela.Heblo.Domain.Features.Article;
 
-public class Article
+public sealed class Article
 {
+    public const string DefaultScope = "overview";
+    public const string DefaultLength = "medium (1000w)";
+
     public Guid Id { get; set; }
     public string Topic { get; set; } = "";
-    public string Scope { get; set; } = "overview";
+    public string Scope { get; set; } = DefaultScope;
     public string? Audience { get; set; }
     public string? Angle { get; set; }
-    public string Length { get; set; } = "medium (1000w)";
+    public string Length { get; set; } = DefaultLength;
     public string? LanguageNote { get; set; }
     public bool UsedKnowledgeBase { get; set; }
     public bool UsedWebSearch { get; set; }

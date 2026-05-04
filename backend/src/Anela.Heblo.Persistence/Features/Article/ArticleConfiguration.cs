@@ -17,8 +17,8 @@ public class ArticleConfiguration : IEntityTypeConfiguration<DomainArticle>
         builder.Property(x => x.Angle).IsRequired(false).HasMaxLength(500);
         builder.Property(x => x.Length).IsRequired().HasMaxLength(50);
         builder.Property(x => x.LanguageNote).IsRequired(false).HasMaxLength(500);
-        builder.Property(x => x.StyleGuideDriveId).IsRequired(false);
-        builder.Property(x => x.StyleGuideItemPath).IsRequired(false);
+        builder.Property(x => x.StyleGuideDriveId).IsRequired(false).HasMaxLength(500);
+        builder.Property(x => x.StyleGuideItemPath).IsRequired(false).HasMaxLength(500);
         builder.Property(x => x.Title).IsRequired(false);
         builder.Property(x => x.HtmlContent).IsRequired(false);
         builder.Property(x => x.Status).HasConversion<int>();

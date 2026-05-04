@@ -16,8 +16,8 @@ public class ArticleSourceConfiguration : IEntityTypeConfiguration<DomainArticle
         builder.Property(x => x.Type).HasConversion<int>();
         builder.Property(x => x.Confidence).IsRequired(false);
         builder.Property(x => x.KnowledgeBaseChunkId).IsRequired(false);
-        builder.Property(x => x.Excerpt).IsRequired(false);
-        builder.Property(x => x.ValidationNote).IsRequired(false);
+        builder.Property(x => x.Excerpt).IsRequired(false).HasMaxLength(10000);
+        builder.Property(x => x.ValidationNote).IsRequired(false).HasMaxLength(10000);
 
         builder.HasIndex(x => x.ArticleId)
             .HasDatabaseName("IX_ArticleSources_ArticleId");

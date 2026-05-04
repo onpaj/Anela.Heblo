@@ -1,6 +1,6 @@
 namespace Anela.Heblo.Domain.Features.Article;
 
-public class ArticleSource
+public sealed class ArticleSource
 {
     public Guid Id { get; set; }
     public Guid ArticleId { get; set; }

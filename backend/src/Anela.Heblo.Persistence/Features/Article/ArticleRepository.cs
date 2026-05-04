@@ -1,11 +1,11 @@
+using Anela.Heblo.Domain.Features.Article;
 using Microsoft.EntityFrameworkCore;
 using DomainArticle = Anela.Heblo.Domain.Features.Article.Article;
 using DomainArticleStatus = Anela.Heblo.Domain.Features.Article.ArticleStatus;
-using DomainIArticleRepository = Anela.Heblo.Domain.Features.Article.IArticleRepository;
 
 namespace Anela.Heblo.Persistence.Features.Article;
 
-public class ArticleRepository : DomainIArticleRepository
+public class ArticleRepository : IArticleRepository
 {
     private readonly ApplicationDbContext _context;
 
@@ -16,13 +16,14 @@ public class ArticleRepository : DomainIArticleRepository
 
     public Task AddAsync(DomainArticle article, CancellationToken ct = default)
     {
-        _context.Articles.Add(article);
+        _context.Articles.Add(article); // EF Add is synchronous; ct is not applicable here
         return Task.CompletedTask;
     }
 
     public async Task<DomainArticle?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _context.Articles
+            .AsNoTracking()
             .Include(a => a.Sources)
             .FirstOrDefaultAsync(a => a.Id == id, ct);
     }
@@ -33,7 +34,7 @@ public class ArticleRepository : DomainIArticleRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _context.Articles.AsQueryable();
+        var query = _context.Articles.AsNoTracking().AsQueryable();
 
         if (status.HasValue)
             query = query.Where(a => a.Status == status.Value);
