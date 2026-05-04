@@ -1,24 +1,33 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace Anela.Heblo.API.HealthChecks.DataQuality;
 
 public sealed class DataQualitySchemaHealthCheck : IHealthCheck
 {
-    private readonly ApplicationDbContext _db;
+    private const string ProbeName = "data-quality-schema";
 
-    public DataQualitySchemaHealthCheck(ApplicationDbContext db)
+    private readonly ApplicationDbContext _db;
+    private readonly ILogger<DataQualitySchemaHealthCheck> _logger;
+
+    public DataQualitySchemaHealthCheck(
+        ApplicationDbContext db,
+        ILogger<DataQualitySchemaHealthCheck> logger)
     {
         _db = db;
+        _logger = logger;
     }
 
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = Stopwatch.StartNew();
         try
         {
             await _db.DqtRuns.AsNoTracking().AnyAsync(cancellationToken);
@@ -36,6 +45,14 @@ public sealed class DataQualitySchemaHealthCheck : IHealthCheck
                     ["schema"] = "public",
                     ["sqlState"] = "42P01"
                 });
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation(
+                "DataQuality probe cancelled. ProbeName={ProbeName}, ElapsedMs={ElapsedMs}",
+                ProbeName,
+                stopwatch.ElapsedMilliseconds);
+            return HealthCheckResult.Degraded("DataQuality probe was cancelled");
         }
         catch (Exception ex)
         {

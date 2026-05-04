@@ -8,6 +8,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Npgsql;
 using Xunit;
@@ -16,6 +17,9 @@ namespace Anela.Heblo.Tests.API.HealthChecks.DataQuality;
 
 public class DataQualitySchemaHealthCheckTests
 {
+    private static ILogger<DataQualitySchemaHealthCheck> CreateLogger() =>
+        new Mock<ILogger<DataQualitySchemaHealthCheck>>().Object;
+
     [Fact]
     public async Task CheckHealthAsync_WhenTableReachable_ReturnsHealthy()
     {
@@ -24,7 +28,7 @@ public class DataQualitySchemaHealthCheckTests
             .UseInMemoryDatabase(databaseName: $"healthy-{Guid.NewGuid()}")
             .Options;
         await using var context = new ApplicationDbContext(options);
-        var healthCheck = new DataQualitySchemaHealthCheck(context);
+        var healthCheck = new DataQualitySchemaHealthCheck(context, CreateLogger());
 
         // Act
         var result = await healthCheck.CheckHealthAsync(new HealthCheckContext(), CancellationToken.None);
@@ -50,7 +54,7 @@ public class DataQualitySchemaHealthCheckTests
         await using var context = new ApplicationDbContext(options);
         context.DqtRuns = BuildThrowingDbSet<DqtRun>(tableNotFoundException);
 
-        var healthCheck = new DataQualitySchemaHealthCheck(context);
+        var healthCheck = new DataQualitySchemaHealthCheck(context, CreateLogger());
 
         // Act
         var result = await healthCheck.CheckHealthAsync(new HealthCheckContext(), CancellationToken.None);
@@ -77,7 +81,7 @@ public class DataQualitySchemaHealthCheckTests
         await using var context = new ApplicationDbContext(options);
         context.DqtRuns = BuildThrowingDbSet<DqtRun>(connectionException);
 
-        var healthCheck = new DataQualitySchemaHealthCheck(context);
+        var healthCheck = new DataQualitySchemaHealthCheck(context, CreateLogger());
 
         // Act
         var result = await healthCheck.CheckHealthAsync(new HealthCheckContext(), CancellationToken.None);
@@ -86,6 +90,36 @@ public class DataQualitySchemaHealthCheckTests
         result.Status.Should().Be(HealthStatus.Unhealthy);
         result.Description.Should().Be("DataQuality probe failed");
         result.Exception.Should().BeSameAs(connectionException);
+    }
+
+    [Fact]
+    public async Task CheckHealthAsync_WhenCancelled_ReturnsDegradedWithNoException()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(databaseName: $"cancelled-{Guid.NewGuid()}")
+            .Options;
+        await using var context = new ApplicationDbContext(options);
+        context.DqtRuns = BuildThrowingDbSet<DqtRun>(new OperationCanceledException());
+
+        var loggerMock = new Mock<ILogger<DataQualitySchemaHealthCheck>>();
+        var healthCheck = new DataQualitySchemaHealthCheck(context, loggerMock.Object);
+
+        // Act
+        var result = await healthCheck.CheckHealthAsync(new HealthCheckContext(), CancellationToken.None);
+
+        // Assert
+        result.Status.Should().Be(HealthStatus.Degraded);
+        result.Description.Should().Be("DataQuality probe was cancelled");
+        result.Exception.Should().BeNull();
+        loggerMock.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("DataQuality probe cancelled")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     private static DbSet<T> BuildThrowingDbSet<T>(Exception toThrow) where T : class
