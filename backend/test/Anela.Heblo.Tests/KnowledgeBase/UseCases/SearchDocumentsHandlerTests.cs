@@ -17,12 +17,11 @@ public class SearchDocumentsHandlerTests
     private readonly Mock<IRagQueryExpander> _expander = new();
     private readonly Mock<ILogger<SearchDocumentsHandler>> _logger = new();
 
-    private SearchDocumentsHandler CreateHandler(double minScore = 0.60, bool queryExpansionEnabled = false)
+    private SearchDocumentsHandler CreateHandler(double minScore = 0.60)
     {
         var options = Options.Create(new KnowledgeBaseOptions
         {
             MinSimilarityScore = minScore,
-            QueryExpansionEnabled = queryExpansionEnabled,
             QueryExpansionPrompt = "Expand:"
         });
         return new SearchDocumentsHandler(_embeddingGenerator.Object, _repository.Object, options, _expander.Object, _logger.Object);
@@ -147,7 +146,7 @@ public class SearchDocumentsHandlerTests
             .ReturnsAsync(new GeneratedEmbeddings<Embedding<float>>(
                 [new Embedding<float>(new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f }))]));
 
-        await CreateHandler(queryExpansionEnabled: true).Handle(
+        await CreateHandler().Handle(
             new SearchDocumentsRequest { Query = "poradis neco na popraskane ruce?", TopK = 5 },
             default);
 
@@ -158,7 +157,7 @@ public class SearchDocumentsHandlerTests
     }
 
     [Fact]
-    public async Task Handle_QueryExpansionDisabled_ExpanderCalledAndReturnsRawQuery()
+    public async Task Handle_WhenExpanderReturnsRawQuery_RawQueryIsEmbedded()
     {
         const string rawQuery = "poradis neco na popraskane ruce?";
 
@@ -181,7 +180,7 @@ public class SearchDocumentsHandlerTests
             .ReturnsAsync(new GeneratedEmbeddings<Embedding<float>>(
                 [new Embedding<float>(new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f }))]));
 
-        await CreateHandler(queryExpansionEnabled: false).Handle(
+        await CreateHandler().Handle(
             new SearchDocumentsRequest { Query = rawQuery, TopK = 5 },
             default);
 
