@@ -49,11 +49,10 @@ public static class JsonResponseParser
 
         var withoutOpening = trimmed[(firstNewline + 1)..];
 
-        if (withoutOpening.EndsWith("```", StringComparison.Ordinal))
-        {
-            withoutOpening = withoutOpening[..^3];
-        }
+        var trimmedForCheck = withoutOpening.TrimEnd();
+        if (trimmedForCheck.EndsWith("```", StringComparison.Ordinal))
+            return trimmedForCheck[..^3].TrimEnd();
 
-        return withoutOpening.Trim();
+        return withoutOpening;
     }
 }

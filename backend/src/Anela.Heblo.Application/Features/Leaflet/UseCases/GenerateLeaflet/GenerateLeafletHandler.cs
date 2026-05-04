@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared.Http;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;

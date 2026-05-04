@@ -2,7 +2,7 @@ using System.IO;
 using System.Net.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Shared.Rag;
+namespace Anela.Heblo.Application.Shared.Http;
 
 public static class ChatRetry
 {
@@ -22,19 +22,12 @@ public static class ChatRetry
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or TimeoutException)
         {
-            logger.LogWarning(ex, "Transient error during chat operation, retrying once");
+            logger.LogWarning(ex, "Transient error, retrying once after {Delay}ms",
+                (int)(delay ?? TimeSpan.FromSeconds(1)).TotalMilliseconds);
             await Task.Delay(delay ?? TimeSpan.FromSeconds(1), ct);
-
-            try
-            {
-                return await operation();
-            }
-            catch (Exception retryEx)
-            {
-                if (retryEx is OperationCanceledException)
-                    throw;
-                throw new InvalidOperationException("Operation failed after retry.", retryEx);
-            }
         }
+
+        // Retry outside catch — OperationCanceledException propagates naturally here
+        return await operation();
     }
 }
