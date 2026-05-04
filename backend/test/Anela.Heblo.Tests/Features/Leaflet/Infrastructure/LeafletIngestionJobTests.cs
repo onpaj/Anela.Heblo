@@ -2,7 +2,9 @@ using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.Leaflet;
 using Anela.Heblo.Application.Features.Leaflet.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.IndexLeaflet;
+using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.KnowledgeBase;
 using MediatR;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -17,14 +19,23 @@ public class LeafletIngestionJobTests
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IRecurringJobStatusChecker> _statusChecker = new();
 
+    private static LeafletOptions DefaultLeafletOptions() => new()
+    {
+        OneDriveFolderMappings =
+        [
+            new OneDriveFolderMapping
+            {
+                DriveId = "test-drive",
+                InboxPath = "/Leaflets/Inbox",
+                ArchivedPath = "/Leaflets/Archived",
+                DocumentType = DocumentType.Leaflet
+            }
+        ]
+    };
+
     private LeafletIngestionJob CreateJob(LeafletOptions? opts = null)
     {
-        opts ??= new LeafletOptions
-        {
-            DriveId = "test-drive",
-            InboxPath = "/Leaflets/Inbox",
-            ArchivedPath = "/Leaflets/Archived"
-        };
+        opts ??= DefaultLeafletOptions();
 
         _statusChecker
             .Setup(s => s.IsJobEnabledAsync("leaflet-ingestion", It.IsAny<CancellationToken>()))
@@ -162,7 +173,7 @@ public class LeafletIngestionJobTests
             _oneDrive.Object,
             _mediator.Object,
             _statusChecker.Object,
-            Options.Create(new LeafletOptions { DriveId = "d", InboxPath = "/i", ArchivedPath = "/a" }),
+            Options.Create(DefaultLeafletOptions()),
             NullLogger<LeafletIngestionJob>.Instance);
 
         await job.ExecuteAsync();

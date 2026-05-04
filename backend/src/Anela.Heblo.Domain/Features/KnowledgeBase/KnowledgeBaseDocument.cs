@@ -25,5 +25,6 @@ public enum DocumentStatus
 public enum DocumentType
 {
     KnowledgeBase = 0,
-    Conversation = 1
+    Conversation = 1,
+    Leaflet = 2
 }

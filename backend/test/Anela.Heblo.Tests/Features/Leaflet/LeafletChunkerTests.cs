@@ -1,21 +1,11 @@
-using Anela.Heblo.Application.Features.Leaflet;
-using Anela.Heblo.Application.Features.Leaflet.Services;
-using Microsoft.Extensions.Options;
+using Anela.Heblo.Application.Shared.Rag;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Leaflet;
 
 public class LeafletChunkerTests
 {
-    private static LeafletChunker CreateChunker(int chunkSizeWords = 800, int chunkOverlapWords = 80)
-    {
-        var options = Options.Create(new LeafletOptions
-        {
-            ChunkSizeWords = chunkSizeWords,
-            ChunkOverlapWords = chunkOverlapWords,
-        });
-        return new LeafletChunker(options);
-    }
+    private static WordWindowChunker CreateChunker() => new();
 
     private static string BuildWords(int count) =>
         string.Join(' ', Enumerable.Range(1, count).Select(i => $"word{i}"));
@@ -27,7 +17,7 @@ public class LeafletChunkerTests
         var chunker = CreateChunker();
 
         // Act
-        var result = chunker.Chunk(string.Empty, Guid.NewGuid());
+        var result = chunker.Chunk(string.Empty, size: 800, overlap: 80);
 
         // Assert
         Assert.Empty(result);
@@ -37,17 +27,16 @@ public class LeafletChunkerTests
     public void Chunk_short_input_below_size_returns_one_chunk()
     {
         // Arrange
-        var chunker = CreateChunker(chunkSizeWords: 800, chunkOverlapWords: 80);
+        var chunker = CreateChunker();
         var text = BuildWords(100);
-        var documentId = Guid.NewGuid();
 
         // Act
-        var result = chunker.Chunk(text, documentId);
+        var result = chunker.Chunk(text, size: 800, overlap: 80);
 
         // Assert
         Assert.Single(result);
-        Assert.Equal(100, result[0].WordCount);
-        Assert.Equal(0, result[0].ChunkIndex);
+        var wordCount = result[0].Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+        Assert.Equal(100, wordCount);
     }
 
     [Fact]
@@ -59,33 +48,34 @@ public class LeafletChunkerTests
         // 0+800=800 < 900 → continue
         // start=720: take=min(800,900-720)=min(800,180)=180 → chunk1 (words 720-899)
         // 720+800=1520 >= 900 → break
-        var chunker = CreateChunker(chunkSizeWords: 800, chunkOverlapWords: 80);
+        var chunker = CreateChunker();
         var text = BuildWords(900);
-        var documentId = Guid.NewGuid();
 
         // Act
-        var result = chunker.Chunk(text, documentId);
+        var result = chunker.Chunk(text, size: 800, overlap: 80);
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Equal(0, result[0].ChunkIndex);
-        Assert.Equal(800, result[0].WordCount);
-        Assert.Equal(1, result[1].ChunkIndex);
-        Assert.Equal(180, result[1].WordCount);
+        var wc0 = result[0].Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+        var wc1 = result[1].Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+        Assert.Equal(800, wc0);
+        Assert.Equal(180, wc1);
     }
 
     [Fact]
-    public void Chunk_assigns_DocumentId_to_each_chunk()
+    public void Chunk_overlap_appears_in_consecutive_chunks()
     {
         // Arrange
-        var chunker = CreateChunker(chunkSizeWords: 800, chunkOverlapWords: 80);
-        var documentId = Guid.NewGuid();
+        var chunker = CreateChunker();
         var text = BuildWords(900);
+        var documentId = Guid.NewGuid();
 
         // Act
-        var result = chunker.Chunk(text, documentId);
+        var result = chunker.Chunk(text, size: 800, overlap: 80);
 
-        // Assert
-        Assert.All(result, chunk => Assert.Equal(documentId, chunk.DocumentId));
+        // Assert — the last 80 words of chunk 0 should appear at the start of chunk 1
+        var chunk0Words = result[0].Split(' ');
+        var chunk1Words = result[1].Split(' ');
+        Assert.Equal(chunk0Words[720], chunk1Words[0]);
     }
 }

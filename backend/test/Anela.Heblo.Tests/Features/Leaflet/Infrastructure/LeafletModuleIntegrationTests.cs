@@ -1,5 +1,7 @@
 using Anela.Heblo.Application.Features.Leaflet;
 using Anela.Heblo.Application.Features.Leaflet.Services;
+using Anela.Heblo.Application.Shared.Rag;
+using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
@@ -26,19 +28,21 @@ public class LeafletModuleIntegrationTests
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         services.AddSingleton(Mock.Of<IEmbeddingGenerator<string, Embedding<float>>>());
         services.AddSingleton(Mock.Of<ILeafletRepository>());
+        services.AddScoped<IWordWindowChunker, WordWindowChunker>();
         services.AddLeafletModule(configuration);
         return services;
     }
 
     [Fact]
-    public void AddLeafletModule_resolves_chunker_indexing_and_options()
+    public void AddLeafletModule_resolves_indexing_service_and_options()
     {
         // Arrange
         var config = BuildConfiguration(new Dictionary<string, string?>
         {
-            ["Leaflet:DriveId"] = "test-drive",
-            ["Leaflet:InboxPath"] = "/Leaflets/Inbox",
-            ["Leaflet:ArchivedPath"] = "/Leaflets/Archived",
+            ["Leaflet:OneDriveFolderMappings:0:DriveId"] = "test-drive",
+            ["Leaflet:OneDriveFolderMappings:0:InboxPath"] = "/Leaflets/Inbox",
+            ["Leaflet:OneDriveFolderMappings:0:ArchivedPath"] = "/Leaflets/Archived",
+            ["Leaflet:OneDriveFolderMappings:0:DocumentType"] = nameof(DocumentType.Leaflet),
             ["Leaflet:ChatModel"] = "claude-sonnet-4-6",
             ["Leaflet:EmbeddingModel"] = "text-embedding-3-small",
         });
@@ -51,33 +55,13 @@ public class LeafletModuleIntegrationTests
         // Act & Assert
         var options = scope.ServiceProvider.GetRequiredService<IOptions<LeafletOptions>>();
         Assert.NotNull(options.Value);
-        Assert.Equal("test-drive", options.Value.DriveId);
+        Assert.Single(options.Value.OneDriveFolderMappings);
+        Assert.Equal("test-drive", options.Value.OneDriveFolderMappings[0].DriveId);
 
-        var chunker = scope.ServiceProvider.GetRequiredService<ILeafletChunker>();
-        Assert.IsType<LeafletChunker>(chunker);
+        var chunker = scope.ServiceProvider.GetRequiredService<IWordWindowChunker>();
+        Assert.IsType<WordWindowChunker>(chunker);
 
         var indexingService = scope.ServiceProvider.GetRequiredService<ILeafletIndexingService>();
         Assert.IsType<LeafletIndexingService>(indexingService);
-    }
-
-    [Fact]
-    public void AddLeafletModule_throws_on_missing_DriveId()
-    {
-        // Arrange — no DriveId in config
-        var config = BuildConfiguration(new Dictionary<string, string?>
-        {
-            ["Leaflet:InboxPath"] = "/Leaflets/Inbox",
-            ["Leaflet:ArchivedPath"] = "/Leaflets/Archived",
-            ["Leaflet:ChatModel"] = "claude-sonnet-4-6",
-            ["Leaflet:EmbeddingModel"] = "text-embedding-3-small",
-        });
-
-        var services = BuildBaseServices(config);
-        var provider = services.BuildServiceProvider();
-
-        // Act & Assert — accessing .Value should throw OptionsValidationException
-        // because DriveId is [Required] and ValidateDataAnnotations() is registered
-        var options = provider.GetRequiredService<IOptions<LeafletOptions>>();
-        Assert.Throws<OptionsValidationException>(() => _ = options.Value);
     }
 }

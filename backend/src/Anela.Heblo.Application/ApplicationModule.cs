@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Configuration;
+using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.GridLayouts;
 using Anela.Heblo.Application.Features.MarketingInvoices;
@@ -40,6 +41,9 @@ public static class ApplicationModule
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment? environment = null)
     {
+        // Register shared RAG infrastructure
+        services.AddScoped<IWordWindowChunker, WordWindowChunker>();
+
         // Register MediatR
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApplicationModule).Assembly));
 

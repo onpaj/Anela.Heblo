@@ -1,6 +1,6 @@
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 
-namespace Anela.Heblo.Application.Features.KnowledgeBase;
+namespace Anela.Heblo.Application.Shared.Rag;
 
 public class OneDriveFolderMapping
 {

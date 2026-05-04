@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.IndexLeaflet;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.KnowledgeBase;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -54,45 +55,48 @@ public class LeafletIngestionJob : IRecurringJob
         int skipped = 0;
         int failed = 0;
 
-        var files = await _oneDrive.ListInboxFilesAsync(_options.DriveId, _options.InboxPath, cancellationToken);
-        _logger.LogInformation("Found {Count} files in {InboxPath}", files.Count, _options.InboxPath);
-
-        foreach (var file in files)
+        foreach (var folder in _options.OneDriveFolderMappings.Where(m => m.DocumentType == DocumentType.Leaflet))
         {
-            try
+            var files = await _oneDrive.ListInboxFilesAsync(folder.DriveId, folder.InboxPath, cancellationToken);
+            _logger.LogInformation("Found {Count} files in {InboxPath}", files.Count, folder.InboxPath);
+
+            foreach (var file in files)
             {
-                var content = await _oneDrive.DownloadFileAsync(_options.DriveId, file.Id, cancellationToken);
-
-                var result = await _mediator.Send(new IndexLeafletRequest
+                try
                 {
-                    Filename = file.Name,
-                    SourcePath = file.Path,
-                    ContentType = file.ContentType,
-                    Content = content
-                }, cancellationToken);
+                    var content = await _oneDrive.DownloadFileAsync(folder.DriveId, file.Id, cancellationToken);
 
-                await _oneDrive.MoveToArchivedAsync(_options.DriveId, file.Id, file.Name, _options.ArchivedPath, cancellationToken);
+                    var result = await _mediator.Send(new IndexLeafletRequest
+                    {
+                        Filename = file.Name,
+                        SourcePath = file.Path,
+                        ContentType = file.ContentType,
+                        Content = content
+                    }, cancellationToken);
 
-                if (result.WasDuplicate)
+                    await _oneDrive.MoveToArchivedAsync(folder.DriveId, file.Id, file.Name, folder.ArchivedPath, cancellationToken);
+
+                    if (result.WasDuplicate)
+                    {
+                        _logger.LogInformation("Duplicate {Filename} archived to prevent reprocessing", file.Name);
+                        skipped++;
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Indexed and archived {Filename}", file.Name);
+                        indexed++;
+                    }
+                }
+                catch (NotSupportedException ex)
                 {
-                    _logger.LogInformation("Duplicate {Filename} archived to prevent reprocessing", file.Name);
+                    _logger.LogWarning("Skipping unsupported file {Filename}: {Message}", file.Name, ex.Message);
                     skipped++;
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logger.LogInformation("Indexed and archived {Filename}", file.Name);
-                    indexed++;
+                    _logger.LogError(ex, "Failed to index {Filename}", file.Name);
+                    failed++;
                 }
-            }
-            catch (NotSupportedException ex)
-            {
-                _logger.LogWarning("Skipping unsupported file {Filename}: {Message}", file.Name, ex.Message);
-                skipped++;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to index {Filename}", file.Name);
-                failed++;
             }
         }
 

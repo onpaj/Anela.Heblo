@@ -1,28 +1,18 @@
-using Anela.Heblo.Application.Features.KnowledgeBase;
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
-using Microsoft.Extensions.Options;
+using Anela.Heblo.Application.Shared.Rag;
 using Xunit;
 
 namespace Anela.Heblo.Tests.KnowledgeBase.Services;
 
 public class DocumentChunkerTests
 {
-    private static DocumentChunker CreateChunker(int chunkSize = 20, int overlapWords = 2)
-    {
-        var options = Options.Create(new KnowledgeBaseOptions
-        {
-            ChunkSize = chunkSize,
-            ChunkOverlapTokens = overlapWords
-        });
-        return new DocumentChunker(options);
-    }
+    private static WordWindowChunker CreateChunker() => new();
 
     [Fact]
     public void Chunk_ShortText_ReturnsSingleChunk()
     {
-        var chunker = CreateChunker(chunkSize: 200);
+        var chunker = CreateChunker();
         var text = "This is a short text.";
-        var chunks = chunker.Chunk(text);
+        var chunks = chunker.Chunk(text, size: 200, overlap: 20);
         Assert.Single(chunks);
         Assert.Equal(text, chunks[0]);
     }
@@ -31,7 +21,7 @@ public class DocumentChunkerTests
     public void Chunk_EmptyText_ReturnsEmpty()
     {
         var chunker = CreateChunker();
-        var chunks = chunker.Chunk(string.Empty);
+        var chunks = chunker.Chunk(string.Empty, size: 20, overlap: 2);
         Assert.Empty(chunks);
     }
 
@@ -39,19 +29,19 @@ public class DocumentChunkerTests
     public void Chunk_WhitespaceOnly_ReturnsEmpty()
     {
         var chunker = CreateChunker();
-        var chunks = chunker.Chunk("   \n\t  ");
+        var chunks = chunker.Chunk("   \n\t  ", size: 20, overlap: 2);
         Assert.Empty(chunks);
     }
 
     [Fact]
     public void Chunk_LongText_ReturnsMultipleChunksWithOverlap()
     {
-        var chunker = CreateChunker(chunkSize: 5, overlapWords: 1);
+        var chunker = CreateChunker();
         // 15 words → chunkSize=5, overlap=1, step=4
         // chunk 0: words 0-4 ("one two three four five")
         // chunk 1: words 4-8 ("five six seven eight nine") ← "five" is the overlap
         var text = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen";
-        var chunks = chunker.Chunk(text);
+        var chunks = chunker.Chunk(text, size: 5, overlap: 1);
         Assert.True(chunks.Count > 1);
         Assert.Contains("five", chunks[1]);
     }
@@ -59,9 +49,9 @@ public class DocumentChunkerTests
     [Fact]
     public void Chunk_CzechDiacritics_PreservesCharacters()
     {
-        var chunker = CreateChunker(chunkSize: 5, overlapWords: 1);
+        var chunker = CreateChunker();
         var text = "Přírodní kosmetika obsahuje šípkový olej česnek švestky třezalku meduňku heřmánek levanduli";
-        var chunks = chunker.Chunk(text);
+        var chunks = chunker.Chunk(text, size: 5, overlap: 1);
 
         Assert.NotEmpty(chunks);
         // All Czech characters should be preserved intact
@@ -75,12 +65,12 @@ public class DocumentChunkerTests
         const int chunkSize = 512;
         const int overlapWords = 50;
         const int wordCount = 10000;
-        var chunker = CreateChunker(chunkSize: chunkSize, overlapWords: overlapWords);
+        var chunker = CreateChunker();
 
         var words = Enumerable.Range(1, wordCount).Select(i => $"word{i}");
         var text = string.Join(" ", words);
 
-        var chunks = chunker.Chunk(text);
+        var chunks = chunker.Chunk(text, size: chunkSize, overlap: overlapWords);
 
         // Each chunk advances by (chunkSize - overlapWords) = 462 words
         // Expected: ceil(10000 / 462) ≈ 22 chunks (may vary by ±1 due to boundary)
@@ -99,12 +89,12 @@ public class DocumentChunkerTests
     public void Chunk_ExactlyChunkSizeWords_ReturnsSingleChunk()
     {
         const int chunkSize = 10;
-        var chunker = CreateChunker(chunkSize: chunkSize, overlapWords: 2);
+        var chunker = CreateChunker();
 
         var words = Enumerable.Range(1, chunkSize).Select(i => $"w{i}");
         var text = string.Join(" ", words);
 
-        var chunks = chunker.Chunk(text);
+        var chunks = chunker.Chunk(text, size: chunkSize, overlap: 2);
 
         Assert.Single(chunks);
         Assert.Equal(chunkSize, chunks[0].Split(' ').Length);
@@ -115,16 +105,45 @@ public class DocumentChunkerTests
     {
         const int chunkSize = 10;
         const int overlap = 2;
-        var chunker = CreateChunker(chunkSize: chunkSize, overlapWords: overlap);
+        var chunker = CreateChunker();
 
         var words = Enumerable.Range(1, chunkSize + 1).Select(i => $"w{i}");
         var text = string.Join(" ", words);
 
-        var chunks = chunker.Chunk(text);
+        var chunks = chunker.Chunk(text, size: chunkSize, overlap: overlap);
 
         Assert.Equal(2, chunks.Count);
         // Second chunk should start with the overlapping words
         var secondChunkWords = chunks[1].Split(' ');
         Assert.Equal($"w{chunkSize - overlap + 1}", secondChunkWords[0]);
+    }
+
+    [Fact]
+    public void Chunk_OverlapGreaterThanOrEqualToSize_DoesNotInfiniteLoop()
+    {
+        // Arrange: overlap >= size → step would be 0 without the Math.Max(1, ...) guard
+        var chunker = CreateChunker();
+        var words = Enumerable.Range(1, 20).Select(i => $"w{i}");
+        var text = string.Join(" ", words);
+
+        // Act: should terminate and return at least one chunk
+        var chunks = chunker.Chunk(text, size: 5, overlap: 5);
+
+        // Assert
+        Assert.NotEmpty(chunks);
+    }
+
+    [Fact]
+    public void Chunk_SingleWord_ReturnsSingleChunk()
+    {
+        // Arrange
+        var chunker = CreateChunker();
+
+        // Act
+        var chunks = chunker.Chunk("hello", size: 10, overlap: 2);
+
+        // Assert
+        Assert.Single(chunks);
+        Assert.Equal("hello", chunks[0]);
     }
 }

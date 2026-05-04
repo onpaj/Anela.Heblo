@@ -1,45 +1,41 @@
+using Anela.Heblo.Application.Features.Leaflet;
 using Anela.Heblo.Application.Features.Leaflet.Services;
+using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.Leaflet;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Anela.Heblo.Tests.Features.Leaflet.Services;
 
 public class LeafletIndexingServiceTests
 {
-    private readonly Mock<ILeafletChunker> _chunker;
+    private readonly Mock<IWordWindowChunker> _chunker;
     private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddings;
     private readonly Mock<ILeafletRepository> _repo;
     private readonly Mock<ILogger<LeafletIndexingService>> _logger;
+    private readonly LeafletOptions _options;
     private readonly LeafletIndexingService _service;
 
     public LeafletIndexingServiceTests()
     {
-        _chunker = new Mock<ILeafletChunker>();
+        _chunker = new Mock<IWordWindowChunker>();
         _embeddings = new Mock<IEmbeddingGenerator<string, Embedding<float>>>();
         _repo = new Mock<ILeafletRepository>();
         _logger = new Mock<ILogger<LeafletIndexingService>>();
+        _options = new LeafletOptions { ChunkSize = 800, ChunkOverlap = 80 };
 
         _service = new LeafletIndexingService(
             _chunker.Object,
             _embeddings.Object,
             _repo.Object,
-            _logger.Object);
+            _logger.Object,
+            Options.Create(_options));
     }
 
     private static LeafletDocument CreateDocument() =>
         new() { Id = Guid.NewGuid() };
-
-    private static LeafletChunk CreateChunk(Guid documentId, int index) =>
-        new()
-        {
-            Id = Guid.NewGuid(),
-            DocumentId = documentId,
-            ChunkIndex = index,
-            Content = $"chunk content {index}",
-            WordCount = 3,
-        };
 
     private static GeneratedEmbeddings<Embedding<float>> CreateEmbeddings(int count, float startValue = 0.1f) =>
         new(Enumerable.Range(0, count)
@@ -53,8 +49,8 @@ public class LeafletIndexingServiceTests
         // Arrange
         var document = CreateDocument();
         _chunker
-            .Setup(c => c.Chunk(It.IsAny<string>(), It.IsAny<Guid>()))
-            .Returns(Array.Empty<LeafletChunk>());
+            .Setup(c => c.Chunk(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Returns(Array.Empty<string>());
 
         // Act
         await _service.IndexAsync(string.Empty, document);
@@ -78,16 +74,11 @@ public class LeafletIndexingServiceTests
     {
         // Arrange
         var document = CreateDocument();
-        var chunks = new List<LeafletChunk>
-        {
-            CreateChunk(document.Id, 0),
-            CreateChunk(document.Id, 1),
-            CreateChunk(document.Id, 2),
-        };
+        var chunkTexts = new[] { "chunk content 0", "chunk content 1", "chunk content 2" };
 
         _chunker
-            .Setup(c => c.Chunk(It.IsAny<string>(), document.Id))
-            .Returns(chunks);
+            .Setup(c => c.Chunk(It.IsAny<string>(), _options.ChunkSize, _options.ChunkOverlap))
+            .Returns(chunkTexts);
 
         var generatedEmbeddings = CreateEmbeddings(3);
         _embeddings
@@ -123,16 +114,11 @@ public class LeafletIndexingServiceTests
     {
         // Arrange
         var document = CreateDocument();
-        var chunks = new List<LeafletChunk>
-        {
-            CreateChunk(document.Id, 0),
-            CreateChunk(document.Id, 1),
-            CreateChunk(document.Id, 2),
-        };
+        var chunkTexts = new[] { "chunk 0", "chunk 1", "chunk 2" };
 
         _chunker
-            .Setup(c => c.Chunk(It.IsAny<string>(), document.Id))
-            .Returns(chunks);
+            .Setup(c => c.Chunk(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Returns(chunkTexts);
 
         var twoEmbeddings = CreateEmbeddings(2);
         _embeddings
@@ -154,10 +140,9 @@ public class LeafletIndexingServiceTests
         var document = CreateDocument();
         var text = string.Join(' ', Enumerable.Range(1, 1500).Select(i => $"word{i}"));
 
-        var chunk = CreateChunk(document.Id, 0);
         _chunker
-            .Setup(c => c.Chunk(It.IsAny<string>(), document.Id))
-            .Returns(new List<LeafletChunk> { chunk });
+            .Setup(c => c.Chunk(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Returns(new[] { "single chunk" });
 
         var singleEmbedding = CreateEmbeddings(1);
         _embeddings
@@ -176,5 +161,49 @@ public class LeafletIndexingServiceTests
 
         // Assert
         Assert.Equal(1500, document.WordCount);
+    }
+
+    [Fact]
+    public async Task IndexAsync_builds_chunks_with_correct_metadata()
+    {
+        // Arrange
+        var document = CreateDocument();
+        var chunkTexts = new[] { "hello world", "world foo bar" };
+
+        _chunker
+            .Setup(c => c.Chunk(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Returns(chunkTexts);
+
+        var generatedEmbeddings = CreateEmbeddings(2);
+        _embeddings
+            .Setup(e => e.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(generatedEmbeddings);
+
+        IEnumerable<LeafletChunk>? capturedChunks = null;
+        _repo
+            .Setup(r => r.AddChunksAsync(It.IsAny<IEnumerable<LeafletChunk>>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<LeafletChunk>, CancellationToken>((c, _) => capturedChunks = c.ToList())
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _service.IndexAsync("hello world world foo bar", document);
+
+        // Assert
+        Assert.NotNull(capturedChunks);
+        var chunks = capturedChunks.ToList();
+        Assert.Equal(2, chunks.Count);
+
+        Assert.Equal(document.Id, chunks[0].DocumentId);
+        Assert.Equal(0, chunks[0].ChunkIndex);
+        Assert.Equal("hello world", chunks[0].Content);
+        Assert.Equal(2, chunks[0].WordCount);
+
+        Assert.Equal(document.Id, chunks[1].DocumentId);
+        Assert.Equal(1, chunks[1].ChunkIndex);
+        Assert.Equal("world foo bar", chunks[1].Content);
+        Assert.Equal(3, chunks[1].WordCount);
     }
 }

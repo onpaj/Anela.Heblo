@@ -1,36 +1,13 @@
-using System.ComponentModel.DataAnnotations;
+using Anela.Heblo.Application.Shared.Rag;
 
 namespace Anela.Heblo.Application.Features.Leaflet;
 
-public class LeafletOptions
+public class LeafletOptions : RagFeatureOptions
 {
     public const string SectionName = "Leaflet";
 
-    [Required]
-    public string DriveId { get; set; } = string.Empty;
-
-    [Required]
-    public string InboxPath { get; set; } = "/Leaflets/Inbox";
-
-    [Required]
-    public string ArchivedPath { get; set; } = "/Leaflets/Archived";
-
-    public int ChunkSizeWords { get; set; } = 800;
-    public int ChunkOverlapWords { get; set; } = 80;
-
     public int KbTopK { get; set; } = 8;
     public int LeafletTopK { get; set; } = 5;
-    public double MinSimilarityScore { get; set; } = 0.55;
-
-    [Required]
-    public string ChatModel { get; set; } = "claude-sonnet-4-6";
-
-    public int ChatMaxTokens { get; set; } = 2048;
-
-    [Required]
-    public string EmbeddingModel { get; set; } = "text-embedding-3-small";
-
-    public string IngestionCronExpression { get; set; } = "*/15 * * * *";
 
     public string Stage1SystemPrompt { get; set; } =
         "You extract factual ingredient and benefit information for cosmetics leaflets. " +
