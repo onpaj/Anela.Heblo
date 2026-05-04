@@ -88,6 +88,28 @@ public class DataQualitySchemaHealthCheckTests
         result.Exception.Should().BeSameAs(connectionException);
     }
 
+    [Fact]
+    public async Task CheckHealthAsync_WhenCancelled_ReturnsDegraded()
+    {
+        // Arrange
+        var cancelledException = new TaskCanceledException("probe cancelled");
+
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(databaseName: $"probe-cancelled-{Guid.NewGuid()}")
+            .Options;
+        await using var context = new ApplicationDbContext(options);
+        context.DqtRuns = BuildThrowingDbSet<DqtRun>(cancelledException);
+
+        var healthCheck = new DataQualitySchemaHealthCheck(context);
+
+        // Act
+        var result = await healthCheck.CheckHealthAsync(new HealthCheckContext(), CancellationToken.None);
+
+        // Assert
+        result.Status.Should().Be(HealthStatus.Degraded);
+        result.Description.Should().Be("DataQuality probe was cancelled");
+    }
+
     private static DbSet<T> BuildThrowingDbSet<T>(Exception toThrow) where T : class
     {
         var mockProvider = new Mock<IAsyncQueryProvider>();
