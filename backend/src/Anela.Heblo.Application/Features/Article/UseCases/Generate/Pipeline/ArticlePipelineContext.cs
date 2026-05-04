@@ -5,7 +5,7 @@ namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
 public class ArticlePipelineContext
 {
-    public DomainArticle Article { get; init; } = null!;
+    public required DomainArticle Article { get; init; }
     public List<string> SearchQueries { get; set; } = [];
     public List<ContextSnippet> ContextSnippets { get; set; } = [];
     public string? StyleGuideText { get; set; }

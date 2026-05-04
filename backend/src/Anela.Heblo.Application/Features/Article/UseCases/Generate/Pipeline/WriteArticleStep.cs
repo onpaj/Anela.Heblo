@@ -84,7 +84,7 @@ public class WriteArticleStep : IArticlePipelineStep
             .Replace("{length}", article.Length)
             .Replace("{angle}", article.Angle ?? "(nevyspecifikováno)")
             .Replace("{facts}", factsText)
-            .Replace("{style_guide}", "");
+            .Replace("{style_guide}", context.StyleGuideText ?? "");
     }
 
     private static string BuildFactsList(List<AggregatedFact> facts)

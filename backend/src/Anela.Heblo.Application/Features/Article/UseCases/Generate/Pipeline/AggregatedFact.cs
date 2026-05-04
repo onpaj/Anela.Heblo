@@ -1,10 +1,10 @@
 namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
-public class AggregatedFact
+public sealed record AggregatedFact
 {
-    public string Claim { get; set; } = "";
-    public double Confidence { get; set; }
-    public string? SourceUrl { get; set; }
-    public string? SourceTitle { get; set; }
-    public string? ValidationNote { get; set; }
+    public string Claim { get; init; } = "";
+    public double Confidence { get; init; }
+    public string? SourceUrl { get; init; }
+    public string? SourceTitle { get; init; }
+    public string? ValidationNote { get; init; }
 }

@@ -33,14 +33,16 @@ public sealed class ArticleOptions
     public string QueryPlannerSystemPrompt { get; set; } =
         """
         Jsi asistent kosmetické firmy Anela. Na základě zadaného tématu vygeneruj 6–8
-        vyhledávacích dotazů pro průzkum tématu. Odpověz výhradně JSON polem řetězců: ["dotaz1","dotaz2",...].
+        vyhledávacích dotazů pro průzkum tématu. Odpověz VÝHRADNĚ validním JSON bez markdown:
+        {"queries":["dotaz1","dotaz2",...]}
         Téma:
         """;
 
     public string AggregateFactsSystemPrompt { get; set; } =
         """
         Jsi redakční asistent. Na základě úryvků z různých zdrojů shrň klíčová fakta pro artikel.
-        Odpověz JSON objektem: {"facts":["fakt1","fakt2"],"sources_used":["url nebo název zdroje"]}.
+        Odpověz VÝHRADNĚ validním JSON bez markdown (žádné code fences):
+        {"facts":[{"claim":"tvrzení","confidence":0.9,"source_url":"url nebo null","source_title":"název zdroje nebo null"}],"summary":"shrnutí","gaps":"chybějící informace"}
         Kontext:
         """;
 

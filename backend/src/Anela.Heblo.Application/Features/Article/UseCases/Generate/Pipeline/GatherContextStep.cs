@@ -49,13 +49,14 @@ public class GatherContextStep : IArticlePipelineStep
 
         await Task.WhenAll(kbTask, webTask, styleGuideTask);
 
-        var kbSnippets = await kbTask;
-        var webSnippets = await webTask;
+        var kbSnippets = kbTask.Result;
+        var webSnippets = webTask.Result;
+        var styleGuideText = styleGuideTask.Result;
 
         var deduplicatedWeb = DeduplicateByUrl(webSnippets);
 
         context.ContextSnippets = [.. kbSnippets, .. deduplicatedWeb];
-        context.StyleGuideText = await styleGuideTask;
+        context.StyleGuideText = styleGuideText;
     }
 
     private async Task<List<ContextSnippet>> GatherKnowledgeBaseSnippetsAsync(

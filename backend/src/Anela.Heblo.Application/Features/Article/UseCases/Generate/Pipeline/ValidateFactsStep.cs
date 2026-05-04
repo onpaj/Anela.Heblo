@@ -56,7 +56,7 @@ public class ValidateFactsStep : IArticlePipelineStep
             if (parsed.ValidatedFacts == null)
                 return;
 
-            ApplyValidationNotes(context.Facts, parsed.ValidatedFacts);
+            context.Facts = ApplyValidationNotes(context.Facts, parsed.ValidatedFacts);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -64,15 +64,15 @@ public class ValidateFactsStep : IArticlePipelineStep
         }
     }
 
-    private static void ApplyValidationNotes(
+    private static List<AggregatedFact> ApplyValidationNotes(
         List<AggregatedFact> facts,
         List<ValidatedFactDto> validatedFacts)
     {
-        var count = Math.Min(facts.Count, validatedFacts.Count);
-        for (var i = 0; i < count; i++)
-        {
-            facts[i].ValidationNote = validatedFacts[i].Note;
-        }
+        return facts
+            .Select((f, i) => i < validatedFacts.Count
+                ? f with { ValidationNote = validatedFacts[i].Note }
+                : f)
+            .ToList();
     }
 
     private sealed record ValidatedFactsResponse(
