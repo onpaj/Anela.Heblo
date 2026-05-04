@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using Anela.Heblo.Application.Shared.WebSearch;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,10 @@ public class SerpApiWebSearchClient : IWebSearchClient
             MaxRetryAttempts = 3,
             Delay = TimeSpan.FromSeconds(2),
             BackoffType = DelayBackoffType.Exponential,
-            ShouldHandle = new PredicateBuilder().Handle<HttpRequestException>()
+            ShouldHandle = new PredicateBuilder().Handle<HttpRequestException>(ex =>
+            ex.StatusCode == HttpStatusCode.TooManyRequests ||
+            ex.StatusCode == HttpStatusCode.ServiceUnavailable ||
+            ex.StatusCode is null) // null = network-level error (no HTTP response)
         })
         .Build();
 
@@ -43,6 +47,7 @@ public class SerpApiWebSearchClient : IWebSearchClient
         var geo = options.Geo ?? _options.DefaultGeo;
         var num = options.Top;
 
+        // NOTE: SerpAPI requires the key as a query param. Do NOT add a URL-logging DelegatingHandler to this client.
         var url = $"{_options.Endpoint}?q={Uri.EscapeDataString(query)}&hl={locale}&gl={geo}&num={num}&api_key={_options.ApiKey}";
 
         _logger.LogDebug("Web search: {Query} (locale={Locale}, geo={Geo}, top={Top})", query, locale, geo, num);
@@ -57,7 +62,7 @@ public class SerpApiWebSearchClient : IWebSearchClient
         return ParseSerpApiResponse(query, json);
     }
 
-    private static WebSearchResult ParseSerpApiResponse(string query, string json)
+    private WebSearchResult ParseSerpApiResponse(string query, string json)
     {
         var result = new WebSearchResult { Query = query };
         try
@@ -66,19 +71,21 @@ public class SerpApiWebSearchClient : IWebSearchClient
             if (!doc.RootElement.TryGetProperty("organic_results", out var organic))
                 return result;
 
+            var hits = new List<WebSearchHit>();
             foreach (var item in organic.EnumerateArray())
             {
-                result.Hits.Add(new WebSearchHit
+                hits.Add(new WebSearchHit
                 {
                     Title = item.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "",
                     Url = item.TryGetProperty("link", out var l) ? l.GetString() ?? "" : "",
                     Snippet = item.TryGetProperty("snippet", out var s) ? s.GetString() ?? "" : ""
                 });
             }
+            result.Hits = hits;
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            // return empty result on parse failure
+            _logger.LogWarning(ex, "Failed to parse SerpAPI response for query {Query}", query);
         }
         return result;
     }

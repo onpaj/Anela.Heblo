@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Shared.WebSearch;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.WebSearch;
 
@@ -12,8 +13,8 @@ public static class WebSearchAdapterServiceCollectionExtensions
 
         services.AddHttpClient("SerpApi", (sp, client) =>
         {
-            var timeout = configuration.GetValue("WebSearch:TimeoutSeconds", 15);
-            client.Timeout = TimeSpan.FromSeconds(timeout);
+            var opts = sp.GetRequiredService<IOptions<WebSearchAdapterOptions>>().Value;
+            client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
         });
 
         var provider = configuration["WebSearch:Provider"] ?? "Mock";
