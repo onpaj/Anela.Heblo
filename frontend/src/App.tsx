@@ -36,6 +36,7 @@ import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
+import ArticlesPage from "./pages/ArticlesPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
 import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
 import AuthGuard from "./components/auth/AuthGuard";
@@ -468,6 +469,10 @@ function App() {
                         <Route
                           path="/knowledge-base/feedback"
                           element={<KnowledgeBaseFeedbackPage />}
+                        />
+                        <Route
+                          path="/articles"
+                          element={<ArticlesPage />}
                         />
                         <Route
                           path="/automation/data-quality"
