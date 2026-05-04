@@ -1,0 +1,3 @@
+Design document written to `artifacts/feat-taskcanceledexception-spike-in-get-healt/design.r1.md`.
+
+It covers four components — DI registration order, the rewired `AddHealthCheckServices`, the hardened `DataQualitySchemaHealthCheck`, and three test classes — plus the data schemas: the new `HealthChecks:ProbeTimeoutSeconds` config key, the structured cancellation log event shape, and the frozen HTTP response contract with the `Degraded → 200` acceptance gate called out explicitly.
