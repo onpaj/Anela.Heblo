@@ -80,9 +80,9 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddHealthCheckServices(this IServiceCollection services, IConfiguration configuration)
     {
         var probeTimeoutSeconds = configuration.GetValue<int>("HealthChecks:ProbeTimeoutSeconds", 5);
-        var probeTimeout = probeTimeoutSeconds > 0
+        TimeSpan? probeTimeout = probeTimeoutSeconds > 0
             ? TimeSpan.FromSeconds(probeTimeoutSeconds)
-            : default; // 0 or negative disables per-check timeout
+            : null; // 0 or negative disables per-check timeout
 
         var healthChecksBuilder = services.AddHealthChecks()
             .AddCheck<Anela.Heblo.Application.Common.BackgroundServicesReadyHealthCheck>(
