@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Bank;
@@ -14,6 +15,7 @@ using Anela.Heblo.Persistence.Dashboard;
 using Anela.Heblo.Persistence.Features.Bank;
 using Anela.Heblo.Persistence.Infrastructure;
 using Anela.Heblo.Persistence.InvoiceClassification;
+using Anela.Heblo.Persistence.Features.Article;
 using Anela.Heblo.Persistence.Features.Leaflet;
 using Anela.Heblo.Persistence.KnowledgeBase;
 using Anela.Heblo.Xcc.Services.Dashboard;
@@ -125,6 +127,9 @@ public static class PersistenceModule
 
         // Leaflet repositories
         services.AddScoped<ILeafletRepository, LeafletRepository>();
+
+        // Article repositories
+        services.AddScoped<IArticleRepository, ArticleRepository>();
 
         // Grid Layouts repositories
         services.AddScoped<IGridLayoutRepository, GridLayoutRepository>();

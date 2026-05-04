@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Marketing;
@@ -86,6 +87,10 @@ public class ApplicationDbContext : DbContext
     // Leaflet module
     public DbSet<LeafletDocument> LeafletDocuments { get; set; } = null!;
     public DbSet<LeafletChunk> LeafletChunks { get; set; } = null!;
+
+    // Article module
+    public DbSet<Article> Articles { get; set; } = null!;
+    public DbSet<ArticleSource> ArticleSources { get; set; } = null!;
 
     // Grid Layouts module
     public DbSet<GridLayout> GridLayouts { get; set; } = null!;
