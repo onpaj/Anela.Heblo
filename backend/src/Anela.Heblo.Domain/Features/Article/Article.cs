@@ -24,4 +24,22 @@ public sealed class Article
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? GeneratedAt { get; set; }
     public List<ArticleSource> Sources { get; set; } = new();
+
+    public void MarkAsResearching() => Status = ArticleStatus.Researching;
+
+    public void MarkAsWriting() => Status = ArticleStatus.Writing;
+
+    public void MarkAsGenerated(string? title, string? htmlContent)
+    {
+        Title = title;
+        HtmlContent = htmlContent;
+        Status = ArticleStatus.Generated;
+        GeneratedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void MarkAsFailed(string errorMessage)
+    {
+        Status = ArticleStatus.Failed;
+        ErrorMessage = errorMessage.Length > 500 ? errorMessage[..500] : errorMessage;
+    }
 }

@@ -7,7 +7,7 @@ using DomainArticle = Anela.Heblo.Domain.Features.Article.Article;
 namespace Anela.Heblo.Application.Features.Article.UseCases.Generate;
 
 [AutomaticRetry(Attempts = 0)]
-public class GenerateArticleJob
+public sealed class GenerateArticleJob
 {
     private readonly IArticleRepository _repository;
     private readonly PlanQueriesStep _planQueries;
@@ -46,7 +46,7 @@ public class GenerateArticleJob
 
         try
         {
-            article.Status = ArticleStatus.Researching;
+            article.MarkAsResearching();
             await _repository.SaveChangesAsync(ct);
 
             var context = new ArticlePipelineContext { Article = article };
@@ -55,15 +55,12 @@ public class GenerateArticleJob
             await _aggregateFacts.ExecuteAsync(context, ct);
             await _validateFacts.ExecuteAsync(context, ct);
 
-            article.Status = ArticleStatus.Writing;
+            article.MarkAsWriting();
             await _repository.SaveChangesAsync(ct);
 
             await _writeArticle.ExecuteAsync(context, ct);
 
-            article.Title = context.GeneratedTitle;
-            article.HtmlContent = context.GeneratedHtml;
-            article.Status = ArticleStatus.Generated;
-            article.GeneratedAt = DateTimeOffset.UtcNow;
+            article.MarkAsGenerated(context.GeneratedTitle, context.GeneratedHtml);
 
             foreach (var (title, url, sourceType) in context.SourceRefs)
             {
@@ -81,13 +78,14 @@ public class GenerateArticleJob
         }
         catch (OperationCanceledException)
         {
+            article.MarkAsFailed("Job cancelled.");
+            await _repository.SaveChangesAsync(CancellationToken.None);
             throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "GenerateArticleJob failed for article {Id}", articleId);
-            article.Status = ArticleStatus.Failed;
-            article.ErrorMessage = ex.Message.Length > 500 ? ex.Message[..500] : ex.Message;
+            article.MarkAsFailed(ex.Message);
             await _repository.SaveChangesAsync(CancellationToken.None);
         }
     }

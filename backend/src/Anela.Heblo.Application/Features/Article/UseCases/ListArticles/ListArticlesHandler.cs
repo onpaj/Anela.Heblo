@@ -3,7 +3,7 @@ using MediatR;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.ListArticles;
 
-public class ListArticlesHandler : IRequestHandler<ListArticlesRequest, ListArticlesResponse>
+public sealed class ListArticlesHandler : IRequestHandler<ListArticlesRequest, ListArticlesResponse>
 {
     private readonly IArticleRepository _repository;
 

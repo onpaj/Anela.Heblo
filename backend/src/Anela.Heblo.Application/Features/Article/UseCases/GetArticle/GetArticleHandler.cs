@@ -4,7 +4,7 @@ using MediatR;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.GetArticle;
 
-public class GetArticleHandler : IRequestHandler<GetArticleRequest, GetArticleResponse>
+public sealed class GetArticleHandler : IRequestHandler<GetArticleRequest, GetArticleResponse>
 {
     private readonly IArticleRepository _repository;
 
@@ -17,6 +17,9 @@ public class GetArticleHandler : IRequestHandler<GetArticleRequest, GetArticleRe
         GetArticleRequest request,
         CancellationToken cancellationToken)
     {
+        if (request.Id == Guid.Empty)
+            return new GetArticleResponse(ErrorCodes.ResourceNotFound, new Dictionary<string, string> { { "id", "empty" } });
+
         var article = await _repository.GetByIdAsync(request.Id, cancellationToken);
         if (article == null)
         {

@@ -2,7 +2,7 @@ using Anela.Heblo.Application.Shared;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.GetArticle;
 
-public class GetArticleResponse : BaseResponse
+public sealed class GetArticleResponse : BaseResponse
 {
     public Guid Id { get; set; }
     public string Topic { get; set; } = string.Empty;
@@ -24,11 +24,4 @@ public class GetArticleResponse : BaseResponse
 
     public GetArticleResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)
         : base(errorCode, parameters) { }
-}
-
-public class ArticleSourceDto
-{
-    public string Title { get; set; } = string.Empty;
-    public string? Url { get; set; }
-    public string Type { get; set; } = string.Empty;
 }

@@ -7,7 +7,7 @@ using DomainArticle = Anela.Heblo.Domain.Features.Article.Article;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.GenerateArticle;
 
-public class GenerateArticleHandler : IRequestHandler<GenerateArticleRequest, GenerateArticleResponse>
+public sealed class GenerateArticleHandler : IRequestHandler<GenerateArticleRequest, GenerateArticleResponse>
 {
     private readonly IArticleRepository _repository;
     private readonly IBackgroundJobClient _backgroundJobClient;
