@@ -75,7 +75,7 @@ public class KnowledgeBaseIngestionJob : IRecurringJob
                         DocumentType = mapping.DocumentType
                     }, cancellationToken);
 
-                    await _oneDrive.MoveToArchivedAsync(mapping.DriveId, file.Id, file.Name, mapping.ArchivedPath, cancellationToken);
+                    _ = await _oneDrive.MoveToArchivedAsync(mapping.DriveId, file.Id, file.Name, mapping.ArchivedPath, cancellationToken);
 
                     if (result.WasDuplicate)
                     {

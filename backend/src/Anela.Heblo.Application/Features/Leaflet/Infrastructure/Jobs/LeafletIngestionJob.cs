@@ -74,7 +74,7 @@ public class LeafletIngestionJob : IRecurringJob
                         Content = content
                     }, cancellationToken);
 
-                    await _oneDrive.MoveToArchivedAsync(folder.DriveId, file.Id, file.Name, folder.ArchivedPath, cancellationToken);
+                    _ = await _oneDrive.MoveToArchivedAsync(folder.DriveId, file.Id, file.Name, folder.ArchivedPath, cancellationToken);
 
                     if (result.WasDuplicate)
                     {
