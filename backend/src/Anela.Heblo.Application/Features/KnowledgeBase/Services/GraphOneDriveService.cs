@@ -113,4 +113,21 @@ public class GraphOneDriveService : IOneDriveService
 
         return movedItem.WebUrl;
     }
+
+    public async Task<string> DownloadFileTextByPathAsync(string driveId, string path, CancellationToken ct = default)
+    {
+        _logger.LogDebug("Downloading text file from SharePoint drive {DriveId} at path {Path}", driveId, path);
+
+        var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
+        using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
+
+        var encodedPath = GraphApiHelpers.EncodePath(path);
+        var url = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:/content";
+
+        var request = GraphApiHelpers.CreateRequest(HttpMethod.Get, url, token);
+        var response = await client.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadAsStringAsync(ct);
+    }
 }
