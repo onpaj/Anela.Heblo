@@ -53,7 +53,7 @@ public class AggregateFactsStep : IArticlePipelineStep
         var raw = response.Text ?? string.Empty;
         var fallback = BuildFallback(snippets);
 
-        var parsed = JsonResponseParser.ParseOrFallback<AggregateResponse>(raw, fallback, _logger);
+        var parsed = JsonResponseParser.ParseOrFallback<AggregateOutput>(raw, fallback, _logger);
 
         context.Facts = (parsed.Facts ?? [])
             .Select(dto => new AggregatedFact
@@ -88,16 +88,16 @@ public class AggregateFactsStep : IArticlePipelineStep
         return sb.ToString();
     }
 
-    private static AggregateResponse BuildFallback(List<ContextSnippet> snippets)
+    private static AggregateOutput BuildFallback(List<ContextSnippet> snippets)
     {
         var summary = string.Join(" ", snippets.Select(s => s.Excerpt));
         if (summary.Length > 2000)
             summary = summary[..2000];
 
-        return new AggregateResponse(null, summary, null);
+        return new AggregateOutput(null, summary, null);
     }
 
-    private sealed record AggregateResponse(
+    private sealed record AggregateOutput(
         [property: JsonPropertyName("facts")] List<FactDto>? Facts,
         [property: JsonPropertyName("summary")] string? Summary,
         [property: JsonPropertyName("gaps")] string? Gaps);

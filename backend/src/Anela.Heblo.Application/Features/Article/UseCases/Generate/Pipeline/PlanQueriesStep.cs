@@ -49,7 +49,7 @@ public class PlanQueriesStep : IArticlePipelineStep
         var raw = response.Text ?? string.Empty;
         var fallback = BuildFallback(topic);
 
-        var parsed = JsonResponseParser.ParseOrFallback<QueryPlanResponse>(raw, new QueryPlanResponse([]), _logger);
+        var parsed = JsonResponseParser.ParseOrFallback<QueryPlanOutput>(raw, new QueryPlanOutput([]), _logger);
         var queries = parsed.Queries is { Count: > 0 }
             ? parsed.Queries.Take(MaxQueries).ToList()
             : fallback;
@@ -60,6 +60,6 @@ public class PlanQueriesStep : IArticlePipelineStep
     private static List<string> BuildFallback(string topic) =>
         [topic, $"{topic} statistiky", $"{topic} recenze"];
 
-    private sealed record QueryPlanResponse(
+    private sealed record QueryPlanOutput(
         [property: JsonPropertyName("queries")] List<string> Queries);
 }

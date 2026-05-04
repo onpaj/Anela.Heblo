@@ -50,8 +50,8 @@ public class WriteArticleStep : IArticlePipelineStep
 
         var raw = response.Text ?? string.Empty;
 
-        var fallback = new WriteArticleResponse(article.Topic, $"<p>{raw}</p>", null);
-        var parsed = JsonResponseParser.ParseOrFallback<WriteArticleResponse>(raw, fallback, _logger);
+        var fallback = new WriteArticleOutput(article.Topic, $"<p>{raw}</p>", null);
+        var parsed = JsonResponseParser.ParseOrFallback<WriteArticleOutput>(raw, fallback, _logger);
 
         context.GeneratedTitle = parsed.ArticleTitle ?? article.Topic;
         context.GeneratedHtml = parsed.ArticleHtml ?? $"<p>{raw}</p>";
@@ -124,7 +124,7 @@ public class WriteArticleStep : IArticlePipelineStep
             .ToList();
     }
 
-    private sealed record WriteArticleResponse(
+    private sealed record WriteArticleOutput(
         [property: JsonPropertyName("article_title")] string? ArticleTitle,
         [property: JsonPropertyName("article_html")] string? ArticleHtml,
         [property: JsonPropertyName("sources_used")] List<SourceUsedDto>? SourcesUsed);

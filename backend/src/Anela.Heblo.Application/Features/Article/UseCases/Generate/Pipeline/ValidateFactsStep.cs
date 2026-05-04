@@ -48,9 +48,9 @@ public class ValidateFactsStep : IArticlePipelineStep
                 ct);
 
             var raw = response.Text ?? string.Empty;
-            var parsed = JsonResponseParser.ParseOrFallback<ValidatedFactsResponse>(
+            var parsed = JsonResponseParser.ParseOrFallback<ValidatedFactsOutput>(
                 raw,
-                new ValidatedFactsResponse(null),
+                new ValidatedFactsOutput(null),
                 _logger);
 
             if (parsed.ValidatedFacts == null)
@@ -75,7 +75,7 @@ public class ValidateFactsStep : IArticlePipelineStep
             .ToList();
     }
 
-    private sealed record ValidatedFactsResponse(
+    private sealed record ValidatedFactsOutput(
         [property: JsonPropertyName("validated_facts")] List<ValidatedFactDto>? ValidatedFacts);
 
     private sealed record ValidatedFactDto(
