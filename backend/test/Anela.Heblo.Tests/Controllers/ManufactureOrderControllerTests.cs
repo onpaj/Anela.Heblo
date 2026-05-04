@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrd
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.DuplicateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
@@ -724,6 +725,84 @@ public class ManufactureOrderControllerTests
         // Assert
         result.Result.Should().BeOfType<NotFoundObjectResult>();
         _mediatorMock.Verify(m => m.Send(It.Is<GetGroupMembersRequest>(r => r.GroupId == groupId), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    #endregion
+
+    #region ConfirmSemiProductManufacture Tests
+
+    [Fact]
+    public async Task ConfirmSemiProductManufacture_Should_Return_Ok_When_Successful()
+    {
+        // Arrange
+        var orderId = 1;
+        var request = new ConfirmSemiProductManufactureRequest { Id = orderId, ActualQuantity = 10m };
+        var result = new ConfirmSemiProductManufactureResult(true, "Potvrzeno se skutečným množstvím 10");
+
+        _applicationServiceMock
+            .Setup(s => s.ConfirmSemiProductManufactureAsync(orderId, request.ActualQuantity, request.ChangeReason, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
+
+        // Act
+        var actionResult = await _controller.ConfirmSemiProductManufacture(orderId, request);
+
+        // Assert
+        actionResult.Result.Should().BeOfType<OkObjectResult>();
+    }
+
+    [Fact]
+    public async Task ConfirmSemiProductManufacture_Should_Return_500_When_InternalServerError()
+    {
+        // Arrange
+        var orderId = 1;
+        var request = new ConfirmSemiProductManufactureRequest { Id = orderId, ActualQuantity = 10m };
+        var result = new ConfirmSemiProductManufactureResult(false, "DB error", ErrorCodes.InternalServerError);
+
+        _applicationServiceMock
+            .Setup(s => s.ConfirmSemiProductManufactureAsync(orderId, request.ActualQuantity, request.ChangeReason, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
+
+        // Act
+        var actionResult = await _controller.ConfirmSemiProductManufacture(orderId, request);
+
+        // Assert
+        var statusResult = actionResult.Result.Should().BeOfType<ObjectResult>().Subject;
+        statusResult.StatusCode.Should().Be(500);
+    }
+
+    [Fact]
+    public async Task ConfirmSemiProductManufacture_Should_Return_502_When_ErpGatewayError()
+    {
+        // Arrange
+        var orderId = 1;
+        var request = new ConfirmSemiProductManufactureRequest { Id = orderId, ActualQuantity = 10m };
+        var result = new ConfirmSemiProductManufactureResult(false, "ERP timeout", ErrorCodes.ErpGatewayError);
+
+        _applicationServiceMock
+            .Setup(s => s.ConfirmSemiProductManufactureAsync(orderId, request.ActualQuantity, request.ChangeReason, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(result);
+
+        // Act
+        var actionResult = await _controller.ConfirmSemiProductManufacture(orderId, request);
+
+        // Assert
+        var statusResult = actionResult.Result.Should().BeOfType<ObjectResult>().Subject;
+        statusResult.StatusCode.Should().Be(502);
+    }
+
+    [Fact]
+    public async Task ConfirmSemiProductManufacture_Should_Return_BadRequest_When_Id_Mismatch()
+    {
+        // Arrange
+        var request = new ConfirmSemiProductManufactureRequest { Id = 2, ActualQuantity = 10m };
+
+        // Act
+        var actionResult = await _controller.ConfirmSemiProductManufacture(1, request);
+
+        // Assert
+        actionResult.Result.Should().BeOfType<BadRequestObjectResult>();
+        _applicationServiceMock.Verify(s => s.ConfirmSemiProductManufactureAsync(
+            It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     #endregion
