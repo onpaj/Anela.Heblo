@@ -166,10 +166,13 @@ public class LeafletRepository : ILeafletRepository
         string? filenameFilter, LeafletDocumentStatus? statusFilter, string? contentTypeFilter,
         CancellationToken ct = default)
     {
-        var query = _context.LeafletDocuments.AsQueryable();
+        var query = _context.LeafletDocuments.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrEmpty(filenameFilter))
-            query = query.Where(d => EF.Functions.Like(d.Filename, $"%{filenameFilter}%"));
+        {
+            var escaped = filenameFilter.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+            query = query.Where(d => EF.Functions.Like(d.Filename, $"%{escaped}%", "\\"));
+        }
 
         if (statusFilter.HasValue)
             query = query.Where(d => d.Status == statusFilter.Value);
@@ -205,6 +208,7 @@ public class LeafletRepository : ILeafletRepository
     public async Task<IReadOnlyList<string>> GetDistinctContentTypesAsync(CancellationToken ct = default)
     {
         return await _context.LeafletDocuments
+            .AsNoTracking()
             .Select(d => d.ContentType)
             .Distinct()
             .OrderBy(c => c)

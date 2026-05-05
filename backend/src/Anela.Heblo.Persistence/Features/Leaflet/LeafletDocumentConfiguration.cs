@@ -29,7 +29,8 @@ public class LeafletDocumentConfiguration : IEntityTypeConfiguration<LeafletDocu
         builder.Property(x => x.IndexedAt)
             .HasColumnType("timestamp without time zone");
 
-        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.Status)
+            .HasDatabaseName("IX_LeafletDocuments_Status");
 
         builder.HasIndex(x => x.ContentHash)
             .HasDatabaseName("IX_LeafletDocuments_ContentHash");
