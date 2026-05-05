@@ -995,6 +995,10 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<Guid>("DocumentId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<int>("WordCount")
                         .HasColumnType("integer");
 
@@ -1054,7 +1058,8 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("ContentHash")
                         .HasDatabaseName("IX_LeafletDocuments_ContentHash");
 
-                    b.HasIndex("Status");
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_LeafletDocuments_Status");
 
                     b.HasIndex("DriveId", "GraphItemId")
                         .IsUnique()
