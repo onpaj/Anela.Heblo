@@ -23,7 +23,7 @@ public class MockPhotobankGraphService : IPhotobankGraphService
         string driveId,
         string rootItemId,
         string? deltaLink,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
         return Task.FromResult(new GraphDeltaResult
         {
@@ -32,14 +32,14 @@ public class MockPhotobankGraphService : IPhotobankGraphService
         });
     }
 
-    public Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken ct = default)
+    public Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken cancellationToken = default)
         => Task.FromResult("mock-item-id");
 
     public Task<GraphThumbnail?> GetThumbnailAsync(
         string driveId,
         string fileId,
         ThumbnailSize size,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
         GraphThumbnail? result = new GraphThumbnail(
             new MemoryStream(MinimalPng),

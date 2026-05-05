@@ -118,17 +118,19 @@ namespace Anela.Heblo.API.Controllers
                 return NotFound();
             }
 
-            GraphThumbnail? thumbnail;
+            GraphThumbnail? rawThumbnail;
             try
             {
-                thumbnail = await _photobankGraphService.GetThumbnailAsync(
+                rawThumbnail = await _photobankGraphService.GetThumbnailAsync(
                     locator.DriveId, locator.SharePointFileId, size, cancellationToken);
             }
             catch (GraphThrottledException ex)
             {
+                Logger.LogWarning("Microsoft Graph thumbnail request throttled for photo {PhotoId}. RetryAfter: {RetryAfter}",
+                    id, ex.RetryAfter);
                 if (ex.RetryAfter.HasValue)
                 {
-                    Response.Headers["Retry-After"] = ((long)ex.RetryAfter.Value.TotalSeconds).ToString();
+                    Response.Headers["Retry-After"] = ((long)Math.Ceiling(ex.RetryAfter.Value.TotalSeconds)).ToString();
                 }
                 return StatusCode(StatusCodes.Status503ServiceUnavailable);
             }
@@ -138,12 +140,16 @@ namespace Anela.Heblo.API.Controllers
                 return StatusCode(StatusCodes.Status502BadGateway);
             }
 
-            if (thumbnail is null)
+            if (rawThumbnail is null)
             {
                 return NotFound();
             }
 
+            using var thumbnail = rawThumbnail;
+
             Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+            if (thumbnail.ContentLength.HasValue)
+                Response.ContentLength = thumbnail.ContentLength;
 
             return new FileStreamResult(thumbnail.Content, thumbnail.ContentType);
         }
