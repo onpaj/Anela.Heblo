@@ -80,8 +80,8 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
       {/* Thumbnail */}
       <div className="p-3 border-b border-gray-100">
         <PhotoThumbnail
-          driveId={photo.driveId}
-          fileId={photo.sharePointFileId}
+          photoId={photo.id}
+          modifiedAt={photo.lastModifiedAt}
           alt={photo.name}
           className="w-full aspect-square"
           size="large"
