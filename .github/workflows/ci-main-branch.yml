@@ -101,11 +101,6 @@ jobs:
           dotnet build backend/test/Anela.Heblo.Adapters.Shoptet.Tests --configuration Release --no-restore
           dotnet build backend/test/Anela.Heblo.Adapters.Flexi.Tests --configuration Release --no-restore
 
-      - name: 🎭 Install Playwright for Shoptet tests
-        run: |
-          cd backend/test/Anela.Heblo.Adapters.Shoptet.Tests
-          pwsh bin/Release/net8.0/playwright.ps1 install chromium
-
       - name: 🧪 Run tests with coverage (excluding Playwright integration tests)
         run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage --filter "Category!=Playwright&Category!=Integration" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
         env:
@@ -113,10 +108,6 @@ jobs:
           # Shoptet integration test configuration
           StockClient__Url: ${{ secrets.SHOPTET_STOCK_URL }}
           ProductPriceOptions__ProductExportUrl: ${{ secrets.SHOPTET_PRODUCT_EXPORT_URL }}
-          ShoptetPlaywright__ShopEntryUrl: ${{ secrets.SHOPTET_TEST_URL }}
-          ShoptetPlaywright__Login: ${{ secrets.SHOPTET_TEST_USERNAME }}
-          ShoptetPlaywright__Password: ${{ secrets.SHOPTET_TEST_PASSWORD }}
-          ShoptetPlaywright__Headless: true
           # FlexiBee integration test configuration
           FlexiBeeSettings__Server: ${{ secrets.FLEXIBEE_SERVER_URL }}
           FlexiBeeSettings__Login: ${{ secrets.FLEXIBEE_USERNAME }}
