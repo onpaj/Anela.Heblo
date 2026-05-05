@@ -23,12 +23,13 @@ const LeafletChunkDetailModal: React.FC<LeafletChunkDetailModalProps> = ({ chunk
     <div
       role='dialog'
       aria-modal='true'
+      aria-labelledby='chunk-modal-title'
       className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'
     >
       <div className='bg-white rounded-lg shadow-xl w-[75vw] max-h-[90vh] overflow-hidden flex flex-col'>
         {/* Header */}
         <div className='flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0'>
-          <h2 className='text-base font-semibold text-gray-800 truncate'>
+          <h2 id='chunk-modal-title' className='text-base font-semibold text-gray-800 truncate'>
             {data?.filename ?? 'Zdroj'}
           </h2>
           <button

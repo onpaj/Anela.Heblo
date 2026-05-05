@@ -25,15 +25,19 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 
 const ConfirmDeleteDialog: React.FC<{
   document: LeafletDocumentSummary;
+  error: string | null;
   onConfirm: () => void;
   onCancel: () => void;
-}> = ({ document, onConfirm, onCancel }) => (
+}> = ({ document, error, onConfirm, onCancel }) => (
   <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
     <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
       <h2 className="text-lg font-semibold mb-2">Smazat dokument?</h2>
       <p className="text-sm text-gray-600 mb-4">
         Opravdu chcete smazat <strong>{document.filename}</strong>? Tato akce je nevratná.
       </p>
+      {error && (
+        <p className="text-sm text-red-600 mb-3">{error}</p>
+      )}
       <div className="flex justify-end gap-2">
         <button
           onClick={onCancel}
@@ -51,6 +55,36 @@ const ConfirmDeleteDialog: React.FC<{
     </div>
   </div>
 );
+
+interface SortableHeaderProps {
+  column: string;
+  sortBy: string;
+  sortDescending: boolean;
+  onSort: (column: string) => void;
+  children: React.ReactNode;
+}
+
+const SortableHeader: React.FC<SortableHeaderProps> = ({ column, sortBy, sortDescending, onSort, children }) => {
+  const isActive = sortBy === column;
+  return (
+    <th
+      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+      onClick={() => onSort(column)}
+    >
+      <div className="flex items-center space-x-1">
+        <span>{children}</span>
+        <div className="flex flex-col">
+          <ChevronUp
+            className={`h-3 w-3 ${isActive && !sortDescending ? 'text-indigo-600' : 'text-gray-300'}`}
+          />
+          <ChevronDown
+            className={`h-3 w-3 -mt-1 ${isActive && sortDescending ? 'text-indigo-600' : 'text-gray-300'}`}
+          />
+        </div>
+      </div>
+    </th>
+  );
+};
 
 interface Props {
   canDelete: boolean;
@@ -89,6 +123,7 @@ const LeafletDocumentsTab: React.FC<Props> = ({ canDelete }) => {
   const [filenameInput, setFilenameInput] = useState(getInitialFilenameFilter);
 
   const [pendingDelete, setPendingDelete] = useState<LeafletDocumentSummary | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [selectedChunkId, setSelectedChunkId] = useState<string | null>(null);
 
   const { data, isLoading, error } = useLeafletDocumentsQuery({
@@ -201,40 +236,22 @@ const LeafletDocumentsTab: React.FC<Props> = ({ canDelete }) => {
 
   const handleDeleteConfirm = async () => {
     if (!pendingDelete) return;
+    setDeleteError(null);
     try {
       await deleteDocument.mutateAsync(pendingDelete.id);
-    } finally {
       setPendingDelete(null);
+    } catch {
+      setDeleteError('Smazání se nezdařilo. Zkuste to znovu.');
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setPendingDelete(null);
+    setDeleteError(null);
   };
 
   const totalPages = data?.totalPages ?? 0;
   const documents = data?.documents ?? [];
-
-  const SortableHeader: React.FC<{ column: string; children: React.ReactNode }> = ({
-    column,
-    children,
-  }) => {
-    const isActive = sortBy === column;
-    return (
-      <th
-        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-        onClick={() => handleSort(column)}
-      >
-        <div className="flex items-center space-x-1">
-          <span>{children}</span>
-          <div className="flex flex-col">
-            <ChevronUp
-              className={`h-3 w-3 ${isActive && !sortDescending ? 'text-indigo-600' : 'text-gray-300'}`}
-            />
-            <ChevronDown
-              className={`h-3 w-3 -mt-1 ${isActive && sortDescending ? 'text-indigo-600' : 'text-gray-300'}`}
-            />
-          </div>
-        </div>
-      </th>
-    );
-  };
 
   if (isLoading) {
     return (
@@ -339,10 +356,10 @@ const LeafletDocumentsTab: React.FC<Props> = ({ canDelete }) => {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <SortableHeader column="Filename">Soubor</SortableHeader>
-                  <SortableHeader column="Status">Stav</SortableHeader>
-                  <SortableHeader column="CreatedAt">Vytvořeno</SortableHeader>
-                  <SortableHeader column="IndexedAt">Indexováno</SortableHeader>
+                  <SortableHeader column="Filename" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort}>Soubor</SortableHeader>
+                  <SortableHeader column="Status" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort}>Stav</SortableHeader>
+                  <SortableHeader column="CreatedAt" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort}>Vytvořeno</SortableHeader>
+                  <SortableHeader column="IndexedAt" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort}>Indexováno</SortableHeader>
                   {canDelete && <th className="px-6 py-3" />}
                 </tr>
               </thead>
@@ -478,8 +495,9 @@ const LeafletDocumentsTab: React.FC<Props> = ({ canDelete }) => {
       {pendingDelete && (
         <ConfirmDeleteDialog
           document={pendingDelete}
+          error={deleteError}
           onConfirm={handleDeleteConfirm}
-          onCancel={() => setPendingDelete(null)}
+          onCancel={handleDeleteCancel}
         />
       )}
 
