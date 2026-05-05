@@ -125,9 +125,12 @@ public class ManufactureOrderController : BaseApiController
             }
             else
             {
-                var response = new ConfirmSemiProductManufactureResponse(ErrorCodes.InvalidOperation);
+                var errorCode = result.ErrorCode ?? ErrorCodes.InvalidOperation;
+                Logger.LogWarning("ConfirmSemiProductManufacture failed for order {OrderId}: {ErrorCode} — {Message}",
+                    id, errorCode, result.Message);
+                var response = new ConfirmSemiProductManufactureResponse(errorCode);
                 response.Message = result.Message;
-                return BadRequest(response);
+                return HandleResponse(response);
             }
         }
         catch (Exception ex)

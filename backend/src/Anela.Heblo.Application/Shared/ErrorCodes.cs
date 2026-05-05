@@ -253,4 +253,6 @@ public enum ErrorCodes
     ShoptetApiError = 9003,
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     PaymentGatewayError = 9004,
+    [HttpStatusCode(HttpStatusCode.BadGateway)]
+    ErpGatewayError = 9005,
 }

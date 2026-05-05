@@ -214,6 +214,7 @@ const resources = {
         FlexiApiError: "Chyba ABRA Flexi API",
         ShoptetApiError: "Chyba Shoptet API",
         PaymentGatewayError: "Chyba platební brány",
+        ErpGatewayError: "Chyba ERP brány (časový limit nebo nedostupnost)",
       },
     },
   },
