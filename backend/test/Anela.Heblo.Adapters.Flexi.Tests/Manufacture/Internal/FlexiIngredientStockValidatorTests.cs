@@ -35,7 +35,7 @@ public class FlexiIngredientStockValidatorTests
                 ProductCode = ingredient1.Code,
                 ProductName = ingredient1.Name,
                 ProductType = ProductType.SemiProduct,
-                RequiredAmount = 5.0,
+                RequiredAmount = 5.0m,
                 HasLots = false
             },
             [ingredient2.Code] = new IngredientRequirement
@@ -43,7 +43,7 @@ public class FlexiIngredientStockValidatorTests
                 ProductCode = ingredient2.Code,
                 ProductName = ingredient2.Name,
                 ProductType = ProductType.SemiProduct,
-                RequiredAmount = 10.0,
+                RequiredAmount = 10.0m,
                 HasLots = false
             },
             [ingredient3.Code] = new IngredientRequirement
@@ -51,7 +51,7 @@ public class FlexiIngredientStockValidatorTests
                 ProductCode = ingredient3.Code,
                 ProductName = ingredient3.Name,
                 ProductType = ProductType.SemiProduct,
-                RequiredAmount = 8.0,
+                RequiredAmount = 8.0m,
                 HasLots = false
             }
         };

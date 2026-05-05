@@ -1,7 +1,8 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, ExternalLink } from 'lucide-react';
 import { useChunkDetailQuery } from '../../api/hooks/useKnowledgeBase';
 import { formatDateTime } from '../../utils/formatters';
+import { getSharePointLink } from '../../utils/sharepointLink';
 
 interface ChunkDetailModalProps {
   chunkId: string;
@@ -72,6 +73,18 @@ const ChunkDetailModal: React.FC<ChunkDetailModalProps> = ({ chunkId, score, onC
                   </span>
                 )}
               </div>
+
+              {getSharePointLink(data.sourcePath) && (
+                <a
+                  href={getSharePointLink(data.sourcePath)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                >
+                  Otevřít v SharePoint
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
 
               {/* Summary */}
               <div>

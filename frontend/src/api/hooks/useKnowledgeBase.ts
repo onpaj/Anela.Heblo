@@ -134,6 +134,7 @@ export interface GetChunkDetailResponse {
   chunkIndex: number;
   summary: string;
   content: string;
+  sourcePath?: string;
 }
 
 export interface GetFeedbackListParams {

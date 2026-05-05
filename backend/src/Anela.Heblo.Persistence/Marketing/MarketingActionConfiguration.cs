@@ -68,6 +68,23 @@ namespace Anela.Heblo.Persistence.Marketing
                 .HasMaxLength(100)
                 .IsRequired(false);
 
+            builder.Property(x => x.OutlookEventId)
+                .HasMaxLength(500)
+                .IsRequired(false);
+
+            builder.Property(x => x.OutlookLastAttemptAt)
+                .HasColumnName("OutlookSyncedAt")
+                .IsRequired(false)
+                .AsUtcTimestamp();
+
+            builder.Property(x => x.OutlookSyncStatus)
+                .IsRequired()
+                .HasConversion<string>();
+
+            builder.Property(x => x.OutlookSyncError)
+                .HasMaxLength(1000)
+                .IsRequired(false);
+
             // Soft delete filter
             builder.HasQueryFilter(x => !x.IsDeleted);
 
@@ -83,6 +100,14 @@ namespace Anela.Heblo.Persistence.Marketing
 
             builder.HasIndex(x => x.ActionType)
                 .HasDatabaseName("IX_MarketingActions_ActionType");
+
+            builder.HasIndex(x => x.OutlookEventId)
+                .IsUnique()
+                .HasFilter("\"OutlookEventId\" IS NOT NULL")
+                .HasDatabaseName("IX_MarketingActions_OutlookEventId");
+
+            builder.HasIndex(x => x.OutlookSyncStatus)
+                .HasDatabaseName("IX_MarketingActions_OutlookSyncStatus");
 
             // Navigation properties
             builder.HasMany(x => x.ProductAssociations)

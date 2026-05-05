@@ -200,6 +200,39 @@ public static class ApplicationBuilderExtensions
                 await next();
             });
 
+            // Guard: if index.html is absent (e.g. frontend build not deployed), respond with
+            // 503 Service Unavailable instead of letting UseSpa throw InvalidOperationException.
+            // This prevents the unhandled exception spike seen in App Insights (issue #667).
+            var indexHtmlPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "index.html");
+            if (!File.Exists(indexHtmlPath))
+            {
+                var logger = app.Services.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("Anela.Heblo.API.SpaFallback");
+                logger.LogError(
+                    "SPA frontend build not found at {IndexHtmlPath}. Skipping UseSpa — " +
+                    "all unmatched GET requests will return 503 until the frontend is deployed.",
+                    indexHtmlPath);
+
+                // Only intercept GET/HEAD requests with no matched endpoint (SPA fallback paths).
+                // API and health endpoints have a matched endpoint at this point, so they
+                // pass through via next() — mirroring how the real UseSpa middleware works.
+                app.Use(async (context, next) =>
+                {
+                    if (context.GetEndpoint() is null &&
+                        (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method)))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                        context.Response.ContentType = "text/plain; charset=utf-8";
+                        await context.Response.WriteAsync(
+                            "Service temporarily unavailable: frontend build not deployed.");
+                        return;
+                    }
+                    await next();
+                });
+
+                return app;
+            }
+
             app.UseSpa(spa =>
             {
                 spa.Options.SourcePath = "wwwroot";

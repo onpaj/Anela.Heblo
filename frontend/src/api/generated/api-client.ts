@@ -401,6 +401,125 @@ export class ApiClient {
         return Promise.resolve<GetBankStatementImportStatisticsResponse>(null as any);
     }
 
+    articles_Generate(request: GenerateArticleRequest): Promise<GenerateArticleResponse> {
+        let url_ = this.baseUrl + "/api/Articles/generate";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processArticles_Generate(_response);
+        });
+    }
+
+    protected processArticles_Generate(response: Response): Promise<GenerateArticleResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GenerateArticleResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GenerateArticleResponse>(null as any);
+    }
+
+    articles_GetById(id: string): Promise<GetArticleResponse> {
+        let url_ = this.baseUrl + "/api/Articles/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processArticles_GetById(_response);
+        });
+    }
+
+    protected processArticles_GetById(response: Response): Promise<GetArticleResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetArticleResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetArticleResponse>(null as any);
+    }
+
+    articles_List(status: ArticleStatus | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListArticlesResponse> {
+        let url_ = this.baseUrl + "/api/Articles?";
+        if (status !== undefined && status !== null)
+            url_ += "status=" + encodeURIComponent("" + status) + "&";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processArticles_List(_response);
+        });
+    }
+
+    protected processArticles_List(response: Response): Promise<ListArticlesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListArticlesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ListArticlesResponse>(null as any);
+    }
+
     backgroundRefresh_GetRegisteredTasks(): Promise<RefreshTaskDto[]> {
         let url_ = this.baseUrl + "/api/BackgroundRefresh/tasks";
         url_ = url_.replace(/[?&]$/, "");
@@ -4067,6 +4186,65 @@ export class ApiClient {
         return Promise.resolve<UploadDocumentResponse>(null as any);
     }
 
+    leaflet_Generate(request: GenerateLeafletRequest): Promise<GenerateLeafletResponse> {
+        let url_ = this.baseUrl + "/api/leaflet/generate";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLeaflet_Generate(_response);
+        });
+    }
+
+    protected processLeaflet_Generate(response: Response): Promise<GenerateLeafletResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GenerateLeafletResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 422) {
+            return response.text().then((_responseText) => {
+            let result422: any = null;
+            let resultData422 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result422 = ProblemDetails.fromJS(resultData422);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result422);
+            });
+        } else if (status === 502) {
+            return response.text().then((_responseText) => {
+            let result502: any = null;
+            let resultData502 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result502 = ProblemDetails.fromJS(resultData502);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result502);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GenerateLeafletResponse>(null as any);
+    }
+
     logistics_GetAvailableGiftPackages(salesCoefficient: number | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<GetAvailableGiftPackagesResponse> {
         let url_ = this.baseUrl + "/api/logistics/gift-packages/available?";
         if (salesCoefficient === null)
@@ -5506,6 +5684,58 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetMarketingCalendarResponse>(null as any);
+    }
+
+    marketingCalendar_ImportFromOutlook(request: ImportFromOutlookRequest): Promise<ImportFromOutlookResponse> {
+        let url_ = this.baseUrl + "/api/MarketingCalendar/import-from-outlook";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMarketingCalendar_ImportFromOutlook(_response);
+        });
+    }
+
+    protected processMarketingCalendar_ImportFromOutlook(response: Response): Promise<ImportFromOutlookResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ImportFromOutlookResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ImportFromOutlookResponse>(null as any);
     }
 
     orgChart_GetOrganizationStructure(): Promise<OrgChartResponse> {
@@ -7695,6 +7925,11 @@ export enum ErrorCodes {
     DqtExternalServiceError = "DqtExternalServiceError",
     MarketingActionNotFound = "MarketingActionNotFound",
     UnauthorizedMarketingAccess = "UnauthorizedMarketingAccess",
+    ArticleNotFound = "ArticleNotFound",
+    ArticleGenerationFailed = "ArticleGenerationFailed",
+    WebSearchUnavailable = "WebSearchUnavailable",
+    StyleGuideFetchFailed = "StyleGuideFetchFailed",
+    ArticleAlreadyGenerated = "ArticleAlreadyGenerated",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -8313,6 +8548,369 @@ export interface IDailyBankStatementStatistics {
 export enum BankStatementDateType {
     StatementDate = "StatementDate",
     ImportDate = "ImportDate",
+}
+
+export class GenerateArticleResponse extends BaseResponse implements IGenerateArticleResponse {
+    articleId?: string;
+
+    constructor(data?: IGenerateArticleResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.articleId = _data["articleId"];
+        }
+    }
+
+    static override fromJS(data: any): GenerateArticleResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GenerateArticleResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["articleId"] = this.articleId;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGenerateArticleResponse extends IBaseResponse {
+    articleId?: string;
+}
+
+export class GenerateArticleRequest implements IGenerateArticleRequest {
+    topic!: string;
+    scope?: string;
+    audience?: string | undefined;
+    angle?: string | undefined;
+    length?: string;
+    languageNote?: string | undefined;
+    useKnowledgeBase?: boolean;
+    useWebSearch?: boolean;
+    styleGuideDriveId?: string | undefined;
+    styleGuideItemPath?: string | undefined;
+
+    constructor(data?: IGenerateArticleRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.topic = _data["topic"];
+            this.scope = _data["scope"];
+            this.audience = _data["audience"];
+            this.angle = _data["angle"];
+            this.length = _data["length"];
+            this.languageNote = _data["languageNote"];
+            this.useKnowledgeBase = _data["useKnowledgeBase"];
+            this.useWebSearch = _data["useWebSearch"];
+            this.styleGuideDriveId = _data["styleGuideDriveId"];
+            this.styleGuideItemPath = _data["styleGuideItemPath"];
+        }
+    }
+
+    static fromJS(data: any): GenerateArticleRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new GenerateArticleRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["topic"] = this.topic;
+        data["scope"] = this.scope;
+        data["audience"] = this.audience;
+        data["angle"] = this.angle;
+        data["length"] = this.length;
+        data["languageNote"] = this.languageNote;
+        data["useKnowledgeBase"] = this.useKnowledgeBase;
+        data["useWebSearch"] = this.useWebSearch;
+        data["styleGuideDriveId"] = this.styleGuideDriveId;
+        data["styleGuideItemPath"] = this.styleGuideItemPath;
+        return data;
+    }
+}
+
+export interface IGenerateArticleRequest {
+    topic: string;
+    scope?: string;
+    audience?: string | undefined;
+    angle?: string | undefined;
+    length?: string;
+    languageNote?: string | undefined;
+    useKnowledgeBase?: boolean;
+    useWebSearch?: boolean;
+    styleGuideDriveId?: string | undefined;
+    styleGuideItemPath?: string | undefined;
+}
+
+export class GetArticleResponse extends BaseResponse implements IGetArticleResponse {
+    id?: string;
+    topic?: string;
+    scope?: string;
+    audience?: string | undefined;
+    angle?: string | undefined;
+    length?: string;
+    title?: string | undefined;
+    htmlContent?: string | undefined;
+    status?: string;
+    errorMessage?: string | undefined;
+    createdAt?: Date;
+    generatedAt?: Date | undefined;
+    useKnowledgeBase?: boolean;
+    useWebSearch?: boolean;
+    sources?: ArticleSourceDto[];
+
+    constructor(data?: IGetArticleResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+            this.topic = _data["topic"];
+            this.scope = _data["scope"];
+            this.audience = _data["audience"];
+            this.angle = _data["angle"];
+            this.length = _data["length"];
+            this.title = _data["title"];
+            this.htmlContent = _data["htmlContent"];
+            this.status = _data["status"];
+            this.errorMessage = _data["errorMessage"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.generatedAt = _data["generatedAt"] ? new Date(_data["generatedAt"].toString()) : <any>undefined;
+            this.useKnowledgeBase = _data["useKnowledgeBase"];
+            this.useWebSearch = _data["useWebSearch"];
+            if (Array.isArray(_data["sources"])) {
+                this.sources = [] as any;
+                for (let item of _data["sources"])
+                    this.sources!.push(ArticleSourceDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetArticleResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetArticleResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["topic"] = this.topic;
+        data["scope"] = this.scope;
+        data["audience"] = this.audience;
+        data["angle"] = this.angle;
+        data["length"] = this.length;
+        data["title"] = this.title;
+        data["htmlContent"] = this.htmlContent;
+        data["status"] = this.status;
+        data["errorMessage"] = this.errorMessage;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["generatedAt"] = this.generatedAt ? this.generatedAt.toISOString() : <any>undefined;
+        data["useKnowledgeBase"] = this.useKnowledgeBase;
+        data["useWebSearch"] = this.useWebSearch;
+        if (Array.isArray(this.sources)) {
+            data["sources"] = [];
+            for (let item of this.sources)
+                data["sources"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetArticleResponse extends IBaseResponse {
+    id?: string;
+    topic?: string;
+    scope?: string;
+    audience?: string | undefined;
+    angle?: string | undefined;
+    length?: string;
+    title?: string | undefined;
+    htmlContent?: string | undefined;
+    status?: string;
+    errorMessage?: string | undefined;
+    createdAt?: Date;
+    generatedAt?: Date | undefined;
+    useKnowledgeBase?: boolean;
+    useWebSearch?: boolean;
+    sources?: ArticleSourceDto[];
+}
+
+export class ArticleSourceDto implements IArticleSourceDto {
+    title?: string;
+    url?: string | undefined;
+    type?: string;
+
+    constructor(data?: IArticleSourceDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.title = _data["title"];
+            this.url = _data["url"];
+            this.type = _data["type"];
+        }
+    }
+
+    static fromJS(data: any): ArticleSourceDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ArticleSourceDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["title"] = this.title;
+        data["url"] = this.url;
+        data["type"] = this.type;
+        return data;
+    }
+}
+
+export interface IArticleSourceDto {
+    title?: string;
+    url?: string | undefined;
+    type?: string;
+}
+
+export class ListArticlesResponse extends BaseResponse implements IListArticlesResponse {
+    items?: ArticleListItemDto[];
+    totalCount?: number;
+    page?: number;
+    pageSize?: number;
+
+    constructor(data?: IListArticlesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ArticleListItemDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.page = _data["page"];
+            this.pageSize = _data["pageSize"];
+        }
+    }
+
+    static override fromJS(data: any): ListArticlesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListArticlesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["page"] = this.page;
+        data["pageSize"] = this.pageSize;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListArticlesResponse extends IBaseResponse {
+    items?: ArticleListItemDto[];
+    totalCount?: number;
+    page?: number;
+    pageSize?: number;
+}
+
+export class ArticleListItemDto implements IArticleListItemDto {
+    id?: string;
+    topic?: string;
+    title?: string | undefined;
+    status?: string;
+    createdAt?: Date;
+    generatedAt?: Date | undefined;
+
+    constructor(data?: IArticleListItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.topic = _data["topic"];
+            this.title = _data["title"];
+            this.status = _data["status"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.generatedAt = _data["generatedAt"] ? new Date(_data["generatedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): ArticleListItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ArticleListItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["topic"] = this.topic;
+        data["title"] = this.title;
+        data["status"] = this.status;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["generatedAt"] = this.generatedAt ? this.generatedAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IArticleListItemDto {
+    id?: string;
+    topic?: string;
+    title?: string | undefined;
+    status?: string;
+    createdAt?: Date;
+    generatedAt?: Date | undefined;
+}
+
+export enum ArticleStatus {
+    Queued = "Queued",
+    Researching = "Researching",
+    Writing = "Writing",
+    Generated = "Generated",
+    Failed = "Failed",
 }
 
 export class RefreshTaskDto implements IRefreshTaskDto {
@@ -14636,6 +15234,8 @@ export interface IGetChunkDetailResponse extends IBaseResponse {
 export enum DocumentType {
     KnowledgeBase = "KnowledgeBase",
     Conversation = "Conversation",
+    Leaflet = "Leaflet",
+    Article = "Article",
 }
 
 export class AskQuestionResponse extends BaseResponse implements IAskQuestionResponse {
@@ -15101,6 +15701,94 @@ export class UploadDocumentResponse extends BaseResponse implements IUploadDocum
 
 export interface IUploadDocumentResponse extends IBaseResponse {
     document?: DocumentSummary | undefined;
+}
+
+export class GenerateLeafletResponse extends BaseResponse implements IGenerateLeafletResponse {
+    content?: string;
+
+    constructor(data?: IGenerateLeafletResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.content = _data["content"];
+        }
+    }
+
+    static override fromJS(data: any): GenerateLeafletResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GenerateLeafletResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["content"] = this.content;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGenerateLeafletResponse extends IBaseResponse {
+    content?: string;
+}
+
+export class GenerateLeafletRequest implements IGenerateLeafletRequest {
+    topic!: string;
+    audience!: AudienceType;
+    length!: LeafletLength;
+
+    constructor(data?: IGenerateLeafletRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.topic = _data["topic"];
+            this.audience = _data["audience"];
+            this.length = _data["length"];
+        }
+    }
+
+    static fromJS(data: any): GenerateLeafletRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new GenerateLeafletRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["topic"] = this.topic;
+        data["audience"] = this.audience;
+        data["length"] = this.length;
+        return data;
+    }
+}
+
+export interface IGenerateLeafletRequest {
+    topic: string;
+    audience: AudienceType;
+    length: LeafletLength;
+}
+
+export enum AudienceType {
+    EndConsumer = "EndConsumer",
+    B2B = "B2B",
+}
+
+export enum LeafletLength {
+    Short = "Short",
+    Medium = "Medium",
+    Long = "Long",
 }
 
 export class GetAvailableGiftPackagesResponse extends BaseResponse implements IGetAvailableGiftPackagesResponse {
@@ -19478,6 +20166,8 @@ export class MarketingActionDto implements IMarketingActionDto {
     modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     folderLinks?: MarketingActionFolderLinkDto[];
+    outlookSyncStatus?: string;
+    outlookEventId?: string | undefined;
 
     constructor(data?: IMarketingActionDto) {
         if (data) {
@@ -19512,6 +20202,8 @@ export class MarketingActionDto implements IMarketingActionDto {
                 for (let item of _data["folderLinks"])
                     this.folderLinks!.push(MarketingActionFolderLinkDto.fromJS(item));
             }
+            this.outlookSyncStatus = _data["outlookSyncStatus"];
+            this.outlookEventId = _data["outlookEventId"];
         }
     }
 
@@ -19546,6 +20238,8 @@ export class MarketingActionDto implements IMarketingActionDto {
             for (let item of this.folderLinks)
                 data["folderLinks"].push(item.toJSON());
         }
+        data["outlookSyncStatus"] = this.outlookSyncStatus;
+        data["outlookEventId"] = this.outlookEventId;
         return data;
     }
 }
@@ -19565,6 +20259,8 @@ export interface IMarketingActionDto {
     modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     folderLinks?: MarketingActionFolderLinkDto[];
+    outlookSyncStatus?: string;
+    outlookEventId?: string | undefined;
 }
 
 export class MarketingActionFolderLinkDto implements IMarketingActionFolderLinkDto {
@@ -19688,6 +20384,7 @@ export class MarketingActionCalendarDto implements IMarketingActionCalendarDto {
     startDate?: Date;
     endDate?: Date | undefined;
     associatedProducts?: string[];
+    outlookSyncStatus?: string;
 
     constructor(data?: IMarketingActionCalendarDto) {
         if (data) {
@@ -19710,6 +20407,7 @@ export class MarketingActionCalendarDto implements IMarketingActionCalendarDto {
                 for (let item of _data["associatedProducts"])
                     this.associatedProducts!.push(item);
             }
+            this.outlookSyncStatus = _data["outlookSyncStatus"];
         }
     }
 
@@ -19732,6 +20430,7 @@ export class MarketingActionCalendarDto implements IMarketingActionCalendarDto {
             for (let item of this.associatedProducts)
                 data["associatedProducts"].push(item);
         }
+        data["outlookSyncStatus"] = this.outlookSyncStatus;
         return data;
     }
 }
@@ -19743,6 +20442,7 @@ export interface IMarketingActionCalendarDto {
     startDate?: Date;
     endDate?: Date | undefined;
     associatedProducts?: string[];
+    outlookSyncStatus?: string;
 }
 
 export class CreateMarketingActionResponse extends BaseResponse implements ICreateMarketingActionResponse {
@@ -19863,12 +20563,12 @@ export interface ICreateMarketingActionRequest {
 }
 
 export enum MarketingActionType {
-    General = "General",
-    Promotion = "Promotion",
-    Launch = "Launch",
-    Campaign = "Campaign",
+    SocialMedia = "SocialMedia",
+    Blog = "Blog",
+    Newsletter = "Newsletter",
+    PR = "PR",
     Event = "Event",
-    Other = "Other",
+    Meeting = "Meeting",
 }
 
 export class CreateFolderLinkRequest implements ICreateFolderLinkRequest {
@@ -20075,6 +20775,174 @@ export class DeleteMarketingActionResponse extends BaseResponse implements IDele
 export interface IDeleteMarketingActionResponse extends IBaseResponse {
     id?: number;
     message?: string;
+}
+
+export class ImportFromOutlookResponse extends BaseResponse implements IImportFromOutlookResponse {
+    created?: number;
+    updated?: number;
+    skipped?: number;
+    failed?: number;
+    unmappedCategories!: string[];
+    items?: ImportedItemDto[];
+
+    constructor(data?: IImportFromOutlookResponse) {
+        super(data);
+        if (!data) {
+            this.unmappedCategories = [];
+        }
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.created = _data["created"];
+            this.updated = _data["updated"];
+            this.skipped = _data["skipped"];
+            this.failed = _data["failed"];
+            if (Array.isArray(_data["unmappedCategories"])) {
+                this.unmappedCategories = [] as any;
+                for (let item of _data["unmappedCategories"])
+                    this.unmappedCategories!.push(item);
+            }
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ImportedItemDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): ImportFromOutlookResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportFromOutlookResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["created"] = this.created;
+        data["updated"] = this.updated;
+        data["skipped"] = this.skipped;
+        data["failed"] = this.failed;
+        if (Array.isArray(this.unmappedCategories)) {
+            data["unmappedCategories"] = [];
+            for (let item of this.unmappedCategories)
+                data["unmappedCategories"].push(item);
+        }
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IImportFromOutlookResponse extends IBaseResponse {
+    created?: number;
+    updated?: number;
+    skipped?: number;
+    failed?: number;
+    unmappedCategories: string[];
+    items?: ImportedItemDto[];
+}
+
+export class ImportedItemDto implements IImportedItemDto {
+    outlookEventId?: string;
+    subject?: string;
+    status?: string;
+    error?: string | undefined;
+    createdActionId?: number | undefined;
+
+    constructor(data?: IImportedItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.outlookEventId = _data["outlookEventId"];
+            this.subject = _data["subject"];
+            this.status = _data["status"];
+            this.error = _data["error"];
+            this.createdActionId = _data["createdActionId"];
+        }
+    }
+
+    static fromJS(data: any): ImportedItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportedItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["outlookEventId"] = this.outlookEventId;
+        data["subject"] = this.subject;
+        data["status"] = this.status;
+        data["error"] = this.error;
+        data["createdActionId"] = this.createdActionId;
+        return data;
+    }
+}
+
+export interface IImportedItemDto {
+    outlookEventId?: string;
+    subject?: string;
+    status?: string;
+    error?: string | undefined;
+    createdActionId?: number | undefined;
+}
+
+export class ImportFromOutlookRequest implements IImportFromOutlookRequest {
+    fromUtc?: Date;
+    toUtc?: Date;
+    dryRun?: boolean;
+
+    constructor(data?: IImportFromOutlookRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.fromUtc = _data["fromUtc"] ? new Date(_data["fromUtc"].toString()) : <any>undefined;
+            this.toUtc = _data["toUtc"] ? new Date(_data["toUtc"].toString()) : <any>undefined;
+            this.dryRun = _data["dryRun"];
+        }
+    }
+
+    static fromJS(data: any): ImportFromOutlookRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ImportFromOutlookRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["fromUtc"] = this.fromUtc ? this.fromUtc.toISOString() : <any>undefined;
+        data["toUtc"] = this.toUtc ? this.toUtc.toISOString() : <any>undefined;
+        data["dryRun"] = this.dryRun;
+        return data;
+    }
+}
+
+export interface IImportFromOutlookRequest {
+    fromUtc?: Date;
+    toUtc?: Date;
+    dryRun?: boolean;
 }
 
 export class OrgChartResponse extends BaseResponse implements IOrgChartResponse {

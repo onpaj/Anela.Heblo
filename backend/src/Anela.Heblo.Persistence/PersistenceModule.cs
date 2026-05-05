@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Bank;
@@ -6,6 +7,7 @@ using Anela.Heblo.Persistence.GridLayouts;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.Leaflet;
 using Anela.Heblo.Persistence.BackgroundJobs;
 using Anela.Heblo.Persistence.DataQuality;
 using Anela.Heblo.Persistence.Catalog.Stock;
@@ -13,6 +15,8 @@ using Anela.Heblo.Persistence.Dashboard;
 using Anela.Heblo.Persistence.Features.Bank;
 using Anela.Heblo.Persistence.Infrastructure;
 using Anela.Heblo.Persistence.InvoiceClassification;
+using Anela.Heblo.Persistence.Features.Article;
+using Anela.Heblo.Persistence.Features.Leaflet;
 using Anela.Heblo.Persistence.KnowledgeBase;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Anela.Heblo.Xcc.Telemetry;
@@ -120,6 +124,12 @@ public static class PersistenceModule
 
         // KnowledgeBase repositories
         services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
+
+        // Leaflet repositories
+        services.AddScoped<ILeafletRepository, LeafletRepository>();
+
+        // Article repositories
+        services.AddScoped<IArticleRepository, ArticleRepository>();
 
         // Grid Layouts repositories
         services.AddScoped<IGridLayoutRepository, GridLayoutRepository>();

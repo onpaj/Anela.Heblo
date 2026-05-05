@@ -132,7 +132,7 @@ internal class FlexiManufactureClient : IManufactureClient
                             ProductCode = existing.ProductCode,
                             ProductName = existing.ProductName,
                             ProductType = existing.ProductType,
-                            RequiredAmount = (double)distributionEntry.AdjustedConsumption,
+                            RequiredAmount = distributionEntry.AdjustedConsumption,
                             HasLots = existing.HasLots
                         };
                     }

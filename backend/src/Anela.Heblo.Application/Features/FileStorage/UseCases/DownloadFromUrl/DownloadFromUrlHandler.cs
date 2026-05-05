@@ -1,69 +1,102 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 
-public class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequest, DownloadFromUrlResponse>
+public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequest, DownloadFromUrlResponse>
 {
     private readonly IBlobStorageService _blobStorageService;
-    private readonly HttpClient _httpClient;
+    private readonly IDownloadResilienceService _resilience;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IOptions<ProductExportOptions> _options;
     private readonly ILogger<DownloadFromUrlHandler> _logger;
 
     public DownloadFromUrlHandler(
         IBlobStorageService blobStorageService,
-        HttpClient httpClient,
+        IDownloadResilienceService resilience,
+        IHttpClientFactory httpClientFactory,
+        IOptions<ProductExportOptions> options,
         ILogger<DownloadFromUrlHandler> logger)
     {
         _blobStorageService = blobStorageService;
-        _httpClient = httpClient;
+        _resilience = resilience;
+        _httpClientFactory = httpClientFactory;
+        _options = options;
         _logger = logger;
     }
 
     public async Task<DownloadFromUrlResponse> Handle(DownloadFromUrlRequest request, CancellationToken cancellationToken)
     {
+        _logger.LogInformation(
+            "Processing file download and upload request from URL: {FileUrl} to container: {ContainerName}",
+            request.FileUrl,
+            request.ContainerName);
+
+        if (!Uri.TryCreate(request.FileUrl, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            _logger.LogWarning("Invalid URL format or unsupported scheme: {FileUrl}", request.FileUrl);
+            return new DownloadFromUrlResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.InvalidUrlFormat,
+                Params = new Dictionary<string, string>
+                {
+                    ["fileUrl"] = request.FileUrl,
+                    ["cause"] = "validation",
+                },
+            };
+        }
+
+        if (!IsValidContainerName(request.ContainerName))
+        {
+            _logger.LogWarning("Invalid container name: {ContainerName}", request.ContainerName);
+            return new DownloadFromUrlResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.InvalidContainerName,
+                Params = new Dictionary<string, string>
+                {
+                    ["containerName"] = request.ContainerName,
+                    ["cause"] = "validation",
+                },
+            };
+        }
+
+        var redactedUrl = RedactUrl(request.FileUrl);
+        var sw = Stopwatch.StartNew();
+        int attemptCount = 0;
+
+        // HEAD probe — best-effort; never cancels the parent download
+        var fileSizeBytes = await ProbeContentLengthAsync(request.FileUrl, cancellationToken);
+
         try
         {
-            _logger.LogInformation("Processing file download and upload request from URL: {FileUrl} to container: {ContainerName}",
-                request.FileUrl, request.ContainerName);
-
-            // Validate URL format and scheme
-            if (!Uri.TryCreate(request.FileUrl, UriKind.Absolute, out var uri) ||
-                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-            {
-                _logger.LogWarning("Invalid URL format or unsupported scheme: {FileUrl}", request.FileUrl);
-                return new DownloadFromUrlResponse
+            var blobUrl = await _resilience.ExecuteWithResilienceAsync(
+                async ct =>
                 {
-                    Success = false,
-                    ErrorCode = ErrorCodes.InvalidUrlFormat,
-                    Params = new Dictionary<string, string> { { "fileUrl", request.FileUrl } }
-                };
-            }
-
-            // Validate container name (must be lowercase and follow Azure naming rules)
-            if (!IsValidContainerName(request.ContainerName))
-            {
-                _logger.LogWarning("Invalid container name: {ContainerName}", request.ContainerName);
-                return new DownloadFromUrlResponse
-                {
-                    Success = false,
-                    ErrorCode = ErrorCodes.InvalidContainerName,
-                    Params = new Dictionary<string, string> { { "containerName", request.ContainerName } }
-                };
-            }
-
-            // Check file size before downloading (if server supports HEAD requests)
-            var fileSizeBytes = await GetFileSizeAsync(request.FileUrl, cancellationToken);
-
-            // Download and upload the file
-            var blobUrl = await _blobStorageService.DownloadFromUrlAsync(
-                request.FileUrl,
-                request.ContainerName,
-                request.BlobName,
+                    Interlocked.Increment(ref attemptCount);
+                    return await _blobStorageService.DownloadFromUrlAsync(
+                        request.FileUrl,
+                        request.ContainerName,
+                        request.BlobName,
+                        ct);
+                },
+                FileStorageModule.ProductExportDownloadClientName,
                 cancellationToken);
 
-            // Extract blob name from URL if not provided in request
+            sw.Stop();
             var actualBlobName = request.BlobName ?? GetBlobNameFromUrl(blobUrl);
 
             _logger.LogInformation("Successfully processed file upload. Blob URL: {BlobUrl}", blobUrl);
@@ -74,53 +107,98 @@ public class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequest, Do
                 BlobUrl = blobUrl,
                 BlobName = actualBlobName,
                 ContainerName = request.ContainerName,
-                FileSizeBytes = fileSizeBytes
+                FileSizeBytes = fileSizeBytes,
             };
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            _logger.LogInformation("File upload operation was cancelled for URL: {FileUrl}", request.FileUrl);
-            throw; // Re-throw cancellation exceptions
+            _logger.LogInformation("File download operation was cancelled for URL: {FileUrl}", request.FileUrl);
+            throw;
         }
-        catch (HttpRequestException ex)
+        catch (OperationCanceledException oce)
         {
-            _logger.LogError(ex, "HTTP error downloading file from URL: {FileUrl}", request.FileUrl);
-            return new DownloadFromUrlResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.FileDownloadFailed,
-                Params = new Dictionary<string, string>
-                {
-                    { "fileUrl", request.FileUrl },
-                    { "error", ex.Message }
-                }
-            };
+            sw.Stop();
+            _logger.LogError(oce, "Download timed out for URL: {RedactedUrl}", redactedUrl);
+            return Failure(redactedUrl, "timeout", attemptCount, sw.ElapsedMilliseconds, oce.Message);
+        }
+        catch (HttpRequestException hre)
+        {
+            sw.Stop();
+            var cause = attemptCount > 1 ? "retry-exhausted" : "http-status";
+            _logger.LogError(hre, "HTTP error downloading from URL: {RedactedUrl}", redactedUrl);
+            return Failure(redactedUrl, cause, attemptCount, sw.ElapsedMilliseconds, hre.Message);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error processing file upload request from URL: {FileUrl}", request.FileUrl);
-            return new DownloadFromUrlResponse
+            sw.Stop();
+            _logger.LogError(ex, "Unexpected failure during ProductExportDownload for URL: {RedactedUrl}", redactedUrl);
+            return Failure(redactedUrl, "retry-exhausted", attemptCount, sw.ElapsedMilliseconds, ex.Message);
+        }
+    }
+
+    private async Task<long> ProbeContentLengthAsync(string fileUrl, CancellationToken callerCt)
+    {
+        using var headCts = CancellationTokenSource.CreateLinkedTokenSource(callerCt);
+        headCts.CancelAfter(_options.Value.HeadTimeout);
+        try
+        {
+            var client = _httpClientFactory.CreateClient(FileStorageModule.ProductExportDownloadClientName);
+            using var req = new HttpRequestMessage(HttpMethod.Head, fileUrl);
+            using var resp = await client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, headCts.Token);
+            if (resp.IsSuccessStatusCode && resp.Content.Headers.ContentLength.HasValue)
+                return resp.Content.Headers.ContentLength.Value;
+        }
+        catch (OperationCanceledException) when (callerCt.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogDebug("HEAD probe timed out for ProductExportDownload");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "HEAD probe failed for ProductExportDownload");
+        }
+
+        return 0L;
+    }
+
+    private static DownloadFromUrlResponse Failure(
+        string redactedUrl,
+        string cause,
+        int attemptCount,
+        long elapsedMs,
+        string error) =>
+        new()
+        {
+            Success = false,
+            ErrorCode = ErrorCodes.FileDownloadFailed,
+            Params = new Dictionary<string, string>
             {
-                Success = false,
-                ErrorCode = ErrorCodes.InternalServerError,
-                Params = new Dictionary<string, string>
-                {
-                    { "fileUrl", request.FileUrl },
-                    { "error", ex.Message }
-                }
-            };
+                ["fileUrl"] = redactedUrl,
+                ["cause"] = cause,
+                ["attemptCount"] = attemptCount.ToString(),
+                ["elapsedMs"] = elapsedMs.ToString(),
+                ["error"] = error,
+            },
+        };
+
+    private static string RedactUrl(string url)
+    {
+        try
+        {
+            var ub = new UriBuilder(url) { Query = null };
+            return ub.Uri.ToString();
+        }
+        catch
+        {
+            return "[redacted]";
         }
     }
 
     private static bool IsValidContainerName(string containerName)
     {
-        // Azure container naming rules:
-        // - Must be lowercase
-        // - Can contain only lowercase letters, numbers, and hyphens
-        // - Must be between 3 and 63 characters
-        // - Must start with letter or number
-        // - Cannot have consecutive hyphens
-
         if (string.IsNullOrEmpty(containerName) || containerName.Length < 3 || containerName.Length > 63)
             return false;
 
@@ -143,36 +221,11 @@ public class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequest, Do
         return true;
     }
 
-    private async Task<long> GetFileSizeAsync(string fileUrl, CancellationToken cancellationToken)
-    {
-        try
-        {
-            using var request = new HttpRequestMessage(HttpMethod.Head, fileUrl);
-            using var response = await _httpClient.SendAsync(request, cancellationToken);
-
-            if (response.IsSuccessStatusCode && response.Content.Headers.ContentLength.HasValue)
-            {
-                return response.Content.Headers.ContentLength.Value;
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            throw; // Re-throw cancellation exceptions
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Could not determine file size for URL: {FileUrl}", fileUrl);
-        }
-
-        return 0; // Unknown size
-    }
-
     private static string GetBlobNameFromUrl(string blobUrl)
     {
         try
         {
-            var uri = new Uri(blobUrl);
-            return Path.GetFileName(uri.LocalPath);
+            return Path.GetFileName(new Uri(blobUrl).LocalPath);
         }
         catch
         {

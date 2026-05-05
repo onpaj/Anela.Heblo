@@ -131,7 +131,7 @@ public enum ErrorCodes
     // Transport module errors (14XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
     TransportBoxNotFound = 1401,
-    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     TransportBoxStateChangeError = 1402,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     TransportBoxCreationError = 1403,
@@ -232,13 +232,29 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.Forbidden)]
     UnauthorizedMarketingAccess = 2302,
 
-    // Photobank errors (24XX)
+    // Article Generation errors (24XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
-    PhotoNotFound = 2401,
+    ArticleNotFound = 2401,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    ArticleGenerationFailed = 2402,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    WebSearchUnavailable = 2403,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    StyleGuideFetchFailed = 2404,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    ArticleAlreadyGenerated = 2405,
+
+    // Leaflet module errors (25XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
-    PhotobankRootNotFound = 2402,
+    LeafletChunkNotFound = 2501,
+
+    // Photobank errors (26XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
-    PhotobankRuleNotFound = 2403,
+    PhotoNotFound = 2601,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotobankRootNotFound = 2602,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotobankRuleNotFound = 2603,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
@@ -249,4 +265,6 @@ public enum ErrorCodes
     ShoptetApiError = 9003,
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     PaymentGatewayError = 9004,
+    [HttpStatusCode(HttpStatusCode.BadGateway)]
+    ErpGatewayError = 9005,
 }

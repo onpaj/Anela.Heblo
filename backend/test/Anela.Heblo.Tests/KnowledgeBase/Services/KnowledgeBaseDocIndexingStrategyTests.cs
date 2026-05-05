@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
@@ -34,13 +35,14 @@ public class KnowledgeBaseDocIndexingStrategyTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(_generatedEmbeddings);
 
-        var options = Options.Create(new KnowledgeBaseOptions { ChunkSize = 512, ChunkOverlapTokens = 50 });
-        var chunker = new DocumentChunker(options);
+        var options = Options.Create(new KnowledgeBaseOptions { ChunkSize = 512, ChunkOverlap = 50 });
+        var chunker = new WordWindowChunker();
 
         _strategy = new KnowledgeBaseDocIndexingStrategy(
             chunker,
             _summarizer.Object,
-            _embeddingGenerator.Object);
+            _embeddingGenerator.Object,
+            options);
     }
 
     [Fact]
@@ -126,9 +128,13 @@ public class KnowledgeBaseDocIndexingStrategyTests
     [Fact]
     public async Task CreateChunksAsync_ChunkIndexIsSequential()
     {
-        var options = Options.Create(new KnowledgeBaseOptions { ChunkSize = 5, ChunkOverlapTokens = 1 });
-        var chunker = new DocumentChunker(options);
-        var strategy = new KnowledgeBaseDocIndexingStrategy(chunker, _summarizer.Object, _embeddingGenerator.Object);
+        var options = Options.Create(new KnowledgeBaseOptions { ChunkSize = 5, ChunkOverlap = 1 });
+        var chunker = new WordWindowChunker();
+        var strategy = new KnowledgeBaseDocIndexingStrategy(
+            chunker,
+            _summarizer.Object,
+            _embeddingGenerator.Object,
+            options);
 
         var words = string.Join(" ", Enumerable.Range(1, 20).Select(i => $"w{i}"));
         var chunks = await strategy.CreateChunksAsync(words, Guid.NewGuid(), CancellationToken.None);

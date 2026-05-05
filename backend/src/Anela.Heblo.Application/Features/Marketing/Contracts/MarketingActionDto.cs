@@ -19,5 +19,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Contracts
         public string? ModifiedByUsername { get; set; }
         public List<string> AssociatedProducts { get; set; } = new();
         public List<MarketingActionFolderLinkDto> FolderLinks { get; set; } = new();
+        public string OutlookSyncStatus { get; set; } = "NotSynced";
+        public string? OutlookEventId { get; set; }
     }
 }

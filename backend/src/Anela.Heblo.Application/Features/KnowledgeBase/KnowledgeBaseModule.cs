@@ -14,13 +14,15 @@ public static class KnowledgeBaseModule
     public static IServiceCollection AddKnowledgeBaseModule(this IServiceCollection services, IConfiguration configuration)
     {
         // Bind options
-        services.Configure<KnowledgeBaseOptions>(configuration.GetSection("KnowledgeBase"));
+        services.AddOptions<KnowledgeBaseOptions>()
+            .Bind(configuration.GetSection(KnowledgeBaseOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         // Register application services
         services.AddScoped<IDocumentTextExtractor, PdfTextExtractor>();
         services.AddScoped<IDocumentTextExtractor, WordDocumentExtractor>();
         services.AddScoped<IDocumentTextExtractor, PlainTextExtractor>();
-        services.AddScoped<DocumentChunker>();
         services.AddScoped<ChatTranscriptPreprocessor>();
         services.AddScoped<IChunkSummarizer, ChunkSummarizer>();
         services.AddScoped<IConversationTopicSummarizer, ConversationTopicSummarizer>();

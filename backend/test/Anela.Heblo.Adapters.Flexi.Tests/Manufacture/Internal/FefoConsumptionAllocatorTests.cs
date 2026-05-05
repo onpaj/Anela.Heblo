@@ -23,7 +23,7 @@ public class FefoConsumptionAllocatorTests
                 ProductCode = ingredient.Code,
                 ProductName = ingredient.Name,
                 ProductType = ingredient.Type,
-                RequiredAmount = 5.0,
+                RequiredAmount = 5.0m,
                 HasLots = true
             }
         };
@@ -43,7 +43,7 @@ public class FefoConsumptionAllocatorTests
         var item = result[0];
         Assert.Equal(ingredient.Code, item.ProductCode);
         Assert.Equal("LOT-A", item.LotNumber);
-        Assert.Equal(5.0, item.Amount);
+        Assert.Equal(5.0m, item.Amount);
         Assert.Equal("PROD001", item.SourceProductCode);
     }
 
@@ -59,7 +59,7 @@ public class FefoConsumptionAllocatorTests
                 ProductCode = ingredient.Code,
                 ProductName = ingredient.Name,
                 ProductType = ingredient.Type,
-                RequiredAmount = 15.0,
+                RequiredAmount = 15.0m,
                 HasLots = true
             }
         };
@@ -80,9 +80,9 @@ public class FefoConsumptionAllocatorTests
         // Assert
         Assert.Equal(2, result.Count);
         Assert.Equal("LOT-A", result[0].LotNumber); // Earlier expiry consumed first
-        Assert.Equal(10.0, result[0].Amount);
+        Assert.Equal(10.0m, result[0].Amount);
         Assert.Equal("LOT-B", result[1].LotNumber); // Later expiry consumed second
-        Assert.Equal(5.0, result[1].Amount);
+        Assert.Equal(5.0m, result[1].Amount);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class FefoConsumptionAllocatorTests
                 ProductCode = ingredient.Code,
                 ProductName = ingredient.Name,
                 ProductType = ingredient.Type,
-                RequiredAmount = 20.0,
+                RequiredAmount = 20.0m,
                 HasLots = true
             }
         };
@@ -129,7 +129,7 @@ public class FefoConsumptionAllocatorTests
                 ProductCode = ingredient.Code,
                 ProductName = ingredient.Name,
                 ProductType = ingredient.Type,
-                RequiredAmount = 5.0,
+                RequiredAmount = 5.0m,
                 HasLots = true
             }
         };
@@ -148,6 +148,6 @@ public class FefoConsumptionAllocatorTests
 
         // Assert
         Assert.Single(result);
-        Assert.Equal(4.9995, result[0].Amount, precision: 4);
+        Assert.Equal(4.9995m, result[0].Amount);
     }
 }

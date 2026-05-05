@@ -18,7 +18,7 @@ namespace Anela.Heblo.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/transport-boxes")]
-public class TransportBoxController : ControllerBase
+public class TransportBoxController : BaseApiController
 {
     private readonly IMediator _mediator;
 
@@ -84,13 +84,7 @@ public class TransportBoxController : ControllerBase
     {
         request.BoxId = id; // Ensure consistency
         var response = await _mediator.Send(request, cancellationToken);
-
-        if (!response.Success)
-        {
-            return BadRequest(response);
-        }
-
-        return Ok(response);
+        return HandleResponse(response);
     }
 
     /// <summary>
