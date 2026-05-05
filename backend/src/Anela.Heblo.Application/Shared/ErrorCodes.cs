@@ -232,6 +232,18 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.Forbidden)]
     UnauthorizedMarketingAccess = 2302,
 
+    // Article Generation errors (24XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ArticleNotFound = 2401,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    ArticleGenerationFailed = 2402,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    WebSearchUnavailable = 2403,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    StyleGuideFetchFailed = 2404,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    ArticleAlreadyGenerated = 2405,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

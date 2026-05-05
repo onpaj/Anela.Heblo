@@ -95,6 +95,27 @@ public class GraphOneDriveServiceTests
                 archivedPath: "Archived"));
     }
 
+    [Fact]
+    public async Task DownloadFileTextByPathAsync_ReturnsFileContent_AsString()
+    {
+        // Arrange
+        const string expectedContent = "Hello, World!";
+
+        var handler = new LambdaHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(expectedContent, Encoding.UTF8, "text/plain")
+            });
+
+        var service = CreateService(handler);
+
+        // Act
+        var result = await service.DownloadFileTextByPathAsync("drive-id", "Documents/style.md");
+
+        // Assert
+        Assert.Equal(expectedContent, result);
+    }
+
     /// <summary>
     /// Feeds HTTP responses in sequence, one per call.
     /// </summary>
@@ -116,5 +137,23 @@ public class GraphOneDriveServiceTests
 
             return Task.FromResult(response);
         }
+    }
+
+    /// <summary>
+    /// Delegates each HTTP call to a provided function.
+    /// </summary>
+    private sealed class LambdaHandler : HttpMessageHandler
+    {
+        private readonly Func<HttpRequestMessage, HttpResponseMessage> _handler;
+
+        public LambdaHandler(Func<HttpRequestMessage, HttpResponseMessage> handler)
+        {
+            _handler = handler;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(_handler(request));
     }
 }

@@ -39,6 +39,11 @@ public static class AuthorizationConstants
         /// Role required for managing the Knowledge Base (upload, delete documents)
         /// </summary>
         public const string KnowledgeBaseManager = "knowledge_base_manager";
+
+        /// <summary>
+        /// Role required for generating articles
+        /// </summary>
+        public const string ArticleGenerator = "article_generator";
     }
 
     /// <summary>
@@ -50,5 +55,10 @@ public static class AuthorizationConstants
         /// Policy required for uploading and deleting Knowledge Base documents
         /// </summary>
         public const string KnowledgeBaseUpload = "KnowledgeBaseUpload";
+
+        /// <summary>
+        /// Policy required for generating articles
+        /// </summary>
+        public const string ArticleGenerator = "ArticleGenerator";
     }
 }

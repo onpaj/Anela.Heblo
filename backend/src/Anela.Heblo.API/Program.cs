@@ -6,6 +6,7 @@ using Anela.Heblo.Adapters.GoogleAds;
 using Anela.Heblo.Adapters.MetaAds;
 using Anela.Heblo.Adapters.Flexi;
 using Anela.Heblo.Adapters.OpenAI;
+using Anela.Heblo.Adapters.WebSearch;
 using Anela.Heblo.Adapters.Shoptet;
 using Anela.Heblo.Adapters.Shoptet.Playwright;
 using Anela.Heblo.Adapters.ShoptetApi;
@@ -71,6 +72,7 @@ public partial class Program
         builder.Services.AddGoogleAdsAdapter(builder.Configuration);
         builder.Services.AddAnthropicAdapter(builder.Configuration);
         builder.Services.AddOpenAiAdapter(builder.Configuration);
+        builder.Services.AddWebSearchAdapter(builder.Configuration);
         builder.Services.AddSendGridAdapter(builder.Configuration);
 
         // Bind IIssuedInvoiceSource to the implementation selected by Invoices:Source config flag.

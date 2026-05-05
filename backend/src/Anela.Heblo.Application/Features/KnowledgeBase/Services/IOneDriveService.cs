@@ -7,4 +7,5 @@ public interface IOneDriveService
     Task<List<OneDriveFile>> ListInboxFilesAsync(string driveId, string inboxPath, CancellationToken ct = default);
     Task<byte[]> DownloadFileAsync(string driveId, string fileId, CancellationToken ct = default);
     Task<string> MoveToArchivedAsync(string driveId, string fileId, string filename, string archivedPath, CancellationToken ct = default);
+    Task<string> DownloadFileTextByPathAsync(string driveId, string path, CancellationToken ct = default);
 }
