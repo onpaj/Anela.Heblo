@@ -129,7 +129,7 @@ public class InsufficientLotStockFilterTests
         var message = "Failed to create consumption stock movement for warehouse 5: " + RealFlexiError;
         var items = new List<FailedConsumptionItem>
         {
-            new("MAT-LAVENDER", "Levandulový olej", "171224A7", new DateOnly(2027, 12, 17), 10.0)
+            new("MAT-LAVENDER", "Levandulový olej", "171224A7", new DateOnly(2027, 12, 17), 10.0m)
         };
         var ex = new EnrichedManufactureException(message, items);
 
@@ -150,7 +150,7 @@ public class InsufficientLotStockFilterTests
             "Požadované šarže 171224A7 s expirací 17.12.2027 máte na skladě jen 6.597599 G. [DoklSklad -1]";
         var items = new List<FailedConsumptionItem>
         {
-            new("MAT-LAVENDER", "Levandulový olej", "171224A7", new DateOnly(2027, 12, 17), 10.0)
+            new("MAT-LAVENDER", "Levandulový olej", "171224A7", new DateOnly(2027, 12, 17), 10.0m)
         };
         var ex = new EnrichedManufactureException(message, items);
 
@@ -168,8 +168,8 @@ public class InsufficientLotStockFilterTests
     {
         var items = new List<FailedConsumptionItem>
         {
-            new("MAT-A", "Materiál Alfa", "AAAA01", new DateOnly(2025, 3, 1), 3.0),
-            new("MAT-B", "Materiál Beta", "BBBB02", new DateOnly(2025, 6, 1), 7.0)
+            new("MAT-A", "Materiál Alfa", "AAAA01", new DateOnly(2025, 3, 1), 3.0m),
+            new("MAT-B", "Materiál Beta", "BBBB02", new DateOnly(2025, 6, 1), 7.0m)
         };
         // RealFlexiError mentions lot 171224A7 — neither item matches, so fallback fires.
         var ex = new EnrichedManufactureException(RealFlexiError, items);
