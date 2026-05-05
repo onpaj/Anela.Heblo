@@ -87,6 +87,7 @@ public class ApplicationDbContext : DbContext
     // Leaflet module
     public DbSet<LeafletDocument> LeafletDocuments { get; set; } = null!;
     public DbSet<LeafletChunk> LeafletChunks { get; set; } = null!;
+    public DbSet<LeafletGeneration> LeafletGenerations { get; set; } = null!;
 
     // Article module
     public DbSet<Article> Articles { get; set; } = null!;

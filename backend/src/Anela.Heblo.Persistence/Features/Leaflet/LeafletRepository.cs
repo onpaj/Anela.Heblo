@@ -238,4 +238,84 @@ public class LeafletRepository : ILeafletRepository
     {
         await _context.SaveChangesAsync(ct);
     }
+
+    public async Task SaveGenerationAsync(LeafletGeneration generation, CancellationToken ct = default)
+    {
+        _context.LeafletGenerations.Add(generation);
+        await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task<LeafletGeneration?> GetGenerationByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _context.LeafletGenerations
+            .FirstOrDefaultAsync(g => g.Id == id, ct);
+    }
+
+    public async Task<(IReadOnlyList<LeafletGeneration> Items, int Total)> GetGenerationsPagedAsync(
+        bool? hasFeedback,
+        string? userId,
+        string sortBy,
+        bool sortDescending,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var query = _context.LeafletGenerations.AsQueryable();
+
+        if (hasFeedback.HasValue)
+        {
+            query = hasFeedback.Value
+                ? query.Where(g => g.PrecisionScore != null || g.StyleScore != null)
+                : query.Where(g => g.PrecisionScore == null && g.StyleScore == null);
+        }
+
+        if (!string.IsNullOrEmpty(userId))
+            query = query.Where(g => g.UserId == userId);
+
+        query = sortBy switch
+        {
+            "PrecisionScore" => sortDescending
+                ? query.OrderByDescending(g => g.PrecisionScore)
+                : query.OrderBy(g => g.PrecisionScore),
+            "StyleScore" => sortDescending
+                ? query.OrderByDescending(g => g.StyleScore)
+                : query.OrderBy(g => g.StyleScore),
+            _ => sortDescending
+                ? query.OrderByDescending(g => g.CreatedAt)
+                : query.OrderBy(g => g.CreatedAt),
+        };
+
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return (items, total);
+    }
+
+    public async Task<LeafletFeedbackStats> GetGenerationStatsAsync(CancellationToken ct = default)
+    {
+        var total = await _context.LeafletGenerations.CountAsync(ct);
+
+        var withFeedback = await _context.LeafletGenerations
+            .Where(g => g.PrecisionScore != null || g.StyleScore != null)
+            .ToListAsync(ct);
+
+        double? avgPrecision = withFeedback.Count > 0
+            ? withFeedback.Where(g => g.PrecisionScore != null).Average(g => (double?)g.PrecisionScore)
+            : null;
+
+        double? avgStyle = withFeedback.Count > 0
+            ? withFeedback.Where(g => g.StyleScore != null).Average(g => (double?)g.StyleScore)
+            : null;
+
+        return new LeafletFeedbackStats
+        {
+            TotalGenerations = total,
+            TotalWithFeedback = withFeedback.Count,
+            AvgPrecisionScore = avgPrecision.HasValue ? Math.Round(avgPrecision.Value, 1) : null,
+            AvgStyleScore = avgStyle.HasValue ? Math.Round(avgStyle.Value, 1) : null,
+        };
+    }
 }

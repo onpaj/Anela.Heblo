@@ -21,4 +21,15 @@ public interface ILeafletRepository
     Task<LeafletChunk?> GetChunkByIdAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyDictionary<Guid, Guid>> GetFirstChunkIdsByDocumentIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
+    Task SaveGenerationAsync(LeafletGeneration generation, CancellationToken ct = default);
+    Task<LeafletGeneration?> GetGenerationByIdAsync(Guid id, CancellationToken ct = default);
+    Task<(IReadOnlyList<LeafletGeneration> Items, int Total)> GetGenerationsPagedAsync(
+        bool? hasFeedback,
+        string? userId,
+        string sortBy,
+        bool sortDescending,
+        int page,
+        int pageSize,
+        CancellationToken ct = default);
+    Task<LeafletFeedbackStats> GetGenerationStatsAsync(CancellationToken ct = default);
 }

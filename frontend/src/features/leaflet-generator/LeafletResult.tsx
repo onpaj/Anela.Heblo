@@ -1,20 +1,31 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import RagFeedbackForm from '../../components/feedback/RagFeedbackForm';
+import { useSubmitLeafletFeedbackMutation } from '../../api/hooks/useLeaflet';
 
 interface LeafletResultProps {
   content: string;
   onRegenerate: () => void;
+  generationId?: string;
 }
 
-export default function LeafletResult({ content, onRegenerate }: LeafletResultProps) {
+export default function LeafletResult({ content, onRegenerate, generationId }: LeafletResultProps) {
   const [copied, setCopied] = useState(false);
+  const [feedbackState, setFeedbackState] = useState<'idle' | 'submitted' | 'alreadySubmitted'>(
+    'idle',
+  );
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const submitFeedback = useSubmitLeafletFeedbackMutation();
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    setFeedbackState('idle');
+  }, [generationId]);
 
   if (!content) return null;
 
@@ -50,6 +61,30 @@ export default function LeafletResult({ content, onRegenerate }: LeafletResultPr
           Generovat znovu
         </button>
       </div>
+      {generationId && (
+        <RagFeedbackForm
+          onSubmit={(payload) => {
+            submitFeedback.mutate(
+              {
+                generationId,
+                ...payload,
+              },
+              {
+                onSuccess: (result) => {
+                  if (result.alreadySubmitted) {
+                    setFeedbackState('alreadySubmitted');
+                  } else {
+                    setFeedbackState('submitted');
+                  }
+                },
+              },
+            );
+          }}
+          isSubmitting={submitFeedback.isPending}
+          alreadySubmitted={feedbackState === 'alreadySubmitted'}
+          isSuccess={feedbackState === 'submitted'}
+        />
+      )}
     </div>
   );
 }

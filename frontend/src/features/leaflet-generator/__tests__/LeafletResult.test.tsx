@@ -20,6 +20,31 @@ jest.mock('react-markdown', () => ({
   },
 }));
 
+jest.mock('../../../components/feedback/RagFeedbackForm', () => ({
+  __esModule: true,
+  default: ({ onSubmit, alreadySubmitted, isSuccess }: any) => (
+    <div
+      data-testid="rag-feedback-form"
+      data-already-submitted={alreadySubmitted}
+      data-is-success={isSuccess}
+    >
+      <button
+        onClick={() => onSubmit({ precisionScore: 4, styleScore: 3 })}
+        data-testid="feedback-submit-button"
+      >
+        Submit Feedback
+      </button>
+    </div>
+  ),
+}));
+
+jest.mock('../../../api/hooks/useLeaflet', () => ({
+  useSubmitLeafletFeedbackMutation: () => ({
+    mutate: jest.fn(),
+    isPending: false,
+  }),
+}));
+
 Object.defineProperty(navigator, 'clipboard', {
   value: { writeText: jest.fn().mockResolvedValue(undefined) },
   writable: true,
@@ -93,5 +118,50 @@ describe('LeafletResult', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Generovat znovu' }));
 
     expect(onRegenerate).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not render feedback form when generationId is absent', () => {
+    render(<LeafletResult content="Some content" onRegenerate={jest.fn()} />);
+    expect(screen.queryByTestId('rag-feedback-form')).not.toBeInTheDocument();
+  });
+
+  it('renders feedback form when generationId is provided', () => {
+    render(
+      <LeafletResult
+        content="Some content"
+        onRegenerate={jest.fn()}
+        generationId="gen-123"
+      />
+    );
+    expect(screen.getByTestId('rag-feedback-form')).toBeInTheDocument();
+  });
+
+  it('resets feedback state when generationId changes', () => {
+    const { rerender } = render(
+      <LeafletResult
+        content="Some content"
+        onRegenerate={jest.fn()}
+        generationId="gen-123"
+      />
+    );
+
+    expect(screen.getByTestId('rag-feedback-form')).toBeInTheDocument();
+    const form1 = screen.getByTestId('rag-feedback-form');
+    expect(form1.getAttribute('data-already-submitted')).toBe('false');
+    expect(form1.getAttribute('data-is-success')).toBe('false');
+
+    // Change generationId
+    rerender(
+      <LeafletResult
+        content="Some content"
+        onRegenerate={jest.fn()}
+        generationId="gen-456"
+      />
+    );
+
+    // Form should still be present but with reset state
+    const form2 = screen.getByTestId('rag-feedback-form');
+    expect(form2.getAttribute('data-already-submitted')).toBe('false');
+    expect(form2.getAttribute('data-is-success')).toBe('false');
   });
 });

@@ -196,6 +196,8 @@ const resources = {
 
         // Leaflet module errors
         LeafletChunkNotFound: "Fragment letáku nebyl nalezen",
+        LeafletFeedbackNotFound: "Záznam generování letáku nebyl nalezen.",
+        LeafletFeedbackAlreadySubmitted: "Zpětná vazba již byla odeslána.",
 
         // ShoptetOrders module errors
         ShoptetOrderInvalidSourceState: "Objednávku nelze zablokovat – není ve povoleném stavu",
@@ -320,6 +322,10 @@ const resources = {
         WebSearchUnavailable: "Web search is temporarily unavailable.",
         StyleGuideFetchFailed: "Failed to load style guide.",
         ArticleAlreadyGenerated: "Article has already been generated.",
+
+        // Leaflet module errors
+        LeafletFeedbackNotFound: "Leaflet generation log not found.",
+        LeafletFeedbackAlreadySubmitted: "Feedback has already been submitted.",
       },
     },
   },

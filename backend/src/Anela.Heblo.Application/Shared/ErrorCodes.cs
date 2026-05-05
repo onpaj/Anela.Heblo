@@ -247,6 +247,10 @@ public enum ErrorCodes
     // Leaflet module errors (25XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
     LeafletChunkNotFound = 2501,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    LeafletFeedbackNotFound = 2502,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    LeafletFeedbackAlreadySubmitted = 2503,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

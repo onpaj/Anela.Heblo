@@ -61,6 +61,59 @@ export interface UploadLeafletDocumentResponse {
   document: LeafletDocumentSummary | null;
 }
 
+export interface SubmitLeafletFeedbackPayload {
+  generationId: string;
+  precisionScore: number;
+  styleScore: number;
+  comment?: string;
+}
+
+export interface SubmitLeafletFeedbackResult {
+  alreadySubmitted?: boolean;
+}
+
+export interface LeafletFeedbackListParams {
+  hasFeedback?: boolean;
+  userId?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface LeafletFeedbackStatsDto {
+  totalGenerations: number;
+  totalWithFeedback: number;
+  avgPrecisionScore: number | null;
+  avgStyleScore: number | null;
+}
+
+export interface LeafletGenerationSummary {
+  id: string;
+  topic: string;
+  audience: string;
+  length: string;
+  kbSourceCount: number;
+  leafletSourceCount: number;
+  durationMs: number;
+  createdAt: string;
+  userId: string | null;
+  precisionScore: number | null;
+  styleScore: number | null;
+  feedbackComment: string | null;
+  hasFeedback: boolean;
+}
+
+export interface LeafletFeedbackListResponse {
+  success: boolean;
+  logs: LeafletGenerationSummary[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  stats: LeafletFeedbackStatsDto;
+}
+
 // ---- Permission hook ----
 
 /**
@@ -91,6 +144,8 @@ export const leafletKeys = {
   contentTypes: () => [...QUERY_KEYS.leaflet, 'content-types'] as const,
   chunkDetail: (chunkId: string) =>
     [...QUERY_KEYS.leaflet, 'chunk-detail', chunkId] as const,
+  feedbackList: (params?: LeafletFeedbackListParams) =>
+    [...QUERY_KEYS.leaflet, 'feedback-list', params ?? {}] as const,
 };
 
 // ---- Hooks ----
@@ -251,5 +306,76 @@ export const useUploadLeafletDocumentMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: leafletKeys.all });
     },
+  });
+};
+
+// ---- Leaflet Feedback Hooks ----
+
+/**
+ * Submit feedback (precision and style scores) for a leaflet generation.
+ * Returns 409 if feedback was already submitted for this generation.
+ */
+export const useSubmitLeafletFeedbackMutation = () => {
+  return useMutation({
+    mutationFn: async (payload: SubmitLeafletFeedbackPayload): Promise<SubmitLeafletFeedbackResult> => {
+      const apiClient = getAuthenticatedApiClient();
+      const fullUrl = `${(apiClient as any).baseUrl}/api/leaflet/feedback`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.status === 409) {
+        return { alreadySubmitted: true };
+      }
+
+      if (!response.ok) {
+        throw new Error(`Submit leaflet feedback failed: ${response.status}`);
+      }
+
+      return {};
+    },
+  });
+};
+
+/**
+ * Fetch paginated, filtered leaflet generation logs with feedback status.
+ */
+export const useLeafletFeedbackListQuery = (params: LeafletFeedbackListParams = {}) => {
+  return useQuery({
+    queryKey: leafletKeys.feedbackList(params),
+    queryFn: async (): Promise<LeafletFeedbackListResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const searchParams = new URLSearchParams();
+
+      if (params.hasFeedback !== undefined)
+        searchParams.append('hasFeedback', params.hasFeedback.toString());
+      if (params.userId) searchParams.append('userId', params.userId);
+      if (params.sortBy) searchParams.append('sortBy', params.sortBy);
+      if (params.sortDescending !== undefined)
+        searchParams.append('sortDescending', params.sortDescending.toString());
+      if (params.pageNumber !== undefined)
+        searchParams.append('pageNumber', params.pageNumber.toString());
+      if (params.pageSize !== undefined)
+        searchParams.append('pageSize', params.pageSize.toString());
+
+      const query = searchParams.toString();
+      const relativeUrl = `/api/leaflet/feedback/list${query ? `?${query}` : ''}`;
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch leaflet feedback list: ${response.status}`);
+      }
+
+      return response.json();
+    },
+    staleTime: 30_000,
   });
 };
