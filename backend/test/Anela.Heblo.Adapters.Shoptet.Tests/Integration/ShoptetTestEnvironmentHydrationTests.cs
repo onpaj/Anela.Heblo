@@ -18,7 +18,7 @@ public class ShoptetTestEnvironmentHydrationTests
     private readonly IEshopStockClient _stockClient;
     private readonly ITestOutputHelper _output;
 
-    // Shipping IDs match ShoptetPlaywrightExpeditionListSource constants.
+    // Shipping IDs match ShoptetApiExpeditionListSource constants.
     // The GUIDs for these IDs must be set in appsettings / user secrets
     // under Shoptet:ShippingGuidMap:21 and Shoptet:ShippingGuidMap:6.
     // Custom status IDs are store-specific — configure under Shoptet:StatusId:EXP and Shoptet:StatusId:PACK.
