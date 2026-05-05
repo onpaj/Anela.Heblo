@@ -232,6 +232,10 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.Forbidden)]
     UnauthorizedMarketingAccess = 2302,
 
+    // Leaflet module errors (24XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    LeafletChunkNotFound = 2401,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
