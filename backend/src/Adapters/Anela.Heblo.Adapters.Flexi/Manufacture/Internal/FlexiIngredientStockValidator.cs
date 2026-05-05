@@ -26,7 +26,7 @@ internal sealed class FlexiIngredientStockValidator : IFlexiIngredientStockValid
 
             var stockItems = await _stockClient.StockToDateAsync(stockDate, warehouseId, cancellationToken);
             var ingredientStock = stockItems.FirstOrDefault(s => s.ProductCode == ingredientCode);
-            var availableStock = ingredientStock != null ? (double)ingredientStock.Stock : 0;
+            var availableStock = ingredientStock != null ? (decimal)ingredientStock.Stock : 0m;
 
             if (availableStock < requirement.RequiredAmount)
             {

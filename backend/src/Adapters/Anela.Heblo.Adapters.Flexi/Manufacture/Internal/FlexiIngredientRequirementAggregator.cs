@@ -26,7 +26,7 @@ internal sealed class FlexiIngredientRequirementAggregator : IFlexiIngredientReq
 
             foreach (var ingredient in template.Ingredients.Where(w => w.ProductType != ProductType.UNDEFINED))
             {
-                var scaledAmount = ingredient.Amount * scaleFactor;
+                var scaledAmount = (decimal)(ingredient.Amount * scaleFactor);
 
                 if (ingredientRequirements.TryGetValue(ingredient.ProductCode, out var existing))
                 {
