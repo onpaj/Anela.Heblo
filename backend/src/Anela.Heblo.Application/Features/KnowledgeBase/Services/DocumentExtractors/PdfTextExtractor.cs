@@ -6,6 +6,9 @@ namespace Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtrac
 
 public class PdfTextExtractor : IDocumentTextExtractor
 {
+    private static readonly System.Text.RegularExpressions.Regex MultipleWhitespaceRegex =
+        new(@"[ \t]{2,}", System.Text.RegularExpressions.RegexOptions.Compiled);
+
     private readonly ILogger<PdfTextExtractor> _logger;
 
     public PdfTextExtractor(ILogger<PdfTextExtractor> logger)
@@ -36,7 +39,6 @@ public class PdfTextExtractor : IDocumentTextExtractor
         // Replace unmappable glyphs (incomplete ToUnicode CMap in InDesign-subset fonts)
         // with space so adjacent words don't fuse, then normalize whitespace runs.
         var withoutReplacementChars = raw.Replace('�', ' ');
-        return System.Text.RegularExpressions.Regex.Replace(
-            withoutReplacementChars, @"[ \t]{2,}", " ").Trim();
+        return MultipleWhitespaceRegex.Replace(withoutReplacementChars, " ").Trim();
     }
 }

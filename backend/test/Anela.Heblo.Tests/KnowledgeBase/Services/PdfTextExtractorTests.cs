@@ -75,4 +75,30 @@ public class PdfTextExtractorTests
         // Assert
         Assert.Equal("trimmed", result);
     }
+
+    [Fact]
+    public void CleanPageText_ReturnsEmptyString_WhenInputIsEmpty()
+    {
+        // Arrange
+        const string input = "";
+
+        // Act
+        var result = PdfTextExtractor.CleanPageText(input);
+
+        // Assert
+        Assert.Equal("", result);
+    }
+
+    [Fact]
+    public void CleanPageText_ReturnsEmptyString_WhenInputIsWhitespaceOnly()
+    {
+        // Arrange
+        const string input = "   ";
+
+        // Act
+        var result = PdfTextExtractor.CleanPageText(input);
+
+        // Assert
+        Assert.Equal("", result);
+    }
 }
