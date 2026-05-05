@@ -152,6 +152,83 @@ public class LeafletRepository : ILeafletRepository
                 .SetProperty(d => d.GraphItemId, graphItemId), ct);
     }
 
+    public async Task UpdateStatusAsync(Guid documentId, LeafletDocumentStatus status, DateTime? indexedAt, CancellationToken ct = default)
+    {
+        await _context.LeafletDocuments
+            .Where(x => x.Id == documentId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(d => d.Status, status)
+                .SetProperty(d => d.IndexedAt, indexedAt), ct);
+    }
+
+    public async Task<(IReadOnlyList<LeafletDocument> Items, int Total)> GetDocumentsPagedAsync(
+        int pageNumber, int pageSize, string sortBy, bool sortDescending,
+        string? filenameFilter, LeafletDocumentStatus? statusFilter, string? contentTypeFilter,
+        CancellationToken ct = default)
+    {
+        var query = _context.LeafletDocuments.AsQueryable();
+
+        if (!string.IsNullOrEmpty(filenameFilter))
+            query = query.Where(d => EF.Functions.Like(d.Filename, $"%{filenameFilter}%"));
+
+        if (statusFilter.HasValue)
+            query = query.Where(d => d.Status == statusFilter.Value);
+
+        if (!string.IsNullOrEmpty(contentTypeFilter))
+            query = query.Where(d => d.ContentType == contentTypeFilter);
+
+        query = sortBy switch
+        {
+            "Filename" => sortDescending
+                ? query.OrderByDescending(d => d.Filename)
+                : query.OrderBy(d => d.Filename),
+            "Status" => sortDescending
+                ? query.OrderByDescending(d => d.Status)
+                : query.OrderBy(d => d.Status),
+            "IndexedAt" => sortDescending
+                ? query.OrderByDescending(d => d.IndexedAt)
+                : query.OrderBy(d => d.IndexedAt),
+            _ => sortDescending
+                ? query.OrderByDescending(d => d.IngestedAt)
+                : query.OrderBy(d => d.IngestedAt),
+        };
+
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return (items, total);
+    }
+
+    public async Task<IReadOnlyList<string>> GetDistinctContentTypesAsync(CancellationToken ct = default)
+    {
+        return await _context.LeafletDocuments
+            .Select(d => d.ContentType)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToListAsync(ct);
+    }
+
+    public async Task<LeafletChunk?> GetChunkByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _context.LeafletChunks
+            .Include(c => c.Document)
+            .FirstOrDefaultAsync(c => c.Id == id, ct);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, Guid>> GetFirstChunkIdsByDocumentIdsAsync(
+        IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        var idList = ids.ToList();
+        return await _context.LeafletChunks
+            .Where(c => idList.Contains(c.DocumentId))
+            .GroupBy(c => c.DocumentId)
+            .Select(g => new { DocumentId = g.Key, ChunkId = g.OrderBy(c => c.ChunkIndex).First().Id })
+            .ToDictionaryAsync(x => x.DocumentId, x => x.ChunkId, ct);
+    }
+
     public async Task SaveChangesAsync(CancellationToken ct = default)
     {
         await _context.SaveChangesAsync(ct);

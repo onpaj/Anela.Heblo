@@ -19,6 +19,18 @@ public class LeafletDocumentConfiguration : IEntityTypeConfiguration<LeafletDocu
         builder.Property(x => x.DriveId).IsRequired(false);
         builder.Property(x => x.GraphItemId).IsRequired(false);
 
+        builder.Property(x => x.Status)
+            .IsRequired()
+            .HasMaxLength(16)
+            .HasConversion(
+                v => v.ToString().ToLowerInvariant(),
+                v => Enum.Parse<LeafletDocumentStatus>(v, true));
+
+        builder.Property(x => x.IndexedAt)
+            .HasColumnType("timestamp without time zone");
+
+        builder.HasIndex(x => x.Status);
+
         builder.HasIndex(x => x.ContentHash)
             .HasDatabaseName("IX_LeafletDocuments_ContentHash");
 
