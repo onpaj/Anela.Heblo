@@ -24,15 +24,18 @@ const LeafletGenerateTab: React.FC = () => {
   const [length, setLength] = useState<LeafletLength>(LeafletLength.Medium);
   const [result, setResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [generationId, setGenerationId] = useState<string | null>(null);
   const [errorBanner, setErrorBanner] = useState<ErrorBanner | null>(null);
 
   const generate = async () => {
     setIsLoading(true);
+    setGenerationId(null);
     setErrorBanner(null);
     try {
       const client = getAuthenticatedApiClient();
       const response = await client.leaflet_Generate(new GenerateLeafletRequest({ topic, audience, length }));
       setResult(response.content ?? '');
+      setGenerationId((response as any).id ?? null);
     } catch (err: unknown) {
       if (isApiError(err) && err.status === 422) {
         setErrorBanner({
@@ -87,7 +90,7 @@ const LeafletGenerateTab: React.FC = () => {
               <div className="h-4 bg-gray-200 rounded w-5/6" />
             </div>
           ) : (
-            <LeafletResult content={result} onRegenerate={generate} />
+            <LeafletResult content={result} generationId={generationId} onRegenerate={generate} />
           )}
         </div>
       </div>
