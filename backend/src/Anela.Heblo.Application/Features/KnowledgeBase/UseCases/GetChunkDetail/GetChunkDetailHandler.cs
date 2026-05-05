@@ -32,6 +32,7 @@ public class GetChunkDetailHandler : IRequestHandler<GetChunkDetailRequest, GetC
             ChunkIndex = chunk.ChunkIndex,
             Summary = chunk.Summary,
             Content = chunk.Content,
+            SourcePath = chunk.Document.SourcePath,
         };
     }
 }
