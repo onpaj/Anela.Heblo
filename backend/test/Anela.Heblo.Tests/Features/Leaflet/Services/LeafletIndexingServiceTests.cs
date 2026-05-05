@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Leaflet;
 using Anela.Heblo.Application.Features.Leaflet.Services;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.Leaflet;
+using FluentAssertions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -250,9 +251,9 @@ public class LeafletIndexingServiceTests
         await _service.IndexAsync("chunk one chunk two", document);
 
         // Assert
-        Assert.NotNull(capturedChunks);
+        capturedChunks.Should().NotBeNull();
         var chunks = capturedChunks.ToList();
-        Assert.Equal("summary one", chunks[0].Summary);
-        Assert.Equal("summary two", chunks[1].Summary);
+        chunks[0].Summary.Should().Be("summary one");
+        chunks[1].Summary.Should().Be("summary two");
     }
 }
