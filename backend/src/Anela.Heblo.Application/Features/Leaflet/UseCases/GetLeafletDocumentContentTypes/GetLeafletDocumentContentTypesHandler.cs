@@ -20,7 +20,7 @@ public class GetLeafletDocumentContentTypesHandler : IRequestHandler<GetLeafletD
 
         return new GetLeafletDocumentContentTypesResponse
         {
-            ContentTypes = contentTypes.ToList(),
+            ContentTypes = contentTypes,
         };
     }
 }

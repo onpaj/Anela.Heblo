@@ -41,7 +41,9 @@ public class GetLeafletDocumentsHandler : IRequestHandler<GetLeafletDocumentsReq
             cancellationToken);
 
         var docIds = docs.Select(d => d.Id).ToList();
-        var firstChunkMap = await _leafletRepository.GetFirstChunkIdsByDocumentIdsAsync(docIds, cancellationToken);
+        var firstChunkMap = docIds.Count > 0
+            ? await _leafletRepository.GetFirstChunkIdsByDocumentIdsAsync(docIds, cancellationToken)
+            : new Dictionary<Guid, Guid>();
 
         return new GetLeafletDocumentsResponse
         {

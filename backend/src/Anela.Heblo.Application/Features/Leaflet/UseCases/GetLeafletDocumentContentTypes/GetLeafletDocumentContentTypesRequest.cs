@@ -9,5 +9,5 @@ public class GetLeafletDocumentContentTypesRequest : IRequest<GetLeafletDocument
 
 public class GetLeafletDocumentContentTypesResponse : BaseResponse
 {
-    public List<string> ContentTypes { get; set; } = [];
+    public IReadOnlyList<string> ContentTypes { get; set; } = [];
 }

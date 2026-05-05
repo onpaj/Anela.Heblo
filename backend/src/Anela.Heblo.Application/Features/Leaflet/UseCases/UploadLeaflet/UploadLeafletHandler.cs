@@ -48,6 +48,9 @@ public class UploadLeafletHandler : IRequestHandler<UploadLeafletRequest, Upload
             Content = fileBytes,
         }, cancellationToken);
 
+        if (!indexResponse.Success)
+            return new UploadLeafletResponse { Success = false, ErrorCode = indexResponse.ErrorCode };
+
         return new UploadLeafletResponse
         {
             Document = MapToSummary(indexResponse),
