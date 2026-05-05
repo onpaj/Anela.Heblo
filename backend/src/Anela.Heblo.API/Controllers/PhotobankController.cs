@@ -1,8 +1,11 @@
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Photobank.Contracts;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Domain.Features.Photobank;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -16,10 +19,17 @@ namespace Anela.Heblo.API.Controllers
     public class PhotobankController : BaseApiController
     {
         private readonly IMediator _mediator;
+        private readonly IPhotobankRepository _photobankRepository;
+        private readonly IPhotobankGraphService _photobankGraphService;
 
-        public PhotobankController(IMediator mediator)
+        public PhotobankController(
+            IMediator mediator,
+            IPhotobankRepository photobankRepository,
+            IPhotobankGraphService photobankGraphService)
         {
             _mediator = mediator;
+            _photobankRepository = photobankRepository;
+            _photobankGraphService = photobankGraphService;
         }
 
         /// <summary>
@@ -90,6 +100,52 @@ namespace Anela.Heblo.API.Controllers
             var request = new RemovePhotoTagRequest { PhotoId = id, TagId = tagId };
             var response = await _mediator.Send(request, cancellationToken);
             return HandleResponse(response);
+        }
+
+        [HttpGet("photos/{id:int}/thumbnail/{size}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+        [ProducesResponseType(StatusCodes.Status502BadGateway)]
+        public async Task<IActionResult> GetThumbnail(
+            int id,
+            ThumbnailSize size,
+            CancellationToken cancellationToken = default)
+        {
+            var locator = await _photobankRepository.GetLocatorAsync(id, cancellationToken);
+            if (locator is null)
+            {
+                return NotFound();
+            }
+
+            GraphThumbnail? thumbnail;
+            try
+            {
+                thumbnail = await _photobankGraphService.GetThumbnailAsync(
+                    locator.DriveId, locator.SharePointFileId, size, cancellationToken);
+            }
+            catch (GraphThrottledException ex)
+            {
+                if (ex.RetryAfter.HasValue)
+                {
+                    Response.Headers["Retry-After"] = ((long)ex.RetryAfter.Value.TotalSeconds).ToString();
+                }
+                return StatusCode(StatusCodes.Status503ServiceUnavailable);
+            }
+            catch (HttpRequestException ex)
+            {
+                Logger.LogWarning(ex, "Upstream HTTP error fetching thumbnail for photo {PhotoId}", id);
+                return StatusCode(StatusCodes.Status502BadGateway);
+            }
+
+            if (thumbnail is null)
+            {
+                return NotFound();
+            }
+
+            Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+
+            return new FileStreamResult(thumbnail.Content, thumbnail.ContentType);
         }
     }
 
