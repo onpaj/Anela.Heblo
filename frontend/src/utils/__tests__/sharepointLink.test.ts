@@ -1,4 +1,4 @@
-import { getSharePointLink } from './sharepointLink';
+import { getSharePointLink } from '../sharepointLink';
 
 describe('getSharePointLink', () => {
   test('returns null for null', () => {
