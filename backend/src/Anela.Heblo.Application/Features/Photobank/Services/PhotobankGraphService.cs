@@ -159,7 +159,7 @@ public class PhotobankGraphService : IPhotobankGraphService
         var sizeSegment = size switch
         {
             ThumbnailSize.Medium => "medium",
-            ThumbnailSize.Large  => "large",
+            ThumbnailSize.Large => "large",
             _ => throw new ArgumentOutOfRangeException(nameof(size), size, null),
         };
         var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{Uri.EscapeDataString(fileId)}/thumbnails/0/{sizeSegment}/content";

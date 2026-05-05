@@ -76,7 +76,7 @@ public sealed class PhotobankGraphServiceThumbnailTests
 
     [Theory]
     [InlineData(ThumbnailSize.Medium, "thumbnails/0/medium/content")]
-    [InlineData(ThumbnailSize.Large,  "thumbnails/0/large/content")]
+    [InlineData(ThumbnailSize.Large, "thumbnails/0/large/content")]
     public async Task GetThumbnailAsync_BuildsCorrectUrl(ThumbnailSize size, string expectedSegment)
     {
         // Arrange
