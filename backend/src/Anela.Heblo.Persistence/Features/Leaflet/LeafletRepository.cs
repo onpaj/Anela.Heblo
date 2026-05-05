@@ -252,7 +252,9 @@ public class LeafletRepository : ILeafletRepository
         bool? hasFeedback, string? userId, string sortBy, bool descending,
         int page, int pageSize, CancellationToken cancellationToken)
     {
-        var query = _context.LeafletGenerations.AsQueryable();
+        var query = _context.LeafletGenerations
+            .AsNoTracking()
+            .AsQueryable();
 
         if (hasFeedback == true)
             query = query.Where(g => g.PrecisionScore != null || g.StyleScore != null);

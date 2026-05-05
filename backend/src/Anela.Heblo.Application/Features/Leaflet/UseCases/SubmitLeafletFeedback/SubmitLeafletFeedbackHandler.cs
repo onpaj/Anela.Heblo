@@ -29,6 +29,10 @@ public class SubmitLeafletFeedbackHandler
                 new() { { "generationId", request.GenerationId.ToString() } });
 
         var currentUser = _currentUserService.GetCurrentUser();
+        if (generation.UserId is null || currentUser.Id is null)
+            return new SubmitLeafletFeedbackResponse(ErrorCodes.Forbidden,
+                new() { { "generationId", request.GenerationId.ToString() } });
+
         if (generation.UserId != currentUser.Id)
             return new SubmitLeafletFeedbackResponse(ErrorCodes.Forbidden,
                 new() { { "generationId", request.GenerationId.ToString() } });
@@ -37,6 +41,7 @@ public class SubmitLeafletFeedbackHandler
             return new SubmitLeafletFeedbackResponse(ErrorCodes.LeafletFeedbackAlreadySubmitted,
                 new() { { "generationId", request.GenerationId.ToString() } });
 
+        // Entity is tracked via FindAsync in GetGenerationByIdAsync; direct mutation is intentional.
         generation.PrecisionScore = request.PrecisionScore;
         generation.StyleScore = request.StyleScore;
         generation.FeedbackComment = request.Comment;

@@ -49,6 +49,23 @@ public class SubmitLeafletFeedbackHandlerTests
     }
 
     [Fact]
+    public async Task ReturnsForbidden_WhenGenerationUserIdIsNull()
+    {
+        // Arrange
+        var generation = new LeafletGeneration { Id = Guid.NewGuid(), Topic = "Vitamin C", UserId = null };
+        _repo.Setup(r => r.GetGenerationByIdAsync(generation.Id, default)).ReturnsAsync(generation);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new SubmitLeafletFeedbackRequest { GenerationId = generation.Id, PrecisionScore = 4, StyleScore = 3 }, default);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.Forbidden);
+        _repo.Verify(r => r.SaveChangesAsync(default), Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_WhenUserDoesNotOwnGeneration_ReturnsForbidden()
     {
         var generation = MakeGeneration(userId: "other-user");
