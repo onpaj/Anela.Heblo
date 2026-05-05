@@ -8,7 +8,7 @@ namespace Anela.Heblo.Domain.Features.Photobank
     {
         // Photos
         Task<(List<Photo> Items, int Total)> GetPhotosAsync(
-            List<string>? tags, string? search, int page, int pageSize,
+            List<string>? tags, string? search, string? folderPath, int page, int pageSize,
             CancellationToken cancellationToken);
 
         Task<Photo?> GetPhotoByIdAsync(int id, CancellationToken cancellationToken);

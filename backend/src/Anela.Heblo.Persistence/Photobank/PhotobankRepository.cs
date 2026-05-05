@@ -20,7 +20,7 @@ namespace Anela.Heblo.Persistence.Photobank
         // Photos
 
         public async Task<(List<Photo> Items, int Total)> GetPhotosAsync(
-            List<string>? tags, string? search, int page, int pageSize,
+            List<string>? tags, string? search, string? folderPath, int page, int pageSize,
             CancellationToken cancellationToken)
         {
             var query = _context.Photos
@@ -32,6 +32,12 @@ namespace Anela.Heblo.Persistence.Photobank
             {
                 var term = search.Trim().ToLowerInvariant();
                 query = query.Where(p => p.FileName.ToLower().Contains(term));
+            }
+
+            if (!string.IsNullOrWhiteSpace(folderPath))
+            {
+                var pathTerm = folderPath.Trim().ToLowerInvariant();
+                query = query.Where(p => p.FolderPath.ToLower().Contains(pathTerm));
             }
 
             if (tags != null && tags.Count > 0)

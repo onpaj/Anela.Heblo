@@ -21,6 +21,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
             var (items, total) = await _repository.GetPhotosAsync(
                 request.Tags,
                 request.Search,
+                request.FolderPath,
                 request.Page,
                 request.PageSize,
                 cancellationToken);

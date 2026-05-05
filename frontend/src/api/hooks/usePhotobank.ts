@@ -37,6 +37,7 @@ export interface GetPhotosResponse {
 export interface GetPhotosParams {
   tags?: string[];
   search?: string;
+  folderPath?: string;
   page?: number;
   pageSize?: number;
 }
@@ -80,6 +81,7 @@ async function apiDelete(apiClient: ReturnType<typeof getAuthenticatedApiClient>
 function buildPhotosUrl(baseUrl: string, params: GetPhotosParams): string {
   const qs = new URLSearchParams();
   if (params.search) qs.set("search", params.search);
+  if (params.folderPath) qs.set("folderPath", params.folderPath);
   if (params.page != null) qs.set("page", String(params.page));
   if (params.pageSize != null) qs.set("pageSize", String(params.pageSize));
   (params.tags ?? []).forEach((t) => qs.append("tags", String(t)));

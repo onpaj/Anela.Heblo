@@ -1,13 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Search, X, Tag } from "lucide-react";
+import { Search, X, Tag, Folder } from "lucide-react";
 import type { TagWithCountDto } from "../../../api/hooks/usePhotobank";
 
 interface TagSidebarProps {
   tags: TagWithCountDto[];
   selectedTagIds: number[];
   search: string;
+  folderPath: string;
   onTagToggle: (tagId: number) => void;
   onSearchChange: (value: string) => void;
+  onFolderPathChange: (value: string) => void;
   onClearFilters: () => void;
 }
 
@@ -17,11 +19,14 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
   tags,
   selectedTagIds,
   search,
+  folderPath,
   onTagToggle,
   onSearchChange,
+  onFolderPathChange,
   onClearFilters,
 }) => {
   const [inputValue, setInputValue] = useState(search);
+  const [folderPathValue, setFolderPathValue] = useState(folderPath);
 
   // Sync external search value to local input
   useEffect(() => {
@@ -51,7 +56,35 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
     onSearchChange("");
   }, [onSearchChange]);
 
-  const hasActiveFilters = search.length > 0 || selectedTagIds.length > 0;
+  // Sync external folderPath value to local input
+  useEffect(() => {
+    setFolderPathValue(folderPath);
+  }, [folderPath]);
+
+  // Debounce folder path input changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (folderPathValue !== folderPath) {
+        onFolderPathChange(folderPathValue);
+      }
+    }, DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [folderPathValue, folderPath, onFolderPathChange]);
+
+  const handleFolderPathInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFolderPathValue(e.target.value);
+    },
+    [],
+  );
+
+  const handleClearFolderPath = useCallback(() => {
+    setFolderPathValue("");
+    onFolderPathChange("");
+  }, [onFolderPathChange]);
+
+  const hasActiveFilters = search.length > 0 || folderPath.length > 0 || selectedTagIds.length > 0;
 
   return (
     <aside className="flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
@@ -88,6 +121,28 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
               onClick={handleClearSearch}
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               aria-label="Vymazat hledání"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Folder path input */}
+        <div className="relative mt-2">
+          <Folder className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={folderPathValue}
+            onChange={handleFolderPathInputChange}
+            placeholder="Hledat ve složkách..."
+            className="w-full pl-8 pr-7 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+            aria-label="Hledat ve složkách"
+          />
+          {folderPathValue && (
+            <button
+              onClick={handleClearFolderPath}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label="Vymazat složku"
             >
               <X className="w-3.5 h-3.5" />
             </button>
