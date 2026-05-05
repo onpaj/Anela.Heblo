@@ -45,7 +45,16 @@ public class IndexLeafletHandler : IRequestHandler<IndexLeafletRequest, IndexLea
                 await _repo.UpdateGraphItemIdAsync(existing.Id, request.DriveId!, request.GraphItemId!, ct);
             }
 
-            return new IndexLeafletResponse { DocumentId = existing.Id, WasDuplicate = true };
+            return new IndexLeafletResponse
+            {
+                DocumentId = existing.Id,
+                WasDuplicate = true,
+                Status = existing.Status,
+                Filename = existing.Filename,
+                ContentType = existing.ContentType,
+                IngestedAt = existing.IngestedAt,
+                IndexedAt = existing.IndexedAt,
+            };
         }
 
         var existingByIdentity = useGraphIdentity
@@ -74,15 +83,46 @@ public class IndexLeafletHandler : IRequestHandler<IndexLeafletRequest, IndexLea
             WordCount = 0,
             DriveId = useGraphIdentity ? request.DriveId : null,
             GraphItemId = useGraphIdentity ? request.GraphItemId : null,
+            Status = LeafletDocumentStatus.Processing,
         };
 
         await _repo.AddDocumentAsync(doc, ct);
         await _repo.SaveChangesAsync(ct);
 
-        var chunkCount = await _indexing.IndexAsync(text, doc, ct);
-        await _repo.SaveChangesAsync(ct);
+        try
+        {
+            var chunkCount = await _indexing.IndexAsync(text, doc, ct);
+            await _repo.SaveChangesAsync(ct);
 
-        return new IndexLeafletResponse { DocumentId = doc.Id, WasDuplicate = false, ChunkCount = chunkCount };
+            await _repo.UpdateStatusAsync(doc.Id, LeafletDocumentStatus.Indexed, DateTime.UtcNow, ct);
+            doc.Status = LeafletDocumentStatus.Indexed;
+            doc.IndexedAt = DateTime.UtcNow;
+
+            return new IndexLeafletResponse
+            {
+                DocumentId = doc.Id,
+                WasDuplicate = false,
+                ChunkCount = chunkCount,
+                Status = doc.Status,
+                Filename = doc.Filename,
+                ContentType = doc.ContentType,
+                IngestedAt = doc.IngestedAt,
+                IndexedAt = doc.IndexedAt,
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to index leaflet document {Filename}", doc.Filename);
+            try
+            {
+                await _repo.UpdateStatusAsync(doc.Id, LeafletDocumentStatus.Failed, null, ct);
+            }
+            catch (Exception saveEx)
+            {
+                _logger.LogError(saveEx, "Failed to persist Failed status for document {Filename}", doc.Filename);
+            }
+            throw;
+        }
     }
 
     private static string ComputeHash(byte[] content)

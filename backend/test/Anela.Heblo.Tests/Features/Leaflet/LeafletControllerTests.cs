@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -12,14 +13,22 @@ namespace Anela.Heblo.Tests.Features.Leaflet;
 public class LeafletControllerTests
 {
     private readonly Mock<IMediator> _mediatorMock = new();
-    private readonly Mock<ILogger<LeafletController>> _loggerMock = new();
 
     private LeafletController CreateController()
     {
-        var controller = new LeafletController(_mediatorMock.Object, _loggerMock.Object);
+        var services = new ServiceCollection();
+        services.AddLogging();
+        var serviceProvider = services.BuildServiceProvider();
+
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = serviceProvider,
+        };
+
+        var controller = new LeafletController(_mediatorMock.Object);
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = new DefaultHttpContext()
+            HttpContext = httpContext,
         };
         return controller;
     }

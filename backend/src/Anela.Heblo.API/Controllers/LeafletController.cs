@@ -1,23 +1,27 @@
+using Anela.Heblo.Application.Features.Leaflet.UseCases.DeleteLeafletDocument;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
+using Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletChunkDetail;
+using Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletDocumentContentTypes;
+using Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletDocuments;
+using Anela.Heblo.Application.Features.Leaflet.UseCases.UploadLeaflet;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.API.Controllers;
 
 [ApiController]
 [Route("api/leaflet")]
 [Authorize]
-public class LeafletController : ControllerBase
+public class LeafletController : BaseApiController
 {
     private readonly IMediator _mediator;
-    private readonly ILogger<LeafletController> _logger;
 
-    public LeafletController(IMediator mediator, ILogger<LeafletController> logger)
+    public LeafletController(IMediator mediator)
     {
         _mediator = mediator;
-        _logger = logger;
     }
 
     [HttpPost("generate")]
@@ -47,7 +51,7 @@ public class LeafletController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Leaflet generation failed");
+            Logger.LogError(ex, "Leaflet generation failed");
             return StatusCode(502, new ProblemDetails
             {
                 Status = 502,
@@ -55,5 +59,71 @@ public class LeafletController : ControllerBase
                 Detail = "Leaflet generation failed. Please try again.",
             });
         }
+    }
+
+    [HttpGet("documents")]
+    public async Task<ActionResult<GetLeafletDocumentsResponse>> GetDocuments(
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string sortBy = "IngestedAt",
+        [FromQuery] bool sortDescending = true,
+        [FromQuery] string? filenameFilter = null,
+        [FromQuery] string? statusFilter = null,
+        [FromQuery] string? contentTypeFilter = null,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetLeafletDocumentsRequest
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            SortBy = sortBy,
+            SortDescending = sortDescending,
+            FilenameFilter = filenameFilter,
+            StatusFilter = statusFilter,
+            ContentTypeFilter = contentTypeFilter,
+        }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("documents/content-types")]
+    public async Task<ActionResult<GetLeafletDocumentContentTypesResponse>> GetDocumentContentTypes(CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetLeafletDocumentContentTypesRequest(), ct);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("chunks/{id:guid}")]
+    public async Task<ActionResult<GetLeafletChunkDetailResponse>> GetChunkDetail(Guid id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetLeafletChunkDetailRequest { ChunkId = id }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpDelete("documents/{id:guid}")]
+    [Authorize(Policy = AuthorizationConstants.Policies.LeafletUpload)]
+    public async Task<ActionResult<DeleteLeafletDocumentResponse>> DeleteDocument(Guid id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new DeleteLeafletDocumentRequest { DocumentId = id }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("documents/upload")]
+    [Authorize(Policy = AuthorizationConstants.Policies.LeafletUpload)]
+    public async Task<ActionResult<UploadLeafletResponse>> UploadDocument(
+        IFormFile file,
+        CancellationToken ct = default)
+    {
+        if (file is null)
+            return BadRequest(new UploadLeafletResponse { Success = false });
+
+        await using var stream = file.OpenReadStream();
+        var result = await _mediator.Send(new UploadLeafletRequest
+        {
+            FileStream = stream,
+            Filename = file.FileName,
+            ContentType = file.ContentType,
+            FileSizeBytes = file.Length,
+        }, ct);
+        return HandleResponse(result);
     }
 }
