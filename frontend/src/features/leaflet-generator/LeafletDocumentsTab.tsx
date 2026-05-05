@@ -90,7 +90,7 @@ interface Props {
   canDelete: boolean;
 }
 
-const DEFAULT_SORT_BY = 'CreatedAt';
+const DEFAULT_SORT_BY = 'IngestedAt';
 const DEFAULT_SORT_DESC = true;
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
@@ -358,7 +358,7 @@ const LeafletDocumentsTab: React.FC<Props> = ({ canDelete }) => {
                 <tr>
                   <SortableHeader column="Filename" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort}>Soubor</SortableHeader>
                   <SortableHeader column="Status" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort}>Stav</SortableHeader>
-                  <SortableHeader column="CreatedAt" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort}>Vytvořeno</SortableHeader>
+                  <SortableHeader column="IngestedAt" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort}>Vytvořeno</SortableHeader>
                   <SortableHeader column="IndexedAt" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort}>Indexováno</SortableHeader>
                   {canDelete && <th className="px-6 py-3" />}
                 </tr>
@@ -375,7 +375,7 @@ const LeafletDocumentsTab: React.FC<Props> = ({ canDelete }) => {
                       <StatusBadge status={doc.status} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(doc.createdAt).toLocaleDateString('cs-CZ')}
+                      {new Date(doc.ingestedAt).toLocaleDateString('cs-CZ')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {doc.indexedAt

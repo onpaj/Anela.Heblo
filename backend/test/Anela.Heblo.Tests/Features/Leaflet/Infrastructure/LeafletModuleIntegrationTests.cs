@@ -27,6 +27,7 @@ public class LeafletModuleIntegrationTests
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         services.AddSingleton(Mock.Of<IEmbeddingGenerator<string, Embedding<float>>>());
+        services.AddSingleton(Mock.Of<IChatClient>());
         services.AddSingleton(Mock.Of<ILeafletRepository>());
         services.AddScoped<IWordWindowChunker, WordWindowChunker>();
         services.AddLeafletModule(configuration);
@@ -63,5 +64,8 @@ public class LeafletModuleIntegrationTests
 
         var indexingService = scope.ServiceProvider.GetRequiredService<ILeafletIndexingService>();
         Assert.IsType<LeafletIndexingService>(indexingService);
+
+        var summarizer = scope.ServiceProvider.GetRequiredService<ILeafletChunkSummarizer>();
+        Assert.IsType<LeafletChunkSummarizer>(summarizer);
     }
 }

@@ -15,6 +15,7 @@ public static class LeafletModule
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddScoped<ILeafletChunkSummarizer, LeafletChunkSummarizer>();
         services.AddScoped<ILeafletIndexingService, LeafletIndexingService>();
 
         // LeafletIngestionJob is auto-discovered via IRecurringJob assembly scan in AddRecurringJobs()

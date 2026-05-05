@@ -28,6 +28,7 @@ public class GetLeafletChunkDetailHandlerTests
             DocumentId = documentId,
             ChunkIndex = 2,
             Content = "This is the chunk content.",
+            Summary = "expected summary",
             Document = new LeafletDocument
             {
                 Id = documentId,
@@ -53,6 +54,7 @@ public class GetLeafletChunkDetailHandlerTests
         response.Filename.Should().Be("brochure.pdf");
         response.ChunkIndex.Should().Be(2);
         response.Content.Should().Be("This is the chunk content.");
+        response.Summary.Should().Be("expected summary");
         response.IndexedAt.Should().Be(indexedAt);
     }
 

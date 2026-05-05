@@ -16,6 +16,7 @@ public class GetLeafletChunkDetailResponse : BaseResponse
     public DateTime? IndexedAt { get; set; }
     public int ChunkIndex { get; set; }
     public string Content { get; set; } = string.Empty;
+    public string Summary { get; set; } = string.Empty;
 
     public GetLeafletChunkDetailResponse() { }
 

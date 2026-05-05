@@ -11,7 +11,7 @@ export interface LeafletDocumentSummary {
   filename: string;
   status: string;
   contentType: string;
-  createdAt: string;
+  ingestedAt: string;
   indexedAt: string | null;
   firstChunkId: string | null;
 }

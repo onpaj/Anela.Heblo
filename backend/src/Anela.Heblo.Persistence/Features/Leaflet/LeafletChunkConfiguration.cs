@@ -13,6 +13,7 @@ public class LeafletChunkConfiguration : IEntityTypeConfiguration<LeafletChunk>
         builder.Property(x => x.DocumentId).IsRequired();
         builder.Property(x => x.ChunkIndex).IsRequired();
         builder.Property(x => x.Content).IsRequired();
+        builder.Property(x => x.Summary).IsRequired();
         builder.Property(x => x.WordCount).IsRequired();
         builder.Ignore(x => x.Embedding);
 
