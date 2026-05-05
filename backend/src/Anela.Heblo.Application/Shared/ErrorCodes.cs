@@ -248,6 +248,14 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.NotFound)]
     LeafletChunkNotFound = 2501,
 
+    // Photobank errors (26XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotoNotFound = 2601,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotobankRootNotFound = 2602,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotobankRuleNotFound = 2603,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

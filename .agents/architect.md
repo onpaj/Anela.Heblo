@@ -3,7 +3,7 @@ id: architect
 display_name: "Architect Agent"
 model: claude-opus-4-7
 phase: architecting
-max_turns: 10
+max_turns: 50
 allowed_tools: [bash, read]
 output_format: markdown
 visibility_timeout: 1800
