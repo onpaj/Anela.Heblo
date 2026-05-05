@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 
 namespace Anela.Heblo.Domain.Features.Photobank
 {
+    public sealed record PhotoLocator(string DriveId, string SharePointFileId, DateTime ModifiedAt);
+
     public interface IPhotobankRepository
     {
         // Photos
@@ -12,6 +14,8 @@ namespace Anela.Heblo.Domain.Features.Photobank
             CancellationToken cancellationToken);
 
         Task<Photo?> GetPhotoByIdAsync(int id, CancellationToken cancellationToken);
+
+        Task<PhotoLocator?> GetLocatorAsync(int id, CancellationToken cancellationToken);
 
         // Tags
         Task<List<(Tag Tag, int Count)>> GetTagsWithCountsAsync(CancellationToken cancellationToken);

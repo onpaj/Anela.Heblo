@@ -72,8 +72,8 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
                 aria-label={photo.name}
               >
                 <PhotoThumbnail
-                  driveId={photo.driveId}
-                  fileId={photo.sharePointFileId}
+                  photoId={photo.id}
+                  modifiedAt={photo.lastModifiedAt}
                   alt={photo.name}
                   className="w-full h-full"
                   size="medium"

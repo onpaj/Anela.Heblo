@@ -47,7 +47,7 @@ public class PhotobankGraphService : IPhotobankGraphService
         string driveId,
         string rootItemId,
         string? deltaLink,
-        CancellationToken ct = default)
+        CancellationToken cancellationToken = default)
     {
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
@@ -63,10 +63,11 @@ public class PhotobankGraphService : IPhotobankGraphService
         while (!string.IsNullOrEmpty(nextUrl))
         {
             var request = CreateRequest(HttpMethod.Get, nextUrl, token);
-            var response = await client.SendAsync(request, ct);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            var response = await client.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
 
-            var page = await DeserializeAsync<GraphDeltaPage>(response, ct);
+            var page = await DeserializeAsync<GraphDeltaPage>(response, cancellationToken);
 
             foreach (var item in page.Value)
             {
@@ -148,7 +149,54 @@ public class PhotobankGraphService : IPhotobankGraphService
         };
     }
 
-    public async Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken ct = default)
+    public async Task<GraphThumbnail?> GetThumbnailAsync(
+        string driveId,
+        string fileId,
+        ThumbnailSize size,
+        CancellationToken cancellationToken = default)
+    {
+        var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
+        var sizeSegment = size switch
+        {
+            ThumbnailSize.Medium => "medium",
+            ThumbnailSize.Large => "large",
+            _ => throw new ArgumentOutOfRangeException(nameof(size), size, null),
+        };
+        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{Uri.EscapeDataString(fileId)}/thumbnails/0/{sizeSegment}/content";
+
+        var client = _httpClientFactory.CreateClient("MicrosoftGraph");
+        var request = CreateRequest(HttpMethod.Get, url, token);
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return null;
+
+        if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        {
+            TimeSpan? retryAfter = null;
+            if (response.Headers.TryGetValues("Retry-After", out var values))
+            {
+                var headerValue = values.FirstOrDefault();
+                if (headerValue != null && int.TryParse(headerValue, out var seconds))
+                    retryAfter = TimeSpan.FromSeconds(seconds);
+            }
+
+            throw new GraphThrottledException(retryAfter);
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+        var contentLength = response.Content.Headers.ContentLength;
+
+        var ms = new MemoryStream();
+        await response.Content.CopyToAsync(ms, cancellationToken);
+        ms.Position = 0;
+
+        return new GraphThumbnail(ms, contentType, contentLength);
+    }
+
+    public async Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken cancellationToken = default)
     {
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
@@ -158,10 +206,11 @@ public class PhotobankGraphService : IPhotobankGraphService
         var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:";
 
         var request = CreateRequest(HttpMethod.Get, url, token);
-        var response = await client.SendAsync(request, ct);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        var response = await client.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var item = await DeserializeAsync<GraphItemWithId>(response, ct);
+        var item = await DeserializeAsync<GraphItemWithId>(response, cancellationToken);
         return item.Id;
     }
 
