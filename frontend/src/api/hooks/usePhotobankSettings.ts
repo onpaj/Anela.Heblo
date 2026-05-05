@@ -30,7 +30,6 @@ export interface AddIndexRootInput {
   sharePointPath: string;
   displayName: string | null;
   driveId: string;
-  rootItemId: string;
 }
 
 export interface AddTagRuleInput {

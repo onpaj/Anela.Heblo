@@ -18,4 +18,7 @@ public class MockPhotobankGraphService : IPhotobankGraphService
             NewDeltaLink = string.Empty,
         });
     }
+
+    public Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken ct = default)
+        => Task.FromResult("mock-item-id");
 }

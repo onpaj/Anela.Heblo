@@ -148,6 +148,23 @@ public class PhotobankGraphService : IPhotobankGraphService
         };
     }
 
+    public async Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken ct = default)
+    {
+        var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
+        using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
+
+        var encodedSegments = folderPath.Trim('/').Split('/').Select(Uri.EscapeDataString);
+        var encodedPath = string.Join("/", encodedSegments);
+        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:";
+
+        var request = CreateRequest(HttpMethod.Get, url, token);
+        var response = await client.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        var item = await DeserializeAsync<GraphItemWithId>(response, ct);
+        return item.Id;
+    }
+
     private static HttpRequestMessage CreateRequest(HttpMethod method, string url, string token)
     {
         var request = new HttpRequestMessage(method, url);
@@ -160,6 +177,13 @@ public class PhotobankGraphService : IPhotobankGraphService
         var stream = await response.Content.ReadAsStreamAsync(ct);
         return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, ct)
             ?? throw new InvalidOperationException($"Graph response deserialised to null for {typeof(T).Name}.");
+    }
+
+    // Internal DTOs for Graph API response deserialization
+    private class GraphItemWithId
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
     }
 
     // Internal DTOs for Graph delta API response deserialization

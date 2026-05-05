@@ -151,7 +151,6 @@ describe("useAddIndexRoot", () => {
         sharePointPath: "/Fotky",
         displayName: null,
         driveId: "drive-1",
-        rootItemId: "item-1",
       });
     });
 

@@ -23,7 +23,6 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot
                 SharePointPath = request.SharePointPath.Trim(),
                 DisplayName = request.DisplayName?.Trim(),
                 DriveId = request.DriveId.Trim(),
-                RootItemId = request.RootItemId.Trim(),
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
             };

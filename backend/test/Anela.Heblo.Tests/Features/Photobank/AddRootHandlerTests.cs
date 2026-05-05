@@ -17,7 +17,7 @@ public class AddRootHandlerTests
     private AddRootHandler CreateHandler() => new(_repoMock.Object);
 
     [Fact]
-    public async Task Handle_PersistsDriveIdAndRootItemId()
+    public async Task Handle_PersistsDriveIdAndPath()
     {
         // Arrange
         PhotobankIndexRoot? savedRoot = null;
@@ -35,7 +35,6 @@ public class AddRootHandlerTests
             SharePointPath = "/Fotky/Produkty",
             DisplayName = "Produkty",
             DriveId = "drive-abc",
-            RootItemId = "item-xyz",
         };
 
         // Act
@@ -45,7 +44,7 @@ public class AddRootHandlerTests
         response.Id.Should().Be(42);
         savedRoot.Should().NotBeNull();
         savedRoot!.DriveId.Should().Be("drive-abc");
-        savedRoot.RootItemId.Should().Be("item-xyz");
+        savedRoot.RootItemId.Should().BeNull();
         savedRoot.SharePointPath.Should().Be("/Fotky/Produkty");
         savedRoot.DisplayName.Should().Be("Produkty");
         savedRoot.IsActive.Should().BeTrue();
@@ -66,7 +65,6 @@ public class AddRootHandlerTests
             SharePointPath = "  /Fotky  ",
             DisplayName = "  Název  ",
             DriveId = "  drive-abc  ",
-            RootItemId = "  item-xyz  ",
         };
 
         // Act
@@ -76,7 +74,6 @@ public class AddRootHandlerTests
         savedRoot!.SharePointPath.Should().Be("/Fotky");
         savedRoot.DisplayName.Should().Be("Název");
         savedRoot.DriveId.Should().Be("drive-abc");
-        savedRoot.RootItemId.Should().Be("item-xyz");
     }
 
     [Fact]
@@ -91,7 +88,6 @@ public class AddRootHandlerTests
         {
             SharePointPath = "/Fotky",
             DriveId = "drive-1",
-            RootItemId = "item-1",
         };
 
         // Act

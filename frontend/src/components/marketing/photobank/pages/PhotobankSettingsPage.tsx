@@ -4,7 +4,7 @@ import { useMsal } from '@azure/msal-react';
 import IndexRootsTab from '../settings/IndexRootsTab';
 import TagRulesTab from '../settings/TagRulesTab';
 
-const ADMIN_ROLE = 'administrator';
+const ADMIN_ROLE = 'super_user';
 
 const PhotobankSettingsPage = () => {
   const { accounts } = useMsal();

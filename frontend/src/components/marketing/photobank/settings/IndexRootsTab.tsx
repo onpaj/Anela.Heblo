@@ -14,11 +14,10 @@ const IndexRootsTab: React.FC = () => {
   const [folderPath, setFolderPath] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [driveId, setDriveId] = useState("");
-  const [rootItemId, setRootItemId] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const isFormValid = folderPath.trim() !== "" && driveId.trim() !== "" && rootItemId.trim() !== "";
+  const isFormValid = folderPath.trim() !== "" && driveId.trim() !== "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,12 +28,10 @@ const IndexRootsTab: React.FC = () => {
         sharePointPath: folderPath.trim(),
         displayName: displayName.trim() || null,
         driveId: driveId.trim(),
-        rootItemId: rootItemId.trim(),
       });
       setFolderPath("");
       setDisplayName("");
       setDriveId("");
-      setRootItemId("");
     } catch {
       setSubmitError("Nepodařilo se přidat kořen. Zkuste to znovu.");
     }
@@ -61,7 +58,6 @@ const IndexRootsTab: React.FC = () => {
                 <th className="py-2 pr-4">Cesta</th>
                 <th className="py-2 pr-4">Název</th>
                 <th className="py-2 pr-4">Drive ID</th>
-                <th className="py-2 pr-4">Root Item ID</th>
                 <th className="py-2 pr-4">Aktivní</th>
                 <th className="py-2 pr-4">Poslední indexace</th>
                 <th className="py-2"></th>
@@ -73,7 +69,6 @@ const IndexRootsTab: React.FC = () => {
                   <td className="py-2 pr-4 font-mono text-xs">{root.sharePointPath}</td>
                   <td className="py-2 pr-4">{root.displayName ?? "—"}</td>
                   <td className="py-2 pr-4 font-mono text-xs">{root.driveId ?? "—"}</td>
-                  <td className="py-2 pr-4 font-mono text-xs">{root.rootItemId ?? "—"}</td>
                   <td className="py-2 pr-4">
                     <span
                       className={`px-1.5 py-0.5 rounded text-xs ${
@@ -141,18 +136,6 @@ const IndexRootsTab: React.FC = () => {
               value={driveId}
               onChange={(e) => setDriveId(e.target.value)}
               placeholder="b!abc123..."
-              required
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label htmlFor="rootItemId" className="block text-xs text-gray-500 mb-1">Root Item ID *</label>
-            <input
-              id="rootItemId"
-              type="text"
-              value={rootItemId}
-              onChange={(e) => setRootItemId(e.target.value)}
-              placeholder="01ABCDEF..."
               required
               className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
             />

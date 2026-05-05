@@ -8,7 +8,6 @@ namespace Anela.Heblo.Application.Features.Photobank.Contracts
         public string SharePointPath { get; set; } = null!;
         public string? DisplayName { get; set; }
         public string DriveId { get; set; } = null!;
-        public string RootItemId { get; set; } = null!;
     }
 
     public class AddRootResponse : BaseResponse

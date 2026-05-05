@@ -73,10 +73,8 @@ describe('IndexRootsTab', () => {
     expect(screen.getByText('/sites/anela/Fotky')).toBeInTheDocument();
     expect(screen.getByText('Fotky produktů')).toBeInTheDocument();
     expect(screen.getByText('drive-abc')).toBeInTheDocument();
-    expect(screen.getByText('item-123')).toBeInTheDocument();
     expect(screen.getByText('/sites/anela/Archiv')).toBeInTheDocument();
     expect(screen.getByText('drive-def')).toBeInTheDocument();
-    expect(screen.getByText('item-456')).toBeInTheDocument();
     // isActive badge
     const anoBadges = screen.getAllByText('Ano');
     expect(anoBadges.length).toBeGreaterThanOrEqual(1);
@@ -123,7 +121,6 @@ describe('IndexRootsTab', () => {
     // Act
     fireEvent.change(screen.getByLabelText(/Cesta \*/), { target: { value: '/sites/anela/Fotky' } });
     fireEvent.change(screen.getByLabelText(/Drive ID \*/), { target: { value: 'b!abc123' } });
-    fireEvent.change(screen.getByLabelText(/Root Item ID \*/), { target: { value: '01ABCDEF' } });
     fireEvent.click(screen.getByRole('button', { name: 'Přidat kořen' }));
 
     // Assert
@@ -132,7 +129,6 @@ describe('IndexRootsTab', () => {
         sharePointPath: '/sites/anela/Fotky',
         displayName: null,
         driveId: 'b!abc123',
-        rootItemId: '01ABCDEF',
       });
     });
   });

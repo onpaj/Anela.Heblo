@@ -11,7 +11,7 @@ namespace Anela.Heblo.API.Controllers
 {
     [ApiController]
     [Route("api/photobank/settings")]
-    [Authorize(Roles = AuthorizationConstants.Roles.Administrator)]
+    [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
     public class PhotobankSettingsController : BaseApiController
     {
         private readonly IMediator _mediator;

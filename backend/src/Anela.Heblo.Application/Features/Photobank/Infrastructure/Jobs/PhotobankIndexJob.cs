@@ -44,7 +44,7 @@ public class PhotobankIndexJob : IRecurringJob
         }
 
         var roots = await _db.PhotobankIndexRoots
-            .Where(r => r.IsActive && r.DriveId != null && r.RootItemId != null)
+            .Where(r => r.IsActive && r.DriveId != null)
             .ToListAsync(cancellationToken);
 
         _logger.LogInformation("Starting {JobName} — {Count} active roots", Metadata.JobName, roots.Count);
@@ -65,6 +65,13 @@ public class PhotobankIndexJob : IRecurringJob
 
         try
         {
+            if (string.IsNullOrEmpty(root.RootItemId))
+            {
+                _logger.LogInformation("Resolving item ID for path {Path} in drive {DriveId}", root.SharePointPath, root.DriveId);
+                root.RootItemId = await _graphService.ResolveItemIdAsync(root.DriveId!, root.SharePointPath!, ct);
+                await _db.SaveChangesAsync(ct);
+            }
+
             var delta = await _graphService.GetDeltaAsync(root.DriveId!, root.RootItemId!, root.DeltaLink, ct);
 
             var activeTagRules = await _db.PhotobankTagRules

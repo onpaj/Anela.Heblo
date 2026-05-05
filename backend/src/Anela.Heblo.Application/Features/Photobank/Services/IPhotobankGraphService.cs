@@ -21,4 +21,5 @@ public class GraphDeltaResult
 public interface IPhotobankGraphService
 {
     Task<GraphDeltaResult> GetDeltaAsync(string driveId, string rootItemId, string? deltaLink, CancellationToken ct = default);
+    Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken ct = default);
 }
