@@ -48,7 +48,7 @@ public class InsufficientLotStockFilterTests
     {
         var items = new List<FailedConsumptionItem>
         {
-            new("MAT-LAVENDER", "Levandulový olej", "171224A7", new DateOnly(2027, 12, 17), 10.0)
+            new("MAT-LAVENDER", "Levandulový olej", "171224A7", new DateOnly(2027, 12, 17), 10.0m)
         };
         var ex = new EnrichedManufactureException(RealFlexiError, items);
 
@@ -78,7 +78,7 @@ public class InsufficientLotStockFilterTests
     {
         var items = new List<FailedConsumptionItem>
         {
-            new("MAT-OTHER", "Jiný materiál", "999999X1", new DateOnly(2026, 6, 1), 5.0)
+            new("MAT-OTHER", "Jiný materiál", "999999X1", new DateOnly(2026, 6, 1), 5.0m)
         };
         var ex = new EnrichedManufactureException(RealFlexiError, items);
 
@@ -93,7 +93,7 @@ public class InsufficientLotStockFilterTests
     {
         var items = new List<FailedConsumptionItem>
         {
-            new("MAT-LAVENDER", "Levandulový olej", "171224A7", new DateOnly(2027, 12, 17), 10.0)
+            new("MAT-LAVENDER", "Levandulový olej", "171224A7", new DateOnly(2027, 12, 17), 10.0m)
         };
         // Message contains the CanHandle signal but uses a format where the lot cannot be parsed.
         var ex = new EnrichedManufactureException(
@@ -111,8 +111,8 @@ public class InsufficientLotStockFilterTests
     {
         var items = new List<FailedConsumptionItem>
         {
-            new("MAT-A", "Materiál A", "171224A7", new DateOnly(2025, 1, 1), 5.0),
-            new("MAT-B", "Materiál B", "171224A7", new DateOnly(2027, 12, 17), 5.0)
+            new("MAT-A", "Materiál A", "171224A7", new DateOnly(2025, 1, 1), 5.0m),
+            new("MAT-B", "Materiál B", "171224A7", new DateOnly(2027, 12, 17), 5.0m)
         };
         var ex = new EnrichedManufactureException(RealFlexiError, items);
 

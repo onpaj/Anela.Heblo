@@ -5,7 +5,7 @@ public sealed record FailedConsumptionItem(
     string ProductName,
     string? LotNumber,
     DateOnly? Expiration,
-    double Amount);
+    decimal Amount);
 
 public interface IHasFailedConsumptionItems
 {
