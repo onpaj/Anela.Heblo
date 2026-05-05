@@ -411,6 +411,7 @@ export const QUERY_KEYS = {
   leaflet: ["leaflet"] as const,
   expeditionListArchive: ["expedition-list-archive"] as const,
   dataQuality: ["data-quality"] as const,
+  articles: ["articles"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

@@ -3,16 +3,15 @@
 **Date:** 2026-05-04
 **Supersedes:** `n8n/docs/superpowers/specs/2026-04-17-article-branch-design.md` (was never implemented in n8n)
 **Status:** Draft
+**Scope change (v1):** n8n/email integration removed. Users trigger generation via the Heblo UI. The pipeline is 5 stages (no EnrichBrief).
 
 ---
 
 ## 1. Context & Motivation
 
-The original design placed an 8-step article-generation pipeline inside an n8n workflow as JavaScript Code nodes patched in via Python. Two problems with that approach:
-1. n8n Code nodes are hard to test, version, and refactor (no IDE, no compile-check, secrets inlined into nodes).
-2. n8n has no RAG infrastructure — the design ignored Anela's existing knowledge base in Heblo and relied solely on web search, missing internal product/herbalism content.
+Article generation is now a Heblo feature, exposing REST endpoints and a React UI. (The earlier n8n design was never implemented.)
 
-Heblo already runs:
+Heblo already has all the infrastructure needed:
 - **pgvector + OpenAI `text-embedding-3-large` (1536-d)** with HNSW cosine retrieval (`KnowledgeBaseRepository`)
 - **Anthropic `IChatClient`** wrapping `claude-sonnet-4-6` with Polly retry + `PostAnswerEnrichmentMiddleware`
 - **MediatR vertical-slice** feature pattern (`Application/Features/{Feature}/UseCases/{Action}/`)
@@ -21,21 +20,20 @@ Heblo already runs:
 - **React + NSwag-generated TypeScript client** with TanStack Query and i18n (Czech default)
 - **Azure AD auth** via `Microsoft.Identity.Web` (cookie + JWT, role-based)
 
-Moving the feature into Heblo lets us reuse all of the above, persist generated articles, expose a UI, and shrink n8n to its strength: email orchestration.
+Building the feature in Heblo lets us reuse all of the above and persist generated articles with full version control and testing.
 
 ---
 
 ## 2. Goals
 
-1. Generate Czech-language articles on demand from a structured or semi-structured brief.
+1. Generate Czech-language articles on demand from a structured brief in the Heblo UI.
 2. Blend three context sources during research: **internal KB**, **external web search**, **optional SharePoint style guide**.
-3. Expose REST endpoints used by both n8n (email-driven) and the React UI (manual).
+3. Expose REST endpoints for the React UI and future integrations.
 4. Persist every article + its sources for review, feedback, and re-ingestion later.
 5. Match existing Heblo conventions exactly so a new contributor can read three files and understand the slice.
 
 ## 3. Non-Goals
 
-- **Sending the resulting email.** n8n keeps that responsibility — Heblo only generates HTML and returns it.
 - **Streaming output.** `AnthropicChatClient.GetStreamingResponseAsync` already throws `NotSupportedException`; UI uses polling instead.
 - **Auto-publishing to any CMS.** Out of scope for v1.
 - **Multi-language output.** Czech only in v1; the prompt enforces it.
@@ -45,29 +43,29 @@ Moving the feature into Heblo lets us reuse all of the above, persist generated 
 ## 4. High-Level Architecture
 
 ```
-┌──────────┐  POST /api/Articles/generate   ┌────────────────────┐
-│   n8n    │ ─────────────────────────────> │  Heblo API         │
-│ classify │                                │  ArticleController │
-└──────────┘ <─── poll /api/Articles/{id}── └─────────┬──────────┘
-                                                      │ enqueue
-                                                      ▼
-                                              ┌────────────────────┐
-                                              │ Hangfire job       │
-                                              │ GenerateArticleJob │
-                                              └─────────┬──────────┘
-       ┌──────────────────────────────────────────────┼──────────────────────────────────┐
-       ▼                                              ▼                                  ▼
-┌──────────────┐    ┌──────────────────┐    ┌──────────────────┐    ┌────────────────────┐    ┌──────────────────┐
-│ EnrichBrief  │ -> │ PlanQueries      │ -> │ GatherContext    │ -> │ Aggregate+Validate │ -> │ WriteArticle      │
-│ (Haiku)      │    │ (Haiku)          │    │ (parallel: KB +  │    │ (Sonnet + Haiku)   │    │ (Sonnet 4-6)      │
-│              │    │                  │    │  Web + Style)    │    │                    │    │                   │
-└──────────────┘    └──────────────────┘    └──────────────────┘    └────────────────────┘    └────────┬─────────┘
-                                                                                                       │ persist
-                                                                                                       ▼
-                                                                                              ┌──────────────────┐
-                                                                                              │ Article + Sources │
-                                                                                              │ (Postgres)        │
-                                                                                              └──────────────────┘
+┌────────────────────────────────────┐
+│  Heblo UI / ArticleController      │
+│  POST /api/Articles/generate       │
+└─────────────┬──────────────────────┘
+              │ enqueue
+              ▼
+    ┌─────────────────────────┐
+    │ Hangfire job            │
+    │ GenerateArticleJob      │
+    └─────────────┬───────────┘
+       ┌──────────┼──────────────────────────────────┐
+       ▼          ▼                                  ▼
+┌──────────────────────┐    ┌──────────────────┐    ┌────────────────────┐    ┌──────────────────┐
+│ PlanQueries         │ -> │ GatherContext    │ -> │ Aggregate+Validate │ -> │ WriteArticle     │
+│ (Haiku)             │    │ (parallel: KB +  │    │ (Sonnet + Haiku)   │    │ (Sonnet 4-6)     │
+│                     │    │  Web + Style)    │    │                    │    │                  │
+└─────────────────────┘    └──────────────────┘    └────────────────────┘    └────────┬─────────┘
+                                                                                       │ persist
+                                                                                       ▼
+                                                                              ┌──────────────────┐
+                                                                              │ Article + Sources │
+                                                                              │ (Postgres)        │
+                                                                              └──────────────────┘
 ```
 
 ---
@@ -82,7 +80,7 @@ Moving the feature into Heblo lets us reuse all of the above, persist generated 
 | Migration `AddArticles` | EF Core | `Persistence/Migrations/` |
 | `ArticlesModule.cs`, `ArticleOptions.cs` | DI + bound config | `Application/Features/Articles/` |
 | `GenerateArticleHandler`, `GetArticleHandler`, `ListArticlesHandler`, `SubmitArticleFeedbackHandler` | MediatR handlers | `Application/Features/Articles/UseCases/` |
-| `EnrichBriefHandler`, `PlanQueriesHandler`, `GatherContextHandler`, `AggregateFactsHandler`, `ValidateFactsHandler`, `WriteArticleHandler` | Internal pipeline handlers | same folder, sub-namespaces |
+| `PlanQueriesHandler`, `GatherContextHandler`, `AggregateFactsHandler`, `ValidateFactsHandler`, `WriteArticleHandler` | Internal pipeline handlers | same folder, sub-namespaces |
 | `GenerateArticleJob` | Hangfire job | `Application/Features/Articles/Pipeline/` |
 | `ArticlesController` | HTTP | `API/Controllers/` |
 | `Anela.Heblo.Adapters.WebSearch` | New adapter project | `Adapters/Anela.Heblo.Adapters.WebSearch/` |
@@ -116,8 +114,6 @@ public class Article
     public ArticleStatus Status { get; set; }
     public string? ErrorMessage { get; set; }
     public string? RequestedBy { get; set; }
-    public string? RequestedFromMailbox { get; set; }   // for n8n integration
-    public string? RequestedFromEmailId { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? GeneratedAt { get; set; }
     public List<ArticleSource> Sources { get; set; } = new();
@@ -160,12 +156,10 @@ public class GenerateArticleRequest : IRequest<GenerateArticleResponse>
     public bool UseKnowledgeBase { get; set; } = true;
     public bool UseWebSearch { get; set; } = true;
     public StyleGuideRef? StyleGuide { get; set; }
-    public RawEmailContext? RawEmail { get; set; }   // optional — triggers EnrichBriefHandler
     public string? RequestedBy { get; set; }
 }
 
 public class StyleGuideRef { public string DriveId { get; set; } = ""; public string ItemPath { get; set; } = ""; }
-public class RawEmailContext { public string From { get; set; } = ""; public string Subject { get; set; } = ""; public string Body { get; set; } = ""; public string? Mailbox { get; set; } public string? EmailId { get; set; } }
 ```
 
 Response (`BaseResponse`):
@@ -181,7 +175,7 @@ public class GenerateArticleResponse : BaseResponse
 Behavior: validates request → inserts `Article` row with `Status=Queued` → enqueues `GenerateArticleJob.Run(articleId)` via `IBackgroundJobClient` → returns immediately.
 
 ### `GET /api/Articles/{id}`
-Returns full article + sources. Used both by UI and n8n polling.
+Returns full article + sources.
 
 ### `GET /api/Articles?status=&page=&pageSize=`
 Paged list, default pageSize=20, max 100.
@@ -193,38 +187,30 @@ Paged list, default pageSize=20, max 100.
 
 ## 8. Pipeline Handlers (in execution order inside `GenerateArticleJob`)
 
-### 8.1 `EnrichBriefHandler` (skipped if structured fields all set)
-- **Model:** `gpt-4o` (existing OpenAI adapter), `temperature=0.1`, JSON-only response
-- **Input:** `RawEmail.{from, subject, body}` HTML-stripped, ≤3000 chars
-- **System prompt** (stored in `ArticleOptions.BriefAnalysisSystemPrompt`):
-  > You are an article brief extractor. Analyze the email and extract a structured article brief. Respond ONLY with valid JSON (no markdown, no code fences):
-  > `{"article_topic":"...","article_scope":"overview|deep-dive|technical|beginner","article_audience":"...","article_angle":"...","article_length":"short (500w)|medium (1000w)|long (2000w+)","article_language_note":"... or null","research_seeds":["..."]}`
-- **Fallback:** parse failure → `topic = subject`, defaults for the rest, `seeds = [subject]`
-
-### 8.2 `PlanQueriesHandler`
+### 8.1 `PlanQueriesHandler`
 - **Model:** `claude-haiku-4-5-20251001` via `IChatClient`
 - **System prompt** (stored in `ArticleOptions.QueryPlannerSystemPrompt`):
   > Generate 6-8 search queries to thoroughly research an article. Cover: (1) definition/what it is, (2) recent news/developments (current year and prior), (3) statistics/data/studies, (4) expert opinions/authoritative sources, (5) Czech-specific context if relevant, (6) counterarguments/nuance. Respond ONLY with valid JSON (no markdown): `{"queries": ["..."]}`
 - **Fallback:** seed-based fallback (`<seed>`, `<seed> statistiky`, `<seed> recenze`)
 
-### 8.3 `GatherContextHandler` (parallel — `Task.WhenAll`)
+### 8.2 `GatherContextHandler` (parallel — `Task.WhenAll`)
 
 - **KB branch** (`UseKnowledgeBase=true`): for each query, call `IMediator.Send(new SearchDocumentsRequest { Query = q, TopK = options.KnowledgeBaseTopK })`. Map results to `ContextSnippet { Source=KB, Title=filename, Excerpt, Url=null, ChunkId }`.
 - **Web branch** (`UseWebSearch=true`): for each query, `IWebSearchClient.SearchAsync(q, new WebSearchOptions { Locale="cs", Geo="cz", Top=5 })`. Map to `ContextSnippet { Source=Web, Title, Excerpt=snippet, Url=link }`.
 - **Style guide branch** (only if `StyleGuide` provided): `IOneDriveService.DownloadFileTextByPathAsync(StyleGuide.DriveId, StyleGuide.ItemPath)` → string stored in pipeline state.
 - All branch failures are caught per-query/per-source; partial results pass through. Total failure of a branch only logs a warning.
 
-### 8.4 `AggregateFactsHandler`
+### 8.3 `AggregateFactsHandler`
 - **Model:** `claude-sonnet-4-6` via `IChatClient`, `MaxTokens = 1024`
 - **Input:** `topic, angle, scope` + flat list of all `ContextSnippet`s
 - **System prompt** (Czech): synthesize into `{facts:[{claim, confidence, source_url, source_title}], summary, gaps}` — JSON-only output
 - **Fallback:** parse failure → empty facts, raw concatenated snippets in `summary`
 
-### 8.5 `ValidateFactsHandler`
+### 8.4 `ValidateFactsHandler`
 - **Model:** `claude-haiku-4-5-20251001`
 - **Output:** annotates each fact with `validation_note` (or null). **No gating** — annotations only; user-visible later.
 
-### 8.6 `WriteArticleHandler`
+### 8.5 `WriteArticleHandler`
 - **Model:** `claude-sonnet-4-6`, `MaxTokens = 4096`
 - **System prompt structure:**
   1. Optional style guide block: `STYLE GUIDE — follow this exactly:\n<style_guide>\n\n`
@@ -252,7 +238,7 @@ Paged list, default pageSize=20, max 100.
   ```
 - **Fallback:** parse failure → wrap raw text in `<p>...</p>`, derive title from topic, empty sources
 
-### 8.7 Persistence
+### 8.6 Persistence
 - Update `Article` row with `Title`, `HtmlContent`, `Status=Generated`, `GeneratedAt = now`.
 - Insert `ArticleSource` rows (one per `sources_used` entry; type=Web for URLs, type=KnowledgeBase for KB-tagged ones, type=StyleGuide if used).
 - Any unhandled exception → `Status=Failed`, `ErrorMessage=<truncated message>`. No retry in v1 — user can re-trigger from UI.
@@ -276,7 +262,7 @@ Default impl: `SerpApiWebSearchClient` (HttpClient + Polly retry, mirrors `OpenA
 
 Registration: `services.AddWebSearchAdapter(configuration)` reads `WebSearch:Provider` and `WebSearch:ApiKey`.
 
-> **Note:** SerpAPI is the recommended provider (existing n8n design uses it; cs/cz locale is well-supported; pricing transparent). Bing/Brave/Google CSE can replace it later behind the same `IWebSearchClient` interface.
+> **Note:** SerpAPI is the recommended provider (cs/cz locale is well-supported; pricing transparent). Bing/Brave/Google CSE can replace it later behind the same `IWebSearchClient` interface.
 
 ---
 
@@ -293,7 +279,7 @@ Implementation in `GraphOneDriveService` calls `GET /drives/{driveId}/root:/{pat
 ## 11. Persistence
 
 Migration `AddArticles`:
-- Table `dbo.Articles` — columns matching domain entity, `Status` as `int`, `Topic` as `varchar(2000)`, indexes on `(Status, CreatedAt)` and `(RequestedFromEmailId)` for n8n lookup.
+- Table `dbo.Articles` — columns matching domain entity, `Status` as `int`, `Topic` as `varchar(2000)`, index on `(Status, CreatedAt)`.
 - Table `dbo.ArticleSources` — FK to `Articles` with cascade delete, `Url varchar(2000)`, `Type` as `int`.
 - Optional `dbo.ArticleFeedback` for the feedback endpoint.
 
@@ -312,11 +298,9 @@ Add to `appsettings.json`:
   "WebSearchTopK": 5,
   "KnowledgeBaseTopK": 8,
   "DefaultLength": "medium (1000w)",
-  "BriefAnalysisModel": "gpt-4o",
   "QueryPlannerModel": "claude-haiku-4-5-20251001",
   "AggregateFactsModel": "claude-sonnet-4-6",
   "ValidateFactsModel": "claude-haiku-4-5-20251001",
-  "BriefAnalysisSystemPrompt": "...",
   "QueryPlannerSystemPrompt": "...",
   "AggregateFactsSystemPrompt": "...",
   "ValidateFactsSystemPrompt": "...",
@@ -359,9 +343,7 @@ MediatR handlers are auto-discovered. Hangfire job is a regular class with `[Aut
 
 ## 14. Auth & Roles
 
-- New role `article_generator` — assigned to:
-  - n8n's Azure AD service principal (so it can POST `/generate`)
-  - Heblo human users with content-creation responsibilities (admin assigns)
+- New role `article_generator` — assigned to Heblo human users with content-creation responsibilities (admin assigns)
 - `[Authorize(Roles = "article_generator")]` on `POST /generate`
 - `[Authorize]` (default `heblo_user`) on `GET` and feedback endpoints
 - `KnowledgeBaseUpload` policy is **not** reused — articles are a separate concern
@@ -382,42 +364,9 @@ MediatR handlers are auto-discovered. Hangfire job is a regular class with `[Aut
 
 ---
 
-## 16. n8n Integration (replaces never-implemented article branch)
-
-Replace the planned 8 Code nodes with **one** Code node in the `article` branch:
-
-```js
-// 1. Build request from email
-const token = await getHebloToken();   // existing OAuth2 client-credentials helper
-
-// 2. POST /api/Articles/generate
-const generateResp = await hebloPost('/api/Articles/generate', {
-  topic: classified.email_subject,
-  scope: 'overview', length: 'medium (1000w)',
-  rawEmail: { from: classified.email_from, subject: classified.email_subject, body: classified.email_body }
-}, token);
-
-// 3. Poll until Generated or Failed (max 5 min)
-const articleId = generateResp.articleId;
-let article;
-for (let i = 0; i < 60; i++) {
-  await sleep(5000);
-  article = await hebloGet(`/api/Articles/${articleId}`, token);
-  if (['Generated', 'Failed'].includes(article.status)) break;
-}
-
-// 4. Pass to existing Compose & Send Email node (field shape unchanged)
-return [{ json: { ...item, article_html: article.htmlContent, article_title: article.title, sources_used: article.sources } }];
-```
-
-Outcome: one Code node in n8n vs eight; all generation logic + secrets + prompts move to versioned, testable Heblo code.
-
----
-
-## 17. Testing
+## 16. Testing
 
 - **Unit tests** (xUnit + Moq):
-  - `EnrichBriefHandlerTests` — mock `IChatClient`, verify fallback on bad JSON
   - `PlanQueriesHandlerTests` — verify 6–8 query bound, fallback path
   - `GatherContextHandlerTests` — mock `IMediator`, `IWebSearchClient`, `IOneDriveService`; verify parallel execution and partial-failure handling
   - `AggregateFactsHandlerTests`, `ValidateFactsHandlerTests`, `WriteArticleHandlerTests`
@@ -429,45 +378,41 @@ Outcome: one Code node in n8n vs eight; all generation logic + secrets + prompts
 
 ---
 
-## 18. Error Codes
+## 17. Error Codes
 
 `ArticleNotFound`, `ArticleGenerationFailed`, `WebSearchUnavailable`, `StyleGuideFetchFailed`, `ArticleBriefInvalid`, `ArticleAlreadyGenerated`. All added to `ErrorCodes` enum + Czech and English translations.
 
 ---
 
-## 19. Migration / Rollout
+## 18. Migration / Rollout
 
 1. **Backend:** implement adapter → domain → persistence → handlers → controller → tests.
 2. **Frontend:** ship UI tab; verify end-to-end manually.
-3. **n8n:** add single Code node calling new endpoint. Hook into Router output 5 (`task_type === "article"`).
-4. **Decommission:** mark `n8n/docs/superpowers/specs/2026-04-17-article-branch-design.md` as superseded; link to this spec.
 
 ---
 
-## 20. Open Questions
+## 19. Open Questions
 
 1. **Re-ingestion:** should generated articles be auto-ingested back into the KB (as `DocumentType=Article`) so future KB questions can cite them? Recommendation: yes, but only after human approval — defer to v1.1.
 2. **Web search provider:** SerpAPI vs Bing vs Brave. Recommendation: SerpAPI for v1; pluggable behind `IWebSearchClient`.
-3. **Approval workflow:** "draft → human approves → n8n sends" flow? Recommendation: defer to v1.1; add `AwaitingApproval` status then.
+3. **Approval workflow:** "draft → human approves → publish" flow? Recommendation: defer to v1.1; add `AwaitingApproval` status then.
 4. **Quota / rate limiting:** log per-article token + search count in v1; add per-day cap in v1.1.
 5. **Streaming UI updates:** 3s polling is fine for v1; SignalR can be added later.
 
 ---
 
-## 21. Acceptance Criteria
+## 20. Acceptance Criteria
 
 - [ ] `POST /api/Articles/generate` returns `{articleId, jobId, Status: Queued}` within 500ms
 - [ ] Hangfire job completes within 90s for a typical request (medium length, KB+web)
 - [ ] `GET /api/Articles/{id}` returns `Generated` with valid HTML and ≥1 source for a non-trivial topic
 - [ ] React UI form submits and shows live status updates via polling
-- [ ] n8n integration: an email with `Článek:` subject results in a generated article and email reply within 10 minutes
 - [ ] Style guide fetch works for a real SharePoint file; absence falls back gracefully
 - [ ] All new endpoints covered by unit tests; coverage ≥ 80% on the slice
-- [ ] No new dependencies on n8n; n8n's article branch is one Code node
 
 ---
 
-## 22. Critical Files to Reference During Implementation
+## 21. Critical Files to Reference During Implementation
 
 - `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/AskQuestion/AskQuestionHandler.cs` — model for `IChatClient` usage + JSON parse fallback
 - `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/SearchDocuments/SearchDocumentsHandler.cs` — KB retrieval; reuse via `IMediator.Send`
@@ -479,10 +424,9 @@ Outcome: one Code node in n8n vs eight; all generation logic + secrets + prompts
 
 ---
 
-## 23. Verification Plan
+## 22. Verification Plan
 
 1. **Local manual:** spin up Heblo (`dotnet run` + `npm start`), open Articles page, submit topic "fermentované potraviny pro střevní zdraví", confirm pipeline runs end-to-end with both KB and web hits.
 2. **API:** `curl POST /api/Articles/generate` with a JWT, poll `GET /api/Articles/{id}`, inspect `htmlContent` and `sources`.
-3. **n8n:** send test email to `automation@anela.cz` with subject `Článek: ...`. Verify n8n Code node hits Heblo and email reply contains generated content.
-4. **Failure paths:** disable web-search key → article still generated from KB only; broken style-guide path → graceful fallback note.
-5. **Tests:** `dotnet test` passes all new test projects with ≥80% line coverage on the `Articles` slice.
+3. **Failure paths:** disable web-search key → article still generated from KB only; broken style-guide path → graceful fallback note.
+4. **Tests:** `dotnet test` passes all new test projects with ≥80% line coverage on the `Articles` slice.

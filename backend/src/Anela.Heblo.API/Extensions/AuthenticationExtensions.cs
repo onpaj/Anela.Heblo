@@ -113,6 +113,10 @@ public static class AuthenticationExtensions
             options.AddPolicy(AuthorizationConstants.Policies.LeafletUpload, policy =>
                 policy.RequireAuthenticatedUser()
                       .RequireRole(AuthorizationConstants.Roles.LeafletManager));
+
+            options.AddPolicy(AuthorizationConstants.Policies.ArticleGenerator, policy =>
+                policy.RequireAuthenticatedUser()
+                      .RequireRole(AuthorizationConstants.Roles.ArticleGenerator));
         });
     }
 }

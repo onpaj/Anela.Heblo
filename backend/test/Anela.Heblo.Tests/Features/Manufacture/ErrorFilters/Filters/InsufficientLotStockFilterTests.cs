@@ -8,7 +8,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture.ErrorFilters.Filters;
 public class InsufficientLotStockFilterTests
 {
     private const string RealFlexiError =
-        "Na skladě není dostatek zboží pro vyskladnění požadované šarže nebo expirace. " +
+        "Na skladě není dostatek zboží pro vyskladnění požadované šarže nebo expirace.\n" +
         "Požadované šarže 171224A7 s expirací 17.12.2027 máte na skladě jen 6.597599 G. [DoklSklad -1]";
 
     private readonly InsufficientLotStockFilter _filter = new();
@@ -74,7 +74,7 @@ public class InsufficientLotStockFilterTests
     }
 
     [Fact]
-    public void Transform_WhenLotNotInFailedItems_FallsBackToLotOnlyMessage()
+    public void Transform_WhenLotNotInFailedItems_FallsBackToSingleItemMessage()
     {
         var items = new List<FailedConsumptionItem>
         {
@@ -84,12 +84,12 @@ public class InsufficientLotStockFilterTests
 
         var result = _filter.Transform(ex);
 
-        result.Should().Contain("171224A7");
-        result.Should().Contain("nepodařilo dohledat");
+        result.Should().Contain("Jiný materiál");
+        result.Should().Contain("MAT-OTHER");
     }
 
     [Fact]
-    public void Transform_WhenMessageFormatUnrecognized_FallsBackToLotOnlyMessage()
+    public void Transform_WhenMessageFormatUnrecognized_FallsBackToSingleItemMessage()
     {
         var items = new List<FailedConsumptionItem>
         {
@@ -102,8 +102,8 @@ public class InsufficientLotStockFilterTests
 
         var result = _filter.Transform(ex);
 
-        result.Should().Contain("nepodařilo dohledat");
-        result.Should().NotContain("Levandulový olej");
+        result.Should().Contain("Levandulový olej");
+        result.Should().Contain("MAT-LAVENDER");
     }
 
     [Fact]
@@ -121,5 +121,64 @@ public class InsufficientLotStockFilterTests
         result.Should().Contain("MAT-B");
         result.Should().Contain("Materiál B");
         result.Should().NotContain("MAT-A");
+    }
+
+    [Fact]
+    public void Transform_WhenMessageHasFlexiManufactureExceptionPrefix_StillExtractsMaterialDetails()
+    {
+        var message = "Failed to create consumption stock movement for warehouse 5: " + RealFlexiError;
+        var items = new List<FailedConsumptionItem>
+        {
+            new("MAT-LAVENDER", "Levandulový olej", "171224A7", new DateOnly(2027, 12, 17), 10.0)
+        };
+        var ex = new EnrichedManufactureException(message, items);
+
+        var result = _filter.Transform(ex);
+
+        result.Should().Contain("Levandulový olej");
+        result.Should().Contain("MAT-LAVENDER");
+        result.Should().Contain("171224A7");
+        result.Should().Contain("17.12.2027");
+        result.Should().Contain("6.597599 G");
+    }
+
+    [Fact]
+    public void Transform_WhenSentenceSeparatorIsCarriageReturnNewline_StillExtractsMaterialDetails()
+    {
+        var message =
+            "Na skladě není dostatek zboží pro vyskladnění požadované šarže nebo expirace.\r\n" +
+            "Požadované šarže 171224A7 s expirací 17.12.2027 máte na skladě jen 6.597599 G. [DoklSklad -1]";
+        var items = new List<FailedConsumptionItem>
+        {
+            new("MAT-LAVENDER", "Levandulový olej", "171224A7", new DateOnly(2027, 12, 17), 10.0)
+        };
+        var ex = new EnrichedManufactureException(message, items);
+
+        var result = _filter.Transform(ex);
+
+        result.Should().Contain("Levandulový olej");
+        result.Should().Contain("MAT-LAVENDER");
+        result.Should().Contain("171224A7");
+        result.Should().Contain("17.12.2027");
+        result.Should().Contain("6.597599 G");
+    }
+
+    [Fact]
+    public void Transform_WhenMatchFailsAndMultipleFailedItems_ListsAllProducts()
+    {
+        var items = new List<FailedConsumptionItem>
+        {
+            new("MAT-A", "Materiál Alfa", "AAAA01", new DateOnly(2025, 3, 1), 3.0),
+            new("MAT-B", "Materiál Beta", "BBBB02", new DateOnly(2025, 6, 1), 7.0)
+        };
+        // RealFlexiError mentions lot 171224A7 — neither item matches, so fallback fires.
+        var ex = new EnrichedManufactureException(RealFlexiError, items);
+
+        var result = _filter.Transform(ex);
+
+        result.Should().Contain("Materiál Alfa");
+        result.Should().Contain("MAT-A");
+        result.Should().Contain("Materiál Beta");
+        result.Should().Contain("MAT-B");
     }
 }

@@ -1,0 +1,8 @@
+namespace Anela.Heblo.Application.Features.Article.UseCases.GetArticle;
+
+public sealed class ArticleSourceDto
+{
+    public string Title { get; set; } = string.Empty;
+    public string? Url { get; set; }
+    public string Type { get; set; } = string.Empty;
+}
