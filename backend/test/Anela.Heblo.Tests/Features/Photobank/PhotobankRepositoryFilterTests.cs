@@ -98,6 +98,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
     {
         // Arrange — seed a tag on one of the two "Produkty" photos
         var tag = new Tag { Id = 10, Name = "featured" };
+        // Safe: each test gets its own in-memory DB (Guid name + per-instance constructor).
         _context.PhotobankTags.Add(tag);
 
         var photoTag = new PhotoTag

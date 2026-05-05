@@ -193,4 +193,11 @@ describe("TagSidebar", () => {
     // Assert
     expect(screen.queryByText("Vymazat")).not.toBeInTheDocument();
   });
+
+  test("X button on folder path input clears it immediately", () => {
+    const onFolderPathChange = jest.fn();
+    renderSidebar({ folderPath: "Marketing", onFolderPathChange });
+    fireEvent.click(screen.getByRole("button", { name: "Vymazat složku" }));
+    expect(onFolderPathChange).toHaveBeenCalledWith("");
+  });
 });

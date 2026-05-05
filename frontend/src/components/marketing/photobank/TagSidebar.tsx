@@ -26,6 +26,7 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
   onClearFilters,
 }) => {
   const [inputValue, setInputValue] = useState(search);
+  const [folderPathValue, setFolderPathValue] = useState(folderPath);
 
   // Sync external search value to local input
   useEffect(() => {
@@ -54,8 +55,6 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
     setInputValue("");
     onSearchChange("");
   }, [onSearchChange]);
-
-  const [folderPathValue, setFolderPathValue] = useState(folderPath);
 
   // Sync external folderPath value to local input
   useEffect(() => {
