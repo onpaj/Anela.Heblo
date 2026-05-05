@@ -95,7 +95,7 @@ public sealed class PhotobankControllerThumbnailTests
 
         _graphServiceMock
             .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new GraphThrottledException(TimeSpan.FromSeconds(30)));
+            .ThrowsAsync(new GraphThrottledException(TimeSpan.FromSeconds(29.3)));
 
         // Act
         var result = await _controller.GetThumbnail(1, ThumbnailSize.Medium);
@@ -174,6 +174,7 @@ public sealed class PhotobankControllerThumbnailTests
         // Assert
         var fileResult = result.Should().BeOfType<FileStreamResult>().Subject;
         fileResult.ContentType.Should().Be("image/jpeg");
+        fileResult.FileStream.Should().BeSameAs(stream);
         _controller.Response.Headers["Cache-Control"].ToString().Should().Be("public, max-age=31536000, immutable");
     }
 
@@ -197,6 +198,7 @@ public sealed class PhotobankControllerThumbnailTests
         await _controller.GetThumbnail(1, ThumbnailSize.Medium);
 
         // Assert
+        result.Should().BeOfType<FileStreamResult>();
         _controller.Response.ContentLength.Should().Be(12345L);
     }
 }
