@@ -26,6 +26,8 @@ internal sealed class FlexiIngredientRequirementAggregator : IFlexiIngredientReq
 
             foreach (var ingredient in template.Ingredients.Where(w => w.ProductType != ProductType.UNDEFINED))
             {
+                // BoM amounts are double; cast to decimal at boundary — drift here is acceptable
+                // since lot quantities are capped by RoundForFlexi at the FlexiBee submission boundary.
                 var scaledAmount = (decimal)(ingredient.Amount * scaleFactor);
 
                 if (ingredientRequirements.TryGetValue(ingredient.ProductCode, out var existing))

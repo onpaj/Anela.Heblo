@@ -263,6 +263,7 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
             capturedDocCode = consumptionResult?.Result?.Results?.FirstOrDefault()?.Code;
         }
 
+        // totalConsumptionCost is double (cost arithmetic) — rounds to 4dp for invoice precision, not stock precision.
         return new ConsumptionResult(Math.Round(totalConsumptionCost, 4), capturedDocCode);
     }
 
