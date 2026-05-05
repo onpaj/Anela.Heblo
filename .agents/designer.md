@@ -3,7 +3,7 @@ id: designer
 display_name: "Designer Agent"
 model: claude-sonnet-4-6
 phase: designing
-max_turns: 1
+max_turns: 50
 allowed_tools: []
 output_format: markdown
 visibility_timeout: 600

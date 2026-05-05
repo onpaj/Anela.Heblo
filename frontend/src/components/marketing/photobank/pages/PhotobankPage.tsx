@@ -1,10 +1,12 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Settings } from "lucide-react";
+import { Grid3x3, List, Settings } from "lucide-react";
 import { useMsal } from "@azure/msal-react";
 import TagSidebar from "../TagSidebar";
 import PhotoGrid from "../PhotoGrid";
+import PhotoList from "../PhotoList";
 import PhotoDrawer from "../PhotoDrawer";
+import PhotoViewToggle from "../PhotoViewToggle";
 import { usePhotos, usePhotoTags } from "../../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../../api/hooks/usePhotobank";
 
@@ -12,8 +14,25 @@ const ADMIN_ROLE = "super_user";
 
 const DEFAULT_PAGE_SIZE = 48;
 const SIDEBAR_WIDTH = "220px";
+const STORAGE_KEY = "photobank.view";
 
-const PhotobankPage: React.FC = () => {
+type ViewMode = "tiles" | "list";
+
+const VIEW_OPTIONS = [
+  { value: "tiles" as const, icon: <Grid3x3 className="w-4 h-4" />, label: "Dlaždice" },
+  { value: "list" as const, icon: <List className="w-4 h-4" />, label: "Seznam" },
+];
+
+function readViewMode(): ViewMode {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored === "list" ? "list" : "tiles";
+  } catch {
+    return "tiles";
+  }
+}
+
+function PhotobankPage() {
   const { accounts } = useMsal();
   const isAdmin =
     (accounts[0]?.idTokenClaims as any)?.roles?.includes(ADMIN_ROLE) ?? false;
@@ -23,6 +42,15 @@ const PhotobankPage: React.FC = () => {
   const [folderPath, setFolderPath] = useState("");
   const [page, setPage] = useState(1);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoDto | null>(null);
+  const [view, setView] = useState<ViewMode>(readViewMode);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, view);
+    } catch {
+      // private browsing
+    }
+  }, [view]);
 
   const { data: tagsData } = usePhotoTags();
 
@@ -66,12 +94,9 @@ const PhotobankPage: React.FC = () => {
     setPage(1);
   }, []);
 
-  const handlePhotoSelect = useCallback(
-    (photo: PhotoDto) => {
-      setSelectedPhoto((prev) => (prev?.id === photo.id ? null : photo));
-    },
-    [],
-  );
+  const handlePhotoSelect = useCallback((photo: PhotoDto) => {
+    setSelectedPhoto((prev) => (prev?.id === photo.id ? null : photo));
+  }, []);
 
   const handleDrawerClose = useCallback(() => {
     setSelectedPhoto(null);
@@ -81,6 +106,17 @@ const PhotobankPage: React.FC = () => {
     setPage(newPage);
     setSelectedPhoto(null);
   }, []);
+
+  const sharedPhotoProps = {
+    photos: photosData?.items ?? [],
+    selectedPhotoId: selectedPhoto?.id ?? null,
+    total: photosData?.total ?? 0,
+    page: photosData?.page ?? page,
+    pageSize: DEFAULT_PAGE_SIZE,
+    isLoading: photosLoading,
+    onPhotoSelect: handlePhotoSelect,
+    onPageChange: handlePageChange,
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -96,41 +132,47 @@ const PhotobankPage: React.FC = () => {
         </div>
       )}
       <div className="flex flex-1 overflow-hidden">
-      {/* Left sidebar */}
-      <div style={{ width: SIDEBAR_WIDTH }} className="flex-shrink-0">
-        <TagSidebar
-          tags={tagsData ?? []}
-          selectedTagIds={selectedTagIds}
-          search={search}
-          folderPath={folderPath}
-          onTagToggle={handleTagToggle}
-          onSearchChange={handleSearchChange}
-          onFolderPathChange={handleFolderPathChange}
-          onClearFilters={handleClearFilters}
-        />
-      </div>
+        {/* Left sidebar */}
+        <div style={{ width: SIDEBAR_WIDTH }} className="flex-shrink-0">
+          <TagSidebar
+            tags={tagsData ?? []}
+            selectedTagIds={selectedTagIds}
+            search={search}
+            folderPath={folderPath}
+            onTagToggle={handleTagToggle}
+            onSearchChange={handleSearchChange}
+            onFolderPathChange={handleFolderPathChange}
+            onClearFilters={handleClearFilters}
+          />
+        </div>
 
-      {/* Main photo grid */}
-      <div className="flex-1 flex overflow-hidden">
-        <PhotoGrid
-          photos={photosData?.items ?? []}
-          selectedPhotoId={selectedPhoto?.id ?? null}
-          total={photosData?.total ?? 0}
-          page={photosData?.page ?? page}
-          pageSize={DEFAULT_PAGE_SIZE}
-          isLoading={photosLoading}
-          onPhotoSelect={handlePhotoSelect}
-          onPageChange={handlePageChange}
-        />
-      </div>
+        {/* Main content area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* View toggle bar */}
+          <div className="flex items-center justify-end px-4 py-2 border-b border-gray-100">
+            <PhotoViewToggle
+              options={VIEW_OPTIONS}
+              value={view}
+              onChange={(v) => setView(v as ViewMode)}
+            />
+          </div>
+          {/* Photo grid or list */}
+          <div className="flex-1 flex overflow-hidden">
+            {view === "tiles" ? (
+              <PhotoGrid {...sharedPhotoProps} />
+            ) : (
+              <PhotoList {...sharedPhotoProps} />
+            )}
+          </div>
+        </div>
 
-      {/* Right detail drawer */}
-      {selectedPhoto && (
-        <PhotoDrawer photo={selectedPhoto} onClose={handleDrawerClose} />
-      )}
+        {/* Right detail drawer */}
+        {selectedPhoto && (
+          <PhotoDrawer photo={selectedPhoto} onClose={handleDrawerClose} />
+        )}
       </div>
     </div>
   );
-};
+}
 
 export default PhotobankPage;
