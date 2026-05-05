@@ -137,16 +137,12 @@ public class UploadLeafletHandlerTests
     }
 
     [Fact]
-    public async Task Handle_when_index_response_fails_propagates_error_code()
+    public async Task Handle_propagates_exception_when_indexing_throws()
     {
-        // Arrange
+        // Arrange — IndexLeafletHandler throws on failure; UploadLeafletHandler must not swallow it
         _mediatorMock
             .Setup(m => m.Send(It.IsAny<IndexLeafletRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new IndexLeafletResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.InternalServerError,
-            });
+            .ThrowsAsync(new InvalidOperationException("Indexing failed"));
 
         var handler = CreateHandler();
         var request = new UploadLeafletRequest
@@ -157,12 +153,9 @@ public class UploadLeafletHandlerTests
             FileSizeBytes = 3,
         };
 
-        // Act
-        var response = await handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        response.Success.Should().BeFalse();
-        response.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
+        // Act & Assert
+        await handler.Invoking(h => h.Handle(request, CancellationToken.None))
+            .Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
