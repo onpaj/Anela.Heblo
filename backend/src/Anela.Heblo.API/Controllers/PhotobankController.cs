@@ -30,6 +30,7 @@ namespace Anela.Heblo.API.Controllers
         public async Task<ActionResult<GetPhotosResponse>> GetPhotos(
             [FromQuery] List<string>? tags,
             [FromQuery] string? search,
+            [FromQuery] string? folderPath,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 48,
             CancellationToken cancellationToken = default)
@@ -38,6 +39,7 @@ namespace Anela.Heblo.API.Controllers
             {
                 Tags = tags,
                 Search = search,
+                FolderPath = folderPath,
                 Page = page,
                 PageSize = pageSize,
             };

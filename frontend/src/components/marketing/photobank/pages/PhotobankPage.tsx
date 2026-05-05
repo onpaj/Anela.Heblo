@@ -39,6 +39,7 @@ function PhotobankPage() {
 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [search, setSearch] = useState("");
+  const [folderPath, setFolderPath] = useState("");
   const [page, setPage] = useState(1);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoDto | null>(null);
   const [view, setView] = useState<ViewMode>(readViewMode);
@@ -64,6 +65,7 @@ function PhotobankPage() {
   const { data: photosData, isLoading: photosLoading } = usePhotos({
     tags: selectedTagNames.length > 0 ? selectedTagNames : undefined,
     search: search || undefined,
+    folderPath: folderPath || undefined,
     page,
     pageSize: DEFAULT_PAGE_SIZE,
   });
@@ -80,9 +82,15 @@ function PhotobankPage() {
     setPage(1);
   }, []);
 
+  const handleFolderPathChange = useCallback((value: string) => {
+    setFolderPath(value);
+    setPage(1);
+  }, []);
+
   const handleClearFilters = useCallback(() => {
     setSelectedTagIds([]);
     setSearch("");
+    setFolderPath("");
     setPage(1);
   }, []);
 
@@ -130,8 +138,10 @@ function PhotobankPage() {
             tags={tagsData ?? []}
             selectedTagIds={selectedTagIds}
             search={search}
+            folderPath={folderPath}
             onTagToggle={handleTagToggle}
             onSearchChange={handleSearchChange}
+            onFolderPathChange={handleFolderPathChange}
             onClearFilters={handleClearFilters}
           />
         </div>
