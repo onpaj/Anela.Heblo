@@ -1,210 +1,253 @@
-Exploration complete. Now writing the architecture review.
+Now I have enough grounding. Producing the architecture review.
 
 # Architecture Review: Leaflet Generation Persistence + Feedback (Phase 2)
 
 ## Architectural Fit Assessment
-This feature aligns cleanly with existing patterns. The codebase already implements an identical owner-only feedback flow for `KnowledgeBaseQuestionLog` (entity → EF configuration → repository → MediatR handlers → controller endpoints → React Query hooks). The KB's `QuestionLoggingBehavior` is registered as a module-scoped `IPipelineBehavior` in `KnowledgeBaseModule.cs:58`, and the same pattern applies verbatim for `GenerateLeafletRequest/Response`. Integration points are well-defined:
 
-- **MediatR pipeline**: `GenerateLeafletHandler` (Application/Features/Leaflet/UseCases/GenerateLeaflet) wraps in a new `LeafletGenerationLoggingBehavior` registered in `LeafletModule.cs`.
-- **Persistence**: `ApplicationDbContext` already exposes `LeafletDocuments`/`LeafletChunks` DbSets; adding `LeafletGenerations` follows the same convention. `LeafletRepository` already implements `ILeafletRepository`; the new methods extend the same class.
-- **Controller**: `LeafletController` already uses `BaseApiController.HandleResponse`, the `[Authorize]` + `LeafletUpload` policy, and MediatR dispatch — so new endpoints slot in directly.
-- **Frontend**: `KnowledgeBaseSearchAskTab.tsx:56-163` contains the feedback form to be extracted; `useKnowledgeBase.ts:386-409` provides the 409→`alreadySubmitted` mutation pattern; `useLeaflet.ts` is missing only the new mutation/query.
+The feature lands cleanly inside the existing Clean Architecture / vertical-slice layout. It is a **direct port of the proven KnowledgeBase Q&A persistence pattern** (`KnowledgeBaseQuestionLog` + `QuestionLoggingBehavior` + `SubmitFeedbackHandler` + `GetFeedbackListHandler`) onto the already-shipped Leaflet generation slice (Phase 1). All required infrastructure exists and has been verified in code:
 
-The KB module is the canonical reference; deviating from it is unwarranted. **The spec is largely correct**; a few corrections are required (called out below) — most importantly, response/error-code typing and the controller's `Generate` action retains its current `try/catch` wrapper.
+- **MediatR `IPipelineBehavior` registration** in module classes — `KnowledgeBaseModule.cs:58` already does this for Q&A.
+- **`BaseResponse` + `ErrorCodes` enum + `HandleResponse` envelope** in `Anela.Heblo.Application.Shared`. `ErrorCodes` is an **enum**, not a class — the spec/brief gets this wrong (string error codes will not compile).
+- **`ICurrentUserService`** in `Anela.Heblo.Domain.Features.Users` — already used by the KB flow.
+- **`AuthorizationConstants.Policies.LeafletUpload`** exists (`AuthorizationConstants.cs:67`) and is wired in `AuthenticationExtensions.cs:113`.
+- **`LeafletController`** already inherits `BaseApiController`, uses `_mediator.Send(...) → HandleResponse(result)`, and applies `[Authorize(Policy = LeafletUpload)]` at the action level for elevated operations — exactly the shape we need.
+- **`ApplicationDbContext`** already exposes `KnowledgeBaseQuestionLogs` (`ApplicationDbContext.cs:85`) — adding `LeafletGenerations` slots in next to `LeafletDocuments`/`LeafletChunks`.
+- **Migration cadence** is healthy: latest is `20260505080157_AddSummaryToLeafletChunk`. Adding `AddLeafletGenerations` is the next sequential step.
+
+Integration points: (a) `GenerateLeafletHandler` returns `KbSourceCount`/`LeafletSourceCount` and `Id`; (b) the new logging behavior; (c) three new controller actions; (d) a shared frontend feedback component extracted from KB.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-HTTP request
-   │
-   ▼
-┌──────────────────────────────────────────────────────────────┐
-│ LeafletController                                            │
-│   POST /api/leaflet/generate     → GenerateLeafletRequest    │
-│   POST /api/leaflet/feedback     → SubmitLeafletFeedback…    │
-│   GET  /api/leaflet/feedback/list → GetLeafletFeedbackList…  │
-│   GET  /api/leaflet/generations/{id} → GetLeafletGeneration… │
-└──────────────────────────────────────────────────────────────┘
-   │ MediatR.Send
-   ▼
-┌──────────────────────────────────────────────────────────────┐
-│ MediatR pipeline (per request type)                          │
-│  GenerateLeafletRequest:                                     │
-│    [global ValidationBehavior]                               │
-│     → LeafletGenerationLoggingBehavior (NEW, scoped to module)│
-│        → GenerateLeafletHandler                              │
-│  SubmitLeafletFeedbackRequest:                               │
-│    [global ValidationBehavior] → SubmitLeafletFeedbackHandler│
-│  GetLeafletFeedbackListRequest:                              │
-│    → GetLeafletFeedbackListHandler                           │
-│  GetLeafletGenerationRequest:                                │
-│    → GetLeafletGenerationHandler                             │
-└──────────────────────────────────────────────────────────────┘
-   │
-   ▼
-┌──────────────────────────────────────────────────────────────┐
-│ ILeafletRepository (extended)                                │
-│   + SaveGenerationAsync(LeafletGeneration)                   │
-│   + GetGenerationByIdAsync(Guid)                             │
-│   + GetGenerationsPagedAsync(filters, sort, paging)          │
-│   + GetGenerationStatsAsync()                                │
-│   + SaveChangesAsync()  ← new (LeafletRepository currently   │
-│                            has SaveChangesAsync method only) │
-└──────────────────────────────────────────────────────────────┘
-   │
-   ▼
-┌──────────────────────────────────────────────────────────────┐
-│ EF Core / PostgreSQL                                         │
-│   public."LeafletGenerations" (NEW)                          │
-└──────────────────────────────────────────────────────────────┘
-
-Frontend:
-LeafletGenerator page
-  └── LeafletResult ── RagFeedbackForm (NEW shared component)
-                          ↑ also used by
-KnowledgeBaseSearchAskTab ┘
-                          │
-                  useSubmitLeafletFeedbackMutation (NEW)
-                  useLeafletFeedbackListQuery (NEW)
+┌─────────────────────────────────────────────────────────────────────┐
+│ Frontend (React + TanStack Query)                                   │
+│                                                                     │
+│  features/leaflet-generator/LeafletResult.tsx                       │
+│      │                                                              │
+│      │ generationId (from generate response)                        │
+│      ▼                                                              │
+│  components/feedback/RagFeedbackForm.tsx ◄──── shared ──── KB tab   │
+│      │                                                              │
+│      │ useSubmitLeafletFeedbackMutation()  (api/hooks/useLeaflet)   │
+│      ▼                                                              │
+└──────┼──────────────────────────────────────────────────────────────┘
+       │ POST /api/leaflet/feedback
+       │ GET  /api/leaflet/feedback/list           (LeafletUpload)
+       │ GET  /api/leaflet/generations/{id}
+       ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│ API: LeafletController                                              │
+│   → IMediator.Send(...) → HandleResponse(BaseResponse)              │
+└──────┬──────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│ Application/Features/Leaflet                                        │
+│                                                                     │
+│  Pipeline/                                                          │
+│    └── LeafletGenerationLoggingBehavior  (post-success persistence) │
+│                                                                     │
+│  UseCases/                                                          │
+│    ├── GenerateLeaflet/        (Phase 1 – populate Id, counts)      │
+│    ├── SubmitLeafletFeedback/  (NEW)                                │
+│    ├── GetLeafletFeedbackList/ (NEW)                                │
+│    └── GetLeafletGeneration/   (NEW – mirrors GetArticleHandler)    │
+└──────┬──────────────────────────────────────────────────────────────┘
+       │ ILeafletRepository
+       ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│ Domain/Features/Leaflet                                             │
+│   LeafletGeneration (entity), LeafletFeedbackStats (record)         │
+│   ILeafletRepository (extended with 4 new methods)                  │
+└──────┬──────────────────────────────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│ Persistence/Features/Leaflet                                        │
+│   LeafletRepository (impl), LeafletGenerationConfiguration          │
+│   ApplicationDbContext.LeafletGenerations DbSet                     │
+│   Migration: AddLeafletGenerations                                  │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Design Decisions
 
-#### Decision 1: Response/error-code typing follows the existing `BaseResponse(ErrorCodes, ...)` constructor
+#### Decision 1: Persistence via MediatR pipeline behavior, not handler-side write
 **Options considered:**
-- (a) The spec/brief shows `SubmitLeafletFeedbackResponse(string errorCode, ...)` — would diverge from the rest of the codebase.
-- (b) Use the existing `BaseResponse(ErrorCodes errorCode, Dictionary<string, string>?)` constructor — matches every other handler.
+1. Inline DB write at the end of `GenerateLeafletHandler.Handle`.
+2. Dedicated `IPipelineBehavior<GenerateLeafletRequest, GenerateLeafletResponse>` registered in `LeafletModule`.
 
-**Chosen approach:** (b). All response classes in `Anela.Heblo.Application/Shared` use the `ErrorCodes` enum. `BaseApiController.HandleResponse` reflects on the enum's `[HttpStatusCode]` attribute to map to HTTP. Using a string would silently bypass that mapping and break Conflict (409) → the frontend's 409→`alreadySubmitted` contract.
+**Chosen approach:** Option 2 (matches `QuestionLoggingBehavior`).
 
-**Rationale:** The brief's signature is wrong; `SubmitFeedbackResponse` (KB) and every existing response use `ErrorCodes`. Following convention is mandatory for proper status-code mapping.
+**Rationale:** Keeps `GenerateLeafletHandler` focused on the LLM/RAG pipeline; isolates persistence as a cross-cutting concern that can be swapped or disabled without touching domain logic. The KB feature has lived with this split for production usage and the test coverage already validates the pattern.
 
-#### Decision 2: Keep `LeafletController.Generate`'s existing `try/catch` wrapper as-is
+#### Decision 2: One table, no separate `LeafletGenerationSource` rows
 **Options considered:**
-- (a) Restructure to `HandleResponse(result)` for consistency with new endpoints.
-- (b) Leave the existing `try/Ok/UnprocessableEntity/502` handling in place.
+1. Store `KbSourceCount`/`LeafletSourceCount` only.
+2. Store full per-chunk references in a join table for navigation.
 
-**Chosen approach:** (b). The Generate endpoint catches `EmptyRetrievalException` (422) and unhandled exceptions (502); these are pre-existing semantics from Phase 1.
+**Chosen approach:** Option 1 (counts only) — explicitly out-of-scope per spec.
 
-**Rationale:** `LeafletGenerationLoggingBehavior` swallows its own persistence errors (per FR-1), so they never propagate to the controller's catch. The controller's existing logic is orthogonal to logging concerns. Don't refactor unrelated code per CLAUDE.md "surgical changes" rule.
+**Rationale:** Phase 4+ scope. Adds complexity (FK choreography across two source tables — KB and Leaflet — that have different lifecycles) without serving the Phase 2 use case (quality signal collection). Counts on the single row are sufficient for stats and trend analysis.
 
-#### Decision 3: Pipeline ordering — register `LeafletGenerationLoggingBehavior` after MediatR is configured
+#### Decision 3: Owner-only check in the handler, not via `[Authorize]` policy
 **Options considered:**
-- (a) Register in `LeafletModule.AddLeafletModule` (mirrors KB's `KnowledgeBaseModule.cs:58`).
-- (b) Register globally in `Program.cs` alongside `ValidationBehavior`.
+1. Custom authorization handler (`IAuthorizationRequirement`) keyed on `generation.UserId`.
+2. Inline `currentUser.Id != generation.UserId → ErrorCodes.Forbidden` in the handler.
 
-**Chosen approach:** (a). MediatR runs registered behaviors in registration order; the global `ValidationBehavior` is registered first (in API startup), then the module-scoped logging behavior is appended. This means validation runs before logging — the desired order.
+**Chosen approach:** Option 2 (matches `SubmitFeedbackHandler.cs:34`).
 
-**Rationale:** Module-scoping confines the logging concern to the Leaflet module and exactly mirrors `QuestionLoggingBehavior` registration.
+**Rationale:** The owner check requires loading the entity by id first; folding it into the handler avoids a duplicate lookup and stays consistent with the KB pattern that already ships. The `Forbidden` envelope already carries HTTP 403 via `[HttpStatusCode(...)]` on the enum.
 
-#### Decision 4: `RagFeedbackForm` ownership of state
+#### Decision 4: Mirror KB stats query (in-memory aggregate) — do not optimize
 **Options considered:**
-- (a) Internalize submission state machine (`idle`/`submitted`/`alreadySubmitted`) inside the component, accept only the mutation function.
-- (b) Lift the state machine to the parent; component receives `alreadySubmitted`, `isSuccess`, `isSubmitting`, `onSubmit` props (per spec FR-5).
+1. Four `CountAsync`/`AverageAsync` round trips (NFR-1's plan).
+2. KB's existing pattern: load all feedback rows into memory then compute averages in LINQ-to-Objects (`KnowledgeBaseRepository.cs:299–322`).
 
-**Chosen approach:** (b). The component owns input state (`precisionScore`, `styleScore`, `comment`) only. The parent (KB tab and `LeafletResult`) tracks the post-submit state, because it knows which mutation to use and whether to refresh queries (e.g., the leaflet manager list).
+**Chosen approach:** **Option 1**, per spec NFR-1, even though it diverges from KB's literal implementation.
 
-**Rationale:** Keeps the shared component truly hook-agnostic. Parents wrap their own mutation hooks (`useSubmitFeedbackMutation` for KB, `useSubmitLeafletFeedbackMutation` for leaflet) and translate the result into props. Matches the spec's explicit prop contract.
+**Rationale:** The KB stats query loads every feedback row into memory — that is a latent scaling problem there too. Spec NFR-1 prescribes "four separate aggregates against a single table"; this is a correct optimization, lighter on memory, and still uses the same indexes. The maintainability rule (NFR-4) says "structurally mirror" — structure (separate `GetGenerationStatsAsync` repository call returning a `LeafletFeedbackStats` record) is mirrored; the internal query body legitimately differs. Document this divergence in the repository method.
 
-#### Decision 5: Defensive null check on `currentUser.Id` in `SubmitLeafletFeedbackHandler`
+#### Decision 5: Frontend feedback form extraction — shared component lives under `components/feedback/`
 **Options considered:**
-- (a) Mirror KB exactly: `if (generation.UserId != currentUser.Id) return Forbidden`.
-- (b) Add an explicit guard: if `currentUser?.Id` is null or empty, return `Forbidden` before the equality check.
+1. Duplicate the form in `LeafletResult.tsx`.
+2. Extract to `components/feedback/RagFeedbackForm.tsx` with prop-driven onSubmit/state contract.
 
-**Chosen approach:** (b). When both `generation.UserId` and `currentUser.Id` are null, the equality check passes and an anonymous (or system) caller could pass owner-only authorization. The `[Authorize]` attribute already prevents anonymous calls, so this is defense-in-depth, but the cost is one line.
+**Chosen approach:** Option 2, with KB tab refactored to consume it.
 
-**Rationale:** Cheap hardening against environments where `BypassJwtValidation` or mock auth could yield null user ids. Not a regression of KB behavior — KB has the same theoretical bug; we don't have to propagate it.
+**Rationale:** Two consumers already exist (KB Q&A, Leaflet) and the team explicitly anticipates more (Article generation already has its own feedback story queued). Sharing now avoids drift. The contract `{ onSubmit, isSubmitting, alreadySubmitted, isSuccess }` cleanly separates the form UI from the per-feature submit hook.
+
+#### Decision 6: Schema for new table is `public` (not `dbo`)
+**Rationale:** The current snapshot (`ApplicationDbContextModelSnapshot.cs:1096`) places `KnowledgeBaseQuestionLogs` in `public`. The original migration created it under `dbo`; a later schema migration moved it. New tables must be created in `public` from the start to match. The brief's statement of `public."LeafletGenerations"` is correct.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
+**Backend (new files):**
 ```
 backend/src/Anela.Heblo.Domain/Features/Leaflet/
-  LeafletGeneration.cs                                     [NEW] entity
-  LeafletFeedbackStats.cs                                  [NEW] record
-  ILeafletRepository.cs                                    [EDIT] add 5 methods
+  ├── LeafletGeneration.cs                              [NEW – entity]
+  └── LeafletFeedbackStats.cs                           [NEW – record]
 
 backend/src/Anela.Heblo.Persistence/Features/Leaflet/
-  LeafletGenerationConfiguration.cs                        [NEW] EF config
-  LeafletRepository.cs                                     [EDIT] implement 5 methods
+  └── LeafletGenerationConfiguration.cs                 [NEW]
 
-backend/src/Anela.Heblo.Persistence/
-  ApplicationDbContext.cs                                  [EDIT] add DbSet
-  Migrations/<timestamp>_AddLeafletGenerations.cs          [NEW] auto-generated
+backend/src/Anela.Heblo.Persistence/Migrations/
+  └── 2026MMDDHHMMSS_AddLeafletGenerations.cs           [NEW – via dotnet ef]
 
 backend/src/Anela.Heblo.Application/Features/Leaflet/
-  LeafletModule.cs                                         [EDIT] register behavior
-  Pipeline/                                                [NEW DIR]
-    LeafletGenerationLoggingBehavior.cs                    [NEW]
-  UseCases/GenerateLeaflet/
-    GenerateLeafletResponse.cs                             [EDIT] +Id +KbSourceCount +LeafletSourceCount
-    GenerateLeafletHandler.cs                              [EDIT] populate counts on response
-  UseCases/SubmitLeafletFeedback/                          [NEW DIR]
-    SubmitLeafletFeedbackRequest.cs                        [NEW]
-    SubmitLeafletFeedbackResponse.cs                       [NEW]
-    SubmitLeafletFeedbackHandler.cs                        [NEW]
-  UseCases/GetLeafletFeedbackList/                         [NEW DIR]
-    GetLeafletFeedbackListRequest.cs                       [NEW]
-    GetLeafletFeedbackListResponse.cs                      [NEW]   (incl. LeafletFeedbackSummary, LeafletFeedbackStatsDto)
-    GetLeafletFeedbackListHandler.cs                       [NEW]
-  UseCases/GetLeafletGeneration/                           [NEW DIR]
-    GetLeafletGenerationRequest.cs                         [NEW]
-    GetLeafletGenerationResponse.cs                        [NEW]
-    GetLeafletGenerationHandler.cs                         [NEW] mirrors GetArticleHandler
-
-backend/src/Anela.Heblo.Application/Shared/
-  ErrorCodes.cs                                            [EDIT] add 2502, 2503
-
-backend/src/Anela.Heblo.API/Controllers/
-  LeafletController.cs                                     [EDIT] add 3 endpoints
-
-backend/test/Anela.Heblo.Tests/Features/Leaflet/
-  SubmitLeafletFeedbackHandlerTests.cs                     [NEW]
-  GetLeafletFeedbackListHandlerTests.cs                    [NEW]
-  LeafletGenerationLoggingBehaviorTests.cs                 [NEW]
-  LeafletRepositoryIntegrationTests.cs                     [NEW]
-
-frontend/src/components/feedback/
-  RagFeedbackForm.tsx                                      [NEW]
-
-frontend/src/api/hooks/
-  useLeaflet.ts                                            [EDIT] add hooks + types
-  useKnowledgeBase.ts                                      [no change — existing mutation already 409-aware]
-
-frontend/src/components/knowledge-base/
-  KnowledgeBaseSearchAskTab.tsx                            [EDIT] use RagFeedbackForm
-
-frontend/src/features/leaflet-generator/
-  LeafletResult.tsx                                        [EDIT] add generationId prop + form
-  (parent that renders LeafletResult)                      [EDIT] thread response.id through
-
-frontend/src/i18n.ts                                       [EDIT] add 2 strings (cs + en)
-
-frontend/src/api/hooks/__tests__/
-  useLeaflet.test.ts                                       [NEW]
-frontend/src/components/feedback/__tests__/
-  RagFeedbackForm.test.tsx                                 [NEW]
+  ├── Pipeline/
+  │   └── LeafletGenerationLoggingBehavior.cs           [NEW]
+  └── UseCases/
+      ├── SubmitLeafletFeedback/
+      │   ├── SubmitLeafletFeedbackRequest.cs           [NEW]
+      │   ├── SubmitLeafletFeedbackResponse.cs          [NEW]
+      │   └── SubmitLeafletFeedbackHandler.cs           [NEW]
+      ├── GetLeafletFeedbackList/
+      │   ├── GetLeafletFeedbackListRequest.cs          [NEW]
+      │   ├── GetLeafletFeedbackListResponse.cs         [NEW – includes
+      │   │                                              LeafletFeedbackSummary +
+      │   │                                              LeafletFeedbackStatsDto]
+      │   └── GetLeafletFeedbackListHandler.cs          [NEW]
+      └── GetLeafletGeneration/
+          ├── GetLeafletGenerationRequest.cs            [NEW]
+          ├── GetLeafletGenerationResponse.cs           [NEW]
+          └── GetLeafletGenerationHandler.cs            [NEW]
 ```
+
+**Backend (modified files):**
+- `Domain/Features/Leaflet/ILeafletRepository.cs` — add 4 methods.
+- `Persistence/Features/Leaflet/LeafletRepository.cs` — implement 4 methods.
+- `Persistence/ApplicationDbContext.cs` — add `DbSet<LeafletGeneration>`.
+- `Application/Features/Leaflet/LeafletModule.cs` — register the pipeline behavior (use `services.AddScoped<IPipelineBehavior<…>, LeafletGenerationLoggingBehavior>()`).
+- `Application/Features/Leaflet/UseCases/GenerateLeaflet/GenerateLeafletResponse.cs` — add `Id` (Guid?), `KbSourceCount`, `LeafletSourceCount`.
+- `Application/Features/Leaflet/UseCases/GenerateLeaflet/GenerateLeafletHandler.cs` — set the two count properties on the response.
+- `Application/Shared/ErrorCodes.cs` — append `LeafletFeedbackNotFound = 2502` and `LeafletFeedbackAlreadySubmitted = 2503` (next free codes in the 25XX Leaflet block; 2501 is `LeafletChunkNotFound`). Annotate with `[HttpStatusCode(HttpStatusCode.NotFound)]` and `[HttpStatusCode(HttpStatusCode.Conflict)]` respectively.
+- `API/Controllers/LeafletController.cs` — add the three actions (POST feedback, GET feedback/list with `[Authorize(Policy = LeafletUpload)]`, GET generations/{id}). Keep validation attributes on the request DTO; the controller-level `[Authorize]` already requires authentication.
+
+**Frontend (new files):**
+```
+frontend/src/components/feedback/RagFeedbackForm.tsx
+frontend/src/components/feedback/__tests__/RagFeedbackForm.test.tsx
+```
+
+**Frontend (modified files):**
+- `frontend/src/components/knowledge-base/KnowledgeBaseSearchAskTab.tsx` — replace inline `FeedbackForm` (lines 91–163) with `<RagFeedbackForm …>`; the page wires its own `useSubmitFeedbackMutation` and translates result → `{ isSuccess, alreadySubmitted }` to drive the shared component.
+- `frontend/src/features/leaflet-generator/LeafletResult.tsx` — accept `generationId?: string`, render `<RagFeedbackForm>` below the buttons when present.
+- `frontend/src/api/hooks/useLeaflet.ts` — add `useSubmitLeafletFeedbackMutation` (HTTP 409 → `{ alreadySubmitted: true }`, mirror `useSubmitFeedbackMutation` from `useKnowledgeBase.ts:386–409`); add `useLeafletFeedbackListQuery` (staleTime 30_000) gated by `useLeafletUploadPermission`. Add new types (`SubmitLeafletFeedbackRequest`, `SubmitLeafletFeedbackResult`, `LeafletFeedbackSummary`, `LeafletFeedbackStatsDto`, `LeafletFeedbackListParams`).
+- `frontend/src/i18n.ts` — append the two new error code translations to both `cs` and `en` resources (the existing KB entries at line 192–193 are the model — add `LeafletFeedbackNotFound` and `LeafletFeedbackAlreadySubmitted` in the same `errors` block).
 
 ### Interfaces and Contracts
 
-**`ErrorCodes` enum additions** (Leaflet module range 25XX, next-sequential after `LeafletChunkNotFound = 2501`):
+**Domain entity (class — has identity and lifecycle):**
 
 ```csharp
-[HttpStatusCode(HttpStatusCode.NotFound)]
-LeafletFeedbackNotFound = 2502,
-[HttpStatusCode(HttpStatusCode.Conflict)]
-LeafletFeedbackAlreadySubmitted = 2503,
+// Anela.Heblo.Domain/Features/Leaflet/LeafletGeneration.cs
+public class LeafletGeneration
+{
+    public Guid Id { get; set; }
+    public string Topic { get; set; } = string.Empty;
+    public string Audience { get; set; } = string.Empty;     // AudienceType enum name
+    public string Length { get; set; } = string.Empty;       // LeafletLength enum name
+    public string FinalMarkdown { get; set; } = string.Empty;
+    public int KbSourceCount { get; set; }
+    public int LeafletSourceCount { get; set; }
+    public long DurationMs { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public string? UserId { get; set; }
+    public int? PrecisionScore { get; set; }
+    public int? StyleScore { get; set; }
+    public string? FeedbackComment { get; set; }
+}
+
+public sealed record LeafletFeedbackStats(
+    int TotalGenerations,
+    int TotalWithFeedback,
+    double? AvgPrecisionScore,
+    double? AvgStyleScore);
 ```
 
-The `[HttpStatusCode]` attribute is essential — `BaseApiController.HandleResponse` reads it via reflection to map to HTTP status. **The frontend hook depends on Conflict (409) for the `alreadySubmitted` branch.**
-
-**`SubmitLeafletFeedbackResponse` constructor must use `ErrorCodes`, not `string`:**
+**Repository (additions only — preserve existing `CancellationToken ct = default` convention):**
 
 ```csharp
+public interface ILeafletRepository
+{
+    // … existing 17 methods …
+
+    Task SaveGenerationAsync(LeafletGeneration generation, CancellationToken ct = default);
+    Task<LeafletGeneration?> GetGenerationByIdAsync(Guid id, CancellationToken ct = default);
+    Task<(IReadOnlyList<LeafletGeneration> Items, int TotalCount)> GetGenerationsPagedAsync(
+        bool? hasFeedback, string? userId, string sortBy, bool sortDescending,
+        int pageNumber, int pageSize, CancellationToken ct = default);
+    Task<LeafletFeedbackStats> GetGenerationStatsAsync(CancellationToken ct = default);
+    // SaveChangesAsync(...) already exists at line 23 — reuse for feedback writes.
+}
+```
+
+**EF Configuration — schema and indexes:**
+
+```csharp
+builder.ToTable("LeafletGenerations", "public");
+// indexes
+builder.HasIndex(g => g.CreatedAt);
+builder.HasIndex(g => g.UserId);
+builder.HasIndex(g => g.PrecisionScore).HasFilter("\"PrecisionScore\" IS NOT NULL");
+```
+
+**Application DTOs (classes per project convention; never records — OpenAPI client-generation gotcha per CLAUDE.md):**
+
+```csharp
+public class SubmitLeafletFeedbackRequest : IRequest<SubmitLeafletFeedbackResponse>
+{
+    public Guid GenerationId { get; set; }
+    [Range(1, 5)] public int PrecisionScore { get; set; }
+    [Range(1, 5)] public int StyleScore { get; set; }
+    [MaxLength(1000)] public string? Comment { get; set; }
+}
+
 public class SubmitLeafletFeedbackResponse : BaseResponse
 {
     public SubmitLeafletFeedbackResponse() { }
@@ -213,167 +256,148 @@ public class SubmitLeafletFeedbackResponse : BaseResponse
 }
 ```
 
-The brief and spec both show `string errorCode` — that is **wrong**. All other response classes use `ErrorCodes`.
+**⚠ Spec correction:** The spec uses `string errorCode` in the response constructor — that will not compile. `BaseResponse(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)` requires the **`ErrorCodes` enum**.
 
-**`ILeafletRepository` additions** (placed at the end of the interface; existing `SaveChangesAsync(CancellationToken)` is already present — do not duplicate it):
-
-```csharp
-Task SaveGenerationAsync(LeafletGeneration generation, CancellationToken ct = default);
-Task<LeafletGeneration?> GetGenerationByIdAsync(Guid id, CancellationToken ct = default);
-Task<(IReadOnlyList<LeafletGeneration> Items, int TotalCount)> GetGenerationsPagedAsync(
-    bool? hasFeedback, string? userId, string sortBy, bool descending,
-    int page, int pageSize, CancellationToken ct = default);
-Task<LeafletFeedbackStats> GetGenerationStatsAsync(CancellationToken ct = default);
-// SaveChangesAsync already exists in ILeafletRepository — do NOT redeclare.
-```
-
-**`GenerateLeafletResponse` additions:**
+**`GenerateLeafletResponse` additions (must be `public set`, not `init`, because the pipeline behavior writes them):**
 
 ```csharp
-public class GenerateLeafletResponse : BaseResponse
-{
-    [JsonPropertyName("content")]
-    public string Content { get; set; } = string.Empty;
+[JsonPropertyName("id")]
+public Guid? Id { get; set; }
 
-    [JsonPropertyName("id")]
-    public Guid? Id { get; set; }                    // NEW — set by behavior
+[JsonPropertyName("kbSourceCount")]
+public int KbSourceCount { get; set; }
 
-    [JsonPropertyName("kbSourceCount")]
-    public int KbSourceCount { get; set; }           // NEW — set by handler
-
-    [JsonPropertyName("leafletSourceCount")]
-    public int LeafletSourceCount { get; set; }      // NEW — set by handler
-}
+[JsonPropertyName("leafletSourceCount")]
+public int LeafletSourceCount { get; set; }
 ```
 
-`GenerateLeafletHandler.Handle` must populate `KbSourceCount = kbHits.Count` and `LeafletSourceCount = leafletHits.Count` on the returned response so the behavior can read them after `next()`.
+**Controller actions (mirror existing patterns in `LeafletController`):**
 
-**`RagFeedbackForm` prop contract** (must work for both KB and Leaflet):
+```csharp
+[HttpPost("feedback")]
+public async Task<ActionResult<SubmitLeafletFeedbackResponse>> SubmitFeedback(
+    [FromBody] SubmitLeafletFeedbackRequest request, CancellationToken ct)
+        => HandleResponse(await _mediator.Send(request, ct));
 
-```typescript
-interface RagFeedbackFormProps {
-  onSubmit: (data: { precisionScore: number; styleScore: number; comment: string }) => void;
-  isSubmitting: boolean;
-  alreadySubmitted: boolean;
-  isSuccess: boolean;
-  errorMessage?: string;  // optional — when mutation fails for non-409 reason
-}
+[HttpGet("feedback/list")]
+[Authorize(Policy = AuthorizationConstants.Policies.LeafletUpload)]
+public async Task<ActionResult<GetLeafletFeedbackListResponse>> GetFeedbackList(
+    [FromQuery] bool? hasFeedback = null,
+    [FromQuery] string? userId = null,
+    [FromQuery] string sortBy = "CreatedAt",
+    [FromQuery] bool sortDescending = true,
+    [FromQuery] int pageNumber = 1,
+    [FromQuery] int pageSize = 20,
+    CancellationToken ct = default)
+    => HandleResponse(await _mediator.Send(new GetLeafletFeedbackListRequest { … }, ct));
+
+[HttpGet("generations/{id:guid}")]
+public async Task<ActionResult<GetLeafletGenerationResponse>> GetGeneration(Guid id, CancellationToken ct)
+    => HandleResponse(await _mediator.Send(new GetLeafletGenerationRequest { Id = id }, ct));
 ```
-
-**Frontend types added to `useLeaflet.ts`** mirror `useKnowledgeBase.ts` shapes (`LeafletFeedbackLogSummary`, `LeafletFeedbackStatsDto`, `GetLeafletFeedbackListParams`, etc.) — the OpenAPI generator will produce server-side names; the hand-written hooks should match them.
 
 ### Data Flow
 
-**Generate → log row:**
+**Successful generation + logging:**
 ```
-Client POST /api/leaflet/generate
-  → MediatR.Send(GenerateLeafletRequest)
-    → ValidationBehavior (global)
-      → LeafletGenerationLoggingBehavior.Handle (NEW)
-        Stopwatch start
-        var response = await next();           // GenerateLeafletHandler runs
-        Stopwatch stop
-        if (!response.Success) return response;  // skip log on failure
-        try {
-          insert LeafletGeneration {
-            Topic, Audience.ToString(), Length.ToString(),
-            FinalMarkdown=response.Content,
-            KbSourceCount=response.KbSourceCount,
-            LeafletSourceCount=response.LeafletSourceCount,
-            DurationMs=sw.ElapsedMilliseconds,
-            CreatedAt=DateTimeOffset.UtcNow,
-            UserId=currentUserService.GetCurrentUser().Id
-          };
-          response.Id = generation.Id;
-        } catch (Exception ex) {
-          logger.LogError(ex, "Failed to log leaflet generation. Topic: {Topic}", request.Topic);
-          // response.Id remains null — generation still returns to client
-        }
-        return response;
-  ← controller returns Ok(response) with Id, Content, counts
+Client → POST /api/leaflet/generate
+  → MediatR pipeline:
+      ValidationBehavior (existing)
+      LeafletGenerationLoggingBehavior (NEW)
+        ├── Stopwatch.Start()
+        ├── await next() → GenerateLeafletHandler (RAG + LLM, sets KbSourceCount/LeafletSourceCount)
+        ├── Stopwatch.Stop()
+        ├── if (response.Success) → try/catch:
+        │     ├── new LeafletGeneration { …request fields, response.Content,
+        │     │                            counts, sw.ElapsedMilliseconds, currentUser.Id }
+        │     ├── _repository.SaveGenerationAsync(gen, ct)
+        │     └── response.Id = gen.Id
+        │   catch (Exception) → _logger.LogError(ex, …) (swallow)
+        └── return response
+  ← 200 { success, content, id, kbSourceCount, leafletSourceCount }
 ```
 
-**Submit feedback (one-shot, owner-only):**
+**Feedback submission (one-shot, owner-only):**
 ```
-Client POST /api/leaflet/feedback {generationId, precisionScore, styleScore, comment?}
-  → MediatR pipeline (validation runs first via data annotations)
-    → SubmitLeafletFeedbackHandler
-      gen = repo.GetGenerationByIdAsync(generationId)
-      if gen == null → BaseResponse(LeafletFeedbackNotFound) → 404
-      currentUser = currentUserService.GetCurrentUser()
-      if string.IsNullOrEmpty(currentUser.Id) → Forbidden  (defensive)
-      if gen.UserId != currentUser.Id → Forbidden → 403
-      if gen.PrecisionScore is not null OR gen.StyleScore is not null
-         → LeafletFeedbackAlreadySubmitted → 409
-      gen.PrecisionScore = req.PrecisionScore;
-      gen.StyleScore     = req.StyleScore;
-      gen.FeedbackComment = req.Comment;
-      await repo.SaveChangesAsync(ct);
-      return success
-  ← BaseApiController.HandleResponse maps to HTTP status via ErrorCodes attributes
+Client (owner) → POST /api/leaflet/feedback { generationId, precisionScore, styleScore, comment }
+  → ValidationBehavior asserts [Range(1,5)] / [MaxLength(1000)]
+  → SubmitLeafletFeedbackHandler:
+        gen = repo.GetGenerationByIdAsync(id)
+        if gen is null               → BaseResponse(LeafletFeedbackNotFound, {generationId})  [404]
+        if gen.UserId != currentUser → BaseResponse(Forbidden, {generationId})                [403]
+        if gen.PrecisionScore != null
+           or gen.StyleScore != null → BaseResponse(LeafletFeedbackAlreadySubmitted, {…})     [409]
+        gen.PrecisionScore  = request.PrecisionScore
+        gen.StyleScore      = request.StyleScore
+        gen.FeedbackComment = request.Comment
+        await repo.SaveChangesAsync(ct)        // single SaveChanges on tracked entity
+        return SubmitLeafletFeedbackResponse() // success
+  ← HandleResponse maps to 200 / 404 / 403 / 409 envelopes
 ```
 
-**Frontend submit (RagFeedbackForm in LeafletResult):**
+**Manager feedback list:**
 ```
-User clicks "Submit"
-  → useSubmitLeafletFeedbackMutation.mutate({generationId, precision, style, comment})
-    → POST /api/leaflet/feedback
-    if status 409: return { alreadySubmitted: true }
-    if !response.ok: throw
-    else return {}
-  → onSuccess(result) in LeafletResult sets parent state:
-       result.alreadySubmitted ? setFeedbackState('alreadySubmitted')
-                               : setFeedbackState('submitted');
-  RagFeedbackForm receives alreadySubmitted/isSuccess as props and shows appropriate banner.
-```
-
-**Manager list:**
-```
-GET /api/leaflet/feedback/list?hasFeedback=&userId=&sortBy=&...
-  → [Authorize(LeafletUpload)]
-  → GetLeafletFeedbackListHandler
-    pageNumber = max(1, request.PageNumber)
-    pageSize   = AllowedPageSizes.Contains(req) ? req : 20
-    sortBy     = AllowedSortColumns.Contains(req) ? req : "CreatedAt"
-    (logs, total) = repo.GetGenerationsPagedAsync(...)
-    stats        = repo.GetGenerationStatsAsync()
-    map to response DTOs
+Manager → GET /api/leaflet/feedback/list?hasFeedback&userId&sortBy&sortDescending&pageNumber&pageSize
+  → [Authorize(Policy = LeafletUpload)] enforced before MediatR
+  → GetLeafletFeedbackListHandler:
+        validates sortBy ∈ {CreatedAt, PrecisionScore, StyleScore} (default CreatedAt)
+        validates pageSize ∈ {10, 20, 50} (default 20)
+        (logs, total) = repo.GetGenerationsPagedAsync(...)
+        stats = repo.GetGenerationStatsAsync()
+        return response { Logs = logs.Select(…LeafletFeedbackSummary), TotalCount, PageNumber, PageSize, Stats }
 ```
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Spec/brief specify `string errorCode` for response constructors — would silently break HTTP status mapping (`HandleResponse` only knows `ErrorCodes`) | **HIGH** | Use `ErrorCodes` enum; verify with a test that 409 is returned on the second submit. |
-| `[ProducesResponseType(typeof(ProblemDetails), 409)]` in the brief is wrong — actual body is `SubmitLeafletFeedbackResponse` (BaseResponse) | LOW | Use `[ProducesResponseType(typeof(SubmitLeafletFeedbackResponse), 409)]` or omit the 409 attribute entirely (KB controller omits it and works). |
-| Pipeline ordering: behavior must run after `ValidationBehavior`. If `ValidationBehavior` is registered after the new logging behavior, validation errors would be logged as successful generations. | MEDIUM | `ValidationBehavior` is registered globally in `Program.cs` at API startup, before module behaviors are added. Add a unit test that exercises invalid `Topic` (empty) and asserts no `LeafletGeneration` row is written. |
-| `currentUser.Id` may be null in mock-auth or bypass-JWT environments → owner-only check passes for anonymous callers | LOW | Add explicit `string.IsNullOrEmpty(currentUser?.Id)` guard in `SubmitLeafletFeedbackHandler` returning `Forbidden`. |
-| `SaveGenerationAsync` calls `SaveChangesAsync` internally — if the parent request had pending unrelated changes in the same scoped DbContext, they'd be flushed too. | LOW | Inspect `GenerateLeafletHandler` — it does no writes (only reads). Safe in current state. Add a comment in the behavior noting the assumption. |
-| Race: two concurrent feedback submissions for the same generation. The "already submitted" check is read-then-write; both could pass the check before either persists. | LOW | At expected scale (single user, single tab), negligible. If observed in practice, wrap in a single `UPDATE … WHERE PrecisionScore IS NULL AND StyleScore IS NULL` and check affected rows. **Do not implement now.** |
-| Migration auto-application disabled per project convention; ops must run `dotnet ef database update` manually post-deploy | MEDIUM | Document in PR description; reference `docs/architecture/infrastructure.md`. |
-| OpenAPI client regeneration: new DTOs must be **classes**, not records (project rule) | MEDIUM | Verified — `LeafletFeedbackSummary`, `LeafletFeedbackStatsDto`, request/response DTOs are all classes per spec. The internal domain `LeafletFeedbackStats` is a `record` (not exposed via API) — that's fine. |
-| `Forbidden` from KB-style `Forbid()` returns 403 with no body; frontend hook would throw. UX: user is owner so this should never happen, but a hostile call would surface a generic error. | LOW | Acceptable. The mutation hook only treats 409 specially; 403 throws like any other failure. The only path that can hit 403 requires guessing another user's `generationId` — out of normal UX flow. |
-| Pipeline behavior throws after `next()` succeeds — controller's `try/catch` would catch it and return 502 even though generation succeeded | MEDIUM | The behavior already wraps the persistence in `try/catch` (per FR-1). Add a unit test asserting an exception inside the persistence call still returns the generation response (not rethrown). |
+| `LeafletGenerationLoggingBehavior` enrolls `next()` failures into the catch and accidentally swallows generation errors. | High | Behavior must call `next()` **outside** the try/catch and check `response.Success` before persisting. Mirror `QuestionLoggingBehavior` exactly — it does not wrap `next()`. The brief's snippet does this correctly; enforce in code review. |
+| Pipeline behavior holds an `ILeafletRepository` in a scoped dependency. If the consumer cancels mid-write, partial `SaveChangesAsync` may leak or the response payload may already be returned with `Id = null`. | Medium | Use `cancellationToken` only for `next()`; pass `CancellationToken.None` to the post-hoc save to ensure the row is written even if the client disconnects after the LLM completes. (KB does pass `cancellationToken`; if you preserve symmetry, document the trade-off.) Recommend `CancellationToken.None` here. |
+| Spec uses `string errorCode` in response constructors. Compilation failure. | High | Use `ErrorCodes` enum. Add `LeafletFeedbackNotFound = 2502` and `LeafletFeedbackAlreadySubmitted = 2503` to `ErrorCodes.cs` with `[HttpStatusCode(NotFound)]` and `[HttpStatusCode(Conflict)]` annotations. |
+| `[Range]` / `[MaxLength]` validation only fires if a `ValidationBehavior` is wired before the new handler. | Medium | Confirm in `Application/AddApplicationServices` that the global `ValidationBehavior<,>` is registered. (KB relies on the same; verify.) |
+| Stats query implementation diverges from KB's "load all then average". | Low | Acceptable per NFR-1; document the divergence with a one-line code comment in `GetGenerationStatsAsync` referencing NFR-1 so a future maintainer doesn't "harmonize" it back to the slower KB pattern. |
+| Sharing `RagFeedbackForm` between KB and Leaflet introduces visual/behavioral regression in KB. | Medium | FR-5 acceptance criteria already mandates parity; cover with a snapshot/visual smoke test on the KB tab plus the per-form unit tests. |
+| Frontend types and OpenAPI client drift — `Id` is `Guid?` server-side and the auto-generated TS client may treat it as `string \| undefined`. The new `useLeafletResult` flow needs to handle `undefined` cleanly. | Low | `LeafletResult.tsx` already gates feedback rendering on `generationId` truthy check; FR-6 acceptance criteria covers this. |
+| `SaveGenerationAsync` calls `SaveChangesAsync` internally — if it later runs in a unit-of-work that batches multiple operations, the inner save will partial-commit. | Low | Acceptable for current scope (logging behavior runs after the handler; no other writes in flight). Match KB's `SaveQuestionLogAsync` pattern that calls `SaveChangesAsync` immediately. |
+| Owner-only enforcement at handler level only — no middleware or policy. If a future endpoint forgets the check, leakage. | Medium | Document in the handler with one-line comment. Test must cover the `Forbidden` branch explicitly (already in spec test list). |
+| Migration creates table without explicit schema, lands in `dbo`, then snapshot lists `public` → out-of-sync. | Medium | Configuration **must** call `builder.ToTable("LeafletGenerations", "public")` (the brief's snippet omits the schema arg — fix this before generating the migration). |
+| `FeedbackComment` is rendered with `ReactMarkdown` if devs follow the existing leaflet result layout, leading to XSS via injected markdown. | Medium | Spec NFR-2 mandates plain-text rendering. `RagFeedbackForm` displays the comment in a textarea/plain `<p>`, never via `ReactMarkdown`. Code review must catch this. |
 
 ## Specification Amendments
 
-1. **Use `ErrorCodes` enum, not strings, in `SubmitLeafletFeedbackResponse` constructor.** Fix snippet in spec FR-2 / brief Step 9. Required for `BaseApiController.HandleResponse` mapping.
-2. **Add `[HttpStatusCode]` attributes** to the new `ErrorCodes`: `LeafletFeedbackNotFound = 2502` → `NotFound`; `LeafletFeedbackAlreadySubmitted = 2503` → `Conflict`. Existing `LeafletChunkNotFound = 2501` already occupies the 25XX range; assign 2502 / 2503 next.
-3. **Defensive null guard in `SubmitLeafletFeedbackHandler`**: when `currentUser?.Id` is null/empty, short-circuit to `Forbidden` before the equality check.
-4. **`GenerateLeafletHandler` must populate** `response.KbSourceCount` and `response.LeafletSourceCount` from `kbHits.Count` and `leafletHits.Count` before returning. The behavior reads these after `next()`.
-5. **Do not redeclare `SaveChangesAsync` in `ILeafletRepository`.** It already exists (verified — `ILeafletRepository.cs:23`).
-6. **Keep `LeafletController.Generate`'s existing `try/catch`.** Do not refactor to `HandleResponse`. The new endpoints (feedback POST/GET, generation lookup) use `HandleResponse` per existing convention.
-7. **Drop the `[ProducesResponseType(typeof(ProblemDetails), 409)]` line** in the spec's controller snippet — the body type is `SubmitLeafletFeedbackResponse`, not `ProblemDetails`. Either omit the attribute (matches KB) or use the correct type.
-8. **`RagFeedbackForm` owns input state only.** State machine (`idle`/`submitted`/`alreadySubmitted`) lives in the parent (`KnowledgeBaseSearchAskTab`, `LeafletResult`), driven by the mutation result. Spec FR-5 is already correct on this — the brief Step 12 is also correct.
-9. **Test addition**: pipeline behavior runs after validation. Unit test: empty `Topic` → validation fails → no log row written.
-10. **Test addition**: behavior swallows persistence exceptions. Unit test with mocked `ILeafletRepository.SaveGenerationAsync` throwing → response returned with `Id == null`, error logged, no rethrow.
+1. **Error code definition site (Step 9 / FR-7):** `ErrorCodes` is an **enum** in `Anela.Heblo.Application.Shared`, not a string-based class. Add the two codes to the existing 25XX Leaflet block:
+   ```csharp
+   // Leaflet module errors (25XX)
+   [HttpStatusCode(HttpStatusCode.NotFound)]
+   LeafletChunkNotFound = 2501,                // existing
+   [HttpStatusCode(HttpStatusCode.NotFound)]
+   LeafletFeedbackNotFound = 2502,             // NEW
+   [HttpStatusCode(HttpStatusCode.Conflict)]
+   LeafletFeedbackAlreadySubmitted = 2503,     // NEW
+   ```
+   Update the `SubmitLeafletFeedbackResponse` constructor signature to `(ErrorCodes errorCode, Dictionary<string, string>? parameters = null)`.
+
+2. **Schema in EF configuration (Step 3):** The brief's snippet uses `builder.ToTable("LeafletGenerations")` without a schema. The current snapshot keeps `KnowledgeBaseQuestionLogs` in `public` (`ApplicationDbContextModelSnapshot.cs:1096`). Change to `builder.ToTable("LeafletGenerations", "public")` to land the new table in the same schema.
+
+3. **CancellationToken signature in repository (Step 2):** Match the existing `ILeafletRepository` style — every method ends with `CancellationToken ct = default`, not `CancellationToken cancellationToken`. The brief uses the latter; align to existing convention.
+
+4. **`GenerateLeafletResponse` field additions (Step 6):** Spec mentions only `Id`. It must also expose `KbSourceCount` and `LeafletSourceCount` — the behavior reads them from the response, and `GenerateLeafletHandler` already has the source counts in `kbHits.Count`/`leafletHits.Count`. Wire those at the bottom of `GenerateLeafletHandler.Handle` before returning.
+
+5. **`GetLeafletGenerationResponse` not-found error code (FR-4):** Spec is ambiguous between `LeafletFeedbackNotFound` and "an equivalent". Recommend a separate `LeafletGenerationNotFound = 2504` (NotFound) — using the feedback-flavored code for a generic GET is misleading. Adds one code; matches Article's `ArticleNotFound` precedent.
+
+6. **`LeafletGenerationLoggingBehavior` cancellation token (Step 7):** Pass `CancellationToken.None` (not the request `cancellationToken`) to `_repository.SaveGenerationAsync(...)` so a client disconnect after `next()` returns does not lose the audit row. The brief's snippet passes the user's token; flip this.
+
+7. **`LeafletModule` — must register the behavior with the right service lifetime.** Use `services.AddScoped<...>` (matches `KnowledgeBaseModule.cs:58`); the brief is consistent, but make sure the `MediatR` package version's `IPipelineBehavior` resolution finds it (the existing KB registration is the proof point).
+
+8. **Frontend hook — `useLeafletFeedbackListQuery` is described in spec but no UI consumes it in Phase 2.** Either (a) drop the hook from Phase 2 (YAGNI), or (b) wire it to a hidden/admin route now. Recommend (a): add the hook only when the consumer (admin dashboard) ships in a later phase.
+
+9. **i18n key alignment:** KB uses `KnowledgeBaseFeedbackLogNotFound` (note the "Log" infix) and `KnowledgeBaseFeedbackAlreadySubmitted`. The new keys (`LeafletFeedbackNotFound`, `LeafletFeedbackAlreadySubmitted`) are simpler and consistent with the new enum names — keep the spec's choice; the KB key name is legacy.
 
 ## Prerequisites
 
-- **Branch**: `feature/genai_consistency` exists at `origin/feature/genai_consistency` (verified). New work branches off it; PR target = `feature/genai_consistency`, **not** `main`.
-- **Phase 1 merged**: leaflet generator routes, sidebar, `GenerateLeafletHandler/Request/Response`, `AudienceType`, `LeafletLength` must be on `feature/genai_consistency`.
-- **No new packages**: MediatR, EF Core 8, Pgvector, React Query — all already present.
-- **Manual migration**: After merge, ops runs `dotnet ef database update --project backend/src/Anela.Heblo.Persistence --startup-project backend/src/Anela.Heblo.API`. Document in the PR.
-- **Authorization policy `LeafletUpload`** is already wired in `AuthorizationConstants.cs:67` and applied to existing leaflet endpoints — no additional setup.
-- **`ICurrentUserService`** is already DI-registered and used by `QuestionLoggingBehavior` and KB feedback handler — no additional setup.
-- **OpenAPI client regeneration**: the TypeScript client regenerates on `npm run build`. The new DTOs (classes, not records) will surface as TS interfaces automatically; the new hand-written hooks in `useLeaflet.ts` should match the generated names.
+1. **Phase 1 merged into `feature/genai_consistency`.** `LeafletController.Generate`, `GenerateLeafletHandler`, `LeafletResult.tsx`, and the leaflet sidebar/route must all be present. Verified in code at HEAD of the worktree.
+2. **Branch hygiene:** Cut `feat/leaflet-persistence-feedback` (or similar) **from `feature/genai_consistency`** and target the PR back to `feature/genai_consistency` — not `main`. Hard requirement from `brief.md`.
+3. **EF Core tooling installed locally** for `dotnet ef migrations add AddLeafletGenerations --project backend/src/Anela.Heblo.Persistence --startup-project backend/src/Anela.Heblo.API`.
+4. **No new infrastructure required** — Postgres, MediatR, MSAL, `ICurrentUserService`, `LeafletUpload` policy, OpenAPI generator are all in place.
+5. **No env-var changes** — `LeafletOptions` already binds; no new options keys are introduced.
+6. **Manual migration step at deploy time** — per CLAUDE.md, DB migrations are not automated. After merge, run `dotnet ef database update` against the dev DB before testing the new endpoints.
