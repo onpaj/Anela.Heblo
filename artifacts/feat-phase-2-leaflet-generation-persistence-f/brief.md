@@ -1,5 +1,7 @@
 # Phase 2 — Leaflet Generation Persistence + Feedback
 
+CRITICAL: use branch "feature/genai_consistency" as an integration branch instead of main. New branch must be based on that and also PR must be targeted back to this branch
+
 ## Goal
 Every generated leaflet is persisted with its source references. Users can submit a 1–5 precision/style rating and comment. The same owner-only, one-shot feedback pattern as KnowledgeBase applies.
 
