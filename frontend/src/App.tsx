@@ -36,6 +36,7 @@ import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
+import MarketingFeedbackPage from "./pages/MarketingFeedbackPage";
 import ArticlesPage from "./pages/ArticlesPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
 import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
@@ -469,6 +470,10 @@ function App() {
                         <Route
                           path="/knowledge-base/feedback"
                           element={<KnowledgeBaseFeedbackPage />}
+                        />
+                        <Route
+                          path="/marketing/feedback"
+                          element={<MarketingFeedbackPage />}
                         />
                         <Route
                           path="/articles"

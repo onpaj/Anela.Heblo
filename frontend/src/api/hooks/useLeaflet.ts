@@ -50,6 +50,7 @@ export interface GetLeafletChunkDetailResponse {
   chunkIndex: number;
   summary: string;
   content: string;
+  sourcePath?: string;
 }
 
 export interface DeleteLeafletDocumentResponse {

@@ -31,6 +31,7 @@ public class GetLeafletChunkDetailHandler : IRequestHandler<GetLeafletChunkDetai
             ChunkIndex = chunk.ChunkIndex,
             Content = chunk.Content,
             Summary = chunk.Summary,
+            SourcePath = chunk.Document.SourcePath,
         };
     }
 }
