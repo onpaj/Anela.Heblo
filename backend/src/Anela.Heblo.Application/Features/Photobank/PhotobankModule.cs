@@ -17,10 +17,8 @@ public static class PhotobankModule
 
         if (!useMockAuth && !bypassJwtValidation)
         {
-            services.AddHttpClient("MicrosoftGraph", client =>
-            {
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-            }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            services.AddHttpClient("MicrosoftGraph", _ => { })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
                 AllowAutoRedirect = true,
             });

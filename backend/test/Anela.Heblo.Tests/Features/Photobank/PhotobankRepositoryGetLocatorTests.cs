@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Photobank;
 
-public class PhotobankRepositoryGetLocatorTests : IDisposable
+public sealed class PhotobankRepositoryGetLocatorTests : IAsyncLifetime
 {
     private readonly ApplicationDbContext _context;
     private readonly PhotobankRepository _repository;
@@ -82,8 +82,7 @@ public class PhotobankRepositoryGetLocatorTests : IDisposable
         result.Should().BeNull();
     }
 
-    public void Dispose()
-    {
-        _context.Dispose();
-    }
+    public Task InitializeAsync() => Task.CompletedTask;
+
+    public async Task DisposeAsync() => await _context.DisposeAsync();
 }

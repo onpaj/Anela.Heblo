@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Photobank;
 
-public class PhotobankGraphServiceThumbnailTests
+public sealed class PhotobankGraphServiceThumbnailTests
 {
     private const string DriveId = "drive-abc";
     private const string FileId = "file-xyz";
@@ -74,8 +74,10 @@ public class PhotobankGraphServiceThumbnailTests
         result.Content.Should().NotBeNull();
     }
 
-    [Fact]
-    public async Task GetThumbnailAsync_BuildsCorrectUrl_ForMediumSize()
+    [Theory]
+    [InlineData(ThumbnailSize.Medium, "thumbnails/0/medium/content")]
+    [InlineData(ThumbnailSize.Large,  "thumbnails/0/large/content")]
+    public async Task GetThumbnailAsync_BuildsCorrectUrl(ThumbnailSize size, string expectedSegment)
     {
         // Arrange
         HttpRequestMessage? capturedRequest = null;
@@ -97,40 +99,11 @@ public class PhotobankGraphServiceThumbnailTests
         var service = CreateService(handlerMock, tokenMock);
 
         // Act
-        await service.GetThumbnailAsync(DriveId, FileId, ThumbnailSize.Medium);
+        await service.GetThumbnailAsync(DriveId, FileId, size);
 
         // Assert
         capturedRequest.Should().NotBeNull();
-        capturedRequest!.RequestUri!.ToString().Should().Contain("thumbnails/0/medium/content");
-    }
-
-    [Fact]
-    public async Task GetThumbnailAsync_BuildsCorrectUrl_ForLargeSize()
-    {
-        // Arrange
-        HttpRequestMessage? capturedRequest = null;
-        var handlerMock = new Mock<HttpMessageHandler>();
-        var tokenMock = new Mock<ITokenAcquisition>();
-
-        handlerMock
-            .Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>())
-            .Callback<HttpRequestMessage, CancellationToken>((req, _) => capturedRequest = req)
-            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new ByteArrayContent([])
-            });
-
-        var service = CreateService(handlerMock, tokenMock);
-
-        // Act
-        await service.GetThumbnailAsync(DriveId, FileId, ThumbnailSize.Large);
-
-        // Assert
-        capturedRequest!.RequestUri!.ToString().Should().Contain("thumbnails/0/large/content");
+        capturedRequest!.RequestUri!.ToString().Should().Contain(expectedSegment);
     }
 
     [Fact]

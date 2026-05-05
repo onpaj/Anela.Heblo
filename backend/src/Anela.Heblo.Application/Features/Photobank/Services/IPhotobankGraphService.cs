@@ -2,7 +2,21 @@ namespace Anela.Heblo.Application.Features.Photobank.Services;
 
 public enum ThumbnailSize { Medium, Large }
 
-public sealed record GraphThumbnail(Stream Content, string ContentType, long? ContentLength);
+public sealed class GraphThumbnail : IDisposable
+{
+    public Stream Content { get; }
+    public string ContentType { get; }
+    public long? ContentLength { get; }
+
+    public GraphThumbnail(Stream content, string contentType, long? contentLength)
+    {
+        Content = content;
+        ContentType = contentType;
+        ContentLength = contentLength;
+    }
+
+    public void Dispose() => Content.Dispose();
+}
 
 public sealed class GraphThrottledException : Exception
 {

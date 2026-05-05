@@ -63,6 +63,7 @@ public class PhotobankGraphService : IPhotobankGraphService
         while (!string.IsNullOrEmpty(nextUrl))
         {
             var request = CreateRequest(HttpMethod.Get, nextUrl, token);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             var response = await client.SendAsync(request, ct);
             response.EnsureSuccessStatusCode();
 
@@ -155,17 +156,22 @@ public class PhotobankGraphService : IPhotobankGraphService
         CancellationToken ct = default)
     {
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
-        var sizeSegment = size == ThumbnailSize.Large ? "large" : "medium";
+        var sizeSegment = size switch
+        {
+            ThumbnailSize.Medium => "medium",
+            ThumbnailSize.Large  => "large",
+            _ => throw new ArgumentOutOfRangeException(nameof(size), size, null),
+        };
         var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{Uri.EscapeDataString(fileId)}/thumbnails/0/{sizeSegment}/content";
 
-        using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
+        var client = _httpClientFactory.CreateClient("MicrosoftGraph");
         var request = CreateRequest(HttpMethod.Get, url, token);
-        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             return null;
 
-        if ((int)response.StatusCode == 429)
+        if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
         {
             TimeSpan? retryAfter = null;
             if (response.Headers.TryGetValues("Retry-After", out var values))
@@ -182,9 +188,12 @@ public class PhotobankGraphService : IPhotobankGraphService
 
         var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
         var contentLength = response.Content.Headers.ContentLength;
-        var stream = await response.Content.ReadAsStreamAsync(ct);
 
-        return new GraphThumbnail(stream, contentType, contentLength);
+        var ms = new MemoryStream();
+        await response.Content.CopyToAsync(ms, ct);
+        ms.Position = 0;
+
+        return new GraphThumbnail(ms, contentType, contentLength);
     }
 
     public async Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken ct = default)
@@ -197,6 +206,7 @@ public class PhotobankGraphService : IPhotobankGraphService
         var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:";
 
         var request = CreateRequest(HttpMethod.Get, url, token);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         var response = await client.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
 
