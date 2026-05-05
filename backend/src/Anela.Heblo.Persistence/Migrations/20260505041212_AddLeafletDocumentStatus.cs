@@ -23,7 +23,7 @@ namespace Anela.Heblo.Persistence.Migrations
                 type: "character varying(16)",
                 maxLength: 16,
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "processing");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LeafletDocuments_Status",
