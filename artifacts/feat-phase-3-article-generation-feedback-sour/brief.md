@@ -1,5 +1,7 @@
 # Phase 3 — Article Generation Feedback + Source Enrichment
 
+CRITICAL: use branch "feature/genai_consistency" as an integration branch instead of main. New branch must be based on that and also PR must be targeted back to this branch
+
 ## Goal
 Articles already persist outputs. This phase adds:
 1. Feedback layer (1–5 precision/style + comment) on the `Article` entity.
