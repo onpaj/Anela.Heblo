@@ -14,8 +14,10 @@ function renderSidebar(overrides: Partial<React.ComponentProps<typeof TagSidebar
     tags: mockTags,
     selectedTagIds: [],
     search: "",
+    folderPath: "",
     onTagToggle: jest.fn(),
     onSearchChange: jest.fn(),
+    onFolderPathChange: jest.fn(),
     onClearFilters: jest.fn(),
     ...overrides,
   };
@@ -145,5 +147,50 @@ describe("TagSidebar", () => {
 
     // Assert
     expect(screen.getByText("Žádné štítky")).toBeInTheDocument();
+  });
+
+  test("folder path input is rendered with correct placeholder", () => {
+    // Arrange & Act
+    renderSidebar();
+
+    // Assert
+    expect(screen.getByPlaceholderText("Hledat ve složkách...")).toBeInTheDocument();
+  });
+
+  test("folder path input change calls onFolderPathChange after debounce", async () => {
+    // Arrange
+    const onFolderPathChange = jest.fn();
+    renderSidebar({ onFolderPathChange });
+
+    const input = screen.getByPlaceholderText("Hledat ve složkách...");
+
+    // Act
+    fireEvent.change(input, { target: { value: "Marketing" } });
+
+    // Assert: not called immediately
+    expect(onFolderPathChange).not.toHaveBeenCalled();
+
+    // Fast-forward debounce timer
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(onFolderPathChange).toHaveBeenCalledWith("Marketing");
+  });
+
+  test("'Clear filters' button appears when folderPath is active", () => {
+    // Arrange
+    renderSidebar({ folderPath: "Marketing" });
+
+    // Assert
+    expect(screen.getByText("Vymazat")).toBeInTheDocument();
+  });
+
+  test("'Clear filters' button is absent when no filters active including folderPath", () => {
+    // Arrange
+    renderSidebar({ selectedTagIds: [], search: "", folderPath: "" });
+
+    // Assert
+    expect(screen.queryByText("Vymazat")).not.toBeInTheDocument();
   });
 });

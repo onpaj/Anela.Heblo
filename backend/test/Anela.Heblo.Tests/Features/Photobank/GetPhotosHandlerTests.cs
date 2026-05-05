@@ -46,7 +46,7 @@ public class GetPhotosHandlerTests
         };
 
         _repositoryMock
-            .Setup(r => r.GetPhotosAsync(null, null, 1, 48, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetPhotosAsync(null, null, null, 1, 48, It.IsAny<CancellationToken>()))
             .ReturnsAsync((photos, 2));
 
         var request = new GetPhotosRequest();
@@ -77,7 +77,7 @@ public class GetPhotosHandlerTests
         var tagFilter = new List<string> { "products" };
 
         _repositoryMock
-            .Setup(r => r.GetPhotosAsync(tagFilter, null, 1, 48, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetPhotosAsync(tagFilter, null, null, 1, 48, It.IsAny<CancellationToken>()))
             .ReturnsAsync((photos, 1));
 
         var request = new GetPhotosRequest { Tags = tagFilter };
@@ -91,7 +91,7 @@ public class GetPhotosHandlerTests
         result.Items.Should().HaveCount(1);
         result.Items[0].Tags.Should().ContainSingle(t => t.Name == "products");
 
-        _repositoryMock.Verify(r => r.GetPhotosAsync(tagFilter, null, 1, 48, It.IsAny<CancellationToken>()), Times.Once);
+        _repositoryMock.Verify(r => r.GetPhotosAsync(tagFilter, null, null, 1, 48, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class GetPhotosHandlerTests
         };
 
         _repositoryMock
-            .Setup(r => r.GetPhotosAsync(null, "ruze", 1, 48, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetPhotosAsync(null, "ruze", null, 1, 48, It.IsAny<CancellationToken>()))
             .ReturnsAsync((photos, 1));
 
         var request = new GetPhotosRequest { Search = "ruze" };
@@ -123,7 +123,7 @@ public class GetPhotosHandlerTests
     {
         // Arrange
         _repositoryMock
-            .Setup(r => r.GetPhotosAsync(It.IsAny<List<string>?>(), It.IsAny<string?>(), 1, 48, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetPhotosAsync(It.IsAny<List<string>?>(), It.IsAny<string?>(), It.IsAny<string?>(), 1, 48, It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Photo>(), 0));
 
         var request = new GetPhotosRequest { Tags = new List<string> { "nonexistent" } };
@@ -135,5 +135,31 @@ public class GetPhotosHandlerTests
         result.Success.Should().BeTrue();
         result.Total.Should().Be(0);
         result.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Handle_FilterByFolderPath_PassesFolderPathToRepository()
+    {
+        // Arrange
+        var photos = new List<Photo>
+        {
+            BuildPhoto(1, "ruze-cervena.jpg", "Marketing/Produkty/Ruze"),
+        };
+
+        _repositoryMock
+            .Setup(r => r.GetPhotosAsync(null, null, "Produkty", 1, 48, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((photos, 1));
+
+        var request = new GetPhotosRequest { FolderPath = "Produkty" };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.Items.Should().HaveCount(1);
+        result.Items[0].FolderPath.Should().Be("Marketing/Produkty/Ruze");
+
+        _repositoryMock.Verify(r => r.GetPhotosAsync(null, null, "Produkty", 1, 48, It.IsAny<CancellationToken>()), Times.Once);
     }
 }
