@@ -148,6 +148,45 @@ public class PhotobankGraphService : IPhotobankGraphService
         };
     }
 
+    public async Task<GraphThumbnail?> GetThumbnailAsync(
+        string driveId,
+        string fileId,
+        ThumbnailSize size,
+        CancellationToken ct = default)
+    {
+        var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
+        var sizeSegment = size == ThumbnailSize.Large ? "large" : "medium";
+        var url = $"{GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{Uri.EscapeDataString(fileId)}/thumbnails/0/{sizeSegment}/content";
+
+        using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
+        var request = CreateRequest(HttpMethod.Get, url, token);
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return null;
+
+        if ((int)response.StatusCode == 429)
+        {
+            TimeSpan? retryAfter = null;
+            if (response.Headers.TryGetValues("Retry-After", out var values))
+            {
+                var headerValue = values.FirstOrDefault();
+                if (headerValue != null && int.TryParse(headerValue, out var seconds))
+                    retryAfter = TimeSpan.FromSeconds(seconds);
+            }
+
+            throw new GraphThrottledException(retryAfter);
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+        var contentLength = response.Content.Headers.ContentLength;
+        var stream = await response.Content.ReadAsStreamAsync(ct);
+
+        return new GraphThumbnail(stream, contentType, contentLength);
+    }
+
     public async Task<string> ResolveItemIdAsync(string driveId, string folderPath, CancellationToken ct = default)
     {
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);

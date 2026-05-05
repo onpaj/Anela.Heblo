@@ -66,6 +66,19 @@ namespace Anela.Heblo.Persistence.Photobank
                 .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
         }
 
+        public async Task<PhotoLocator?> GetLocatorAsync(int id, CancellationToken cancellationToken)
+        {
+            var projection = await _context.Photos
+                .Where(p => p.Id == id)
+                .Select(p => new { p.DriveId, p.SharePointFileId, p.ModifiedAt })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (projection == null || projection.DriveId == null)
+                return null;
+
+            return new PhotoLocator(projection.DriveId, projection.SharePointFileId, projection.ModifiedAt);
+        }
+
         // Tags
 
         public async Task<List<(Tag Tag, int Count)>> GetTagsWithCountsAsync(CancellationToken cancellationToken)
