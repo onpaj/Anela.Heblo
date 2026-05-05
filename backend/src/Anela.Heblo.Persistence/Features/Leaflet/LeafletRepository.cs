@@ -218,6 +218,7 @@ public class LeafletRepository : ILeafletRepository
     public async Task<LeafletChunk?> GetChunkByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _context.LeafletChunks
+            .AsNoTracking()
             .Include(c => c.Document)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
     }

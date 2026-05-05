@@ -194,6 +194,9 @@ const resources = {
         KnowledgeBaseChunkNotFound: "Fragment znalostní báze nebyl nalezen (ID: {id})",
         KnowledgeBaseAiUnavailable: "Služba AI je dočasně nedostupná. Zkuste to prosím znovu.",
 
+        // Leaflet module errors
+        LeafletChunkNotFound: "Fragment letáku nebyl nalezen",
+
         // ShoptetOrders module errors
         ShoptetOrderInvalidSourceState: "Objednávku nelze zablokovat – není ve povoleném stavu",
         ShoptetOrderNotFound: "Objednávka nebyla nalezena",
