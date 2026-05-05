@@ -13,6 +13,7 @@ public class LeafletIndexingServiceTests
 {
     private readonly Mock<IWordWindowChunker> _chunker;
     private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddings;
+    private readonly Mock<ILeafletChunkSummarizer> _summarizer;
     private readonly Mock<ILeafletRepository> _repo;
     private readonly Mock<ILogger<LeafletIndexingService>> _logger;
     private readonly LeafletOptions _options;
@@ -22,13 +23,19 @@ public class LeafletIndexingServiceTests
     {
         _chunker = new Mock<IWordWindowChunker>();
         _embeddings = new Mock<IEmbeddingGenerator<string, Embedding<float>>>();
+        _summarizer = new Mock<ILeafletChunkSummarizer>();
         _repo = new Mock<ILeafletRepository>();
         _logger = new Mock<ILogger<LeafletIndexingService>>();
         _options = new LeafletOptions { ChunkSize = 800, ChunkOverlap = 80 };
 
+        _summarizer
+            .Setup(s => s.SummarizeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string text, CancellationToken _) => text);
+
         _service = new LeafletIndexingService(
             _chunker.Object,
             _embeddings.Object,
+            _summarizer.Object,
             _repo.Object,
             _logger.Object,
             Options.Create(_options));
@@ -205,5 +212,47 @@ public class LeafletIndexingServiceTests
         Assert.Equal(1, chunks[1].ChunkIndex);
         Assert.Equal("world foo bar", chunks[1].Content);
         Assert.Equal(3, chunks[1].WordCount);
+    }
+
+    [Fact]
+    public async Task IndexAsync_sets_Summary_from_summarizer()
+    {
+        // Arrange
+        var document = CreateDocument();
+        var chunkTexts = new[] { "chunk one", "chunk two" };
+
+        _chunker
+            .Setup(c => c.Chunk(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
+            .Returns(chunkTexts);
+
+        _summarizer
+            .Setup(s => s.SummarizeAsync("chunk one", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("summary one");
+        _summarizer
+            .Setup(s => s.SummarizeAsync("chunk two", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("summary two");
+
+        var generatedEmbeddings = CreateEmbeddings(2);
+        _embeddings
+            .Setup(e => e.GenerateAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<EmbeddingGenerationOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(generatedEmbeddings);
+
+        IEnumerable<LeafletChunk>? capturedChunks = null;
+        _repo
+            .Setup(r => r.AddChunksAsync(It.IsAny<IEnumerable<LeafletChunk>>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<LeafletChunk>, CancellationToken>((c, _) => capturedChunks = c.ToList())
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _service.IndexAsync("chunk one chunk two", document);
+
+        // Assert
+        Assert.NotNull(capturedChunks);
+        var chunks = capturedChunks.ToList();
+        Assert.Equal("summary one", chunks[0].Summary);
+        Assert.Equal("summary two", chunks[1].Summary);
     }
 }

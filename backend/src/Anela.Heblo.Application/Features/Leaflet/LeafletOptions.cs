@@ -49,4 +49,29 @@ public class LeafletOptions : RagFeatureOptions
     public int ShortWordTarget { get; set; } = 200;
     public int MediumWordTarget { get; set; } = 400;
     public int LongWordTarget { get; set; } = 700;
+
+    /// <summary>
+    /// When true, each chunk is summarized by the LLM before embedding.
+    /// Set to false to skip LLM calls (e.g. in tests or cost-free re-index runs).
+    /// </summary>
+    public bool SummarizationEnabled { get; set; } = true;
+
+    /// <summary>
+    /// System prompt prepended to each chunk when requesting a keyword summary.
+    /// The chunk text is appended after a newline.
+    /// </summary>
+    public string SummarizationPrompt { get; set; } =
+        """
+        Jsi asistent extrahující klíčová data z úryvku marketingového letáku
+        kosmetické firmy Anela. Extrahuj data vhodná pro sémantické vyhledávání.
+        Vypiš POUZE relevantní položky v tomto formátu (vynech kategorie bez obsahu):
+
+        Produkt: <název nebo kategorie produktu>
+        Kontext: <typ pleti, kategorie kosmetiky, použití>
+        Ingredience: <účinné látky, složky>
+        Benefity: <přínos produktu, use-cases>
+        Cílová skupina: <komu je produkt určen>
+
+        Text:
+        """;
 }
