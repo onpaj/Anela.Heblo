@@ -1,9 +1,11 @@
+using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.DeleteLeafletDocument;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletChunkDetail;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletDocumentContentTypes;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletDocuments;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.UploadLeaflet;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -63,8 +65,8 @@ public class LeafletController : BaseApiController
 
     [HttpGet("documents")]
     public async Task<ActionResult<GetLeafletDocumentsResponse>> GetDocuments(
-        [FromQuery] int pageNumber = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery][Range(1, int.MaxValue)] int pageNumber = 1,
+        [FromQuery][Range(1, 100)] int pageSize = 20,
         [FromQuery] string sortBy = "IngestedAt",
         [FromQuery] bool sortDescending = true,
         [FromQuery] string? filenameFilter = null,
@@ -114,7 +116,7 @@ public class LeafletController : BaseApiController
         CancellationToken ct = default)
     {
         if (file is null)
-            return BadRequest(new UploadLeafletResponse { Success = false });
+            return BadRequest(new UploadLeafletResponse { Success = false, ErrorCode = ErrorCodes.RequiredFieldMissing });
 
         await using var stream = file.OpenReadStream();
         var result = await _mediator.Send(new UploadLeafletRequest

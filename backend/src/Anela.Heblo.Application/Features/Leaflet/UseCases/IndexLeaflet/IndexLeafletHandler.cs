@@ -94,20 +94,19 @@ public class IndexLeafletHandler : IRequestHandler<IndexLeafletRequest, IndexLea
             var chunkCount = await _indexing.IndexAsync(text, doc, ct);
             await _repo.SaveChangesAsync(ct);
 
-            await _repo.UpdateStatusAsync(doc.Id, LeafletDocumentStatus.Indexed, DateTime.UtcNow, ct);
-            doc.Status = LeafletDocumentStatus.Indexed;
-            doc.IndexedAt = DateTime.UtcNow;
+            var indexedAt = DateTime.UtcNow;
+            await _repo.UpdateStatusAsync(doc.Id, LeafletDocumentStatus.Indexed, indexedAt, ct);
 
             return new IndexLeafletResponse
             {
                 DocumentId = doc.Id,
                 WasDuplicate = false,
                 ChunkCount = chunkCount,
-                Status = doc.Status,
+                Status = LeafletDocumentStatus.Indexed,
                 Filename = doc.Filename,
                 ContentType = doc.ContentType,
                 IngestedAt = doc.IngestedAt,
-                IndexedAt = doc.IndexedAt,
+                IndexedAt = indexedAt,
             };
         }
         catch (Exception ex)
