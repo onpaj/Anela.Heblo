@@ -23,6 +23,123 @@ namespace Anela.Heblo.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Article.Article", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Angle")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Audience")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTimeOffset?>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HtmlContent")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LanguageNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Length")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("RequestedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StyleGuideDriveId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("StyleGuideItemPath")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Topic")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("UsedKnowledgeBase")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("UsedWebSearch")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("IX_Articles_Status_CreatedAt");
+
+                    b.ToTable("Articles", (string)null);
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Article.ArticleSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double?>("Confidence")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Excerpt")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("KnowledgeBaseChunkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ValidationNote")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArticleId")
+                        .HasDatabaseName("IX_ArticleSources_ArticleId");
+
+                    b.ToTable("ArticleSources", (string)null);
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.BackgroundJobs.RecurringJobConfiguration", b =>
                 {
                     b.Property<string>("Id")
@@ -1107,10 +1224,16 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
 
+                    b.Property<string>("DriveId")
+                        .HasColumnType("text");
+
                     b.Property<string>("Filename")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("GraphItemId")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("IndexedAt")
                         .HasColumnType("timestamp without time zone");
@@ -1133,10 +1256,12 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("ContentType")
                         .HasDatabaseName("ix_knowledgebase_documents_contenttype");
 
-                    b.HasIndex("SourcePath")
-                        .IsUnique();
-
                     b.HasIndex("Status");
+
+                    b.HasIndex("DriveId", "GraphItemId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_KnowledgeBaseDocuments_DriveId_GraphItemId")
+                        .HasFilter("\"GraphItemId\" IS NOT NULL");
 
                     b.ToTable("KnowledgeBaseDocuments", "public");
                 });
@@ -1182,6 +1307,96 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("KnowledgeBaseQuestionLogs", "public");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Leaflet.LeafletChunk", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ChunkIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("WordCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId")
+                        .HasDatabaseName("IX_LeafletChunks_DocumentId");
+
+                    b.ToTable("LeafletChunks", (string)null);
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Leaflet.LeafletDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DriveId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Filename")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("GraphItemId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("IndexedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime>("IngestedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("SourcePath")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<int>("WordCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ContentHash")
+                        .HasDatabaseName("IX_LeafletDocuments_ContentHash");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_LeafletDocuments_Status");
+
+                    b.HasIndex("DriveId", "GraphItemId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LeafletDocuments_DriveId_GraphItemId")
+                        .HasFilter("\"GraphItemId\" IS NOT NULL");
+
+                    b.ToTable("LeafletDocuments", (string)null);
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture.GiftPackageManufactureItem", b =>
@@ -1722,6 +1937,10 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<DateTime?>("OutlookLastAttemptAt")
+                        .HasColumnType("timestamp")
+                        .HasColumnName("OutlookSyncedAt");
+
                     b.Property<string>("OutlookSyncError")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -1729,10 +1948,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<string>("OutlookSyncStatus")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<DateTime?>("OutlookLastAttemptAt")
-                        .HasColumnName("OutlookSyncedAt")
-                        .HasColumnType("timestamp");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp");
@@ -2150,6 +2365,15 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("UserDashboardTiles", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Article.ArticleSource", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Article.Article", null)
+                        .WithMany("Sources")
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.DataQuality.InvoiceDqtResult", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.DataQuality.DqtRun", null)
@@ -2285,6 +2509,17 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("Document");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Leaflet.LeafletChunk", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Leaflet.LeafletDocument", "Document")
+                        .WithMany("Chunks")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Document");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture.GiftPackageManufactureItem", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture.GiftPackageManufactureLog", "ManufactureLog")
@@ -2405,6 +2640,11 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Navigation("DashboardSettings");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Article.Article", b =>
+                {
+                    b.Navigation("Sources");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Campaigns.Ad", b =>
                 {
                     b.Navigation("DailyMetrics");
@@ -2443,6 +2683,11 @@ namespace Anela.Heblo.Persistence.Migrations
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.KnowledgeBase.KnowledgeBaseDocument", b =>
+                {
+                    b.Navigation("Chunks");
+                });
+
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Leaflet.LeafletDocument", b =>
                 {
                     b.Navigation("Chunks");
                 });

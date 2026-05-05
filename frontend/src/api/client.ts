@@ -408,8 +408,10 @@ export const QUERY_KEYS = {
   stockUpOperations: ["stock-up-operations"] as const,
   recurringJobs: ["recurring-jobs"] as const,
   knowledgeBase: ["knowledge-base"] as const,
+  leaflet: ["leaflet"] as const,
   expeditionListArchive: ["expedition-list-archive"] as const,
   dataQuality: ["data-quality"] as const,
+  articles: ["articles"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

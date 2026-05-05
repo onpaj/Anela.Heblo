@@ -232,6 +232,22 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.Forbidden)]
     UnauthorizedMarketingAccess = 2302,
 
+    // Article Generation errors (24XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ArticleNotFound = 2401,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    ArticleGenerationFailed = 2402,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    WebSearchUnavailable = 2403,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    StyleGuideFetchFailed = 2404,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    ArticleAlreadyGenerated = 2405,
+
+    // Leaflet module errors (25XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    LeafletChunkNotFound = 2501,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
@@ -241,4 +257,6 @@ public enum ErrorCodes
     ShoptetApiError = 9003,
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     PaymentGatewayError = 9004,
+    [HttpStatusCode(HttpStatusCode.BadGateway)]
+    ErpGatewayError = 9005,
 }

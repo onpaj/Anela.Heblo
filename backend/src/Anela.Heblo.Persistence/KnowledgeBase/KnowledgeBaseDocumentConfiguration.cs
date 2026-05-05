@@ -46,6 +46,9 @@ public class KnowledgeBaseDocumentConfiguration : IEntityTypeConfiguration<Knowl
             .IsRequired()
             .HasMaxLength(64);
 
+        builder.Property(e => e.DriveId).IsRequired(false);
+        builder.Property(e => e.GraphItemId).IsRequired(false);
+
         builder.HasIndex(e => e.ContentHash)
             .IsUnique();
 
@@ -54,8 +57,10 @@ public class KnowledgeBaseDocumentConfiguration : IEntityTypeConfiguration<Knowl
             .HasForeignKey(e => e.DocumentId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasIndex(e => e.SourcePath)
-            .IsUnique();
+        builder.HasIndex(e => new { e.DriveId, e.GraphItemId })
+            .IsUnique()
+            .HasFilter("\"GraphItemId\" IS NOT NULL")
+            .HasDatabaseName("IX_KnowledgeBaseDocuments_DriveId_GraphItemId");
 
         builder.HasIndex(e => e.Status);
 

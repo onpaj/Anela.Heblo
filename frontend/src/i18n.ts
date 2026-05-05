@@ -194,6 +194,9 @@ const resources = {
         KnowledgeBaseChunkNotFound: "Fragment znalostní báze nebyl nalezen (ID: {id})",
         KnowledgeBaseAiUnavailable: "Služba AI je dočasně nedostupná. Zkuste to prosím znovu.",
 
+        // Leaflet module errors
+        LeafletChunkNotFound: "Fragment letáku nebyl nalezen",
+
         // ShoptetOrders module errors
         ShoptetOrderInvalidSourceState: "Objednávku nelze zablokovat – není ve povoleném stavu",
         ShoptetOrderNotFound: "Objednávka nebyla nalezena",
@@ -202,11 +205,19 @@ const resources = {
         MarketingActionNotFound: "Marketingová akce nebyla nalezena",
         UnauthorizedMarketingAccess: "Nemáte oprávnění k této marketingové akci",
 
+        // Article Generation errors
+        ArticleNotFound: "Článek nebyl nalezen (ID: {{id}})",
+        ArticleGenerationFailed: "Generování článku selhalo. Zkuste to prosím znovu.",
+        WebSearchUnavailable: "Webové vyhledávání je dočasně nedostupné.",
+        StyleGuideFetchFailed: "Nepodařilo se načíst stylový průvodce.",
+        ArticleAlreadyGenerated: "Článek již byl vygenerován.",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",
         ShoptetApiError: "Chyba Shoptet API",
         PaymentGatewayError: "Chyba platební brány",
+        ErpGatewayError: "Chyba ERP brány (časový limit nebo nedostupnost)",
       },
     },
   },
@@ -302,6 +313,13 @@ const resources = {
         DqtRunNotFound: "Data quality test run not found (ID: {{runId}})",
         DqtInvalidDateRange: "Invalid date range: DateFrom must be before or equal to DateTo",
         DqtExternalServiceError: "External service error during data quality test: {{service}}",
+
+        // Article Generation errors
+        ArticleNotFound: "Article not found (ID: {{id}})",
+        ArticleGenerationFailed: "Article generation failed. Please try again.",
+        WebSearchUnavailable: "Web search is temporarily unavailable.",
+        StyleGuideFetchFailed: "Failed to load style guide.",
+        ArticleAlreadyGenerated: "Article has already been generated.",
       },
     },
   },

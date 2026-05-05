@@ -1,8 +1,12 @@
+using System.Text.RegularExpressions;
+
 namespace Anela.Heblo.Application.Features.Manufacture.ErrorFilters.Filters;
 
 public class InsufficientLotStockFilter : IManufactureErrorFilter
 {
     private const string FlexiSignal = "Na skladě není dostatek zboží pro vyskladnění požadované šarže";
+
+    private static readonly Regex _whitespaceRun = new(@"\s+", RegexOptions.Compiled);
 
     public bool CanHandle(Exception exception) =>
         exception is IHasFailedConsumptionItems &&
@@ -10,18 +14,22 @@ public class InsufficientLotStockFilter : IManufactureErrorFilter
 
     public string Transform(Exception exception)
     {
+        // Normalize whitespace first so ". Požadované šarže " reliably matches even when
+        // Flexi inserts a newline (or \r\n) between the two sentences.
+        var normalized = _whitespaceRun.Replace(exception.Message, " ");
+
         // Use ". Požadované šarže " to skip the lowercase "požadované šarže" that appears
         // earlier in the same Flexi error sentence ("pro vyskladnění požadované šarže nebo expirace").
         var lotNumber = ManufactureErrorParsingHelpers.ExtractBetween(
-            exception.Message,
+            normalized,
             ". Požadované šarže ",
             " s ");
 
         // Try bracket-terminated form first ("… jen 6.59 G. [DoklSklad -1]");
         // fall back to sentence-terminated form in case Flexi omits the bracket.
-        var available = ManufactureErrorParsingHelpers.ExtractBetween(exception.Message, "máte na skladě jen ", ". [");
+        var available = ManufactureErrorParsingHelpers.ExtractBetween(normalized, "máte na skladě jen ", ". [");
         if (available == "?")
-            available = ManufactureErrorParsingHelpers.ExtractBetween(exception.Message, "máte na skladě jen ", ".");
+            available = ManufactureErrorParsingHelpers.ExtractBetween(normalized, "máte na skladě jen ", ".");
 
         var failedItems = (exception as IHasFailedConsumptionItems)?.FailedItems ?? [];
         var match = FindMatch(failedItems, lotNumber, exception.Message);
@@ -36,7 +44,38 @@ public class InsufficientLotStockFilter : IManufactureErrorFilter
                    $" K dispozici {available}. Doplňte šarži na sklad nebo upravte šarži ve výrobě.";
         }
 
-        return $"Na skladě chybí šarže {lotNumber}. Materiál podle šarže se nepodařilo dohledat.";
+        return BuildFallback(failedItems, lotNumber);
+    }
+
+    private static string BuildFallback(IReadOnlyList<FailedConsumptionItem> items, string lotNumber)
+    {
+        if (items.Count == 0)
+        {
+            return lotNumber == "?"
+                ? "Na skladě chybí šarže. Materiál podle šarže se nepodařilo dohledat."
+                : $"Na skladě chybí šarže {lotNumber}. Materiál podle šarže se nepodařilo dohledat.";
+        }
+
+        if (items.Count == 1)
+        {
+            var item = items[0];
+            var exp = item.Expiration?.ToString("dd.MM.yyyy") ?? "?";
+            var lot = string.IsNullOrWhiteSpace(item.LotNumber) ? "bez šarže" : $"šarže {item.LotNumber}";
+            var code = item.ProductCode ?? "?";
+            return $"Na skladě chybí materiál {item.ProductName} ({code}) – {lot}, expirace {exp}." +
+                   " Šarži se nepodařilo přesně určit z chybové zprávy. Doplňte šarži na sklad nebo upravte šarži ve výrobě.";
+        }
+
+        var itemList = string.Join(", ", items.Select(FormatItem));
+        return $"Na skladě chybí šarže pro některý z materiálů: {itemList}. Šarži se nepodařilo přesně určit z chybové zprávy.";
+    }
+
+    private static string FormatItem(FailedConsumptionItem item)
+    {
+        var lot = string.IsNullOrWhiteSpace(item.LotNumber) ? "bez šarže" : $"šarže {item.LotNumber}";
+        var exp = item.Expiration?.ToString("dd.MM.yyyy") ?? "?";
+        var code = item.ProductCode ?? "?";
+        return $"{item.ProductName} ({code}, {lot}, expirace {exp})";
     }
 
     private static FailedConsumptionItem? FindMatch(

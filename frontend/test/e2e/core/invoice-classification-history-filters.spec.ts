@@ -208,13 +208,9 @@ test.describe('Classification History - Invoice Number Filters', () => {
     });
   });
 
+  // TODO(e2e-map): Backend invoice number filter is case-sensitive — fix backend (ILIKE or ToLower) or delete this test.
+  // See docs/testing/e2e-test-map.md § core/invoice-classification-history-filters.spec.ts.
   test.skip('should be case-insensitive for invoice number search', async ({ page }) => {
-    // SKIPPED: Application bug - invoice number filter is case-sensitive
-    // When searching with lowercase "pf250051" (invoice numbers are uppercase like "PF250051"),
-    // the filter returns 0 results instead of matching case-insensitively.
-    // Expected: Filter should be case-insensitive for better UX (e.g., "pf250051" should match "PF250051")
-    // Actual: Filter is case-sensitive - only exact case matches work
-    // TODO: Fix backend invoice number filter to be case-insensitive before re-enabling this test
 
     const initialCount = await getRowCount(page);
     expect(initialCount).toBeGreaterThan(0);
@@ -367,15 +363,9 @@ test.describe('Classification History - Company Name Filters', () => {
     });
   });
 
+  // TODO(e2e-map): Backend company name filter is case-sensitive — fix backend (ILIKE or ToLower) or delete this test.
+  // See docs/testing/e2e-test-map.md § core/invoice-classification-history-filters.spec.ts.
   test.skip('should be case-insensitive for company name search', async ({ page }) => {
-    // SKIPPED: Backend application bug - company name filter is case-sensitive
-    // When searching with lowercase company name (e.g., "pajgrt ondrej" for "Pajgrt Ondrej"),
-    // the filter returns 0 results instead of matching case-insensitively.
-    // Expected: Filter should be case-insensitive for better UX (standard practice for search filters)
-    // Actual: Filter is case-sensitive - only exact case matches work
-    // Root cause: Backend filter implementation likely uses exact string matching instead of case-insensitive comparison
-    // TODO: Fix backend company name filter to be case-insensitive (e.g., use ILIKE or ToLower() comparison) before re-enabling this test
-    // Same pattern as test #55 (invoice number case sensitivity - see FAILED_TESTS.md)
     const initialCount = await getRowCount(page);
     expect(initialCount).toBeGreaterThan(0);
 

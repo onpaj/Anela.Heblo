@@ -7,7 +7,7 @@ internal sealed class IngredientRequirement
     public required string ProductCode { get; init; }
     public required string ProductName { get; init; }
     public required ProductType ProductType { get; init; }
-    public required double RequiredAmount { get; init; }
+    public required decimal RequiredAmount { get; init; }
     public required bool HasLots { get; init; }
 }
 
@@ -18,7 +18,7 @@ internal sealed class ConsumptionItem
     public required ProductType ProductType { get; init; }
     public string? LotNumber { get; init; }
     public DateOnly? Expiration { get; init; }
-    public required double Amount { get; init; }
+    public required decimal Amount { get; init; }
     public required string SourceProductCode { get; init; }
 }
 

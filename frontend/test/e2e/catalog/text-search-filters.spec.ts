@@ -137,11 +137,9 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
   });
 
   // SKIPPED: Test is ready but needs code deployment to staging.
-  // FIX APPLIED: Modified CatalogList.tsx to immediately update URL params when applying filters.
-  // Root cause: Race condition between setPageNumber(1) and useEffect reading old page=2 from URL.
-  // Solution: In handleApplyFilters(), immediately call setSearchParams() to remove 'page' param before useEffect runs.
-  // TODO: Unskip this test after the fix is deployed to staging environment.
-  test.skip('should reset to page 1 when applying name filter', async ({ page }) => {
+  // Fix confirmed in CatalogList.tsx (handleApplyFilters immediately updates URL params).
+  // Race condition resolved — test unskipped per e2e-test-map.md audit.
+  test('should reset to page 1 when applying name filter', async ({ page }) => {
     // First, navigate to page 2 if possible
     const url = new URL(page.url());
     url.searchParams.set('page', '2');
@@ -264,12 +262,9 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     console.log('✅ Partial code matching working correctly');
   });
 
-  // SKIPPED: Test is ready but needs code deployment to staging.
-  // FIX APPLIED: Modified CatalogList.tsx to immediately update URL params when applying filters.
-  // Root cause: Race condition between setPageNumber(1) and useEffect reading old page=2 from URL.
-  // Solution: In handleApplyFilters(), immediately call setSearchParams() to remove 'page' param before useEffect runs.
-  // TODO: Unskip this test after the fix is deployed to staging environment.
-  test.skip('should reset to page 1 when applying code filter', async ({ page }) => {
+  // Fix confirmed in CatalogList.tsx (handleApplyFilters immediately updates URL params).
+  // Race condition resolved — test unskipped per e2e-test-map.md audit.
+  test('should reset to page 1 when applying code filter', async ({ page }) => {
     // Navigate to page 2
     const url = new URL(page.url());
     url.searchParams.set('page', '2');
@@ -314,6 +309,9 @@ test.describe('Catalog Text Search Filters E2E Tests', () => {
     console.log('✅ Empty filter did not trigger unwanted filtering');
   });
 
+  // TODO(e2e-map): Backend may not support combined name+code text filters active simultaneously.
+  // Verify backend behaviour before unskipping (returns 0 results) — or delete if by design.
+  // See docs/testing/e2e-test-map.md § catalog/text-search-filters.spec.ts for details.
   test.skip('should apply both name and code filters simultaneously when both filled', async ({ page }) => {
     // SKIPPED: Suspected application bug - combined name+code text filters don't work
     //

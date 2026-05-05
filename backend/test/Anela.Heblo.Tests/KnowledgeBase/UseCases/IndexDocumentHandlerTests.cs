@@ -249,4 +249,211 @@ public class IndexDocumentHandlerTests
         Assert.NotNull(savedDoc);
         Assert.Equal("text/plain", savedDoc!.ContentType);
     }
+
+    [Fact]
+    public async Task Handle_GraphItemId_Provided_And_DocExists_ReusesExistingDocument()
+    {
+        // Arrange
+        var existingId = Guid.NewGuid();
+        var existing = new KnowledgeBaseDocument
+        {
+            Id = existingId,
+            Filename = "kb.pdf",
+            SourcePath = "https://inbox.example.com/kb.pdf",
+            ContentType = "application/pdf",
+            ContentHash = "oldhash",
+            DriveId = "drive-kb",
+            GraphItemId = "item-kb",
+            Status = DocumentStatus.Indexed,
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        _repository.Setup(r => r.GetDocumentByHashAsync(It.IsAny<string>(), default))
+            .ReturnsAsync((KnowledgeBaseDocument?)null);
+        _repository.Setup(r => r.GetDocumentByGraphItemIdAsync("drive-kb", "item-kb", default))
+            .ReturnsAsync(existing);
+
+        // Act
+        var response = await CreateHandler().Handle(new IndexDocumentRequest
+        {
+            Filename = "kb.pdf",
+            SourcePath = "https://inbox.example.com/kb.pdf",
+            ContentType = "application/pdf",
+            Content = [1, 2, 3],
+            DriveId = "drive-kb",
+            GraphItemId = "item-kb",
+        }, default);
+
+        // Assert: existing doc replaced (delete + re-add), GetBySourcePath never called
+        _repository.Verify(r => r.GetDocumentByGraphItemIdAsync("drive-kb", "item-kb", default), Times.Once);
+        _repository.Verify(r => r.GetDocumentBySourcePathAsync(It.IsAny<string>(), default), Times.Never);
+        _repository.Verify(r => r.DeleteDocumentAsync(existingId, default), Times.Once);
+        _repository.Verify(r => r.AddDocumentAsync(It.IsAny<KnowledgeBaseDocument>(), default), Times.Once);
+        Assert.NotEqual(Guid.Empty, response.DocumentId);
+        Assert.False(response.WasDuplicate);
+    }
+
+    [Fact]
+    public async Task Handle_GraphItemId_Provided_And_DocDoesNotExist_CreatesNewDocWithDriveIdAndGraphItemId()
+    {
+        // Arrange
+        _repository.Setup(r => r.GetDocumentByHashAsync(It.IsAny<string>(), default))
+            .ReturnsAsync((KnowledgeBaseDocument?)null);
+        _repository.Setup(r => r.GetDocumentByGraphItemIdAsync("drive-new", "item-new", default))
+            .ReturnsAsync((KnowledgeBaseDocument?)null);
+
+        KnowledgeBaseDocument? savedDoc = null;
+        _repository.Setup(r => r.AddDocumentAsync(It.IsAny<KnowledgeBaseDocument>(), default))
+            .Callback<KnowledgeBaseDocument, CancellationToken>((doc, _) => savedDoc = doc);
+
+        // Act
+        await CreateHandler().Handle(new IndexDocumentRequest
+        {
+            Filename = "guide.pdf",
+            SourcePath = "https://onedrive.example.com/guide.pdf",
+            ContentType = "application/pdf",
+            Content = [10, 20, 30],
+            DriveId = "drive-new",
+            GraphItemId = "item-new",
+        }, default);
+
+        // Assert
+        _repository.Verify(r => r.GetDocumentByGraphItemIdAsync("drive-new", "item-new", default), Times.Once);
+        _repository.Verify(r => r.GetDocumentBySourcePathAsync(It.IsAny<string>(), default), Times.Never);
+
+        Assert.NotNull(savedDoc);
+        Assert.Equal("drive-new", savedDoc!.DriveId);
+        Assert.Equal("item-new", savedDoc.GraphItemId);
+    }
+
+    [Fact]
+    public async Task Handle_GraphItemId_Null_FallsBackToGetBySourcePath_UploadFlow()
+    {
+        // Arrange
+        _repository.Setup(r => r.GetDocumentByHashAsync(It.IsAny<string>(), default))
+            .ReturnsAsync((KnowledgeBaseDocument?)null);
+        _repository.Setup(r => r.GetDocumentBySourcePathAsync(It.IsAny<string>(), default))
+            .ReturnsAsync((KnowledgeBaseDocument?)null);
+
+        // Act
+        await CreateHandler().Handle(new IndexDocumentRequest
+        {
+            Filename = "upload.pdf",
+            SourcePath = "upload/some-guid/upload.pdf",
+            ContentType = "application/pdf",
+            Content = [5, 6, 7],
+            // DriveId and GraphItemId intentionally omitted (upload flow)
+        }, default);
+
+        // Assert: upload flow uses GetDocumentBySourcePathAsync, never GetDocumentByGraphItemIdAsync
+        _repository.Verify(r => r.GetDocumentBySourcePathAsync("upload/some-guid/upload.pdf", default), Times.Once);
+        _repository.Verify(r => r.GetDocumentByGraphItemIdAsync(It.IsAny<string>(), It.IsAny<string>(), default), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_GraphItemId_Provided_But_DriveId_Null_FallsBackToGetBySourcePath()
+    {
+        // Arrange
+        _repository.Setup(r => r.GetDocumentByHashAsync(It.IsAny<string>(), default))
+            .ReturnsAsync((KnowledgeBaseDocument?)null);
+        _repository.Setup(r => r.GetDocumentBySourcePathAsync(It.IsAny<string>(), default))
+            .ReturnsAsync((KnowledgeBaseDocument?)null);
+
+        // Act
+        await CreateHandler().Handle(new IndexDocumentRequest
+        {
+            Filename = "partial.pdf",
+            SourcePath = "/inbox/partial.pdf",
+            ContentType = "application/pdf",
+            Content = [1, 2, 3],
+            GraphItemId = "item-abc",
+            // DriveId intentionally omitted — should not crash or call GetDocumentByGraphItemIdAsync
+        }, default);
+
+        // Assert: falls back to source path, GraphItemId lookup never called
+        _repository.Verify(r => r.GetDocumentBySourcePathAsync("/inbox/partial.pdf", default), Times.Once);
+        _repository.Verify(r => r.GetDocumentByGraphItemIdAsync(It.IsAny<string>(), It.IsAny<string>(), default), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_HashMatch_LegacyDoc_WithGraphIdentity_BackfillsGraphItemId()
+    {
+        // Arrange
+        var content = new byte[] { 10, 20, 30 };
+        var contentHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(content));
+        var existingId = Guid.NewGuid();
+        var legacyDoc = new KnowledgeBaseDocument
+        {
+            Id = existingId,
+            Filename = "old.pdf",
+            SourcePath = "/inbox/old.pdf",
+            ContentType = "application/pdf",
+            ContentHash = contentHash,
+            Status = DocumentStatus.Indexed,
+            CreatedAt = DateTime.UtcNow,
+            // DriveId/GraphItemId null — legacy row
+        };
+
+        _repository.Setup(r => r.GetDocumentByHashAsync(contentHash, default))
+            .ReturnsAsync(legacyDoc);
+
+        // Act
+        var response = await CreateHandler().Handle(new IndexDocumentRequest
+        {
+            Filename = "old.pdf",
+            SourcePath = "/inbox/old.pdf",
+            ContentType = "application/pdf",
+            Content = content,
+            DriveId = "drive-backfill",
+            GraphItemId = "item-backfill",
+        }, default);
+
+        // Assert: returned as duplicate and GraphItemId backfilled
+        Assert.True(response.WasDuplicate);
+        Assert.Equal(existingId, response.DocumentId);
+        _repository.Verify(
+            r => r.UpdateDocumentGraphItemIdAsync(existingId, "drive-backfill", "item-backfill", default),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_HashMatch_DocAlreadyHasGraphItemId_DoesNotBackfill()
+    {
+        // Arrange
+        var content = new byte[] { 10, 20, 30 };
+        var contentHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(content));
+        var existingId = Guid.NewGuid();
+        var existingDoc = new KnowledgeBaseDocument
+        {
+            Id = existingId,
+            Filename = "already.pdf",
+            SourcePath = "/inbox/already.pdf",
+            ContentType = "application/pdf",
+            ContentHash = contentHash,
+            Status = DocumentStatus.Indexed,
+            CreatedAt = DateTime.UtcNow,
+            DriveId = "drive-existing",
+            GraphItemId = "item-existing",
+        };
+
+        _repository.Setup(r => r.GetDocumentByHashAsync(contentHash, default))
+            .ReturnsAsync(existingDoc);
+
+        // Act
+        var response = await CreateHandler().Handle(new IndexDocumentRequest
+        {
+            Filename = "already.pdf",
+            SourcePath = "/inbox/already.pdf",
+            ContentType = "application/pdf",
+            Content = content,
+            DriveId = "drive-existing",
+            GraphItemId = "item-existing",
+        }, default);
+
+        // Assert: no backfill call when GraphItemId already set
+        Assert.True(response.WasDuplicate);
+        _repository.Verify(
+            r => r.UpdateDocumentGraphItemIdAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string>(), default),
+            Times.Never);
+    }
 }

@@ -37,6 +37,10 @@ public sealed class DataQualitySchemaHealthCheck : IHealthCheck
                     ["sqlState"] = "42P01"
                 });
         }
+        catch (OperationCanceledException)
+        {
+            return HealthCheckResult.Degraded("DataQuality probe was cancelled");
+        }
         catch (Exception ex)
         {
             return HealthCheckResult.Unhealthy(

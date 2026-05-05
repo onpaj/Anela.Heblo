@@ -36,6 +36,7 @@ import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
+import ArticlesPage from "./pages/ArticlesPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
 import CampaignsPage from "./components/pages/Campaigns/CampaignsPage";
 import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
@@ -58,6 +59,7 @@ import { ChangelogProvider } from "./contexts/ChangelogContext";
 import { GlobalLoadingIndicator } from "./components/GlobalLoadingIndicator";
 import { AppInitializer } from "./components/AppInitializer";
 import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog";
+import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
 import "./i18n";
 
 let isRedirecting = false;
@@ -393,6 +395,10 @@ function App() {
                           element={<MarketingCalendarPage />}
                         />
                         <Route
+                          path="/leaflet-generator"
+                          element={<LeafletGeneratorPage />}
+                        />
+                        <Route
                           path="/journal/new"
                           element={<JournalEntryNew />}
                         />
@@ -468,6 +474,10 @@ function App() {
                         <Route
                           path="/campaigns"
                           element={<CampaignsPage />}
+                        />
+                        <Route
+                          path="/articles"
+                          element={<ArticlesPage />}
                         />
                         <Route
                           path="/automation/data-quality"
