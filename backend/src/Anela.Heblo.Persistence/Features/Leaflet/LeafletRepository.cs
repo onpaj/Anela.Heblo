@@ -264,12 +264,12 @@ public class LeafletRepository : ILeafletRepository
 
         query = (sortBy, descending) switch
         {
-            ("PrecisionScore", true)  => query.OrderByDescending(g => g.PrecisionScore),
+            ("PrecisionScore", true) => query.OrderByDescending(g => g.PrecisionScore),
             ("PrecisionScore", false) => query.OrderBy(g => g.PrecisionScore),
-            ("StyleScore", true)      => query.OrderByDescending(g => g.StyleScore),
-            ("StyleScore", false)     => query.OrderBy(g => g.StyleScore),
-            (_, true)                 => query.OrderByDescending(g => g.CreatedAt),
-            _                         => query.OrderBy(g => g.CreatedAt),
+            ("StyleScore", true) => query.OrderByDescending(g => g.StyleScore),
+            ("StyleScore", false) => query.OrderBy(g => g.StyleScore),
+            (_, true) => query.OrderByDescending(g => g.CreatedAt),
+            _ => query.OrderBy(g => g.CreatedAt),
         };
 
         var total = await query.CountAsync(cancellationToken);
