@@ -195,7 +195,7 @@ public sealed class PhotobankControllerThumbnailTests
             .ReturnsAsync(thumbnail);
 
         // Act
-        await _controller.GetThumbnail(1, ThumbnailSize.Medium);
+        var result = await _controller.GetThumbnail(1, ThumbnailSize.Medium);
 
         // Assert
         result.Should().BeOfType<FileStreamResult>();
