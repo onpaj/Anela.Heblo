@@ -10,6 +10,7 @@ public class LeafletIndexingService : ILeafletIndexingService
 {
     private readonly IWordWindowChunker _chunker;
     private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddings;
+    private readonly ILeafletChunkSummarizer _summarizer;
     private readonly ILeafletRepository _repo;
     private readonly ILogger<LeafletIndexingService> _logger;
     private readonly LeafletOptions _options;
@@ -17,12 +18,14 @@ public class LeafletIndexingService : ILeafletIndexingService
     public LeafletIndexingService(
         IWordWindowChunker chunker,
         IEmbeddingGenerator<string, Embedding<float>> embeddings,
+        ILeafletChunkSummarizer summarizer,
         ILeafletRepository repo,
         ILogger<LeafletIndexingService> logger,
         IOptions<LeafletOptions> options)
     {
         _chunker = chunker;
         _embeddings = embeddings;
+        _summarizer = summarizer;
         _repo = repo;
         _logger = logger;
         _options = options.Value;
@@ -37,15 +40,22 @@ public class LeafletIndexingService : ILeafletIndexingService
             return 0;
         }
 
-        var chunks = chunkTexts.Select((content, idx) => new LeafletChunk
+        var chunks = new List<LeafletChunk>();
+        for (var i = 0; i < chunkTexts.Count; i++)
         {
-            Id = Guid.NewGuid(),
-            DocumentId = document.Id,
-            ChunkIndex = idx,
-            Content = content,
-            WordCount = content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length,
-            Embedding = Array.Empty<float>(),
-        }).ToList();
+            var content = chunkTexts[i];
+            var summary = await _summarizer.SummarizeAsync(content, ct);
+            chunks.Add(new LeafletChunk
+            {
+                Id = Guid.NewGuid(),
+                DocumentId = document.Id,
+                ChunkIndex = i,
+                Content = content,
+                Summary = summary,
+                WordCount = content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length,
+                Embedding = Array.Empty<float>(),
+            });
+        }
 
         var inputs = chunks.Select(c => c.Content).ToList();
         var generated = await _embeddings.GenerateAsync(inputs, cancellationToken: ct);

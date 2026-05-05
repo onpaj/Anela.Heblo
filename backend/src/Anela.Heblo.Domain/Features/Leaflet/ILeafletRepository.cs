@@ -12,5 +12,13 @@ public interface ILeafletRepository
         float[] queryEmbedding, int topK, CancellationToken ct = default);
     Task UpdateSourcePathAsync(Guid documentId, string newPath, CancellationToken ct = default);
     Task UpdateGraphItemIdAsync(Guid documentId, string driveId, string graphItemId, CancellationToken ct = default);
+    Task UpdateStatusAsync(Guid documentId, LeafletDocumentStatus status, DateTime? indexedAt, CancellationToken ct = default);
+    Task<(IReadOnlyList<LeafletDocument> Items, int Total)> GetDocumentsPagedAsync(
+        int pageNumber, int pageSize, string sortBy, bool sortDescending,
+        string? filenameFilter, LeafletDocumentStatus? statusFilter, string? contentTypeFilter,
+        CancellationToken ct = default);
+    Task<IReadOnlyList<string>> GetDistinctContentTypesAsync(CancellationToken ct = default);
+    Task<LeafletChunk?> GetChunkByIdAsync(Guid id, CancellationToken ct = default);
+    Task<IReadOnlyDictionary<Guid, Guid>> GetFirstChunkIdsByDocumentIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }

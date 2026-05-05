@@ -1,201 +1,98 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import LeafletGeneratorPage from '../LeafletGeneratorPage';
-import { getAuthenticatedApiClient } from '../../../api/client';
-import { GenerateLeafletRequest } from '../../../api/generated/api-client';
+import * as useLeafletHooks from '../../../api/hooks/useLeaflet';
 
-// Stub that always exposes a clickable Submit button and an input to set the topic
-jest.mock('../LeafletForm', () => ({
-    __esModule: true,
-    default: ({ onSubmit, onTopicChange }: any) => (
-        <div>
-            <input
-                data-testid="topic-input"
-                onChange={(e) => onTopicChange(e.target.value)}
-            />
-            <button onClick={onSubmit}>Submit</button>
-        </div>
-    ),
+jest.mock('../LeafletGenerateTab', () => ({
+  __esModule: true,
+  default: () => <div data-testid="generate-tab-content">GenerateTab</div>,
 }));
 
-jest.mock('../LeafletResult', () => ({
-    __esModule: true,
-    default: ({ content, onRegenerate }: any) =>
-        content ? (
-            <div data-testid="result">
-                {content}
-                <button onClick={onRegenerate}>Regenerate</button>
-            </div>
-        ) : null,
+jest.mock('../LeafletDocumentsTab', () => ({
+  __esModule: true,
+  default: ({ canDelete }: { canDelete: boolean }) => (
+    <div data-testid="documents-tab-content">DocumentsTab canDelete={String(canDelete)}</div>
+  ),
 }));
 
-jest.mock('../../../api/client', () => ({
-    getAuthenticatedApiClient: jest.fn(),
+jest.mock('../LeafletUploadTab', () => ({
+  __esModule: true,
+  default: () => <div data-testid="upload-tab-content">UploadTab</div>,
 }));
 
-const mockGetAuthenticatedApiClient = getAuthenticatedApiClient as jest.Mock;
+jest.mock('../../../api/hooks/useLeaflet', () => ({
+  useLeafletUploadPermission: jest.fn(),
+}));
 
-/**
- * Set a non-empty topic so LeafletForm (real) would enable submit.
- * In our stub the button is always clickable, but we set topic so
- * the page state is consistent with realistic usage.
- */
-async function setTopic(value = 'Test topic') {
-    const input = screen.getByTestId('topic-input');
-    await userEvent.type(input, value);
+const mockUseLeafletUploadPermission = useLeafletHooks.useLeafletUploadPermission as jest.Mock;
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <LeafletGeneratorPage />
+    </MemoryRouter>
+  );
 }
 
-async function clickSubmit() {
-    const button = screen.getByRole('button', { name: 'Submit' });
-    await userEvent.click(button);
-}
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 describe('LeafletGeneratorPage', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
+  it('renders heading Generátor letáků', () => {
+    mockUseLeafletUploadPermission.mockReturnValue(false);
+    renderPage();
+    expect(screen.getByRole('heading', { level: 1, name: 'Generátor letáků' })).toBeInTheDocument();
+  });
 
-    it('renders heading Generátor letáků on mount', () => {
-        mockGetAuthenticatedApiClient.mockReturnValue({
-            leaflet_Generate: jest.fn().mockResolvedValue({ content: '' }),
-        });
+  it('shows Generovat and Dokumenty tabs when user cannot upload', () => {
+    mockUseLeafletUploadPermission.mockReturnValue(false);
+    renderPage();
+    expect(screen.getByRole('button', { name: 'Generovat' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dokumenty' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nahrát soubor' })).not.toBeInTheDocument();
+  });
 
-        render(<LeafletGeneratorPage />);
+  it('shows Nahrát soubor tab when user has upload permission', () => {
+    mockUseLeafletUploadPermission.mockReturnValue(true);
+    renderPage();
+    expect(screen.getByRole('button', { name: 'Nahrát soubor' })).toBeInTheDocument();
+  });
 
-        expect(
-            screen.getByRole('heading', { level: 1, name: 'Generátor letáků' })
-        ).toBeInTheDocument();
-    });
+  it('renders generate tab content by default', () => {
+    mockUseLeafletUploadPermission.mockReturnValue(false);
+    renderPage();
+    expect(screen.getByTestId('generate-tab-content')).toBeInTheDocument();
+  });
 
-    it('shows loading skeleton while request is pending', async () => {
-        let resolveGenerate!: (value: any) => void;
-        const pendingPromise = new Promise<any>((resolve) => {
-            resolveGenerate = resolve;
-        });
+  it('switches to documents tab when Dokumenty is clicked', () => {
+    mockUseLeafletUploadPermission.mockReturnValue(false);
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Dokumenty' }));
+    expect(screen.getByTestId('documents-tab-content')).toBeInTheDocument();
+    expect(screen.queryByTestId('generate-tab-content')).not.toBeInTheDocument();
+  });
 
-        mockGetAuthenticatedApiClient.mockReturnValue({
-            leaflet_Generate: jest.fn().mockReturnValue(pendingPromise),
-        });
+  it('passes canDelete=false to documents tab when user cannot upload', () => {
+    mockUseLeafletUploadPermission.mockReturnValue(false);
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Dokumenty' }));
+    expect(screen.getByTestId('documents-tab-content')).toHaveTextContent('canDelete=false');
+  });
 
-        render(<LeafletGeneratorPage />);
-        await setTopic();
-        await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+  it('passes canDelete=true to documents tab when user can upload', () => {
+    mockUseLeafletUploadPermission.mockReturnValue(true);
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Dokumenty' }));
+    expect(screen.getByTestId('documents-tab-content')).toHaveTextContent('canDelete=true');
+  });
 
-        await waitFor(() => {
-            expect(document.querySelector('.animate-pulse')).toBeInTheDocument();
-        });
-
-        // Resolve to avoid unhandled promise rejection
-        act(() => {
-            resolveGenerate({ content: 'done' });
-        });
-    });
-
-    it('displays generated content on success', async () => {
-        const mockLeafletGenerate = jest.fn().mockResolvedValue({ content: 'Hello' });
-        mockGetAuthenticatedApiClient.mockReturnValue({
-            leaflet_Generate: mockLeafletGenerate,
-        });
-
-        render(<LeafletGeneratorPage />);
-        await setTopic();
-        await clickSubmit();
-
-        await waitFor(() => {
-            expect(screen.getByTestId('result')).toHaveTextContent('Hello');
-        });
-        expect(mockLeafletGenerate).toHaveBeenCalledWith(expect.any(GenerateLeafletRequest));
-    });
-
-    it('shows insufficient-knowledge banner on 422', async () => {
-        mockGetAuthenticatedApiClient.mockReturnValue({
-            leaflet_Generate: jest.fn().mockRejectedValue({
-                status: 422, detail: 'Specific msg',
-            }),
-        });
-
-        render(<LeafletGeneratorPage />);
-        await setTopic();
-        await clickSubmit();
-
-        await waitFor(() => {
-            const alert = screen.getByRole('alert');
-            expect(alert).toBeInTheDocument();
-            expect(alert).toHaveTextContent('Specific msg');
-        });
-    });
-
-    it('shows transient error banner on 502', async () => {
-        mockGetAuthenticatedApiClient.mockReturnValue({
-            leaflet_Generate: jest.fn().mockRejectedValue({
-                status: 502,
-            }),
-        });
-
-        render(<LeafletGeneratorPage />);
-        await setTopic();
-        await clickSubmit();
-
-        await waitFor(() => {
-            const alert = screen.getByRole('alert');
-            expect(alert).toBeInTheDocument();
-            expect(alert).toHaveTextContent('Generování selhalo');
-        });
-    });
-
-    it('clears banner on next successful submit', async () => {
-        const leafletGenerate = jest
-            .fn()
-            .mockRejectedValueOnce({ status: 422, detail: 'Error!' })
-            .mockResolvedValueOnce({ content: 'Success result' });
-
-        mockGetAuthenticatedApiClient.mockReturnValue({
-            leaflet_Generate: leafletGenerate,
-        });
-
-        render(<LeafletGeneratorPage />);
-        await setTopic();
-
-        // First submit — 422 error
-        await clickSubmit();
-
-        await waitFor(() => {
-            expect(screen.getByRole('alert')).toBeInTheDocument();
-        });
-
-        // Second submit — success
-        await clickSubmit();
-
-        await waitFor(() => {
-            expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-        });
-    });
-
-    it('regenerate button calls API again', async () => {
-        const leafletGenerate = jest
-            .fn()
-            .mockResolvedValue({ content: 'Generated text' });
-
-        mockGetAuthenticatedApiClient.mockReturnValue({
-            leaflet_Generate: leafletGenerate,
-        });
-
-        render(<LeafletGeneratorPage />);
-        await setTopic();
-
-        // First submit
-        await clickSubmit();
-
-        await waitFor(() => {
-            expect(screen.getByTestId('result')).toBeInTheDocument();
-        });
-
-        // Click Regenerate from the result stub
-        await userEvent.click(screen.getByRole('button', { name: 'Regenerate' }));
-
-        await waitFor(() => {
-            expect(leafletGenerate).toHaveBeenCalledTimes(2);
-        });
-    });
+  it('switches to upload tab when Nahrát soubor is clicked', () => {
+    mockUseLeafletUploadPermission.mockReturnValue(true);
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Nahrát soubor' }));
+    expect(screen.getByTestId('upload-tab-content')).toBeInTheDocument();
+    expect(screen.queryByTestId('generate-tab-content')).not.toBeInTheDocument();
+  });
 });

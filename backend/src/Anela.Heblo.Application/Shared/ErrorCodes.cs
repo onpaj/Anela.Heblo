@@ -244,6 +244,10 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.Conflict)]
     ArticleAlreadyGenerated = 2405,
 
+    // Leaflet module errors (25XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    LeafletChunkNotFound = 2501,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

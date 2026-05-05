@@ -41,6 +41,11 @@ public static class AuthorizationConstants
         public const string KnowledgeBaseManager = "knowledge_base_manager";
 
         /// <summary>
+        /// Role required for managing Leaflet documents (upload, process, index documents)
+        /// </summary>
+        public const string LeafletManager = "leaflet_manager";
+
+        /// <summary>
         /// Role required for generating articles
         /// </summary>
         public const string ArticleGenerator = "article_generator";
@@ -55,6 +60,11 @@ public static class AuthorizationConstants
         /// Policy required for uploading and deleting Knowledge Base documents
         /// </summary>
         public const string KnowledgeBaseUpload = "KnowledgeBaseUpload";
+
+        /// <summary>
+        /// Policy required for uploading and managing Leaflet documents
+        /// </summary>
+        public const string LeafletUpload = "LeafletUpload";
 
         /// <summary>
         /// Policy required for generating articles

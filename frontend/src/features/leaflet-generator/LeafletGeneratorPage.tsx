@@ -1,97 +1,52 @@
-import { useState } from 'react';
-import LeafletForm from './LeafletForm';
-import LeafletResult from './LeafletResult';
-import { getAuthenticatedApiClient } from '../../api/client';
-import { AudienceType, GenerateLeafletRequest, LeafletLength } from '../../api/generated/api-client';
+import React, { useState } from 'react';
+import { FileText } from 'lucide-react';
+import LeafletGenerateTab from './LeafletGenerateTab';
+import LeafletDocumentsTab from './LeafletDocumentsTab';
+import LeafletUploadTab from './LeafletUploadTab';
+import { useLeafletUploadPermission } from '../../api/hooks/useLeaflet';
 
-interface ErrorBanner {
-  kind: 'insufficient' | 'transient';
-  message: string;
-}
-
-interface ApiError {
-  status: number;
-  detail?: string;
-}
-
-function isApiError(err: unknown): err is ApiError {
-  return typeof err === 'object' && err !== null && typeof (err as Record<string, unknown>)['status'] === 'number';
-}
+type Tab = 'generate' | 'documents' | 'upload';
 
 export default function LeafletGeneratorPage() {
-    const [topic, setTopic] = useState('');
-    const [audience, setAudience] = useState<AudienceType>(AudienceType.EndConsumer);
-    const [length, setLength] = useState<LeafletLength>(LeafletLength.Medium);
-    const [result, setResult] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [errorBanner, setErrorBanner] = useState<ErrorBanner | null>(null);
+  const canUpload = useLeafletUploadPermission();
+  const [activeTab, setActiveTab] = useState<Tab>('generate');
 
-    const generate = async () => {
-        setIsLoading(true);
-        setErrorBanner(null);
-        try {
-            const client = getAuthenticatedApiClient();
-            const response = await client.leaflet_Generate(new GenerateLeafletRequest({ topic, audience, length }));
-            setResult(response.content ?? '');
-        } catch (err: unknown) {
-            if (isApiError(err) && err.status === 422) {
-                setErrorBanner({
-                    kind: 'insufficient',
-                    message:
-                        err.detail ??
-                        'Knowledge Base zatím toto téma nepokrývá. Zkuste obecnější formulaci.',
-                });
-            } else {
-                setErrorBanner({
-                    kind: 'transient',
-                    message: 'Generování selhalo. Zkuste to prosím znovu.',
-                });
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'generate', label: 'Generovat' },
+    { id: 'documents', label: 'Dokumenty' },
+    ...(canUpload ? [{ id: 'upload' as Tab, label: 'Nahrát soubor' }] : []),
+  ];
 
-    return (
-        <div className="p-6">
-            <h1 className="text-2xl font-semibold text-gray-900 mb-4">Generátor letáků</h1>
-            {errorBanner && (
-                <div
-                    role="alert"
-                    className={`mb-4 rounded p-3 text-sm ${
-                        errorBanner.kind === 'insufficient'
-                            ? 'bg-amber-100 text-amber-900'
-                            : 'bg-red-100 text-red-900'
-                    }`}
-                >
-                    {errorBanner.message}
-                </div>
-            )}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                    <LeafletForm
-                        topic={topic}
-                        audience={audience}
-                        length={length}
-                        isLoading={isLoading}
-                        onTopicChange={setTopic}
-                        onAudienceChange={setAudience}
-                        onLengthChange={setLength}
-                        onSubmit={generate}
-                    />
-                </div>
-                <div>
-                    {isLoading ? (
-                        <div className="animate-pulse space-y-2">
-                            <div className="h-4 bg-gray-200 rounded w-3/4" />
-                            <div className="h-4 bg-gray-200 rounded" />
-                            <div className="h-4 bg-gray-200 rounded w-5/6" />
-                        </div>
-                    ) : (
-                        <LeafletResult content={result} onRegenerate={generate} />
-                    )}
-                </div>
-            </div>
-        </div>
-    );
+  return (
+    <div className="p-6 space-y-4">
+      <div className="flex items-center gap-3">
+        <FileText className="w-6 h-6 text-blue-600" />
+        <h1 className="text-2xl font-semibold text-gray-900">Generátor letáků</h1>
+      </div>
+
+      <div className="border-b border-gray-200">
+        <nav className="flex gap-6" aria-label="Tabs">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.id
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      <div className="pt-2">
+        {activeTab === 'generate' && <LeafletGenerateTab />}
+        {activeTab === 'documents' && <LeafletDocumentsTab canDelete={canUpload} />}
+        {activeTab === 'upload' && canUpload && <LeafletUploadTab />}
+      </div>
+    </div>
+  );
 }
