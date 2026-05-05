@@ -8,14 +8,7 @@
 
 ## 1. Overview
 
-Shoptet is an e-commerce platform that exposes a REST API at `https://api.myshoptet.com`. The project uses two separate adapters:
-
-| Adapter | Type | Purpose |
-|---|---|---|
-| `Anela.Heblo.Adapters.Shoptet` | Console exe (Playwright) | Invoice scraping, stock operations via browser automation |
-| `Anela.Heblo.Adapters.ShoptetApi` | Class library (HTTP) | Direct REST API calls (ShoptetPay payouts, orders) |
-
-These two are **completely unrelated** — do not confuse them.
+Shoptet is an e-commerce platform that exposes a REST API at `https://api.myshoptet.com`. The project uses the REST adapter `Anela.Heblo.Adapters.ShoptetApi` for all Shoptet operations (invoices, stock, expedition, orders, ShoptetPay payouts).
 
 ---
 
@@ -118,9 +111,9 @@ Statuses are store-specific (configured in Shoptet admin). Retrievable via `GET 
 
 #### Known Shipping IDs (production store)
 
-These are the numeric `shippingId` values used by `ShoptetPlaywrightExpeditionListSource` for the picking list scenario. The same IDs must be used when seeding test orders so the picking list can find them via `?f[shippingId]={id}`.
+These are the numeric `shippingId` values used by `ShoptetApiExpeditionListSource` for the picking list scenario. The same IDs must be used when seeding test orders so the picking list can find them via `?f[shippingId]={id}`.
 
-Source of truth: `backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/Playwright/ShoptetPlaywrightExpeditionListSource.cs`
+Source of truth: `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/ShoptetApiExpeditionListSource.cs`
 
 | ID | Constant Name | Carrier | PageSize |
 |---|---|---|---|
@@ -147,7 +140,7 @@ Source of truth: `backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/Playwright/S
 
 #### Order Statuses (known values from code)
 
-Defined in `PrintPickingListOptions` and `ShoptetPlaywrightExpeditionListSource`:
+Defined in `PrintPickingListOptions` and `ShoptetApiExpeditionListSource`:
 
 | ID | Name |
 |---|---|
@@ -156,7 +149,7 @@ Defined in `PrintPickingListOptions` and `ShoptetPlaywrightExpeditionListSource`
 | 70 | Předáno přepravci (Handed to carrier) — EXP seed state |
 | 73 | Oprava-robot — Fix source state (`FixSourceStateId`) |
 
-> **Note:** Status 55 ("K Expedici") referenced in `ShoptetPlaywrightExpeditionListSource.DesiredStateId` does **not exist** in the store (confirmed via `GET /api/eshop?include=orderStatuses`). Seeding EXP-category orders uses status 70 instead.
+> **Note:** Status 55 ("K Expedici") referenced in `ShoptetApiExpeditionListSource.DesiredStateId` does **not exist** in the store (confirmed via `GET /api/eshop?include=orderStatuses`). Seeding EXP-category orders uses status 70 instead.
 > Custom status IDs for the hydration test are configurable: `Shoptet:StatusId:EXP` and `Shoptet:StatusId:PACK` in user secrets.
 
 ### 3.5 GET /api/orders — Filtering Parameters
@@ -275,17 +268,9 @@ Location: `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/`
 - `ShoptetPaySettings` — config key: `"ShoptetPay"` (`ApiToken`, `BaseUrl`)
 - Registered via `AddShoptetApiAdapter(configuration)` in `Program.cs`
 
-### 5.2 Adapter: `Anela.Heblo.Adapters.Shoptet` (Playwright)
-Location: `backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/`
-
-- Browser automation for invoice scraping and stock sync
-- Separate test project: `backend/test/Anela.Heblo.Adapters.Shoptet.Tests/`
-- Test fixture: `ShoptetIntegrationTestFixture` (user secrets + env vars for credentials)
-
-### 5.3 Existing Integration Tests
+### 5.2 Existing Integration Tests
 - `ShoptetStockClientIntegrationTests` — validates CSV stock export parsing
 - `ShoptetPriceClientIntegrationTests` — validates price client
-- `ShoptetPlaywrightInvoiceSourceIntegrationTests` — validates Playwright invoice source
 - Tests use `[Trait("Category", "Integration")]` and `[Collection("ShoptetIntegration")]`
 
 ---
@@ -332,7 +317,7 @@ for m in data['data']['shippingMethods']['retail']['methods']:
 "
 ```
 
-Note: the response **does not include numeric IDs** — match by method name against the constants in `ShoptetPlaywrightExpeditionListSource.cs`.
+Note: the response **does not include numeric IDs** — match by method name against the constants in `ShoptetApiExpeditionListSource.cs`.
 
 **How to get a shipping GUID for a new/unknown method:**
 
@@ -523,24 +508,6 @@ The existing PATCH endpoint (section 8.3) also accepts `realStock` as an alterna
 - When `realStock` is used, Shoptet internally calculates `amount for ordering = realStock - claim`.
 - Only one of `amountChange`, `quantity`, or `realStock` should be present per item in the request.
 - Use `[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]` on the unused fields in the C# DTO so they are omitted from the serialized request body.
-
-### 8.8 StockTaking Migration Note (Playwright → REST API)
-
-StockTaking was migrated from Playwright browser automation to the REST API. The two approaches are semantically equivalent:
-
-**Old approach (Playwright):**
-1. Navigate to the Shoptet admin stock page for the variant.
-2. Read `freeAmount` and `reservedAmount` from the HTML table.
-3. Calculate `setAmount = targetAmount - reservedAmount`.
-4. Fill the "free amount" input field with `setAmount` and submit.
-
-**New approach (REST API):**
-1. `GET /api/stocks/{stockId}/supplies?code={code}` — read current state (`amount` = free, `claim` = reserved).
-2. `PATCH /api/stocks/{stockId}/movements` with `{ "productCode": "{code}", "realStock": targetAmount }`.
-
-**Equivalence:**
-- `reservedAmount` (Playwright HTML) == `claim` (REST API `/supplies` response).
-- Setting `realStock = targetAmount` via REST produces the same final state as the old UI calculation (`setAmount = targetAmount - reservedAmount` filled into the free-amount field), because Shoptet derives free stock as `realStock - claim` in both cases.
 
 ---
 
