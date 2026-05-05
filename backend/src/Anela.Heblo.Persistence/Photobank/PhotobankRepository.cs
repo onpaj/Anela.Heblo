@@ -122,10 +122,10 @@ namespace Anela.Heblo.Persistence.Photobank
 
         // Photo tags
 
-        public async Task AddPhotoTagAsync(PhotoTag photoTag, CancellationToken cancellationToken)
+        public Task AddPhotoTagAsync(PhotoTag photoTag, CancellationToken cancellationToken)
         {
             _context.PhotoTags.Add(photoTag);
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public async Task RemovePhotoTagAsync(int photoId, int tagId, CancellationToken cancellationToken)
@@ -151,11 +151,10 @@ namespace Anela.Heblo.Persistence.Photobank
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<PhotobankIndexRoot> AddRootAsync(PhotobankIndexRoot root, CancellationToken cancellationToken)
+        public Task<PhotobankIndexRoot> AddRootAsync(PhotobankIndexRoot root, CancellationToken cancellationToken)
         {
             _context.PhotobankIndexRoots.Add(root);
-            await Task.CompletedTask;
-            return root;
+            return Task.FromResult(root);
         }
 
         public async Task<bool> DeleteRootAsync(int id, CancellationToken cancellationToken)
@@ -177,11 +176,10 @@ namespace Anela.Heblo.Persistence.Photobank
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<TagRule> AddRuleAsync(TagRule rule, CancellationToken cancellationToken)
+        public Task<TagRule> AddRuleAsync(TagRule rule, CancellationToken cancellationToken)
         {
             _context.PhotobankTagRules.Add(rule);
-            await Task.CompletedTask;
-            return rule;
+            return Task.FromResult(rule);
         }
 
         public async Task<TagRule?> GetRuleByIdAsync(int id, CancellationToken cancellationToken)
@@ -189,10 +187,10 @@ namespace Anela.Heblo.Persistence.Photobank
             return await _context.PhotobankTagRules.FindAsync(new object[] { id }, cancellationToken);
         }
 
-        public async Task UpdateRuleAsync(TagRule rule, CancellationToken cancellationToken)
+        public Task UpdateRuleAsync(TagRule rule, CancellationToken cancellationToken)
         {
             _context.PhotobankTagRules.Update(rule);
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public async Task<bool> DeleteRuleAsync(int id, CancellationToken cancellationToken)
@@ -232,10 +230,13 @@ namespace Anela.Heblo.Persistence.Photobank
                 foreach (var tagName in matchingTagNames)
                 {
                     var tag = await GetOrCreateTagAsync(tagName, cancellationToken);
+                    if (tag == null)
+                        continue;
+
                     _context.PhotoTags.Add(new PhotoTag
                     {
                         PhotoId = photo.Id,
-                        TagId = tag!.Id,
+                        TagId = tag.Id,
                         Source = PhotoTagSource.Rule,
                         CreatedAt = now,
                     });

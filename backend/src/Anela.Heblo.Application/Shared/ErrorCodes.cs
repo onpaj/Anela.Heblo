@@ -255,6 +255,8 @@ public enum ErrorCodes
     PhotobankRootNotFound = 2602,
     [HttpStatusCode(HttpStatusCode.NotFound)]
     PhotobankRuleNotFound = 2603,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    PhotoTagCreationFailed = 2604,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

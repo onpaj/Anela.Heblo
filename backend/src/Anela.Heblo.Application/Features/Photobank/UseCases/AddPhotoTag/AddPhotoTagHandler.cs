@@ -25,8 +25,10 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag
 
             var normalizedName = request.TagName.Trim().ToLowerInvariant();
             var tag = await _repository.GetOrCreateTagAsync(normalizedName, cancellationToken);
+            if (tag == null)
+                return new AddPhotoTagResponse(ErrorCodes.PhotoTagCreationFailed);
 
-            if (await _repository.PhotoTagExistsAsync(photo.Id, tag!.Id, cancellationToken))
+            if (await _repository.PhotoTagExistsAsync(photo.Id, tag.Id, cancellationToken))
                 return new AddPhotoTagResponse { TagId = tag.Id, TagName = tag.Name };
 
             var photoTag = new PhotoTag
