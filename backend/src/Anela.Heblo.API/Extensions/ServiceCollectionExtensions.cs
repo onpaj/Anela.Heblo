@@ -86,11 +86,14 @@ public static class ServiceCollectionExtensions
                 failureStatus: HealthStatus.Unhealthy,
                 tags: new[] { "ready", "db", "schema" });
 
-        // Add database health check if connection string exists
+        // Add database health check via the shared NpgsqlDataSource so the probe
+        // reuses the application connection pool instead of opening a fresh connection
+        // on every health-check probe (which caused TaskCanceledException spikes).
         var dbConnectionString = configuration.GetConnectionString(ConfigurationConstants.DEFAULT_CONNECTION);
         if (!string.IsNullOrEmpty(dbConnectionString))
         {
-            healthChecksBuilder.AddNpgSql(dbConnectionString,
+            healthChecksBuilder.AddNpgSql(
+                sp => sp.GetRequiredService<NpgsqlDataSource>(),
                 name: ConfigurationConstants.DATABASE_HEALTH_CHECK,
                 tags: new[] { ConfigurationConstants.DB_TAG, ConfigurationConstants.POSTGRESQL_TAG });
         }
