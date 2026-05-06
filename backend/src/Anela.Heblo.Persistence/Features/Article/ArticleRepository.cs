@@ -65,7 +65,7 @@ public class ArticleRepository : IArticleRepository
         int pageSize,
         CancellationToken ct = default)
     {
-        var query = _context.Articles.AsNoTracking().AsQueryable();
+        var query = _context.Articles.AsNoTracking();
 
         if (hasFeedback == true)
             query = query.Where(a => a.PrecisionScore != null || a.StyleScore != null);
@@ -104,8 +104,8 @@ public class ArticleRepository : IArticleRepository
             .Select(g => new ArticleFeedbackStats(
                 g.Count(),
                 g.Count(a => a.PrecisionScore != null || a.StyleScore != null),
-                g.Where(a => a.PrecisionScore != null).Average(a => (double?)a.PrecisionScore),
-                g.Where(a => a.StyleScore != null).Average(a => (double?)a.StyleScore)))
+                g.Average(a => (double?)a.PrecisionScore),
+                g.Average(a => (double?)a.StyleScore)))
             .FirstOrDefaultAsync(ct);
 
         return stats ?? new ArticleFeedbackStats(0, 0, null, null);
