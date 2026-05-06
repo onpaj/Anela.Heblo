@@ -160,11 +160,18 @@ const ChangelogEntry: React.FC<ChangelogEntryProps> = ({
   const IconComponent = getChangeTypeIcon(czechType);
   const colors = getChangeTypeColors(czechType);
 
+  const showModule = Boolean(entry.module) && entry.module !== 'Ostatní';
+
   if (compact) {
     return (
       <div className="flex items-center space-x-2 py-1">
         <IconComponent className={`h-3 w-3 flex-shrink-0 ${colors.icon}`} />
-        <span className="text-sm text-gray-900 truncate">{entry.title}</span>
+        <span className="text-sm text-gray-900 truncate">
+          {showModule && (
+            <span className="text-xs text-slate-500 font-medium">{entry.module}: </span>
+          )}
+          {entry.title}
+        </span>
         {showSource && (
           <span className="text-xs text-gray-500 flex-shrink-0">
             {entry.source === 'github-issue' && entry.id ? (
@@ -211,6 +218,11 @@ const ChangelogEntry: React.FC<ChangelogEntryProps> = ({
             <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${colors.badge}`}>
               {czechType}
             </span>
+            {showModule && (
+              <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-slate-100 text-slate-700">
+                {entry.module}
+              </span>
+            )}
             {showSource && (
               <div className="flex items-center space-x-1 text-xs text-gray-500">
                 {entry.source === 'github-issue' && entry.id ? (
