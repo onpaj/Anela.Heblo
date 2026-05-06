@@ -12,6 +12,8 @@ public class ManufactureOrderMappingProfile : Profile
         CreateMap<ManufactureOrderSemiProduct, ManufactureOrderSemiProductDto>();
         CreateMap<ManufactureOrderProduct, ManufactureOrderProductDto>();
         CreateMap<ManufactureOrderNote, ManufactureOrderNoteDto>();
+        CreateMap<ManufactureOrderConditionsReading, ManufactureOrderConditionsReadingDto>()
+            .ForMember(dest => dest.Source, opt => opt.MapFrom(src => (int)src.Source));
     }
 
 }
