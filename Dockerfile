@@ -54,11 +54,13 @@ RUN dotnet publish backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (libfontconfig1 + libfreetype6 required by SkiaSharp)
 RUN apt-get update && apt-get install -y \
     tzdata \
     curl \
     wget \
+    libfontconfig1 \
+    libfreetype6 \
     && ln -sf /usr/share/zoneinfo/Europe/Prague /etc/localtime \
     && echo "Europe/Prague" > /etc/timezone \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
