@@ -99,8 +99,11 @@ public class ConsumptionCalculationServiceTests
 
         // A marker log must have been written so re-runs are blocked
         var markerLog = mockRepository.UpdatedMaterials[0].Logs.Single();
+        // UpdateQuantity() is the only way logs are added; constructor does not add a log
         Assert.Equal(LogEntryType.AutomaticConsumption, markerLog.LogType);
         Assert.Equal(date, markerLog.Date);
+        Assert.Equal(8000m, markerLog.OldQuantity);
+        Assert.Equal(8000m, markerLog.NewQuantity);
     }
 
     [Fact]
