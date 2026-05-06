@@ -1,254 +1,240 @@
-# Design: Marketing Calendar 14-Day View
-
-## UX/UI Design
-
-### Toolbar — 3-button segmented control
-
-The existing 2-button row (`Kalendář | Seznam`) is replaced with a 3-button segmented control. The visual language (indigo active state, neutral hover, shared border, rounded container) is unchanged.
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Marketingový kalendář    [■ 5 týdnů][□ 14 dní][□ Seznam]   [+ Nová akce] … │
-└──────────────────────────────────────────────────────────────────────────────┘
-  ■ = active  (bg-indigo-600 text-white)
-  □ = inactive (text-gray-600 hover:bg-gray-50)
-```
-
-Button order: `5 týdnů` (Calendar icon) · `14 dní` (Calendar icon) · `Seznam` (List icon).  
-Default active on page load: `5 týdnů`.
-
-Both calendar buttons use the already-imported `Calendar` icon from `lucide-react`; the list button uses `List`. The `Download` / `Nová akce` buttons are unchanged and remain after the toggle group.
-
-### 5-week view (unchanged)
-
-```
-Po  Út  St  Čt  Pá  So  Ne
-────────────────────────────
- …   …   …   …   …   …   …   ← week –1
- …   …  [T]  …   …   …   …   ← today's week  (T = indigo circle)
- …   …   …   …   …   …   …
- …   …   …   …   …   …   …
- …   …   …   …   …   …   …   ← week +3
-                  +2 more ↑   ← "+N more" truncation still present
-```
-
-### 14-day view (new)
-
-```
-Po  Út  St  Čt  Pá  So  Ne
-────────────────────────────────────────
- …   …  [T]  …   …   …   …   ← today's week
- ┌─────────────────────────┐
- │ Event A                 │  all events
- │ Event B                 │  visible —
- │ Event C                 │  no "+N more"
- └─────────────────────────┘
- …   …   …   …   …   …   …   ← week +1
-                               ↕ parent container scrolls when grid > viewport
-```
-
-Each cell has a minimum height of 80 px even when empty. Vertical expansion is unbounded; the existing `overflow-auto` parent container provides the single scroll context — no nested scrollbars.
-
-### Key interactions
-
-| Action | Behavior |
-|--------|----------|
-| Click `14 dní` | `viewMode` → `'twoWeeks'`; `visibleRange` reset to `null`; `MarketingMonthCalendar` remounts via `key`; 14-day fallback fetch fires; `datesSet` updates `visibleRange` with actual window |
-| Click `5 týdnů` | Same flow with 35-day fallback range |
-| Click `Seznam` | `viewMode` → `'list'`; calendar unmounts; list + filter panel render (unchanged) |
-| Prev / Next in 14-day mode | FullCalendar API advances/retreats exactly 14 days |
-| Today in 14-day mode | `gotoDate(getCalendarStartForToday())` — today lands in week 2 of the 2-row grid |
-| Event click / drag / resize / range select | Identical handler chain to 5-week view; no behavioral change |
-
----
+# Design: Optimize StockUpOperations GetSummary Endpoint Performance
 
 ## Component Design
 
-### `MarketingCalendarPage`
+### `GetStockUpOperationsSummaryHandler` — modified
 
-**Responsibility:** owns all view state, orchestrates data fetching, renders toolbar and the active view block.
+**File:** `backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/GetStockUpOperationsSummary/GetStockUpOperationsSummaryHandler.cs`
 
-**`ViewMode` union widened** (current `'calendar' | 'list'` → new):
+**Changes:**
 
-```ts
-type ViewMode = 'fiveWeeks' | 'twoWeeks' | 'list';
-const [viewMode, setViewMode] = useState<ViewMode>('fiveWeeks');
-```
+1. Add `ILogger<GetStockUpOperationsSummaryHandler>` constructor parameter.
 
-**New handler** (replaces two inline `setViewMode` calls on the toolbar buttons):
+2. Define a private constant for the active-state filter so the handler and the partial-index predicate share a single source of truth:
 
-```ts
-const handleViewModeChange = (mode: ViewMode) => {
-  setViewMode(mode);
-  if (mode !== 'list') setVisibleRange(null);
+```csharp
+private static readonly int[] ActiveStates =
+{
+    (int)StockUpOperationState.Pending,   // 0
+    (int)StockUpOperationState.Submitted, // 1
+    (int)StockUpOperationState.Failed     // 3
 };
 ```
 
-**Fallback fetch range** (currently hardcoded to 35 days at `MarketingCalendarPage.tsx:64-72`) becomes view-aware; `viewMode` is added to the `useMemo` dependency array:
+3. Replace the three chained `||` comparisons with `ActiveStates.Contains((int)x.State)`. EF Core translates `int[].Contains(...)` to a literal `IN (0, 1, 3)` in SQL, giving the planner the proof it needs to match the partial-index predicate. The chained `OR` variant with enum-typed parameters can emit `state = $1 OR state = $2 OR state = $3` with opaque parameters, which the planner may not recognize as implying the index predicate.
 
-```ts
-end.setDate(start.getDate() + (viewMode === 'twoWeeks' ? 14 : 35));
+4. Wrap `ToListAsync` in a `Stopwatch` and emit a structured log entry after the query completes (see Telemetry Log Entry under Data Schemas).
+
+**Resulting query shape (EF → SQL):**
+
+```sql
+SELECT "State", COUNT(*)
+FROM "StockUpOperations"
+WHERE "State" IN (0, 1, 3)
+  [AND "SourceType" = $1]   -- only when request.SourceType is provided
+GROUP BY "State"
 ```
 
-**Conditional render** (`viewMode === 'calendar'` → `viewMode !== 'list'`):
-
-```tsx
-{viewMode !== 'list' ? <CalendarBlock /> : <ListBlock />}
-```
-
-**`MarketingMonthCalendar` usage inside `CalendarBlock`:**
-
-```tsx
-<MarketingMonthCalendar
-  key={viewMode}
-  viewName={viewMode as CalendarViewName}
-  events={calendarEvents}
-  initialDate={currentDate}
-  onEventClick={openEdit}
-  onEventMove={handleEventMove}
-  onEventResize={handleEventResize}
-  onDateRangeSelect={handleDateRangeSelect}
-  onDatesSet={handleDatesSet}
-  calendarRef={calendarRef}
-  className="h-full"
-/>
-```
-
-`key={viewMode}` forces a React remount on every calendar-mode switch. This fires `datesSet` exactly once with the new window's true bounds and eliminates any stale FullCalendar internal state from the previous view.
+**Interface unchanged:** `IRequestHandler<GetStockUpOperationsSummaryRequest, GetStockUpOperationsSummaryResponse>` — no signature or response-shape change.
 
 ---
 
-### `MarketingMonthCalendar`
+### `StockUpOperationConfiguration` — modified
 
-**Responsibility:** renders a single FullCalendar `dayGrid` instance for either the 5-week or 14-day view. No awareness of the list view.
+**File:** `backend/src/Anela.Heblo.Persistence/Catalog/Stock/StockUpOperationConfiguration.cs`
 
-**New exported type:**
+Add one `HasIndex` declaration so the EF model snapshot stays in sync with the database. EF will scaffold a `CreateIndex` call in the generated migration; that body must be replaced with raw SQL before the migration is applied (see migration below).
 
-```ts
-export type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
+```csharp
+builder.HasIndex(x => new { x.SourceType, x.State })
+    .HasDatabaseName("IX_StockUpOperations_State_Active")
+    .HasFilter("\"State\" IN (0, 1, 3)");
 ```
 
-**Props interface — `viewName` added as required:**
+**Existing indexes — disposition:**
 
-```ts
-interface MarketingMonthCalendarProps {
-  events: CalendarEvent[];
-  initialDate: Date;
-  viewName: CalendarViewName;           // NEW — required, no default
-  onEventClick: (id: number) => void;
-  onEventMove: (id: number, dateFrom: string, dateTo: string) => void;
-  onEventResize: (id: number, dateFrom: string, dateTo: string) => void;
-  onDateRangeSelect: (dateFrom: string, dateTo: string) => void;
-  onDatesSet: (visibleStart: Date, visibleEnd: Date, currentStart: Date) => void;
-  calendarRef: React.RefObject<FullCalendar>;
-  className?: string;
-}
-```
-
-**Internal view registry:**
-
-```ts
-const CALENDAR_VIEWS = {
-  fiveWeeks: { type: 'dayGrid', duration: { weeks: 5 }, dayMaxEvents: true  },
-  twoWeeks:  { type: 'dayGrid', duration: { weeks: 2 }, dayMaxEvents: false },
-} as const;
-```
-
-**Derived render values:**
-
-```ts
-const calendarHeight = viewName === 'twoWeeks' ? 'auto' : '100%';
-
-const wrapperClass =
-  `marketing-calendar${viewName === 'twoWeeks' ? ' two-weeks' : ''} h-full`
-  + (className ? ` ${className}` : '');
-```
-
-**FullCalendar prop changes from current code:**
-
-| Prop | Before | After |
-|------|--------|-------|
-| `initialView` | `"fiveWeeks"` (hardcoded) | `{viewName}` |
-| `views` | `{ fiveWeeks: { type, duration } }` | `{CALENDAR_VIEWS}` (both views) |
-| `height` | `"100%"` (hardcoded) | `{calendarHeight}` |
-| `dayMaxEvents` | `{true}` (top-level) | removed — lives in `CALENDAR_VIEWS` per-view |
-
-No handler logic changes. All callbacks (`handleEventClick`, `handleEventDrop`, `handleEventResize`, `handleSelect`, `handleDatesSet`) are identical in both views.
+| Index | Action |
+|---|---|
+| `IX_StockUpOperations_DocumentNumber_Unique` | Keep — uniqueness constraint |
+| `IX_StockUpOperations_Source` | Keep — used by `GetBySourceAsync` |
+| `IX_StockUpOperations_State_CreatedAt` | Keep — used by listing queries with `ORDER BY CreatedAt` |
+| `IX_StockUpOperations_State` | Keep in this PR; evaluate dropping in a follow-up migration after one deploy cycle of post-fix telemetry confirms no other query path depends on it |
 
 ---
 
-### `marketingCalendar.css`
+### `AddPartialIndexForActiveStockUpOperations` migration — new
 
-Two rules appended at the end of the file, scoped to `.marketing-calendar.two-weeks` to leave the 5-week view untouched:
+**File:** `backend/src/Anela.Heblo.Persistence/Migrations/{timestamp}_AddPartialIndexForActiveStockUpOperations.cs`
 
-```css
-.marketing-calendar.two-weeks .fc-daygrid-day-frame {
-  min-height: 80px;
-}
+EF scaffolding produces `CreateIndex` / `DropIndex` calls. Replace both bodies with raw SQL using `suppressTransaction: true`, because PostgreSQL rejects `CREATE INDEX CONCURRENTLY` inside a transaction block (`SQLSTATE 25001`). EF Core wraps each migration's `Up` in a transaction by default; passing `suppressTransaction: true` to `MigrationBuilder.Sql()` causes the runner to commit first.
 
-.marketing-calendar.two-weeks .fc-daygrid-day-events {
-  overflow: visible;
-}
+**`Up` method:**
+
+```csharp
+// Active states: Pending=0, Submitted=1, Failed=3. Completed=2 is excluded intentionally.
+// suppressTransaction required: PostgreSQL rejects CONCURRENTLY inside a transaction (SQLSTATE 25001).
+// IF NOT EXISTS makes this idempotent — safe to re-run in any environment.
+migrationBuilder.Sql(
+    """
+    CREATE INDEX CONCURRENTLY IF NOT EXISTS "IX_StockUpOperations_State_Active"
+        ON "StockUpOperations" ("SourceType", "State")
+        WHERE "State" IN (0, 1, 3);
+    """,
+    suppressTransaction: true);
+```
+
+**`Down` method:**
+
+```csharp
+migrationBuilder.Sql(
+    """
+    DROP INDEX CONCURRENTLY IF EXISTS "IX_StockUpOperations_State_Active";
+    """,
+    suppressTransaction: true);
+```
+
+**`IF NOT EXISTS` / `IF EXISTS`** makes both directions idempotent (NFR-3). If index creation fails partway and leaves an `INVALID` index, drop it with `DROP INDEX CONCURRENTLY "IX_StockUpOperations_State_Active"` before retrying.
+
+**Deployment order:** deploy the application binary first (the `Contains`-based query is correct without the index, just slower); apply the migration in a subsequent low-traffic window. No readiness gate is required.
+
+---
+
+### `GetStockUpOperationsSummaryHandlerTests` — modified
+
+**File:** `backend/test/Anela.Heblo.Tests/Features/Catalog/GetStockUpOperationsSummaryHandlerTests.cs`
+
+Add one test to lock in the correct enum-to-integer mapping and catch a regression if `ActiveStates` is updated incorrectly:
+
+```
+Handle_CompletedState_IsExcludedFromCounts
+  — seeds one operation per state (Pending, Submitted, Completed, Failed) with no SourceType filter
+  — asserts PendingCount=1, SubmittedCount=1, FailedCount=1, and that Completed is not reflected
+    in any count field (total PendingCount + SubmittedCount + FailedCount = 3, not 4)
+```
+
+The existing three tests continue to serve as behavioral coverage and require no modification.
+
+---
+
+### `GetStockUpOperationsSummaryIntegrationTests` — new
+
+**File:** `backend/test/Anela.Heblo.Tests/Features/Catalog/GetStockUpOperationsSummaryIntegrationTests.cs`
+
+Integration test against the real PostgreSQL test database (Testcontainers or the project's fixture DB). The existing `MockQueryable`-based unit tests execute against an in-memory list and cannot detect SQL translation or index-use regressions.
+
+| Test | Seeds | Asserts |
+|---|---|---|
+| `Handle_MixedStates_ReturnsCorrectCounts` | 2 Pending, 1 Submitted, 1 Failed, 2 Completed | PendingCount=2, SubmittedCount=1, FailedCount=1; Success=true |
+| `Handle_WithSourceTypeFilter_CountsOnlyMatchingSource` | 1 Pending (GiftPackageManufacture), 1 Pending (TransportBox) | PendingCount=1, SubmittedCount=0, FailedCount=0 when sourceType=GiftPackageManufacture |
+| `Handle_NoActiveOperations_ReturnsZeroCounts` | 3 Completed only | PendingCount=0, SubmittedCount=0, FailedCount=0; Success=true |
+
+After applying the migration, optionally assert that `EXPLAIN (FORMAT JSON)` for the query does not contain a `Seq Scan` node on `StockUpOperations`.
+
+---
+
+### Diagnostic investigation document — new
+
+**File:** `docs/investigations/stockupoperations-summary-slow-query.md`
+
+Captures FR-1 output before any code is changed. Structure:
+
+```markdown
+## Captured: {date}
+
+### State distribution
+SELECT state, COUNT(*) FROM "StockUpOperations" GROUP BY state;
+
+### EXPLAIN (ANALYZE, BUFFERS) output
+{paste full plan text}
+
+### pg_stat_user_tables snapshot
+n_live_tup: , n_dead_tup: , dead_ratio: %
+last_vacuum: , last_autovacuum: , last_analyze: , last_autoanalyze:
+
+### Index sizes
+IX_StockUpOperations_State: {bytes}
+IX_StockUpOperations_State_CreatedAt: {bytes}
+
+### Root cause assessment
+{seq scan due to planner statistics / index bloat / lock contention / transient event}
 ```
 
 ---
 
-### Test files (new)
+### Gotcha document — new
 
-**`frontend/src/components/marketing/calendar/__tests__/MarketingMonthCalendar.test.tsx`**
+**File:** `memory/gotchas/postgres-partial-index-active-states.md`
 
-Covers:
-- `viewName='fiveWeeks'` → FullCalendar receives `initialView="fiveWeeks"` and the views registry carries `dayMaxEvents: true` for `fiveWeeks`.
-- `viewName='twoWeeks'` → FullCalendar receives `initialView="twoWeeks"`, views registry carries `dayMaxEvents: false` for `twoWeeks`, wrapper element has `two-weeks` CSS class.
-- Both views are present in the registry simultaneously.
-- `height='auto'` for `twoWeeks`; `height='100%'` for `fiveWeeks`.
-
-**`frontend/src/components/marketing/pages/__tests__/MarketingCalendarPage.test.tsx`**
-
-Covers:
-- Toolbar renders all three buttons with Czech labels (`5 týdnů`, `14 dní`, `Seznam`).
-- Default active button is `5 týdnů` on first render.
-- Clicking `14 dní` highlights it and mounts `MarketingMonthCalendar` with `viewName='twoWeeks'`.
-- Clicking `Seznam` unmounts the calendar and renders the list.
-- Returning from `Seznam` to `5 týdnů` remounts the calendar with `viewName='fiveWeeks'`.
+Records the symptom (12 s spike on summary endpoint), the confirmed root cause, the fix (partial index on `(SourceType, State)` + `Contains` query rewrite), and the `suppressTransaction: true` requirement for any `CONCURRENTLY` migration in this codebase.
 
 ---
 
 ## Data Schemas
 
-### Backend API — no changes
+### PostgreSQL index inventory (target state after migration)
 
-The feature is entirely presentational. The existing endpoint accepts arbitrary date windows and requires no modification:
+```sql
+-- NEW — partial index; covers both filtered (?sourceType=...) and unfiltered summary queries
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "IX_StockUpOperations_State_Active"
+    ON "StockUpOperations" ("SourceType", "State")
+    WHERE "State" IN (0, 1, 3);
+-- Pending=0, Submitted=1, Failed=3  (Completed=2 excluded — the high-volume terminal state)
 
-```
-GET /api/MarketingCalendar/calendar?StartDate={ISO}&EndDate={ISO}
-```
+-- KEPT unchanged
+-- IX_StockUpOperations_DocumentNumber_Unique   UNIQUE ON ("DocumentNumber")
+-- IX_StockUpOperations_Source                  ON ("SourceType", "SourceId")
+-- IX_StockUpOperations_State_CreatedAt         ON ("State", "CreatedAt")
 
-Response shape is unchanged — `MarketingActionDto[]` consumed by `useMarketingCalendar`.
-
-### Frontend data flow — view-aware fetch range
-
-The `useMemo` at `MarketingCalendarPage.tsx:64-72` gains `viewMode` as a dependency:
-
-```ts
-const { startDate, endDate } = useMemo(() => {
-  if (visibleRange) {
-    return { startDate: visibleRange.start, endDate: visibleRange.end };
-  }
-  const start = getCalendarStartForToday();
-  const end = new Date(start);
-  end.setDate(start.getDate() + (viewMode === 'twoWeeks' ? 14 : 35));
-  return { startDate: start, endDate: end };
-}, [visibleRange, viewMode]);
+-- DEFERRED — evaluate dropping IX_StockUpOperations_State after confirming
+-- no other query path depends on it (grep for queries filtering on State alone)
 ```
 
-The React Query key for `useMarketingCalendar` already includes `startDate` and `endDate`; different windows produce separate cache entries with no key changes required.
+### API shape (unchanged)
 
-### `CalendarViewName` — new exported type
+**Request**
 
-```ts
-// frontend/src/components/marketing/calendar/MarketingMonthCalendar.tsx
-export type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
+```
+GET /api/StockUpOperations/summary?sourceType={StockUpSourceType}
 ```
 
-`ViewMode` on the page (`'fiveWeeks' | 'twoWeeks' | 'list'`) is a strict superset. The `as CalendarViewName` cast in the JSX is safe because the calendar block is only rendered when `viewMode !== 'list'`.
+| Parameter | Type | Required |
+|---|---|---|
+| `sourceType` | `StockUpSourceType` (query string) | No |
+
+**Response — `GetStockUpOperationsSummaryResponse`**
+
+| Field | Type | Notes |
+|---|---|---|
+| `pendingCount` | `int` | 0 when no matching rows |
+| `submittedCount` | `int` | 0 when no matching rows |
+| `failedCount` | `int` | 0 when no matching rows |
+| `totalInQueue` | `int` | Computed: `pendingCount + submittedCount` |
+| `success` | `bool` | `false` with error fields on exception |
+
+### Telemetry log entry (new)
+
+Emitted by the handler after each successful database call at `LogLevel.Information`:
+
+```
+"GetStockUpOperationsSummary completed in {ElapsedMs}ms
+ [SourceType={SourceType}, Pending={PendingCount}, Submitted={SubmittedCount}, Failed={FailedCount}]"
+```
+
+Structured properties captured by Application Insights:
+
+| Property | Type |
+|---|---|
+| `ElapsedMs` | `long` |
+| `SourceType` | `string \| null` |
+| `PendingCount` | `int` |
+| `SubmittedCount` | `int` |
+| `FailedCount` | `int` |
+
+### `StockUpOperationState` enum (reference, unchanged)
+
+| Member | Integer value | Included in partial index |
+|---|---|---|
+| `Pending` | 0 | Yes |
+| `Submitted` | 1 | Yes |
+| `Completed` | 2 | **No** |
+| `Failed` | 3 | Yes |
