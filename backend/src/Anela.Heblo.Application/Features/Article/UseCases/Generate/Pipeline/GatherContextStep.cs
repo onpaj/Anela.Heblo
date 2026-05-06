@@ -79,7 +79,8 @@ public class GatherContextStep : IArticlePipelineStep
                     Title = chunk.SourceFilename,
                     Excerpt = chunk.Content,
                     Url = null,
-                    ChunkId = chunk.ChunkId
+                    ChunkId = chunk.ChunkId,
+                    Score = chunk.Score
                 }));
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
