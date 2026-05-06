@@ -25,6 +25,7 @@ function PhotoThumbnail({
   const url = `${getConfig().apiUrl}/api/photobank/photos/${photoId}/thumbnail/${size}?v=${version}`;
 
   useEffect(() => {
+    setHasError(false);
     let cancelled = false;
     let blobUrl: string | null = null;
 

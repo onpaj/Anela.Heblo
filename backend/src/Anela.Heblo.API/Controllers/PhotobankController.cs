@@ -200,17 +200,24 @@ namespace Anela.Heblo.API.Controllers
         /// Update an existing tag rule.
         /// </summary>
         [HttpPut("settings/rules/{id:int}")]
-        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
         [ProducesResponseType(typeof(UpdateRuleResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
         public async Task<ActionResult<UpdateRuleResponse>> UpdateRule(
             int id,
             [FromBody] UpdateRuleRequest request,
             CancellationToken cancellationToken = default)
         {
-            request.Id = id;
-            var response = await _mediator.Send(request, cancellationToken);
+            var command = new UpdateRuleRequest
+            {
+                Id = id,
+                PathPattern = request.PathPattern,
+                TagName = request.TagName,
+                IsActive = request.IsActive,
+                SortOrder = request.SortOrder,
+            };
+            var response = await _mediator.Send(command, cancellationToken);
             return HandleResponse(response);
         }
 
@@ -292,7 +299,7 @@ namespace Anela.Heblo.API.Controllers
                 return NotFound();
             }
 
-            var thumbnail = rawThumbnail;
+            using var thumbnail = rawThumbnail;
 
             Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
             if (thumbnail.ContentLength.HasValue)

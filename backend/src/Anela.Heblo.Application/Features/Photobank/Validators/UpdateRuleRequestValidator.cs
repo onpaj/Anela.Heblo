@@ -22,5 +22,8 @@ public class UpdateRuleRequestValidator : AbstractValidator<UpdateRuleRequest>
             .WithMessage("TagName is required")
             .MaximumLength(100)
             .WithMessage("TagName cannot exceed 100 characters");
+
+        RuleFor(x => x.SortOrder)
+            .GreaterThanOrEqualTo(0);
     }
 }
