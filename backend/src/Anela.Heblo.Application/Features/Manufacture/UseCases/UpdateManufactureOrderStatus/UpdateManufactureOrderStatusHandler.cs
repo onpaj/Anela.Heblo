@@ -189,7 +189,7 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
             {
                 ManufactureOrderId = order.Id,
                 Stage = stage,
-                RecordedAt = DateTime.UtcNow,
+                RecordedAt = _timeProvider.GetUtcNow().DateTime,
                 Source = ConditionsReadingSource.Unavailable,
             };
         }
