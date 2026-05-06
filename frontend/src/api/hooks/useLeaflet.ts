@@ -91,6 +91,7 @@ export interface LeafletFeedbackSummary {
   precisionScore: number | null;
   styleScore: number | null;
   feedbackComment: string | null;
+  hasFeedback: boolean;
 }
 
 export interface LeafletFeedbackListResponse {
@@ -98,6 +99,7 @@ export interface LeafletFeedbackListResponse {
   totalCount: number;
   pageNumber: number;
   pageSize: number;
+  totalPages: number;
   stats: {
     totalGenerations: number;
     totalWithFeedback: number;

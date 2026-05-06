@@ -19,6 +19,7 @@ const mockItem = {
   precisionScore: 5,
   styleScore: 4,
   feedbackComment: null,
+  hasFeedback: true,
 };
 
 const mockStats = {
@@ -34,7 +35,7 @@ const params: GenericFeedbackParams = {
 
 beforeEach(() => {
   jest.spyOn(leafletHooks, 'useLeafletFeedbackListQuery').mockReturnValue({
-    data: { items: [mockItem], totalCount: 50, pageNumber: 2, pageSize: 10, stats: mockStats },
+    data: { items: [mockItem], totalCount: 50, pageNumber: 2, pageSize: 10, totalPages: 5, stats: mockStats },
     isLoading: false,
     isError: false,
   } as any);
@@ -79,8 +80,8 @@ test('hasFeedback is true when at least one score is present', () => {
 test('hasFeedback is false when both scores are null', () => {
   jest.spyOn(leafletHooks, 'useLeafletFeedbackListQuery').mockReturnValue({
     data: {
-      items: [{ ...mockItem, precisionScore: null, styleScore: null }],
-      totalCount: 1, pageNumber: 2, pageSize: 10, stats: mockStats,
+      items: [{ ...mockItem, precisionScore: null, styleScore: null, hasFeedback: false }],
+      totalCount: 1, pageNumber: 2, pageSize: 10, totalPages: 1, stats: mockStats,
     },
     isLoading: false,
     isError: false,

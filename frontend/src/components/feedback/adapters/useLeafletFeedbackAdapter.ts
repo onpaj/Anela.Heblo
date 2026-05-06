@@ -19,7 +19,7 @@ export function useLeafletFeedbackAdapter(params: GenericFeedbackParams) {
     userId: item.userId ?? undefined,
     precisionScore: item.precisionScore,
     styleScore: item.styleScore,
-    hasFeedback: item.precisionScore !== null || item.styleScore !== null,
+    hasFeedback: item.hasFeedback,
     feedbackComment: item.feedbackComment,
   }));
 
@@ -33,8 +33,7 @@ export function useLeafletFeedbackAdapter(params: GenericFeedbackParams) {
     : undefined;
 
   const totalCount = query.data?.totalCount ?? 0;
-  const pageSize = query.data?.pageSize ?? params.pageSize;
-  const totalPages = pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0;
+  const totalPages = query.data?.totalPages ?? 0;
 
   return {
     rows,
