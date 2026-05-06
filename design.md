@@ -1,254 +1,393 @@
-# Design: Marketing Calendar 14-Day View
-
-## UX/UI Design
-
-### Toolbar — 3-button segmented control
-
-The existing 2-button row (`Kalendář | Seznam`) is replaced with a 3-button segmented control. The visual language (indigo active state, neutral hover, shared border, rounded container) is unchanged.
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Marketingový kalendář    [■ 5 týdnů][□ 14 dní][□ Seznam]   [+ Nová akce] … │
-└──────────────────────────────────────────────────────────────────────────────┘
-  ■ = active  (bg-indigo-600 text-white)
-  □ = inactive (text-gray-600 hover:bg-gray-50)
-```
-
-Button order: `5 týdnů` (Calendar icon) · `14 dní` (Calendar icon) · `Seznam` (List icon).  
-Default active on page load: `5 týdnů`.
-
-Both calendar buttons use the already-imported `Calendar` icon from `lucide-react`; the list button uses `List`. The `Download` / `Nová akce` buttons are unchanged and remain after the toggle group.
-
-### 5-week view (unchanged)
-
-```
-Po  Út  St  Čt  Pá  So  Ne
-────────────────────────────
- …   …   …   …   …   …   …   ← week –1
- …   …  [T]  …   …   …   …   ← today's week  (T = indigo circle)
- …   …   …   …   …   …   …
- …   …   …   …   …   …   …
- …   …   …   …   …   …   …   ← week +3
-                  +2 more ↑   ← "+N more" truncation still present
-```
-
-### 14-day view (new)
-
-```
-Po  Út  St  Čt  Pá  So  Ne
-────────────────────────────────────────
- …   …  [T]  …   …   …   …   ← today's week
- ┌─────────────────────────┐
- │ Event A                 │  all events
- │ Event B                 │  visible —
- │ Event C                 │  no "+N more"
- └─────────────────────────┘
- …   …   …   …   …   …   …   ← week +1
-                               ↕ parent container scrolls when grid > viewport
-```
-
-Each cell has a minimum height of 80 px even when empty. Vertical expansion is unbounded; the existing `overflow-auto` parent container provides the single scroll context — no nested scrollbars.
-
-### Key interactions
-
-| Action | Behavior |
-|--------|----------|
-| Click `14 dní` | `viewMode` → `'twoWeeks'`; `visibleRange` reset to `null`; `MarketingMonthCalendar` remounts via `key`; 14-day fallback fetch fires; `datesSet` updates `visibleRange` with actual window |
-| Click `5 týdnů` | Same flow with 35-day fallback range |
-| Click `Seznam` | `viewMode` → `'list'`; calendar unmounts; list + filter panel render (unchanged) |
-| Prev / Next in 14-day mode | FullCalendar API advances/retreats exactly 14 days |
-| Today in 14-day mode | `gotoDate(getCalendarStartForToday())` — today lands in week 2 of the 2-row grid |
-| Event click / drag / resize / range select | Identical handler chain to 5-week view; no behavioral change |
-
----
+# Design: HTTP 409 Spike Remediation on `PUT /api/transport-boxes/{id}/state`
 
 ## Component Design
 
-### `MarketingCalendarPage`
+### Overview
 
-**Responsibility:** owns all view state, orchestrates data fetching, renders toolbar and the active view block.
+All changes amend existing files. The only net-new artefacts are: one interface (`IDbConstraintClassifier`), one implementing class (`NpgsqlConstraintClassifier`), one EF Core migration, and one test file (`TransportBoxRaceConditionTests`). No new modules or directories are required.
 
-**`ViewMode` union widened** (current `'calendar' | 'list'` → new):
+---
 
-```ts
-type ViewMode = 'fiveWeeks' | 'twoWeeks' | 'list';
-const [viewMode, setViewMode] = useState<ViewMode>('fiveWeeks');
+### `TransportBoxConfiguration` — Persistence layer
+
+**File:** `backend/src/Anela.Heblo.Persistence/Logistics/TransportBoxes/TransportBoxConfiguration.cs`
+
+Adds a constant for the index name and the filtered unique index in `Configure`:
+
+```csharp
+internal const string ActiveCodeIndexName = "IX_TransportBoxes_Code_Active";
+
+// In Configure():
+builder.HasIndex(x => x.Code)
+    .IsUnique()
+    .HasDatabaseName(ActiveCodeIndexName)
+    .HasFilter(
+        """
+        "Code" IS NOT NULL
+        AND "State" IN ('New','Opened','InTransit','Received','Reserve','Quarantine')
+        """);
 ```
 
-**New handler** (replaces two inline `setViewMode` calls on the toolbar buttons):
+The constant is `internal` so `NpgsqlConstraintClassifier` (same assembly) can reference it without leaking into the Application layer.
 
-```ts
-const handleViewModeChange = (mode: ViewMode) => {
-  setViewMode(mode);
-  if (mode !== 'list') setVisibleRange(null);
+**Why string literals in the filter:** `State` is stored as `text` via `.HasConversion<string>()` (line 16 of the current config). Integer values would never match any row.
+
+---
+
+### `IDbConstraintClassifier` — Application layer (new interface)
+
+**File:** `backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/ChangeTransportBoxState/IDbConstraintClassifier.cs`
+
+```csharp
+using Microsoft.EntityFrameworkCore;
+
+namespace Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
+
+public interface IDbConstraintClassifier
+{
+    bool IsDuplicateActiveBoxCodeViolation(DbUpdateException ex);
+}
+```
+
+This interface keeps the Application layer free of a direct `Npgsql` reference. `DbUpdateException` is from `Microsoft.EntityFrameworkCore`, already available in Application.
+
+---
+
+### `NpgsqlConstraintClassifier` — Persistence layer (new class)
+
+**File:** `backend/src/Anela.Heblo.Persistence/Logistics/TransportBoxes/NpgsqlConstraintClassifier.cs`
+
+```csharp
+using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+
+namespace Anela.Heblo.Persistence.Logistics.TransportBoxes;
+
+public sealed class NpgsqlConstraintClassifier : IDbConstraintClassifier
+{
+    public bool IsDuplicateActiveBoxCodeViolation(DbUpdateException ex) =>
+        ex.GetBaseException() is PostgresException pg
+        && pg.SqlState == "23505"
+        && pg.ConstraintName == TransportBoxConfiguration.ActiveCodeIndexName;
+}
+```
+
+Registered in DI as `IDbConstraintClassifier → NpgsqlConstraintClassifier` (singleton; stateless).
+
+`SqlState == "23505"` is the PostgreSQL unique-violation class. Combined with `ConstraintName`, this ensures unrelated unique constraints on `TransportBoxes` do not take the 409 path.
+
+---
+
+### `TransportBoxRepository.IsBoxCodeActiveAsync` — Persistence layer
+
+**File:** `backend/src/Anela.Heblo.Persistence/Logistics/TransportBoxes/TransportBoxRepository.cs`
+
+Add `TransportBoxState.Quarantine` to the `activeStates` array (currently lines 98–105):
+
+```csharp
+var activeStates = new[]
+{
+    TransportBoxState.New,
+    TransportBoxState.Opened,
+    TransportBoxState.InTransit,
+    TransportBoxState.Received,
+    TransportBoxState.Reserve,
+    TransportBoxState.Quarantine,   // FR-3: box in Quarantine still owns its Code
 };
 ```
 
-**Fallback fetch range** (currently hardcoded to 35 days at `MarketingCalendarPage.tsx:64-72`) becomes view-aware; `viewMode` is added to the `useMemo` dependency array:
-
-```ts
-end.setDate(start.getDate() + (viewMode === 'twoWeeks' ? 14 : 35));
-```
-
-**Conditional render** (`viewMode === 'calendar'` → `viewMode !== 'list'`):
-
-```tsx
-{viewMode !== 'list' ? <CalendarBlock /> : <ListBlock />}
-```
-
-**`MarketingMonthCalendar` usage inside `CalendarBlock`:**
-
-```tsx
-<MarketingMonthCalendar
-  key={viewMode}
-  viewName={viewMode as CalendarViewName}
-  events={calendarEvents}
-  initialDate={currentDate}
-  onEventClick={openEdit}
-  onEventMove={handleEventMove}
-  onEventResize={handleEventResize}
-  onDateRangeSelect={handleDateRangeSelect}
-  onDatesSet={handleDatesSet}
-  calendarRef={calendarRef}
-  className="h-full"
-/>
-```
-
-`key={viewMode}` forces a React remount on every calendar-mode switch. This fires `datesSet` exactly once with the new window's true bounds and eliminates any stale FullCalendar internal state from the previous view.
-
 ---
 
-### `MarketingMonthCalendar`
+### `ChangeTransportBoxStateHandler` — Application layer
 
-**Responsibility:** renders a single FullCalendar `dayGrid` instance for either the 5-week or 14-day view. No awareness of the list view.
+**File:** `backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/ChangeTransportBoxState/ChangeTransportBoxStateHandler.cs`
 
-**New exported type:**
+#### Constructor — add `IDbConstraintClassifier`
 
-```ts
-export type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
-```
+```csharp
+private readonly IDbConstraintClassifier _constraintClassifier;
 
-**Props interface — `viewName` added as required:**
-
-```ts
-interface MarketingMonthCalendarProps {
-  events: CalendarEvent[];
-  initialDate: Date;
-  viewName: CalendarViewName;           // NEW — required, no default
-  onEventClick: (id: number) => void;
-  onEventMove: (id: number, dateFrom: string, dateTo: string) => void;
-  onEventResize: (id: number, dateFrom: string, dateTo: string) => void;
-  onDateRangeSelect: (dateFrom: string, dateTo: string) => void;
-  onDatesSet: (visibleStart: Date, visibleEnd: Date, currentStart: Date) => void;
-  calendarRef: React.RefObject<FullCalendar>;
-  className?: string;
+public ChangeTransportBoxStateHandler(
+    ITransportBoxRepository repository,
+    IMediator mediator,
+    ILogger<ChangeTransportBoxStateHandler> logger,
+    ICurrentUserService currentUserService,
+    IStockUpProcessingService stockUpProcessingService,
+    TimeProvider timeProvider,
+    IDbConstraintClassifier constraintClassifier)
+{
+    // ... existing assignments ...
+    _constraintClassifier = constraintClassifier;
 }
 ```
 
-**Internal view registry:**
+#### `Handle` — new `catch` arm (between `ValidationException` and `Exception`)
 
-```ts
-const CALENDAR_VIEWS = {
-  fiveWeeks: { type: 'dayGrid', duration: { weeks: 5 }, dayMaxEvents: true  },
-  twoWeeks:  { type: 'dayGrid', duration: { weeks: 2 }, dayMaxEvents: false },
-} as const;
-```
+Insert after the existing `catch (ValidationException)` block and before `catch (Exception)` (currently at line 149):
 
-**Derived render values:**
+```csharp
+catch (DbUpdateException ex) when (_constraintClassifier.IsDuplicateActiveBoxCodeViolation(ex))
+{
+    var normalizedCode = request.BoxCode?.ToUpper() ?? string.Empty;
+    _logger.LogWarning(
+        "Duplicate active box code detected via DB constraint for box {BoxId}. " +
+        "RequestedBoxCode: {RequestedBoxCode}, CurrentState: {CurrentState}, " +
+        "RequestedNewState: {RequestedNewState}, ConflictReason: {ConflictReason}, Source: {Source}",
+        request.BoxId, normalizedCode, box?.State.ToString() ?? "unknown",
+        request.NewState, "DuplicateActiveBoxCode", "DbConstraint");
 
-```ts
-const calendarHeight = viewName === 'twoWeeks' ? 'auto' : '100%';
-
-const wrapperClass =
-  `marketing-calendar${viewName === 'twoWeeks' ? ' two-weeks' : ''} h-full`
-  + (className ? ` ${className}` : '');
-```
-
-**FullCalendar prop changes from current code:**
-
-| Prop | Before | After |
-|------|--------|-------|
-| `initialView` | `"fiveWeeks"` (hardcoded) | `{viewName}` |
-| `views` | `{ fiveWeeks: { type, duration } }` | `{CALENDAR_VIEWS}` (both views) |
-| `height` | `"100%"` (hardcoded) | `{calendarHeight}` |
-| `dayMaxEvents` | `{true}` (top-level) | removed — lives in `CALENDAR_VIEWS` per-view |
-
-No handler logic changes. All callbacks (`handleEventClick`, `handleEventDrop`, `handleEventResize`, `handleSelect`, `handleDatesSet`) are identical in both views.
-
----
-
-### `marketingCalendar.css`
-
-Two rules appended at the end of the file, scoped to `.marketing-calendar.two-weeks` to leave the 5-week view untouched:
-
-```css
-.marketing-calendar.two-weeks .fc-daygrid-day-frame {
-  min-height: 80px;
-}
-
-.marketing-calendar.two-weeks .fc-daygrid-day-events {
-  overflow: visible;
+    return new ChangeTransportBoxStateResponse
+    {
+        Success = false,
+        ErrorCode = ErrorCodes.TransportBoxDuplicateActiveBoxFound,
+        Params = new Dictionary<string, string> { { "code", normalizedCode } }
+    };
 }
 ```
 
+`box` is in scope here (loaded before the callback invocation). Any other `DbUpdateException` — FK violation, check constraint, transient infra fault — falls through to the generic `catch (Exception)` arm unchanged.
+
+#### `Handle` — enrich existing `catch (Exception)` arm
+
+Replace the current log call (line 151) to include request context:
+
+```csharp
+_logger.LogError(ex,
+    "Error changing state for transport box {BoxId}. " +
+    "BoxCode: {BoxCode}, Location: {Location}, " +
+    "RequestedNewState: {RequestedNewState}, CurrentBoxState: {CurrentBoxState}",
+    request.BoxId, request.BoxCode, request.Location,
+    request.NewState, box?.State.ToString() ?? "unknown");
+```
+
+#### `HandleNewToOpened` — structured log on fast-path duplicate
+
+Replace the early-return block after `isCodeActive` check (currently lines 178–184) with:
+
+```csharp
+if (isCodeActive)
+{
+    var conflictingBox = await _repository.GetByCodeAsync(normalizedCode);
+
+    _logger.LogWarning(
+        "Duplicate active box code detected for box {BoxId}. " +
+        "RequestedBoxCode: {RequestedBoxCode}, CurrentState: {CurrentState}, " +
+        "RequestedNewState: {RequestedNewState}, ConflictReason: {ConflictReason}, Source: {Source}, " +
+        "ConflictingBoxId: {ConflictingBoxId}, ConflictingBoxState: {ConflictingBoxState}",
+        box.Id, normalizedCode, box.State, request.NewState,
+        "DuplicateActiveBoxCode", "FastPathCheck",
+        conflictingBox?.Id, conflictingBox?.State.ToString() ?? "unknown");
+
+    return new ChangeTransportBoxStateResponse
+    {
+        Success = false,
+        ErrorCode = ErrorCodes.TransportBoxDuplicateActiveBoxFound,
+        Params = new Dictionary<string, string> { { "code", normalizedCode } }
+    };
+}
+```
+
+`GetByCodeAsync` is called only on the duplicate unhappy path; the happy path is unchanged (NFR-1).
+
 ---
 
-### Test files (new)
+### EF Core Migration — Persistence layer (new file)
 
-**`frontend/src/components/marketing/calendar/__tests__/MarketingMonthCalendar.test.tsx`**
+**File:** `backend/src/Anela.Heblo.Persistence/Migrations/<timestamp>_AddUniqueIndexOnTransportBoxCodeActive.cs`
 
-Covers:
-- `viewName='fiveWeeks'` → FullCalendar receives `initialView="fiveWeeks"` and the views registry carries `dayMaxEvents: true` for `fiveWeeks`.
-- `viewName='twoWeeks'` → FullCalendar receives `initialView="twoWeeks"`, views registry carries `dayMaxEvents: false` for `twoWeeks`, wrapper element has `two-weeks` CSS class.
-- Both views are present in the registry simultaneously.
-- `height='auto'` for `twoWeeks`; `height='100%'` for `fiveWeeks`.
+Generated via `dotnet ef migrations add AddUniqueIndexOnTransportBoxCodeActive`, then edited to prepend the fail-fast guard in `Up`:
 
-**`frontend/src/components/marketing/pages/__tests__/MarketingCalendarPage.test.tsx`**
+```csharp
+protected override void Up(MigrationBuilder migrationBuilder)
+{
+    // Pre-flight: abort if any duplicate active codes already exist.
+    // Operator must resolve them (see runbook) before applying this migration.
+    migrationBuilder.Sql("""
+        DO $$
+        DECLARE dup_count INTEGER;
+        BEGIN
+            SELECT COUNT(*) INTO dup_count
+            FROM (
+                SELECT "Code"
+                FROM public."TransportBoxes"
+                WHERE "Code" IS NOT NULL
+                  AND "State" IN ('New','Opened','InTransit','Received','Reserve','Quarantine')
+                GROUP BY "Code"
+                HAVING COUNT(*) > 1
+            ) sub;
 
-Covers:
-- Toolbar renders all three buttons with Czech labels (`5 týdnů`, `14 dní`, `Seznam`).
-- Default active button is `5 týdnů` on first render.
-- Clicking `14 dní` highlights it and mounts `MarketingMonthCalendar` with `viewName='twoWeeks'`.
-- Clicking `Seznam` unmounts the calendar and renders the list.
-- Returning from `Seznam` to `5 týdnů` remounts the calendar with `viewName='fiveWeeks'`.
+            IF dup_count > 0 THEN
+                RAISE EXCEPTION
+                    'Migration aborted: % active TransportBox duplicate code(s) found. '
+                    'Resolve them before applying this migration.',
+                    dup_count;
+            END IF;
+        END $$;
+        """);
+
+    migrationBuilder.CreateIndex(
+        name: "IX_TransportBoxes_Code_Active",
+        table: "TransportBoxes",
+        schema: "public",
+        column: "Code",
+        unique: true,
+        filter: """
+            "Code" IS NOT NULL
+            AND "State" IN ('New','Opened','InTransit','Received','Reserve','Quarantine')
+            """);
+}
+
+protected override void Down(MigrationBuilder migrationBuilder)
+{
+    migrationBuilder.DropIndex(
+        name: "IX_TransportBoxes_Code_Active",
+        table: "TransportBoxes",
+        schema: "public");
+}
+```
+
+---
+
+### `TransportBoxUniquenessTests` — Test (amended)
+
+**File:** `backend/test/Anela.Heblo.Tests/Domain/Logistics/TransportBoxUniquenessTests.cs`
+
+Add one test covering the Quarantine gap (FR-3). Runs against InMemory EF — sufficient because it validates the application-layer fast-path check (`IsBoxCodeActiveAsync`), not the DB constraint:
+
+```csharp
+[Fact]
+public async Task OpenBox_WithCodeHeldByQuarantinedBox_ReturnsDuplicateError()
+{
+    // Arrange: open box A with B001 → transition to Quarantine
+    // Act: attempt to open box B with B001
+    // Assert: response.ErrorCode == ErrorCodes.TransportBoxDuplicateActiveBoxFound
+}
+```
+
+Existing tests are unaffected — none transit through `Quarantine`.
+
+---
+
+### `TransportBoxRaceConditionTests` — Test (new file)
+
+**File:** `backend/test/Anela.Heblo.Tests/Domain/Logistics/TransportBoxRaceConditionTests.cs`
+
+Uses `Testcontainers.PostgreSql` (already referenced at v3.6.0 in the test project) to spin up a real PostgreSQL instance, apply migrations, then fire two concurrent `New → Opened` requests with the same `BoxCode`:
+
+```csharp
+[Fact]
+public async Task ConcurrentOpenWithSameCode_ExactlyOneSucceeds()
+{
+    // Arrange: real PostgreSQL via Testcontainer; migrations applied;
+    //          two boxes in New state, same BoxCode = "B001"
+    // Act: run two concurrent ChangeTransportBoxStateRequest { NewState=Opened, BoxCode="B001" }
+    // Assert: exactly one response has Success=true;
+    //         the other has ErrorCode=TransportBoxDuplicateActiveBoxFound
+}
+```
+
+InMemory EF does not enforce filtered unique indexes and cannot exercise this scenario.
 
 ---
 
 ## Data Schemas
 
-### Backend API — no changes
+### Filtered Unique Index
 
-The feature is entirely presentational. The existing endpoint accepts arbitrary date windows and requires no modification:
-
-```
-GET /api/MarketingCalendar/calendar?StartDate={ISO}&EndDate={ISO}
-```
-
-Response shape is unchanged — `MarketingActionDto[]` consumed by `useMarketingCalendar`.
-
-### Frontend data flow — view-aware fetch range
-
-The `useMemo` at `MarketingCalendarPage.tsx:64-72` gains `viewMode` as a dependency:
-
-```ts
-const { startDate, endDate } = useMemo(() => {
-  if (visibleRange) {
-    return { startDate: visibleRange.start, endDate: visibleRange.end };
-  }
-  const start = getCalendarStartForToday();
-  const end = new Date(start);
-  end.setDate(start.getDate() + (viewMode === 'twoWeeks' ? 14 : 35));
-  return { startDate: start, endDate: end };
-}, [visibleRange, viewMode]);
+```sql
+CREATE UNIQUE INDEX "IX_TransportBoxes_Code_Active"
+    ON public."TransportBoxes" ("Code")
+    WHERE "Code" IS NOT NULL
+      AND "State" IN ('New','Opened','InTransit','Received','Reserve','Quarantine');
 ```
 
-The React Query key for `useMarketingCalendar` already includes `startDate` and `endDate`; different windows produce separate cache entries with no key changes required.
+The filter uses **string literals** because `State` is stored as `text` via `HasConversion<string>()`. Integer values would never match any row.
 
-### `CalendarViewName` — new exported type
+---
 
-```ts
-// frontend/src/components/marketing/calendar/MarketingMonthCalendar.tsx
-export type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
+### Duplicate-detection Pre-flight Queries (Runbook)
+
+Cross-state duplicates (same code held by multiple active boxes):
+
+```sql
+SELECT "Code",
+       COUNT(*)                                          AS active_count,
+       ARRAY_AGG("Id"::text || ':' || "State")           AS boxes
+FROM public."TransportBoxes"
+WHERE "Code" IS NOT NULL
+  AND "State" IN ('New','Opened','InTransit','Received','Reserve','Quarantine')
+GROUP BY "Code"
+HAVING COUNT(*) > 1;
 ```
 
-`ViewMode` on the page (`'fiveWeeks' | 'twoWeeks' | 'list'`) is a strict superset. The `as CalendarViewName` cast in the JSX is safe because the calendar block is only rendered when `viewMode !== 'list'`.
+Within-state duplicates (same code and same state):
+
+```sql
+SELECT "Code", "State", COUNT(*) AS dup_count
+FROM public."TransportBoxes"
+WHERE "Code" IS NOT NULL
+  AND "State" IN ('New','Opened','InTransit','Received','Reserve','Quarantine')
+GROUP BY "Code", "State"
+HAVING COUNT(*) > 1;
+```
+
+Both queries must return zero rows before applying the migration.
+
+---
+
+### Structured Log Contract (App Insights)
+
+These field names are stable. Renaming them is a breaking change for any saved KQL queries.
+
+| Property | Type | Emitted when |
+|---|---|---|
+| `BoxId` | `int` | All conflict entries |
+| `RequestedBoxCode` | `string` (upper-cased) | All conflict entries |
+| `CurrentState` | `string` | All conflict entries |
+| `RequestedNewState` | `string` | All conflict entries |
+| `ConflictReason` | `"DuplicateActiveBoxCode"` | All conflict entries |
+| `Source` | `"FastPathCheck"` \| `"DbConstraint"` | Indicates which detection path fired |
+| `ConflictingBoxId` | `int?` | `Source = "FastPathCheck"` only |
+| `ConflictingBoxState` | `string?` | `Source = "FastPathCheck"` only |
+
+KQL filter — 24-hour window:
+
+```kusto
+traces
+| where timestamp > ago(24h)
+| where customDimensions["ConflictReason"] == "DuplicateActiveBoxCode"
+| project timestamp,
+          customDimensions["BoxId"],
+          customDimensions["Source"],
+          customDimensions["RequestedBoxCode"],
+          customDimensions["ConflictingBoxId"]
+| order by timestamp desc
+```
+
+---
+
+### API Wire Contract (unchanged)
+
+**Request** — `PUT /api/transport-boxes/{id}/state`
+
+```json
+{
+  "newState": "Opened",
+  "boxCode": "B001",
+  "location": null,
+  "description": null
+}
+```
+
+**Response — 409 Conflict** (identical from both fast-path and DB-constraint paths)
+
+```json
+{
+  "success": false,
+  "errorCode": 1405,
+  "params": { "code": "B001" }
+}
+```
+
+No DTO fields are added or removed. The TypeScript OpenAPI client does not need regeneration.
