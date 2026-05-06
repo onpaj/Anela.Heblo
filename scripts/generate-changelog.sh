@@ -8,7 +8,6 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUTPUT_FILE="$REPO_ROOT/frontend/public/changelog.json"
-TRANSLATION_FILE="$SCRIPT_DIR/translation-mappings.json"
 
 # Colors for output
 RED='\033[0;31m'
@@ -46,18 +45,6 @@ check_dependencies() {
         exit 1
     fi
 }
-
-# Load translation mappings (kept for backward compatibility but not used)
-load_translations() {
-    if [[ ! -f "$TRANSLATION_FILE" ]]; then
-        log_warning "Translation mappings file not found: $TRANSLATION_FILE (not needed - translation done by OpenAI)"
-        return 0
-    fi
-    
-    TRANSLATIONS=$(cat "$TRANSLATION_FILE")
-    log_info "Translation mappings file found (translation will be done by OpenAI)"
-}
-
 
 # Get git tags sorted by version (semantic versioning) - get last 5 existing tags
 get_git_tags() {
@@ -192,35 +179,90 @@ should_exclude_commit() {
     return 1  # false - should include
 }
 
+# Extract top-level feature area paths from a commit's changed files
+extract_top_level_paths() {
+    local hash="$1"
+    local raw_paths
+    raw_paths=$(git diff-tree --no-commit-id --name-only -r "$hash" 2>/dev/null || true)
+
+    if [[ -z "$raw_paths" ]]; then
+        echo "[]"
+        return
+    fi
+
+    local deduped_paths
+    deduped_paths=$(echo "$raw_paths" | while IFS= read -r path; do
+        if [[ "$path" =~ ^frontend/src/features/([^/]+)/ ]]; then
+            echo "frontend/src/features/${BASH_REMATCH[1]}"
+        elif [[ "$path" =~ ^backend/src/Anela\.Heblo\.Application/Features/([^/]+)/ ]]; then
+            echo "backend/src/Anela.Heblo.Application/Features/${BASH_REMATCH[1]}"
+        else
+            echo "$path"
+        fi
+    done | sort -u | head -8)
+
+    # Build JSON array — use jq to safely encode each path to avoid special chars.
+    # Guard against empty string producing [""] instead of [].
+    local paths_json
+    if [[ -z "$deduped_paths" ]]; then
+        paths_json="[]"
+    else
+        paths_json=$(printf '%s' "$deduped_paths" | jq -R . | jq -s '[.[] | select(length > 0)]' 2>/dev/null || echo "[]")
+    fi
+
+    echo "$paths_json"
+}
+
 # Parse conventional commit
 parse_conventional_commit() {
     local message="$1"
     local hash="$2"
-    
+
     # Check if it's a conventional commit
     if [[ $message =~ ^(feat|fix|docs|perf|refactor|test|chore|style|ci|build)(\(.+\))?:(.+)$ ]]; then
         local type="${BASH_REMATCH[1]}"
-        local scope="${BASH_REMATCH[2]}"
+        local raw_scope="${BASH_REMATCH[2]}"
         local description="${BASH_REMATCH[3]}"
-        
+
         # Normalize feat to feature
         if [[ "$type" == "feat" ]]; then
             type="feature"
         fi
-        
+
+        # Strip surrounding parens from scope: "(marketing)" -> "marketing"
+        local scope=""
+        if [[ -n "$raw_scope" ]]; then
+            scope="${raw_scope#(}"
+            scope="${scope%)}"
+        fi
+
         # Clean up description
         description=$(echo "$description" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
-        
-        # Create JSON object (no translation - will be done by OpenAI)
-        cat <<EOF
-{
-  "type": "$type",
-  "title": "$description",
-  "description": "$description",
-  "source": "commit",
-  "hash": "$hash"
-}
-EOF
+
+        # Get changed files for this commit
+        local files_json
+        files_json=$(extract_top_level_paths "$hash")
+
+        # Create JSON object — use jq --arg for all string values to safely escape
+        # special characters (quotes, backslashes, etc.) in commit messages
+        if [[ -n "$scope" ]]; then
+            jq -n \
+                --arg type "$type" \
+                --arg scope "$scope" \
+                --arg title "$description" \
+                --arg description "$description" \
+                --argjson files "$files_json" \
+                --arg hash "$hash" \
+                '{type: $type, scope: $scope, title: $title, description: $description, files: $files, source: "commit", hash: $hash}'
+        else
+            jq -n \
+                --arg type "$type" \
+                --arg title "$description" \
+                --arg description "$description" \
+                --argjson files "$files_json" \
+                --arg hash "$hash" \
+                '{type: $type, title: $title, description: $description, files: $files, source: "commit", hash: $hash}'
+        fi
     fi
 }
 
@@ -594,8 +636,7 @@ main() {
     log_info "==============================="
     
     check_dependencies
-    load_translations
-    
+
     # Create output directory if it doesn't exist
     mkdir -p "$(dirname "$OUTPUT_FILE")"
     
