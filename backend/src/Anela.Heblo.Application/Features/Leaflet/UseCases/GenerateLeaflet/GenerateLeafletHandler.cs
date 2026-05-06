@@ -131,6 +131,11 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
             _logger,
             ct);
 
-        return new GenerateLeafletResponse { Content = leafletResponse.Text ?? string.Empty };
+        return new GenerateLeafletResponse
+        {
+            Content = leafletResponse.Text ?? string.Empty,
+            KbSourceCount = kbHits.Count,
+            LeafletSourceCount = leafletHits.Count,
+        };
     }
 }
