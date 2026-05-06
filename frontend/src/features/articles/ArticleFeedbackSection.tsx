@@ -22,7 +22,7 @@ const ArticleFeedbackSection: React.FC<ArticleFeedbackSectionProps> = ({ article
           Hodnocení: Přesnost {precision}/5, Styl {style}/5
         </p>
         {article.feedbackComment && (
-          <p className="text-sm text-gray-600 whitespace-pre-wrap">{article.feedbackComment}</p>
+          <p data-testid="article-feedback-comment" className="text-sm text-gray-600 whitespace-pre-wrap">{article.feedbackComment}</p>
         )}
       </div>
     );

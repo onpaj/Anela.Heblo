@@ -69,8 +69,8 @@ describe('ArticleFeedbackSection', () => {
 
   it('renders summary without comment block when comment is empty', () => {
     const article = { ...baseArticle, precisionScore: 3, styleScore: 3, feedbackComment: '' };
-    const { container } = renderWithClient(<ArticleFeedbackSection article={article} />);
+    renderWithClient(<ArticleFeedbackSection article={article} />);
     expect(screen.getByText('Hodnocení: Přesnost 3/5, Styl 3/5')).toBeInTheDocument();
-    expect(container.querySelector('.whitespace-pre-wrap')).toBeNull();
+    expect(screen.queryByTestId('article-feedback-comment')).not.toBeInTheDocument();
   });
 });

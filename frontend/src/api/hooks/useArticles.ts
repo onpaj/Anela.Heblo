@@ -188,20 +188,24 @@ export const useGetArticleQuery = (id: string | null) => {
         useKnowledgeBase: response.useKnowledgeBase ?? false,
         useWebSearch: response.useWebSearch ?? false,
         sources: (response.sources ?? []).map((s) => {
-          const raw = s as Record<string, unknown>;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const raw = s as any;
           return {
             title: s.title ?? '',
             url: s.url ?? null,
             type: s.type ?? '',
-            knowledgeBaseChunkId: (raw['knowledgeBaseChunkId'] as string | null) ?? null,
-            confidence: (raw['confidence'] as number | null) ?? null,
-            excerpt: (raw['excerpt'] as string | null) ?? null,
-            validationNote: (raw['validationNote'] as string | null) ?? null,
+            knowledgeBaseChunkId: (raw.knowledgeBaseChunkId as string | null) ?? null,
+            confidence: (raw.confidence as number | null) ?? null,
+            excerpt: (raw.excerpt as string | null) ?? null,
+            validationNote: (raw.validationNote as string | null) ?? null,
           };
         }),
-        precisionScore: ((response as Record<string, unknown>)['precisionScore'] as number | null) ?? null,
-        styleScore: ((response as Record<string, unknown>)['styleScore'] as number | null) ?? null,
-        feedbackComment: ((response as Record<string, unknown>)['feedbackComment'] as string | null) ?? null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        precisionScore: ((response as any).precisionScore as number | null) ?? null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        styleScore: ((response as any).styleScore as number | null) ?? null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        feedbackComment: ((response as any).feedbackComment as string | null) ?? null,
       };
     },
     enabled: !!id,
