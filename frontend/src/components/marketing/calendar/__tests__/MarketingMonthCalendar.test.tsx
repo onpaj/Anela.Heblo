@@ -1,5 +1,5 @@
 import React from "react";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import MarketingMonthCalendar from "../MarketingMonthCalendar";
 
 // Capture the props passed to FullCalendar so each test can assert on them.
@@ -112,40 +112,38 @@ describe("MarketingMonthCalendar — height and wrapper class", () => {
   });
 
   it("does not add 'two-weeks' class to the wrapper for fiveWeeks", () => {
-    const { container } = render(
+    render(
       React.createElement(MarketingMonthCalendar, {
         ...baseProps,
         viewName: "fiveWeeks",
       }),
     );
-    const wrapper = container.firstChild;
-    expect(wrapper.className).toContain("marketing-calendar");
-    expect(wrapper.className).not.toContain("two-weeks");
+    const wrapper = screen.getByTestId("marketing-calendar-wrapper");
+    expect(wrapper).toHaveClass("marketing-calendar");
+    expect(wrapper).not.toHaveClass("two-weeks");
   });
 
   it("adds 'two-weeks' class to the wrapper for twoWeeks", () => {
-    const { container } = render(
+    render(
       React.createElement(MarketingMonthCalendar, {
         ...baseProps,
         viewName: "twoWeeks",
       }),
     );
-    const wrapper = container.firstChild;
-    expect(wrapper.className).toContain("marketing-calendar");
-    expect(wrapper.className).toContain("two-weeks");
+    const wrapper = screen.getByTestId("marketing-calendar-wrapper");
+    expect(wrapper).toHaveClass("marketing-calendar");
+    expect(wrapper).toHaveClass("two-weeks");
   });
 
   it("appends caller-provided className after the view class", () => {
-    const { container } = render(
+    render(
       React.createElement(MarketingMonthCalendar, {
         ...baseProps,
         viewName: "twoWeeks",
         className: "extra-class",
       }),
     );
-    const wrapper = container.firstChild;
-    expect(wrapper.className).toBe(
-      "marketing-calendar two-weeks h-full extra-class",
-    );
+    const wrapper = screen.getByTestId("marketing-calendar-wrapper");
+    expect(wrapper).toHaveClass("marketing-calendar", "two-weeks", "h-full", "extra-class");
   });
 });

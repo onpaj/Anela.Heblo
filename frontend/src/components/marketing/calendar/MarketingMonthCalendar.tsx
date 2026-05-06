@@ -84,7 +84,7 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
   };
 
   return (
-    <div className={wrapperClassName}>
+    <div className={wrapperClassName} data-testid="marketing-calendar-wrapper">
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, interactionPlugin]}
