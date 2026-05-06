@@ -62,7 +62,7 @@ public sealed class GenerateArticleJob
 
             article.MarkAsGenerated(context.GeneratedTitle, context.GeneratedHtml);
 
-            foreach (var (title, url, sourceType) in context.SourceRefs)
+            foreach (var (title, url, sourceType, chunkId, confidence, excerpt, validationNote) in context.SourceRefs)
             {
                 article.Sources.Add(new ArticleSource
                 {
@@ -70,7 +70,11 @@ public sealed class GenerateArticleJob
                     ArticleId = articleId,
                     Title = title,
                     Url = url,
-                    Type = sourceType
+                    Type = sourceType,
+                    KnowledgeBaseChunkId = chunkId,
+                    Confidence = confidence,
+                    Excerpt = excerpt,
+                    ValidationNote = validationNote
                 });
             }
 

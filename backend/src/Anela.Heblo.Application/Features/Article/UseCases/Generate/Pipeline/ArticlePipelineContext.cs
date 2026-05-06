@@ -12,5 +12,5 @@ public class ArticlePipelineContext
     public List<AggregatedFact> Facts { get; set; } = [];
     public string? GeneratedTitle { get; set; }
     public string? GeneratedHtml { get; set; }
-    public List<(string Title, string? Url, SourceType Type)> SourceRefs { get; set; } = [];
+    public List<(string Title, string? Url, SourceType Type, Guid? ChunkId, double? Confidence, string? Excerpt, string? ValidationNote)> SourceRefs { get; set; } = [];
 }

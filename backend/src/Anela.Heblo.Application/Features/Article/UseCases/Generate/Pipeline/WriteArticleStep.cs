@@ -55,7 +55,7 @@ public class WriteArticleStep : IArticlePipelineStep
 
         context.GeneratedTitle = parsed.ArticleTitle ?? article.Topic;
         context.GeneratedHtml = parsed.ArticleHtml ?? $"<p>{raw}</p>";
-        context.SourceRefs = MapSources(parsed.SourcesUsed);
+        context.SourceRefs = MapSources(parsed.SourcesUsed, context.ContextSnippets, context.Facts);
     }
 
     private const string SystemInstruction =
@@ -113,15 +113,36 @@ public class WriteArticleStep : IArticlePipelineStep
         return sb.ToString();
     }
 
-    private static List<(string Title, string? Url, SourceType Type)> MapSources(
-        List<SourceUsedDto>? sourcesUsed)
+    private static List<(string Title, string? Url, SourceType Type, Guid? ChunkId, double? Confidence, string? Excerpt, string? ValidationNote)>
+        MapSources(
+            List<SourceUsedDto>? sourcesUsed,
+            List<ContextSnippet> snippets,
+            List<AggregatedFact> facts)
     {
         if (sourcesUsed == null)
             return [];
 
-        return sourcesUsed
-            .Select(s => (s.Title, s.Url, s.Url != null ? SourceType.Web : SourceType.KnowledgeBase))
-            .ToList();
+        return sourcesUsed.Select(s =>
+        {
+            var type = s.Url != null ? SourceType.Web : SourceType.KnowledgeBase;
+
+            var snippet = snippets.FirstOrDefault(sn =>
+                sn.Source == SourceType.KnowledgeBase &&
+                string.Equals(sn.Title, s.Title, StringComparison.OrdinalIgnoreCase));
+
+            var fact = facts.FirstOrDefault(f =>
+                string.Equals(f.SourceTitle, s.Title, StringComparison.OrdinalIgnoreCase) ||
+                (s.Url != null && string.Equals(f.SourceUrl, s.Url, StringComparison.OrdinalIgnoreCase)));
+
+            var chunkId = type == SourceType.KnowledgeBase ? snippet?.ChunkId : null;
+            var confidence = fact != null ? (double?)fact.Confidence : null;
+            var excerpt = snippet?.Excerpt is { Length: > 0 } e
+                ? (e.Length > 200 ? e[..200] : e)
+                : null;
+            var validationNote = fact?.ValidationNote;
+
+            return (s.Title, s.Url, type, chunkId, confidence, excerpt, validationNote);
+        }).ToList();
     }
 
     private sealed record WriteArticleOutput(
