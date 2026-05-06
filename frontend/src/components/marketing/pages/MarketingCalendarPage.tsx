@@ -73,9 +73,9 @@ const MarketingCalendarPage: React.FC = () => {
     }
     const start = getCalendarStartForToday();
     const end = new Date(start);
-    end.setDate(start.getDate() + 35);
+    end.setDate(start.getDate() + (viewMode === 'twoWeeks' ? 14 : 35));
     return { startDate: start, endDate: end };
-  }, [visibleRange]);
+  }, [visibleRange, viewMode]);
 
   const calendarQuery = useMarketingCalendar({ startDate, endDate });
   const listQuery = useMarketingActions({

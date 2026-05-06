@@ -146,3 +146,25 @@ describe("MarketingCalendarPage — toolbar", () => {
     expect(calendar.getAttribute("data-view-name")).toBe("fiveWeeks");
   });
 });
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function daysBetween(start: Date, end: Date): number {
+  return Math.round((end.getTime() - start.getTime()) / MS_PER_DAY);
+}
+
+describe("MarketingCalendarPage — fallback fetch range", () => {
+  it("requests a 35-day window for the default fiveWeeks view", () => {
+    render(<MarketingCalendarPage />);
+    expect(calendarHookCalls.length).toBeGreaterThan(0);
+    const last = calendarHookCalls[calendarHookCalls.length - 1];
+    expect(daysBetween(last.startDate, last.endDate)).toBe(35);
+  });
+
+  it("requests a 14-day window after switching to twoWeeks", () => {
+    render(<MarketingCalendarPage />);
+    fireEvent.click(screen.getByRole("button", { name: /14 dní/ }));
+    const last = calendarHookCalls[calendarHookCalls.length - 1];
+    expect(daysBetween(last.startDate, last.endDate)).toBe(14);
+  });
+});
