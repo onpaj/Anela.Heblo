@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
@@ -7,6 +8,9 @@ namespace Anela.Heblo.Application.Features.InvoiceClassification.UseCases.Classi
 
 public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, ClassifyInvoicesResponse>
 {
+    // Conservative cap on concurrent Flexi fetches. Promote to IOptions if per-environment tuning is needed.
+    private const int MaxFetchConcurrency = 8;
+
     private readonly IReceivedInvoicesClient _invoicesClient;
     private readonly IInvoiceClassificationService _classificationService;
     private readonly IClassificationRuleRepository _ruleRepository;
@@ -35,22 +39,44 @@ public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, 
 
             if (request.InvoiceIds != null && request.InvoiceIds.Count > 0)
             {
-                // Single/specific invoices mode
-                invoicesToClassify = new List<ReceivedInvoiceDto>();
-                foreach (var invoiceId in request.InvoiceIds)
+                // Specific invoices mode — fetch in parallel under a SemaphoreSlim throttle.
+                // The cancellationToken flows only into throttle.WaitAsync; in-flight Flexi calls
+                // are not cancellable because IReceivedInvoicesClient.GetInvoiceByIdAsync has no token overload.
+                using var throttle = new SemaphoreSlim(MaxFetchConcurrency, MaxFetchConcurrency);
+                var sw = Stopwatch.StartNew();
+
+                var fetchTasks = request.InvoiceIds.Select(id => FetchOneAsync(id, throttle, cancellationToken)).ToList();
+                var fetchResults = await Task.WhenAll(fetchTasks);
+
+                sw.Stop();
+                _logger.LogDebug(
+                    "Fetched {FetchedCount}/{RequestedCount} invoices in {ElapsedMs}ms",
+                    fetchResults.Count(r => r.Invoice != null),
+                    request.InvoiceIds.Count,
+                    sw.ElapsedMilliseconds);
+
+                // Sequential aggregation in input order — preserves FR-5 ordering invariant.
+                // Do NOT reorder this loop for "efficiency"; downstream expects input-order errors.
+                invoicesToClassify = new List<ReceivedInvoiceDto>(fetchResults.Length);
+                foreach (var r in fetchResults)
                 {
-                    var invoice = await _invoicesClient.GetInvoiceByIdAsync(invoiceId);
-                    if (invoice == null)
+                    if (r.Invoice != null)
+                    {
+                        invoicesToClassify.Add(r.Invoice);
+                    }
+                    else if (r.FetchError != null)
                     {
                         response.Errors++;
-                        errorMessages.Add($"Invoice {invoiceId} not found");
-                        _logger.LogWarning("Invoice {InvoiceId} not found", invoiceId);
+                        errorMessages.Add($"Invoice {r.Id}: fetch failed: {r.FetchError}");
                     }
                     else
                     {
-                        invoicesToClassify.Add(invoice);
+                        response.Errors++;
+                        errorMessages.Add($"Invoice {r.Id} not found");
+                        _logger.LogWarning("Invoice {InvoiceId} not found", r.Id);
                     }
                 }
+
                 _logger.LogInformation("Starting classification of {Count} specific invoices", invoicesToClassify.Count);
             }
             else
@@ -117,4 +143,28 @@ public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, 
 
         return response;
     }
+
+    private async Task<FetchOutcome> FetchOneAsync(string id, SemaphoreSlim throttle, CancellationToken cancellationToken)
+    {
+        await throttle.WaitAsync(cancellationToken);
+        try
+        {
+            try
+            {
+                var invoice = await _invoicesClient.GetInvoiceByIdAsync(id);
+                return new FetchOutcome(id, invoice, FetchError: null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching invoice {InvoiceId}", id);
+                return new FetchOutcome(id, Invoice: null, FetchError: ex.Message);
+            }
+        }
+        finally
+        {
+            throttle.Release();
+        }
+    }
+
+    private readonly record struct FetchOutcome(string Id, ReceivedInvoiceDto? Invoice, string? FetchError);
 }
