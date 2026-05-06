@@ -9,7 +9,7 @@ public interface IConsumptionCalculationService
         int orderCount,
         int productCount);
 
-    Task<bool> ProcessDailyConsumptionAsync(
+    Task<ProcessDailyConsumptionResult> ProcessDailyConsumptionAsync(
         DateOnly processingDate,
         int orderCount,
         int productCount,

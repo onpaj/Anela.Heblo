@@ -62,13 +62,13 @@ public class ProcessDailyConsumptionHandler : IRequestHandler<ProcessDailyConsum
             _logger.LogInformation("Retrieved {InvoiceCount} invoices with {OrderCount} orders and {ProductCount} products for {Date}",
                 invoicesResult.Items.Count, orderCount, productCount, request.ProcessingDate);
 
-            var processed = await _consumptionService.ProcessDailyConsumptionAsync(
+            var result = await _consumptionService.ProcessDailyConsumptionAsync(
                 request.ProcessingDate,
                 orderCount,
                 productCount,
                 cancellationToken);
 
-            if (!processed)
+            if (!result.WasRun)
             {
                 return new ProcessDailyConsumptionResponse
                 {
@@ -81,12 +81,16 @@ public class ProcessDailyConsumptionHandler : IRequestHandler<ProcessDailyConsum
 
             _logger.LogInformation("Successfully processed daily consumption for {Date}", request.ProcessingDate);
 
+            var message = result.MaterialsProcessed > 0
+                ? $"Daily consumption successfully processed for {request.ProcessingDate}. {result.MaterialsProcessed} materials updated."
+                : $"No invoices found for {request.ProcessingDate} — no materials were updated.";
+
             return new ProcessDailyConsumptionResponse
             {
                 Success = true,
                 ProcessedDate = request.ProcessingDate,
-                MaterialsProcessed = 0, // TODO: Return actual count if needed
-                Message = $"Daily consumption successfully processed for {request.ProcessingDate}"
+                MaterialsProcessed = result.MaterialsProcessed,
+                Message = message
             };
         }
         catch (Exception ex)
