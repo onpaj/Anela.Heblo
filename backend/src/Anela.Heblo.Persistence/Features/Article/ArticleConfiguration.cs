@@ -26,6 +26,12 @@ public class ArticleConfiguration : IEntityTypeConfiguration<DomainArticle>
         builder.Property(x => x.RequestedBy).IsRequired(false).HasMaxLength(200);
         builder.Property(x => x.CreatedAt).IsRequired();
         builder.Property(x => x.GeneratedAt).IsRequired(false);
+        builder.Property(x => x.PrecisionScore).IsRequired(false);
+        builder.Property(x => x.StyleScore).IsRequired(false);
+        builder.Property(x => x.FeedbackComment).IsRequired(false).HasColumnType("text");
+        builder.HasIndex(x => x.PrecisionScore)
+            .HasFilter("\"PrecisionScore\" IS NOT NULL")
+            .HasDatabaseName("IX_Articles_PrecisionScore");
 
         builder.HasIndex(x => new { x.Status, x.CreatedAt })
             .HasDatabaseName("IX_Articles_Status_CreatedAt");
