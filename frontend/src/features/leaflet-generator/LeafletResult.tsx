@@ -1,14 +1,23 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import RagFeedbackForm, { FeedbackState } from '../../components/feedback/RagFeedbackForm';
+import { useSubmitLeafletFeedbackMutation } from '../../api/hooks/useLeaflet';
 
 interface LeafletResultProps {
   content: string;
+  generationId?: string | null;
   onRegenerate: () => void;
 }
 
-export default function LeafletResult({ content, onRegenerate }: LeafletResultProps) {
+export default function LeafletResult({ content, generationId, onRegenerate }: LeafletResultProps) {
   const [copied, setCopied] = useState(false);
+  const [feedbackState, setFeedbackState] = useState<FeedbackState>('idle');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const submitFeedback = useSubmitLeafletFeedbackMutation();
+
+  useEffect(() => {
+    setFeedbackState('idle');
+  }, [generationId]);
 
   useEffect(() => {
     return () => {
@@ -27,6 +36,18 @@ export default function LeafletResult({ content, onRegenerate }: LeafletResultPr
     } catch {
       // clipboard unavailable — no feedback change
     }
+  };
+
+  const handleFeedbackSubmit = (data: { precisionScore: number; styleScore: number; comment: string }) => {
+    if (!generationId) return;
+    submitFeedback.mutate(
+      { generationId, precisionScore: data.precisionScore, styleScore: data.styleScore, comment: data.comment || undefined },
+      {
+        onSuccess: (result) => {
+          setFeedbackState(result.alreadySubmitted ? 'alreadySubmitted' : 'submitted');
+        },
+      }
+    );
   };
 
   return (
@@ -50,6 +71,14 @@ export default function LeafletResult({ content, onRegenerate }: LeafletResultPr
           Generovat znovu
         </button>
       </div>
+      {generationId && (
+        <RagFeedbackForm
+          onSubmit={handleFeedbackSubmit}
+          isSubmitting={submitFeedback.isPending}
+          isError={submitFeedback.isError}
+          feedbackState={feedbackState}
+        />
+      )}
     </div>
   );
 }

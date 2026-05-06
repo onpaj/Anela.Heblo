@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260505202743_AddLeafletGenerations")]
+    partial class AddLeafletGenerations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -44,9 +47,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
-                    b.Property<string>("FeedbackComment")
-                        .HasColumnType("text");
-
                     b.Property<DateTimeOffset?>("GeneratedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -61,9 +61,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
-
-                    b.Property<int?>("PrecisionScore")
-                        .HasColumnType("integer");
 
                     b.Property<string>("RequestedBy")
                         .HasMaxLength(200)
@@ -85,9 +82,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<int?>("StyleScore")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Title")
                         .HasColumnType("text");
 
@@ -103,10 +97,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("boolean");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PrecisionScore")
-                        .HasDatabaseName("IX_Articles_PrecisionScore")
-                        .HasFilter("\"PrecisionScore\" IS NOT NULL");
 
                     b.HasIndex("Status", "CreatedAt")
                         .HasDatabaseName("IX_Articles_Status_CreatedAt");

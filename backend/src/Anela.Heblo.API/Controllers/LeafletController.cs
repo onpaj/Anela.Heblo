@@ -4,6 +4,9 @@ using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletChunkDetail;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletDocumentContentTypes;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletDocuments;
+using Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletFeedbackList;
+using Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletGeneration;
+using Anela.Heblo.Application.Features.Leaflet.UseCases.SubmitLeafletFeedback;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.UploadLeaflet;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Authorization;
@@ -126,6 +129,47 @@ public class LeafletController : BaseApiController
             ContentType = file.ContentType,
             FileSizeBytes = file.Length,
         }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("feedback")]
+    [ProducesResponseType(typeof(SubmitLeafletFeedbackResponse), 200)]
+    [ProducesResponseType(typeof(ProblemDetails), 404)]
+    [ProducesResponseType(typeof(ProblemDetails), 409)]
+    public async Task<ActionResult<SubmitLeafletFeedbackResponse>> SubmitFeedback(
+        [FromBody] SubmitLeafletFeedbackRequest request, CancellationToken ct)
+    {
+        var result = await _mediator.Send(request, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("feedback/list")]
+    [Authorize(Policy = AuthorizationConstants.Policies.LeafletUpload)]
+    public async Task<ActionResult<GetLeafletFeedbackListResponse>> GetFeedbackList(
+        [FromQuery] bool? hasFeedback = null,
+        [FromQuery] string? userId = null,
+        [FromQuery] string sortBy = "CreatedAt",
+        [FromQuery] bool sortDescending = true,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetLeafletFeedbackListRequest
+        {
+            HasFeedback = hasFeedback,
+            UserId = userId,
+            SortBy = sortBy,
+            SortDescending = sortDescending,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+        }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("generations/{id:guid}")]
+    public async Task<ActionResult<GetLeafletGenerationResponse>> GetGeneration(Guid id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetLeafletGenerationRequest { Id = id }, ct);
         return HandleResponse(result);
     }
 }
