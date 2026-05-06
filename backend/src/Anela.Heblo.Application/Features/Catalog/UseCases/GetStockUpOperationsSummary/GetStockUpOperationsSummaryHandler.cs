@@ -82,7 +82,7 @@ public class GetStockUpOperationsSummaryHandler : IRequestHandler<GetStockUpOper
                 ErrorCodes.InternalServerError,
                 new Dictionary<string, string>
                 {
-                    { "error", ex.Message }
+                    { "error", "An unexpected error occurred." }
                 }
             );
         }
