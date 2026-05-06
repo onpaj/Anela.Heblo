@@ -24,7 +24,7 @@ function mapLogToDetail(log: FeedbackLogSummary): FeedbackDetail {
   return {
     id: log.id,
     primaryText: log.question,
-    secondaryText: log.answer,
+    secondaryText: log.answer ?? '',
     createdAt: log.createdAt,
     userId: log.userId ?? undefined,
     precisionScore: log.precisionScore,

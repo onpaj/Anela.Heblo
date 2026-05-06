@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import RagFeedbackForm, { FeedbackState } from '../../components/feedback/RagFeedbackForm';
+import RagFeedbackForm from '../../components/feedback/RagFeedbackForm';
 import { useSubmitLeafletFeedbackMutation } from '../../api/hooks/useLeaflet';
 
 interface LeafletResultProps {
@@ -11,12 +11,14 @@ interface LeafletResultProps {
 
 export default function LeafletResult({ content, generationId, onRegenerate }: LeafletResultProps) {
   const [copied, setCopied] = useState(false);
-  const [feedbackState, setFeedbackState] = useState<FeedbackState>('idle');
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const submitFeedback = useSubmitLeafletFeedbackMutation();
 
   useEffect(() => {
-    setFeedbackState('idle');
+    setIsSuccess(false);
+    setAlreadySubmitted(false);
   }, [generationId]);
 
   useEffect(() => {
@@ -44,7 +46,11 @@ export default function LeafletResult({ content, generationId, onRegenerate }: L
       { generationId, precisionScore: data.precisionScore, styleScore: data.styleScore, comment: data.comment || undefined },
       {
         onSuccess: (result) => {
-          setFeedbackState(result.alreadySubmitted ? 'alreadySubmitted' : 'submitted');
+          if (result.alreadySubmitted) {
+            setAlreadySubmitted(true);
+          } else {
+            setIsSuccess(true);
+          }
         },
       }
     );
@@ -75,8 +81,8 @@ export default function LeafletResult({ content, generationId, onRegenerate }: L
         <RagFeedbackForm
           onSubmit={handleFeedbackSubmit}
           isSubmitting={submitFeedback.isPending}
-          isError={submitFeedback.isError}
-          feedbackState={feedbackState}
+          isSuccess={isSuccess}
+          alreadySubmitted={alreadySubmitted}
         />
       )}
     </div>
