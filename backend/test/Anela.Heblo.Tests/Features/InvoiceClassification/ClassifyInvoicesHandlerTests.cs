@@ -72,4 +72,68 @@ public class ClassifyInvoicesHandlerTests
         sw.ElapsedMilliseconds.Should().BeLessThan(800,
             "10 fetches at 200ms each should fan out under the throttle, not run sequentially");
     }
+
+    private sealed class TrackingFakeClient : IReceivedInvoicesClient
+    {
+        private int _inFlight;
+        public int MaxObservedInFlight;
+        private readonly TimeSpan _delay;
+
+        public TrackingFakeClient(TimeSpan delay)
+        {
+            _delay = delay;
+        }
+
+        public Task<List<ReceivedInvoiceDto>> GetUnclassifiedInvoicesAsync() =>
+            Task.FromResult(new List<ReceivedInvoiceDto>());
+
+        public async Task<ReceivedInvoiceDto?> GetInvoiceByIdAsync(string invoiceId)
+        {
+            var current = Interlocked.Increment(ref _inFlight);
+            // Update peak using atomic CAS loop.
+            int observed;
+            do
+            {
+                observed = MaxObservedInFlight;
+                if (current <= observed) break;
+            }
+            while (Interlocked.CompareExchange(ref MaxObservedInFlight, current, observed) != observed);
+
+            try
+            {
+                await Task.Delay(_delay);
+                return new ReceivedInvoiceDto
+                {
+                    InvoiceNumber = invoiceId,
+                    CompanyName = $"Company-{invoiceId}",
+                    TotalAmount = 100m,
+                    Description = "test"
+                };
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _inFlight);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Handle_RespectsConcurrencyLimit()
+    {
+        // Arrange: 30 ids, 100 ms per fake fetch — guarantees the throttle saturates.
+        const int MaxFetchConcurrency = 8; // mirrors the handler's private constant
+        var ids = Enumerable.Range(1, 30).Select(i => $"INV-{i}").ToList();
+        var fakeClient = new TrackingFakeClient(TimeSpan.FromMilliseconds(100));
+
+        var handler = BuildHandler(fakeClient);
+        var request = new ClassifyInvoicesRequest { InvoiceIds = ids };
+
+        // Act
+        var response = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.TotalInvoicesProcessed.Should().Be(30);
+        fakeClient.MaxObservedInFlight.Should().BeLessThanOrEqualTo(MaxFetchConcurrency,
+            "the SemaphoreSlim throttle must cap concurrent Flexi calls");
+    }
 }
