@@ -44,9 +44,14 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
   const fcEvents = useMemo(() => events.map(toFcEvent), [events]);
 
   const calendarHeight = viewName === 'twoWeeks' ? 'auto' : '100%';
-  const wrapperClassName =
-    `marketing-calendar${viewName === 'twoWeeks' ? ' two-weeks' : ''} h-full`
-    + (className ? ` ${className}` : '');
+  const wrapperClassName = [
+    'marketing-calendar',
+    viewName === 'twoWeeks' && 'two-weeks',
+    'h-full',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const handleEventClick = (info: EventClickArg) => {
     onEventClick(Number(info.event.id));
