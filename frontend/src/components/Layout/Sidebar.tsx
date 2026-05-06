@@ -123,6 +123,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Expedice",
           href: "/logistics/expedition-archive",
         },
+        { id: "knowledge-base", name: "Poradenství (KB)", href: "/knowledge-base" },
       ],
     },
     {
@@ -143,10 +144,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       type: "section" as const,
       items: [
         { id: "marketing-calendar", name: "Kalendář", href: "/marketing/calendar" },
-        { id: "photobank", name: "Fotobank", href: "/marketing/photobank" },
+        { id: "photobank", name: "Fotobanka", href: "/marketing/photobank" },
         { id: "leaflet-generator", name: "Generátor letáků", href: "/leaflet-generator" },
         { id: "articles", name: "Generátor článků", href: "/articles" },
-        { id: "knowledge-base", name: "Poradenství (KB)", href: "/knowledge-base" },
+        
         ...(hasRole("knowledge_base_manager") || hasRole("leaflet_manager") || hasRole("article_generator")
           ? [{ id: "marketing-feedback", name: "Feedback", href: "/marketing/feedback" }]
           : []),

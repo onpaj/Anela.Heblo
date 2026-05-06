@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ImageIcon } from "lucide-react";
 import { getConfig } from "../../../config/runtimeConfig";
+import { authenticatedFetch } from "../../../api/client";
 
 interface PhotoThumbnailProps {
   photoId: number;
@@ -17,10 +18,36 @@ function PhotoThumbnail({
   className = "",
   size = "medium",
 }: PhotoThumbnailProps) {
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [hasError, setHasError] = useState(false);
 
   const version = new Date(modifiedAt).getTime();
   const url = `${getConfig().apiUrl}/api/photobank/photos/${photoId}/thumbnail/${size}?v=${version}`;
+
+  useEffect(() => {
+    let cancelled = false;
+    let blobUrl: string | null = null;
+
+    authenticatedFetch(url)
+      .then((res) => {
+        if (!res.ok) throw new Error(`${res.status}`);
+        return res.blob();
+      })
+      .then((blob) => {
+        if (cancelled) return;
+        blobUrl = URL.createObjectURL(blob);
+        setObjectUrl(blobUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setHasError(true);
+      });
+
+    return () => {
+      cancelled = true;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      setObjectUrl(null);
+    };
+  }, [url]);
 
   if (hasError) {
     return (
@@ -33,12 +60,19 @@ function PhotoThumbnail({
     );
   }
 
+  if (!objectUrl) {
+    return (
+      <div
+        className={`bg-gray-200 rounded animate-pulse ${className}`}
+        aria-label={alt}
+      />
+    );
+  }
+
   return (
     <img
-      src={url}
+      src={objectUrl}
       alt={alt}
-      loading="lazy"
-      onError={() => setHasError(true)}
       className={`object-cover rounded ${className}`}
     />
   );

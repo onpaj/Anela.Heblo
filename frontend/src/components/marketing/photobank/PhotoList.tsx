@@ -84,8 +84,8 @@ function PhotoList({
               aria-label={photo.name}
             >
               <PhotoThumbnail
-                driveId={photo.driveId}
-                fileId={photo.sharePointFileId}
+                photoId={photo.id}
+                modifiedAt={photo.lastModifiedAt}
                 alt={photo.name}
                 className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
                 size="medium"

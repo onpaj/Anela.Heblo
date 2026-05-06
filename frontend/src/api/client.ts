@@ -365,6 +365,25 @@ export const getAuthenticatedApiClientWithProvider = (
   return new ApiClient(config.apiUrl, customHttp);
 };
 
+/**
+ * Make a single GET request with the same authentication headers as the API client.
+ * Use this for resources that must be fetched via JS (e.g. images behind auth).
+ */
+export const authenticatedFetch = async (url: string): Promise<Response> => {
+  const authHeader = await getAuthHeader();
+  const headers: Record<string, string> = {};
+  if (isE2ETestMode()) {
+    const e2eToken = getE2EAccessToken();
+    if (e2eToken) headers["X-E2E-Test-Token"] = e2eToken;
+  } else if (authHeader) {
+    headers["Authorization"] = authHeader;
+  }
+  return fetch(url, {
+    headers,
+    credentials: isE2ETestMode() ? "include" : "same-origin",
+  });
+};
+
 // Legacy export for backward compatibility
 export { getApiClient as apiClient };
 

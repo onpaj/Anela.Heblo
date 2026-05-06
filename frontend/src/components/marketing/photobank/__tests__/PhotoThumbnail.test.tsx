@@ -1,66 +1,88 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import PhotoThumbnail from "../PhotoThumbnail";
+import { authenticatedFetch } from "../../../../api/client";
 
 jest.mock("../../../../config/runtimeConfig", () => ({
   getConfig: () => ({ apiUrl: "http://localhost:5001" }),
 }));
 
+jest.mock("../../../../api/client", () => ({
+  authenticatedFetch: jest.fn(),
+}));
+
+const mockAuthenticatedFetch = authenticatedFetch as jest.Mock;
+
+const FAKE_BLOB_URL = "blob:fake-url";
+
+function makeFetchSuccess() {
+  const blob = new Blob(["img-data"], { type: "image/jpeg" });
+  const response = {
+    ok: true,
+    blob: () => Promise.resolve(blob),
+  };
+  mockAuthenticatedFetch.mockResolvedValue(response);
+}
+
+function makeFetchFailure() {
+  mockAuthenticatedFetch.mockRejectedValue(new Error("Network error"));
+}
+
 describe("PhotoThumbnail", () => {
+  beforeEach(() => {
+    URL.createObjectURL = jest.fn().mockReturnValue(FAKE_BLOB_URL);
+    URL.revokeObjectURL = jest.fn();
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  test("renders img with correct URL including photoId, size, and cache-bust param", () => {
-    // Arrange
-    const modifiedAt = "2026-01-15T10:00:00Z";
-    const expectedVersion = new Date(modifiedAt).getTime();
+  test("shows loading skeleton initially before fetch resolves", () => {
+    // Arrange — fetch never resolves during this test
+    mockAuthenticatedFetch.mockReturnValue(new Promise(() => undefined));
+    const alt = "Test photo";
 
     // Act
     render(
       <PhotoThumbnail
         photoId={42}
-        modifiedAt={modifiedAt}
+        modifiedAt="2026-01-15T10:00:00Z"
+        alt={alt}
+        size="medium"
+      />,
+    );
+
+    // Assert — skeleton div is present, no img yet
+    expect(screen.getByLabelText(alt)).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  test("shows img with blob URL after authenticatedFetch resolves", async () => {
+    // Arrange
+    makeFetchSuccess();
+
+    // Act
+    render(
+      <PhotoThumbnail
+        photoId={42}
+        modifiedAt="2026-01-15T10:00:00Z"
         alt="Test photo"
         size="medium"
       />,
     );
 
     // Assert
-    const img = screen.getByRole("img", { name: "Test photo" });
+    const img = await screen.findByRole("img", { name: "Test photo" });
     expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute(
-      "src",
-      expect.stringContaining("/api/photobank/photos/42/thumbnail/medium"),
-    );
-    expect(img).toHaveAttribute(
-      "src",
-      expect.stringContaining(`?v=${expectedVersion}`),
-    );
-    expect(img).toHaveAttribute("loading", "lazy");
+    expect(img).toHaveAttribute("src", expect.stringMatching(/^blob:/));
   });
 
-  test("renders large size URL when size is large", () => {
-    // Arrange & Act
-    render(
-      <PhotoThumbnail
-        photoId={10}
-        modifiedAt="2026-01-15T10:00:00Z"
-        alt="Large photo"
-        size="large"
-      />,
-    );
-
-    // Assert
-    const img = screen.getByRole("img", { name: "Large photo" });
-    expect(img).toHaveAttribute(
-      "src",
-      expect.stringContaining("/thumbnail/large"),
-    );
-  });
-
-  test("shows placeholder when img fires onError", () => {
+  test("shows error placeholder when authenticatedFetch rejects", async () => {
     // Arrange
+    makeFetchFailure();
+
+    // Act
     render(
       <PhotoThumbnail
         photoId={7}
@@ -70,41 +92,56 @@ describe("PhotoThumbnail", () => {
       />,
     );
 
-    const img = screen.getByRole("img", { name: "Error photo" });
-
-    // Act
-    fireEvent.error(img);
-
     // Assert
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText("Náhled není k dispozici"),
+      ).toBeInTheDocument();
+    });
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
-    expect(
-      screen.getByLabelText("Náhled není k dispozici"),
-    ).toBeInTheDocument();
   });
 
-  test("uses modifiedAt as cache-bust version parameter", () => {
+  test("calls authenticatedFetch with URL containing correct photoId, size, and v= param", () => {
     // Arrange
-    const modifiedAt1 = "2026-01-15T10:00:00Z";
-    const modifiedAt2 = "2026-03-20T12:30:00Z";
-    const version1 = new Date(modifiedAt1).getTime();
-    const version2 = new Date(modifiedAt2).getTime();
+    const modifiedAt = "2026-01-15T10:00:00Z";
+    const expectedVersion = new Date(modifiedAt).getTime();
+    mockAuthenticatedFetch.mockReturnValue(new Promise(() => undefined));
 
     // Act
-    const { rerender } = render(
-      <PhotoThumbnail photoId={1} modifiedAt={modifiedAt1} alt="photo" />,
+    render(
+      <PhotoThumbnail
+        photoId={42}
+        modifiedAt={modifiedAt}
+        alt="URL test photo"
+        size="large"
+      />,
     );
-    const img1 = screen.getByRole("img", { name: "photo" });
-    const src1 = img1.getAttribute("src") ?? "";
-
-    rerender(
-      <PhotoThumbnail photoId={1} modifiedAt={modifiedAt2} alt="photo" />,
-    );
-    const img2 = screen.getByRole("img", { name: "photo" });
-    const src2 = img2.getAttribute("src") ?? "";
 
     // Assert
-    expect(src1).toContain(`?v=${version1}`);
-    expect(src2).toContain(`?v=${version2}`);
-    expect(src1).not.toBe(src2);
+    expect(mockAuthenticatedFetch).toHaveBeenCalledTimes(1);
+    const calledUrl = mockAuthenticatedFetch.mock.calls[0][0] as string;
+    expect(calledUrl).toContain("http://localhost:5001");
+    expect(calledUrl).toContain("/api/photobank/photos/42/thumbnail/large");
+    expect(calledUrl).toContain(`?v=${expectedVersion}`);
+  });
+
+  test("revokes object URL when component unmounts", async () => {
+    // Arrange
+    makeFetchSuccess();
+
+    // Act
+    const { unmount } = render(
+      <PhotoThumbnail
+        photoId={42}
+        modifiedAt="2026-01-15T10:00:00Z"
+        alt="Cleanup photo"
+        size="medium"
+      />,
+    );
+    await screen.findByRole("img", { name: "Cleanup photo" });
+
+    // Assert — revokeObjectURL called on unmount
+    unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith(FAKE_BLOB_URL);
   });
 });
