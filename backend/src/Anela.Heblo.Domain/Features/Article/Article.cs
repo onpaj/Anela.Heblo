@@ -21,6 +21,9 @@ public sealed class Article
     public ArticleStatus Status { get; set; } = ArticleStatus.Queued;
     public string? ErrorMessage { get; set; }
     public string? RequestedBy { get; set; }
+    public int? PrecisionScore { get; set; }
+    public int? StyleScore { get; set; }
+    public string? FeedbackComment { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? GeneratedAt { get; set; }
     public List<ArticleSource> Sources { get; set; } = new();
