@@ -5,9 +5,17 @@ using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Microsoft.Identity.Client;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
+using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
+using Anela.Heblo.Application.Features.Photobank.UseCases.AddRule;
+using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRoot;
+using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRule;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos;
+using Anela.Heblo.Application.Features.Photobank.UseCases.GetRoots;
+using Anela.Heblo.Application.Features.Photobank.UseCases.GetRules;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetTags;
+using Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules;
 using Anela.Heblo.Application.Features.Photobank.UseCases.RemovePhotoTag;
+using Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Photobank;
 using MediatR;
@@ -108,6 +116,134 @@ namespace Anela.Heblo.API.Controllers
             return HandleResponse(response);
         }
 
+        // --- Settings: Index Roots ---
+
+        /// <summary>
+        /// Get configured SharePoint index roots.
+        /// </summary>
+        [HttpGet("settings/roots")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(GetRootsResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<GetRootsResponse>> GetRoots(CancellationToken cancellationToken = default)
+        {
+            var response = await _mediator.Send(new GetRootsRequest(), cancellationToken);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Add a new SharePoint index root.
+        /// </summary>
+        [HttpPost("settings/roots")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(AddRootResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<AddRootResponse>> AddRoot(
+            [FromBody] AddRootRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _mediator.Send(request, cancellationToken);
+            if (response.Success)
+                return CreatedAtAction(nameof(GetRoots), response);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Delete a SharePoint index root.
+        /// </summary>
+        [HttpDelete("settings/roots/{id:int}")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(DeleteRootResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<DeleteRootResponse>> DeleteRoot(
+            int id,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _mediator.Send(new DeleteRootRequest { Id = id }, cancellationToken);
+            return HandleResponse(response);
+        }
+
+        // --- Settings: Tag Rules ---
+
+        /// <summary>
+        /// Get all tag rules.
+        /// </summary>
+        [HttpGet("settings/rules")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(GetRulesResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<GetRulesResponse>> GetRules(CancellationToken cancellationToken = default)
+        {
+            var response = await _mediator.Send(new GetRulesRequest(), cancellationToken);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Add a new tag rule.
+        /// </summary>
+        [HttpPost("settings/rules")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(AddRuleResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<AddRuleResponse>> AddRule(
+            [FromBody] AddRuleRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _mediator.Send(request, cancellationToken);
+            if (response.Success)
+                return CreatedAtAction(nameof(GetRules), response);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Update an existing tag rule.
+        /// </summary>
+        [HttpPut("settings/rules/{id:int}")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(UpdateRuleResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<UpdateRuleResponse>> UpdateRule(
+            int id,
+            [FromBody] UpdateRuleRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            request.Id = id;
+            var response = await _mediator.Send(request, cancellationToken);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Delete a tag rule.
+        /// </summary>
+        [HttpDelete("settings/rules/{id:int}")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(DeleteRuleResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<DeleteRuleResponse>> DeleteRule(
+            int id,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _mediator.Send(new DeleteRuleRequest { Id = id }, cancellationToken);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Re-apply all active tag rules. Deletes Rule-sourced tags and recomputes them.
+        /// Manual tags are never touched.
+        /// </summary>
+        [HttpPost("settings/rules/reapply")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(ReapplyRulesResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<ReapplyRulesResponse>> ReapplyRules(CancellationToken cancellationToken = default)
+        {
+            var response = await _mediator.Send(new ReapplyRulesRequest(), cancellationToken);
+            return HandleResponse(response);
+        }
+
         [HttpGet("photos/{id:int}/thumbnail/{size}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -156,7 +292,7 @@ namespace Anela.Heblo.API.Controllers
                 return NotFound();
             }
 
-            using var thumbnail = rawThumbnail;
+            var thumbnail = rawThumbnail;
 
             Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
             if (thumbnail.ContentLength.HasValue)

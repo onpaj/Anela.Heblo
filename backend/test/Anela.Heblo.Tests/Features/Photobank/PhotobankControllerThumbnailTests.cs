@@ -153,6 +153,28 @@ public sealed class PhotobankControllerThumbnailTests
     }
 
     [Fact]
+    public async Task GetThumbnail_Returns503_WhenTokenAcquisitionFails()
+    {
+        // Arrange
+        var locator = new PhotoLocator("driveId", "fileId", DateTime.UtcNow);
+
+        _repositoryMock
+            .Setup(r => r.GetLocatorAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(locator);
+
+        _graphServiceMock
+            .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new MsalServiceException("invalid_client", "AADSTS7000215: Invalid client secret"));
+
+        // Act
+        var result = await _controller.GetThumbnail(1, ThumbnailSize.Medium);
+
+        // Assert
+        var statusResult = result.Should().BeOfType<StatusCodeResult>().Subject;
+        statusResult.StatusCode.Should().Be(StatusCodes.Status503ServiceUnavailable);
+    }
+
+    [Fact]
     public async Task GetThumbnail_Returns200WithCacheHeaders_WhenSuccessful()
     {
         // Arrange
