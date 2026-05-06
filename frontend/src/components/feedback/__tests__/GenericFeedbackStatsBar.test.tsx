@@ -12,7 +12,7 @@ const stats: GenericFeedbackStats = {
 
 test('shows skeleton cards when loading', () => {
   render(<GenericFeedbackStatsBar stats={undefined} isLoading={true} itemLabel="dotazů" />);
-  const skeletons = document.querySelectorAll('.animate-pulse');
+  const skeletons = screen.getAllByTestId('skeleton-card');
   expect(skeletons.length).toBe(4);
 });
 

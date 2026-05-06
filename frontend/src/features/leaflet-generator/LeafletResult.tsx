@@ -40,7 +40,7 @@ export default function LeafletResult({ content, generationId, onRegenerate }: L
     }
   };
 
-  const handleFeedbackSubmit = (data: { precisionScore: number; styleScore: number; comment: string }) => {
+  const handleFeedbackSubmit = (data: { precisionScore: number; styleScore: number; comment?: string }) => {
     if (!generationId) return;
     submitFeedback.mutate(
       { generationId, precisionScore: data.precisionScore, styleScore: data.styleScore, comment: data.comment || undefined },

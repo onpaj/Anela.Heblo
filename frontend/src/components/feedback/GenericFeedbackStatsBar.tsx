@@ -8,7 +8,7 @@ interface Props {
 }
 
 const SkeletonCard: React.FC = () => (
-  <div className="bg-white border border-gray-200 rounded-lg p-4 animate-pulse">
+  <div data-testid="skeleton-card" className="bg-white border border-gray-200 rounded-lg p-4 animate-pulse">
     <div className="h-3 bg-gray-200 rounded w-24 mb-3" />
     <div className="h-7 bg-gray-200 rounded w-16" />
   </div>
