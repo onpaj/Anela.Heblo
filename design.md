@@ -1,393 +1,292 @@
-# Design: HTTP 409 Spike Remediation on `PUT /api/transport-boxes/{id}/state`
+# Design: Dashboard Tile — Yesterday's DQT Status
+
+## UX/UI Design
+
+### States and Visual Layout
+
+The tile shares the same container shape as `DataQualityTile` (flex column, centered, `min-h-44`, `cursor-pointer`, hover/active transition). The `error` state is non-interactive (no pointer, no hover), matching the sibling tile.
+
+#### State: `no_data`
+```
+┌──────────────────────────┐
+│                          │
+│         🕐               │
+│      Žádná data          │
+│  Včerejší test neproběhl │
+│                          │
+└──────────────────────────┘
+```
+- `Clock` icon — `text-gray-400`
+- `"Žádná data"` — `text-gray-500 text-sm`
+- `"Včerejší test neproběhl"` — `text-gray-400 text-xs mt-1`
+
+#### State: `error`
+```
+┌──────────────────────────┐
+│                          │
+│         ✕                │
+│  Chyba při načítání dat  │
+│                          │
+└──────────────────────────┘
+```
+- `XCircle` icon — `text-red-500`
+- `"Chyba při načítání dat"` — `text-red-600 text-sm`
+- Not clickable (no `cursor-pointer`, no hover/active)
+
+#### State: `warning` — `runStatus === 'Running'`
+```
+┌──────────────────────────┐
+│                          │
+│         🕐               │
+│        probíhá           │
+│      DD.MM.YYYY          │
+│                          │
+└──────────────────────────┘
+```
+- `Clock` icon — `text-amber-500`
+- `"probíhá"` — `text-amber-600 text-sm`
+- Yesterday's date formatted as `DD.MM.YYYY` (derived from `data.data.dateTo`) — `text-gray-400 text-xs mt-1`
+
+#### State: `warning` — `runStatus === 'Completed'` with mismatches
+```
+┌──────────────────────────┐
+│                          │
+│         ⚠                │
+│           4              │
+│        neshod            │
+│    z 123 faktur          │
+│      DD.MM.YYYY          │
+│                          │
+└──────────────────────────┘
+```
+- `AlertTriangle` icon — `text-red-500`
+- Mismatch count — `text-red-700 text-3xl font-bold mb-1`
+- `"neshod"` — `text-gray-500 text-sm`
+- `"z X faktur"` (when `totalChecked > 0`) — `text-gray-400 text-xs mt-1`
+- Yesterday's date as `DD.MM.YYYY` — `text-gray-400 text-xs mt-1`
+
+#### State: `success`
+```
+┌──────────────────────────┐
+│                          │
+│         🛡                │
+│           0              │
+│        vše OK            │
+│    z 123 faktur          │
+│      DD.MM.YYYY          │
+│                          │
+└──────────────────────────┘
+```
+- `ShieldCheck` icon — `text-green-500`
+- `"0"` — `text-green-700 text-3xl font-bold mb-1`
+- `"vše OK"` — `text-gray-500 text-sm`
+- `"z X faktur"` (when `totalChecked > 0`) — `text-gray-400 text-xs mt-1`
+- Yesterday's date as `DD.MM.YYYY` — `text-gray-400 text-xs mt-1`
+
+### Component Hierarchy
+
+```
+DqtYesterdayStatusTile
+└── div (container, click handler — all states except error)
+    ├── [icon]           — varies by state
+    ├── [count / label]  — varies by state
+    └── [sub-labels]     — "z X faktur", date, "probíhá", etc.
+```
+
+### Key Interactions
+
+- Click anywhere on the tile (all states except `error`) → `navigate('/automation/data-quality')`.
+- The `error` state renders without hover styling and without a click handler, matching `DataQualityTile`.
+- Date label for `warning`/`success` states: format `data.data.dateTo` (ISO string `YYYY-MM-DD`) as `DD.MM.YYYY`. If `dateTo` is absent, fall back to the static string `"včera"`.
+
+---
 
 ## Component Design
 
-### Overview
+### Backend
 
-All changes amend existing files. The only net-new artefacts are: one interface (`IDbConstraintClassifier`), one implementing class (`NpgsqlConstraintClassifier`), one EF Core migration, and one test file (`TransportBoxRaceConditionTests`). No new modules or directories are required.
+#### `DqtYesterdayStatusTile` (new)
 
----
+**Location:** `backend/src/Anela.Heblo.Application/Features/DataQuality/DashboardTiles/DqtYesterdayStatusTile.cs`
 
-### `TransportBoxConfiguration` — Persistence layer
+**Implements:** `ITile`
 
-**File:** `backend/src/Anela.Heblo.Persistence/Logistics/TransportBoxes/TransportBoxConfiguration.cs`
+**Constructor dependencies:**
+| Parameter | Type |
+|---|---|
+| `repository` | `IDqtRunRepository` |
+| `timeProvider` | `TimeProvider` |
+| `logger` | `ILogger<DqtYesterdayStatusTile>` |
 
-Adds a constant for the index name and the filtered unique index in `Configure`:
+**Metadata properties:**
+| Property | Value |
+|---|---|
+| `Title` | `"DQT včera"` |
+| `Description` | `"Stav včerejšího DQT testu faktur"` |
+| `Size` | `TileSize.Medium` |
+| `Category` | `TileCategory.DataQuality` |
+| `DefaultEnabled` | `true` |
+| `AutoShow` | `false` |
+| `ComponentType` | `typeof(object)` |
+| `RequiredPermissions` | `Array.Empty<string>()` |
 
+**Framework-derived tile id:** `"dqtyesterdaystatus"` — produced by `TileExtensions.GetTileId` (`Type.Name.ToLowerInvariant().Replace("tile", "")`). No override needed; the class name alone is sufficient. There is no `GetTileId()` method on `ITile`.
+
+**`LoadDataAsync` responsibilities:**
+1. Compute `yesterday = DateOnly.FromDateTime(_timeProvider.GetLocalNow().LocalDateTime).AddDays(-1)`
+2. Call `_repository.GetLatestByTestTypeAndCoveredDateAsync(DqtTestType.IssuedInvoiceComparison, yesterday, ct)`
+3. Map result to status payload per the truth table in Data Schemas
+4. Wrap entire body in try/catch: on exception log with `_logger.LogError` (include exception, test type, target date) and return the error payload — never rethrow
+
+#### `IDqtRunRepository` (modified)
+
+**Location:** `backend/src/Anela.Heblo.Domain/Features/DataQuality/IDqtRunRepository.cs`
+
+**New method appended to interface:**
 ```csharp
-internal const string ActiveCodeIndexName = "IX_TransportBoxes_Code_Active";
-
-// In Configure():
-builder.HasIndex(x => x.Code)
-    .IsUnique()
-    .HasDatabaseName(ActiveCodeIndexName)
-    .HasFilter(
-        """
-        "Code" IS NOT NULL
-        AND "State" IN ('New','Opened','InTransit','Received','Reserve','Quarantine')
-        """);
+Task<DqtRun?> GetLatestByTestTypeAndCoveredDateAsync(
+    DqtTestType testType,
+    DateOnly coveredDate,
+    CancellationToken cancellationToken = default);
 ```
 
-The constant is `internal` so `NpgsqlConstraintClassifier` (same assembly) can reference it without leaking into the Application layer.
+**Semantics:** Returns the most recent run (by `StartedAt DESC`) of the given `testType` satisfying `DateFrom <= coveredDate && DateTo >= coveredDate`. Returns `null` when no such run exists. Does not load navigation properties (`Results` excluded).
 
-**Why string literals in the filter:** `State` is stored as `text` via `.HasConversion<string>()` (line 16 of the current config). Integer values would never match any row.
+#### `DqtRunRepository` (modified)
 
----
+**Location:** `backend/src/Anela.Heblo.Persistence/DataQuality/DqtRunRepository.cs`
 
-### `IDbConstraintClassifier` — Application layer (new interface)
-
-**File:** `backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/ChangeTransportBoxState/IDbConstraintClassifier.cs`
-
+**Implementation:**
 ```csharp
-using Microsoft.EntityFrameworkCore;
-
-namespace Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
-
-public interface IDbConstraintClassifier
+public async Task<DqtRun?> GetLatestByTestTypeAndCoveredDateAsync(
+    DqtTestType testType,
+    DateOnly coveredDate,
+    CancellationToken cancellationToken = default)
 {
-    bool IsDuplicateActiveBoxCodeViolation(DbUpdateException ex);
+    return await DbSet
+        .Where(r => r.TestType == testType
+                    && r.DateFrom <= coveredDate
+                    && r.DateTo >= coveredDate)
+        .OrderByDescending(r => r.StartedAt)
+        .FirstOrDefaultAsync(cancellationToken);
 }
 ```
 
-This interface keeps the Application layer free of a direct `Npgsql` reference. `DbUpdateException` is from `Microsoft.EntityFrameworkCore`, already available in Application.
+Ordering uses `StartedAt DESC` only, matching `GetLatestByTestTypeAsync`. No `.Include` — the tile reads only scalar fields on `DqtRun`. No index migration required (see Data Schemas).
 
----
+#### `DashboardModule` (modified)
 
-### `NpgsqlConstraintClassifier` — Persistence layer (new class)
+**Location:** `backend/src/Anela.Heblo.Application/Features/Dashboard/DashboardModule.cs`
 
-**File:** `backend/src/Anela.Heblo.Persistence/Logistics/TransportBoxes/NpgsqlConstraintClassifier.cs`
-
+Append after the `DataQualityStatusTile` registration:
 ```csharp
-using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
-
-namespace Anela.Heblo.Persistence.Logistics.TransportBoxes;
-
-public sealed class NpgsqlConstraintClassifier : IDbConstraintClassifier
-{
-    public bool IsDuplicateActiveBoxCodeViolation(DbUpdateException ex) =>
-        ex.GetBaseException() is PostgresException pg
-        && pg.SqlState == "23505"
-        && pg.ConstraintName == TransportBoxConfiguration.ActiveCodeIndexName;
-}
+services.RegisterTile<DqtYesterdayStatusTile>();
 ```
 
-Registered in DI as `IDbConstraintClassifier → NpgsqlConstraintClassifier` (singleton; stateless).
+### Frontend
 
-`SqlState == "23505"` is the PostgreSQL unique-violation class. Combined with `ConstraintName`, this ensures unrelated unique constraints on `TransportBoxes` do not take the 409 path.
+#### `DqtYesterdayStatusTile.tsx` (new)
 
----
+**Location:** `frontend/src/components/dashboard/tiles/DqtYesterdayStatusTile.tsx`
 
-### `TransportBoxRepository.IsBoxCodeActiveAsync` — Persistence layer
+**Responsibilities:**
+- Accept `DqtYesterdayStatusTileProps` (see Data Schemas)
+- Branch on `data.status` to render one of four visual states
+- Within `warning`: further branch on `data.data?.runStatus === 'Running'` → Clock + `"probíhá"` vs. AlertTriangle + mismatch count
+- Format `data.data?.dateTo` (`YYYY-MM-DD`) as `DD.MM.YYYY` for the date sub-label; fall back to `"včera"` when absent
+- Attach `onClick → navigate('/automation/data-quality')` to the container for all states except `error`
+- Source icons from `lucide-react`: `ShieldCheck`, `AlertTriangle`, `XCircle`, `Clock` (all already imported by `DataQualityTile.tsx`)
 
-**File:** `backend/src/Anela.Heblo.Persistence/Logistics/TransportBoxes/TransportBoxRepository.cs`
+#### `TileContent.tsx` (modified)
 
-Add `TransportBoxState.Quarantine` to the `activeStates` array (currently lines 98–105):
+**Location:** `frontend/src/components/dashboard/tiles/TileContent.tsx`
 
-```csharp
-var activeStates = new[]
-{
-    TransportBoxState.New,
-    TransportBoxState.Opened,
-    TransportBoxState.InTransit,
-    TransportBoxState.Received,
-    TransportBoxState.Reserve,
-    TransportBoxState.Quarantine,   // FR-3: box in Quarantine still owns its Code
-};
+Add one import:
+```typescript
+import { DqtYesterdayStatusTile } from './DqtYesterdayStatusTile';
 ```
 
----
-
-### `ChangeTransportBoxStateHandler` — Application layer
-
-**File:** `backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/ChangeTransportBoxState/ChangeTransportBoxStateHandler.cs`
-
-#### Constructor — add `IDbConstraintClassifier`
-
-```csharp
-private readonly IDbConstraintClassifier _constraintClassifier;
-
-public ChangeTransportBoxStateHandler(
-    ITransportBoxRepository repository,
-    IMediator mediator,
-    ILogger<ChangeTransportBoxStateHandler> logger,
-    ICurrentUserService currentUserService,
-    IStockUpProcessingService stockUpProcessingService,
-    TimeProvider timeProvider,
-    IDbConstraintClassifier constraintClassifier)
-{
-    // ... existing assignments ...
-    _constraintClassifier = constraintClassifier;
-}
+Add one switch case after `case 'dataqualitystatus'`:
+```typescript
+case 'dqtyesterdaystatus':
+  return <DqtYesterdayStatusTile data={tile.data} />;
 ```
-
-#### `Handle` — new `catch` arm (between `ValidationException` and `Exception`)
-
-Insert after the existing `catch (ValidationException)` block and before `catch (Exception)` (currently at line 149):
-
-```csharp
-catch (DbUpdateException ex) when (_constraintClassifier.IsDuplicateActiveBoxCodeViolation(ex))
-{
-    var normalizedCode = request.BoxCode?.ToUpper() ?? string.Empty;
-    _logger.LogWarning(
-        "Duplicate active box code detected via DB constraint for box {BoxId}. " +
-        "RequestedBoxCode: {RequestedBoxCode}, CurrentState: {CurrentState}, " +
-        "RequestedNewState: {RequestedNewState}, ConflictReason: {ConflictReason}, Source: {Source}",
-        request.BoxId, normalizedCode, box?.State.ToString() ?? "unknown",
-        request.NewState, "DuplicateActiveBoxCode", "DbConstraint");
-
-    return new ChangeTransportBoxStateResponse
-    {
-        Success = false,
-        ErrorCode = ErrorCodes.TransportBoxDuplicateActiveBoxFound,
-        Params = new Dictionary<string, string> { { "code", normalizedCode } }
-    };
-}
-```
-
-`box` is in scope here (loaded before the callback invocation). Any other `DbUpdateException` — FK violation, check constraint, transient infra fault — falls through to the generic `catch (Exception)` arm unchanged.
-
-#### `Handle` — enrich existing `catch (Exception)` arm
-
-Replace the current log call (line 151) to include request context:
-
-```csharp
-_logger.LogError(ex,
-    "Error changing state for transport box {BoxId}. " +
-    "BoxCode: {BoxCode}, Location: {Location}, " +
-    "RequestedNewState: {RequestedNewState}, CurrentBoxState: {CurrentBoxState}",
-    request.BoxId, request.BoxCode, request.Location,
-    request.NewState, box?.State.ToString() ?? "unknown");
-```
-
-#### `HandleNewToOpened` — structured log on fast-path duplicate
-
-Replace the early-return block after `isCodeActive` check (currently lines 178–184) with:
-
-```csharp
-if (isCodeActive)
-{
-    var conflictingBox = await _repository.GetByCodeAsync(normalizedCode);
-
-    _logger.LogWarning(
-        "Duplicate active box code detected for box {BoxId}. " +
-        "RequestedBoxCode: {RequestedBoxCode}, CurrentState: {CurrentState}, " +
-        "RequestedNewState: {RequestedNewState}, ConflictReason: {ConflictReason}, Source: {Source}, " +
-        "ConflictingBoxId: {ConflictingBoxId}, ConflictingBoxState: {ConflictingBoxState}",
-        box.Id, normalizedCode, box.State, request.NewState,
-        "DuplicateActiveBoxCode", "FastPathCheck",
-        conflictingBox?.Id, conflictingBox?.State.ToString() ?? "unknown");
-
-    return new ChangeTransportBoxStateResponse
-    {
-        Success = false,
-        ErrorCode = ErrorCodes.TransportBoxDuplicateActiveBoxFound,
-        Params = new Dictionary<string, string> { { "code", normalizedCode } }
-    };
-}
-```
-
-`GetByCodeAsync` is called only on the duplicate unhappy path; the happy path is unchanged (NFR-1).
-
----
-
-### EF Core Migration — Persistence layer (new file)
-
-**File:** `backend/src/Anela.Heblo.Persistence/Migrations/<timestamp>_AddUniqueIndexOnTransportBoxCodeActive.cs`
-
-Generated via `dotnet ef migrations add AddUniqueIndexOnTransportBoxCodeActive`, then edited to prepend the fail-fast guard in `Up`:
-
-```csharp
-protected override void Up(MigrationBuilder migrationBuilder)
-{
-    // Pre-flight: abort if any duplicate active codes already exist.
-    // Operator must resolve them (see runbook) before applying this migration.
-    migrationBuilder.Sql("""
-        DO $$
-        DECLARE dup_count INTEGER;
-        BEGIN
-            SELECT COUNT(*) INTO dup_count
-            FROM (
-                SELECT "Code"
-                FROM public."TransportBoxes"
-                WHERE "Code" IS NOT NULL
-                  AND "State" IN ('New','Opened','InTransit','Received','Reserve','Quarantine')
-                GROUP BY "Code"
-                HAVING COUNT(*) > 1
-            ) sub;
-
-            IF dup_count > 0 THEN
-                RAISE EXCEPTION
-                    'Migration aborted: % active TransportBox duplicate code(s) found. '
-                    'Resolve them before applying this migration.',
-                    dup_count;
-            END IF;
-        END $$;
-        """);
-
-    migrationBuilder.CreateIndex(
-        name: "IX_TransportBoxes_Code_Active",
-        table: "TransportBoxes",
-        schema: "public",
-        column: "Code",
-        unique: true,
-        filter: """
-            "Code" IS NOT NULL
-            AND "State" IN ('New','Opened','InTransit','Received','Reserve','Quarantine')
-            """);
-}
-
-protected override void Down(MigrationBuilder migrationBuilder)
-{
-    migrationBuilder.DropIndex(
-        name: "IX_TransportBoxes_Code_Active",
-        table: "TransportBoxes",
-        schema: "public");
-}
-```
-
----
-
-### `TransportBoxUniquenessTests` — Test (amended)
-
-**File:** `backend/test/Anela.Heblo.Tests/Domain/Logistics/TransportBoxUniquenessTests.cs`
-
-Add one test covering the Quarantine gap (FR-3). Runs against InMemory EF — sufficient because it validates the application-layer fast-path check (`IsBoxCodeActiveAsync`), not the DB constraint:
-
-```csharp
-[Fact]
-public async Task OpenBox_WithCodeHeldByQuarantinedBox_ReturnsDuplicateError()
-{
-    // Arrange: open box A with B001 → transition to Quarantine
-    // Act: attempt to open box B with B001
-    // Assert: response.ErrorCode == ErrorCodes.TransportBoxDuplicateActiveBoxFound
-}
-```
-
-Existing tests are unaffected — none transit through `Quarantine`.
-
----
-
-### `TransportBoxRaceConditionTests` — Test (new file)
-
-**File:** `backend/test/Anela.Heblo.Tests/Domain/Logistics/TransportBoxRaceConditionTests.cs`
-
-Uses `Testcontainers.PostgreSql` (already referenced at v3.6.0 in the test project) to spin up a real PostgreSQL instance, apply migrations, then fire two concurrent `New → Opened` requests with the same `BoxCode`:
-
-```csharp
-[Fact]
-public async Task ConcurrentOpenWithSameCode_ExactlyOneSucceeds()
-{
-    // Arrange: real PostgreSQL via Testcontainer; migrations applied;
-    //          two boxes in New state, same BoxCode = "B001"
-    // Act: run two concurrent ChangeTransportBoxStateRequest { NewState=Opened, BoxCode="B001" }
-    // Assert: exactly one response has Success=true;
-    //         the other has ErrorCode=TransportBoxDuplicateActiveBoxFound
-}
-```
-
-InMemory EF does not enforce filtered unique indexes and cannot exercise this scenario.
 
 ---
 
 ## Data Schemas
 
-### Filtered Unique Index
+### Backend payload (`LoadDataAsync` return)
 
-```sql
-CREATE UNIQUE INDEX "IX_TransportBoxes_Code_Active"
-    ON public."TransportBoxes" ("Code")
-    WHERE "Code" IS NOT NULL
-      AND "State" IN ('New','Opened','InTransit','Received','Reserve','Quarantine');
-```
-
-The filter uses **string literals** because `State` is stored as `text` via `HasConversion<string>()`. Integer values would never match any row.
-
----
-
-### Duplicate-detection Pre-flight Queries (Runbook)
-
-Cross-state duplicates (same code held by multiple active boxes):
-
-```sql
-SELECT "Code",
-       COUNT(*)                                          AS active_count,
-       ARRAY_AGG("Id"::text || ':' || "State")           AS boxes
-FROM public."TransportBoxes"
-WHERE "Code" IS NOT NULL
-  AND "State" IN ('New','Opened','InTransit','Received','Reserve','Quarantine')
-GROUP BY "Code"
-HAVING COUNT(*) > 1;
-```
-
-Within-state duplicates (same code and same state):
-
-```sql
-SELECT "Code", "State", COUNT(*) AS dup_count
-FROM public."TransportBoxes"
-WHERE "Code" IS NOT NULL
-  AND "State" IN ('New','Opened','InTransit','Received','Reserve','Quarantine')
-GROUP BY "Code", "State"
-HAVING COUNT(*) > 1;
-```
-
-Both queries must return zero rows before applying the migration.
-
----
-
-### Structured Log Contract (App Insights)
-
-These field names are stable. Renaming them is a breaking change for any saved KQL queries.
-
-| Property | Type | Emitted when |
-|---|---|---|
-| `BoxId` | `int` | All conflict entries |
-| `RequestedBoxCode` | `string` (upper-cased) | All conflict entries |
-| `CurrentState` | `string` | All conflict entries |
-| `RequestedNewState` | `string` | All conflict entries |
-| `ConflictReason` | `"DuplicateActiveBoxCode"` | All conflict entries |
-| `Source` | `"FastPathCheck"` \| `"DbConstraint"` | Indicates which detection path fired |
-| `ConflictingBoxId` | `int?` | `Source = "FastPathCheck"` only |
-| `ConflictingBoxState` | `string?` | `Source = "FastPathCheck"` only |
-
-KQL filter — 24-hour window:
-
-```kusto
-traces
-| where timestamp > ago(24h)
-| where customDimensions["ConflictReason"] == "DuplicateActiveBoxCode"
-| project timestamp,
-          customDimensions["BoxId"],
-          customDimensions["Source"],
-          customDimensions["RequestedBoxCode"],
-          customDimensions["ConflictingBoxId"]
-| order by timestamp desc
-```
-
----
-
-### API Wire Contract (unchanged)
-
-**Request** — `PUT /api/transport-boxes/{id}/state`
-
+**Success / Warning:**
 ```json
 {
-  "newState": "Opened",
-  "boxCode": "B001",
-  "location": null,
-  "description": null
+  "status": "success" | "warning",
+  "data": {
+    "runId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "runStatus": "Completed" | "Running",
+    "dateFrom": "2026-05-05",
+    "dateTo": "2026-05-05",
+    "totalChecked": 123,
+    "totalMismatches": 4
+  },
+  "drillDown": { "href": "/automation/data-quality", "enabled": true }
 }
 ```
 
-**Response — 409 Conflict** (identical from both fast-path and DB-constraint paths)
-
+**No data / Error:**
 ```json
 {
-  "success": false,
-  "errorCode": 1405,
-  "params": { "code": "B001" }
+  "status": "no_data" | "error",
+  "data": null,
+  "drillDown": { "href": "/automation/data-quality", "enabled": true }
 }
 ```
 
-No DTO fields are added or removed. The TypeScript OpenAPI client does not need regeneration.
+### Status mapping truth table
+
+| Run | `run.Status` | `run.TotalMismatches` | Response `status` |
+|---|---|---|---|
+| `null` | — | — | `"no_data"` |
+| present | `Failed` | — | `"error"` |
+| present | `Running` | — | `"warning"` |
+| present | `Completed` | `> 0` | `"warning"` |
+| present | `Completed` | `0` | `"success"` |
+| (exception) | — | — | `"error"` (caught + logged) |
+
+### Frontend props contract
+
+```typescript
+interface DqtYesterdayStatusTileProps {
+  data: {
+    status?: 'success' | 'warning' | 'error' | 'no_data';
+    data?: {
+      runId?: string;
+      runStatus?: 'Completed' | 'Failed' | 'Running';
+      dateFrom?: string;        // ISO date "YYYY-MM-DD"
+      dateTo?: string;          // ISO date "YYYY-MM-DD"
+      totalChecked?: number;
+      totalMismatches?: number;
+    } | null;
+    drillDown?: {
+      href: string;
+      enabled: boolean;
+    };
+  };
+}
+```
+
+> Note: the sibling `DataQualityTile.tsx` reads `data.data?.mismatchCount` — a pre-existing field name mismatch with its own backend. This tile uses `totalMismatches` consistently end-to-end and does not inherit that discrepancy.
+
+### Repository EF Core query
+
+```sql
+SELECT TOP 1 *
+FROM   DqtRuns
+WHERE  TestType = @testType
+  AND  DateFrom <= @coveredDate
+  AND  DateTo   >= @coveredDate
+ORDER BY StartedAt DESC
+```
+
+No new index or migration. The existing `IX_DqtRuns_TestType_StartedAt` narrows rows by test type; the date-range predicate operates over small cardinality (≈1–few rows per test type per day). Revisit only if `DqtRuns` exceeds ~10 000 rows.
