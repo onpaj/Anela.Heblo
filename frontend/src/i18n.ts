@@ -209,6 +209,7 @@ const resources = {
         PhotoNotFound: "Fotka nebyla nalezena",
         PhotobankRootNotFound: "Kořenový adresář fotobanka nebyl nalezen",
         PhotobankRuleNotFound: "Pravidlo tagu nebylo nalezeno",
+        PhotoTagCreationFailed: "Vytvoření tagu fotky selhalo.",
 
         // Article Generation errors
         ArticleNotFound: "Článek nebyl nalezen (ID: {{id}})",
