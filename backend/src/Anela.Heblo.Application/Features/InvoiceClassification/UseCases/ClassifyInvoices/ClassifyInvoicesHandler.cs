@@ -149,16 +149,13 @@ public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, 
         await throttle.WaitAsync(cancellationToken);
         try
         {
-            try
-            {
-                var invoice = await _invoicesClient.GetInvoiceByIdAsync(id);
-                return new FetchOutcome(id, invoice, FetchError: null);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching invoice {InvoiceId}", id);
-                return new FetchOutcome(id, Invoice: null, FetchError: ex.Message);
-            }
+            var invoice = await _invoicesClient.GetInvoiceByIdAsync(id);
+            return new FetchOutcome(id, invoice, FetchError: null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching invoice {InvoiceId}", id);
+            return new FetchOutcome(id, Invoice: null, FetchError: ex.Message);
         }
         finally
         {
