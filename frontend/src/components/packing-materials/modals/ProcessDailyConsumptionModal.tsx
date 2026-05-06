@@ -22,11 +22,13 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
     return yesterday.toISOString().split('T')[0];
   });
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const processDailyConsumptionMutation = useProcessDailyConsumption();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMessage(null);
+    setInfoMessage(null);
 
     try {
       const request = new ProcessDailyConsumptionRequest({
@@ -35,7 +37,11 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
       const result = await processDailyConsumptionMutation.mutateAsync(request);
       
       if (result.success) {
-        setSuccessMessage(result.message || 'Spotřeba byla úspěšně odečtena');
+        if ((result.materialsProcessed ?? 0) > 0) {
+          setSuccessMessage(`Odečteno pro ${result.materialsProcessed} materiálů`);
+        } else {
+          setInfoMessage('Pro tento den nebyly nalezeny žádné faktury — nic nebylo odečteno');
+        }
         setTimeout(() => {
           onSuccess?.();
           onClose();
@@ -109,6 +115,13 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
           {successMessage && (
             <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
               {successMessage}
+            </div>
+          )}
+
+          {/* Info Message — zero consumption */}
+          {infoMessage && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
+              {infoMessage}
             </div>
           )}
 
