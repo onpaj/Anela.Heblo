@@ -43,6 +43,11 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
 }) => {
   const fcEvents = useMemo(() => events.map(toFcEvent), [events]);
 
+  const calendarHeight = viewName === 'twoWeeks' ? 'auto' : '100%';
+  const wrapperClassName =
+    `marketing-calendar${viewName === 'twoWeeks' ? ' two-weeks' : ''} h-full`
+    + (className ? ` ${className}` : '');
+
   const handleEventClick = (info: EventClickArg) => {
     onEventClick(Number(info.event.id));
   };
@@ -74,7 +79,7 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
   };
 
   return (
-    <div className={`marketing-calendar h-full${className ? ` ${className}` : ''}`}>
+    <div className={wrapperClassName}>
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, interactionPlugin]}
@@ -87,7 +92,7 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
         editable={true}
         selectable={true}
         selectMirror={true}
-        height="100%"
+        height={calendarHeight}
         eventClick={handleEventClick}
         eventDrop={handleEventDrop}
         eventResize={handleEventResize}

@@ -89,3 +89,63 @@ describe("MarketingMonthCalendar — views registry", () => {
     expect(fullCalendarPropsRef.current).not.toHaveProperty("dayMaxEvents");
   });
 });
+
+describe("MarketingMonthCalendar — height and wrapper class", () => {
+  it("uses height='100%' for fiveWeeks", () => {
+    render(
+      React.createElement(MarketingMonthCalendar, {
+        ...baseProps,
+        viewName: "fiveWeeks",
+      }),
+    );
+    expect(fullCalendarPropsRef.current?.height).toBe("100%");
+  });
+
+  it("uses height='auto' for twoWeeks", () => {
+    render(
+      React.createElement(MarketingMonthCalendar, {
+        ...baseProps,
+        viewName: "twoWeeks",
+      }),
+    );
+    expect(fullCalendarPropsRef.current?.height).toBe("auto");
+  });
+
+  it("does not add 'two-weeks' class to the wrapper for fiveWeeks", () => {
+    const { container } = render(
+      React.createElement(MarketingMonthCalendar, {
+        ...baseProps,
+        viewName: "fiveWeeks",
+      }),
+    );
+    const wrapper = container.firstChild;
+    expect(wrapper.className).toContain("marketing-calendar");
+    expect(wrapper.className).not.toContain("two-weeks");
+  });
+
+  it("adds 'two-weeks' class to the wrapper for twoWeeks", () => {
+    const { container } = render(
+      React.createElement(MarketingMonthCalendar, {
+        ...baseProps,
+        viewName: "twoWeeks",
+      }),
+    );
+    const wrapper = container.firstChild;
+    expect(wrapper.className).toContain("marketing-calendar");
+    expect(wrapper.className).toContain("two-weeks");
+  });
+
+  it("appends caller-provided className after the view class", () => {
+    const { container } = render(
+      React.createElement(MarketingMonthCalendar, {
+        ...baseProps,
+        viewName: "twoWeeks",
+        className: "extra-class",
+      }),
+    );
+    const wrapper = container.firstChild;
+    expect(wrapper.className).toBe(
+      "marketing-calendar two-weeks h-full extra-class",
+    );
+  });
+});
