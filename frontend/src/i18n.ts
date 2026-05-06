@@ -213,6 +213,8 @@ const resources = {
         WebSearchUnavailable: "Webové vyhledávání je dočasně nedostupné.",
         StyleGuideFetchFailed: "Nepodařilo se načíst stylový průvodce.",
         ArticleAlreadyGenerated: "Článek již byl vygenerován.",
+        ArticleFeedbackAlreadySubmitted: "Zpětná vazba k tomuto článku již byla odeslána.",
+        ArticleNotGenerated: "Článek ještě nebyl vygenerován.",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
@@ -322,6 +324,8 @@ const resources = {
         WebSearchUnavailable: "Web search is temporarily unavailable.",
         StyleGuideFetchFailed: "Failed to load style guide.",
         ArticleAlreadyGenerated: "Article has already been generated.",
+        ArticleFeedbackAlreadySubmitted: "Feedback for this article has already been submitted.",
+        ArticleNotGenerated: "Article has not been generated yet.",
       },
     },
   },
