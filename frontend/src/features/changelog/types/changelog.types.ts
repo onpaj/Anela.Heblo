@@ -54,21 +54,27 @@ export type ChangeSource = 'commit' | 'github-issue';
 export interface ChangelogEntry {
   /** Type of change (translated to Czech) */
   type: ChangeType;
-  
+
   /** Short title of the change */
   title: string;
-  
+
   /** Detailed description of the change */
   description: string;
-  
+
   /** Source where this change came from */
   source: ChangeSource;
-  
+
   /** Git commit hash (for commits) */
   hash?: string;
-  
+
   /** GitHub issue reference (for issues) */
   id?: string;
+
+  /** Raw conventional-commit scope, e.g. "marketing" */
+  scope?: string;
+
+  /** Czech user-friendly module label, e.g. "Marketingový kalendář" */
+  module?: string;
 }
 
 /**
