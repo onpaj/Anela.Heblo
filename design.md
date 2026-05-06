@@ -1,254 +1,160 @@
-# Design: Marketing Calendar 14-Day View
-
-## UX/UI Design
-
-### Toolbar — 3-button segmented control
-
-The existing 2-button row (`Kalendář | Seznam`) is replaced with a 3-button segmented control. The visual language (indigo active state, neutral hover, shared border, rounded container) is unchanged.
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Marketingový kalendář    [■ 5 týdnů][□ 14 dní][□ Seznam]   [+ Nová akce] … │
-└──────────────────────────────────────────────────────────────────────────────┘
-  ■ = active  (bg-indigo-600 text-white)
-  □ = inactive (text-gray-600 hover:bg-gray-50)
-```
-
-Button order: `5 týdnů` (Calendar icon) · `14 dní` (Calendar icon) · `Seznam` (List icon).  
-Default active on page load: `5 týdnů`.
-
-Both calendar buttons use the already-imported `Calendar` icon from `lucide-react`; the list button uses `List`. The `Download` / `Nová akce` buttons are unchanged and remain after the toggle group.
-
-### 5-week view (unchanged)
-
-```
-Po  Út  St  Čt  Pá  So  Ne
-────────────────────────────
- …   …   …   …   …   …   …   ← week –1
- …   …  [T]  …   …   …   …   ← today's week  (T = indigo circle)
- …   …   …   …   …   …   …
- …   …   …   …   …   …   …
- …   …   …   …   …   …   …   ← week +3
-                  +2 more ↑   ← "+N more" truncation still present
-```
-
-### 14-day view (new)
-
-```
-Po  Út  St  Čt  Pá  So  Ne
-────────────────────────────────────────
- …   …  [T]  …   …   …   …   ← today's week
- ┌─────────────────────────┐
- │ Event A                 │  all events
- │ Event B                 │  visible —
- │ Event C                 │  no "+N more"
- └─────────────────────────┘
- …   …   …   …   …   …   …   ← week +1
-                               ↕ parent container scrolls when grid > viewport
-```
-
-Each cell has a minimum height of 80 px even when empty. Vertical expansion is unbounded; the existing `overflow-auto` parent container provides the single scroll context — no nested scrollbars.
-
-### Key interactions
-
-| Action | Behavior |
-|--------|----------|
-| Click `14 dní` | `viewMode` → `'twoWeeks'`; `visibleRange` reset to `null`; `MarketingMonthCalendar` remounts via `key`; 14-day fallback fetch fires; `datesSet` updates `visibleRange` with actual window |
-| Click `5 týdnů` | Same flow with 35-day fallback range |
-| Click `Seznam` | `viewMode` → `'list'`; calendar unmounts; list + filter panel render (unchanged) |
-| Prev / Next in 14-day mode | FullCalendar API advances/retreats exactly 14 days |
-| Today in 14-day mode | `gotoDate(getCalendarStartForToday())` — today lands in week 2 of the 2-row grid |
-| Event click / drag / resize / range select | Identical handler chain to 5-week view; no behavioral change |
-
----
+# Design: Parallelize Invoice Fetch in `ClassifyInvoices` Handler
 
 ## Component Design
 
-### `MarketingCalendarPage`
+### `ClassifyInvoicesHandler` (modified)
 
-**Responsibility:** owns all view state, orchestrates data fetching, renders toolbar and the active view block.
+**File:** `backend/src/Anela.Heblo.Application/Features/InvoiceClassification/UseCases/ClassifyInvoices/ClassifyInvoicesHandler.cs`
 
-**`ViewMode` union widened** (current `'calendar' | 'list'` → new):
+The handler gains one private constant and one private type. Its `Handle` method replaces the sequential `foreach` fetch loop (lines 39–53) with a parallel fetch phase while leaving the classification loop (lines 65–105) and the batch-mode path (lines 56–61) byte-identical.
 
-```ts
-type ViewMode = 'fiveWeeks' | 'twoWeeks' | 'list';
-const [viewMode, setViewMode] = useState<ViewMode>('fiveWeeks');
+**Responsibilities after the change:**
+
+| Phase | Mechanism | Concurrency |
+|---|---|---|
+| Specific-invoices fetch | `Task.WhenAll` + `SemaphoreSlim` throttle | Up to `MaxFetchConcurrency` concurrent Flexi calls |
+| Result aggregation | Sequential traversal of `FetchOutcome[]` in input order | Single-threaded |
+| Classification | Unchanged sequential `foreach` | Single-threaded |
+| Batch fetch | Unchanged `GetUnclassifiedInvoicesAsync` | Single call |
+
+**New private members:**
+
+```csharp
+private const int MaxFetchConcurrency = 8;
+
+private readonly record struct FetchOutcome(
+    string Id,
+    ReceivedInvoiceDto? Invoice,
+    string? FetchError);
 ```
 
-**New handler** (replaces two inline `setViewMode` calls on the toolbar buttons):
+`FetchOutcome` is defined as a `file`-scoped type (or a private nested type) in the same `.cs` file to keep it invisible outside the slice.
 
-```ts
-const handleViewModeChange = (mode: ViewMode) => {
-  setViewMode(mode);
-  if (mode !== 'list') setVisibleRange(null);
-};
+**Fetch-phase execution model:**
+
+```
+request.InvoiceIds = [A, B, C, …]
+        │
+        ▼
+SemaphoreSlim(MaxFetchConcurrency, MaxFetchConcurrency) — using-scoped
+        │
+        ├─ Task<FetchOutcome> per id (materialised into List before WhenAll)
+        │     throttle.WaitAsync(cancellationToken)
+        │         → _invoicesClient.GetInvoiceByIdAsync(id)  [try/catch]
+        │     throttle.Release()  [finally]
+        │
+        ▼
+await Task.WhenAll(fetchTasks)  →  FetchOutcome[] in input order
+        │
+        ▼
+Stopwatch stopped → LogDebug("Fetched {FetchedCount}/{RequestedCount} invoices in {ElapsedMs}ms")
+        │
+        ▼
+Sequential aggregation pass (preserves FR-5 ordering invariant):
+  Invoice != null              → append to invoicesToClassify
+  Invoice == null, no error    → Errors++, errorMessages.Add("Invoice {id} not found"), LogWarning
+  Invoice == null, FetchError  → Errors++, errorMessages.Add("Invoice {id}: fetch failed: {msg}"), LogError
+        │
+        ▼
+[Unchanged classification loop]
 ```
 
-**Fallback fetch range** (currently hardcoded to 35 days at `MarketingCalendarPage.tsx:64-72`) becomes view-aware; `viewMode` is added to the `useMemo` dependency array:
+**Cancellation boundary:** `cancellationToken` is forwarded only to `throttle.WaitAsync(cancellationToken)`. In-flight Flexi calls are not cancellable because `IReceivedInvoicesClient.GetInvoiceByIdAsync` does not accept a `CancellationToken` (out of scope).
 
-```ts
-end.setDate(start.getDate() + (viewMode === 'twoWeeks' ? 14 : 35));
-```
+**Logging contract:**
 
-**Conditional render** (`viewMode === 'calendar'` → `viewMode !== 'list'`):
-
-```tsx
-{viewMode !== 'list' ? <CalendarBlock /> : <ListBlock />}
-```
-
-**`MarketingMonthCalendar` usage inside `CalendarBlock`:**
-
-```tsx
-<MarketingMonthCalendar
-  key={viewMode}
-  viewName={viewMode as CalendarViewName}
-  events={calendarEvents}
-  initialDate={currentDate}
-  onEventClick={openEdit}
-  onEventMove={handleEventMove}
-  onEventResize={handleEventResize}
-  onDateRangeSelect={handleDateRangeSelect}
-  onDatesSet={handleDatesSet}
-  calendarRef={calendarRef}
-  className="h-full"
-/>
-```
-
-`key={viewMode}` forces a React remount on every calendar-mode switch. This fires `datesSet` exactly once with the new window's true bounds and eliminates any stale FullCalendar internal state from the previous view.
+| Event | Level | Template |
+|---|---|---|
+| Fetch phase complete | Debug | `"Fetched {FetchedCount}/{RequestedCount} invoices in {ElapsedMs}ms"` |
+| Invoice not found | Warning | `"Invoice {InvoiceId} not found"` (preserved verbatim) |
+| Fetch exception | Error | `"Error fetching invoice {InvoiceId}"` |
+| Classification start | Information | `"Starting classification of {Count} specific invoices"` (preserved verbatim) |
 
 ---
 
-### `MarketingMonthCalendar`
+### Test class (new)
 
-**Responsibility:** renders a single FullCalendar `dayGrid` instance for either the 5-week or 14-day view. No awareness of the list view.
+**File:** `backend/test/Anela.Heblo.Tests/Features/InvoiceClassification/ClassifyInvoicesHandlerTests.cs`
 
-**New exported type:**
+xUnit + FluentAssertions + Moq, hand-rolled fakes where Moq callback timing is insufficient (concurrency-limit test).
 
-```ts
-export type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
-```
-
-**Props interface — `viewName` added as required:**
-
-```ts
-interface MarketingMonthCalendarProps {
-  events: CalendarEvent[];
-  initialDate: Date;
-  viewName: CalendarViewName;           // NEW — required, no default
-  onEventClick: (id: number) => void;
-  onEventMove: (id: number, dateFrom: string, dateTo: string) => void;
-  onEventResize: (id: number, dateFrom: string, dateTo: string) => void;
-  onDateRangeSelect: (dateFrom: string, dateTo: string) => void;
-  onDatesSet: (visibleStart: Date, visibleEnd: Date, currentStart: Date) => void;
-  calendarRef: React.RefObject<FullCalendar>;
-  className?: string;
-}
-```
-
-**Internal view registry:**
-
-```ts
-const CALENDAR_VIEWS = {
-  fiveWeeks: { type: 'dayGrid', duration: { weeks: 5 }, dayMaxEvents: true  },
-  twoWeeks:  { type: 'dayGrid', duration: { weeks: 2 }, dayMaxEvents: false },
-} as const;
-```
-
-**Derived render values:**
-
-```ts
-const calendarHeight = viewName === 'twoWeeks' ? 'auto' : '100%';
-
-const wrapperClass =
-  `marketing-calendar${viewName === 'twoWeeks' ? ' two-weeks' : ''} h-full`
-  + (className ? ` ${className}` : '');
-```
-
-**FullCalendar prop changes from current code:**
-
-| Prop | Before | After |
-|------|--------|-------|
-| `initialView` | `"fiveWeeks"` (hardcoded) | `{viewName}` |
-| `views` | `{ fiveWeeks: { type, duration } }` | `{CALENDAR_VIEWS}` (both views) |
-| `height` | `"100%"` (hardcoded) | `{calendarHeight}` |
-| `dayMaxEvents` | `{true}` (top-level) | removed — lives in `CALENDAR_VIEWS` per-view |
-
-No handler logic changes. All callbacks (`handleEventClick`, `handleEventDrop`, `handleEventResize`, `handleSelect`, `handleDatesSet`) are identical in both views.
-
----
-
-### `marketingCalendar.css`
-
-Two rules appended at the end of the file, scoped to `.marketing-calendar.two-weeks` to leave the 5-week view untouched:
-
-```css
-.marketing-calendar.two-weeks .fc-daygrid-day-frame {
-  min-height: 80px;
-}
-
-.marketing-calendar.two-weeks .fc-daygrid-day-events {
-  overflow: visible;
-}
-```
-
----
-
-### Test files (new)
-
-**`frontend/src/components/marketing/calendar/__tests__/MarketingMonthCalendar.test.tsx`**
-
-Covers:
-- `viewName='fiveWeeks'` → FullCalendar receives `initialView="fiveWeeks"` and the views registry carries `dayMaxEvents: true` for `fiveWeeks`.
-- `viewName='twoWeeks'` → FullCalendar receives `initialView="twoWeeks"`, views registry carries `dayMaxEvents: false` for `twoWeeks`, wrapper element has `two-weeks` CSS class.
-- Both views are present in the registry simultaneously.
-- `height='auto'` for `twoWeeks`; `height='100%'` for `fiveWeeks`.
-
-**`frontend/src/components/marketing/pages/__tests__/MarketingCalendarPage.test.tsx`**
-
-Covers:
-- Toolbar renders all three buttons with Czech labels (`5 týdnů`, `14 dní`, `Seznam`).
-- Default active button is `5 týdnů` on first render.
-- Clicking `14 dní` highlights it and mounts `MarketingMonthCalendar` with `viewName='twoWeeks'`.
-- Clicking `Seznam` unmounts the calendar and renders the list.
-- Returning from `Seznam` to `5 týdnů` remounts the calendar with `viewName='fiveWeeks'`.
+| Test method | FR covered | Key assertion |
+|---|---|---|
+| `Handle_FetchesInParallel_WhenMultipleIds` | FR-1, NFR-1 | 10 ids × 200 ms fake delay completes < 800 ms |
+| `Handle_RespectsConcurrencyLimit` | FR-2 | Atomic in-flight counter never exceeds `MaxFetchConcurrency` during any window |
+| `Handle_AppendsNotFoundError_AndContinues` | FR-3 | `Errors == 1`, `ErrorMessages` contains `"Invoice B not found"`, A and C reach the classifier |
+| `Handle_FetchExceptionIsolatedToOneId` | FR-4 | `Errors == 1`, message contains id and exception text, remaining ids still classified |
+| `Handle_PreservesInputOrderOfErrors` | FR-5 | `ErrorMessages` order matches `InvoiceIds` order across mixed missing/throwing ids |
+| `Handle_BatchModeUnchanged` | FR-6 | `GetUnclassifiedInvoicesAsync` called exactly once; `GetInvoiceByIdAsync` never called |
 
 ---
 
 ## Data Schemas
 
-### Backend API — no changes
+### Unchanged public contracts
 
-The feature is entirely presentational. The existing endpoint accepts arbitrary date windows and requires no modification:
+No schema changes. All of the following are read-only for this feature:
 
-```
-GET /api/MarketingCalendar/calendar?StartDate={ISO}&EndDate={ISO}
-```
-
-Response shape is unchanged — `MarketingActionDto[]` consumed by `useMarketingCalendar`.
-
-### Frontend data flow — view-aware fetch range
-
-The `useMemo` at `MarketingCalendarPage.tsx:64-72` gains `viewMode` as a dependency:
-
-```ts
-const { startDate, endDate } = useMemo(() => {
-  if (visibleRange) {
-    return { startDate: visibleRange.start, endDate: visibleRange.end };
-  }
-  const start = getCalendarStartForToday();
-  const end = new Date(start);
-  end.setDate(start.getDate() + (viewMode === 'twoWeeks' ? 14 : 35));
-  return { startDate: start, endDate: end };
-}, [visibleRange, viewMode]);
+**`ClassifyInvoicesRequest`**
+```csharp
+public class ClassifyInvoicesRequest : IRequest<ClassifyInvoicesResponse>
+{
+    public List<string>? InvoiceIds { get; set; }   // null/empty → batch mode
+    public bool ManualTrigger { get; set; } = false;
+}
 ```
 
-The React Query key for `useMarketingCalendar` already includes `startDate` and `endDate`; different windows produce separate cache entries with no key changes required.
-
-### `CalendarViewName` — new exported type
-
-```ts
-// frontend/src/components/marketing/calendar/MarketingMonthCalendar.tsx
-export type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
+**`ClassifyInvoicesResponse`**
+```csharp
+public class ClassifyInvoicesResponse : BaseResponse
+{
+    public int TotalInvoicesProcessed { get; set; }
+    public int SuccessfulClassifications { get; set; }
+    public int ManualReviewRequired { get; set; }
+    public int Errors { get; set; }
+    public List<string> ErrorMessages { get; set; } = new();
+}
 ```
 
-`ViewMode` on the page (`'fiveWeeks' | 'twoWeeks' | 'list'`) is a strict superset. The `as CalendarViewName` cast in the JSX is safe because the calendar block is only rendered when `viewMode !== 'list'`.
+**`IReceivedInvoicesClient`**
+```csharp
+public interface IReceivedInvoicesClient
+{
+    Task<List<ReceivedInvoiceDto>> GetUnclassifiedInvoicesAsync();
+    Task<ReceivedInvoiceDto?> GetInvoiceByIdAsync(string invoiceId);  // no CancellationToken — out of scope
+}
+```
+
+---
+
+### New internal type
+
+**`FetchOutcome`** — private to the handler file, never exposed via any API or interface:
+
+```csharp
+private readonly record struct FetchOutcome(
+    string Id,              // original invoice id from request.InvoiceIds
+    ReceivedInvoiceDto? Invoice,   // null on not-found or exception
+    string? FetchError);    // null on success or not-found; exception message on caught exception
+```
+
+Discrimination table:
+
+| `Invoice` | `FetchError` | Meaning |
+|---|---|---|
+| non-null | null | fetch succeeded |
+| null | null | invoice not found (404-equivalent) |
+| null | non-null | fetch threw an exception |
+
+---
+
+### Error message formats
+
+Fetch-phase messages are appended to `response.ErrorMessages` **before** any classification-phase messages (FR-5 ordering invariant):
+
+| Case | Format |
+|---|---|
+| Not found | `"Invoice {id} not found"` |
+| Fetch exception | `"Invoice {id}: fetch failed: {exception.Message}"` |
+| Classification error (existing) | `"Invoice {invoiceNumber}: {errorMessage}"` |
+| Classification error with rule (existing) | `"Invoice {invoiceNumber} (Rule: {ruleName}): {errorMessage}"` |
