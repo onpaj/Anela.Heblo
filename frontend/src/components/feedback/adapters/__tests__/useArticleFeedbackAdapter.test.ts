@@ -105,3 +105,22 @@ test('translates GenericFeedbackParams to article-specific params', () => {
     }),
   );
 });
+
+test('returns empty rows and undefined stats when loading', () => {
+  jest.spyOn(articleHooks, 'useArticleFeedbackListQuery').mockReturnValue({
+    data: undefined, isLoading: true, isError: false,
+  } as any);
+  const { result } = renderHook(() => useArticleFeedbackAdapter(params));
+  expect(result.current.rows).toEqual([]);
+  expect(result.current.stats).toBeUndefined();
+  expect(result.current.isLoading).toBe(true);
+});
+
+test('returns isError and empty rows when query errors', () => {
+  jest.spyOn(articleHooks, 'useArticleFeedbackListQuery').mockReturnValue({
+    data: undefined, isLoading: false, isError: true,
+  } as any);
+  const { result } = renderHook(() => useArticleFeedbackAdapter(params));
+  expect(result.current.isError).toBe(true);
+  expect(result.current.rows).toEqual([]);
+});
