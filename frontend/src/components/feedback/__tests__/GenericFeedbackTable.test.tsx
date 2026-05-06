@@ -82,3 +82,34 @@ test('calls onPageChange when next button clicked', () => {
   fireEvent.click(nextButtons[0]);
   expect(defaultProps.onPageChange).toHaveBeenCalledWith(2);
 });
+
+test('shows loading text when isLoading is true', () => {
+  render(<GenericFeedbackTable {...defaultProps} isLoading={true} />);
+  expect(screen.getByText('Načítám…')).toBeInTheDocument();
+});
+
+test('shows "Ne" badge for rows without feedback', () => {
+  render(<GenericFeedbackTable {...defaultProps} />);
+  expect(screen.getByText('Ne')).toBeInTheDocument();
+});
+
+test('calls onPageChange(1) when first button clicked', () => {
+  render(<GenericFeedbackTable {...defaultProps} pageNumber={2} totalPages={3} totalCount={60} />);
+  const firstButtons = screen.getAllByRole('button').filter(b => b.textContent === '«');
+  fireEvent.click(firstButtons[0]);
+  expect(defaultProps.onPageChange).toHaveBeenCalledWith(1);
+});
+
+test('calls onPageChange(pageNumber - 1) when previous button clicked', () => {
+  render(<GenericFeedbackTable {...defaultProps} pageNumber={2} totalPages={3} totalCount={60} />);
+  const prevButtons = screen.getAllByRole('button').filter(b => b.textContent === '‹');
+  fireEvent.click(prevButtons[0]);
+  expect(defaultProps.onPageChange).toHaveBeenCalledWith(1);
+});
+
+test('calls onPageChange(totalPages) when last button clicked', () => {
+  render(<GenericFeedbackTable {...defaultProps} pageNumber={1} totalPages={3} totalCount={60} />);
+  const lastButtons = screen.getAllByRole('button').filter(b => b.textContent === '»');
+  fireEvent.click(lastButtons[0]);
+  expect(defaultProps.onPageChange).toHaveBeenCalledWith(3);
+});
