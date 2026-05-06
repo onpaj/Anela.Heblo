@@ -54,4 +54,75 @@ public class ConsumptionCalculationServiceTests
         // Assert
         Assert.True(result);
     }
+
+    [Fact]
+    public async Task ProcessDailyConsumptionAsync_DecrementsQuantityAndReturnsCount_WhenInvoicesExist()
+    {
+        // Arrange
+        var date = new DateOnly(2025, 6, 15);
+        var material1 = new PackingMaterial("Cards", 1m, ConsumptionType.PerOrder, 100m);
+        var material2 = new PackingMaterial("Stickers", 2m, ConsumptionType.PerOrder, 50m);
+        var mockRepository = new MockPackingMaterialRepository();
+        mockRepository.SetMaterials(new[] { material1, material2 });
+        var service = new ConsumptionCalculationService(mockRepository, _mockLogger);
+
+        // Act
+        var result = await service.ProcessDailyConsumptionAsync(date, orderCount: 5, productCount: 10);
+
+        // Assert
+        Assert.True(result.WasRun);
+        Assert.Equal(2, result.MaterialsProcessed);
+        Assert.Equal(95m, mockRepository.UpdatedMaterials[0].CurrentQuantity); // 100 - 1*5
+        Assert.Equal(40m, mockRepository.UpdatedMaterials[1].CurrentQuantity); // 50 - 2*5
+    }
+
+    [Fact]
+    public async Task ProcessDailyConsumptionAsync_WritesMarkerAndReturnsZero_WhenNoConsumptionCalculated()
+    {
+        // Arrange — PerOrder material but zero orders means consumption = 0
+        var date = new DateOnly(2025, 6, 15);
+        var material = new PackingMaterial("Cards", 1m, ConsumptionType.PerOrder, 8000m);
+        var mockRepository = new MockPackingMaterialRepository();
+        mockRepository.SetMaterials(new[] { material });
+        var service = new ConsumptionCalculationService(mockRepository, _mockLogger);
+
+        // Act
+        var result = await service.ProcessDailyConsumptionAsync(date, orderCount: 0, productCount: 0);
+
+        // Assert
+        Assert.True(result.WasRun);
+        Assert.Equal(0, result.MaterialsProcessed);
+
+        // Quantity must NOT have changed
+        Assert.Single(mockRepository.UpdatedMaterials);
+        Assert.Equal(8000m, mockRepository.UpdatedMaterials[0].CurrentQuantity);
+
+        // A marker log must have been written so re-runs are blocked
+        var markerLog = mockRepository.UpdatedMaterials[0].Logs.Single();
+        // UpdateQuantity() is the only way logs are added; constructor does not add a log
+        Assert.Equal(LogEntryType.AutomaticConsumption, markerLog.LogType);
+        Assert.Equal(date, markerLog.Date);
+        Assert.Equal(8000m, markerLog.OldQuantity);
+        Assert.Equal(8000m, markerLog.NewQuantity);
+    }
+
+    [Fact]
+    public async Task ProcessDailyConsumptionAsync_ReturnsWasRunFalse_WhenDayAlreadyProcessed()
+    {
+        // Arrange — marker already present
+        var date = new DateOnly(2025, 6, 15);
+        var material = new PackingMaterial("Cards", 1m, ConsumptionType.PerOrder, 8000m);
+        var mockRepository = new MockPackingMaterialRepository();
+        mockRepository.SetMaterials(new[] { material });
+        mockRepository.SetHasDailyProcessingBeenRun(date, true);
+        var service = new ConsumptionCalculationService(mockRepository, _mockLogger);
+
+        // Act
+        var result = await service.ProcessDailyConsumptionAsync(date, orderCount: 5, productCount: 10);
+
+        // Assert
+        Assert.False(result.WasRun);
+        Assert.Equal(0, result.MaterialsProcessed);
+        Assert.Empty(mockRepository.UpdatedMaterials);
+    }
 }
