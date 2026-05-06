@@ -17,7 +17,8 @@ public static class HomeAssistantAdapterServiceCollectionExtensions
 
         services.AddHttpClient<HomeAssistantConditionsReadingProvider>(client =>
         {
-            client.BaseAddress = new Uri(settings.BaseUrl ?? "http://localhost:8123");
+            client.BaseAddress = new Uri(
+                settings.BaseUrl ?? throw new InvalidOperationException("HomeAssistant:BaseUrl is required but not configured."));
             client.Timeout = TimeSpan.FromSeconds(settings.RequestTimeoutSeconds);
             client.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", settings.AccessToken);

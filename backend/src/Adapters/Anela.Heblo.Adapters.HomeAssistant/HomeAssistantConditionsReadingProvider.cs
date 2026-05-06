@@ -26,22 +26,19 @@ public class HomeAssistantConditionsReadingProvider : IConditionsReadingProvider
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var tasks = new[]
-        {
-            FetchSensorValueAsync(_settings.InnerTemperatureEntityId, cancellationToken),
-            FetchSensorValueAsync(_settings.InnerHumidityEntityId, cancellationToken),
-            FetchSensorValueAsync(_settings.OuterTemperatureEntityId, cancellationToken),
-            FetchSensorValueAsync(_settings.OuterHumidityEntityId, cancellationToken),
-        };
+        var innerTempTask = FetchSensorValueAsync(_settings.InnerTemperatureEntityId, cancellationToken);
+        var innerHumidityTask = FetchSensorValueAsync(_settings.InnerHumidityEntityId, cancellationToken);
+        var outerTempTask = FetchSensorValueAsync(_settings.OuterTemperatureEntityId, cancellationToken);
+        var outerHumidityTask = FetchSensorValueAsync(_settings.OuterHumidityEntityId, cancellationToken);
 
-        var values = await Task.WhenAll(tasks);
+        await Task.WhenAll(innerTempTask, innerHumidityTask, outerTempTask, outerHumidityTask);
 
-        var innerTemp = values[0];
-        var innerHumidity = values[1];
-        var outerTemp = values[2];
-        var outerHumidity = values[3];
+        var innerTemp = innerTempTask.Result;
+        var innerHumidity = innerHumidityTask.Result;
+        var outerTemp = outerTempTask.Result;
+        var outerHumidity = outerHumidityTask.Result;
 
-        var nonNullCount = values.Count(v => v.HasValue);
+        var nonNullCount = new[] { innerTemp, innerHumidity, outerTemp, outerHumidity }.Count(v => v.HasValue);
         var source = nonNullCount == 4 ? ConditionsReadingSource.Live
             : nonNullCount == 0 ? ConditionsReadingSource.Unavailable
             : ConditionsReadingSource.Partial;
