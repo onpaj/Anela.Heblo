@@ -57,7 +57,6 @@ export interface ListArticlesParams {
 }
 
 export interface SubmitArticleFeedbackPayload {
-  articleId: string;
   precisionScore: number;
   styleScore: number;
   comment?: string;
@@ -230,19 +229,19 @@ export const useGenerateArticleMutation = () => {
   });
 };
 
-export const useSubmitArticleFeedbackMutation = () => {
+export const useSubmitArticleFeedbackMutation = (articleId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (payload: SubmitArticleFeedbackPayload): Promise<SubmitArticleFeedbackResult> => {
       const apiClient = getAuthenticatedApiClient();
-      const fullUrl = `${(apiClient as any).baseUrl}/api/articles/${payload.articleId}/feedback`;
+      const fullUrl = `${(apiClient as any).baseUrl}/api/articles/${articleId}/feedback`;
 
       const response = await (apiClient as any).http.fetch(fullUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
-          articleId: payload.articleId,
+          articleId,
           precisionScore: payload.precisionScore,
           styleScore: payload.styleScore,
           comment: payload.comment,
@@ -264,8 +263,8 @@ export const useSubmitArticleFeedbackMutation = () => {
         feedbackComment: data.feedbackComment ?? null,
       };
     },
-    onSuccess: (_result, payload) => {
-      queryClient.invalidateQueries({ queryKey: articleKeys.detail(payload.articleId) });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: articleKeys.detail(articleId) });
     },
   });
 };
