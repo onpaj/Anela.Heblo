@@ -1,6 +1,8 @@
 using Anela.Heblo.Application.Features.Article.UseCases.GenerateArticle;
 using Anela.Heblo.Application.Features.Article.UseCases.GetArticle;
+using Anela.Heblo.Application.Features.Article.UseCases.GetArticleFeedbackList;
 using Anela.Heblo.Application.Features.Article.UseCases.ListArticles;
+using Anela.Heblo.Application.Features.Article.UseCases.SubmitArticleFeedback;
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
@@ -28,6 +30,40 @@ public sealed class ArticlesController : BaseApiController
         CancellationToken ct = default)
     {
         var result = await _mediator.Send(request, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("{id:guid}/feedback")]
+    public async Task<ActionResult<SubmitArticleFeedbackResponse>> SubmitFeedback(
+        Guid id,
+        [FromBody] SubmitArticleFeedbackRequest request,
+        CancellationToken ct = default)
+    {
+        request.ArticleId = id;
+        var result = await _mediator.Send(request, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("feedback/list")]
+    [Authorize(Policy = AuthorizationConstants.Policies.ArticleGenerator)]
+    public async Task<ActionResult<GetArticleFeedbackListResponse>> GetFeedbackList(
+        [FromQuery] bool? hasFeedback = null,
+        [FromQuery] string? requestedBy = null,
+        [FromQuery] string sortBy = "CreatedAt",
+        [FromQuery] bool sortDescending = true,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetArticleFeedbackListRequest
+        {
+            HasFeedback = hasFeedback,
+            RequestedBy = requestedBy,
+            SortBy = sortBy,
+            SortDescending = sortDescending,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+        }, ct);
         return HandleResponse(result);
     }
 
