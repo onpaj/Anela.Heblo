@@ -81,12 +81,16 @@ public class ProcessDailyConsumptionHandler : IRequestHandler<ProcessDailyConsum
 
             _logger.LogInformation("Successfully processed daily consumption for {Date}", request.ProcessingDate);
 
+            var message = result.MaterialsProcessed > 0
+                ? $"Daily consumption successfully processed for {request.ProcessingDate}. {result.MaterialsProcessed} materials updated."
+                : $"No invoices found for {request.ProcessingDate} — no materials were updated.";
+
             return new ProcessDailyConsumptionResponse
             {
                 Success = true,
                 ProcessedDate = request.ProcessingDate,
                 MaterialsProcessed = result.MaterialsProcessed,
-                Message = $"Daily consumption successfully processed for {request.ProcessingDate}"
+                Message = message
             };
         }
         catch (Exception ex)

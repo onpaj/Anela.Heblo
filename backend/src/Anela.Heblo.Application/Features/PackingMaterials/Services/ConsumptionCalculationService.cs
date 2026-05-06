@@ -52,11 +52,11 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
         _logger.LogInformation("Starting daily consumption processing for {Date} with {OrderCount} orders and {ProductCount} products",
             processingDate, orderCount, productCount);
 
-        // Get all active materials
         var materials = await _repository.GetAllAsync(cancellationToken);
+        var materialList = materials.ToList();
         var processedCount = 0;
 
-        foreach (var material in materials)
+        foreach (var material in materialList)
         {
             try
             {
@@ -64,12 +64,8 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
 
                 if (consumptionAmount > 0)
                 {
-                    // Calculate new quantity after consumption
                     var newQuantity = Math.Max(0, material.CurrentQuantity - consumptionAmount);
-
-                    // Update quantity and log the consumption
                     material.UpdateQuantity(newQuantity, processingDate, LogEntryType.AutomaticConsumption);
-
                     await _repository.UpdateAsync(material, cancellationToken);
                     processedCount++;
 
@@ -87,7 +83,18 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
                     material.Id, material.Name, processingDate);
             }
         }
+
+        // Write an idempotency marker even when no materials had consumption,
+        // so re-runs on the same date are blocked regardless of invoice data.
+        if (processedCount == 0 && materialList.Count > 0)
+        {
+            var marker = materialList[0];
+            marker.UpdateQuantity(marker.CurrentQuantity, processingDate, LogEntryType.AutomaticConsumption);
+            await _repository.UpdateAsync(marker, cancellationToken);
+        }
+
         await _repository.SaveChangesAsync(cancellationToken);
+
         _logger.LogInformation("Completed daily consumption processing for {Date}. Processed {ProcessedCount} materials",
             processingDate, processedCount);
 
