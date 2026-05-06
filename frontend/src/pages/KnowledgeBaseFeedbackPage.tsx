@@ -1,3 +1,4 @@
+// frontend/src/pages/KnowledgeBaseFeedbackPage.tsx
 import React, { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import {
