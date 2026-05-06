@@ -105,3 +105,12 @@
   font-size: 0.7rem;
   color: #6b7280;
 }
+
+/* 14-day (twoWeeks) view — expanded cells with no event overflow */
+.marketing-calendar.two-weeks .fc-daygrid-day-frame {
+  min-height: 80px;
+}
+
+.marketing-calendar.two-weeks .fc-daygrid-day-events {
+  overflow: visible;
+}
