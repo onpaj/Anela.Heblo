@@ -23,6 +23,9 @@ public sealed class Article
     public string? RequestedBy { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? GeneratedAt { get; set; }
+    public int? PrecisionScore { get; set; }
+    public int? StyleScore { get; set; }
+    public string? FeedbackComment { get; set; }
     public List<ArticleSource> Sources { get; set; } = new();
 
     public void MarkAsResearching() => Status = ArticleStatus.Researching;
