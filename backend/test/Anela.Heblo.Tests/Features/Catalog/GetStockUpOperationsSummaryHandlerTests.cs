@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockUpOperationsSumm
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using MockQueryable;
 using Moq;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Catalog;
@@ -18,7 +19,8 @@ public class GetStockUpOperationsSummaryHandlerTests
     public GetStockUpOperationsSummaryHandlerTests()
     {
         _repositoryMock = new Mock<IStockUpOperationRepository>();
-        _handler = new GetStockUpOperationsSummaryHandler(_repositoryMock.Object);
+        var logger = NullLogger<GetStockUpOperationsSummaryHandler>.Instance;
+        _handler = new GetStockUpOperationsSummaryHandler(_repositoryMock.Object, logger);
     }
 
     [Fact]
