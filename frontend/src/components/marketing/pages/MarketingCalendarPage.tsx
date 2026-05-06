@@ -3,6 +3,7 @@ import { Plus, Calendar, List, Download } from 'lucide-react';
 import type FullCalendar from '@fullcalendar/react';
 import CalendarNavigation from '../../manufacture/calendar/CalendarNavigation';
 import MarketingMonthCalendar from '../calendar/MarketingMonthCalendar';
+import type { CalendarViewName } from '../calendar/MarketingMonthCalendar';
 import MarketingActionGrid from '../list/MarketingActionGrid';
 import type { MarketingActionDto } from '../list/MarketingActionGrid';
 import MarketingActionFilters, {
@@ -40,10 +41,10 @@ function getCalendarStartForToday(): Date {
   return start;
 }
 
-type ViewMode = 'calendar' | 'list';
+type ViewMode = 'fiveWeeks' | 'twoWeeks' | 'list';
 
 const MarketingCalendarPage: React.FC = () => {
-  const [viewMode, setViewMode] = useState<ViewMode>('calendar');
+  const [viewMode, setViewMode] = useState<ViewMode>('fiveWeeks');
   const [currentDate, setCurrentDate] = useState(getCalendarStartForToday);
   const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date } | null>(null);
   const [filters, setFilters] = useState<MarketingFilters>(EMPTY_FILTERS);
@@ -55,6 +56,11 @@ const MarketingCalendarPage: React.FC = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const calendarRef = useRef<FullCalendar>(null);
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    if (mode !== 'list') setVisibleRange(null);
+  };
 
   const { getUserInfo } = useAuth();
   const isAdmin = getUserInfo()?.roles?.includes(MARKETING_IMPORT_ROLE) ?? false;
@@ -228,18 +234,29 @@ const MarketingCalendarPage: React.FC = () => {
           {/* View toggle */}
           <div className="flex border border-gray-200 rounded-lg overflow-hidden">
             <button
-              onClick={() => setViewMode('calendar')}
+              onClick={() => handleViewModeChange('fiveWeeks')}
               className={`px-3 py-2 text-sm flex items-center gap-1.5 transition-colors ${
-                viewMode === 'calendar'
+                viewMode === 'fiveWeeks'
                   ? 'bg-indigo-600 text-white'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
               <Calendar className="h-4 w-4" />
-              Kalendář
+              5 týdnů
             </button>
             <button
-              onClick={() => setViewMode('list')}
+              onClick={() => handleViewModeChange('twoWeeks')}
+              className={`px-3 py-2 text-sm flex items-center gap-1.5 transition-colors ${
+                viewMode === 'twoWeeks'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+              14 dní
+            </button>
+            <button
+              onClick={() => handleViewModeChange('list')}
               className={`px-3 py-2 text-sm flex items-center gap-1.5 transition-colors ${
                 viewMode === 'list'
                   ? 'bg-indigo-600 text-white'
@@ -271,7 +288,7 @@ const MarketingCalendarPage: React.FC = () => {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
-        {viewMode === 'calendar' ? (
+        {viewMode !== 'list' ? (
           <div className="flex flex-col h-full gap-4">
             <div className="flex-shrink-0">
               <CalendarNavigation
@@ -292,6 +309,8 @@ const MarketingCalendarPage: React.FC = () => {
             ) : (
               <div className="flex-1 min-h-0">
                 <MarketingMonthCalendar
+                  key={viewMode}
+                  viewName={viewMode as CalendarViewName}
                   events={calendarEvents}
                   initialDate={currentDate}
                   onEventClick={openEdit}

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import MarketingCalendarPage from "../MarketingCalendarPage";
 
 // Track every render of the calendar mock so tests can verify mount/unmount.
@@ -85,5 +85,64 @@ describe("MarketingCalendarPage — default render", () => {
   it("renders the page title", () => {
     render(<MarketingCalendarPage />);
     expect(screen.getByText("Marketingový kalendář")).toBeInTheDocument();
+  });
+});
+
+describe("MarketingCalendarPage — toolbar", () => {
+  it("renders all three view buttons with Czech labels", () => {
+    render(<MarketingCalendarPage />);
+    expect(screen.getByRole("button", { name: /5 týdnů/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /14 dní/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Seznam/ })).toBeInTheDocument();
+  });
+
+  it("highlights '5 týdnů' as the default active view", () => {
+    render(<MarketingCalendarPage />);
+    const fiveWeeks = screen.getByRole("button", { name: /5 týdnů/ });
+    expect(fiveWeeks.className).toContain("bg-indigo-600");
+    const twoWeeks = screen.getByRole("button", { name: /14 dní/ });
+    const list = screen.getByRole("button", { name: /Seznam/ });
+    expect(twoWeeks.className).not.toContain("bg-indigo-600");
+    expect(list.className).not.toContain("bg-indigo-600");
+  });
+
+  it("renders the calendar with viewName='fiveWeeks' on initial load", () => {
+    render(<MarketingCalendarPage />);
+    const calendar = screen.getByTestId("marketing-month-calendar");
+    expect(calendar.getAttribute("data-view-name")).toBe("fiveWeeks");
+  });
+
+  it("clicking '14 dní' remounts the calendar with viewName='twoWeeks'", () => {
+    render(<MarketingCalendarPage />);
+    const initial = screen.getByTestId("marketing-month-calendar");
+    const initialMountId = initial.getAttribute("data-mount-id");
+
+    fireEvent.click(screen.getByRole("button", { name: /14 dní/ }));
+
+    const after = screen.getByTestId("marketing-month-calendar");
+    expect(after.getAttribute("data-view-name")).toBe("twoWeeks");
+    // key={viewMode} forces a fresh mount, so the mount id must change.
+    expect(after.getAttribute("data-mount-id")).not.toBe(initialMountId);
+  });
+
+  it("clicking 'Seznam' unmounts the calendar and renders the list", () => {
+    render(<MarketingCalendarPage />);
+    expect(screen.getByTestId("marketing-month-calendar")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Seznam/ }));
+
+    expect(
+      screen.queryByTestId("marketing-month-calendar"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("marketing-action-grid")).toBeInTheDocument();
+  });
+
+  it("returning from Seznam to '5 týdnů' remounts the calendar with viewName='fiveWeeks'", () => {
+    render(<MarketingCalendarPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Seznam/ }));
+    fireEvent.click(screen.getByRole("button", { name: /5 týdnů/ }));
+
+    const calendar = screen.getByTestId("marketing-month-calendar");
+    expect(calendar.getAttribute("data-view-name")).toBe("fiveWeeks");
   });
 });
