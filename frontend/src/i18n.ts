@@ -196,6 +196,8 @@ const resources = {
 
         // Leaflet module errors
         LeafletChunkNotFound: "Fragment letáku nebyl nalezen",
+        LeafletFeedbackNotFound: "Zpětná vazba k letáku nebyla nalezena",
+        LeafletFeedbackAlreadySubmitted: "Zpětná vazba k letáku již byla odeslána",
 
         // ShoptetOrders module errors
         ShoptetOrderInvalidSourceState: "Objednávku nelze zablokovat – není ve povoleném stavu",
@@ -217,6 +219,8 @@ const resources = {
         WebSearchUnavailable: "Webové vyhledávání je dočasně nedostupné.",
         StyleGuideFetchFailed: "Nepodařilo se načíst stylový průvodce.",
         ArticleAlreadyGenerated: "Článek již byl vygenerován.",
+        ArticleNotGenerated: "Článek ještě nebyl vygenerován.",
+        ArticleFeedbackAlreadySubmitted: "Zpětná vazba k tomuto článku již byla odeslána.",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
@@ -326,6 +330,8 @@ const resources = {
         WebSearchUnavailable: "Web search is temporarily unavailable.",
         StyleGuideFetchFailed: "Failed to load style guide.",
         ArticleAlreadyGenerated: "Article has already been generated.",
+        ArticleNotGenerated: "Article has not been generated yet.",
+        ArticleFeedbackAlreadySubmitted: "Feedback for this article has already been submitted.",
       },
     },
   },

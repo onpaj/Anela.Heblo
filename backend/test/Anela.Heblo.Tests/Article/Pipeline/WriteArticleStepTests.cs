@@ -71,4 +71,96 @@ public class WriteArticleStepTests
         context.GeneratedHtml.Should().Be("<p>garbage</p>");
         context.SourceRefs.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task ExecuteAsync_KbSourceWithMatchingSnippetAndFact_PopulatesAllFields()
+    {
+        SetupChatResponse(
+            """
+            {"article_title":"T","article_html":"<p>x</p>","sources_used":[
+              {"title":"KB Source","url":null}
+            ]}
+            """);
+
+        var chunkId = Guid.NewGuid();
+        var context = CreateContext();
+        context.ContextSnippets =
+        [
+            new ContextSnippet
+            {
+                Source = SourceType.KnowledgeBase,
+                Title = "KB Source",
+                Excerpt = "ex",
+                ChunkId = chunkId,
+                Score = 0.87
+            }
+        ];
+        context.Facts =
+        [
+            new AggregatedFact
+            {
+                Claim = "Important claim about the topic.",
+                Confidence = 0.9,
+                SourceTitle = "KB Source",
+                ValidationNote = "validated"
+            }
+        ];
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        context.SourceRefs.Should().HaveCount(1);
+        var sourceRef = context.SourceRefs[0];
+        sourceRef.Type.Should().Be(SourceType.KnowledgeBase);
+        sourceRef.ChunkId.Should().Be(chunkId);
+        sourceRef.Confidence.Should().Be(0.87);
+        sourceRef.Excerpt.Should().Be("Important claim about the topic.");
+        sourceRef.ValidationNote.Should().Be("validated");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_SourceWithoutMatch_LeavesEnrichmentFieldsNull()
+    {
+        SetupChatResponse(
+            """
+            {"article_title":"T","article_html":"<p>x</p>","sources_used":[
+              {"title":"Unknown KB Title","url":null}
+            ]}
+            """);
+
+        var context = CreateContext();
+        // No matching snippet or fact.
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var sourceRef = context.SourceRefs.Single();
+        sourceRef.ChunkId.Should().BeNull();
+        sourceRef.Confidence.Should().BeNull();
+        sourceRef.Excerpt.Should().BeNull();
+        sourceRef.ValidationNote.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_LongFactClaim_TruncatesExcerptTo200Chars()
+    {
+        SetupChatResponse(
+            """
+            {"article_title":"T","article_html":"<p>x</p>","sources_used":[
+              {"title":"KB Source","url":null}
+            ]}
+            """);
+
+        var context = CreateContext();
+        context.Facts =
+        [
+            new AggregatedFact
+            {
+                Claim = new string('a', 250),
+                SourceTitle = "KB Source"
+            }
+        ];
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        context.SourceRefs.Single().Excerpt!.Length.Should().Be(200);
+    }
 }

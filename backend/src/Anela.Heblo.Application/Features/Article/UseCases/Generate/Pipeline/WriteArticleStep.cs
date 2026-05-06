@@ -55,7 +55,7 @@ public class WriteArticleStep : IArticlePipelineStep
 
         context.GeneratedTitle = parsed.ArticleTitle ?? article.Topic;
         context.GeneratedHtml = parsed.ArticleHtml ?? $"<p>{raw}</p>";
-        context.SourceRefs = MapSources(parsed.SourcesUsed);
+        context.SourceRefs = MapSources(parsed.SourcesUsed, context.ContextSnippets, context.Facts);
     }
 
     private const string SystemInstruction =
@@ -113,15 +113,37 @@ public class WriteArticleStep : IArticlePipelineStep
         return sb.ToString();
     }
 
-    private static List<(string Title, string? Url, SourceType Type)> MapSources(
-        List<SourceUsedDto>? sourcesUsed)
+    private static List<ArticleSourceRef> MapSources(
+        List<SourceUsedDto>? sourcesUsed,
+        List<ContextSnippet> snippets,
+        List<AggregatedFact> facts)
     {
         if (sourcesUsed == null)
             return [];
 
-        return sourcesUsed
-            .Select(s => (s.Title, s.Url, s.Url != null ? SourceType.Web : SourceType.KnowledgeBase))
-            .ToList();
+        return sourcesUsed.Select(source =>
+        {
+            var snippetMatch = snippets.FirstOrDefault(s =>
+                string.Equals(s.Title, source.Title, StringComparison.OrdinalIgnoreCase));
+            var factMatch = facts.FirstOrDefault(f =>
+                string.Equals(f.SourceTitle, source.Title, StringComparison.OrdinalIgnoreCase));
+
+            return new ArticleSourceRef(
+                Title: source.Title,
+                Url: source.Url,
+                Type: source.Url != null ? SourceType.Web : SourceType.KnowledgeBase,
+                ChunkId: snippetMatch?.ChunkId,
+                Confidence: snippetMatch?.Score,
+                Excerpt: TruncateExcerpt(factMatch?.Claim),
+                ValidationNote: factMatch?.ValidationNote);
+        }).ToList();
+    }
+
+    private static string? TruncateExcerpt(string? claim)
+    {
+        if (string.IsNullOrEmpty(claim))
+            return null;
+        return claim.Length <= 200 ? claim : claim[..200];
     }
 
     private sealed record WriteArticleOutput(

@@ -23,6 +23,10 @@ export interface ArticleSource {
   title: string;
   url: string | null;
   type: string;
+  knowledgeBaseChunkId: string | null;
+  confidence: number | null;
+  excerpt: string | null;
+  validationNote: string | null;
 }
 
 export interface ArticleDetail {
@@ -41,12 +45,65 @@ export interface ArticleDetail {
   useKnowledgeBase: boolean;
   useWebSearch: boolean;
   sources: ArticleSource[];
+  precisionScore: number | null;
+  styleScore: number | null;
+  feedbackComment: string | null;
 }
 
 export interface ListArticlesParams {
   status?: ArticleStatus;
   page?: number;
   pageSize?: number;
+}
+
+export interface SubmitArticleFeedbackPayload {
+  precisionScore: number;
+  styleScore: number;
+  comment?: string;
+}
+
+export interface SubmitArticleFeedbackResult {
+  alreadySubmitted?: true;
+  precisionScore?: number | null;
+  styleScore?: number | null;
+  feedbackComment?: string | null;
+}
+
+export interface ArticleFeedbackListParams {
+  hasFeedback?: boolean;
+  requestedBy?: string;
+  sortBy?: string;
+  descending?: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ArticleFeedbackSummary {
+  id: string;
+  topic: string;
+  title: string | null;
+  requestedBy: string;
+  generatedAt: string | null;
+  precisionScore: number | null;
+  styleScore: number | null;
+  feedbackComment: string | null;
+  hasFeedback: boolean;
+}
+
+export interface ArticleFeedbackStats {
+  totalArticles: number;
+  totalWithFeedback: number;
+  avgPrecisionScore: number | null;
+  avgStyleScore: number | null;
+}
+
+export interface ArticleFeedbackListResponse {
+  articles: ArticleFeedbackSummary[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  stats: ArticleFeedbackStats;
 }
 
 export const IN_PROGRESS_STATUSES = new Set<ArticleStatus>([
@@ -79,6 +136,8 @@ export const articleKeys = {
   list: (params?: ListArticlesParams) =>
     [...QUERY_KEYS.articles, 'list', params ?? {}] as const,
   detail: (id: string) => [...QUERY_KEYS.articles, 'detail', id] as const,
+  feedbackList: (params?: ArticleFeedbackListParams) =>
+    [...QUERY_KEYS.articles, 'feedback-list', params ?? {}] as const,
 };
 
 // ---- Hooks ----
@@ -128,11 +187,25 @@ export const useGetArticleQuery = (id: string | null) => {
         generatedAt: response.generatedAt?.toISOString() ?? null,
         useKnowledgeBase: response.useKnowledgeBase ?? false,
         useWebSearch: response.useWebSearch ?? false,
-        sources: (response.sources ?? []).map((s) => ({
-          title: s.title ?? '',
-          url: s.url ?? null,
-          type: s.type ?? '',
-        })),
+        sources: (response.sources ?? []).map((s) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const raw = s as any;
+          return {
+            title: s.title ?? '',
+            url: s.url ?? null,
+            type: s.type ?? '',
+            knowledgeBaseChunkId: (raw.knowledgeBaseChunkId as string | null) ?? null,
+            confidence: (raw.confidence as number | null) ?? null,
+            excerpt: (raw.excerpt as string | null) ?? null,
+            validationNote: (raw.validationNote as string | null) ?? null,
+          };
+        }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        precisionScore: ((response as any).precisionScore as number | null) ?? null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        styleScore: ((response as any).styleScore as number | null) ?? null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        feedbackComment: ((response as any).feedbackComment as string | null) ?? null,
       };
     },
     enabled: !!id,
@@ -157,5 +230,83 @@ export const useGenerateArticleMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: articleKeys.all });
     },
+  });
+};
+
+export const useSubmitArticleFeedbackMutation = (articleId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: SubmitArticleFeedbackPayload): Promise<SubmitArticleFeedbackResult> => {
+      const apiClient = getAuthenticatedApiClient();
+      const fullUrl = `${(apiClient as any).baseUrl}/api/articles/${articleId}/feedback`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          articleId,
+          precisionScore: payload.precisionScore,
+          styleScore: payload.styleScore,
+          comment: payload.comment,
+        }),
+      });
+
+      if (response.status === 409) {
+        return { alreadySubmitted: true };
+      }
+
+      if (!response.ok) {
+        throw new Error(`Submit article feedback failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        precisionScore: data.precisionScore ?? null,
+        styleScore: data.styleScore ?? null,
+        feedbackComment: data.feedbackComment ?? null,
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: articleKeys.detail(articleId) });
+    },
+  });
+};
+
+export const useArticleFeedbackListQuery = (params: ArticleFeedbackListParams = {}) => {
+  return useQuery({
+    queryKey: articleKeys.feedbackList(params),
+    queryFn: async (): Promise<ArticleFeedbackListResponse> => {
+      const apiClient = getAuthenticatedApiClient();
+      const searchParams = new URLSearchParams();
+
+      if (params.hasFeedback !== undefined)
+        searchParams.append('hasFeedback', params.hasFeedback.toString());
+      if (params.requestedBy) searchParams.append('requestedBy', params.requestedBy);
+      if (params.sortBy) searchParams.append('sortBy', params.sortBy);
+      if (params.descending !== undefined)
+        searchParams.append('descending', params.descending.toString());
+      if (params.page !== undefined)
+        searchParams.append('page', params.page.toString());
+      if (params.pageSize !== undefined)
+        searchParams.append('pageSize', params.pageSize.toString());
+
+      const query = searchParams.toString();
+      const relativeUrl = `/api/articles/feedback/list${query ? `?${query}` : ''}`;
+      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch article feedback list: ${response.status}`);
+      }
+
+      return response.json();
+    },
+    staleTime: 30_000,
+    gcTime: 5 * 60 * 1000,
   });
 };

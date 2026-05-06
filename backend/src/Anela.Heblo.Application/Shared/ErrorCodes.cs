@@ -243,10 +243,18 @@ public enum ErrorCodes
     StyleGuideFetchFailed = 2404,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     ArticleAlreadyGenerated = 2405,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ArticleNotGenerated = 2406,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    ArticleFeedbackAlreadySubmitted = 2407,
 
     // Leaflet module errors (25XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
     LeafletChunkNotFound = 2501,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    LeafletFeedbackNotFound = 2502,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    LeafletFeedbackAlreadySubmitted = 2503,
 
     // Photobank errors (26XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

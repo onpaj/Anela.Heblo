@@ -1,4 +1,7 @@
+using Anela.Heblo.Application.Features.Leaflet.Pipeline;
 using Anela.Heblo.Application.Features.Leaflet.Services;
+using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
+using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,6 +20,10 @@ public static class LeafletModule
 
         services.AddScoped<ILeafletChunkSummarizer, LeafletChunkSummarizer>();
         services.AddScoped<ILeafletIndexingService, LeafletIndexingService>();
+
+        services.AddScoped<
+            IPipelineBehavior<GenerateLeafletRequest, GenerateLeafletResponse>,
+            LeafletGenerationLoggingBehavior>();
 
         // LeafletIngestionJob is auto-discovered via IRecurringJob assembly scan in AddRecurringJobs()
         // ILeafletRepository is registered in PersistenceModule
