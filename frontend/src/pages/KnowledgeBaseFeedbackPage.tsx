@@ -52,21 +52,11 @@ function mapLogToDetail(log: FeedbackLogSummary): FeedbackDetail {
 
 const KnowledgeBaseFeedbackPage: React.FC = () => {
   const [params, setParams] = useState<GetFeedbackListParams>(defaultParams);
-  const [selectedLog, setSelectedLog] = useState<FeedbackLogSummary | null>(null);
+  const [selectedRow, setSelectedRow] = useState<FeedbackDetail | null>(null);
 
   const { data, isLoading, isError } = useKnowledgeBaseFeedbackListQuery(params);
 
-  const rows: FeedbackDetail[] = (data?.logs ?? []).map((log) => ({
-    id: log.id,
-    primaryText: log.question,
-    secondaryText: (log.answer ?? '').slice(0, 120),
-    createdAt: log.createdAt,
-    userId: log.userId ?? undefined,
-    precisionScore: log.precisionScore,
-    styleScore: log.styleScore,
-    hasFeedback: log.hasFeedback,
-    feedbackComment: log.feedbackComment,
-  }));
+  const rows: FeedbackDetail[] = (data?.logs ?? []).map(mapLogToDetail);
 
   const stats = data?.stats
     ? {
@@ -92,7 +82,7 @@ const KnowledgeBaseFeedbackPage: React.FC = () => {
           sortBy={params.sortBy ?? 'CreatedAt'}
           sortDescending={params.sortDescending ?? true}
           pageSize={params.pageSize ?? 20}
-          allowedSortColumns={[...SORT_COLUMNS]}
+          allowedSortColumns={SORT_COLUMNS}
           onHasFeedbackChange={(v) => setParams((p) => ({ ...p, pageNumber: 1, hasFeedback: v }))}
           onSortByChange={(v) => setParams((p) => ({ ...p, pageNumber: 1, sortBy: v }))}
           onSortDescendingChange={(v) => setParams((p) => ({ ...p, pageNumber: 1, sortDescending: v }))}
@@ -115,21 +105,20 @@ const KnowledgeBaseFeedbackPage: React.FC = () => {
             totalPages={data?.totalPages ?? 0}
             onPageChange={(page) => {
               setParams((p) => ({ ...p, pageNumber: page }));
-              setSelectedLog(null);
+              setSelectedRow(null);
             }}
-            onRowClick={(id) => {
-              const log = data?.logs.find((l) => l.id === id) ?? null;
-              setSelectedLog((prev) => (prev?.id === id ? null : log));
-            }}
+            onRowClick={(id) =>
+              setSelectedRow((prev) => (prev?.id === id ? null : rows.find((r) => r.id === id) ?? null))
+            }
             primaryLabel="Dotaz"
           />
         )}
       </div>
 
-      {selectedLog && (
+      {selectedRow && (
         <GenericFeedbackDetailModal
-          detail={mapLogToDetail(selectedLog)}
-          onClose={() => setSelectedLog(null)}
+          detail={selectedRow}
+          onClose={() => setSelectedRow(null)}
           primaryLabel="Dotaz"
           secondaryLabel="Odpověď"
         />
