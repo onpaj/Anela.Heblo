@@ -14,15 +14,19 @@ const ALL_STAGES = [
   ManufactureOrderState.Completed,
 ];
 
+const CONDITIONS_SOURCE_LIVE = 1;
+const CONDITIONS_SOURCE_PARTIAL = 2;
+const CONDITIONS_SOURCE_UNAVAILABLE = 3;
+
 const SourceBadge: React.FC<{ source: number }> = ({ source }) => {
-  if (source === 3) {
+  if (source === CONDITIONS_SOURCE_UNAVAILABLE) {
     return (
       <span className="ml-1 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
         HA nedostupný
       </span>
     );
   }
-  if (source === 2) {
+  if (source === CONDITIONS_SOURCE_PARTIAL) {
     return (
       <span className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
         Částečné
@@ -82,7 +86,7 @@ const ConditionsReadingsSection: React.FC<Props> = ({ readings }) => {
                   {reading ? (
                     <>
                       <span>{reading.recordedAt?.toLocaleString('cs-CZ')}</span>
-                      <SourceBadge source={reading.source ?? 1} />
+                      <SourceBadge source={reading.source ?? CONDITIONS_SOURCE_LIVE} />
                     </>
                   ) : (
                     <span>—</span>
