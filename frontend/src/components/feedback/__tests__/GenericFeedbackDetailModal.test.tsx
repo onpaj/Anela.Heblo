@@ -86,3 +86,24 @@ test('renders extra content when provided', () => {
   );
   expect(screen.getByText('TopK: 5')).toBeInTheDocument();
 });
+
+test('hides feedback section when hasFeedback is false', () => {
+  render(
+    <GenericFeedbackDetailModal
+      detail={{ ...detail, hasFeedback: false }}
+      onClose={onClose} primaryLabel="Dotaz" secondaryLabel="Odpověď"
+    />
+  );
+  expect(screen.queryByText('Feedback')).not.toBeInTheDocument();
+  expect(screen.queryByText('Odpověď byla přesná.')).not.toBeInTheDocument();
+});
+
+test('hides userId row when userId is absent', () => {
+  render(
+    <GenericFeedbackDetailModal
+      detail={{ ...detail, userId: undefined }}
+      onClose={onClose} primaryLabel="Dotaz" secondaryLabel="Odpověď"
+    />
+  );
+  expect(screen.queryByText('Uživatel')).not.toBeInTheDocument();
+});
