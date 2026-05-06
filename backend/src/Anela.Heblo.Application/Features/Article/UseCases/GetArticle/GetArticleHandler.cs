@@ -49,8 +49,15 @@ public sealed class GetArticleHandler : IRequestHandler<GetArticleRequest, GetAr
             {
                 Title = s.Title,
                 Url = s.Url,
-                Type = s.Type.ToString()
-            }).ToList()
+                Type = s.Type.ToString(),
+                KnowledgeBaseChunkId = s.KnowledgeBaseChunkId,
+                Confidence = s.Confidence,
+                Excerpt = s.Excerpt,
+                ValidationNote = s.ValidationNote,
+            }).ToList(),
+            PrecisionScore = article.PrecisionScore,
+            StyleScore = article.StyleScore,
+            FeedbackComment = article.FeedbackComment,
         };
     }
 }
