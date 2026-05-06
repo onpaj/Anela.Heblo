@@ -1,286 +1,254 @@
-# Design: Phase 1 — UI Consolidation & SharePoint Link-Back
+# Design: Marketing Calendar 14-Day View
 
 ## UX/UI Design
 
-### Sidebar — Marketing group consolidation
+### Toolbar — 3-button segmented control
 
-The existing `marketing` section (Kalendář, Generátor letáků) is extended in-place; the standalone `knowledgebase` section is removed. End result is one collapsible Marketing group with five items in order:
-
-```
-┌─────────────────────────────┐
-│ AH  Anela Heblo             │
-├─────────────────────────────┤
-│ ⊞  Dashboard                │
-│ ...                         │
-│ ▼ 📣 Marketing              │  ← Megaphone icon, expanded
-│    Kalendář                 │
-│    Generátor letáků         │
-│    Generátor článků         │  ← added (was unreachable)
-│    Poradenství (KB)         │  ← moved from knowledgebase section
-│    Feedback                 │  ← conditional: managers only
-│ ...                         │
-│ ▶ 🤖 Automatizace           │
-│                             │  ← Knowledgebase section removed
-└─────────────────────────────┘
-```
-
-The `knowledgebase` section (Database icon, "Poradenství" + conditional "Feedback") is deleted. `Database` is removed from the lucide-react import block (verify no other in-file usage before removing). The Feedback item in the merged section is conditioned on `hasRole('knowledge_base_manager') || hasRole('leaflet_manager') || hasRole('article_generator')`.
-
-Collapsed state behaviour is unchanged — icon-only, clicking expands the sidebar.
-
-### Marketing Feedback stub page
-
-Minimal placeholder with standard page wrapper. No interactive elements.
+The existing 2-button row (`Kalendář | Seznam`) is replaced with a 3-button segmented control. The visual language (indigo active state, neutral hover, shared border, rounded container) is unchanged.
 
 ```
-┌────────────────────────────────────────────┐
-│  Feedback                                  │  ← <h1>
-│                                            │
-│  Přehled zpětné vazby bude dostupný        │  ← <p>
-│  po dokončení integrace.                   │
-└────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ Marketingový kalendář    [■ 5 týdnů][□ 14 dní][□ Seznam]   [+ Nová akce] … │
+└──────────────────────────────────────────────────────────────────────────────┘
+  ■ = active  (bg-indigo-600 text-white)
+  □ = inactive (text-gray-600 hover:bg-gray-50)
 ```
 
-Wrapper: `<div className="p-6">`. No card, no table, no spinner. Page lives at `/marketing/feedback` inside the existing `<AuthGuard>` + `<Layout>` tree.
+Button order: `5 týdnů` (Calendar icon) · `14 dní` (Calendar icon) · `Seznam` (List icon).  
+Default active on page load: `5 týdnů`.
 
-### Chunk detail modal — SharePoint link row
+Both calendar buttons use the already-imported `Calendar` icon from `lucide-react`; the list button uses `List`. The `Download` / `Nová akce` buttons are unchanged and remain after the toggle group.
 
-The link is inserted between the meta row and the Summary block in both modals. It is omitted entirely when `sourcePath` is null, empty, or starts with `upload/`.
-
-**KB ChunkDetailModal** (current layout is at `ChunkDetailModal.tsx:59-93`):
+### 5-week view (unchanged)
 
 ```
-┌──────────────────────────────────────────────────────┐
-│ filename.docx                               [×]      │
-├──────────────────────────────────────────────────────┤
-│  Dokument  •  Indexováno: 1. 5. 2025  •  87%        │  ← meta row (unchanged)
-│  Otevřít v SharePoint ↗                             │  ← NEW: only when https://
-│                                                      │
-│  SHRNUTÍ                                             │
-│  ┌────────────────────────────────────────────────┐  │
-│  │ ...                                            │  │
-│  └────────────────────────────────────────────────┘  │
-│                                                      │
-│  OBSAH                                               │
-│  ...                                                 │
-└──────────────────────────────────────────────────────┘
+Po  Út  St  Čt  Pá  So  Ne
+────────────────────────────
+ …   …   …   …   …   …   …   ← week –1
+ …   …  [T]  …   …   …   …   ← today's week  (T = indigo circle)
+ …   …   …   …   …   …   …
+ …   …   …   …   …   …   …
+ …   …   …   …   …   …   …   ← week +3
+                  +2 more ↑   ← "+N more" truncation still present
 ```
 
-**LeafletChunkDetailModal** (`LeafletChunkDetailModal.tsx:59-88`) — identical layout change; the only structural difference from KB modal is the absence of the `documentType` pill and `score` in its meta row (current state, unchanged).
+### 14-day view (new)
 
-Link element spec:
-- Tag: `<a>` with `target="_blank" rel="noopener noreferrer"`
-- Label: `Otevřít v SharePoint` + trailing `<ExternalLink className="w-3 h-3" />`
-- Classes: `inline-flex items-center gap-1 text-xs text-blue-600 hover:underline`
-- Rendered inside the `data && (...)` block, immediately after the `<div className='flex items-center gap-3 ...'>` meta row
+```
+Po  Út  St  Čt  Pá  So  Ne
+────────────────────────────────────────
+ …   …  [T]  …   …   …   …   ← today's week
+ ┌─────────────────────────┐
+ │ Event A                 │  all events
+ │ Event B                 │  visible —
+ │ Event C                 │  no "+N more"
+ └─────────────────────────┘
+ …   …   …   …   …   …   …   ← week +1
+                               ↕ parent container scrolls when grid > viewport
+```
+
+Each cell has a minimum height of 80 px even when empty. Vertical expansion is unbounded; the existing `overflow-auto` parent container provides the single scroll context — no nested scrollbars.
+
+### Key interactions
+
+| Action | Behavior |
+|--------|----------|
+| Click `14 dní` | `viewMode` → `'twoWeeks'`; `visibleRange` reset to `null`; `MarketingMonthCalendar` remounts via `key`; 14-day fallback fetch fires; `datesSet` updates `visibleRange` with actual window |
+| Click `5 týdnů` | Same flow with 35-day fallback range |
+| Click `Seznam` | `viewMode` → `'list'`; calendar unmounts; list + filter panel render (unchanged) |
+| Prev / Next in 14-day mode | FullCalendar API advances/retreats exactly 14 days |
+| Today in 14-day mode | `gotoDate(getCalendarStartForToday())` — today lands in week 2 of the 2-row grid |
+| Event click / drag / resize / range select | Identical handler chain to 5-week view; no behavioral change |
+
+---
 
 ## Component Design
 
-### Frontend
+### `MarketingCalendarPage`
 
-#### `frontend/src/utils/sharepointLink.ts` (NEW)
+**Responsibility:** owns all view state, orchestrates data fetching, renders toolbar and the active view block.
 
-Pure synchronous function with no side effects, no React imports.
+**`ViewMode` union widened** (current `'calendar' | 'list'` → new):
 
 ```ts
-export function getSharePointLink(sourcePath: string | null | undefined): string | null
+type ViewMode = 'fiveWeeks' | 'twoWeeks' | 'list';
+const [viewMode, setViewMode] = useState<ViewMode>('fiveWeeks');
 ```
 
-Returns the input verbatim when it starts with `"https://"`, `null` in all other cases (null, undefined, empty string, `"upload/..."` prefix).
+**New handler** (replaces two inline `setViewMode` calls on the toolbar buttons):
 
-No default export. Imported by both modals and testable in isolation.
+```ts
+const handleViewModeChange = (mode: ViewMode) => {
+  setViewMode(mode);
+  if (mode !== 'list') setVisibleRange(null);
+};
+```
 
-#### `frontend/src/utils/sharepointLink.test.ts` (NEW)
+**Fallback fetch range** (currently hardcoded to 35 days at `MarketingCalendarPage.tsx:64-72`) becomes view-aware; `viewMode` is added to the `useMemo` dependency array:
 
-Unit tests covering: `null`, `undefined`, `""`, `"upload/abc/file.pdf"`, `"https://sharepoint.example.com/doc"`.
+```ts
+end.setDate(start.getDate() + (viewMode === 'twoWeeks' ? 14 : 35));
+```
 
-#### `frontend/src/pages/MarketingFeedbackPage.tsx` (NEW)
-
-Default export. Stateless functional component. No props, no hooks, no data fetching.
+**Conditional render** (`viewMode === 'calendar'` → `viewMode !== 'list'`):
 
 ```tsx
-export default function MarketingFeedbackPage() {
-  return (
-    <div className="p-6">
-      <h1 ...>Feedback</h1>
-      <p ...>Přehled zpětné vazby bude dostupný po dokončení integrace.</p>
-    </div>
-  );
+{viewMode !== 'list' ? <CalendarBlock /> : <ListBlock />}
+```
+
+**`MarketingMonthCalendar` usage inside `CalendarBlock`:**
+
+```tsx
+<MarketingMonthCalendar
+  key={viewMode}
+  viewName={viewMode as CalendarViewName}
+  events={calendarEvents}
+  initialDate={currentDate}
+  onEventClick={openEdit}
+  onEventMove={handleEventMove}
+  onEventResize={handleEventResize}
+  onDateRangeSelect={handleDateRangeSelect}
+  onDatesSet={handleDatesSet}
+  calendarRef={calendarRef}
+  className="h-full"
+/>
+```
+
+`key={viewMode}` forces a React remount on every calendar-mode switch. This fires `datesSet` exactly once with the new window's true bounds and eliminates any stale FullCalendar internal state from the previous view.
+
+---
+
+### `MarketingMonthCalendar`
+
+**Responsibility:** renders a single FullCalendar `dayGrid` instance for either the 5-week or 14-day view. No awareness of the list view.
+
+**New exported type:**
+
+```ts
+export type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
+```
+
+**Props interface — `viewName` added as required:**
+
+```ts
+interface MarketingMonthCalendarProps {
+  events: CalendarEvent[];
+  initialDate: Date;
+  viewName: CalendarViewName;           // NEW — required, no default
+  onEventClick: (id: number) => void;
+  onEventMove: (id: number, dateFrom: string, dateTo: string) => void;
+  onEventResize: (id: number, dateFrom: string, dateTo: string) => void;
+  onDateRangeSelect: (dateFrom: string, dateTo: string) => void;
+  onDatesSet: (visibleStart: Date, visibleEnd: Date, currentStart: Date) => void;
+  calendarRef: React.RefObject<FullCalendar>;
+  className?: string;
 }
 ```
 
-#### `frontend/src/components/Layout/Sidebar.tsx` (MODIFIED)
+**Internal view registry:**
 
-**Change 1 — `navigationSections` array:**
-- Extend the `marketing` section (id `"marketing"`) items array from 2 items to 5 (or 4 + conditional spread).
-- Remove the `knowledgebase` section object entirely (currently lines 299–314).
-
-**Change 2 — imports:**
-- Remove `Database` from the lucide-react import (confirmed single usage on line 20 as the knowledgebase section icon).
-- No other import changes required (`Megaphone` and `ExternalLink` are already imported).
-
-No changes to the rendering logic, toggle behaviour, or collapsed state handling.
-
-#### `frontend/src/App.tsx` (MODIFIED)
-
-Add import of `MarketingFeedbackPage` and register route `/marketing/feedback` inside the existing `<AuthGuard>` + `<Layout>` block, alongside the existing `/knowledge-base/feedback` route (lines ~466-474).
-
-#### `frontend/src/components/knowledge-base/ChunkDetailModal.tsx` (MODIFIED)
-
-Add import of `getSharePointLink` from `../../utils/sharepointLink` and `ExternalLink` from `lucide-react`.
-
-Insert the link element after the closing tag of the meta row `<div>` (currently line 74), before the Summary `<div>`:
-
-```tsx
-{getSharePointLink(data.sourcePath) && (
-  <a
-    href={getSharePointLink(data.sourcePath)!}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
-  >
-    Otevřít v SharePoint
-    <ExternalLink className="w-3 h-3" />
-  </a>
-)}
+```ts
+const CALENDAR_VIEWS = {
+  fiveWeeks: { type: 'dayGrid', duration: { weeks: 5 }, dayMaxEvents: true  },
+  twoWeeks:  { type: 'dayGrid', duration: { weeks: 2 }, dayMaxEvents: false },
+} as const;
 ```
 
-#### `frontend/src/features/leaflet-generator/LeafletChunkDetailModal.tsx` (MODIFIED)
+**Derived render values:**
 
-Identical change as KB modal above; insertion point is after the meta row `<div>` (currently line 66).
+```ts
+const calendarHeight = viewName === 'twoWeeks' ? 'auto' : '100%';
 
-### Backend
-
-#### `GetChunkDetailRequest.cs` — `GetChunkDetailResponse` class (MODIFIED)
-
-File: `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/GetChunkDetail/GetChunkDetailRequest.cs`
-
-Add one property to the `GetChunkDetailResponse` class:
-
-```csharp
-public string? SourcePath { get; set; }
+const wrapperClass =
+  `marketing-calendar${viewName === 'twoWeeks' ? ' two-weeks' : ''} h-full`
+  + (className ? ` ${className}` : '');
 ```
 
-#### `GetChunkDetailHandler.cs` (MODIFIED)
+**FullCalendar prop changes from current code:**
 
-File: `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/GetChunkDetail/GetChunkDetailHandler.cs`
+| Prop | Before | After |
+|------|--------|-------|
+| `initialView` | `"fiveWeeks"` (hardcoded) | `{viewName}` |
+| `views` | `{ fiveWeeks: { type, duration } }` | `{CALENDAR_VIEWS}` (both views) |
+| `height` | `"100%"` (hardcoded) | `{calendarHeight}` |
+| `dayMaxEvents` | `{true}` (top-level) | removed — lives in `CALENDAR_VIEWS` per-view |
 
-Add `SourcePath = chunk.Document.SourcePath,` to the response object initialiser (after `Content = chunk.Content,`, currently line 34).
+No handler logic changes. All callbacks (`handleEventClick`, `handleEventDrop`, `handleEventResize`, `handleSelect`, `handleDatesSet`) are identical in both views.
 
-#### `GetLeafletChunkDetailRequest.cs` — `GetLeafletChunkDetailResponse` class (MODIFIED)
+---
 
-File: `backend/src/Anela.Heblo.Application/Features/Leaflet/UseCases/GetLeafletChunkDetail/GetLeafletChunkDetailRequest.cs`
+### `marketingCalendar.css`
 
-Same additive change:
+Two rules appended at the end of the file, scoped to `.marketing-calendar.two-weeks` to leave the 5-week view untouched:
 
-```csharp
-public string? SourcePath { get; set; }
+```css
+.marketing-calendar.two-weeks .fc-daygrid-day-frame {
+  min-height: 80px;
+}
+
+.marketing-calendar.two-weeks .fc-daygrid-day-events {
+  overflow: visible;
+}
 ```
 
-#### `GetLeafletChunkDetailHandler.cs` (MODIFIED)
+---
 
-File: `backend/src/Anela.Heblo.Application/Features/Leaflet/UseCases/GetLeafletChunkDetail/GetLeafletChunkDetailHandler.cs`
+### Test files (new)
 
-Add `SourcePath = chunk.Document.SourcePath,` to the response object initialiser.
+**`frontend/src/components/marketing/calendar/__tests__/MarketingMonthCalendar.test.tsx`**
 
-#### Repositories — no changes
+Covers:
+- `viewName='fiveWeeks'` → FullCalendar receives `initialView="fiveWeeks"` and the views registry carries `dayMaxEvents: true` for `fiveWeeks`.
+- `viewName='twoWeeks'` → FullCalendar receives `initialView="twoWeeks"`, views registry carries `dayMaxEvents: false` for `twoWeeks`, wrapper element has `two-weeks` CSS class.
+- Both views are present in the registry simultaneously.
+- `height='auto'` for `twoWeeks`; `height='100%'` for `fiveWeeks`.
 
-`KnowledgeBaseRepository.GetChunkByIdAsync` and `LeafletRepository.GetChunkByIdAsync` already include `.Include(c => c.Document)`. No repository modifications needed.
+**`frontend/src/components/marketing/pages/__tests__/MarketingCalendarPage.test.tsx`**
 
-### Test files (MODIFIED — existing test classes extended)
+Covers:
+- Toolbar renders all three buttons with Czech labels (`5 týdnů`, `14 dní`, `Seznam`).
+- Default active button is `5 týdnů` on first render.
+- Clicking `14 dní` highlights it and mounts `MarketingMonthCalendar` with `viewName='twoWeeks'`.
+- Clicking `Seznam` unmounts the calendar and renders the list.
+- Returning from `Seznam` to `5 týdnů` remounts the calendar with `viewName='fiveWeeks'`.
 
-**`GetChunkDetailHandlerTests.cs`** — add three facts:
-1. `SourcePath` equals document's SharePoint URL when document has `https://` path.
-2. `SourcePath` equals synthetic path verbatim when document has `upload/...` path.
-3. `SourcePath` is `""` (empty string) when document `SourcePath` defaults to `string.Empty`.
-
-**`GetLeafletChunkDetailHandlerTests.cs`** — same three facts.
-
-**Frontend test files (NEW):**
-- `frontend/src/utils/sharepointLink.test.ts` — five test cases covering all input categories.
-- `frontend/src/components/knowledge-base/ChunkDetailModal.test.tsx` — three cases (SharePoint URL renders link; `upload/...` hides link; `null` hides link).
-- `frontend/src/features/leaflet-generator/LeafletChunkDetailModal.test.tsx` — same three cases.
+---
 
 ## Data Schemas
 
-### Backend DTO changes (additive)
+### Backend API — no changes
 
-**`GetChunkDetailResponse`** — after change:
+The feature is entirely presentational. The existing endpoint accepts arbitrary date windows and requires no modification:
 
-```csharp
-public class GetChunkDetailResponse : BaseResponse
-{
-    public Guid ChunkId { get; set; }
-    public Guid DocumentId { get; set; }
-    public string Filename { get; set; } = string.Empty;
-    public DocumentType DocumentType { get; set; }
-    public DateTime? IndexedAt { get; set; }
-    public int ChunkIndex { get; set; }
-    public string Summary { get; set; } = string.Empty;
-    public string Content { get; set; } = string.Empty;
-    public string? SourcePath { get; set; }           // NEW
-}
+```
+GET /api/MarketingCalendar/calendar?StartDate={ISO}&EndDate={ISO}
 ```
 
-**`GetLeafletChunkDetailResponse`** — after change:
+Response shape is unchanged — `MarketingActionDto[]` consumed by `useMarketingCalendar`.
 
-```csharp
-public class GetLeafletChunkDetailResponse : BaseResponse
-{
-    public Guid ChunkId { get; set; }
-    public Guid DocumentId { get; set; }
-    public string Filename { get; set; } = string.Empty;
-    public DateTime? IndexedAt { get; set; }
-    public int ChunkIndex { get; set; }
-    public string Content { get; set; } = string.Empty;
-    public string Summary { get; set; } = string.Empty;
-    public string? SourcePath { get; set; }           // NEW
-}
-```
+### Frontend data flow — view-aware fetch range
 
-### API response shapes (JSON)
-
-`GET /api/knowledge-base/chunks/{id}` — additive change:
-```json
-{
-  "chunkId": "...",
-  "documentId": "...",
-  "filename": "example.docx",
-  "documentType": "Document",
-  "indexedAt": "2025-05-01T10:00:00Z",
-  "chunkIndex": 0,
-  "summary": "...",
-  "content": "...",
-  "sourcePath": "https://anelacz.sharepoint.com/..."
-}
-```
-
-`sourcePath` is `null` or an empty string when the document has no SharePoint origin; a `"upload/{guid}/{filename}"` string when manually uploaded; a full `https://` URL when sourced from SharePoint/OneDrive.
-
-`GET /api/leaflet/chunks/{id}` — identical additive change to its response shape.
-
-### Frontend TypeScript shapes
-
-Auto-generated by the OpenAPI client on `npm run build`. After regeneration the generated interfaces gain:
+The `useMemo` at `MarketingCalendarPage.tsx:64-72` gains `viewMode` as a dependency:
 
 ```ts
-// In api-client.ts (auto-generated, do not edit manually)
-interface GetChunkDetailResponse {
-  // ...existing fields...
-  sourcePath?: string;
-}
-
-interface GetLeafletChunkDetailResponse {
-  // ...existing fields...
-  sourcePath?: string;
-}
+const { startDate, endDate } = useMemo(() => {
+  if (visibleRange) {
+    return { startDate: visibleRange.start, endDate: visibleRange.end };
+  }
+  const start = getCalendarStartForToday();
+  const end = new Date(start);
+  end.setDate(start.getDate() + (viewMode === 'twoWeeks' ? 14 : 35));
+  return { startDate: start, endDate: end };
+}, [visibleRange, viewMode]);
 ```
 
-### `SourcePath` semantics (existing convention, unchanged)
+The React Query key for `useMarketingCalendar` already includes `startDate` and `endDate`; different windows produce separate cache entries with no key changes required.
 
-| Value pattern | Origin | UI behaviour |
-|---|---|---|
-| `https://...` | SharePoint / OneDrive ingestion | Render as clickable link |
-| `upload/{guid}/{filename}` | Manual upload pipeline | Omit link (helper returns `null`) |
-| `""` (empty string default) | No source set | Omit link (falsy check catches it) |
-| `null` | Defensive DTO nullability | Omit link |
+### `CalendarViewName` — new exported type
+
+```ts
+// frontend/src/components/marketing/calendar/MarketingMonthCalendar.tsx
+export type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
+```
+
+`ViewMode` on the page (`'fiveWeeks' | 'twoWeeks' | 'list'`) is a strict superset. The `as CalendarViewName` cast in the JSX is safe because the calendar block is only rendered when `viewMode !== 'list'`.
