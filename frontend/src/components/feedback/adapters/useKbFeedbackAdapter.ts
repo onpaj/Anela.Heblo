@@ -14,7 +14,7 @@ export function useKbFeedbackAdapter(params: GenericFeedbackParams) {
   const rows: FeedbackDetail[] = (query.data?.logs ?? []).map((log) => ({
     id: log.id,
     primaryText: log.question,
-    secondaryText: log.answer.slice(0, 120),
+    secondaryText: (log.answer ?? '').slice(0, 120),
     createdAt: log.createdAt,
     userId: log.userId ?? undefined,
     precisionScore: log.precisionScore,
@@ -36,7 +36,7 @@ export function useKbFeedbackAdapter(params: GenericFeedbackParams) {
     rows,
     stats,
     totalCount: query.data?.totalCount ?? 0,
-    totalPages: query.data?.totalPages ?? 1,
+    totalPages: query.data?.totalPages ?? 0,
     pageNumber: query.data?.pageNumber ?? params.pageNumber,
     isLoading: query.isLoading,
     isError: query.isError,

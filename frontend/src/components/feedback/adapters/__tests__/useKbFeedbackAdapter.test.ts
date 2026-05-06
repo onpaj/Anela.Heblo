@@ -90,3 +90,17 @@ test('returns empty rows and undefined stats when loading', () => {
   expect(result.current.stats).toBeUndefined();
   expect(result.current.isLoading).toBe(true);
 });
+
+test('maps hasFeedback from log', () => {
+  const { result } = renderHook(() => useKbFeedbackAdapter(params));
+  expect(result.current.rows[0].hasFeedback).toBe(true);
+});
+
+test('returns isError when query errors', () => {
+  jest.spyOn(kbHooks, 'useKnowledgeBaseFeedbackListQuery').mockReturnValue({
+    data: undefined, isLoading: false, isError: true,
+  } as any);
+  const { result } = renderHook(() => useKbFeedbackAdapter(params));
+  expect(result.current.isError).toBe(true);
+  expect(result.current.rows).toEqual([]);
+});
