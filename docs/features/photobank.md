@@ -1,4 +1,4 @@
-# Fotobank
+# Fotobanka
 
 Interní katalog fotek uložených na SharePointu. Aplikace si udržuje databázi metadat (název, cesta, štítky) a zobrazuje galerii s filtrováním. Fotky samotné zůstávají na SharePointu — aplikace je pouze indexuje.
 
