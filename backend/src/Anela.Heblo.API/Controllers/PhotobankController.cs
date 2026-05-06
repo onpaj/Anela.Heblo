@@ -2,8 +2,12 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Anela.Heblo.Application.Features.Photobank.Contracts;
 using Anela.Heblo.Application.Features.Photobank.Services;
+using Microsoft.Identity.Client;
+using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
+using Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos;
+using Anela.Heblo.Application.Features.Photobank.UseCases.GetTags;
+using Anela.Heblo.Application.Features.Photobank.UseCases.RemovePhotoTag;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Photobank;
 using MediatR;
@@ -140,6 +144,11 @@ namespace Anela.Heblo.API.Controllers
             {
                 Logger.LogWarning(ex, "Upstream HTTP error fetching thumbnail for photo {PhotoId}", id);
                 return StatusCode(StatusCodes.Status502BadGateway);
+            }
+            catch (MsalException ex)
+            {
+                Logger.LogError(ex, "Token acquisition failed for thumbnail {PhotoId}. MSAL error: {ErrorCode}", id, ex.ErrorCode);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable);
             }
 
             if (rawThumbnail is null)

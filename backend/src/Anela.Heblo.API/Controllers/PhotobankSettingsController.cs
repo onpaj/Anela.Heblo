@@ -1,6 +1,13 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Anela.Heblo.Application.Features.Photobank.Contracts;
+using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
+using Anela.Heblo.Application.Features.Photobank.UseCases.AddRule;
+using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRoot;
+using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRule;
+using Anela.Heblo.Application.Features.Photobank.UseCases.GetRoots;
+using Anela.Heblo.Application.Features.Photobank.UseCases.GetRules;
+using Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules;
+using Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;

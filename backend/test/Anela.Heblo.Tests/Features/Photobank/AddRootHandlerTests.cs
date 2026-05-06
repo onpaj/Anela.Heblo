@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Anela.Heblo.Application.Features.Photobank.Contracts;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
 using Anela.Heblo.Domain.Features.Photobank;
 using FluentAssertions;

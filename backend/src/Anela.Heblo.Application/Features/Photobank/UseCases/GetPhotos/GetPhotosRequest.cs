@@ -1,8 +1,7 @@
 using System.Collections.Generic;
-using Anela.Heblo.Application.Shared;
 using MediatR;
 
-namespace Anela.Heblo.Application.Features.Photobank.Contracts
+namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
 {
     public class GetPhotosRequest : IRequest<GetPhotosResponse>
     {
@@ -11,13 +10,5 @@ namespace Anela.Heblo.Application.Features.Photobank.Contracts
         public string? FolderPath { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 48;
-    }
-
-    public class GetPhotosResponse : BaseResponse
-    {
-        public List<PhotoDto> Items { get; set; } = new();
-        public int Total { get; set; }
-        public int Page { get; set; }
-        public int PageSize { get; set; }
     }
 }

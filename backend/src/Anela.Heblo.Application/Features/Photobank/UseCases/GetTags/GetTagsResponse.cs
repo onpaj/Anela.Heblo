@@ -1,13 +1,9 @@
 using System.Collections.Generic;
+using Anela.Heblo.Application.Features.Photobank.Contracts;
 using Anela.Heblo.Application.Shared;
-using MediatR;
 
-namespace Anela.Heblo.Application.Features.Photobank.Contracts
+namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetTags
 {
-    public class GetTagsRequest : IRequest<GetTagsResponse>
-    {
-    }
-
     public class GetTagsResponse : BaseResponse
     {
         public List<TagWithCountDto> Tags { get; set; } = new();

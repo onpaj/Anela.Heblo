@@ -1,13 +1,7 @@
 using Anela.Heblo.Application.Shared;
-using MediatR;
 
-namespace Anela.Heblo.Application.Features.Photobank.Contracts
+namespace Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRoot
 {
-    public class DeleteRootRequest : IRequest<DeleteRootResponse>
-    {
-        public int Id { get; set; }
-    }
-
     public class DeleteRootResponse : BaseResponse
     {
         public DeleteRootResponse() : base() { }

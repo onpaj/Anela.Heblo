@@ -1,13 +1,7 @@
 using Anela.Heblo.Application.Shared;
-using MediatR;
 
-namespace Anela.Heblo.Application.Features.Photobank.Contracts
+namespace Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRule
 {
-    public class DeleteRuleRequest : IRequest<DeleteRuleResponse>
-    {
-        public int Id { get; set; }
-    }
-
     public class DeleteRuleResponse : BaseResponse
     {
         public DeleteRuleResponse() : base() { }

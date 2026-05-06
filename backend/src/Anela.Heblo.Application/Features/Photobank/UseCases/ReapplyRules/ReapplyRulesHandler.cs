@@ -1,6 +1,5 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Anela.Heblo.Application.Features.Photobank.Contracts;
 using Anela.Heblo.Domain.Features.Photobank;
 using MediatR;
 

@@ -1,7 +1,6 @@
-using Anela.Heblo.Application.Shared;
 using MediatR;
 
-namespace Anela.Heblo.Application.Features.Photobank.Contracts
+namespace Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule
 {
     public class UpdateRuleRequest : IRequest<UpdateRuleResponse>
     {
@@ -10,12 +9,5 @@ namespace Anela.Heblo.Application.Features.Photobank.Contracts
         public string TagName { get; set; } = null!;
         public bool IsActive { get; set; }
         public int SortOrder { get; set; }
-    }
-
-    public class UpdateRuleResponse : BaseResponse
-    {
-        public UpdateRuleResponse() : base() { }
-
-        public UpdateRuleResponse(ErrorCodes errorCode) : base(errorCode) { }
     }
 }

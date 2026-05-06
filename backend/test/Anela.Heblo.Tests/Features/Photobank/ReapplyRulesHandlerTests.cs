@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Threading;
-using Anela.Heblo.Application.Features.Photobank.Contracts;
 using Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules;
 using Anela.Heblo.Domain.Features.Photobank;
 using FluentAssertions;
