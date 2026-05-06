@@ -23,6 +23,8 @@ export interface ArticleSource {
   title: string;
   url: string | null;
   type: string;
+  knowledgeBaseChunkId: string | null;
+  excerpt: string | null;
 }
 
 export interface ArticleDetail {
@@ -41,6 +43,9 @@ export interface ArticleDetail {
   useKnowledgeBase: boolean;
   useWebSearch: boolean;
   sources: ArticleSource[];
+  precisionScore: number | null;
+  styleScore: number | null;
+  feedbackComment: string | null;
 }
 
 export interface ListArticlesParams {
@@ -79,6 +84,8 @@ export const articleKeys = {
   list: (params?: ListArticlesParams) =>
     [...QUERY_KEYS.articles, 'list', params ?? {}] as const,
   detail: (id: string) => [...QUERY_KEYS.articles, 'detail', id] as const,
+  feedbackList: (params: object) =>
+    [...QUERY_KEYS.articles, 'feedbackList', params] as const,
 };
 
 // ---- Hooks ----
@@ -132,7 +139,12 @@ export const useGetArticleQuery = (id: string | null) => {
           title: s.title ?? '',
           url: s.url ?? null,
           type: s.type ?? '',
+          knowledgeBaseChunkId: (s as any).knowledgeBaseChunkId ?? null,
+          excerpt: (s as any).excerpt ?? null,
         })),
+        precisionScore: (response as any).precisionScore ?? null,
+        styleScore: (response as any).styleScore ?? null,
+        feedbackComment: (response as any).feedbackComment ?? null,
       };
     },
     enabled: !!id,
@@ -157,5 +169,75 @@ export const useGenerateArticleMutation = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: articleKeys.all });
     },
+  });
+};
+
+export interface ArticleFeedbackSubmitData {
+  articleId: string;
+  precisionScore: number;
+  styleScore: number;
+  comment?: string;
+}
+
+export const useSubmitArticleFeedbackMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: ArticleFeedbackSubmitData): Promise<{ alreadySubmitted: boolean }> => {
+      const apiClient = getAuthenticatedApiClient(false);
+      const fullUrl = `${(apiClient as any).baseUrl}/api/Articles/${data.articleId}/feedback`;
+
+      const response = await (apiClient as any).http.fetch(fullUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          precisionScore: data.precisionScore,
+          styleScore: data.styleScore,
+          comment: data.comment,
+        }),
+      });
+
+      const text: string = await response.text();
+      const json = text ? JSON.parse(text) : {};
+      const alreadySubmitted = json?.errorCode === 'ArticleFeedbackAlreadySubmitted';
+      return { alreadySubmitted };
+    },
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: articleKeys.detail(variables.articleId) });
+    },
+  });
+};
+
+export interface ArticleFeedbackListParams {
+  hasFeedback?: boolean;
+  requestedBy?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export const useArticleFeedbackListQuery = (params: ArticleFeedbackListParams = {}) => {
+  return useQuery({
+    queryKey: articleKeys.feedbackList(params),
+    queryFn: async () => {
+      const apiClient = getAuthenticatedApiClient();
+      let url = `${(apiClient as any).baseUrl}/api/Articles/feedback/list?`;
+      if (params.hasFeedback !== undefined) url += `hasFeedback=${params.hasFeedback}&`;
+      if (params.requestedBy) url += `requestedBy=${encodeURIComponent(params.requestedBy)}&`;
+      url += `sortBy=${encodeURIComponent(params.sortBy ?? 'CreatedAt')}&`;
+      url += `sortDescending=${params.sortDescending ?? true}&`;
+      url += `pageNumber=${params.pageNumber ?? 1}&`;
+      url += `pageSize=${params.pageSize ?? 20}`;
+
+      const response = await (apiClient as any).http.fetch(url, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+
+      const text: string = await response.text();
+      return text ? JSON.parse(text) : null;
+    },
+    staleTime: 30_000,
   });
 };

@@ -1,6 +1,15 @@
+import React, { useState } from 'react';
 import { Loader2, ExternalLink, BookOpen, Globe } from 'lucide-react';
-import { ArticleDetail as ArticleDetailType, ArticleSource, useGetArticleQuery, IN_PROGRESS_STATUSES } from '../../api/hooks/useArticles';
+import {
+  ArticleDetail as ArticleDetailType,
+  ArticleSource,
+  useGetArticleQuery,
+  useSubmitArticleFeedbackMutation,
+  IN_PROGRESS_STATUSES,
+} from '../../api/hooks/useArticles';
 import { ArticleStatus } from '../../api/generated/api-client';
+import RagFeedbackForm, { FeedbackState } from '../../components/feedback/RagFeedbackForm';
+import ChunkDetailModal from '../../components/knowledge-base/ChunkDetailModal';
 
 interface ArticleDetailProps {
   articleId: string;
@@ -28,6 +37,8 @@ function SourceIcon({ type }: { type: string }) {
 }
 
 function SourceList({ sources }: { sources: ArticleSource[] }) {
+  const [selectedChunkId, setSelectedChunkId] = useState<string | null>(null);
+
   if (sources.length === 0) return null;
 
   return (
@@ -35,7 +46,10 @@ function SourceList({ sources }: { sources: ArticleSource[] }) {
       <h3 className="text-sm font-semibold text-gray-700 mb-2">Zdroje</h3>
       <ul className="space-y-1">
         {sources.map((source) => (
-          <li key={`${source.type}:${source.url ?? source.title}`} className="flex items-start gap-2 text-sm">
+          <li
+            key={`${source.type}:${source.knowledgeBaseChunkId ?? source.url ?? source.title}`}
+            className="flex items-start gap-2 text-sm"
+          >
             <SourceIcon type={source.type} />
             {source.url ? (
               <a
@@ -47,12 +61,26 @@ function SourceList({ sources }: { sources: ArticleSource[] }) {
                 {source.title}
                 <ExternalLink className="w-3 h-3" />
               </a>
+            ) : source.knowledgeBaseChunkId ? (
+              <button
+                className="text-green-700 hover:underline text-left"
+                onClick={() => setSelectedChunkId(source.knowledgeBaseChunkId!)}
+              >
+                {source.title}
+              </button>
             ) : (
               <span className="text-gray-700">{source.title}</span>
             )}
           </li>
         ))}
       </ul>
+
+      {selectedChunkId && (
+        <ChunkDetailModal
+          chunkId={selectedChunkId}
+          onClose={() => setSelectedChunkId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -92,6 +120,11 @@ function InProgressView({ article }: { article: ArticleDetailType }) {
 }
 
 function ArticleView({ article }: { article: ArticleDetailType }) {
+  const submitFeedback = useSubmitArticleFeedbackMutation();
+  const [feedbackState, setFeedbackState] = useState<FeedbackState>('idle');
+
+  const hasFeedback = article.precisionScore !== null || article.styleScore !== null;
+
   return (
     <div>
       <div className="mb-4">
@@ -110,6 +143,31 @@ function ArticleView({ article }: { article: ArticleDetailType }) {
 
       {article.htmlContent && <HtmlContent html={article.htmlContent} />}
       <SourceList sources={article.sources} />
+
+      <div className="mt-6 border-t pt-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Hodnotit</h3>
+        {hasFeedback ? (
+          <p className="text-xs text-gray-500">
+            Hodnocení: Přesnost {article.precisionScore}/5, Styl {article.styleScore}/5
+          </p>
+        ) : (
+          <RagFeedbackForm
+            onSubmit={(data) =>
+              submitFeedback.mutate(
+                { articleId: article.id, ...data },
+                {
+                  onSuccess: (result) => {
+                    setFeedbackState(result.alreadySubmitted ? 'alreadySubmitted' : 'submitted');
+                  },
+                },
+              )
+            }
+            isSubmitting={submitFeedback.isPending}
+            isError={submitFeedback.isError}
+            feedbackState={feedbackState}
+          />
+        )}
+      </div>
     </div>
   );
 }
