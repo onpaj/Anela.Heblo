@@ -66,6 +66,35 @@ test('calculates totalPages from totalCount and pageSize', () => {
 test('passes GenericFeedbackParams to query (translates field names)', () => {
   renderHook(() => useLeafletFeedbackAdapter(params));
   expect(leafletHooks.useLeafletFeedbackListQuery).toHaveBeenCalledWith(
-    expect.objectContaining({ pageNumber: 2, pageSize: 10, sortDescending: false }),
+    expect.objectContaining({ pageNumber: 2, pageSize: 10, sortBy: 'CreatedAt', sortDescending: false }),
   );
+});
+
+test('hasFeedback is true when at least one score is present', () => {
+  const { result } = renderHook(() => useLeafletFeedbackAdapter(params));
+  // mockItem has precisionScore: 5 and styleScore: 4
+  expect(result.current.rows[0].hasFeedback).toBe(true);
+});
+
+test('hasFeedback is false when both scores are null', () => {
+  jest.spyOn(leafletHooks, 'useLeafletFeedbackListQuery').mockReturnValue({
+    data: {
+      items: [{ ...mockItem, precisionScore: null, styleScore: null }],
+      totalCount: 1, pageNumber: 2, pageSize: 10, stats: mockStats,
+    },
+    isLoading: false,
+    isError: false,
+  } as any);
+  const { result } = renderHook(() => useLeafletFeedbackAdapter(params));
+  expect(result.current.rows[0].hasFeedback).toBe(false);
+});
+
+test('returns empty rows and undefined stats when loading', () => {
+  jest.spyOn(leafletHooks, 'useLeafletFeedbackListQuery').mockReturnValue({
+    data: undefined, isLoading: true, isError: false,
+  } as any);
+  const { result } = renderHook(() => useLeafletFeedbackAdapter(params));
+  expect(result.current.rows).toEqual([]);
+  expect(result.current.stats).toBeUndefined();
+  expect(result.current.isLoading).toBe(true);
 });
