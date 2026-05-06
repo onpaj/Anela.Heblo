@@ -243,6 +243,10 @@ public enum ErrorCodes
     StyleGuideFetchFailed = 2404,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     ArticleAlreadyGenerated = 2405,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ArticleNotGenerated = 2406,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    ArticleFeedbackAlreadySubmitted = 2407,
 
     // Leaflet module errors (25XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
