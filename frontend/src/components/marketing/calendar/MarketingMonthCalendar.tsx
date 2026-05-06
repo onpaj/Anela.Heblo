@@ -11,6 +11,11 @@ import './marketingCalendar.css';
 
 export type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
 
+const CALENDAR_VIEWS = {
+  fiveWeeks: { type: 'dayGrid', duration: { weeks: 5 }, dayMaxEvents: true },
+  twoWeeks:  { type: 'dayGrid', duration: { weeks: 2 }, dayMaxEvents: false },
+} as const;
+
 interface MarketingMonthCalendarProps {
   events: CalendarEvent[];
   initialDate: Date;
@@ -74,12 +79,7 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
         ref={calendarRef}
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView={viewName}
-        views={{
-          fiveWeeks: {
-            type: 'dayGrid',
-            duration: { weeks: 5 },
-          },
-        }}
+        views={CALENDAR_VIEWS}
         locale={csLocale}
         initialDate={initialDate}
         headerToolbar={false}
@@ -87,7 +87,6 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
         editable={true}
         selectable={true}
         selectMirror={true}
-        dayMaxEvents={true}
         height="100%"
         eventClick={handleEventClick}
         eventDrop={handleEventDrop}

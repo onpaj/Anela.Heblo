@@ -56,3 +56,36 @@ describe("MarketingMonthCalendar — viewName prop", () => {
     expect(fullCalendarPropsRef.current?.initialView).toBe("fiveWeeks");
   });
 });
+
+describe("MarketingMonthCalendar — views registry", () => {
+  it("registers both fiveWeeks and twoWeeks with correct dayMaxEvents", () => {
+    render(
+      React.createElement(MarketingMonthCalendar, {
+        ...baseProps,
+        viewName: "fiveWeeks",
+      }),
+    );
+    const views = fullCalendarPropsRef.current?.views;
+    expect(views).toBeDefined();
+    expect(views.fiveWeeks).toEqual({
+      type: "dayGrid",
+      duration: { weeks: 5 },
+      dayMaxEvents: true,
+    });
+    expect(views.twoWeeks).toEqual({
+      type: "dayGrid",
+      duration: { weeks: 2 },
+      dayMaxEvents: false,
+    });
+  });
+
+  it("does not pass a top-level dayMaxEvents prop", () => {
+    render(
+      React.createElement(MarketingMonthCalendar, {
+        ...baseProps,
+        viewName: "fiveWeeks",
+      }),
+    );
+    expect(fullCalendarPropsRef.current).not.toHaveProperty("dayMaxEvents");
+  });
+});

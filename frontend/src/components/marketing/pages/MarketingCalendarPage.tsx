@@ -3,6 +3,7 @@ import { Plus, Calendar, List, Download } from 'lucide-react';
 import type FullCalendar from '@fullcalendar/react';
 import CalendarNavigation from '../../manufacture/calendar/CalendarNavigation';
 import MarketingMonthCalendar from '../calendar/MarketingMonthCalendar';
+import type { CalendarViewName } from '../calendar/MarketingMonthCalendar';
 import MarketingActionGrid from '../list/MarketingActionGrid';
 import type { MarketingActionDto } from '../list/MarketingActionGrid';
 import MarketingActionFilters, {
@@ -44,6 +45,8 @@ type ViewMode = 'calendar' | 'list';
 
 const MarketingCalendarPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('calendar');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [calendarViewName, setCalendarViewName] = useState<CalendarViewName>('fiveWeeks');
   const [currentDate, setCurrentDate] = useState(getCalendarStartForToday);
   const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date } | null>(null);
   const [filters, setFilters] = useState<MarketingFilters>(EMPTY_FILTERS);
@@ -294,6 +297,7 @@ const MarketingCalendarPage: React.FC = () => {
                 <MarketingMonthCalendar
                   events={calendarEvents}
                   initialDate={currentDate}
+                  viewName={calendarViewName}
                   onEventClick={openEdit}
                   onEventMove={handleEventMove}
                   onEventResize={handleEventResize}
