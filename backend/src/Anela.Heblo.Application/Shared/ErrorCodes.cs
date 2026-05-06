@@ -256,6 +256,16 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.Conflict)]
     LeafletFeedbackAlreadySubmitted = 2503,
 
+    // Photobank errors (26XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotoNotFound = 2601,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotobankRootNotFound = 2602,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotobankRuleNotFound = 2603,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    PhotoTagCreationFailed = 2604,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

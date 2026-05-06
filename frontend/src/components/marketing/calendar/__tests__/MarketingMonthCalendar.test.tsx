@@ -4,12 +4,12 @@ import MarketingMonthCalendar from "../MarketingMonthCalendar";
 
 // Capture the props passed to FullCalendar so each test can assert on them.
 const fullCalendarPropsRef = {
-  current: null,
+  current: null as any,
 };
 
 jest.mock("@fullcalendar/react", () => {
   const React = require("react");
-  const FullCalendarMock = React.forwardRef((props, _ref) => {
+  const FullCalendarMock = React.forwardRef((props: any, _ref: any) => {
     fullCalendarPropsRef.current = props;
     return React.createElement("div", { "data-testid": "fullcalendar-mock" });
   });
@@ -17,7 +17,6 @@ jest.mock("@fullcalendar/react", () => {
   return { __esModule: true, default: FullCalendarMock };
 });
 
-// Plugins are imported by the SUT but never invoked under the mock.
 jest.mock("@fullcalendar/daygrid", () => ({ __esModule: true, default: {} }));
 jest.mock("@fullcalendar/interaction", () => ({
   __esModule: true,
@@ -38,7 +37,7 @@ const baseProps = {
   onEventResize: noop,
   onDateRangeSelect: noop,
   onDatesSet: noop,
-  calendarRef: React.createRef(),
+  calendarRef: React.createRef<any>(),
 };
 
 beforeEach(() => {
@@ -54,6 +53,16 @@ describe("MarketingMonthCalendar — viewName prop", () => {
       }),
     );
     expect(fullCalendarPropsRef.current?.initialView).toBe("fiveWeeks");
+  });
+
+  it("passes viewName='twoWeeks' as initialView to FullCalendar", () => {
+    render(
+      React.createElement(MarketingMonthCalendar, {
+        ...baseProps,
+        viewName: "twoWeeks",
+      }),
+    );
+    expect(fullCalendarPropsRef.current?.initialView).toBe("twoWeeks");
   });
 });
 
@@ -101,14 +110,14 @@ describe("MarketingMonthCalendar — height and wrapper class", () => {
     expect(fullCalendarPropsRef.current?.height).toBe("100%");
   });
 
-  it("uses height='auto' for twoWeeks", () => {
+  it("uses height='100%' for twoWeeks (fills viewport, taller rows)", () => {
     render(
       React.createElement(MarketingMonthCalendar, {
         ...baseProps,
         viewName: "twoWeeks",
       }),
     );
-    expect(fullCalendarPropsRef.current?.height).toBe("auto");
+    expect(fullCalendarPropsRef.current?.height).toBe("100%");
   });
 
   it("does not add 'two-weeks' class to the wrapper for fiveWeeks", () => {
@@ -145,5 +154,29 @@ describe("MarketingMonthCalendar — height and wrapper class", () => {
     );
     const wrapper = screen.getByTestId("marketing-calendar-wrapper");
     expect(wrapper).toHaveClass("marketing-calendar", "two-weeks", "h-full", "extra-class");
+  });
+});
+
+describe("MarketingMonthCalendar — eventContent", () => {
+  it("uses a different eventContent function for twoWeeks vs fiveWeeks", () => {
+    const { rerender } = render(
+      React.createElement(MarketingMonthCalendar, {
+        ...baseProps,
+        viewName: "fiveWeeks",
+      }),
+    );
+    const compactContent = fullCalendarPropsRef.current?.eventContent;
+
+    rerender(
+      React.createElement(MarketingMonthCalendar, {
+        ...baseProps,
+        viewName: "twoWeeks",
+      }),
+    );
+    const cardContent = fullCalendarPropsRef.current?.eventContent;
+
+    expect(typeof compactContent).toBe("function");
+    expect(typeof cardContent).toBe("function");
+    expect(compactContent).not.toBe(cardContent);
   });
 });

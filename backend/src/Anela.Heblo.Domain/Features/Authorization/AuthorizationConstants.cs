@@ -31,6 +31,11 @@ public static class AuthorizationConstants
         public const string Administrator = "administrator";
 
         /// <summary>
+        /// Role for super user functions (photobank settings, etc.)
+        /// </summary>
+        public const string SuperUser = "super_user";
+
+        /// <summary>
         /// Base role required for application access
         /// </summary>
         public const string HebloUser = "heblo_user";

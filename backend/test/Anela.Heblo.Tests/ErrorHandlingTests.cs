@@ -88,6 +88,7 @@ public class ErrorHandlingTests
         var marketingErrors = errorCodes.Where(code => code >= 2300 && code < 2400).ToList(); // 23XX range
         var articleErrors = errorCodes.Where(code => code >= 2400 && code < 2500).ToList(); // 24XX range
         var leafletErrors = errorCodes.Where(code => code >= 2500 && code < 2600).ToList(); // 25XX range
+        var photobankErrors = errorCodes.Where(code => code >= 2600 && code < 2700).ToList(); // 26XX range
         var externalServiceErrors = errorCodes.Where(code => code >= 9000 && code < 9100).ToList(); // 90XX range
 
         // Ensure we have some errors in the expected categories
@@ -106,6 +107,7 @@ public class ErrorHandlingTests
         Assert.True(marketingErrors.Count > 0, "Should have Marketing Calendar errors in 23XX range");
         Assert.True(articleErrors.Count > 0, "Should have Article Generation errors in 24XX range");
         Assert.True(leafletErrors.Count > 0, "Should have Leaflet errors in 25XX range");
+        Assert.True(photobankErrors.Count > 0, "Should have Photobank errors in 26XX range");
         Assert.True(externalServiceErrors.Count > 0, "Should have external service errors in 90XX range");
 
         // Ensure all error codes fall into defined module ranges
@@ -114,7 +116,7 @@ public class ErrorHandlingTests
                               configErrors.Count + journalErrors.Count + analyticsErrors.Count +
                               fileStorageErrors.Count + backgroundJobsErrors.Count + knowledgeBaseErrors.Count +
                               shoptetOrdersErrors.Count + dataQualityErrors.Count + marketingErrors.Count +
-                              articleErrors.Count + leafletErrors.Count + externalServiceErrors.Count;
+                              articleErrors.Count + leafletErrors.Count + photobankErrors.Count + externalServiceErrors.Count;
 
         Assert.Equal(errorCodes.Count, categorizedCount);
     }

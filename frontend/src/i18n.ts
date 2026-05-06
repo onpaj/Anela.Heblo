@@ -207,6 +207,12 @@ const resources = {
         MarketingActionNotFound: "Marketingová akce nebyla nalezena",
         UnauthorizedMarketingAccess: "Nemáte oprávnění k této marketingové akci",
 
+        // Photobank module errors
+        PhotoNotFound: "Fotka nebyla nalezena",
+        PhotobankRootNotFound: "Kořenový adresář fotobanka nebyl nalezen",
+        PhotobankRuleNotFound: "Pravidlo tagu nebylo nalezeno",
+        PhotoTagCreationFailed: "Vytvoření tagu fotky selhalo.",
+
         // Article Generation errors
         ArticleNotFound: "Článek nebyl nalezen (ID: {{id}})",
         ArticleGenerationFailed: "Generování článku selhalo. Zkuste to prosím znovu.",

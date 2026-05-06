@@ -165,6 +165,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       image-tags: ${{ steps.meta.outputs.tags }}
+      changelog-cs: ${{ steps.changelog_cs.outputs.markdown }}
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -290,6 +291,47 @@ jobs:
           fi
 
           echo "✅ All changelog files validated successfully!"
+
+      - name: 📝 Extract Czech changelog for current version
+        id: changelog_cs
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          CURRENT_VERSION="${VERSION#v}"
+
+          MARKDOWN=$(jq -r --arg version "$CURRENT_VERSION" '
+            .versions[]
+            | select(.version == $version)
+            | .changes
+            | if length == 0 then "" else
+                group_by(.type) | map(
+                  (
+                    if .[0].type == "feature" then "### ✨ Novinky"
+                    elif .[0].type == "fix" then "### 🐛 Opravy"
+                    elif .[0].type == "improvement" then "### 📈 Vylepšení"
+                    elif .[0].type == "docs" then "### 📚 Dokumentace"
+                    elif .[0].type == "perf" then "### ⚡ Zrychlení"
+                    elif .[0].type == "refactor" then "### ♻️ Refaktoring"
+                    elif .[0].type == "test" then "### 🧪 Interní"
+                    elif .[0].type == "ci" then "### 👷 CI/CD"
+                    else "### 📝 Ostatní"
+                    end
+                  ) + "\n" + (map("- " + .title) | join("\n"))
+                ) | join("\n\n")
+              end
+          ' frontend/public/changelog.cs.json)
+
+          if [ -n "$MARKDOWN" ]; then
+            DELIM="$(openssl rand -hex 8)"
+            {
+              printf 'markdown<<%s\n' "$DELIM"
+              printf '%s\n' "$MARKDOWN"
+              printf '%s\n' "$DELIM"
+            } >> "$GITHUB_OUTPUT"
+            echo "✅ Czech changelog block prepared ($(echo "$MARKDOWN" | wc -l) lines)"
+          else
+            echo "markdown=" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ No user-facing changes for $VERSION — Teams will use compact payload"
+          fi
 
       - name: 🐳 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -551,69 +593,54 @@ jobs:
         run: |
           VERSION="${{ needs.build-and-push.outputs.version }}"
           HOSTNAME="${{ steps.deploy.outputs.hostname }}"
+          TIMESTAMP="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          APP_URL="https://${HOSTNAME}"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
           echo "📢 Sending Teams notification for version $VERSION..."
 
-          # Create Teams message payload
-          TEAMS_MESSAGE=$(cat <<EOF
-          {
-            "@type": "MessageCard",
-            "@context": "https://schema.org/extensions",
-            "summary": "Heblo ${VERSION} úspěšně nasazeno",
-            "themeColor": "00AA00",
-            "title": "🚀 Heblo ${VERSION} úspěšně nasazeno",
-            "sections": [
-              {
-                "activityTitle": "Produkční nasazení dokončeno",
-                "activitySubtitle": "$(date '+%Y-%m-%d %H:%M:%S UTC')",
-                "facts": [
+          TEAMS_MESSAGE=$(jq -n \
+            --arg version "$VERSION" \
+            --arg timestamp "$TIMESTAMP" \
+            --arg app_url "$APP_URL" \
+            --arg run_url "$RUN_URL" \
+            --arg workflow "$GITHUB_WORKFLOW" \
+            --arg changelog "$CHANGELOG_CS" \
+            '{
+              "@type": "MessageCard",
+              "@context": "https://schema.org/extensions",
+              "summary": "Heblo \($version) úspěšně nasazeno",
+              "themeColor": "00AA00",
+              "title": "🚀 Heblo \($version) úspěšně nasazeno",
+              "sections": (
+                [
                   {
-                    "name": "Verze:",
-                    "value": "${VERSION}"
-                  },
-                  {
-                    "name": "Prostředí:",
-                    "value": "Production"
-                  },
-                  {
-                    "name": "URL:",
-                    "value": "https://${HOSTNAME}"
-                  },
-                  {
-                    "name": "Workflow:",
-                    "value": "${GITHUB_WORKFLOW}"
-                  }
-                ],
-                "markdown": true
-              }
-            ],
-            "potentialAction": [
-              {
-                "@type": "OpenUri",
-                "name": "Zobrazit aplikaci",
-                "targets": [
-                  {
-                    "os": "default",
-                    "uri": "https://${HOSTNAME}"
+                    "activityTitle": "Produkční nasazení dokončeno",
+                    "activitySubtitle": $timestamp,
+                    "facts": [
+                      { "name": "Verze:",      "value": $version },
+                      { "name": "Prostředí:",  "value": "Production" },
+                      { "name": "URL:",        "value": $app_url },
+                      { "name": "Workflow:",   "value": $workflow }
+                    ],
+                    "markdown": true
                   }
                 ]
-              },
-              {
-                "@type": "OpenUri",
-                "name": "Zobrazit workflow run",
-                "targets": [
-                  {
-                    "os": "default",
-                    "uri": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-                  }
-                ]
-              }
-            ]
-          }
-          EOF
-          )
+                + (
+                  if ($changelog | length) > 0
+                  then [{ "title": "**📋 Změny ve verzi**", "text": $changelog, "markdown": true }]
+                  else []
+                  end
+                )
+              ),
+              "potentialAction": [
+                { "@type": "OpenUri", "name": "Zobrazit aplikaci",
+                  "targets": [{ "os": "default", "uri": $app_url }] },
+                { "@type": "OpenUri", "name": "Zobrazit workflow run",
+                  "targets": [{ "os": "default", "uri": $run_url }] }
+              ]
+            }')
 
-          # Send to Teams webhook
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Content-Type: application/json" \
             -d "$TEAMS_MESSAGE" \
@@ -626,6 +653,7 @@ jobs:
             echo "Note: This is not a critical failure, continuing workflow..."
           fi
         env:
+          CHANGELOG_CS: ${{ needs.build-and-push.outputs.changelog-cs }}
           GITHUB_WORKFLOW: ${{ github.workflow }}
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_REPOSITORY: ${{ github.repository }}

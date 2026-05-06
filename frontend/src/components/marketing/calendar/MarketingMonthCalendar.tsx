@@ -3,7 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import csLocale from '@fullcalendar/core/locales/cs';
-import type { EventClickArg, EventDropArg, DatesSetArg } from '@fullcalendar/core';
+import type { EventClickArg, EventDropArg, DatesSetArg, EventContentArg } from '@fullcalendar/core';
 import type { EventResizeDoneArg } from '@fullcalendar/interaction';
 import type { CalendarEvent } from './fullcalendarAdapters';
 import { toFcEvent, fromFcDates } from './fullcalendarAdapters';
@@ -15,6 +15,64 @@ const CALENDAR_VIEWS = {
   fiveWeeks: { type: 'dayGrid', duration: { weeks: 5 }, dayMaxEvents: true },
   twoWeeks:  { type: 'dayGrid', duration: { weeks: 2 }, dayMaxEvents: false },
 } as const;
+
+const ACTION_TYPE_LABELS: Record<string, string> = {
+  SocialMedia: 'SoMe',
+  Blog: 'Blog',
+  Newsletter: 'NL',
+  PR: 'PR',
+  Event: 'Akce',
+  Meeting: 'Porada',
+};
+
+function formatCzechDate(d: Date): string {
+  return `${d.getDate()}. ${d.getMonth() + 1}.`;
+}
+
+function formatEventDateRange(start: Date, fcEnd: Date | null): string {
+  // fcEnd is exclusive in FullCalendar; subtract 1 day to get inclusive display end
+  const end = fcEnd ? new Date(fcEnd.getTime() - 86400000) : start;
+  const startStr = formatCzechDate(start);
+  if (start.toDateString() === end.toDateString()) return startStr;
+  return `${startStr} – ${formatCzechDate(end)}`;
+}
+
+function formatProductLabel(count: number): string | null {
+  if (count === 0) return null;
+  if (count === 1) return '1 produkt';
+  if (count < 5) return `${count} produkty`;
+  return `${count} produktů`;
+}
+
+function renderCardEvent(arg: EventContentArg): React.ReactElement {
+  const actionType = (arg.event.extendedProps.actionType as string) ?? 'Other';
+  const products = (arg.event.extendedProps.associatedProducts as string[]) ?? [];
+  const typeLabel = ACTION_TYPE_LABELS[actionType] ?? actionType;
+  const dateStr = formatEventDateRange(arg.event.start!, arg.event.end);
+  const productLabel = formatProductLabel(products.length);
+
+  return (
+    <div className="px-1.5 py-0.5 flex flex-col gap-0.5 w-full overflow-hidden">
+      <div className="text-xs font-semibold leading-4 line-clamp-2">
+        {arg.event.title}
+      </div>
+      <div className="flex items-center gap-1 text-[10px] font-medium opacity-90">
+        <span className="bg-white/20 rounded px-1 shrink-0">{typeLabel}</span>
+        <span className="truncate">
+          {dateStr}{productLabel ? ` · ${productLabel}` : ''}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function renderCompactEvent(arg: EventContentArg): React.ReactElement {
+  return (
+    <div className="px-1 text-xs font-medium truncate leading-5">
+      {arg.event.title}
+    </div>
+  );
+}
 
 interface MarketingMonthCalendarProps {
   events: CalendarEvent[];
@@ -43,7 +101,6 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
 }) => {
   const fcEvents = useMemo(() => events.map(toFcEvent), [events]);
 
-  const calendarHeight = viewName === 'twoWeeks' ? 'auto' : '100%';
   const wrapperClassName = [
     'marketing-calendar',
     viewName === 'twoWeeks' && 'two-weeks',
@@ -97,17 +154,13 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
         editable={true}
         selectable={true}
         selectMirror={true}
-        height={calendarHeight}
+        height="100%"
         eventClick={handleEventClick}
         eventDrop={handleEventDrop}
         eventResize={handleEventResize}
         select={handleSelect}
         datesSet={handleDatesSet}
-        eventContent={(arg) => (
-          <div className="px-1 text-xs font-medium truncate leading-5">
-            {arg.event.title}
-          </div>
-        )}
+        eventContent={viewName === 'twoWeeks' ? renderCardEvent : renderCompactEvent}
       />
     </div>
   );
