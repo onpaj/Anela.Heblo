@@ -4,9 +4,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Domain.Features.Photobank;
+using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Anela.Heblo.Persistence.Photobank
+namespace Anela.Heblo.Application.Features.Photobank
 {
     public class PhotobankRepository : IPhotobankRepository
     {

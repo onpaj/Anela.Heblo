@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Persistence;
-using Anela.Heblo.Persistence.Photobank;
+using Anela.Heblo.Application.Features.Photobank;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 
