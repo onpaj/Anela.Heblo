@@ -77,6 +77,37 @@ export interface LeafletFeedbackListParams {
   pageSize?: number;
 }
 
+export interface LeafletFeedbackSummary {
+  id: string;
+  topic: string;
+  audience: string;
+  length: string;
+  finalMarkdown: string;
+  kbSourceCount: number;
+  leafletSourceCount: number;
+  durationMs: number;
+  createdAt: string;
+  userId: string | null;
+  precisionScore: number | null;
+  styleScore: number | null;
+  feedbackComment: string | null;
+  hasFeedback: boolean;
+}
+
+export interface LeafletFeedbackListResponse {
+  items: LeafletFeedbackSummary[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  stats: {
+    totalGenerations: number;
+    totalWithFeedback: number;
+    avgPrecisionScore: number | null;
+    avgStyleScore: number | null;
+  };
+}
+
 // ---- Permission hook ----
 
 /**
@@ -314,7 +345,7 @@ export const useSubmitLeafletFeedbackMutation = () => {
 export const useLeafletFeedbackListQuery = (params: LeafletFeedbackListParams = {}) => {
   return useQuery({
     queryKey: leafletKeys.feedbackList(params),
-    queryFn: async () => {
+    queryFn: async (): Promise<LeafletFeedbackListResponse> => {
       const apiClient = getAuthenticatedApiClient();
       const searchParams = new URLSearchParams();
 
@@ -338,7 +369,7 @@ export const useLeafletFeedbackListQuery = (params: LeafletFeedbackListParams = 
       });
 
       if (!response.ok) throw new Error(`Failed to fetch feedback list: ${response.status}`);
-      return response.json();
+      return response.json() as Promise<LeafletFeedbackListResponse>;
     },
     staleTime: 30_000,
   });
