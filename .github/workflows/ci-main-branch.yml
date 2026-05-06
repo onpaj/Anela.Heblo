@@ -219,8 +219,9 @@ jobs:
             --arg source_json "$SOURCE_JSON" \
             '{
               "model": "gpt-4o",
+              "temperature": 0,
               "messages": [
-                {"role": "system", "content": "Jsi redaktor poznámek k vydání pro aplikaci kosmetické firmy. Tvým úkolem je přepsat technické commit zprávy do přívětivého, srozumitelného češtiny pro netechnické zaměstnance (skladníky, účetní, vedení). Pravidla:\n- Piš přirozeně česky, jako bys psal kolegům\n- Vysvětli CO se změnilo a PROČ je to pro uživatele důležité, ne jak to bylo implementováno\n- Vynechej technické detaily (názvy souborů, hashí, čísla PR v závorkách jako (#123))\n- Typy změn převeď: feature→novinka, fix→oprava, refactor→vylepšení, test→interní, docs→dokumentace, perf→zrychlení\n- Zachovej JSON strukturu beze změny – překládej pouze hodnoty polí title a description\n- Vrať pouze validní JSON bez markdown formátování nebo code bloků"},
+                {"role": "system", "content": "Jsi redaktor poznámek k vydání pro aplikaci kosmetické firmy. Zpracuješ JSON se změnami a vracíš upravený JSON. Přísná pravidla:\n\n1. NIKDY neměň pole type, scope, hash, id, source – zkopíruj je doslova beze změny.\n2. Odstraň pole files z každého záznamu – bylo přidáno pouze jako kontext pro tebe a ve výstupu nesmí být.\n3. Přelož pole title a description do přirozeného češtiny pro netechnické zaměstnance (skladníci, účetní, vedení). Vysvětli CO se změnilo a PROČ je to pro uživatele důležité. Bez technických detailů – žádné názvy souborů, žádné hashe, žádná čísla PR v závorkách jako (#123).\n4. Přidej nové pole module ke každému záznamu. Vyber hodnotu ze zavřeného seznamu podle pole scope a pole files:\n   Pokud pole `scope` chybí nebo je prázdné, rozhoduj o modulu pouze podle pole `files`.\n   - \"Marketingový kalendář\" – soubory pod frontend/src/components/marketing/calendar, nebo scope marketing-calendar, nebo scope marketing pokud změna souvisí s kalendářem\n   - \"Marketing\" – ostatní marketingové změny\n   - \"Výroba\" – Features/Manufacture, scope manufacture\n   - \"Katalog produktů\" – Features/Catalog, scope catalog\n   - \"Znalostní báze\" – Features/KnowledgeBase, scope kb nebo knowledge-base\n   - \"Finanční přehled\" – Features/FinancialOverview\n   - \"Sklad\" – Features/Logistics, scope stock, storage nebo stockup\n   - \"Integrace Shoptet\" – scope začínající shoptet\n   - \"Faktury\" – Features/Invoices\n   - \"Expediční list\" – Features/ExpeditionList, scope začínající expedition\n   - \"Deník\" – Features/Journal\n   - \"Hlavní panel\" – Features/Dashboard\n   - \"Bankovní výpisy\" – Features/Bank\n   - \"Fotobanka\" – Features/Photobank\n   - \"Úlohy na pozadí\" – Features/BackgroundJobs, scope hangfire\n   - \"Integrace FlexiBee\" – Adapters/Flexi, scope flexi\n   - \"Přihlašování\" – scope auth\n   - \"Navigace\" – scope nav nebo sidebar\n   - \"Email\" – scope email\n   - \"MCP server\" – Anela.Heblo.Mcp, scope mcp\n   - \"Ostatní\" – změna se týká pouze infrastruktury (Docker, CI, závislosti, testy, refaktoring bez dopadu na uživatele) nebo ji nelze zařadit jinam\n5. Zachovej vnější strukturu JSON beze změny (pole currentVersion, lastUpdated, versions[]).\n6. Vrať pouze validní JSON bez markdown formátování ani code bloků."},
                 {"role": "user", "content": $source_json}
               ]
             }')
@@ -315,7 +316,7 @@ jobs:
                     elif .[0].type == "ci" then "### 👷 CI/CD"
                     else "### 📝 Ostatní"
                     end
-                  ) + "\n" + (map("- " + .title) | join("\n"))
+                  ) + "\n" + (map("- " + (if ((.module // "") | length) > 0 and .module != "Ostatní" then "**" + .module + ":** " else "" end) + .title) | join("\n"))
                 ) | join("\n\n")
               end
           ' frontend/public/changelog.cs.json)
@@ -435,7 +436,7 @@ jobs:
                   elif .[0].type == "ci" then "### 👷 CI/CD"
                   else "### 📝 Other"
                   end
-                ) + "\n" + (map("- " + .title) | join("\n"))
+                ) + "\n" + (map("- " + (if ((.module // "") | length) > 0 and .module != "Ostatní" then "**" + .module + ":** " else "" end) + .title) | join("\n"))
               ) | join("\n\n")
             )
           ' frontend/public/changelog.json || echo "No changelog available for this version.")
