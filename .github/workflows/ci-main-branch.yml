@@ -320,15 +320,16 @@ jobs:
               end
           ' frontend/public/changelog.cs.json)
 
-          {
-            echo "markdown<<CHANGELOG_EOF"
-            echo "$MARKDOWN"
-            echo "CHANGELOG_EOF"
-          } >> "$GITHUB_OUTPUT"
-
           if [ -n "$MARKDOWN" ]; then
+            DELIM="$(openssl rand -hex 8)"
+            {
+              printf 'markdown<<%s\n' "$DELIM"
+              printf '%s\n' "$MARKDOWN"
+              printf '%s\n' "$DELIM"
+            } >> "$GITHUB_OUTPUT"
             echo "✅ Czech changelog block prepared ($(echo "$MARKDOWN" | wc -l) lines)"
           else
+            echo "markdown=" >> "$GITHUB_OUTPUT"
             echo "ℹ️ No user-facing changes for $VERSION — Teams will use compact payload"
           fi
 
@@ -592,7 +593,6 @@ jobs:
         run: |
           VERSION="${{ needs.build-and-push.outputs.version }}"
           HOSTNAME="${{ steps.deploy.outputs.hostname }}"
-          CHANGELOG_CS="${{ needs.build-and-push.outputs.changelog-cs }}"
           TIMESTAMP="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
           APP_URL="https://${HOSTNAME}"
           RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
@@ -653,6 +653,7 @@ jobs:
             echo "Note: This is not a critical failure, continuing workflow..."
           fi
         env:
+          CHANGELOG_CS: ${{ needs.build-and-push.outputs.changelog-cs }}
           GITHUB_WORKFLOW: ${{ github.workflow }}
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_REPOSITORY: ${{ github.repository }}
