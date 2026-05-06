@@ -9,9 +9,12 @@ import type { CalendarEvent } from './fullcalendarAdapters';
 import { toFcEvent, fromFcDates } from './fullcalendarAdapters';
 import './marketingCalendar.css';
 
+export type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
+
 interface MarketingMonthCalendarProps {
   events: CalendarEvent[];
   initialDate: Date;
+  viewName: CalendarViewName;
   onEventClick: (id: number) => void;
   onEventMove: (id: number, dateFrom: string, dateTo: string) => void;
   onEventResize: (id: number, dateFrom: string, dateTo: string) => void;
@@ -24,6 +27,7 @@ interface MarketingMonthCalendarProps {
 const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
   events,
   initialDate,
+  viewName,
   onEventClick,
   onEventMove,
   onEventResize,
@@ -69,7 +73,7 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, interactionPlugin]}
-        initialView="fiveWeeks"
+        initialView={viewName}
         views={{
           fiveWeeks: {
             type: 'dayGrid',
