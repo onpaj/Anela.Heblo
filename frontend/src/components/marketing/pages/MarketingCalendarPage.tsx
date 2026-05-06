@@ -3,7 +3,6 @@ import { Plus, Calendar, List, Download } from 'lucide-react';
 import type FullCalendar from '@fullcalendar/react';
 import CalendarNavigation from '../../manufacture/calendar/CalendarNavigation';
 import MarketingMonthCalendar from '../calendar/MarketingMonthCalendar';
-import type { CalendarViewName } from '../calendar/MarketingMonthCalendar';
 import MarketingActionGrid from '../list/MarketingActionGrid';
 import type { MarketingActionDto } from '../list/MarketingActionGrid';
 import MarketingActionFilters, {
@@ -310,7 +309,7 @@ const MarketingCalendarPage: React.FC = () => {
               <div className="flex-1 min-h-0">
                 <MarketingMonthCalendar
                   key={viewMode}
-                  viewName={viewMode as CalendarViewName}
+                  viewName={viewMode}
                   events={calendarEvents}
                   initialDate={currentDate}
                   onEventClick={openEdit}
