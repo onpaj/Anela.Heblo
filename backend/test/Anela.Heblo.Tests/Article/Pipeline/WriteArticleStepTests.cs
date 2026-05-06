@@ -59,6 +59,81 @@ public class WriteArticleStepTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_KbSourceMatchesSnippet_PopulatesChunkIdAndExcerpt()
+    {
+        var chunkId = Guid.NewGuid();
+        SetupChatResponse(
+            """
+            {"article_title":"T","article_html":"<p>x</p>","sources_used":[
+              {"title":"Hydration Guide","url":null}
+            ]}
+            """);
+
+        var context = CreateContext();
+        context.ContextSnippets.Add(new ContextSnippet
+        {
+            Source = SourceType.KnowledgeBase,
+            Title = "Hydration Guide",
+            Excerpt = "Use SPF daily for best results.",
+            ChunkId = chunkId
+        });
+        context.Facts.Add(new AggregatedFact
+        {
+            Claim = "SPF prevents aging",
+            Confidence = 0.88,
+            SourceTitle = "Hydration Guide",
+            ValidationNote = "Verified by dermatologists"
+        });
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var src = context.SourceRefs.Single();
+        src.ChunkId.Should().Be(chunkId);
+        src.Excerpt.Should().Be("Use SPF daily for best results.");
+        src.Confidence.Should().BeApproximately(0.88, 0.001);
+        src.ValidationNote.Should().Be("Verified by dermatologists");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WebSource_HasNullChunkId()
+    {
+        SetupChatResponse(
+            """
+            {"article_title":"T","article_html":"<p>x</p>","sources_used":[
+              {"title":"Example","url":"https://example.com"}
+            ]}
+            """);
+
+        var context = CreateContext();
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var src = context.SourceRefs.Single();
+        src.Type.Should().Be(SourceType.Web);
+        src.ChunkId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_KbSourceNoMatchingSnippet_HasNullChunkId()
+    {
+        SetupChatResponse(
+            """
+            {"article_title":"T","article_html":"<p>x</p>","sources_used":[
+              {"title":"Unknown Source","url":null}
+            ]}
+            """);
+
+        var context = CreateContext();
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var src = context.SourceRefs.Single();
+        src.Type.Should().Be(SourceType.KnowledgeBase);
+        src.ChunkId.Should().BeNull();
+        src.Excerpt.Should().BeNull();
+    }
+
+    [Fact]
     public async Task ExecuteAsync_GarbageResponse_FallsBackToTopicTitleAndWrappedHtml()
     {
         SetupChatResponse("garbage");
