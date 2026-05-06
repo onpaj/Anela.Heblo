@@ -107,3 +107,12 @@ test('clicking row opens detail modal', () => {
   fireEvent.click(screen.getByText('KB otázka'));
   expect(screen.getByText('Detail záznamu')).toBeInTheDocument();
 });
+
+test('clicking same row again closes detail modal', () => {
+  setupMocks();
+  render(<MarketingFeedbackPage />);
+  fireEvent.click(screen.getByText('KB otázka'));
+  expect(screen.getByText('Detail záznamu')).toBeInTheDocument();
+  fireEvent.click(screen.getAllByText('KB otázka')[0]);
+  expect(screen.queryByText('Detail záznamu')).not.toBeInTheDocument();
+});
