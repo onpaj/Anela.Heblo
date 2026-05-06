@@ -3,93 +3,76 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import RagFeedbackForm from '../RagFeedbackForm';
 
 describe('RagFeedbackForm', () => {
-  const noop = jest.fn();
+  const baseProps = {
+    onSubmit: jest.fn(),
+    isSubmitting: false,
+    isSuccess: false,
+    alreadySubmitted: false,
+  };
 
-  it('renders precision and style score buttons', () => {
-    render(
-      <RagFeedbackForm
-        onSubmit={noop}
-        isSubmitting={false}
-        isError={false}
-        feedbackState="idle"
-      />
-    );
-    expect(screen.getByText('Přesnost')).toBeInTheDocument();
-    expect(screen.getByText('Styl')).toBeInTheDocument();
+  beforeEach(() => jest.clearAllMocks());
+
+  it('disables submit until both scores are selected', () => {
+    render(<RagFeedbackForm {...baseProps} />);
+    const button = screen.getByRole('button', { name: /Odeslat/i });
+    expect(button).toBeDisabled();
+
+    fireEvent.click(screen.getAllByText('4')[0]);
+    expect(button).toBeDisabled();
+
+    fireEvent.click(screen.getAllByText('5')[1]);
+    expect(button).not.toBeDisabled();
   });
 
-  it('submit button is disabled until both scores are selected', () => {
-    render(
-      <RagFeedbackForm
-        onSubmit={noop}
-        isSubmitting={false}
-        isError={false}
-        feedbackState="idle"
-      />
-    );
-    const submit = screen.getByRole('button', { name: /odeslat/i });
-    expect(submit).toBeDisabled();
+  it('passes scores and trimmed comment to onSubmit', () => {
+    const onSubmit = jest.fn();
+    render(<RagFeedbackForm {...baseProps} onSubmit={onSubmit} />);
+
+    fireEvent.click(screen.getAllByText('5')[0]);
+    fireEvent.click(screen.getAllByText('4')[1]);
+    fireEvent.change(screen.getByPlaceholderText(/Volitelný/i), {
+      target: { value: '  great answer  ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Odeslat/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      precisionScore: 5,
+      styleScore: 4,
+      comment: 'great answer',
+    });
   });
 
-  it('calls onSubmit with scores and comment when submitted', () => {
-    const handleSubmit = jest.fn();
-    render(
-      <RagFeedbackForm
-        onSubmit={handleSubmit}
-        isSubmitting={false}
-        isError={false}
-        feedbackState="idle"
-      />
-    );
+  it('omits empty comment from submit payload', () => {
+    const onSubmit = jest.fn();
+    render(<RagFeedbackForm {...baseProps} onSubmit={onSubmit} />);
 
-    // Select precision score 4
-    const precisionRadios = screen.getAllByRole('radio');
-    fireEvent.click(precisionRadios[3]); // score 4 (index 3)
+    fireEvent.click(screen.getAllByText('3')[0]);
+    fireEvent.click(screen.getAllByText('3')[1]);
+    fireEvent.click(screen.getByRole('button', { name: /Odeslat/i }));
 
-    // Select style score 5
-    const styleRadios = screen.getAllByRole('radio');
-    fireEvent.click(styleRadios[9]); // score 5 in style row (index 4 + 5 = 9)
-
-    fireEvent.click(screen.getByRole('button', { name: /odeslat/i }));
-
-    expect(handleSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ precisionScore: 4, styleScore: 5 })
-    );
+    expect(onSubmit).toHaveBeenCalledWith({
+      precisionScore: 3,
+      styleScore: 3,
+      comment: undefined,
+    });
   });
 
-  it('shows success message when feedbackState is submitted', () => {
-    render(
-      <RagFeedbackForm
-        onSubmit={noop}
-        isSubmitting={false}
-        isError={false}
-        feedbackState="submitted"
-      />
-    );
-    expect(screen.getByText(/děkujeme/i)).toBeInTheDocument();
+  it('renders success message and hides form when isSuccess', () => {
+    render(<RagFeedbackForm {...baseProps} isSuccess />);
+    expect(screen.getByText(/Děkujeme/)).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('shows already-submitted message when feedbackState is alreadySubmitted', () => {
-    render(
-      <RagFeedbackForm
-        onSubmit={noop}
-        isSubmitting={false}
-        isError={false}
-        feedbackState="alreadySubmitted"
-      />
-    );
-    expect(screen.getByText(/zpětná vazba již byla odeslána/i)).toBeInTheDocument();
+  it('renders already-submitted message when alreadySubmitted', () => {
+    render(<RagFeedbackForm {...baseProps} alreadySubmitted />);
+    expect(screen.getByText(/již byla odeslána/)).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('shows error message when isError is true', () => {
-    render(
-      <RagFeedbackForm
-        onSubmit={noop}
-        isSubmitting={false}
-        isError={true}
-        feedbackState="idle"
-      />
-    );
-    expect(screen.getByText(/odeslání selhalo/i)).toBeInTheDocument();
+  it('disables submit while isSubmitting even when scores selected', () => {
+    render(<RagFeedbackForm {...baseProps} isSubmitting />);
+    fireEvent.click(screen.getAllByText('5')[0]);
+    fireEvent.click(screen.getAllByText('5')[1]);
+    expect(screen.getByRole('button', { name: /Odeslat/i })).toBeDisabled();
   });
 });

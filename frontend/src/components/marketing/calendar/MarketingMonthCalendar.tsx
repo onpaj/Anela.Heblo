@@ -9,9 +9,17 @@ import type { CalendarEvent } from './fullcalendarAdapters';
 import { toFcEvent, fromFcDates } from './fullcalendarAdapters';
 import './marketingCalendar.css';
 
+export type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
+
+const CALENDAR_VIEWS = {
+  fiveWeeks: { type: 'dayGrid', duration: { weeks: 5 }, dayMaxEvents: true },
+  twoWeeks:  { type: 'dayGrid', duration: { weeks: 2 }, dayMaxEvents: false },
+} as const;
+
 interface MarketingMonthCalendarProps {
   events: CalendarEvent[];
   initialDate: Date;
+  viewName: CalendarViewName;
   onEventClick: (id: number) => void;
   onEventMove: (id: number, dateFrom: string, dateTo: string) => void;
   onEventResize: (id: number, dateFrom: string, dateTo: string) => void;
@@ -24,6 +32,7 @@ interface MarketingMonthCalendarProps {
 const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
   events,
   initialDate,
+  viewName,
   onEventClick,
   onEventMove,
   onEventResize,
@@ -33,6 +42,16 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
   className,
 }) => {
   const fcEvents = useMemo(() => events.map(toFcEvent), [events]);
+
+  const calendarHeight = viewName === 'twoWeeks' ? 'auto' : '100%';
+  const wrapperClassName = [
+    'marketing-calendar',
+    viewName === 'twoWeeks' && 'two-weeks',
+    'h-full',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const handleEventClick = (info: EventClickArg) => {
     onEventClick(Number(info.event.id));
@@ -65,17 +84,12 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
   };
 
   return (
-    <div className={`marketing-calendar h-full${className ? ` ${className}` : ''}`}>
+    <div className={wrapperClassName} data-testid="marketing-calendar-wrapper">
       <FullCalendar
         ref={calendarRef}
         plugins={[dayGridPlugin, interactionPlugin]}
-        initialView="fiveWeeks"
-        views={{
-          fiveWeeks: {
-            type: 'dayGrid',
-            duration: { weeks: 5 },
-          },
-        }}
+        initialView={viewName}
+        views={CALENDAR_VIEWS}
         locale={csLocale}
         initialDate={initialDate}
         headerToolbar={false}
@@ -83,8 +97,7 @@ const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
         editable={true}
         selectable={true}
         selectMirror={true}
-        dayMaxEvents={true}
-        height="100%"
+        height={calendarHeight}
         eventClick={handleEventClick}
         eventDrop={handleEventDrop}
         eventResize={handleEventResize}

@@ -19,6 +19,9 @@ public sealed class GetArticleResponse : BaseResponse
     public bool UseKnowledgeBase { get; set; }
     public bool UseWebSearch { get; set; }
     public List<ArticleSourceDto> Sources { get; set; } = [];
+    public int? PrecisionScore { get; set; }
+    public int? StyleScore { get; set; }
+    public string? FeedbackComment { get; set; }
 
     public GetArticleResponse() { }
 

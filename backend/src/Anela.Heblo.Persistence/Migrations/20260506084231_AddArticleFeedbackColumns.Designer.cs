@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260506084231_AddArticleFeedbackColumns")]
+    partial class AddArticleFeedbackColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1201,68 +1204,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasFilter("\"GraphItemId\" IS NOT NULL");
 
                     b.ToTable("LeafletDocuments", (string)null);
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Leaflet.LeafletGeneration", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Audience")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<long>("DurationMs")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FeedbackComment")
-                        .HasColumnType("text");
-
-                    b.Property<string>("FinalMarkdown")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("KbSourceCount")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("LeafletSourceCount")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Length")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<int?>("PrecisionScore")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("StyleScore")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Topic")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("UserId")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("PrecisionScore")
-                        .HasFilter("\"PrecisionScore\" IS NOT NULL");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("LeafletGenerations", (string)null);
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture.GiftPackageManufactureItem", b =>

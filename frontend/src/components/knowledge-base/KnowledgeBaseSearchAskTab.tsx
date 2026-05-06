@@ -7,7 +7,7 @@ import {
   SourceReference,
 } from '../../api/hooks/useKnowledgeBase';
 import ChunkDetailModal from './ChunkDetailModal';
-import RagFeedbackForm, { FeedbackState } from '../feedback/RagFeedbackForm';
+import RagFeedbackForm from '../feedback/RagFeedbackForm';
 
 interface SourceAccordionProps {
   sources: SourceReference[];
@@ -54,13 +54,39 @@ const SourceAccordion: React.FC<SourceAccordionProps> = ({ sources, onViewSource
   );
 };
 
+const KnowledgeBaseFeedback: React.FC<{ logId: string }> = ({ logId }) => {
+  const submitFeedback = useSubmitFeedbackMutation();
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+
+  return (
+    <RagFeedbackForm
+      onSubmit={(data) =>
+        submitFeedback.mutate(
+          {
+            logId,
+            precisionScore: data.precisionScore,
+            styleScore: data.styleScore,
+            comment: data.comment,
+          },
+          {
+            onSuccess: (result) => {
+              if (result.alreadySubmitted) setAlreadySubmitted(true);
+            },
+          },
+        )
+      }
+      isSubmitting={submitFeedback.isPending}
+      isSuccess={submitFeedback.isSuccess && !submitFeedback.data?.alreadySubmitted}
+      alreadySubmitted={alreadySubmitted}
+    />
+  );
+};
+
 const KnowledgeBaseSearchAskTab: React.FC = () => {
   const [query, setQuery] = useState('');
   const [selectedChunkId, setSelectedChunkId] = useState<string | null>(null);
   const [selectedScore, setSelectedScore] = useState<number | undefined>(undefined);
-  const [feedbackState, setFeedbackState] = useState<FeedbackState>('idle');
   const ask = useKnowledgeBaseAskMutation();
-  const submitFeedback = useSubmitFeedbackMutation();
 
   const handleViewSource = (chunkId: string, score: number) => {
     setSelectedChunkId(chunkId);
@@ -73,10 +99,7 @@ const KnowledgeBaseSearchAskTab: React.FC = () => {
   };
 
   const handleSubmit = () => {
-    if (query.trim()) {
-      ask.mutate({ question: query.trim() });
-      setFeedbackState('idle');
-    }
+    if (query.trim()) ask.mutate({ question: query.trim() });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -84,27 +107,6 @@ const KnowledgeBaseSearchAskTab: React.FC = () => {
       e.preventDefault();
       handleSubmit();
     }
-  };
-
-  const handleFeedbackSubmit = (data: {
-    precisionScore: number;
-    styleScore: number;
-    comment: string;
-  }) => {
-    if (!ask.data?.id) return;
-    submitFeedback.mutate(
-      {
-        logId: ask.data.id,
-        precisionScore: data.precisionScore,
-        styleScore: data.styleScore,
-        comment: data.comment || undefined,
-      },
-      {
-        onSuccess: (result) => {
-          setFeedbackState(result.alreadySubmitted ? 'alreadySubmitted' : 'submitted');
-        },
-      },
-    );
   };
 
   return (
@@ -146,14 +148,7 @@ const KnowledgeBaseSearchAskTab: React.FC = () => {
             <ReactMarkdown>{ask.data.answer}</ReactMarkdown>
           </div>
           <SourceAccordion sources={ask.data.sources} onViewSource={handleViewSource} />
-          {ask.data.id && (
-            <RagFeedbackForm
-              onSubmit={handleFeedbackSubmit}
-              isSubmitting={submitFeedback.isPending}
-              isError={submitFeedback.isError}
-              feedbackState={feedbackState}
-            />
-          )}
+          {ask.data.id && <KnowledgeBaseFeedback logId={ask.data.id} />}
         </div>
       )}
 
