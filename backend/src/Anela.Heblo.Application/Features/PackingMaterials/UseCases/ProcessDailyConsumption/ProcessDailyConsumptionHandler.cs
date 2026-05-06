@@ -62,13 +62,13 @@ public class ProcessDailyConsumptionHandler : IRequestHandler<ProcessDailyConsum
             _logger.LogInformation("Retrieved {InvoiceCount} invoices with {OrderCount} orders and {ProductCount} products for {Date}",
                 invoicesResult.Items.Count, orderCount, productCount, request.ProcessingDate);
 
-            var processed = await _consumptionService.ProcessDailyConsumptionAsync(
+            var result = await _consumptionService.ProcessDailyConsumptionAsync(
                 request.ProcessingDate,
                 orderCount,
                 productCount,
                 cancellationToken);
 
-            if (!processed)
+            if (!result.WasRun)
             {
                 return new ProcessDailyConsumptionResponse
                 {
@@ -85,7 +85,7 @@ public class ProcessDailyConsumptionHandler : IRequestHandler<ProcessDailyConsum
             {
                 Success = true,
                 ProcessedDate = request.ProcessingDate,
-                MaterialsProcessed = 0, // TODO: Return actual count if needed
+                MaterialsProcessed = result.MaterialsProcessed,
                 Message = $"Daily consumption successfully processed for {request.ProcessingDate}"
             };
         }

@@ -36,7 +36,7 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
         return Task.FromResult(consumption);
     }
 
-    public async Task<bool> ProcessDailyConsumptionAsync(
+    public async Task<ProcessDailyConsumptionResult> ProcessDailyConsumptionAsync(
         DateOnly processingDate,
         int orderCount,
         int productCount,
@@ -46,7 +46,7 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
         if (await HasDayAlreadyBeenProcessedAsync(processingDate, cancellationToken))
         {
             _logger.LogInformation("Daily consumption processing for {Date} already completed, skipping", processingDate);
-            return false;
+            return new ProcessDailyConsumptionResult(false, 0);
         }
 
         _logger.LogInformation("Starting daily consumption processing for {Date} with {OrderCount} orders and {ProductCount} products",
@@ -91,7 +91,7 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
         _logger.LogInformation("Completed daily consumption processing for {Date}. Processed {ProcessedCount} materials",
             processingDate, processedCount);
 
-        return true;
+        return new ProcessDailyConsumptionResult(true, processedCount);
     }
 
     public async Task<bool> HasDayAlreadyBeenProcessedAsync(
