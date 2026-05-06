@@ -76,4 +76,23 @@ describe('ProcessDailyConsumptionModal', () => {
       expect(screen.getByText(/server error/i)).toBeInTheDocument();
     });
   });
+
+  it('shows red error banner when server reports already processed', async () => {
+    useProcessDailyConsumption.mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue({
+        success: false,
+        materialsProcessed: 0,
+        message: 'Daily consumption for 2025-06-15 was already processed',
+      }),
+      isPending: false,
+      error: null,
+    });
+
+    render(<ProcessDailyConsumptionModal {...defaultProps} />);
+    fireEvent.submit(screen.getByRole('button', { name: /odečíst spotřebu/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/already processed/i)).toBeInTheDocument();
+    });
+  });
 });

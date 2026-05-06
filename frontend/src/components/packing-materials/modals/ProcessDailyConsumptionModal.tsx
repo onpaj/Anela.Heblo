@@ -23,19 +23,21 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
   });
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const processDailyConsumptionMutation = useProcessDailyConsumption();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMessage(null);
     setInfoMessage(null);
+    setLocalError(null);
 
     try {
       const request = new ProcessDailyConsumptionRequest({
         processingDate: new Date(selectedDate)
       });
       const result = await processDailyConsumptionMutation.mutateAsync(request);
-      
+
       if (result.success) {
         if ((result.materialsProcessed ?? 0) > 0) {
           setSuccessMessage(`Odečteno pro ${result.materialsProcessed} materiálů`);
@@ -47,6 +49,10 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
           onClose();
         }, 2000);
       }
+
+      if (!result.success) {
+        setLocalError(result.message || 'Nepodařilo se odečíst spotřebu.');
+      }
     } catch (error) {
       console.error('Error processing daily consumption:', error);
       // Error is handled by the mutation and displayed below
@@ -56,6 +62,8 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
   const handleClose = () => {
     if (!processDailyConsumptionMutation.isPending) {
       setSuccessMessage(null);
+      setInfoMessage(null);
+      setLocalError(null);
       onClose();
     }
   };
@@ -105,9 +113,9 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
           </div>
 
           {/* Error Message */}
-          {processDailyConsumptionMutation.error && (
+          {(processDailyConsumptionMutation.error || localError) && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {processDailyConsumptionMutation.error.message || 'Nepodařilo se odečíst spotřebu. Zkuste to znovu.'}
+              {localError || processDailyConsumptionMutation.error?.message || 'Nepodařilo se odečíst spotřebu. Zkuste to znovu.'}
             </div>
           )}
 
