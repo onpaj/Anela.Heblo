@@ -10,7 +10,7 @@ interface Props {
   sortBy: string;
   sortDescending: boolean;
   pageSize: number;
-  allowedSortColumns: SortColumn[];
+  allowedSortColumns: readonly SortColumn[];
   onHasFeedbackChange: (v: boolean | undefined) => void;
   onSortByChange: (v: string) => void;
   onSortDescendingChange: (v: boolean) => void;
