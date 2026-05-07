@@ -7,7 +7,9 @@ interface PhotobankBulkActionBarProps {
   selectedCount: number;
   existingTags: TagWithCountDto[];
   isApplying: boolean;
+  isAutoTagging?: boolean;
   onApplyTag: (tagName: string) => Promise<void>;
+  onAutoTag?: () => void;
   onClear: () => void;
 }
 
@@ -15,7 +17,9 @@ export default function PhotobankBulkActionBar({
   selectedCount,
   existingTags,
   isApplying,
+  isAutoTagging = false,
   onApplyTag,
+  onAutoTag,
   onClear,
 }: PhotobankBulkActionBarProps) {
   const [tagInput, setTagInput] = useState("");
@@ -98,6 +102,20 @@ export default function PhotobankBulkActionBar({
           )}
           Přidat štítek
         </button>
+        {onAutoTag && (
+          <button
+            data-testid="bulk-auto-tag-btn"
+            type="button"
+            disabled={isAutoTagging || isOverLimit}
+            onClick={onAutoTag}
+            className="px-3 py-1.5 text-sm border border-primary-blue text-primary-blue rounded-md hover:bg-secondary-blue-pale disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+          >
+            {isAutoTagging && (
+              <span className="w-3.5 h-3.5 border-2 border-primary-blue border-t-transparent rounded-full animate-spin" />
+            )}
+            {isAutoTagging ? "Tagování…" : "Auto-tag výběru"}
+          </button>
+        )}
         <button
           data-testid="bulk-clear-btn"
           type="button"
