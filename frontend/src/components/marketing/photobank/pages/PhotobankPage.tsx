@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Grid3x3, List, Settings } from "lucide-react";
+import { Grid3x3, List, Settings, Tag } from "lucide-react";
 import { useMsal } from "@azure/msal-react";
 import TagSidebar from "../TagSidebar";
 import PhotoGrid from "../PhotoGrid";
@@ -18,6 +18,7 @@ const TAGGER_ROLE = "marketing_writer";
 const DEFAULT_PAGE_SIZE = 48;
 const SIDEBAR_WIDTH = "220px";
 const STORAGE_KEY = "photobank.view";
+const STORAGE_KEY_TAGS_ON_TILES = "photobank.tagsOnTiles";
 
 type ViewMode = "tiles" | "list";
 
@@ -35,6 +36,14 @@ function readViewMode(): ViewMode {
   }
 }
 
+function readTagsOnTiles(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY_TAGS_ON_TILES) === "1";
+  } catch {
+    return false;
+  }
+}
+
 function PhotobankPage() {
   const { accounts } = useMsal();
   const roles = (accounts[0]?.idTokenClaims as any)?.roles as string[] | undefined;
@@ -47,6 +56,7 @@ function PhotobankPage() {
   const [page, setPage] = useState(1);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoDto | null>(null);
   const [view, setView] = useState<ViewMode>(readViewMode);
+  const [tagsOnTiles, setTagsOnTiles] = useState<boolean>(readTagsOnTiles);
   const [bulkTagDialogOpen, setBulkTagDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -56,6 +66,12 @@ function PhotobankPage() {
       // private browsing
     }
   }, [view]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_TAGS_ON_TILES, tagsOnTiles ? "1" : "0");
+    } catch {}
+  }, [tagsOnTiles]);
 
   const { data: tagsData } = usePhotoTags();
 
@@ -169,16 +185,34 @@ function PhotobankPage() {
                 />
               )}
             </div>
-            <PhotoViewToggle
-              options={VIEW_OPTIONS}
-              value={view}
-              onChange={(v) => setView(v as ViewMode)}
-            />
+            <div className="flex items-center">
+              <PhotoViewToggle
+                options={VIEW_OPTIONS}
+                value={view}
+                onChange={(v) => setView(v as ViewMode)}
+              />
+              {view === "tiles" && (
+                <button
+                  type="button"
+                  title="Zobrazit štítky na dlaždicích"
+                  aria-pressed={tagsOnTiles}
+                  onClick={() => setTagsOnTiles((v) => !v)}
+                  className={[
+                    "w-8 h-8 flex items-center justify-center rounded ml-2",
+                    tagsOnTiles
+                      ? "bg-primary-blue text-white"
+                      : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50",
+                  ].join(" ")}
+                >
+                  <Tag className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
           {/* Photo grid or list */}
           <div className="flex-1 flex overflow-hidden">
             {view === "tiles" ? (
-              <PhotoGrid {...sharedPhotoProps} />
+              <PhotoGrid {...sharedPhotoProps} showTags={tagsOnTiles} />
             ) : (
               <PhotoList {...sharedPhotoProps} />
             )}

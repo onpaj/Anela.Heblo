@@ -1,7 +1,10 @@
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import PhotoThumbnail from "./PhotoThumbnail";
+import { TagBadge } from "../../ui/TagBadge";
 import type { PhotoDto } from "../../../api/hooks/usePhotobank";
+
+const TILE_MAX_VISIBLE_TAGS = 3;
 
 interface PhotoGridProps {
   photos: PhotoDto[];
@@ -10,6 +13,7 @@ interface PhotoGridProps {
   page: number;
   pageSize: number;
   isLoading: boolean;
+  showTags?: boolean;
   onPhotoSelect: (photo: PhotoDto) => void;
   onPageChange: (page: number) => void;
 }
@@ -21,6 +25,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
   page,
   pageSize,
   isLoading,
+  showTags = false,
   onPhotoSelect,
   onPageChange,
 }) => {
@@ -78,6 +83,18 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
                   className="w-full h-full"
                   size="medium"
                 />
+                {showTags && photo.tags.length > 0 && (
+                  <div className="absolute top-1 left-1 right-1 flex flex-wrap gap-1 pointer-events-none z-10">
+                    {photo.tags.slice(0, TILE_MAX_VISIBLE_TAGS).map((tag) => (
+                      <TagBadge key={tag.id} name={tag.name} variant="overlay" />
+                    ))}
+                    {photo.tags.length > TILE_MAX_VISIBLE_TAGS && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 bg-black/50 text-white rounded-full text-xs">
+                        +{photo.tags.length - TILE_MAX_VISIBLE_TAGS}
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 hover:opacity-100 transition-opacity">
                   <p className="text-white text-xs truncate">{photo.name}</p>
                 </div>
