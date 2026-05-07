@@ -6567,12 +6567,12 @@ export class ApiClient {
             result200 = GetAllocationsResponse.fromJS(resultData200);
             return result200;
             });
-        } else if (status === 400) {
+        } else if (status === 404) {
             return response.text().then((_responseText) => {
-            let result400: any = null;
-            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result400 = ProblemDetails.fromJS(resultData400);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -6621,6 +6621,13 @@ export class ApiClient {
             let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result400 = ProblemDetails.fromJS(resultData400);
             return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -6673,6 +6680,13 @@ export class ApiClient {
             result400 = ProblemDetails.fromJS(resultData400);
             return throwException("A server side error occurred.", status, _responseText, _headers, result400);
             });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -6709,12 +6723,12 @@ export class ApiClient {
             return response.text().then((_responseText) => {
             return;
             });
-        } else if (status === 400) {
+        } else if (status === 404) {
             return response.text().then((_responseText) => {
-            let result400: any = null;
-            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result400 = ProblemDetails.fromJS(resultData400);
-            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -19523,6 +19537,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
     semiProduct?: ManufactureOrderSemiProductDto | undefined;
     products?: ManufactureOrderProductDto[];
     notes?: ManufactureOrderNoteDto[];
+    conditionsReadings?: ManufactureOrderConditionsReadingDto[];
 
     constructor(data?: IManufactureOrderDto) {
         if (data) {
@@ -19574,6 +19589,11 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
                 this.notes = [] as any;
                 for (let item of _data["notes"])
                     this.notes!.push(ManufactureOrderNoteDto.fromJS(item));
+            }
+            if (Array.isArray(_data["conditionsReadings"])) {
+                this.conditionsReadings = [] as any;
+                for (let item of _data["conditionsReadings"])
+                    this.conditionsReadings!.push(ManufactureOrderConditionsReadingDto.fromJS(item));
             }
         }
     }
@@ -19627,6 +19647,11 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
             for (let item of this.notes)
                 data["notes"].push(item.toJSON());
         }
+        if (Array.isArray(this.conditionsReadings)) {
+            data["conditionsReadings"] = [];
+            for (let item of this.conditionsReadings)
+                data["conditionsReadings"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -19664,6 +19689,7 @@ export interface IManufactureOrderDto {
     semiProduct?: ManufactureOrderSemiProductDto | undefined;
     products?: ManufactureOrderProductDto[];
     notes?: ManufactureOrderNoteDto[];
+    conditionsReadings?: ManufactureOrderConditionsReadingDto[];
 }
 
 export enum ManufactureOrderState {
@@ -19844,6 +19870,70 @@ export interface IManufactureOrderNoteDto {
     text?: string;
     createdAt?: Date;
     createdByUser?: string;
+}
+
+export class ManufactureOrderConditionsReadingDto implements IManufactureOrderConditionsReadingDto {
+    id?: number;
+    stage?: ManufactureOrderState;
+    innerTemperature?: number | undefined;
+    innerHumidity?: number | undefined;
+    outerTemperature?: number | undefined;
+    outerHumidity?: number | undefined;
+    recordedAt?: Date;
+    source?: number;
+
+    constructor(data?: IManufactureOrderConditionsReadingDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.stage = _data["stage"];
+            this.innerTemperature = _data["innerTemperature"];
+            this.innerHumidity = _data["innerHumidity"];
+            this.outerTemperature = _data["outerTemperature"];
+            this.outerHumidity = _data["outerHumidity"];
+            this.recordedAt = _data["recordedAt"] ? new Date(_data["recordedAt"].toString()) : <any>undefined;
+            this.source = _data["source"];
+        }
+    }
+
+    static fromJS(data: any): ManufactureOrderConditionsReadingDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManufactureOrderConditionsReadingDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["stage"] = this.stage;
+        data["innerTemperature"] = this.innerTemperature;
+        data["innerHumidity"] = this.innerHumidity;
+        data["outerTemperature"] = this.outerTemperature;
+        data["outerHumidity"] = this.outerHumidity;
+        data["recordedAt"] = this.recordedAt ? this.recordedAt.toISOString() : <any>undefined;
+        data["source"] = this.source;
+        return data;
+    }
+}
+
+export interface IManufactureOrderConditionsReadingDto {
+    id?: number;
+    stage?: ManufactureOrderState;
+    innerTemperature?: number | undefined;
+    innerHumidity?: number | undefined;
+    outerTemperature?: number | undefined;
+    outerHumidity?: number | undefined;
+    recordedAt?: Date;
+    source?: number;
 }
 
 export class GetManufactureOrderResponse extends BaseResponse implements IGetManufactureOrderResponse {

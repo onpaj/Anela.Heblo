@@ -140,7 +140,7 @@ public enum SourceType   { Web = 0, KnowledgeBase = 1, StyleGuide = 2 }
 
 ## 7. REST API
 
-All endpoints `[Authorize]`. POST `/generate` requires role `article_generator`; reads require `heblo_user`.
+All endpoints `[Authorize]`. POST `/generate` requires role `genai_user`; reads require `heblo_user`.
 
 ### `POST /api/Articles/generate`
 Request body (class, not record — OpenAPI codegen requirement):
@@ -343,10 +343,11 @@ MediatR handlers are auto-discovered. Hangfire job is a regular class with `[Aut
 
 ## 14. Auth & Roles
 
-- New role `article_generator` — assigned to Heblo human users with content-creation responsibilities (admin assigns)
-- `[Authorize(Roles = "article_generator")]` on `POST /generate`
+- Uses the unified `genai_user` role — assigned to Heblo human users with content-creation responsibilities (admin assigns)
+- `[Authorize(Roles = "genai_user")]` on `POST /generate`
 - `[Authorize]` (default `heblo_user`) on `GET` and feedback endpoints
 - `KnowledgeBaseUpload` policy is **not** reused — articles are a separate concern
+- **Note:** The earlier `article_generator` role was removed and replaced by the unified `genai_user` role.
 
 ---
 

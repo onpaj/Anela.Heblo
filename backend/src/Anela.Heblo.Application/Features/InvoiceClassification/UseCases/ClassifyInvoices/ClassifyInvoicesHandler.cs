@@ -35,16 +35,19 @@ public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, 
 
             if (request.InvoiceIds != null && request.InvoiceIds.Count > 0)
             {
-                // Single/specific invoices mode
+                // Single/specific invoices mode — fetch in parallel
+                var fetchTasks = request.InvoiceIds.Select(id => _invoicesClient.GetInvoiceByIdAsync(id)).ToList();
+                var fetchedInvoices = await Task.WhenAll(fetchTasks);
+
                 invoicesToClassify = new List<ReceivedInvoiceDto>();
-                foreach (var invoiceId in request.InvoiceIds)
+                for (var i = 0; i < request.InvoiceIds.Count; i++)
                 {
-                    var invoice = await _invoicesClient.GetInvoiceByIdAsync(invoiceId);
+                    var invoice = fetchedInvoices[i];
                     if (invoice == null)
                     {
                         response.Errors++;
-                        errorMessages.Add($"Invoice {invoiceId} not found");
-                        _logger.LogWarning("Invoice {InvoiceId} not found", invoiceId);
+                        errorMessages.Add($"Invoice {request.InvoiceIds[i]} not found");
+                        _logger.LogWarning("Invoice {InvoiceId} not found", request.InvoiceIds[i]);
                     }
                     else
                     {
