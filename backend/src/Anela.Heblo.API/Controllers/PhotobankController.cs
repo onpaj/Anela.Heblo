@@ -86,10 +86,10 @@ namespace Anela.Heblo.API.Controllers
         }
 
         /// <summary>
-        /// Create a new tag. Requires marketing writer role.
+        /// Create a new tag. Requires super user role.
         /// </summary>
         [HttpPost("tags")]
-        [Authorize(Roles = AuthorizationConstants.Roles.MarketingWriter)]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
         [ProducesResponseType(typeof(CreateTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -100,10 +100,10 @@ namespace Anela.Heblo.API.Controllers
         }
 
         /// <summary>
-        /// Delete a tag by ID. Requires marketing writer role.
+        /// Delete a tag by ID. Requires super user role.
         /// </summary>
         [HttpDelete("tags/{id:int}")]
-        [Authorize(Roles = AuthorizationConstants.Roles.MarketingWriter)]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
         [ProducesResponseType(typeof(DeleteTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
