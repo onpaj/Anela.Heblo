@@ -26,12 +26,7 @@ public static class AuthorizationConstants
         public const string PurchaseManager = "purchase_manager";
 
         /// <summary>
-        /// Role for administrative functions
-        /// </summary>
-        public const string Administrator = "administrator";
-
-        /// <summary>
-        /// Role for super user functions (photobank settings, etc.)
+        /// Role for super user functions (photobank settings, knowledge base management, etc.)
         /// </summary>
         public const string SuperUser = "super_user";
 
@@ -41,14 +36,14 @@ public static class AuthorizationConstants
         public const string HebloUser = "heblo_user";
 
         /// <summary>
-        /// Role required for managing the Knowledge Base (upload, delete documents)
-        /// </summary>
-        public const string KnowledgeBaseManager = "knowledge_base_manager";
-
-        /// <summary>
         /// Role required for generating leaflets and articles (GenAI features)
         /// </summary>
         public const string GenAiUser = "genai_user";
+
+        /// <summary>
+        /// Role for tagging photos in the photobank
+        /// </summary>
+        public const string MarketingWriter = "marketing_writer";
     }
 
     /// <summary>

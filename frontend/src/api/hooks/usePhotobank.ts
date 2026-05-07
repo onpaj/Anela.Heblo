@@ -142,3 +142,55 @@ export const useRemovePhotoTag = (photoId: number) => {
     },
   });
 };
+
+// ---- Bulk tag ---------------------------------------------------------------
+
+export interface BulkAddPhotoTagParams {
+  tags?: string[];
+  search?: string;
+  folderPath?: string;
+  tagName: string;
+}
+
+export interface BulkAddPhotoTagResult {
+  success: boolean;
+  errorCode?: number;
+  params?: Record<string, string>;
+  tagId?: number;
+  tagName?: string;
+  addedCount?: number;
+  alreadyTaggedCount?: number;
+}
+
+export const useBulkAddPhotoTag = () => {
+  const queryClient = useQueryClient();
+  return useMutation<BulkAddPhotoTagResult, Error, BulkAddPhotoTagParams>({
+    mutationFn: async (params) => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await (apiClient as any).http.fetch(
+        `${baseUrl}/api/photobank/photos/bulk-tag`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tags: params.tags,
+            search: params.search,
+            folderPath: params.folderPath,
+            tagName: params.tagName,
+          }),
+        },
+      );
+      if (!response.ok && response.status !== 400) {
+        // Only parse structured error bodies for 400 (validation/business rule errors).
+        // For anything else (401, 403, 500, network), throw a descriptive error.
+        throw new Error(`Photobank API error: ${response.status} ${response.statusText}`);
+      }
+      return response.json() as Promise<BulkAddPhotoTagResult>;
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
+      }
+    },
+  });
+};
