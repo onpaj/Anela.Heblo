@@ -32,7 +32,7 @@ public class ManufactureConditionsTileTests
     [Fact]
     public void Metadata_HasCorrectValues()
     {
-        _tile.Title.Should().Be("Podmínky v dílně");
+        _tile.Title.Should().Be("Podmínky ve výrobně");
         _tile.Description.Should().Be("Aktuální teplota a vlhkost (vnitřní / venkovní)");
         _tile.Size.Should().Be(TileSize.Medium);
         _tile.Category.Should().Be(TileCategory.Manufacture);
