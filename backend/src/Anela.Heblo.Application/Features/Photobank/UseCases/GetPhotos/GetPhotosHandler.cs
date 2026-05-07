@@ -28,6 +28,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
                     request.Search,
                     request.UseRegex,
                     request.FolderPath,
+                    request.UseFolderRegex,
                     request.WithoutTags,
                     request.Page,
                     request.PageSize,
