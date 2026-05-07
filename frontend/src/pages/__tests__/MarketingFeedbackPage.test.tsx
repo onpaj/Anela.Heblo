@@ -2,14 +2,14 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import MarketingFeedbackPage from '../MarketingFeedbackPage';
 import * as kbHooks from '../../api/hooks/useKnowledgeBase';
-import * as genAiHooks from '../../api/hooks/useGenAiUserPermission';
+import * as marketingWriterHooks from '../../api/hooks/useMarketingWriterPermission';
 import * as kbAdapter from '../../components/feedback/adapters/useKbFeedbackAdapter';
 import * as leafletAdapter from '../../components/feedback/adapters/useLeafletFeedbackAdapter';
 import * as articleAdapter from '../../components/feedback/adapters/useArticleFeedbackAdapter';
 import type { FeedbackDetail, GenericFeedbackStats } from '../../components/feedback/types';
 
 jest.mock('../../api/hooks/useKnowledgeBase');
-jest.mock('../../api/hooks/useGenAiUserPermission');
+jest.mock('../../api/hooks/useMarketingWriterPermission');
 jest.mock('../../components/feedback/adapters/useKbFeedbackAdapter');
 jest.mock('../../components/feedback/adapters/useLeafletFeedbackAdapter');
 jest.mock('../../components/feedback/adapters/useArticleFeedbackAdapter');
@@ -43,7 +43,7 @@ function setupMocks({
   hasGenAi = false,
 }: { hasKb?: boolean; hasGenAi?: boolean } = {}) {
   jest.spyOn(kbHooks, 'useKnowledgeBaseUploadPermission').mockReturnValue(hasKb);
-  jest.spyOn(genAiHooks, 'useGenAiUserPermission').mockReturnValue(hasGenAi);
+  jest.spyOn(marketingWriterHooks, 'useMarketingWriterPermission').mockReturnValue(hasGenAi);
 
   jest.spyOn(kbAdapter, 'useKbFeedbackAdapter').mockReturnValue({
     ...emptyAdapterResult,
