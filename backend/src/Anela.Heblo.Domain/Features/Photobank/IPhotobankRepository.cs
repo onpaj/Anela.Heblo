@@ -51,6 +51,13 @@ namespace Anela.Heblo.Domain.Features.Photobank
         // Reapply rules
         Task<int> ReapplyRulesAsync(List<TagRule> activeRules, CancellationToken cancellationToken);
 
+        // Auto-tagging
+        Task<List<PhotoAutoTagCandidate>> GetPhotosPendingAutoTagAsync(int pageSize, int offset, CancellationToken cancellationToken);
+        Task StampAutoTaggedAtAsync(IReadOnlyList<int> photoIds, DateTime timestamp, CancellationToken cancellationToken);
+        Task ResetAutoTaggedAtAsync(IReadOnlyList<int> photoIds, CancellationToken cancellationToken);
+        Task<List<Photo>> GetPhotosByIdsAsync(IReadOnlyList<int> photoIds, CancellationToken cancellationToken);
+        Task RemovePhotoTagsBySourceAsync(IReadOnlyList<int> photoIds, PhotoTagSource source, CancellationToken cancellationToken);
+
         Task SaveChangesAsync(CancellationToken cancellationToken);
     }
 }
