@@ -9,6 +9,7 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
     private List<PackingMaterial> _materials = new();
     private readonly Dictionary<DateOnly, bool> _dailyProcessingStatus = new();
     public List<PackingMaterial> UpdatedMaterials { get; } = new();
+    public IReadOnlyList<PackingMaterial> Materials => _materials;
     public bool GetAllAsyncWasCalled { get; private set; }
 
     public void SetMaterials(IEnumerable<PackingMaterial> materials)
