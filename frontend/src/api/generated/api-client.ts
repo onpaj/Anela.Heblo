@@ -6450,6 +6450,53 @@ export class ApiClient {
         return Promise.resolve<ProcessDailyConsumptionResponse>(null as any);
     }
 
+    packingMaterials_GetDailyConsumptionBreakdown(date: string | null | undefined, groupBy: string | undefined): Promise<GetDailyConsumptionBreakdownResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/consumption?";
+        if (date !== undefined && date !== null)
+            url_ += "date=" + encodeURIComponent("" + date) + "&";
+        if (groupBy === null)
+            throw new Error("The parameter 'groupBy' cannot be null.");
+        else if (groupBy !== undefined)
+            url_ += "groupBy=" + encodeURIComponent("" + groupBy) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_GetDailyConsumptionBreakdown(_response);
+        });
+    }
+
+    protected processPackingMaterials_GetDailyConsumptionBreakdown(response: Response): Promise<GetDailyConsumptionBreakdownResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetDailyConsumptionBreakdownResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetDailyConsumptionBreakdownResponse>(null as any);
+    }
+
     packingMaterials_GetPackingMaterialLogs(id: number, days: number | undefined): Promise<GetPackingMaterialLogsResponse> {
         let url_ = this.baseUrl + "/api/packing-materials/{id}/logs?";
         if (id === undefined || id === null)
@@ -6489,6 +6536,206 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetPackingMaterialLogsResponse>(null as any);
+    }
+
+    packingMaterials_GetAllocations(id: number): Promise<GetAllocationsResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/{id}/allocations";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_GetAllocations(_response);
+        });
+    }
+
+    protected processPackingMaterials_GetAllocations(response: Response): Promise<GetAllocationsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetAllocationsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetAllocationsResponse>(null as any);
+    }
+
+    packingMaterials_CreateAllocation(id: number, body: CreateAllocationRequestBody): Promise<CreateAllocationResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/{id}/allocations";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_CreateAllocation(_response);
+        });
+    }
+
+    protected processPackingMaterials_CreateAllocation(response: Response): Promise<CreateAllocationResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = CreateAllocationResponse.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateAllocationResponse>(null as any);
+    }
+
+    packingMaterials_UpdateAllocation(id: number, allocationId: number, body: UpdateAllocationRequestBody): Promise<UpdateAllocationResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/{id}/allocations/{allocationId}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (allocationId === undefined || allocationId === null)
+            throw new Error("The parameter 'allocationId' must be defined.");
+        url_ = url_.replace("{allocationId}", encodeURIComponent("" + allocationId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_UpdateAllocation(_response);
+        });
+    }
+
+    protected processPackingMaterials_UpdateAllocation(response: Response): Promise<UpdateAllocationResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateAllocationResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateAllocationResponse>(null as any);
+    }
+
+    packingMaterials_DeleteAllocation(id: number, allocationId: number): Promise<void> {
+        let url_ = this.baseUrl + "/api/packing-materials/{id}/allocations/{allocationId}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (allocationId === undefined || allocationId === null)
+            throw new Error("The parameter 'allocationId' must be defined.");
+        url_ = url_.replace("{allocationId}", encodeURIComponent("" + allocationId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_DeleteAllocation(_response);
+        });
+    }
+
+    protected processPackingMaterials_DeleteAllocation(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
     }
 
     photobank_GetPhotos(tags: string[] | null | undefined, search: string | null | undefined, folderPath: string | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<GetPhotosResponse> {
@@ -23662,6 +23909,163 @@ export interface IProcessDailyConsumptionRequest {
     processingDate?: Date;
 }
 
+export class GetDailyConsumptionBreakdownResponse extends BaseResponse implements IGetDailyConsumptionBreakdownResponse {
+    error?: string | undefined;
+    date?: Date;
+    groupBy?: string;
+    groups?: ConsumptionGroupDto[];
+
+    constructor(data?: IGetDailyConsumptionBreakdownResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.error = _data["error"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.groupBy = _data["groupBy"];
+            if (Array.isArray(_data["groups"])) {
+                this.groups = [] as any;
+                for (let item of _data["groups"])
+                    this.groups!.push(ConsumptionGroupDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetDailyConsumptionBreakdownResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetDailyConsumptionBreakdownResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["error"] = this.error;
+        data["date"] = this.date ? formatDate(this.date) : <any>undefined;
+        data["groupBy"] = this.groupBy;
+        if (Array.isArray(this.groups)) {
+            data["groups"] = [];
+            for (let item of this.groups)
+                data["groups"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetDailyConsumptionBreakdownResponse extends IBaseResponse {
+    error?: string | undefined;
+    date?: Date;
+    groupBy?: string;
+    groups?: ConsumptionGroupDto[];
+}
+
+export class ConsumptionGroupDto implements IConsumptionGroupDto {
+    key?: string;
+    label?: string;
+    totalAmount?: number;
+    rowCount?: number;
+    details?: ConsumptionDetailDto[];
+
+    constructor(data?: IConsumptionGroupDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.key = _data["key"];
+            this.label = _data["label"];
+            this.totalAmount = _data["totalAmount"];
+            this.rowCount = _data["rowCount"];
+            if (Array.isArray(_data["details"])) {
+                this.details = [] as any;
+                for (let item of _data["details"])
+                    this.details!.push(ConsumptionDetailDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): ConsumptionGroupDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConsumptionGroupDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["key"] = this.key;
+        data["label"] = this.label;
+        data["totalAmount"] = this.totalAmount;
+        data["rowCount"] = this.rowCount;
+        if (Array.isArray(this.details)) {
+            data["details"] = [];
+            for (let item of this.details)
+                data["details"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IConsumptionGroupDto {
+    key?: string;
+    label?: string;
+    totalAmount?: number;
+    rowCount?: number;
+    details?: ConsumptionDetailDto[];
+}
+
+export class ConsumptionDetailDto implements IConsumptionDetailDto {
+    key?: string;
+    label?: string;
+    amount?: number;
+
+    constructor(data?: IConsumptionDetailDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.key = _data["key"];
+            this.label = _data["label"];
+            this.amount = _data["amount"];
+        }
+    }
+
+    static fromJS(data: any): ConsumptionDetailDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConsumptionDetailDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["key"] = this.key;
+        data["label"] = this.label;
+        data["amount"] = this.amount;
+        return data;
+    }
+}
+
+export interface IConsumptionDetailDto {
+    key?: string;
+    label?: string;
+    amount?: number;
+}
+
 export class GetPackingMaterialLogsResponse extends BaseResponse implements IGetPackingMaterialLogsResponse {
     material?: PackingMaterialDto;
     logs?: PackingMaterialLogDto[];
@@ -23782,6 +24186,253 @@ export interface IPackingMaterialLogDto {
 export enum LogEntryType {
     Manual = "Manual",
     AutomaticConsumption = "AutomaticConsumption",
+}
+
+export class GetAllocationsResponse extends BaseResponse implements IGetAllocationsResponse {
+    error?: string | undefined;
+    allocations?: PackingMaterialAllocationDto[];
+
+    constructor(data?: IGetAllocationsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.error = _data["error"];
+            if (Array.isArray(_data["allocations"])) {
+                this.allocations = [] as any;
+                for (let item of _data["allocations"])
+                    this.allocations!.push(PackingMaterialAllocationDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetAllocationsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetAllocationsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["error"] = this.error;
+        if (Array.isArray(this.allocations)) {
+            data["allocations"] = [];
+            for (let item of this.allocations)
+                data["allocations"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetAllocationsResponse extends IBaseResponse {
+    error?: string | undefined;
+    allocations?: PackingMaterialAllocationDto[];
+}
+
+export class PackingMaterialAllocationDto implements IPackingMaterialAllocationDto {
+    id?: number;
+    packingMaterialId?: number;
+    productCode?: string;
+    amountPerUnit?: number;
+    createdAt?: Date;
+
+    constructor(data?: IPackingMaterialAllocationDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.packingMaterialId = _data["packingMaterialId"];
+            this.productCode = _data["productCode"];
+            this.amountPerUnit = _data["amountPerUnit"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): PackingMaterialAllocationDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackingMaterialAllocationDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["packingMaterialId"] = this.packingMaterialId;
+        data["productCode"] = this.productCode;
+        data["amountPerUnit"] = this.amountPerUnit;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IPackingMaterialAllocationDto {
+    id?: number;
+    packingMaterialId?: number;
+    productCode?: string;
+    amountPerUnit?: number;
+    createdAt?: Date;
+}
+
+export class CreateAllocationResponse extends BaseResponse implements ICreateAllocationResponse {
+    error?: string | undefined;
+    allocation?: PackingMaterialAllocationDto | undefined;
+
+    constructor(data?: ICreateAllocationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.error = _data["error"];
+            this.allocation = _data["allocation"] ? PackingMaterialAllocationDto.fromJS(_data["allocation"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): CreateAllocationResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateAllocationResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["error"] = this.error;
+        data["allocation"] = this.allocation ? this.allocation.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateAllocationResponse extends IBaseResponse {
+    error?: string | undefined;
+    allocation?: PackingMaterialAllocationDto | undefined;
+}
+
+export class CreateAllocationRequestBody implements ICreateAllocationRequestBody {
+    productCode?: string;
+    amountPerUnit?: number;
+
+    constructor(data?: ICreateAllocationRequestBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.amountPerUnit = _data["amountPerUnit"];
+        }
+    }
+
+    static fromJS(data: any): CreateAllocationRequestBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateAllocationRequestBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["amountPerUnit"] = this.amountPerUnit;
+        return data;
+    }
+}
+
+export interface ICreateAllocationRequestBody {
+    productCode?: string;
+    amountPerUnit?: number;
+}
+
+export class UpdateAllocationResponse extends BaseResponse implements IUpdateAllocationResponse {
+    error?: string | undefined;
+
+    constructor(data?: IUpdateAllocationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.error = _data["error"];
+        }
+    }
+
+    static override fromJS(data: any): UpdateAllocationResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateAllocationResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["error"] = this.error;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateAllocationResponse extends IBaseResponse {
+    error?: string | undefined;
+}
+
+export class UpdateAllocationRequestBody implements IUpdateAllocationRequestBody {
+    productCode?: string;
+    amountPerUnit?: number;
+
+    constructor(data?: IUpdateAllocationRequestBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.amountPerUnit = _data["amountPerUnit"];
+        }
+    }
+
+    static fromJS(data: any): UpdateAllocationRequestBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateAllocationRequestBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["amountPerUnit"] = this.amountPerUnit;
+        return data;
+    }
+}
+
+export interface IUpdateAllocationRequestBody {
+    productCode?: string;
+    amountPerUnit?: number;
 }
 
 export class GetPhotosResponse extends BaseResponse implements IGetPhotosResponse {

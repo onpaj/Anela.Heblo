@@ -202,6 +202,15 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
         };
     }
 
+    public async Task<IEnumerable<IssuedInvoice>> GetHeadersByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
+    {
+        var start = date.ToDateTime(TimeOnly.MinValue);
+        var end = date.ToDateTime(TimeOnly.MaxValue);
+        return await DbSet
+            .Where(x => x.InvoiceDate >= start && x.InvoiceDate <= end)
+            .ToListAsync(cancellationToken);
+    }
+
     private static IQueryable<IssuedInvoice> ApplySorting(IQueryable<IssuedInvoice> query, string? sortBy, bool sortDescending)
     {
         if (string.IsNullOrEmpty(sortBy))
