@@ -202,7 +202,7 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
         };
     }
 
-    public async Task<IEnumerable<IssuedInvoice>> GetDetailsByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<IssuedInvoice>> GetHeadersByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
     {
         var start = date.ToDateTime(TimeOnly.MinValue);
         var end = date.ToDateTime(TimeOnly.MaxValue);

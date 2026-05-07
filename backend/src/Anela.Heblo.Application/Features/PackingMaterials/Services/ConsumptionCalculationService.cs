@@ -34,22 +34,25 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
         _logger.LogInformation("Starting daily consumption processing for {Date}", processingDate);
 
         var materials = (await _repository.GetAllWithAllocationsAsync(cancellationToken)).ToList();
-        var invoices = (await _invoiceRepository.GetDetailsByDateAsync(processingDate, cancellationToken)).ToList();
+        var invoices = (await _invoiceRepository.GetHeadersByDateAsync(processingDate, cancellationToken)).ToList();
 
         var allFactRows = new List<PackingMaterialConsumption>();
         var decrementByMaterial = new Dictionary<PackingMaterial, decimal>();
 
+        var processedCount = 0;
+
         foreach (var material in materials)
         {
             var rows = BuildFactRows(material, invoices, processingDate);
-            allFactRows.AddRange(rows);
-
             var total = rows.Sum(r => r.Amount);
-            if (total > 0)
-                decrementByMaterial[material] = total;
-        }
 
-        var processedCount = 0;
+            if (total > 0)
+            {
+                allFactRows.AddRange(rows);
+                decrementByMaterial[material] = total;
+                processedCount++;
+            }
+        }
 
         foreach (var material in materials)
         {
@@ -57,13 +60,13 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
             {
                 var newQuantity = Math.Max(0, material.CurrentQuantity - decrement);
                 material.UpdateQuantity(newQuantity, processingDate, LogEntryType.AutomaticConsumption);
-                processedCount++;
 
                 _logger.LogInformation("Processed material {MaterialName}: consumed {Consumption}, new quantity: {NewQuantity}",
                     material.Name, decrement, newQuantity);
             }
         }
 
+        // Relies on EF change tracking — GetAllWithAllocationsAsync must NOT use AsNoTracking
         if (processedCount == 0 && materials.Count > 0)
         {
             var marker = materials[0];

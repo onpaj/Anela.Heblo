@@ -12,7 +12,7 @@ public class MockIssuedInvoiceRepository : IIssuedInvoiceRepository
         _invoices = new List<IssuedInvoice>(invoices);
     }
 
-    public Task<IEnumerable<IssuedInvoice>> GetDetailsByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
+    public Task<IEnumerable<IssuedInvoice>> GetHeadersByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
     {
         var result = _invoices.Where(i => DateOnly.FromDateTime(i.InvoiceDate) == date);
         return Task.FromResult<IEnumerable<IssuedInvoice>>(result.ToList());

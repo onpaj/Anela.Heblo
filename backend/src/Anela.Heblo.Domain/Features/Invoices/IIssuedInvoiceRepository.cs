@@ -78,7 +78,7 @@ public interface IIssuedInvoiceRepository : IRepository<IssuedInvoice, string>
     /// <param name="date">The date to retrieve invoice headers for</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Invoice headers whose invoice date falls on the given date</returns>
-    Task<IEnumerable<IssuedInvoice>> GetDetailsByDateAsync(DateOnly date, CancellationToken cancellationToken = default);
+    Task<IEnumerable<IssuedInvoice>> GetHeadersByDateAsync(DateOnly date, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
