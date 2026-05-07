@@ -21,7 +21,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag
                 return new DeleteTagResponse { Deleted = false, RemovedAssignmentCount = 0 };
 
             var assignmentCount = tag.PhotoTags.Count;
-            await _repository.DeleteTagAsync(request.Id, cancellationToken);
+            await _repository.DeleteTagAsync(tag, cancellationToken);
 
             return new DeleteTagResponse { Deleted = true, RemovedAssignmentCount = assignmentCount };
         }

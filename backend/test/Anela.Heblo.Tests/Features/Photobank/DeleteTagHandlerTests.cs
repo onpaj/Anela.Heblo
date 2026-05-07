@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag;
@@ -39,8 +38,8 @@ public class DeleteTagHandlerTests
             .ReturnsAsync(tag);
 
         _repositoryMock
-            .Setup(r => r.DeleteTagAsync(5, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+            .Setup(r => r.DeleteTagAsync(tag, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var request = new DeleteTagRequest { Id = 5 };
 
@@ -51,7 +50,7 @@ public class DeleteTagHandlerTests
         result.Deleted.Should().BeTrue();
         result.RemovedAssignmentCount.Should().Be(3);
 
-        _repositoryMock.Verify(r => r.DeleteTagAsync(5, It.IsAny<CancellationToken>()), Times.Once);
+        _repositoryMock.Verify(r => r.DeleteTagAsync(tag, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -65,8 +64,8 @@ public class DeleteTagHandlerTests
             .ReturnsAsync(tag);
 
         _repositoryMock
-            .Setup(r => r.DeleteTagAsync(7, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+            .Setup(r => r.DeleteTagAsync(tag, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var request = new DeleteTagRequest { Id = 7 };
 
@@ -77,7 +76,7 @@ public class DeleteTagHandlerTests
         result.Deleted.Should().BeTrue();
         result.RemovedAssignmentCount.Should().Be(0);
 
-        _repositoryMock.Verify(r => r.DeleteTagAsync(7, It.IsAny<CancellationToken>()), Times.Once);
+        _repositoryMock.Verify(r => r.DeleteTagAsync(tag, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -97,6 +96,6 @@ public class DeleteTagHandlerTests
         result.Deleted.Should().BeFalse();
         result.RemovedAssignmentCount.Should().Be(0);
 
-        _repositoryMock.Verify(r => r.DeleteTagAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(r => r.DeleteTagAsync(It.IsAny<Tag>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
