@@ -13,6 +13,7 @@ import { usePhotos, usePhotoTags } from "../../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../../api/hooks/usePhotobank";
 
 const ADMIN_ROLE = "super_user";
+const TAGGER_ROLE = "administrator";
 
 const DEFAULT_PAGE_SIZE = 48;
 const SIDEBAR_WIDTH = "220px";
@@ -36,8 +37,9 @@ function readViewMode(): ViewMode {
 
 function PhotobankPage() {
   const { accounts } = useMsal();
-  const isAdmin =
-    (accounts[0]?.idTokenClaims as any)?.roles?.includes(ADMIN_ROLE) ?? false;
+  const roles = (accounts[0]?.idTokenClaims as any)?.roles as string[] | undefined;
+  const isAdmin = roles?.includes(ADMIN_ROLE) ?? false;
+  const canBulkTag = roles?.includes(TAGGER_ROLE) ?? false;
 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [search, setSearch] = useState("");
@@ -157,7 +159,7 @@ function PhotobankPage() {
           {/* View toggle + bulk tag bar */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
             <div>
-              {isAdmin && (
+              {canBulkTag && (
                 <BulkTagButton
                   search={search}
                   folderPath={folderPath}
