@@ -39,7 +39,7 @@ describe("TagBadge", () => {
       const handleRemove = jest.fn();
       render(<TagBadge name="test" onRemove={handleRemove} />);
 
-      const button = screen.getByRole("button");
+      const button = screen.getByLabelText("Odebrat štítek");
       expect(button).toBeInTheDocument();
       expect(button).toHaveTextContent("×");
     });
@@ -97,21 +97,6 @@ describe("TagBadge", () => {
       const badgeDiv = container.querySelector("div");
       expect(badgeDiv).toHaveClass(bg);
       expect(badgeDiv).toHaveClass(text);
-    });
-
-    it("for variant='compact', renders same shape as default (no visual difference)", () => {
-      const { container: containerDefault } = render(
-        <TagBadge name="test" variant="default" />
-      );
-      const { container: containerCompact } = render(
-        <TagBadge name="test" variant="compact" />
-      );
-
-      const badgeDefault = containerDefault.querySelector("div");
-      const badgeCompact = containerCompact.querySelector("div");
-
-      // Both should have the same base classes
-      expect(badgeDefault?.className).toBe(badgeCompact?.className);
     });
 
     it("for variant='overlay', calls getTagColor with overlay=true", () => {

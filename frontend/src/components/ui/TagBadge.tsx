@@ -3,7 +3,7 @@ import { getTagColor } from "./tagColor";
 
 export interface TagBadgeProps {
   name: string;
-  variant?: "default" | "compact" | "overlay";
+  variant?: "default" | "overlay";
   onRemove?: () => void;
 }
 
@@ -25,7 +25,7 @@ export const TagBadge: React.FC<TagBadgeProps> = ({
           aria-label="Odebrat štítek"
           className="ml-0.5 hover:opacity-70 rounded-full"
         >
-          ×
+          <span aria-hidden="true">×</span>
         </button>
       )}
     </div>
