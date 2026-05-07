@@ -38,6 +38,9 @@ function renderGrid(overrides: Partial<React.ComponentProps<typeof PhotoGrid>> =
     isLoading: false,
     onPhotoSelect: jest.fn(),
     onPageChange: jest.fn(),
+    selectedIds: new Set<number>(),
+    onTogglePhotoSelection: jest.fn(),
+    canSelect: false,
     ...overrides,
   };
   return { ...render(<PhotoGrid {...defaults} />), props: defaults };
@@ -149,5 +152,47 @@ describe("PhotoGrid", () => {
 
     // Assert
     expect(screen.getByText("Žádné fotografie nenalezeny")).toBeInTheDocument();
+  });
+
+  describe("selection", () => {
+    test("with canSelect=false checkboxes are not rendered", () => {
+      // Arrange & Act
+      renderGrid({ canSelect: false });
+
+      // Assert
+      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    });
+
+    test("with canSelect=true checkboxes are rendered for each photo", () => {
+      // Arrange & Act
+      renderGrid({ canSelect: true, selectedIds: new Set<number>() });
+
+      // Assert
+      const checkboxes = screen.getAllByRole("checkbox");
+      expect(checkboxes).toHaveLength(mockPhotos.length);
+    });
+
+    test("checkbox for selected photo is checked", () => {
+      // Arrange & Act
+      renderGrid({ canSelect: true, selectedIds: new Set([1]) });
+
+      // Assert
+      const checkbox1 = screen.getByTestId("photo-select-checkbox-1");
+      const checkbox2 = screen.getByTestId("photo-select-checkbox-2");
+      expect(checkbox1).toBeChecked();
+      expect(checkbox2).not.toBeChecked();
+    });
+
+    test("checkbox onChange calls onTogglePhotoSelection with photoId", () => {
+      // Arrange
+      const onTogglePhotoSelection = jest.fn();
+      renderGrid({ canSelect: true, selectedIds: new Set<number>(), onTogglePhotoSelection });
+
+      // Act
+      fireEvent.click(screen.getByTestId("photo-select-checkbox-1"));
+
+      // Assert
+      expect(onTogglePhotoSelection).toHaveBeenCalledWith(1, expect.any(Boolean));
+    });
   });
 });

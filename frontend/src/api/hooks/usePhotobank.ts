@@ -162,6 +162,29 @@ export interface BulkAddPhotoTagResult {
   alreadyTaggedCount?: number;
 }
 
+// ---- Bulk tag by IDs --------------------------------------------------------
+
+export interface BulkAddPhotoTagByIdsParams {
+  photoIds: number[];
+  tagName: string;
+}
+
+export const useBulkAddPhotoTagByIds = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, BulkAddPhotoTagByIdsParams>({
+    mutationFn: async (params) => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      await apiPost(apiClient, `${baseUrl}/api/photobank/photos/tag-by-ids`, {
+        photoIds: params.photoIds,
+        tagName: params.tagName,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
+    },
+  });
+};
+
 export const useBulkAddPhotoTag = () => {
   const queryClient = useQueryClient();
   return useMutation<BulkAddPhotoTagResult, Error, BulkAddPhotoTagParams>({
