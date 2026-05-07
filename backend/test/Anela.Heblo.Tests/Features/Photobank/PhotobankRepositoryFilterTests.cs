@@ -6,6 +6,7 @@ using Anela.Heblo.Persistence;
 using Anela.Heblo.Application.Features.Photobank;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Photobank;
 
@@ -53,7 +54,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, folderPath, false, 1, 48, CancellationToken.None);
+            null, null, false, folderPath, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(2);
@@ -70,7 +71,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, folderPath, false, 1, 48, CancellationToken.None);
+            null, null, false, folderPath, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -86,7 +87,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, search, folderPath, false, 1, 48, CancellationToken.None);
+            null, search, false, folderPath, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -113,7 +114,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
 
         // Act — folderPath "Produkty" matches photos 1 & 2; tag "featured" is only on photo 1
         var (items, total) = await _repository.GetPhotosAsync(
-            new List<string> { "featured" }, null, "Produkty", false, 1, 48, CancellationToken.None);
+            new List<string> { "featured" }, null, false, "Produkty", false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -128,10 +129,85 @@ public class PhotobankRepositoryFilterTests : IDisposable
     {
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, folderPath, false, 1, 48, CancellationToken.None);
+            null, null, false, folderPath, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(4);
         items.Should().HaveCount(4);
+    }
+}
+
+// NOTE: These tests run against the EF Core InMemory provider, which evaluates
+// Regex.IsMatch via the .NET regex engine. In production, Npgsql translates
+// this to Postgres POSIX ~* syntax. The two engines differ on some constructs
+// (e.g., .NET lookahead, \b). Postgres-specific failures are caught by the
+// PostgresException handler in GetPhotosHandler.
+public class PhotobankRepositoryRegexFilterTests : IDisposable
+{
+    private readonly ApplicationDbContext _context;
+    private readonly PhotobankRepository _repository;
+
+    public PhotobankRepositoryRegexFilterTests()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        _context = new ApplicationDbContext(options);
+        _repository = new PhotobankRepository(_context);
+
+        SeedTestData();
+    }
+
+    private void SeedTestData()
+    {
+        var photos = new List<Photo>
+        {
+            new() { Id = 1, SharePointFileId = "sp-1", FileName = "report_2024.pdf",  FolderPath = "Reports", ModifiedAt = DateTime.UtcNow },
+            new() { Id = 2, SharePointFileId = "sp-2", FileName = "IMG_001.png",      FolderPath = "Photos",  ModifiedAt = DateTime.UtcNow },
+            new() { Id = 3, SharePointFileId = "sp-3", FileName = "report_final.pdf", FolderPath = "Reports", ModifiedAt = DateTime.UtcNow },
+        };
+
+        _context.Photos.AddRange(photos);
+        _context.SaveChanges();
+    }
+
+    public void Dispose()
+    {
+        _context.Dispose();
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetPhotosAsync_regexSearch_matchesOnlyNumericReport()
+    {
+        // Arrange — pattern matches "report_" followed by digits
+        var pattern = @"^report_\d+";
+
+        // Act
+        var (items, total) = await _repository.GetPhotosAsync(
+            null, pattern, true, null, false, 1, 48, CancellationToken.None);
+
+        // Assert
+        total.Should().Be(1);
+        items.Should().ContainSingle(p => p.FileName == "report_2024.pdf");
+        items.Should().NotContain(p => p.FileName == "report_final.pdf");
+        items.Should().NotContain(p => p.FileName == "IMG_001.png");
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetPhotosAsync_substringSearch_matchesBothReportFiles()
+    {
+        // Arrange — plain substring search returns all files containing "report"
+        var search = "report";
+
+        // Act
+        var (items, total) = await _repository.GetPhotosAsync(
+            null, search, false, null, false, 1, 48, CancellationToken.None);
+
+        // Assert
+        total.Should().Be(2);
+        items.Should().Contain(p => p.FileName == "report_2024.pdf");
+        items.Should().Contain(p => p.FileName == "report_final.pdf");
+        items.Should().NotContain(p => p.FileName == "IMG_001.png");
     }
 }

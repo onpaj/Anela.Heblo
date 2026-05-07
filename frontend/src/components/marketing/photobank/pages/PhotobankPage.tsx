@@ -54,6 +54,7 @@ function PhotobankPage() {
   const [search, setSearch] = useState("");
   const [folderPath, setFolderPath] = useState("");
   const [withoutTags, setWithoutTags] = useState(false);
+  const [useRegex, setUseRegex] = useState(false);
   const [page, setPage] = useState(1);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoDto | null>(null);
   const [view, setView] = useState<ViewMode>(readViewMode);
@@ -86,14 +87,19 @@ function PhotobankPage() {
     [selectedTagIds, tagsData],
   );
 
-  const { data: photosData, isLoading: photosLoading } = usePhotos({
+  const { data: photosData, isLoading: photosLoading, isError: photosError } = usePhotos({
     tags: selectedTagNames.length > 0 ? selectedTagNames : undefined,
     search: search || undefined,
+    useRegex: useRegex || undefined,
     folderPath: folderPath || undefined,
     withoutTags: withoutTags || undefined,
     page,
     pageSize: DEFAULT_PAGE_SIZE,
   });
+
+  const searchErrorMessage = photosError && useRegex
+    ? "Neplatný regulární výraz"
+    : null;
 
   const handleTagToggle = useCallback((tagId: number) => {
     setSelectedTagIds((prev) =>
@@ -112,11 +118,17 @@ function PhotobankPage() {
     setPage(1);
   }, []);
 
+  const handleRegexChange = useCallback((value: boolean) => {
+    setUseRegex(value);
+    setPage(1);
+  }, []);
+
   const handleClearFilters = useCallback(() => {
     setSelectedTagIds([]);
     setSearch("");
     setFolderPath("");
     setWithoutTags(false);
+    setUseRegex(false);
     setPage(1);
   }, []);
 
@@ -169,11 +181,14 @@ function PhotobankPage() {
             search={search}
             folderPath={folderPath}
             withoutTags={withoutTags}
+            useRegex={useRegex}
             onTagToggle={handleTagToggle}
             onSearchChange={handleSearchChange}
             onFolderPathChange={handleFolderPathChange}
             onWithoutTagsToggle={() => { setWithoutTags((v) => !v); setPage(1); }}
             onClearFilters={handleClearFilters}
+            onRegexChange={handleRegexChange}
+            errorMessage={searchErrorMessage}
           />
         </div>
 
