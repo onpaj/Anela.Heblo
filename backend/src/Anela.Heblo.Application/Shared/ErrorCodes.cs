@@ -271,6 +271,8 @@ public enum ErrorCodes
     BulkTagLimitExceeded = 2606,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     BulkTagInvalidRequest = 2607,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotobankTagNotFound = 2608,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

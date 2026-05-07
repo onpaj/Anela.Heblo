@@ -168,6 +168,12 @@ namespace Anela.Heblo.Application.Features.Photobank
             return await _context.PhotobankTags.FindAsync(new object[] { id }, cancellationToken);
         }
 
+        public async Task DeleteTagAsync(Tag tag, CancellationToken cancellationToken)
+        {
+            _context.PhotobankTags.Remove(tag);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
         // Photo tags
 
         public Task AddPhotoTagAsync(PhotoTag photoTag, CancellationToken cancellationToken)
