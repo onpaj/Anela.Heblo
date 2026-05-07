@@ -270,4 +270,38 @@ describe("TagSidebar", () => {
     // Assert: onSearchChange is called as normal
     expect(onSearchChange).toHaveBeenCalledWith("[bad");
   });
+
+  test("toggling regex off clears the error", () => {
+    // Arrange — render with regex enabled and type invalid pattern
+    const { rerender } = renderSidebar({ useRegex: true });
+
+    const input = screen.getByPlaceholderText("Regex (POSIX, case-insensitive)...");
+
+    // Act — type an invalid regex
+    fireEvent.change(input, { target: { value: "[bad" } });
+
+    // Assert: error message appears
+    expect(screen.getByText("Neplatný regulární výraz")).toBeInTheDocument();
+
+    // Act — re-render the component with useRegex={false} (simulating parent passing new props)
+    rerender(
+      <TagSidebar
+        tags={mockTags}
+        selectedTagIds={[]}
+        search="[bad"
+        folderPath=""
+        withoutTags={false}
+        useRegex={false}
+        onTagToggle={jest.fn()}
+        onSearchChange={jest.fn()}
+        onFolderPathChange={jest.fn()}
+        onWithoutTagsToggle={jest.fn()}
+        onClearFilters={jest.fn()}
+        onRegexChange={jest.fn()}
+      />
+    );
+
+    // Assert: error message is gone
+    expect(screen.queryByText("Neplatný regulární výraz")).not.toBeInTheDocument();
+  });
 });

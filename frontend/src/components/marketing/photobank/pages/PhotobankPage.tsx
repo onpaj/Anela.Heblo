@@ -90,7 +90,7 @@ function PhotobankPage() {
   const { data: photosData, isLoading: photosLoading } = usePhotos({
     tags: selectedTagNames.length > 0 ? selectedTagNames : undefined,
     search: search || undefined,
-    useRegex,
+    useRegex: useRegex || undefined,
     folderPath: folderPath || undefined,
     withoutTags: withoutTags || undefined,
     page,

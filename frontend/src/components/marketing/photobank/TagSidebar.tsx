@@ -113,7 +113,7 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
     ? tags.filter((t) => t.name.toLowerCase().includes(tagFilter.trim().toLowerCase()))
     : tags;
 
-  const hasActiveFilters = search.length > 0 || folderPath.length > 0 || selectedTagIds.length > 0 || withoutTags;
+  const hasActiveFilters = search.length > 0 || folderPath.length > 0 || selectedTagIds.length > 0 || withoutTags || useRegex;
 
   return (
     <aside className="flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
