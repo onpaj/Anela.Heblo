@@ -6,6 +6,8 @@ public static class TagRulePatternTranslator
 {
     public static string Translate(string pattern)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(pattern);
+
         if (pattern.StartsWith('^'))
             return pattern;
 

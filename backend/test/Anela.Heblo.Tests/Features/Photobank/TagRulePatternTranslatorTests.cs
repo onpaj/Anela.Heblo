@@ -8,6 +8,24 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 public class TagRulePatternTranslatorTests
 {
     [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Translate_ThrowsArgumentException_ForNullOrWhiteSpace(string pattern)
+    {
+        var act = () => TagRulePatternTranslator.Translate(pattern);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData("Photos/*", "OtherFolder/x/photo.jpg")]
+    [InlineData("Photos/*/2024", "Photos/foo/bar/2024/img.jpg")]
+    public void Translate_ProducesRegexThatDoesNotMatchOtherPaths(string legacyPattern, string path)
+    {
+        var regex = TagRulePatternTranslator.Translate(legacyPattern);
+        Regex.IsMatch(path, regex, RegexOptions.IgnoreCase).Should().BeFalse();
+    }
+
+    [Theory]
     [InlineData("Photos", @"^Photos(/|$)")]
     [InlineData("Photos/Products", @"^Photos/Products(/|$)")]
     [InlineData("Photos/*", @"^Photos/[^/]+(/|$)")]
