@@ -149,6 +149,22 @@ namespace Anela.Heblo.Application.Features.Photobank
             return await _context.PhotobankTags.FindAsync(new object[] { id }, cancellationToken);
         }
 
+        public async Task<Tag?> GetTagByNameAsync(string normalizedName, CancellationToken cancellationToken)
+        {
+            return await _context.PhotobankTags
+                .FirstOrDefaultAsync(t => t.Name == normalizedName, cancellationToken);
+        }
+
+        public async Task<bool> DeleteTagAsync(int tagId, CancellationToken cancellationToken)
+        {
+            var tag = await _context.PhotobankTags.FindAsync(new object[] { tagId }, cancellationToken);
+            if (tag == null)
+                return false;
+            _context.PhotobankTags.Remove(tag);
+            await _context.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
         // Photo tags
 
         public Task AddPhotoTagAsync(PhotoTag photoTag, CancellationToken cancellationToken)
