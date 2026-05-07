@@ -47,7 +47,7 @@ const ConditionsReadingsSection: React.FC<Props> = ({ readings }) => {
   const byStage = new Map(readings.map((r) => [r.stage, r]));
 
   return (
-    <div className="bg-gray-50 rounded-lg p-3 mt-4">
+    <div className="bg-gray-50 rounded-lg p-3">
       <h3 className="text-base font-semibold text-gray-800 mb-3">
         Podmínky výroby
       </h3>
