@@ -10,9 +10,11 @@ public class RetagPhotosRequestValidator : AbstractValidator<RetagPhotosRequest>
     {
         RuleFor(x => x.PhotoIds)
             .NotNull()
-            .Must(ids => ids.Length > 0)
-            .WithMessage("At least one photo ID is required")
+                .WithMessage("PhotoIds is required")
+            .NotEmpty()
+                .WithMessage("At least one photo ID is required")
             .Must(ids => ids.Length <= MaxPhotoIds)
-            .WithMessage($"Cannot retag more than {MaxPhotoIds} photos at once");
+                .WithMessage($"Cannot retag more than {MaxPhotoIds} photos at once")
+                .When(x => x.PhotoIds != null && x.PhotoIds.Length > 0);
     }
 }

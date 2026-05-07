@@ -19,6 +19,10 @@ public class RetagPhotosHandler : IRequestHandler<RetagPhotosRequest, RetagPhoto
     public async Task<RetagPhotosResponse> Handle(RetagPhotosRequest request, CancellationToken cancellationToken)
     {
         var photos = await _repository.GetPhotosByIdsAsync(request.PhotoIds, cancellationToken);
+
+        if (photos.Count == 0)
+            return new RetagPhotosResponse { JobId = null };
+
         var foundIds = photos.Select(p => p.Id).ToList();
 
         await _repository.ResetAutoTaggedAtAsync(foundIds, cancellationToken);

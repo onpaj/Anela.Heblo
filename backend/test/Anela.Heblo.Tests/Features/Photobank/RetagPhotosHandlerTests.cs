@@ -100,6 +100,27 @@ public class RetagPhotosHandlerTests
     }
 
     [Fact]
+    public async System.Threading.Tasks.Task Handle_ReturnsNullJobId_WhenNoPhotosFound()
+    {
+        // Arrange
+        _repositoryMock
+            .Setup(r => r.GetPhotosByIdsAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Photo>());
+
+        var request = new RetagPhotosRequest { PhotoIds = new[] { 999 } };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.JobId.Should().BeNull();
+
+        _repositoryMock.Verify(r => r.ResetAutoTaggedAtAsync(
+            It.IsAny<IReadOnlyList<int>>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task Handle_DoesNotClearAiTags_WhenClearExistingAiTagsIsFalse()
     {
         // Arrange
