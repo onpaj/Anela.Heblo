@@ -1,8 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMsal } from '@azure/msal-react';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
-import { shouldUseMockAuth } from '../../config/runtimeConfig';
-import { mockAuthService } from '../../auth/mockAuth';
 
 // ---- Types ----
 
@@ -107,27 +104,6 @@ export interface LeafletFeedbackListResponse {
     avgStyleScore: number | null;
   };
 }
-
-// ---- Permission hook ----
-
-/**
- * Returns true when the current MSAL account has the leaflet_manager role.
- * Controls visibility of the Upload tab and delete buttons.
- */
-export const useLeafletUploadPermission = (): boolean => {
-  const { accounts } = useMsal();
-
-  if (shouldUseMockAuth()) {
-    const user = mockAuthService.getUser();
-    return !!(Array.isArray(user?.roles) && user?.roles.includes('leaflet_manager'));
-  }
-
-  const account = accounts[0];
-  if (!account) return false;
-  const claims = account.idTokenClaims as Record<string, unknown> | undefined;
-  const roles = claims?.['roles'];
-  return Array.isArray(roles) && roles.includes('leaflet_manager');
-};
 
 // ---- Query key factory ----
 
