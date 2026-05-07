@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
@@ -25,6 +26,7 @@ public static class PhotobankModule
     public static IServiceCollection AddPhotobankModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IPhotobankRepository, PhotobankRepository>();
+        services.AddScoped<PhotobankAutoTagJob>();
         services.Configure<AutoTagOptions>(configuration.GetSection(AutoTagOptions.SectionName));
 
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
