@@ -16,6 +16,9 @@ public class PackingMaterial : IEntity<int>
     private readonly List<PackingMaterialLog> _logs = new();
     public IReadOnlyCollection<PackingMaterialLog> Logs => _logs.AsReadOnly();
 
+    private readonly List<PackingMaterialAllocation> _allocations = new();
+    public IReadOnlyCollection<PackingMaterialAllocation> Allocations => _allocations.AsReadOnly();
+
     protected PackingMaterial()
     {
     }

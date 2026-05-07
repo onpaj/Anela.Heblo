@@ -72,6 +72,7 @@ public interface IIssuedInvoiceRepository : IRepository<IssuedInvoice, string>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated result with total count</returns>
     Task<PaginatedResult<IssuedInvoice>> GetPaginatedAsync(IssuedInvoiceFilters filters, CancellationToken cancellationToken = default);
+    Task<IEnumerable<IssuedInvoiceDetail>> GetDetailsByDateAsync(DateOnly date, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
