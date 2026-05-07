@@ -151,7 +151,9 @@ namespace Anela.Heblo.Application.Features.Photobank
 
         public async Task<Tag?> GetTagByIdAsync(int id, CancellationToken cancellationToken)
         {
-            return await _context.PhotobankTags.FindAsync(new object[] { id }, cancellationToken);
+            return await _context.PhotobankTags
+                .Include(t => t.PhotoTags)
+                .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
         }
 
         public Task<Tag?> GetTagByNameAsync(string normalizedName, CancellationToken cancellationToken)
