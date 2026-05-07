@@ -2,6 +2,7 @@ import React, { useCallback, useState } from "react";
 import { useMsal } from "@azure/msal-react";
 import { X, ExternalLink, Copy, Check, Plus, Tag } from "lucide-react";
 import PhotoThumbnail from "./PhotoThumbnail";
+import { TagBadge } from "../../../components/ui/TagBadge";
 import { useAddPhotoTag, useRemovePhotoTag } from "../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../api/hooks/usePhotobank";
 
@@ -145,22 +146,11 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
         ) : (
           <div className="flex flex-wrap gap-1.5 mb-3">
             {photo.tags.map((tag) => (
-              <span
+              <TagBadge
                 key={tag.id}
-                className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary-blue-pale text-primary-blue rounded-full text-xs"
-              >
-                {tag.name}
-                {isAdmin && (
-                  <button
-                    onClick={() => handleRemoveTag(tag.id)}
-                    disabled={removeTagMutation.isPending}
-                    className="hover:text-red-500 disabled:opacity-50"
-                    aria-label={`Odebrat štítek ${tag.name}`}
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
-              </span>
+                name={tag.name}
+                onRemove={isAdmin ? () => handleRemoveTag(tag.id) : undefined}
+              />
             ))}
           </div>
         )}
