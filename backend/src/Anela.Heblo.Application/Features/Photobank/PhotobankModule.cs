@@ -25,6 +25,7 @@ public static class PhotobankModule
     public static IServiceCollection AddPhotobankModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IPhotobankRepository, PhotobankRepository>();
+        services.Configure<AutoTagOptions>(configuration.GetSection(AutoTagOptions.SectionName));
 
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
         var bypassJwtValidation = configuration.GetValue<bool>("BypassJwtValidation", false);
