@@ -90,6 +90,15 @@ test('switching tabs resets selected row', () => {
   expect(screen.queryByText('Detail záznamu')).not.toBeInTheDocument();
 });
 
+test('allows access when user has only GenAI role', () => {
+  setupMocks({ hasKb: false, hasGenAi: true });
+  render(<MarketingFeedbackPage />);
+  expect(screen.getByRole('button', { name: /poradenství/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /letáky/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /články/i })).toBeInTheDocument();
+  expect(screen.queryByText('Přístup odepřen.')).not.toBeInTheDocument();
+});
+
 test('shows access denied when user has no roles', () => {
   setupMocks({ hasKb: false, hasGenAi: false });
   render(<MarketingFeedbackPage />);
