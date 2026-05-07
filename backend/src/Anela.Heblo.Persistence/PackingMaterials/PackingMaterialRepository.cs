@@ -47,7 +47,6 @@ public class PackingMaterialRepository : BaseRepository<PackingMaterial, int>, I
     public async Task AddConsumptionRowsAsync(IEnumerable<PackingMaterialConsumption> rows, CancellationToken cancellationToken = default)
     {
         await Context.Set<PackingMaterialConsumption>().AddRangeAsync(rows, cancellationToken);
-        await Context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<IEnumerable<PackingMaterialConsumption>> GetConsumptionsByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
