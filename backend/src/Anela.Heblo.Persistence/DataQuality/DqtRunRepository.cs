@@ -18,6 +18,19 @@ public class DqtRunRepository : BaseRepository<DqtRun, Guid>, IDqtRunRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<DqtRun?> GetLatestByTestTypeAndCoveredDateAsync(
+        DqtTestType testType,
+        DateOnly coveredDate,
+        CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Where(r => r.TestType == testType
+                        && r.DateFrom <= coveredDate
+                        && r.DateTo >= coveredDate)
+            .OrderByDescending(r => r.StartedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<(List<DqtRun> Items, int TotalCount)> GetPaginatedAsync(
         DqtTestType? testType,
         DqtRunStatus? status,

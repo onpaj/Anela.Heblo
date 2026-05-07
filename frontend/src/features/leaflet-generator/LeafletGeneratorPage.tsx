@@ -3,12 +3,12 @@ import { FileText } from 'lucide-react';
 import LeafletGenerateTab from './LeafletGenerateTab';
 import LeafletDocumentsTab from './LeafletDocumentsTab';
 import LeafletUploadTab from './LeafletUploadTab';
-import { useLeafletUploadPermission } from '../../api/hooks/useLeaflet';
+import { useGenAiUserPermission } from '../../api/hooks/useGenAiUserPermission';
 
 type Tab = 'generate' | 'documents' | 'upload';
 
 export default function LeafletGeneratorPage() {
-  const canUpload = useLeafletUploadPermission();
+  const canUpload = useGenAiUserPermission();
   const [activeTab, setActiveTab] = useState<Tab>('generate');
 
   const tabs: { id: Tab; label: string }[] = [

@@ -139,6 +139,7 @@ Common supported formats (verify with extractor registrations in `LeafletModule.
 POST /api/leaflet/generate
 Content-Type: application/json
 Authorization: Bearer <Entra ID token>
+Requires: genai_user role
 ```
 
 **Request body:**

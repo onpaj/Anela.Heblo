@@ -2,16 +2,14 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import MarketingFeedbackPage from '../MarketingFeedbackPage';
 import * as kbHooks from '../../api/hooks/useKnowledgeBase';
-import * as leafletHooks from '../../api/hooks/useLeaflet';
-import * as articleHooks from '../../api/hooks/useArticles';
+import * as genAiHooks from '../../api/hooks/useGenAiUserPermission';
 import * as kbAdapter from '../../components/feedback/adapters/useKbFeedbackAdapter';
 import * as leafletAdapter from '../../components/feedback/adapters/useLeafletFeedbackAdapter';
 import * as articleAdapter from '../../components/feedback/adapters/useArticleFeedbackAdapter';
 import type { FeedbackDetail, GenericFeedbackStats } from '../../components/feedback/types';
 
 jest.mock('../../api/hooks/useKnowledgeBase');
-jest.mock('../../api/hooks/useLeaflet');
-jest.mock('../../api/hooks/useArticles');
+jest.mock('../../api/hooks/useGenAiUserPermission');
 jest.mock('../../components/feedback/adapters/useKbFeedbackAdapter');
 jest.mock('../../components/feedback/adapters/useLeafletFeedbackAdapter');
 jest.mock('../../components/feedback/adapters/useArticleFeedbackAdapter');
@@ -42,12 +40,10 @@ const leafletRow: FeedbackDetail = {
 
 function setupMocks({
   hasKb = true,
-  hasLeaflet = false,
-  hasArticle = false,
-}: { hasKb?: boolean; hasLeaflet?: boolean; hasArticle?: boolean } = {}) {
+  hasGenAi = false,
+}: { hasKb?: boolean; hasGenAi?: boolean } = {}) {
   jest.spyOn(kbHooks, 'useKnowledgeBaseUploadPermission').mockReturnValue(hasKb);
-  jest.spyOn(leafletHooks, 'useLeafletUploadPermission').mockReturnValue(hasLeaflet);
-  jest.spyOn(articleHooks, 'useArticleGeneratorPermission').mockReturnValue(hasArticle);
+  jest.spyOn(genAiHooks, 'useGenAiUserPermission').mockReturnValue(hasGenAi);
 
   jest.spyOn(kbAdapter, 'useKbFeedbackAdapter').mockReturnValue({
     ...emptyAdapterResult,
@@ -94,8 +90,17 @@ test('switching tabs resets selected row', () => {
   expect(screen.queryByText('Detail záznamu')).not.toBeInTheDocument();
 });
 
+test('allows access when user has only GenAI role', () => {
+  setupMocks({ hasKb: false, hasGenAi: true });
+  render(<MarketingFeedbackPage />);
+  expect(screen.getByRole('button', { name: /poradenství/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /letáky/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /články/i })).toBeInTheDocument();
+  expect(screen.queryByText('Přístup odepřen.')).not.toBeInTheDocument();
+});
+
 test('shows access denied when user has no roles', () => {
-  setupMocks({ hasKb: false, hasLeaflet: false, hasArticle: false });
+  setupMocks({ hasKb: false, hasGenAi: false });
   render(<MarketingFeedbackPage />);
   expect(screen.getByText('Přístup odepřen.')).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /poradenství/i })).not.toBeInTheDocument();

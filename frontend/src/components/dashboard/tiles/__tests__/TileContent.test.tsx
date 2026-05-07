@@ -32,6 +32,14 @@ jest.mock('../DefaultTile', () => ({
   DefaultTile: ({ data }: any) => <div data-testid="default-tile">{JSON.stringify(data)}</div>
 }));
 
+jest.mock('../DataQualityTile', () => ({
+  DataQualityTile: ({ data }: any) => <div data-testid="data-quality-tile">{JSON.stringify(data)}</div>
+}));
+
+jest.mock('../DqtYesterdayStatusTile', () => ({
+  DqtYesterdayStatusTile: ({ data }: any) => <div data-testid="dqt-yesterday-tile">{JSON.stringify(data)}</div>
+}));
+
 const createMockTile = (tileId: string, data?: any): DashboardTileType => ({
   tileId,
   title: `${tileId} Title`,
@@ -196,11 +204,20 @@ describe('TileContent', () => {
     expect(screen.getByText(JSON.stringify(data))).toBeInTheDocument();
   });
 
+  it('should render DqtYesterdayStatusTile for dqtyesterdaystatus', () => {
+    const data = { status: 'success', data: { totalMismatches: 0 } };
+    const tile = createMockTile('dqtyesterdaystatus', data);
+    render(<TileContent tile={tile} />);
+
+    expect(screen.getByTestId('dqt-yesterday-tile')).toBeInTheDocument();
+    expect(screen.getByText(JSON.stringify(data))).toBeInTheDocument();
+  });
+
   it('should render DefaultTile for unknown tile types', () => {
     const data = { custom: 'data' };
     const tile = createMockTile('unknown-tile-type', data);
     render(<TileContent tile={tile} />);
-    
+
     expect(screen.getByTestId('default-tile')).toBeInTheDocument();
     expect(screen.getByText(JSON.stringify(data))).toBeInTheDocument();
   });
