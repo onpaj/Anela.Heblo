@@ -111,7 +111,7 @@ public partial class Program
 
         // Apply pending EF Core migrations in Production only.
         // Other environments (Dev/Test/Staging/Automation) keep the manual `dotnet ef database update` workflow.
-        if (app.Environment.IsProduction())
+        if (app.Environment.IsProduction() || app.Environment.IsStaging())
         {
             await app.MigrateDatabaseAsync();
         }
