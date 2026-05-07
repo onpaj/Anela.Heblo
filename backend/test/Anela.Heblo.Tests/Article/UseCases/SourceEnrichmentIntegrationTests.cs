@@ -36,7 +36,7 @@ public class SourceEnrichmentIntegrationTests
             UsedKnowledgeBase = true,
         };
 
-        _repository.Setup(r => r.GetByIdAsync(articleId, It.IsAny<CancellationToken>()))
+        _repository.Setup(r => r.GetForUpdateAsync(articleId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(article);
 
         var chunkId = Guid.NewGuid();
