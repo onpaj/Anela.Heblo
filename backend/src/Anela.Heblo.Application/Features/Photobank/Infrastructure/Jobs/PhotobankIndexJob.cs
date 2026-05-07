@@ -144,7 +144,7 @@ public class PhotobankIndexJob : IRecurringJob
             .ToListAsync(ct);
         _db.PhotoTags.RemoveRange(existingRuleTags);
 
-        var matchingTagNames = TagRuleMatcher.GetMatchingTags(item.FolderPath, tagRules);
+        var matchingTagNames = TagRuleMatcher.GetMatchingTags(item.FolderPath, item.Name, tagRules);
         foreach (var tagName in matchingTagNames)
         {
             var tag = await _db.PhotobankTags.FirstOrDefaultAsync(t => t.Name == tagName, ct)

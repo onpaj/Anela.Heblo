@@ -285,7 +285,7 @@ namespace Anela.Heblo.Application.Features.Photobank
 
             foreach (var photo in photos)
             {
-                var matchingTagNames = TagRuleMatcher.GetMatchingTags(photo.FolderPath, activeRules);
+                var matchingTagNames = TagRuleMatcher.GetMatchingTags(photo.FolderPath, photo.FileName, activeRules);
                 if (matchingTagNames.Count == 0)
                     continue;
 
