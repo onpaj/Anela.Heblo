@@ -197,6 +197,47 @@ public class ConsumptionCalculationServiceTests
     }
 
     [Fact]
+    public async Task ProcessDailyConsumptionAsync_MixedTypes_ZeroInvoices_PerDayDecrementsPerOrderGetsMarkerLog()
+    {
+        // Arrange — PerDay material always decrements; PerOrder material gets marker log when zero invoices
+        var date = new DateOnly(2025, 6, 15);
+        var perDayMaterial = new PackingMaterial("Tape", 5m, ConsumptionType.PerDay, 200m);
+        var perOrderMaterial = new PackingMaterial("Box", 2m, ConsumptionType.PerOrder, 100m);
+
+        var materialRepo = new MockPackingMaterialRepository();
+        materialRepo.SetMaterials(new[] { perDayMaterial, perOrderMaterial });
+        var invoiceRepo = new MockIssuedInvoiceRepository(); // no invoices
+
+        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+
+        // Act
+        var result = await service.ProcessDailyConsumptionAsync(date);
+
+        // Assert
+        Assert.True(result.WasRun);
+        Assert.Equal(1, result.MaterialsProcessed); // only PerDay counted
+
+        // PerDay material should be decremented
+        var tape = materialRepo.Materials.First(m => m.Name == "Tape");
+        Assert.Equal(195m, tape.CurrentQuantity);
+        Assert.Single(tape.Logs);
+
+        // PerOrder material should be untouched — but idempotency marker written on first material (Tape)
+        var box = materialRepo.Materials.First(m => m.Name == "Box");
+        Assert.Equal(100m, box.CurrentQuantity);
+        Assert.Empty(box.Logs);
+
+        // One PerDay fact row only
+        Assert.Single(materialRepo.AddedConsumptionRows);
+        Assert.Equal(ConsumptionType.PerDay, materialRepo.AddedConsumptionRows[0].ConsumptionType);
+
+        // Subsequent re-run should be blocked (Tape's log counts as the marker)
+        materialRepo.SetHasDailyProcessingBeenRun(date, true);
+        var rerun = await service.ProcessDailyConsumptionAsync(date);
+        Assert.False(rerun.WasRun);
+    }
+
+    [Fact]
     public async Task HasDayAlreadyBeenProcessedAsync_ShouldReturnCorrectValue()
     {
         // Arrange
@@ -262,9 +303,9 @@ public class ConsumptionCalculationServiceTests
         Assert.Equal(6m, Math.Abs(boxLog.ChangeAmount));
         Assert.Equal(perOrderRows.Sum(r => r.Amount), Math.Abs(boxLog.ChangeAmount));
 
-        // PerProduct: 3 rows, amounts = 4, 6, 0. Total = 10.
+        // PerProduct: 2 rows (zero-amount row for INV-3 is filtered), amounts = 4, 6. Total = 10.
         var perProductRows = allRows.Where(r => r.ConsumptionType == ConsumptionType.PerProduct).ToList();
-        Assert.Equal(3, perProductRows.Count);
+        Assert.Equal(2, perProductRows.Count);
         var perProductTotal = perProductRows.Sum(r => r.Amount);
         Assert.Equal(10m, perProductTotal);
 

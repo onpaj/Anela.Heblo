@@ -61,7 +61,7 @@ public class ProcessDailyConsumptionHandler : IRequestHandler<ProcessDailyConsum
                 Success = false,
                 ProcessedDate = request.ProcessingDate,
                 MaterialsProcessed = 0,
-                Message = $"Error processing daily consumption: {ex.Message}"
+                Message = "An unexpected error occurred while processing daily consumption."
             };
         }
     }

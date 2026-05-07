@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -27,11 +28,11 @@ public class DeleteAllocationHandler : IRequestHandler<DeleteAllocationRequest, 
             var material = await _materialRepository.GetByIdWithAllocationsAsync(request.PackingMaterialId, cancellationToken);
 
             if (material == null)
-                return new DeleteAllocationResponse { Success = false, Error = $"Packing material with ID {request.PackingMaterialId} not found." };
+                return new DeleteAllocationResponse { Success = false, ErrorCode = ErrorCodes.ResourceNotFound, Error = $"Packing material with ID {request.PackingMaterialId} not found." };
 
             var allocation = material.Allocations.FirstOrDefault(a => a.Id == request.AllocationId);
             if (allocation == null)
-                return new DeleteAllocationResponse { Success = false, Error = $"Allocation with ID {request.AllocationId} not found on this material." };
+                return new DeleteAllocationResponse { Success = false, ErrorCode = ErrorCodes.ResourceNotFound, Error = $"Allocation with ID {request.AllocationId} not found on this material." };
 
             await _allocationRepository.DeleteAsync(allocation, cancellationToken);
             await _allocationRepository.SaveChangesAsync(cancellationToken);

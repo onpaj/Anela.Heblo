@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -34,7 +35,7 @@ public class CreateAllocationHandler : IRequestHandler<CreateAllocationRequest, 
             var material = await _materialRepository.GetByIdWithAllocationsAsync(request.PackingMaterialId, cancellationToken);
 
             if (material == null)
-                return new CreateAllocationResponse { Success = false, Error = $"Packing material with ID {request.PackingMaterialId} not found." };
+                return new CreateAllocationResponse { Success = false, ErrorCode = ErrorCodes.ResourceNotFound, Error = $"Packing material with ID {request.PackingMaterialId} not found." };
 
             var duplicate = material.Allocations.Any(a => a.ProductCode == request.ProductCode);
             if (duplicate)

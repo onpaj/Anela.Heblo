@@ -109,6 +109,7 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
             ConsumptionType.PerProduct => invoices
                 .Select(inv => new PackingMaterialConsumption(
                     material.Id, date, ConsumptionType.PerProduct, material.ConsumptionRate * inv.ItemsCount, inv.Id))
+                .Where(r => r.Amount > 0)
                 .ToList(),
             _ => throw new ArgumentOutOfRangeException(nameof(material.ConsumptionType))
         };

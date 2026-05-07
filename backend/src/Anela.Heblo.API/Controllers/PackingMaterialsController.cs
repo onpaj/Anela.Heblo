@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.CreateAllocation;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeleteAllocation;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeletePackingMaterial;
@@ -156,19 +157,22 @@ public class PackingMaterialsController : BaseApiController
 
     [HttpGet("{id}/allocations")]
     [ProducesResponseType(typeof(GetAllocationsResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GetAllocationsResponse>> GetAllocations(
         int id,
         CancellationToken cancellationToken = default)
     {
         var request = new GetAllocationsRequest { PackingMaterialId = id };
         var response = await _mediator.Send(request, cancellationToken);
-        return response.Success ? Ok(response) : BadRequest(new { error = response.Error });
+        if (response.Success) return Ok(response);
+        if (response.ErrorCode == ErrorCodes.ResourceNotFound) return NotFound(new { error = response.Error });
+        return BadRequest(new { error = response.Error });
     }
 
     [HttpPost("{id}/allocations")]
     [ProducesResponseType(typeof(CreateAllocationResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CreateAllocationResponse>> CreateAllocation(
         int id,
         [FromBody] CreateAllocationRequestBody body,
@@ -184,6 +188,7 @@ public class PackingMaterialsController : BaseApiController
         var response = await _mediator.Send(request, cancellationToken);
         if (!response.Success)
         {
+            if (response.ErrorCode == ErrorCodes.ResourceNotFound) return NotFound(new { error = response.Error });
             return BadRequest(new { error = response.Error });
         }
 
@@ -193,6 +198,7 @@ public class PackingMaterialsController : BaseApiController
     [HttpPut("{id}/allocations/{allocationId}")]
     [ProducesResponseType(typeof(UpdateAllocationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UpdateAllocationResponse>> UpdateAllocation(
         int id,
         int allocationId,
@@ -208,12 +214,14 @@ public class PackingMaterialsController : BaseApiController
         };
 
         var response = await _mediator.Send(request, cancellationToken);
-        return response.Success ? Ok(response) : BadRequest(new { error = response.Error });
+        if (response.Success) return Ok(response);
+        if (response.ErrorCode == ErrorCodes.ResourceNotFound) return NotFound(new { error = response.Error });
+        return BadRequest(new { error = response.Error });
     }
 
     [HttpDelete("{id}/allocations/{allocationId}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<DeleteAllocationResponse>> DeleteAllocation(
         int id,
         int allocationId,
@@ -221,6 +229,8 @@ public class PackingMaterialsController : BaseApiController
     {
         var request = new DeleteAllocationRequest { PackingMaterialId = id, AllocationId = allocationId };
         var response = await _mediator.Send(request, cancellationToken);
-        return response.Success ? NoContent() : BadRequest(new { error = response.Error });
+        if (response.Success) return NoContent();
+        if (response.ErrorCode == ErrorCodes.ResourceNotFound) return NotFound(new { error = response.Error });
+        return BadRequest(new { error = response.Error });
     }
 }

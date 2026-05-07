@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -27,6 +28,7 @@ public class GetAllocationsHandler : IRequestHandler<GetAllocationsRequest, GetA
                 return new GetAllocationsResponse
                 {
                     Success = false,
+                    ErrorCode = ErrorCodes.ResourceNotFound,
                     Error = $"Packing material with ID {request.PackingMaterialId} not found."
                 };
             }

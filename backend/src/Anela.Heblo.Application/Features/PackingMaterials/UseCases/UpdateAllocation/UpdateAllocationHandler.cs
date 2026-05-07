@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -33,11 +34,11 @@ public class UpdateAllocationHandler : IRequestHandler<UpdateAllocationRequest, 
             var material = await _materialRepository.GetByIdWithAllocationsAsync(request.PackingMaterialId, cancellationToken);
 
             if (material == null)
-                return new UpdateAllocationResponse { Success = false, Error = $"Packing material with ID {request.PackingMaterialId} not found." };
+                return new UpdateAllocationResponse { Success = false, ErrorCode = ErrorCodes.ResourceNotFound, Error = $"Packing material with ID {request.PackingMaterialId} not found." };
 
             var allocation = material.Allocations.FirstOrDefault(a => a.Id == request.AllocationId);
             if (allocation == null)
-                return new UpdateAllocationResponse { Success = false, Error = $"Allocation with ID {request.AllocationId} not found on this material." };
+                return new UpdateAllocationResponse { Success = false, ErrorCode = ErrorCodes.ResourceNotFound, Error = $"Allocation with ID {request.AllocationId} not found on this material." };
 
             var conflicting = material.Allocations
                 .Any(a => a.Id != request.AllocationId && a.ProductCode == request.ProductCode);
