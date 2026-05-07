@@ -24,7 +24,7 @@ export const OVERLAY_PALETTE: readonly TagColorPair[] = [
   { bg: "bg-violet-500/90", text: "text-white" },
   { bg: "bg-pink-500/90", text: "text-white" },
   { bg: "bg-cyan-500/90", text: "text-white" },
-  { bg: "bg-lime-500/90", text: "text-white" },
+  { bg: "bg-lime-600/90", text: "text-white" },
   { bg: "bg-orange-500/90", text: "text-white" },
   { bg: "bg-slate-500/90", text: "text-white" },
 ];

@@ -11,6 +11,23 @@ describe("tagColor", () => {
       expect(color1).toEqual(color2);
       expect(color2).toEqual(color3);
     });
+
+    it("should return exact known colors to detect hash algorithm changes", () => {
+      // These assertions pin the exact expected output for specific inputs.
+      // If the hash algorithm or palette order changes, these will fail,
+      // catching regressions that a determinism-only test would miss.
+
+      // "testtag" (lowercase of "TestTag") hashes to palette index 1 (emerald)
+      expect(getTagColor("testtag")).toEqual(TAG_PALETTE[1]);
+      expect(getTagColor("TestTag")).toEqual(TAG_PALETTE[1]);
+      expect(getTagColor("TESTTAG")).toEqual(TAG_PALETTE[1]);
+
+      // "alpha" hashes to palette index 9 (slate) - different bucket
+      expect(getTagColor("alpha")).toEqual(TAG_PALETTE[9]);
+
+      // "example" also hashes to palette index 9 to verify non-trivial collision
+      expect(getTagColor("example")).toEqual(TAG_PALETTE[9]);
+    });
   });
 
   describe("palette selection", () => {
