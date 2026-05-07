@@ -110,9 +110,9 @@ public static class AuthenticationExtensions
                 policy.RequireAuthenticatedUser()
                       .RequireRole(AuthorizationConstants.Roles.SuperUser));
 
-            options.AddPolicy(AuthorizationConstants.Policies.MarketingWriter, policy =>
+            options.AddPolicy(AuthorizationConstants.Policies.MarketingReader, policy =>
                 policy.RequireAuthenticatedUser()
-                      .RequireRole(AuthorizationConstants.Roles.MarketingWriter));
+                      .RequireRole(AuthorizationConstants.Roles.MarketingReader));
         });
     }
 }

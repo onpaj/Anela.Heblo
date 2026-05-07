@@ -10,7 +10,7 @@ const LEAFLET_GENERATOR_PATH = '/leaflet-generator';
  *
  * These tests verify the tabbed UI for leaflet document management:
  * - Dokumenty tab shows the document table
- * - Nahrát soubor tab (marketing_writer only) allows file upload and subsequent
+ * - Nahrát soubor tab (marketing_reader only) allows file upload and subsequent
  *   document appearance and deletion in Dokumenty tab
  */
 test.describe('Leaflet document management', () => {
@@ -46,13 +46,13 @@ test.describe('Leaflet document management', () => {
 });
 
 /**
- * Upload flow tests require a user with the `marketing_writer` role.
+ * Upload flow tests require a user with the `marketing_reader` role.
  * The E2E test user is a service principal that does not have this role,
  * so these tests cannot run against staging with the current credentials.
- * To enable: provision a test user account with `marketing_writer` role
+ * To enable: provision a test user account with `marketing_reader` role
  * and configure separate E2E credentials for it.
  */
-test.describe.skip('Leaflet upload flow (requires marketing_writer role)', () => {
+test.describe.skip('Leaflet upload flow (requires marketing_reader role)', () => {
   test.beforeEach(async ({ page }) => {
     await navigateToApp(page);
     const baseUrl =
@@ -64,7 +64,7 @@ test.describe.skip('Leaflet upload flow (requires marketing_writer role)', () =>
     await waitForLoadingComplete(page);
   });
 
-  test('upload tab is visible for marketing_writer users', async ({ page }) => {
+  test('upload tab is visible for marketing_reader users', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Nahrát soubor' })).toBeVisible({ timeout: 10_000 });
   });
 
