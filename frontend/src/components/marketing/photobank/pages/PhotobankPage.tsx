@@ -13,7 +13,7 @@ import { usePhotos, usePhotoTags } from "../../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../../api/hooks/usePhotobank";
 
 const ADMIN_ROLE = "super_user";
-const TAGGER_ROLE = "administrator";
+const TAGGER_ROLE = "marketing_writer";
 
 const DEFAULT_PAGE_SIZE = 48;
 const SIDEBAR_WIDTH = "220px";

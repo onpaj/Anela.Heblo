@@ -85,7 +85,7 @@ namespace Anela.Heblo.API.Controllers
         /// Add a manual tag to a photo. Requires administrator role.
         /// </summary>
         [HttpPost("photos/{id:int}/tags")]
-        [Authorize(Roles = AuthorizationConstants.Roles.Administrator)]
+        [Authorize(Roles = AuthorizationConstants.Roles.MarketingWriter)]
         [ProducesResponseType(typeof(AddPhotoTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -103,7 +103,7 @@ namespace Anela.Heblo.API.Controllers
         /// Remove a tag from a photo. Requires administrator role.
         /// </summary>
         [HttpDelete("photos/{id:int}/tags/{tagId:int}")]
-        [Authorize(Roles = AuthorizationConstants.Roles.Administrator)]
+        [Authorize(Roles = AuthorizationConstants.Roles.MarketingWriter)]
         [ProducesResponseType(typeof(RemovePhotoTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -123,7 +123,7 @@ namespace Anela.Heblo.API.Controllers
         /// Capped at 5 000 matching photos per call.
         /// </summary>
         [HttpPost("photos/bulk-tag")]
-        [Authorize(Roles = AuthorizationConstants.Roles.Administrator)]
+        [Authorize(Roles = AuthorizationConstants.Roles.MarketingWriter)]
         [ProducesResponseType(typeof(BulkAddPhotoTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]

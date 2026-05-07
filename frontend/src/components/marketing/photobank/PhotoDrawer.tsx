@@ -10,7 +10,7 @@ interface PhotoDrawerProps {
   onClose: () => void;
 }
 
-const ADMIN_ROLE = "administrator";
+const ADMIN_ROLE = "marketing_writer";
 const DRAWER_WIDTH_PX = 280;
 
 const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {

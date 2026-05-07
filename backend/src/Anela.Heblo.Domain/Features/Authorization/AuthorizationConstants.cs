@@ -49,6 +49,11 @@ public static class AuthorizationConstants
         /// Role required for generating leaflets and articles (GenAI features)
         /// </summary>
         public const string GenAiUser = "genai_user";
+
+        /// <summary>
+        /// Role for tagging photos in the photobank
+        /// </summary>
+        public const string MarketingWriter = "marketing_writer";
     }
 
     /// <summary>
