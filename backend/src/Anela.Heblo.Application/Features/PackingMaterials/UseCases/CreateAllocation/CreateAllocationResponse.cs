@@ -5,6 +5,6 @@ namespace Anela.Heblo.Application.Features.PackingMaterials.UseCases.CreateAlloc
 
 public class CreateAllocationResponse : BaseResponse
 {
-    public PackingMaterialAllocationDto? Allocation { get; set; }
     public string? Error { get; set; }
+    public PackingMaterialAllocationDto? Allocation { get; set; }
 }

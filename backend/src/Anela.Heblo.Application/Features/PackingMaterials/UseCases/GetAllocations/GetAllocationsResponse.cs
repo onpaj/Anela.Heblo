@@ -5,6 +5,6 @@ namespace Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetAllocati
 
 public class GetAllocationsResponse : BaseResponse
 {
-    public List<PackingMaterialAllocationDto> Allocations { get; set; } = new();
     public string? Error { get; set; }
+    public List<PackingMaterialAllocationDto> Allocations { get; set; } = new();
 }

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -43,6 +44,10 @@ public class GetDailyConsumptionBreakdownHandler
             _logger.LogInformation("Loading daily consumption breakdown for {Date} grouped by {GroupBy}", request.Date, request.GroupBy);
 
             var consumptions = (await _repository.GetConsumptionsByDateAsync(request.Date, cancellationToken)).ToList();
+
+            if (consumptions.Count == 0)
+                return new GetDailyConsumptionBreakdownResponse { Success = true, Date = request.Date, GroupBy = request.GroupBy };
+
             var materials = (await _repository.GetAllWithAllocationsAsync(cancellationToken)).ToList();
 
             var groups = request.GroupBy.ToLowerInvariant() switch
@@ -50,7 +55,7 @@ public class GetDailyConsumptionBreakdownHandler
                 "material" => BuildGroupByMaterial(consumptions, materials),
                 "product" => BuildGroupByProduct(consumptions, materials),
                 "order" => BuildGroupByOrder(consumptions, materials),
-                _ => new List<ConsumptionGroupDto>()
+                _ => throw new InvalidOperationException($"Unhandled GroupBy value: {request.GroupBy}")
             };
 
             return new GetDailyConsumptionBreakdownResponse
@@ -68,7 +73,7 @@ public class GetDailyConsumptionBreakdownHandler
             return new GetDailyConsumptionBreakdownResponse
             {
                 Success = false,
-                Error = $"Error loading breakdown: {ex.Message}",
+                Error = "An unexpected error occurred while loading the breakdown.",
                 Date = request.Date,
                 GroupBy = request.GroupBy
             };
