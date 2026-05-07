@@ -9,11 +9,14 @@ interface TagSidebarProps {
   search: string;
   folderPath: string;
   withoutTags: boolean;
+  useRegex: boolean;
   onTagToggle: (tagId: number) => void;
   onSearchChange: (value: string) => void;
   onFolderPathChange: (value: string) => void;
   onWithoutTagsToggle: () => void;
   onClearFilters: () => void;
+  onRegexChange: (value: boolean) => void;
+  errorMessage?: string | null;
 }
 
 const DEBOUNCE_MS = 300;
@@ -24,31 +27,49 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
   search,
   folderPath,
   withoutTags,
+  useRegex,
   onTagToggle,
   onSearchChange,
   onFolderPathChange,
   onWithoutTagsToggle,
   onClearFilters,
+  onRegexChange,
+  errorMessage,
 }) => {
   const [inputValue, setInputValue] = useState(search);
   const [folderPathValue, setFolderPathValue] = useState(folderPath);
   const [tagFilter, setTagFilter] = useState("");
+  const [regexError, setRegexError] = useState<string | null>(null);
 
   // Sync external search value to local input
   useEffect(() => {
     setInputValue(search);
   }, [search]);
 
+  // Validate regex pattern when regex mode is active
+  useEffect(() => {
+    if (!useRegex || !inputValue) {
+      setRegexError(null);
+      return;
+    }
+    try {
+      new RegExp(inputValue);
+      setRegexError(null);
+    } catch {
+      setRegexError("Neplatný regulární výraz");
+    }
+  }, [inputValue, useRegex]);
+
   // Debounce search input changes
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (inputValue !== search) {
+      if (inputValue !== search && regexError === null) {
         onSearchChange(inputValue);
       }
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [inputValue, search, onSearchChange]);
+  }, [inputValue, search, onSearchChange, regexError]);
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,7 +115,7 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
     ? tags.filter((t) => t.name.toLowerCase().includes(tagFilter.trim().toLowerCase()))
     : tags;
 
-  const hasActiveFilters = search.length > 0 || folderPath.length > 0 || selectedTagIds.length > 0 || withoutTags;
+  const hasActiveFilters = search.length > 0 || folderPath.length > 0 || selectedTagIds.length > 0 || withoutTags || useRegex;
 
   return (
     <aside className="flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
@@ -122,8 +143,10 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
             type="text"
             value={inputValue}
             onChange={handleInputChange}
-            placeholder="Hledat soubory..."
-            className="w-full pl-8 pr-7 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+            placeholder={useRegex ? "Regex (POSIX, case-insensitive)..." : "Hledat soubory..."}
+            className={`w-full pl-8 pr-7 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent ${
+              regexError ? "border-red-400" : "border-gray-300"
+            }`}
             aria-label="Hledat soubory"
           />
           {inputValue && (
@@ -136,6 +159,23 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
             </button>
           )}
         </div>
+
+        {/* Regex toggle */}
+        <label className="flex items-center gap-1.5 mt-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={useRegex}
+            onChange={(e) => onRegexChange(e.target.checked)}
+            className="w-3.5 h-3.5 accent-primary-blue"
+          />
+          <span className="text-xs text-gray-600">Regex</span>
+        </label>
+        {regexError && (
+          <p className="mt-1 text-xs text-red-600">{regexError}</p>
+        )}
+        {!regexError && errorMessage && (
+          <p className="mt-1 text-xs text-red-600">{errorMessage}</p>
+        )}
 
         {/* Folder path input */}
         <div className="relative mt-2">

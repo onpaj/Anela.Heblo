@@ -37,6 +37,7 @@ export interface GetPhotosResponse {
 export interface GetPhotosParams {
   tags?: string[];
   search?: string;
+  useRegex?: boolean;
   folderPath?: string;
   withoutTags?: boolean;
   page?: number;
@@ -82,6 +83,7 @@ async function apiDelete(apiClient: ReturnType<typeof getAuthenticatedApiClient>
 function buildPhotosUrl(baseUrl: string, params: GetPhotosParams): string {
   const qs = new URLSearchParams();
   if (params.search) qs.set("search", params.search);
+  if (params.useRegex) qs.set("useRegex", "true");
   if (params.folderPath) qs.set("folderPath", params.folderPath);
   if (params.withoutTags) qs.set("withoutTags", "true");
   if (params.page != null) qs.set("page", String(params.page));
@@ -193,6 +195,29 @@ export interface BulkAddPhotoTagResult {
   addedCount?: number;
   alreadyTaggedCount?: number;
 }
+
+// ---- Bulk tag by IDs --------------------------------------------------------
+
+export interface BulkAddPhotoTagByIdsParams {
+  photoIds: number[];
+  tagName: string;
+}
+
+export const useBulkAddPhotoTagByIds = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, BulkAddPhotoTagByIdsParams>({
+    mutationFn: async (params) => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      await apiPost(apiClient, `${baseUrl}/api/photobank/photos/tag-by-ids`, {
+        photoIds: params.photoIds,
+        tagName: params.tagName,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
+    },
+  });
+};
 
 export const useBulkAddPhotoTag = () => {
   const queryClient = useQueryClient();

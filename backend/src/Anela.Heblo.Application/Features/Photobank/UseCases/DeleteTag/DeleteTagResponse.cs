@@ -6,6 +6,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag
     {
         public int RemovedAssignmentCount { get; set; }
 
+
         public DeleteTagResponse() : base() { }
 
         public DeleteTagResponse(ErrorCodes errorCode) : base(errorCode) { }
