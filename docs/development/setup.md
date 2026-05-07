@@ -272,7 +272,8 @@ dotnet ef database update --project backend/src/Anela.Heblo.Persistence --startu
 dotnet test
 
 # 6. Commit migration files to git
-# Note: Migrations are applied manually in staging/production (not automated)
+# Note: Migrations are applied manually in Development/Test/Staging.
+#       In Production, migrations are applied automatically at app startup.
 ```
 
 ### Generating API Client
@@ -422,17 +423,24 @@ E2E_BASE_URL=https://heblo.stg.anela.cz
 
 ## Database Migrations Runbook
 
-Database migrations in this project are **manual**. They are not applied by the deployment pipeline. Code that depends on a new migration MUST NOT be deployed before the migration is applied to the target environment, or the application will return HTTP 500 with `Npgsql.PostgresException: 42P01: relation "<table>" does not exist`.
+Database migrations are applied differently depending on environment:
 
-### Pre-deploy checklist
+- **Production**: Migrations are applied **automatically at app startup** via `MigrateDatabaseAsync`. No manual step is required. The app will apply any pending migrations before accepting traffic.
+- **Development / Test / Staging**: Migrations remain **manual**. They are not applied by the deployment pipeline. Code that depends on a new migration MUST NOT be deployed before the migration is applied to the target environment, or the application will return HTTP 500 with `Npgsql.PostgresException: 42P01: relation "<table>" does not exist`.
 
-Before merging or deploying code that introduces or depends on a new EF Core migration:
+> **Developer dry-run tool**: `scripts/migration-dryrun.sh` is still useful as a local preview of what SQL EF Core would generate. It is no longer a production deploy gate — it is a developer convenience.
+
+### Pre-deploy checklist (Development / Test / Staging)
+
+Before merging or deploying code that introduces or depends on a new EF Core migration to a non-Production environment:
 
 1. Identify the migration(s) the new code depends on (look at `backend/src/Anela.Heblo.Persistence/Migrations/` and `dotnet ef migrations list`).
 2. Connect to the target environment's database using your authorized read-only credentials. Do NOT embed credentials in source control or scripts.
 3. Run the diagnostic SQL pair below (substitute the `LIKE` patterns and table names for the migration in question).
 4. Confirm the migration ID is present in `__EFMigrationsHistory` AND the expected post-migration physical schema is in place.
-5. If the migration is missing, apply it via the project's standard manual migration procedure BEFORE rolling out the dependent application code.
+5. If the migration is missing, apply it via `dotnet ef database update` BEFORE rolling out the dependent application code.
+
+For Production, skip steps 2–5 — the application handles migration automatically on startup.
 
 ### Post-deploy verification
 
