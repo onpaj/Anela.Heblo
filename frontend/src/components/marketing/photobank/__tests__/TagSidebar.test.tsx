@@ -15,10 +15,14 @@ function renderSidebar(overrides: Partial<React.ComponentProps<typeof TagSidebar
     selectedTagIds: [],
     search: "",
     folderPath: "",
+    withoutTags: false,
+    useRegex: false,
     onTagToggle: jest.fn(),
     onSearchChange: jest.fn(),
     onFolderPathChange: jest.fn(),
+    onWithoutTagsToggle: jest.fn(),
     onClearFilters: jest.fn(),
+    onRegexChange: jest.fn(),
     ...overrides,
   };
   return { ...render(<TagSidebar {...defaults} />), props: defaults };
@@ -199,5 +203,71 @@ describe("TagSidebar", () => {
     renderSidebar({ folderPath: "Marketing", onFolderPathChange });
     fireEvent.click(screen.getByRole("button", { name: "Vymazat složku" }));
     expect(onFolderPathChange).toHaveBeenCalledWith("");
+  });
+
+  test("regex mode with invalid pattern shows error and does not call onSearchChange after debounce", () => {
+    // Arrange
+    const onSearchChange = jest.fn();
+    renderSidebar({ useRegex: true, onSearchChange });
+
+    const input = screen.getByPlaceholderText("Regex (POSIX, case-insensitive)...");
+
+    // Act — type an invalid regex
+    fireEvent.change(input, { target: { value: "[bad" } });
+
+    // Assert: error message appears
+    expect(screen.getByText("Neplatný regulární výraz")).toBeInTheDocument();
+
+    // Fast-forward debounce timer
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    // Assert: onSearchChange is NOT called when pattern is invalid
+    expect(onSearchChange).not.toHaveBeenCalled();
+  });
+
+  test("regex mode with valid pattern calls onSearchChange after debounce", () => {
+    // Arrange
+    const onSearchChange = jest.fn();
+    renderSidebar({ useRegex: true, onSearchChange });
+
+    const input = screen.getByPlaceholderText("Regex (POSIX, case-insensitive)...");
+
+    // Act — type a valid regex
+    fireEvent.change(input, { target: { value: "^ok$" } });
+
+    // Assert: no error shown
+    expect(screen.queryByText("Neplatný regulární výraz")).not.toBeInTheDocument();
+
+    // Fast-forward debounce timer
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    // Assert: onSearchChange is called with the valid pattern
+    expect(onSearchChange).toHaveBeenCalledWith("^ok$");
+  });
+
+  test("regex mode off with invalid regex-like input calls onSearchChange and shows no error", () => {
+    // Arrange
+    const onSearchChange = jest.fn();
+    renderSidebar({ useRegex: false, onSearchChange });
+
+    const input = screen.getByPlaceholderText("Hledat soubory...");
+
+    // Act — type something that would be invalid regex but regex mode is off
+    fireEvent.change(input, { target: { value: "[bad" } });
+
+    // Assert: no error shown
+    expect(screen.queryByText("Neplatný regulární výraz")).not.toBeInTheDocument();
+
+    // Fast-forward debounce timer
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    // Assert: onSearchChange is called as normal
+    expect(onSearchChange).toHaveBeenCalledWith("[bad");
   });
 });

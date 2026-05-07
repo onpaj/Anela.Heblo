@@ -54,6 +54,7 @@ function PhotobankPage() {
   const [search, setSearch] = useState("");
   const [folderPath, setFolderPath] = useState("");
   const [withoutTags, setWithoutTags] = useState(false);
+  const [useRegex, setUseRegex] = useState(false);
   const [page, setPage] = useState(1);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoDto | null>(null);
   const [view, setView] = useState<ViewMode>(readViewMode);
@@ -89,6 +90,7 @@ function PhotobankPage() {
   const { data: photosData, isLoading: photosLoading } = usePhotos({
     tags: selectedTagNames.length > 0 ? selectedTagNames : undefined,
     search: search || undefined,
+    useRegex,
     folderPath: folderPath || undefined,
     withoutTags: withoutTags || undefined,
     page,
@@ -112,11 +114,17 @@ function PhotobankPage() {
     setPage(1);
   }, []);
 
+  const handleRegexChange = useCallback((value: boolean) => {
+    setUseRegex(value);
+    setPage(1);
+  }, []);
+
   const handleClearFilters = useCallback(() => {
     setSelectedTagIds([]);
     setSearch("");
     setFolderPath("");
     setWithoutTags(false);
+    setUseRegex(false);
     setPage(1);
   }, []);
 
@@ -169,11 +177,13 @@ function PhotobankPage() {
             search={search}
             folderPath={folderPath}
             withoutTags={withoutTags}
+            useRegex={useRegex}
             onTagToggle={handleTagToggle}
             onSearchChange={handleSearchChange}
             onFolderPathChange={handleFolderPathChange}
             onWithoutTagsToggle={() => { setWithoutTags((v) => !v); setPage(1); }}
             onClearFilters={handleClearFilters}
+            onRegexChange={handleRegexChange}
           />
         </div>
 
