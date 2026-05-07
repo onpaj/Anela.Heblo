@@ -60,6 +60,7 @@ const resources = {
           Orders: "Objednávky",
           Logistics: "Logistika",
           Analytics: "Analytika",
+          DataQuality: "Kvalita dat",
           Error: "Chyba"
         },
         tileSizes: {
@@ -289,6 +290,7 @@ const resources = {
           Orders: "Orders",
           Logistics: "Logistics",
           Analytics: "Analytics",
+          DataQuality: "Data Quality",
           Error: "Error"
         },
         tileSizes: {

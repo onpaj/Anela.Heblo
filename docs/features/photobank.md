@@ -29,6 +29,25 @@ Interní katalog fotek uložených na SharePointu. Aplikace si udržuje databáz
   - Tlačítka „Otevřít na SharePointu" a „Kopírovat odkaz"
   - *(Pouze admin)* Přidání/odebrání štítků ručně
 
+### Hromadné tagování (pouze admin)
+
+**Umístění:** Tlačítko „Otagovat" s ikonou štítku v horní liště (vedle přepínače zobrazení).
+
+**Jak funguje:**
+1. Admin aplikuje filtry (vyhledávání, cesta složky, výběr štítků)
+2. Klikne na tlačítko **„Otagovat"** — otevře se dialog
+3. Dialog zobrazuje:
+   - Shrnutí aktivních filtrů
+   - Počet fotek, které odpovídají filtrům
+   - Vstupní pole pro výběr štítku (s napovídáním ze seznamu existujících štítků)
+4. Potvrzením se štítek přiřadí všem fotkám odpovídajícím filtrům
+
+**Důležitá omezení:**
+- Tlačítko je **vypnuté, pokud nejsou nastaveny žádné filtry**
+- Systém má **tvrdý limit 5 000 fotek** na jednu operaci — pokud je fotek více, backend vrátí chybu s výzvou zúžit filtry
+- Hromadně lze přidat pouze **jeden štítek na operaci** (hromadné odstranění není zatím podporováno)
+- Štítky přidané hromadně jsou typu **`Manual`** — nikdy se neodstraní automatickou re-aplikací tag rules
+
 ---
 
 ## Nastavení (pouze admin)
