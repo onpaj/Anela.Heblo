@@ -1,9 +1,12 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Photobank.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Photobank;
 using MediatR;
+using Npgsql;
 
 namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
 {
@@ -18,22 +21,35 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
 
         public async Task<GetPhotosResponse> Handle(GetPhotosRequest request, CancellationToken cancellationToken)
         {
-            var (items, total) = await _repository.GetPhotosAsync(
-                request.Tags,
-                request.Search,
-                request.FolderPath,
-                request.WithoutTags,
-                request.Page,
-                request.PageSize,
-                cancellationToken);
-
-            return new GetPhotosResponse
+            try
             {
-                Items = items.Select(MapToDto).ToList(),
-                Total = total,
-                Page = request.Page,
-                PageSize = request.PageSize,
-            };
+                var (items, total) = await _repository.GetPhotosAsync(
+                    request.Tags,
+                    request.Search,
+                    request.UseRegex,
+                    request.FolderPath,
+                    request.WithoutTags,
+                    request.Page,
+                    request.PageSize,
+                    cancellationToken);
+
+                return new GetPhotosResponse
+                {
+                    Items = items.Select(MapToDto).ToList(),
+                    Total = total,
+                    Page = request.Page,
+                    PageSize = request.PageSize,
+                };
+            }
+            catch (PostgresException ex) when (request.UseRegex && ex.SqlState == "2201B")
+            {
+                return new GetPhotosResponse
+                {
+                    Success = false,
+                    ErrorCode = ErrorCodes.InvalidFormat,
+                    Params = new Dictionary<string, string> { ["pattern"] = request.Search ?? string.Empty },
+                };
+            }
         }
 
         internal static PhotoDto MapToDto(Photo photo) => new()
