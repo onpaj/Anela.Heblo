@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Features.Article;
 using Anela.Heblo.Application.Features.Article.UseCases.Generate;
 using Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
-using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Shared.WebSearch;
 using Anela.Heblo.Domain.Features.Article;
 using FluentAssertions;
@@ -72,7 +71,7 @@ public class GenerateArticleJobTests
         article.UsedKnowledgeBase = false;
         article.UsedWebSearch = false;
         _repository
-            .Setup(r => r.GetByIdAsync(article.Id, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetForUpdateAsync(article.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(article);
 
         SetupChatResponses(
@@ -101,6 +100,9 @@ public class GenerateArticleJobTests
         _repository.Verify(
             r => r.SaveChangesAsync(It.IsAny<CancellationToken>()),
             Times.AtLeast(3));
+        // Regression guard: must use the tracked variant, never the read-only one
+        _repository.Verify(r => r.GetForUpdateAsync(article.Id, It.IsAny<CancellationToken>()), Times.Once);
+        _repository.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -108,7 +110,7 @@ public class GenerateArticleJobTests
     {
         var id = Guid.NewGuid();
         _repository
-            .Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetForUpdateAsync(id, It.IsAny<CancellationToken>()))
             .ReturnsAsync((DomainArticle?)null);
 
         await CreateJob().RunAsync(id, default);
@@ -125,7 +127,7 @@ public class GenerateArticleJobTests
         article.UsedKnowledgeBase = false;
         article.UsedWebSearch = false;
         _repository
-            .Setup(r => r.GetByIdAsync(article.Id, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetForUpdateAsync(article.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(article);
 
         var callCount = 0;
@@ -159,7 +161,7 @@ public class GenerateArticleJobTests
         article.UsedKnowledgeBase = false;
         article.UsedWebSearch = false;
         _repository
-            .Setup(r => r.GetByIdAsync(article.Id, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetForUpdateAsync(article.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(article);
 
         _chat
