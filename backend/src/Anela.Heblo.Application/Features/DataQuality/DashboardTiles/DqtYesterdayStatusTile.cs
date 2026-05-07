@@ -3,12 +3,13 @@ using Anela.Heblo.Xcc.Services.Dashboard;
 
 namespace Anela.Heblo.Application.Features.DataQuality.DashboardTiles;
 
-public class DataQualityStatusTile : ITile
+public class DqtYesterdayStatusTile : ITile
 {
     private readonly IDqtRunRepository _repository;
+    private readonly TimeProvider _timeProvider;
 
-    public string Title => "Kvalita dat";
-    public string Description => "Stav posledního DQT testu faktur";
+    public string Title => "DQT včera";
+    public string Description => "Stav včerejšího DQT testu faktur";
     public TileSize Size => TileSize.Small;
     public TileCategory Category => TileCategory.DataQuality;
     public bool DefaultEnabled => true;
@@ -16,18 +17,20 @@ public class DataQualityStatusTile : ITile
     public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
-    public DataQualityStatusTile(IDqtRunRepository repository)
+    public DqtYesterdayStatusTile(IDqtRunRepository repository, TimeProvider timeProvider)
     {
         _repository = repository;
+        _timeProvider = timeProvider;
     }
 
     public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
     {
         try
         {
+            var yesterday = DateOnly.FromDateTime(_timeProvider.GetUtcNow().Date.AddDays(-1));
             var run = await _repository.GetLatestByTestTypeAsync(DqtTestType.IssuedInvoiceComparison, cancellationToken);
 
-            if (run is null)
+            if (run is null || run.DateFrom != yesterday)
             {
                 return new
                 {
