@@ -12,6 +12,7 @@ public static class PackingMaterialsModule
     {
         // Register repositories
         services.AddScoped<IPackingMaterialRepository, PackingMaterialRepository>();
+        services.AddScoped<IPackingMaterialAllocationRepository, PackingMaterialAllocationRepository>();
 
         // Register services
         // Note: ConsumptionCalculationService depends on IIssuedInvoiceRepository, which is registered by InvoicesModule
