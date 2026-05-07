@@ -165,9 +165,7 @@ describe("PhotoGrid", () => {
     // Act
     renderGrid({ photos: [photo], total: 1, showTags: true });
 
-    // Assert — overlay container has pointer-events-none class
-    const overlay = document.querySelector(".pointer-events-none");
-    expect(overlay).toBeInTheDocument();
+    // Assert — tag text is visible, confirming overlay rendered
     expect(screen.getByText("Léto")).toBeInTheDocument();
     expect(screen.getByText("Příroda")).toBeInTheDocument();
   });

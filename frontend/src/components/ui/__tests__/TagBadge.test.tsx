@@ -13,24 +13,24 @@ describe("TagBadge", () => {
     it("applies the correct bg and text classes from getTagColor", () => {
       const tagName = "example";
       const { bg, text } = getTagColor(tagName, false);
-      const { container } = render(<TagBadge name={tagName} />);
+      render(<TagBadge name={tagName} />);
 
-      const badgeDiv = container.querySelector("div");
-      expect(badgeDiv).toHaveClass(bg);
-      expect(badgeDiv).toHaveClass(text);
+      const badge = screen.getByTestId("tag-badge");
+      expect(badge).toHaveClass(bg);
+      expect(badge).toHaveClass(text);
     });
 
     it("applies base shape classes: inline-flex items-center rounded-full text-xs px-2 py-0.5 gap-1", () => {
-      const { container } = render(<TagBadge name="test" />);
-      const badgeDiv = container.querySelector("div");
+      render(<TagBadge name="test" />);
+      const badge = screen.getByTestId("tag-badge");
 
-      expect(badgeDiv).toHaveClass("inline-flex");
-      expect(badgeDiv).toHaveClass("items-center");
-      expect(badgeDiv).toHaveClass("rounded-full");
-      expect(badgeDiv).toHaveClass("text-xs");
-      expect(badgeDiv).toHaveClass("px-2");
-      expect(badgeDiv).toHaveClass("py-0.5");
-      expect(badgeDiv).toHaveClass("gap-1");
+      expect(badge).toHaveClass("inline-flex");
+      expect(badge).toHaveClass("items-center");
+      expect(badge).toHaveClass("rounded-full");
+      expect(badge).toHaveClass("text-xs");
+      expect(badge).toHaveClass("px-2");
+      expect(badge).toHaveClass("py-0.5");
+      expect(badge).toHaveClass("gap-1");
     });
   });
 
@@ -91,33 +91,33 @@ describe("TagBadge", () => {
   describe("variants", () => {
     it("for variant='default', calls getTagColor with overlay=false", () => {
       const tagName = "defaulttest";
-      const { container } = render(<TagBadge name={tagName} variant="default" />);
+      render(<TagBadge name={tagName} variant="default" />);
 
       const { bg, text } = getTagColor(tagName, false);
-      const badgeDiv = container.querySelector("div");
-      expect(badgeDiv).toHaveClass(bg);
-      expect(badgeDiv).toHaveClass(text);
+      const badge = screen.getByTestId("tag-badge");
+      expect(badge).toHaveClass(bg);
+      expect(badge).toHaveClass(text);
     });
 
     it("for variant='overlay', calls getTagColor with overlay=true", () => {
       const tagName = "overlaytest";
-      const { container } = render(<TagBadge name={tagName} variant="overlay" />);
+      render(<TagBadge name={tagName} variant="overlay" />);
 
       const { bg, text } = getTagColor(tagName, true);
-      const badgeDiv = container.querySelector("div");
-      expect(badgeDiv).toHaveClass(bg);
-      expect(badgeDiv).toHaveClass(text);
+      const badge = screen.getByTestId("tag-badge");
+      expect(badge).toHaveClass(bg);
+      expect(badge).toHaveClass(text);
     });
 
     it("overlay variant uses saturated colors (500/90) from OVERLAY_PALETTE", () => {
       const tagName = "example";
       const { bg } = getTagColor(tagName, true);
 
-      const { container } = render(<TagBadge name={tagName} variant="overlay" />);
-      const badgeDiv = container.querySelector("div");
+      render(<TagBadge name={tagName} variant="overlay" />);
+      const badge = screen.getByTestId("tag-badge");
 
       // Check that it has either a 500/90 or text-white from overlay palette
-      expect(badgeDiv).toHaveClass(bg);
+      expect(badge).toHaveClass(bg);
       expect(OVERLAY_PALETTE).toContainEqual({ bg, text: "text-white" });
     });
 
@@ -125,10 +125,10 @@ describe("TagBadge", () => {
       const tagName = "example";
       const { bg } = getTagColor(tagName, false);
 
-      const { container } = render(<TagBadge name={tagName} variant="default" />);
-      const badgeDiv = container.querySelector("div");
+      render(<TagBadge name={tagName} variant="default" />);
+      const badge = screen.getByTestId("tag-badge");
 
-      expect(badgeDiv).toHaveClass(bg);
+      expect(badge).toHaveClass(bg);
       expect(TAG_PALETTE).toContainEqual(
         TAG_PALETTE.find((p) => p.bg === bg)!
       );
@@ -138,17 +138,16 @@ describe("TagBadge", () => {
   describe("default variant", () => {
     it("renders with default variant when variant is not specified", () => {
       const tagName = "defaulttest";
-      const { container: containerWithDefault } = render(
-        <TagBadge name={tagName} variant="default" />
-      );
-      const { container: containerWithoutVariant } = render(
-        <TagBadge name={tagName} />
-      );
+      render(<TagBadge name={tagName} variant="default" />);
+      const badgeWithDefault = screen.getByTestId("tag-badge");
+      const classNameWithDefault = badgeWithDefault.className;
 
-      const badgeWithDefault = containerWithDefault.querySelector("div");
-      const badgeWithoutVariant = containerWithoutVariant.querySelector("div");
+      // Re-render without variant to compare
+      const { unmount } = render(<TagBadge name={tagName} />);
+      const badgeWithoutVariant = screen.getAllByTestId("tag-badge")[1];
 
-      expect(badgeWithDefault?.className).toBe(badgeWithoutVariant?.className);
+      expect(classNameWithDefault).toBe(badgeWithoutVariant.className);
+      unmount();
     });
   });
 
@@ -172,16 +171,14 @@ describe("TagBadge", () => {
     });
 
     it("renders overlay variant for thumbnail context", () => {
-      const { container } = render(
-        <TagBadge name="ThumbnailTag" variant="overlay" />
-      );
+      render(<TagBadge name="ThumbnailTag" variant="overlay" />);
 
       const { bg, text } = getTagColor("ThumbnailTag", true);
-      const badgeDiv = container.querySelector("div");
+      const badge = screen.getByTestId("tag-badge");
 
-      expect(badgeDiv).toHaveClass(bg);
-      expect(badgeDiv).toHaveClass(text);
-      expect(badgeDiv).toHaveClass("text-white");
+      expect(badge).toHaveClass(bg);
+      expect(badge).toHaveClass(text);
+      expect(badge).toHaveClass("text-white");
     });
   });
 });

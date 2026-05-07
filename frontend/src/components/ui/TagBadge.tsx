@@ -16,7 +16,7 @@ export const TagBadge: React.FC<TagBadgeProps> = ({
   const { bg, text } = getTagColor(name, isOverlay);
 
   return (
-    <div className={`inline-flex items-center rounded-full text-xs px-2 py-0.5 gap-1 ${bg} ${text}`}>
+    <div data-testid="tag-badge" className={`inline-flex items-center rounded-full text-xs px-2 py-0.5 gap-1 ${bg} ${text}`}>
       {name}
       {onRemove && (
         <button
