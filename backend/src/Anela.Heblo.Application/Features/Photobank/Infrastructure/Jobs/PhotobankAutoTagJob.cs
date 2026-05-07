@@ -109,7 +109,7 @@ public class PhotobankAutoTagJob : IRecurringJob
         }
 
         var raw = response.Text ?? string.Empty;
-        var fallback = new AutoTagLlmResponse { Results = [] };
+        var fallback = new AutoTagLlmPayload { Results = [] };
         var parsed = JsonResponseParser.ParseOrFallback(raw, fallback, _logger);
 
         foreach (var result in parsed.Results ?? [])
@@ -168,7 +168,7 @@ public class PhotobankAutoTagJob : IRecurringJob
     }
 }
 
-internal sealed class AutoTagLlmResponse
+internal sealed class AutoTagLlmPayload
 {
     [JsonPropertyName("results")]
     public List<AutoTagResult>? Results { get; set; }
