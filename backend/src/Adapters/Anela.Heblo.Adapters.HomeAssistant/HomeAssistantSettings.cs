@@ -11,4 +11,5 @@ public class HomeAssistantSettings
     public string OuterTemperatureEntityId { get; init; } = null!;
     public string OuterHumidityEntityId { get; init; } = null!;
     public int RequestTimeoutSeconds { get; init; } = 3;
+    public int ConditionsCacheDurationMinutes { get; init; } = 5;
 }
