@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using HealthChecks.UI.Client;
 using Anela.Heblo.Domain.Features.Configuration;
@@ -7,6 +8,8 @@ using Microsoft.AspNetCore.HttpLogging;
 using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.API.MCP;
 using ModelContextProtocol.AspNetCore;
+using Microsoft.EntityFrameworkCore;
+using Anela.Heblo.Persistence;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -268,6 +271,50 @@ public static class ApplicationBuilderExtensions
         }
 
         return app;
+    }
+
+    /// <summary>
+    /// Applies any pending EF Core migrations to the database.
+    /// Should only be called in Production; other environments use <c>dotnet ef database update</c>.
+    /// Fails fast (rethrows) on error so the app does not start with an out-of-date schema.
+    /// </summary>
+    public static async Task MigrateDatabaseAsync(this WebApplication app)
+    {
+        var logger = app.Services.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("DatabaseMigration");
+
+        try
+        {
+            using var scope = app.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
+
+            if (pending.Count == 0)
+            {
+                logger.LogInformation("Database schema is up to date; no pending migrations.");
+                return;
+            }
+
+            foreach (var migration in pending)
+            {
+                logger.LogInformation("Pending migration: {MigrationName}", migration);
+            }
+
+            var stopwatch = Stopwatch.StartNew();
+            await db.Database.MigrateAsync();
+            stopwatch.Stop();
+
+            logger.LogInformation(
+                "Applied {Count} migration(s) in {Elapsed} ms.",
+                pending.Count,
+                stopwatch.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            logger.LogCritical(ex, "Database migration failed.");
+            throw;
+        }
     }
 
     /// <summary>

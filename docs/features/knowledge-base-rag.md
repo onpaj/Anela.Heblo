@@ -435,7 +435,7 @@ When `UseMockAuth=true` or `BypassJwtValidation=true`, `MockOneDriveService` is 
 | `20260302163014_AddKnowledgeBase` | 2026-03-02 | Creates `KnowledgeBaseDocuments` and `KnowledgeBaseChunks` tables, enables `vector` extension, adds `Embedding vector(1536)` column via raw SQL, creates HNSW index |
 | `20260306192831_AddContentHashToKnowledgeBaseDocument` | 2026-03-06 | Adds `ContentHash varchar(64)` column with UNIQUE index to `KnowledgeBaseDocuments` |
 
-> **Note:** Migrations are applied manually (not automated in deployment), consistent with the rest of the project.
+> **Note:** Migrations apply automatically on Production startup; Development, Test, and Staging remain manual.
 
 ---
 

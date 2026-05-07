@@ -109,10 +109,15 @@ public partial class Program
         // Initialize tile registry with all registered tiles
         app.InitializeTileRegistry();
 
-        // Seed default recurring job configurations from discovered IRecurringJob implementations
-        // Note: Database creation and migrations are handled automatically by EF Core during first connection
-        // This seeding runs after app.Build() to ensure the DI container is ready, but before pipeline
-        // configuration and Hangfire startup. This guarantees job configurations exist before recurring jobs start.
+        // Apply pending EF Core migrations in Production only.
+        // Other environments (Dev/Test/Staging/Automation) keep the manual `dotnet ef database update` workflow.
+        if (app.Environment.IsProduction())
+        {
+            await app.MigrateDatabaseAsync();
+        }
+
+        // Seed default recurring job configurations from discovered IRecurringJob implementations.
+        // Runs before pipeline configuration and Hangfire startup to guarantee job configurations exist before recurring jobs start.
         await app.SeedRecurringJobConfigurationsAsync();
 
         // Configure pipeline
