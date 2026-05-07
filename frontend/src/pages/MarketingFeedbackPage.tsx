@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { useKnowledgeBaseUploadPermission } from '../api/hooks/useKnowledgeBase';
-import { useLeafletUploadPermission } from '../api/hooks/useLeaflet';
-import { useArticleGeneratorPermission } from '../api/hooks/useArticles';
+import { useGenAiUserPermission } from '../api/hooks/useGenAiUserPermission';
 import { useKbFeedbackAdapter } from '../components/feedback/adapters/useKbFeedbackAdapter';
 import { useLeafletFeedbackAdapter } from '../components/feedback/adapters/useLeafletFeedbackAdapter';
 import { useArticleFeedbackAdapter } from '../components/feedback/adapters/useArticleFeedbackAdapter';
@@ -45,8 +44,7 @@ const SECONDARY_LABELS: Record<FeatureTab, string> = {
 
 const MarketingFeedbackPage: React.FC = () => {
   const hasKb = useKnowledgeBaseUploadPermission();
-  const hasLeaflet = useLeafletUploadPermission();
-  const hasArticle = useArticleGeneratorPermission();
+  const hasGenAi = useGenAiUserPermission();
 
   const [activeTab, setActiveTab] = useState<FeatureTab>('kb');
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
@@ -58,7 +56,7 @@ const MarketingFeedbackPage: React.FC = () => {
   const leaflet = useLeafletFeedbackAdapter(leafletParams);
   const article = useArticleFeedbackAdapter(articleParams);
 
-  if (!hasKb && !hasLeaflet && !hasArticle) {
+  if (!hasKb && !hasGenAi) {
     return <div className="p-6 text-sm text-gray-500">Přístup odepřen.</div>;
   }
 

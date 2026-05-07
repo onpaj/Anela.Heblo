@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import LeafletGeneratorPage from '../LeafletGeneratorPage';
-import * as useLeafletHooks from '../../../api/hooks/useLeaflet';
+import * as useGenAiHooks from '../../../api/hooks/useGenAiUserPermission';
 
 jest.mock('../LeafletGenerateTab', () => ({
   __esModule: true,
@@ -21,11 +21,11 @@ jest.mock('../LeafletUploadTab', () => ({
   default: () => <div data-testid="upload-tab-content">UploadTab</div>,
 }));
 
-jest.mock('../../../api/hooks/useLeaflet', () => ({
-  useLeafletUploadPermission: jest.fn(),
+jest.mock('../../../api/hooks/useGenAiUserPermission', () => ({
+  useGenAiUserPermission: jest.fn(),
 }));
 
-const mockUseLeafletUploadPermission = useLeafletHooks.useLeafletUploadPermission as jest.Mock;
+const mockUseGenAiUserPermission = useGenAiHooks.useGenAiUserPermission as jest.Mock;
 
 function renderPage() {
   return render(
@@ -41,13 +41,13 @@ beforeEach(() => {
 
 describe('LeafletGeneratorPage', () => {
   it('renders heading Generátor letáků', () => {
-    mockUseLeafletUploadPermission.mockReturnValue(false);
+    mockUseGenAiUserPermission.mockReturnValue(false);
     renderPage();
     expect(screen.getByRole('heading', { level: 1, name: 'Generátor letáků' })).toBeInTheDocument();
   });
 
   it('shows Generovat and Dokumenty tabs when user cannot upload', () => {
-    mockUseLeafletUploadPermission.mockReturnValue(false);
+    mockUseGenAiUserPermission.mockReturnValue(false);
     renderPage();
     expect(screen.getByRole('button', { name: 'Generovat' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Dokumenty' })).toBeInTheDocument();
@@ -55,19 +55,19 @@ describe('LeafletGeneratorPage', () => {
   });
 
   it('shows Nahrát soubor tab when user has upload permission', () => {
-    mockUseLeafletUploadPermission.mockReturnValue(true);
+    mockUseGenAiUserPermission.mockReturnValue(true);
     renderPage();
     expect(screen.getByRole('button', { name: 'Nahrát soubor' })).toBeInTheDocument();
   });
 
   it('renders generate tab content by default', () => {
-    mockUseLeafletUploadPermission.mockReturnValue(false);
+    mockUseGenAiUserPermission.mockReturnValue(false);
     renderPage();
     expect(screen.getByTestId('generate-tab-content')).toBeInTheDocument();
   });
 
   it('switches to documents tab when Dokumenty is clicked', () => {
-    mockUseLeafletUploadPermission.mockReturnValue(false);
+    mockUseGenAiUserPermission.mockReturnValue(false);
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Dokumenty' }));
     expect(screen.getByTestId('documents-tab-content')).toBeInTheDocument();
@@ -75,21 +75,21 @@ describe('LeafletGeneratorPage', () => {
   });
 
   it('passes canDelete=false to documents tab when user cannot upload', () => {
-    mockUseLeafletUploadPermission.mockReturnValue(false);
+    mockUseGenAiUserPermission.mockReturnValue(false);
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Dokumenty' }));
     expect(screen.getByTestId('documents-tab-content')).toHaveTextContent('canDelete=false');
   });
 
   it('passes canDelete=true to documents tab when user can upload', () => {
-    mockUseLeafletUploadPermission.mockReturnValue(true);
+    mockUseGenAiUserPermission.mockReturnValue(true);
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Dokumenty' }));
     expect(screen.getByTestId('documents-tab-content')).toHaveTextContent('canDelete=true');
   });
 
   it('switches to upload tab when Nahrát soubor is clicked', () => {
-    mockUseLeafletUploadPermission.mockReturnValue(true);
+    mockUseGenAiUserPermission.mockReturnValue(true);
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Nahrát soubor' }));
     expect(screen.getByTestId('upload-tab-content')).toBeInTheDocument();
