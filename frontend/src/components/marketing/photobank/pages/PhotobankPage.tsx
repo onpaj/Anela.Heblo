@@ -70,7 +70,9 @@ function PhotobankPage() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_TAGS_ON_TILES, tagsOnTiles ? "1" : "0");
-    } catch {}
+    } catch {
+      // private browsing
+    }
   }, [tagsOnTiles]);
 
   const { data: tagsData } = usePhotoTags();
