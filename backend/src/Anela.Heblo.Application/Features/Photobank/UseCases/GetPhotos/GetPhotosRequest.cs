@@ -7,6 +7,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
     {
         public List<string>? Tags { get; set; }
         public string? Search { get; set; }
+        public bool UseRegex { get; set; }
         public string? FolderPath { get; set; }
         public bool WithoutTags { get; set; }
         public int Page { get; set; } = 1;

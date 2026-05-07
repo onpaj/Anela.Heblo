@@ -48,13 +48,15 @@ namespace Anela.Heblo.API.Controllers
 
         /// <summary>
         /// Get photos with optional tag AND filter, filename search, and pagination.
+        /// Set useRegex=true to use POSIX regex matching on filename instead of substring search.
         /// </summary>
         [HttpGet("photos")]
         [ProducesResponseType(typeof(GetPhotosResponse), StatusCodes.Status200OK)]
         public async Task<ActionResult<GetPhotosResponse>> GetPhotos(
             [FromQuery] List<string>? tags,
             [FromQuery] string? search,
-            [FromQuery] string? folderPath,
+            [FromQuery] bool useRegex = false,
+            [FromQuery] string? folderPath = null,
             [FromQuery] bool withoutTags = false,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 48,
@@ -64,6 +66,7 @@ namespace Anela.Heblo.API.Controllers
             {
                 Tags = tags,
                 Search = search,
+                UseRegex = useRegex,
                 FolderPath = folderPath,
                 WithoutTags = withoutTags,
                 Page = page,

@@ -215,6 +215,7 @@ const resources = {
         PhotoTagCreationFailed: "Vytvoření tagu fotky selhalo.",
         BulkTagFiltersRequired: "Pro hromadné tagování musí být aktivní alespoň jeden filtr.",
         BulkTagLimitExceeded: "Filtr odpovídá příliš mnoha fotkám ({{Count}}). Upřesněte filtry (max {{Limit}}).",
+        PhotobankInvalidRegexPattern: "Neplatný regulární výraz.",
 
         // Article Generation errors
         ArticleNotFound: "Článek nebyl nalezen (ID: {{id}})",

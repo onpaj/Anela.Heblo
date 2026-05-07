@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Domain.Features.Photobank;
@@ -20,14 +21,22 @@ namespace Anela.Heblo.Application.Features.Photobank
 
         // Photos
 
-        private IQueryable<Photo> BuildFilterQuery(List<string>? tags, string? search, string? folderPath)
+        private IQueryable<Photo> BuildFilterQuery(List<string>? tags, string? search, bool useRegex, string? folderPath)
         {
             var query = _context.Photos.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                var term = search.Trim().ToLowerInvariant();
-                query = query.Where(p => p.FileName.ToLower().Contains(term));
+                if (useRegex)
+                {
+                    var pattern = search.Trim();
+                    query = query.Where(p => Regex.IsMatch(p.FileName, pattern, RegexOptions.IgnoreCase));
+                }
+                else
+                {
+                    var term = search.Trim().ToLowerInvariant();
+                    query = query.Where(p => p.FileName.ToLower().Contains(term));
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(folderPath))
@@ -54,10 +63,10 @@ namespace Anela.Heblo.Application.Features.Photobank
         }
 
         public async Task<(List<Photo> Items, int Total)> GetPhotosAsync(
-            List<string>? tags, string? search, string? folderPath, bool withoutTags, int page, int pageSize,
+            List<string>? tags, string? search, bool useRegex, string? folderPath, bool withoutTags, int page, int pageSize,
             CancellationToken cancellationToken)
         {
-            IQueryable<Photo> query = BuildFilterQuery(tags, search, folderPath)
+            IQueryable<Photo> query = BuildFilterQuery(tags, search, useRegex, folderPath)
                 .Include(p => p.Tags)
                     .ThenInclude(pt => pt.Tag);
 
@@ -78,7 +87,7 @@ namespace Anela.Heblo.Application.Features.Photobank
             List<string>? tags, string? search, string? folderPath,
             CancellationToken cancellationToken)
         {
-            var query = BuildFilterQuery(tags, search, folderPath);
+            var query = BuildFilterQuery(tags, search, false, folderPath);
             return await query.CountAsync(cancellationToken);
         }
 
@@ -86,7 +95,7 @@ namespace Anela.Heblo.Application.Features.Photobank
             List<string>? tags, string? search, string? folderPath, int tagId,
             CancellationToken cancellationToken)
         {
-            var query = BuildFilterQuery(tags, search, folderPath);
+            var query = BuildFilterQuery(tags, search, false, folderPath);
             return await query
                 .Where(p => !p.Tags.Any(pt => pt.TagId == tagId))
                 .Select(p => p.Id)
