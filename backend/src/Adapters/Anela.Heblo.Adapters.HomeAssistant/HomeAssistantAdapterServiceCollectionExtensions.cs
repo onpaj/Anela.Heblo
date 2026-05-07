@@ -14,6 +14,8 @@ public static class HomeAssistantAdapterServiceCollectionExtensions
         services.AddOptions<HomeAssistantSettings>()
             .Bind(configuration.GetSection(HomeAssistantSettings.ConfigurationKey));
 
+        services.AddMemoryCache();
+
         services.AddHttpClient<HomeAssistantConditionsReadingProvider>((sp, client) =>
         {
             var settings = sp.GetRequiredService<IOptions<HomeAssistantSettings>>().Value;

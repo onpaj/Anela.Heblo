@@ -3,6 +3,7 @@ using System.Text.Json;
 using Anela.Heblo.Adapters.HomeAssistant;
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -27,10 +28,11 @@ public class HomeAssistantConditionsReadingProviderTests
             OuterTemperatureEntityId = "sensor.outer_temp",
             OuterHumidityEntityId = "sensor.outer_humidity",
             RequestTimeoutSeconds = 5,
+            ConditionsCacheDurationMinutes = 5,
         };
     }
 
-    private HomeAssistantConditionsReadingProvider CreateProvider()
+    private HomeAssistantConditionsReadingProvider CreateProvider(IMemoryCache? cache = null)
     {
         var httpClient = new HttpClient(_handlerMock.Object)
         {
@@ -38,7 +40,8 @@ public class HomeAssistantConditionsReadingProviderTests
             Timeout = TimeSpan.FromSeconds(_settings.RequestTimeoutSeconds),
         };
         var options = Options.Create(_settings);
-        return new HomeAssistantConditionsReadingProvider(httpClient, options, NullLogger<HomeAssistantConditionsReadingProvider>.Instance);
+        cache ??= new MemoryCache(new MemoryCacheOptions());
+        return new HomeAssistantConditionsReadingProvider(httpClient, options, cache, NullLogger<HomeAssistantConditionsReadingProvider>.Instance);
     }
 
     private void SetupSensorResponse(string entityId, string stateValue, HttpStatusCode status = HttpStatusCode.OK)
@@ -221,5 +224,58 @@ public class HomeAssistantConditionsReadingProviderTests
 
         // Assert
         await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task GetCurrentSnapshotAsync_WithinCacheDuration_ReturnsCachedSnapshotWithoutHttpCalls()
+    {
+        // Arrange
+        SetupSensorResponse("sensor.inner_temp", "21.5");
+        SetupSensorResponse("sensor.inner_humidity", "55.0");
+        SetupSensorResponse("sensor.outer_temp", "18.2");
+        SetupSensorResponse("sensor.outer_humidity", "72.3");
+
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var provider = CreateProvider(cache);
+
+        var firstResult = await provider.GetCurrentSnapshotAsync(CancellationToken.None);
+
+        // Act — second call is within cache window
+        var secondResult = await provider.GetCurrentSnapshotAsync(CancellationToken.None);
+
+        // Assert
+        secondResult.Should().Be(firstResult);
+        _handlerMock.Protected().Verify(
+            "SendAsync",
+            Times.Exactly(4), // only 4 HTTP calls from the first fetch, not 8
+            ItExpr.IsAny<HttpRequestMessage>(),
+            ItExpr.IsAny<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetCurrentSnapshotAsync_AfterCacheInvalidation_FetchesFreshData()
+    {
+        // Arrange
+        SetupSensorResponse("sensor.inner_temp", "21.5");
+        SetupSensorResponse("sensor.inner_humidity", "55.0");
+        SetupSensorResponse("sensor.outer_temp", "18.2");
+        SetupSensorResponse("sensor.outer_humidity", "72.3");
+
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var provider = CreateProvider(cache);
+
+        await provider.GetCurrentSnapshotAsync(CancellationToken.None);
+
+        cache.Remove(HomeAssistantConditionsReadingProvider.CacheKey);
+
+        // Act — second call with no cache entry
+        await provider.GetCurrentSnapshotAsync(CancellationToken.None);
+
+        // Assert — 8 total HTTP calls (4 per fetch × 2 fetches)
+        _handlerMock.Protected().Verify(
+            "SendAsync",
+            Times.Exactly(8),
+            ItExpr.IsAny<HttpRequestMessage>(),
+            ItExpr.IsAny<CancellationToken>());
     }
 }
