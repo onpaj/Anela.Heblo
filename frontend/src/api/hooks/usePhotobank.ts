@@ -145,6 +145,36 @@ export const useRemovePhotoTag = (photoId: number) => {
   });
 };
 
+// ---- Tag CRUD ---------------------------------------------------------------
+
+export const useCreateTag = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await apiPost(apiClient, `${baseUrl}/api/photobank/tags`, { name });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
+    },
+  });
+};
+
+export const useDeleteTag = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (tagId: number) => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await apiDelete(apiClient, `${baseUrl}/api/photobank/tags/${tagId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
+    },
+  });
+};
+
 // ---- Bulk tag ---------------------------------------------------------------
 
 export interface BulkAddPhotoTagParams {

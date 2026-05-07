@@ -5,6 +5,8 @@ import {
   usePhotos,
   usePhotoTags,
   useAddPhotoTag,
+  useCreateTag,
+  useDeleteTag,
 } from "../usePhotobank";
 import { getAuthenticatedApiClient } from "../../client";
 
@@ -258,6 +260,126 @@ describe("useAddPhotoTag", () => {
     });
 
     result.current.mutate("bad-tag");
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    // Assert
+    expect(result.current.error).toBeTruthy();
+  });
+});
+
+describe("useCreateTag", () => {
+  let mockFetch: jest.Mock;
+
+  beforeEach(() => {
+    mockFetch = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue(
+      createMockClient(mockFetch) as any,
+    );
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("calls POST to /api/photobank/tags with tag name in body", async () => {
+    // Arrange
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 99, name: "nový tag", source: "Manual" }),
+    });
+
+    // Act
+    const { result } = renderHook(() => useCreateTag(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.mutate("nový tag");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // Assert
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/photobank/tags"),
+      expect.objectContaining({ method: "POST" }),
+    );
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body).toEqual({ name: "nový tag" });
+  });
+
+  test("sets error state on API failure", async () => {
+    // Arrange
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 409,
+      statusText: "Conflict",
+    });
+
+    // Act
+    const { result } = renderHook(() => useCreateTag(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.mutate("duplicate");
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    // Assert
+    expect(result.current.error).toBeTruthy();
+  });
+});
+
+describe("useDeleteTag", () => {
+  let mockFetch: jest.Mock;
+
+  beforeEach(() => {
+    mockFetch = jest.fn();
+    mockGetAuthenticatedApiClient.mockReturnValue(
+      createMockClient(mockFetch) as any,
+    );
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("calls DELETE to /api/photobank/tags/:id", async () => {
+    // Arrange
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+
+    // Act
+    const { result } = renderHook(() => useDeleteTag(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.mutate(55);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // Assert
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/photobank/tags/55"),
+      expect.objectContaining({ method: "DELETE" }),
+    );
+  });
+
+  test("sets error state on API failure", async () => {
+    // Arrange
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 404,
+      statusText: "Not Found",
+    });
+
+    // Act
+    const { result } = renderHook(() => useDeleteTag(), {
+      wrapper: createWrapper(),
+    });
+
+    result.current.mutate(999);
 
     await waitFor(() => expect(result.current.isError).toBe(true));
 
