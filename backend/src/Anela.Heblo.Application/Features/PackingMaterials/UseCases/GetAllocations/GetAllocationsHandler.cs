@@ -46,7 +46,7 @@ public class GetAllocationsHandler : IRequestHandler<GetAllocationsRequest, GetA
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting allocations for packing material {PackingMaterialId}", request.PackingMaterialId);
-            return new GetAllocationsResponse { Success = false, Error = $"Error getting allocations: {ex.Message}" };
+            return new GetAllocationsResponse { Success = false, Error = "An unexpected error occurred while retrieving the allocations." };
         }
     }
 }

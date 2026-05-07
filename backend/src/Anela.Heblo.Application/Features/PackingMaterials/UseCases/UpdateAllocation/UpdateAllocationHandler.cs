@@ -40,6 +40,15 @@ public class UpdateAllocationHandler : IRequestHandler<UpdateAllocationRequest, 
             if (allocation == null)
                 return new UpdateAllocationResponse { Success = false, Error = $"Allocation with ID {request.AllocationId} not found on this material." };
 
+            var conflicting = material.Allocations
+                .Any(a => a.Id != request.AllocationId && a.ProductCode == request.ProductCode);
+            if (conflicting)
+                return new UpdateAllocationResponse
+                {
+                    Success = false,
+                    Error = $"An allocation for product '{request.ProductCode}' already exists on this material."
+                };
+
             allocation.UpdateAllocation(request.ProductCode, request.AmountPerUnit);
             await _allocationRepository.UpdateAsync(allocation, cancellationToken);
             await _allocationRepository.SaveChangesAsync(cancellationToken);
@@ -49,7 +58,7 @@ public class UpdateAllocationHandler : IRequestHandler<UpdateAllocationRequest, 
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating allocation {AllocationId} for packing material {PackingMaterialId}", request.AllocationId, request.PackingMaterialId);
-            return new UpdateAllocationResponse { Success = false, Error = $"Error updating allocation: {ex.Message}" };
+            return new UpdateAllocationResponse { Success = false, Error = "An unexpected error occurred while updating the allocation." };
         }
     }
 }

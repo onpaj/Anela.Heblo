@@ -59,7 +59,7 @@ public class CreateAllocationHandler : IRequestHandler<CreateAllocationRequest, 
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating allocation for packing material {PackingMaterialId}", request.PackingMaterialId);
-            return new CreateAllocationResponse { Success = false, Error = $"Error creating allocation: {ex.Message}" };
+            return new CreateAllocationResponse { Success = false, Error = "An unexpected error occurred while creating the allocation." };
         }
     }
 }

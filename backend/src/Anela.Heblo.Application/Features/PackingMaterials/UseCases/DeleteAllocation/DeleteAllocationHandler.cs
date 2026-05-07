@@ -42,7 +42,7 @@ public class DeleteAllocationHandler : IRequestHandler<DeleteAllocationRequest, 
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting allocation {AllocationId} for packing material {PackingMaterialId}", request.AllocationId, request.PackingMaterialId);
-            return new DeleteAllocationResponse { Success = false, Error = $"Error deleting allocation: {ex.Message}" };
+            return new DeleteAllocationResponse { Success = false, Error = "An unexpected error occurred while deleting the allocation." };
         }
     }
 }

@@ -298,6 +298,35 @@ public class AllocationHandlerTests
     }
 
     [Fact]
+    public async Task UpdateAllocation_ReturnsError_WhenProductCodeConflictsWithAnotherAllocation()
+    {
+        // Arrange
+        var material = MakeMaterial(1);
+        var allocationA = MakeAllocation(10, 1, "PROD-A", 1m);
+        var allocationB = MakeAllocation(11, 1, "PROD-B", 2m);
+        AddAllocationToMaterial(material, allocationA);
+        AddAllocationToMaterial(material, allocationB);
+
+        var materialRepo = BuildMaterialRepo(material);
+        var allocationRepo = new MockPackingMaterialAllocationRepository();
+        var handler = new UpdateAllocationHandler(materialRepo, allocationRepo, new MockLogger<UpdateAllocationHandler>());
+
+        // Act – try to rename allocation 11 (PROD-B) to PROD-A, which is taken by allocation 10
+        var response = await handler.Handle(new UpdateAllocationRequest
+        {
+            PackingMaterialId = 1,
+            AllocationId = 11,
+            ProductCode = "PROD-A",
+            AmountPerUnit = 3m
+        }, CancellationToken.None);
+
+        // Assert
+        Assert.False(response.Success);
+        Assert.Contains("PROD-A", response.Error);
+        Assert.Empty(allocationRepo.UpdatedAllocations);
+    }
+
+    [Fact]
     public async Task UpdateAllocation_ReturnsError_WhenAmountIsNegative()
     {
         // Arrange
