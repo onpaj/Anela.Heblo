@@ -7,6 +7,8 @@ import PhotoGrid from "../PhotoGrid";
 import PhotoList from "../PhotoList";
 import PhotoDrawer from "../PhotoDrawer";
 import PhotoViewToggle from "../PhotoViewToggle";
+import BulkTagButton from "../BulkTagButton";
+import BulkTagDialog from "../BulkTagDialog";
 import { usePhotos, usePhotoTags } from "../../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../../api/hooks/usePhotobank";
 
@@ -43,6 +45,7 @@ function PhotobankPage() {
   const [page, setPage] = useState(1);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoDto | null>(null);
   const [view, setView] = useState<ViewMode>(readViewMode);
+  const [bulkTagDialogOpen, setBulkTagDialogOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -148,8 +151,19 @@ function PhotobankPage() {
 
         {/* Main content area */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* View toggle bar */}
-          <div className="flex items-center justify-end px-4 py-2 border-b border-gray-100">
+          {/* View toggle + bulk tag bar */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+            <div>
+              {isAdmin && (
+                <BulkTagButton
+                  search={search}
+                  folderPath={folderPath}
+                  selectedTagNames={selectedTagNames}
+                  totalMatching={photosData?.total ?? 0}
+                  onOpenDialog={() => setBulkTagDialogOpen(true)}
+                />
+              )}
+            </div>
             <PhotoViewToggle
               options={VIEW_OPTIONS}
               value={view}
@@ -171,6 +185,16 @@ function PhotobankPage() {
           <PhotoDrawer photo={selectedPhoto} onClose={handleDrawerClose} />
         )}
       </div>
+      {bulkTagDialogOpen && (
+        <BulkTagDialog
+          search={search}
+          folderPath={folderPath}
+          selectedTagNames={selectedTagNames}
+          totalMatching={photosData?.total ?? 0}
+          existingTags={tagsData ?? []}
+          onClose={() => setBulkTagDialogOpen(false)}
+        />
+      )}
     </div>
   );
 }
