@@ -91,13 +91,22 @@ public class PhotobankAutoTagJob : IRecurringJob
         var systemPrompt = BuildSystemPrompt(tagsByName.Keys);
         var userPrompt = BuildUserPrompt(batch);
 
-        var response = await _chat.GetResponseAsync(
-            [
-                new ChatMessage(ChatRole.System, systemPrompt),
-                new ChatMessage(ChatRole.User, userPrompt),
-            ],
-            new ChatOptions { ModelId = _options.Model },
-            ct);
+        ChatResponse response;
+        try
+        {
+            response = await _chat.GetResponseAsync(
+                [
+                    new ChatMessage(ChatRole.System, systemPrompt),
+                    new ChatMessage(ChatRole.User, userPrompt),
+                ],
+                new ChatOptions { ModelId = _options.Model },
+                ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "LLM call failed for batch of {Count} photos; skipping batch", batch.Count);
+            return;
+        }
 
         var raw = response.Text ?? string.Empty;
         var fallback = new AutoTagLlmResponse { Results = [] };

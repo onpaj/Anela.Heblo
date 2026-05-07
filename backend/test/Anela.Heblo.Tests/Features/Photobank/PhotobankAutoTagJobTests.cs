@@ -130,6 +130,71 @@ public class PhotobankAutoTagJobTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_RespectsMaxTagsPerPhoto_Cap()
+    {
+        // Arrange
+        var photos = new List<PhotoAutoTagCandidate>
+        {
+            new(20, "marketing", "photo.jpg"),
+        };
+
+        var tags = new List<(Tag Tag, int Count)>
+        {
+            (new Tag { Id = 1, Name = "andy" }, 1),
+            (new Tag { Id = 2, Name = "ela" }, 1),
+            (new Tag { Id = 3, Name = "peťa" }, 1),
+        };
+
+        _repo
+            .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tags);
+
+        _repo
+            .SetupSequence(r => r.GetPhotosPendingAutoTagAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(photos)
+            .ReturnsAsync(new List<PhotoAutoTagCandidate>());
+
+        // LLM returns all 3 valid tags, but MaxTagsPerPhoto = 2 in the test options
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponse(new ChatMessage(ChatRole.Assistant,
+                "{\"results\":[{\"id\":20,\"tags\":[\"andy\",\"ela\",\"peťa\"]}]}")));
+
+        _repo.Setup(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _repo
+            .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repo
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _repo
+            .Setup(r => r.StampAutoTaggedAtAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Use job with MaxTagsPerPhoto = 2
+        var jobWithCap = new PhotobankAutoTagJob(
+            _repo.Object,
+            _chat.Object,
+            Options.Create(new AutoTagOptions { Enabled = true, BatchSize = 50, MaxPhotosPerRun = 100, Model = "test-model", MaxTagsPerPhoto = 2 }),
+            NullLogger<PhotobankAutoTagJob>.Instance);
+
+        // Act
+        await jobWithCap.ExecuteAsync(CancellationToken.None);
+
+        // Assert — only 2 out of 3 valid tags should be applied
+        _repo.Verify(r => r.AddPhotoTagAsync(
+            It.Is<PhotoTag>(pt => pt.PhotoId == 20 && pt.Source == PhotoTagSource.AI),
+            It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
     public async Task ExecuteAsync_AppliesValidTagsAndDropsHallucinations()
     {
         // Arrange
