@@ -13,6 +13,10 @@ namespace Anela.Heblo.Domain.Features.Photobank
             List<string>? tags, string? search, string? folderPath, int page, int pageSize,
             CancellationToken cancellationToken);
 
+        Task<int> CountFilteredPhotosAsync(List<string>? tags, string? search, string? folderPath, CancellationToken cancellationToken);
+
+        Task<List<int>> GetFilteredPhotoIdsMissingTagAsync(List<string>? tags, string? search, string? folderPath, int tagId, CancellationToken cancellationToken);
+
         Task<Photo?> GetPhotoByIdAsync(int id, CancellationToken cancellationToken);
 
         Task<PhotoLocator?> GetLocatorAsync(int id, CancellationToken cancellationToken);

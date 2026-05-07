@@ -265,6 +265,10 @@ public enum ErrorCodes
     PhotobankRuleNotFound = 2603,
     [HttpStatusCode(HttpStatusCode.InternalServerError)]
     PhotoTagCreationFailed = 2604,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    BulkTagFiltersRequired = 2605,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    BulkTagLimitExceeded = 2606,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
