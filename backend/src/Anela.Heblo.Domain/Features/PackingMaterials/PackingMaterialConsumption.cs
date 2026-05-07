@@ -26,6 +26,8 @@ public class PackingMaterialConsumption : IEntity<int>
         string? productCode = null,
         decimal? productQuantity = null)
     {
+        if (amount < 0)
+            throw new ArgumentOutOfRangeException(nameof(amount), "Cannot be negative.");
         PackingMaterialId = packingMaterialId;
         Date = date;
         ConsumptionType = consumptionType;

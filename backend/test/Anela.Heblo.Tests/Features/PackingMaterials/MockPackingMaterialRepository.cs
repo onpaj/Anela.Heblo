@@ -128,4 +128,19 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
         var count = predicate == null ? _materials.Count : _materials.Count(predicate.Compile());
         return Task.FromResult(count);
     }
+
+    public List<PackingMaterialConsumption> AddedConsumptionRows { get; } = new();
+    public Dictionary<DateOnly, List<PackingMaterialConsumption>> ConsumptionRowsByDate { get; } = new();
+
+    public Task<IEnumerable<PackingMaterial>> GetAllWithAllocationsAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult<IEnumerable<PackingMaterial>>(_materials);
+
+    public Task AddConsumptionRowsAsync(IEnumerable<PackingMaterialConsumption> rows, CancellationToken cancellationToken = default)
+    {
+        AddedConsumptionRows.AddRange(rows);
+        return Task.CompletedTask;
+    }
+
+    public Task<IEnumerable<PackingMaterialConsumption>> GetConsumptionsByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
+        => Task.FromResult<IEnumerable<PackingMaterialConsumption>>(ConsumptionRowsByDate.TryGetValue(date, out var rows) ? rows : new List<PackingMaterialConsumption>());
 }

@@ -202,6 +202,34 @@ public class IssuedInvoiceRepository : BaseRepository<IssuedInvoice, string>, II
         };
     }
 
+    public async Task<IEnumerable<IssuedInvoiceDetail>> GetDetailsByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
+    {
+        var start = date.ToDateTime(TimeOnly.MinValue);
+        var end = date.ToDateTime(TimeOnly.MaxValue);
+
+        var invoices = await DbSet
+            .Where(x => x.InvoiceDate >= start && x.InvoiceDate <= end)
+            .ToListAsync(cancellationToken);
+
+        return invoices.Select(invoice => new IssuedInvoiceDetail
+        {
+            Code = invoice.Id,
+            CreationTime = invoice.CreationTime,
+            DueDate = invoice.DueDate,
+            TaxDate = invoice.TaxDate,
+            VarSymbol = invoice.VarSymbol,
+            BillingMethod = invoice.BillingMethod,
+            ShippingMethod = invoice.ShippingMethod,
+            VatPayer = invoice.VatPayer,
+            Price = new InvoicePrice
+            {
+                WithVat = invoice.Price,
+                CurrencyCode = invoice.Currency
+            },
+            Customer = new InvoiceCustomer { Name = invoice.CustomerName ?? string.Empty }
+        }).ToList();
+    }
+
     private static IQueryable<IssuedInvoice> ApplySorting(IQueryable<IssuedInvoice> query, string? sortBy, bool sortDescending)
     {
         if (string.IsNullOrEmpty(sortBy))
