@@ -39,6 +39,9 @@ function renderList(overrides: Partial<React.ComponentProps<typeof PhotoList>> =
     isLoading: false,
     onPhotoSelect: jest.fn(),
     onPageChange: jest.fn(),
+    selectedIds: new Set<number>(),
+    onTogglePhotoSelection: jest.fn(),
+    canSelect: false,
     ...overrides,
   };
   return { ...render(<PhotoList {...defaults} />), props: defaults };
@@ -174,7 +177,7 @@ describe("PhotoList", () => {
 
     // Assert — no photos rendered, skeleton present via animate-pulse divs
     expect(screen.queryByRole("button", { name: /photo/ })).not.toBeInTheDocument();
-    expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
+    expect(screen.getByTestId("loading-skeleton")).toBeInTheDocument();
   });
 
   test("shows empty state when photos is empty and not loading", () => {
@@ -183,5 +186,47 @@ describe("PhotoList", () => {
 
     // Assert
     expect(screen.getByText("Žádné fotografie nenalezeny")).toBeInTheDocument();
+  });
+
+  describe("selection", () => {
+    test("with canSelect=false checkboxes are not rendered", () => {
+      // Arrange & Act
+      renderList({ canSelect: false });
+
+      // Assert
+      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    });
+
+    test("with canSelect=true checkboxes are rendered for each photo", () => {
+      // Arrange & Act
+      renderList({ canSelect: true, selectedIds: new Set<number>() });
+
+      // Assert
+      const checkboxes = screen.getAllByRole("checkbox");
+      expect(checkboxes).toHaveLength(mockPhotos.length);
+    });
+
+    test("checkbox for selected photo is checked", () => {
+      // Arrange & Act
+      renderList({ canSelect: true, selectedIds: new Set([1]) });
+
+      // Assert
+      const checkbox1 = screen.getByTestId("photo-select-checkbox-1");
+      const checkbox2 = screen.getByTestId("photo-select-checkbox-2");
+      expect(checkbox1).toBeChecked();
+      expect(checkbox2).not.toBeChecked();
+    });
+
+    test("checkbox onChange calls onTogglePhotoSelection with photoId", () => {
+      // Arrange
+      const onTogglePhotoSelection = jest.fn();
+      renderList({ canSelect: true, selectedIds: new Set<number>(), onTogglePhotoSelection });
+
+      // Act
+      fireEvent.click(screen.getByTestId("photo-select-checkbox-1"));
+
+      // Assert
+      expect(onTogglePhotoSelection).toHaveBeenCalledWith(1, expect.any(Boolean));
+    });
   });
 });

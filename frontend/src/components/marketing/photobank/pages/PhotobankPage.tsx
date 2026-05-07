@@ -9,7 +9,8 @@ import PhotoDrawer from "../PhotoDrawer";
 import PhotoViewToggle from "../PhotoViewToggle";
 import BulkTagButton from "../BulkTagButton";
 import BulkTagDialog from "../BulkTagDialog";
-import { usePhotos, usePhotoTags } from "../../../../api/hooks/usePhotobank";
+import PhotobankBulkActionBar from "../PhotobankBulkActionBar";
+import { usePhotos, usePhotoTags, useBulkAddPhotoTagByIds } from "../../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../../api/hooks/usePhotobank";
 
 const ADMIN_ROLE = "super_user";
@@ -60,6 +61,8 @@ function PhotobankPage() {
   const [view, setView] = useState<ViewMode>(readViewMode);
   const [tagsOnTiles, setTagsOnTiles] = useState<boolean>(readTagsOnTiles);
   const [bulkTagDialogOpen, setBulkTagDialogOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectionAnchorId, setSelectionAnchorId] = useState<number | null>(null);
 
   useEffect(() => {
     try {
@@ -106,16 +109,22 @@ function PhotobankPage() {
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
     );
     setPage(1);
+    setSelectedIds(new Set());
+    setSelectionAnchorId(null);
   }, []);
 
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
     setPage(1);
+    setSelectedIds(new Set());
+    setSelectionAnchorId(null);
   }, []);
 
   const handleFolderPathChange = useCallback((value: string) => {
     setFolderPath(value);
     setPage(1);
+    setSelectedIds(new Set());
+    setSelectionAnchorId(null);
   }, []);
 
   const handleRegexChange = useCallback((value: boolean) => {
@@ -130,6 +139,8 @@ function PhotobankPage() {
     setWithoutTags(false);
     setUseRegex(false);
     setPage(1);
+    setSelectedIds(new Set());
+    setSelectionAnchorId(null);
   }, []);
 
   const handlePhotoSelect = useCallback((photo: PhotoDto) => {
@@ -143,10 +154,66 @@ function PhotobankPage() {
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
     setSelectedPhoto(null);
+    setSelectedIds(new Set());
+    setSelectionAnchorId(null);
   }, []);
 
   const handleOpenBulkTagDialog = useCallback(() => setBulkTagDialogOpen(true), []);
   const handleCloseBulkTagDialog = useCallback(() => setBulkTagDialogOpen(false), []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    setSelectionAnchorId(null);
+  }, []);
+
+  const handleTogglePhotoSelection = useCallback(
+    (photoId: number, withRange: boolean) => {
+      const items = photosData?.items ?? [];
+
+      if (withRange && selectionAnchorId !== null) {
+        const anchorIdx = items.findIndex((p) => p.id === selectionAnchorId);
+        const targetIdx = items.findIndex((p) => p.id === photoId);
+
+        if (anchorIdx !== -1 && targetIdx !== -1) {
+          const lo = Math.min(anchorIdx, targetIdx);
+          const hi = Math.max(anchorIdx, targetIdx);
+          const rangeIds = items.slice(lo, hi + 1).map((p) => p.id);
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            rangeIds.forEach((id) => next.add(id));
+            return next;
+          });
+          return;
+        }
+      }
+
+      // Single toggle
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(photoId)) {
+          next.delete(photoId);
+        } else {
+          next.add(photoId);
+        }
+        return next;
+      });
+      setSelectionAnchorId(photoId);
+    },
+    [photosData?.items, selectionAnchorId],
+  );
+
+  const bulkAddByIdsMutation = useBulkAddPhotoTagByIds();
+
+  const handleApplyBulkTag = useCallback(
+    async (tagName: string) => {
+      await bulkAddByIdsMutation.mutateAsync({
+        photoIds: Array.from(selectedIds),
+        tagName,
+      });
+      handleClearSelection();
+    },
+    [selectedIds, bulkAddByIdsMutation, handleClearSelection],
+  );
 
   const sharedPhotoProps = {
     photos: photosData?.items ?? [],
@@ -157,6 +224,9 @@ function PhotobankPage() {
     isLoading: photosLoading,
     onPhotoSelect: handlePhotoSelect,
     onPageChange: handlePageChange,
+    selectedIds,
+    onTogglePhotoSelection: handleTogglePhotoSelection,
+    canSelect: canBulkTag,
   };
 
   return (
@@ -231,6 +301,16 @@ function PhotobankPage() {
               )}
             </div>
           </div>
+          {/* Bulk selection action bar */}
+          {canBulkTag && selectedIds.size > 0 && (
+            <PhotobankBulkActionBar
+              selectedCount={selectedIds.size}
+              existingTags={tagsData ?? []}
+              isApplying={bulkAddByIdsMutation.isPending}
+              onApplyTag={handleApplyBulkTag}
+              onClear={handleClearSelection}
+            />
+          )}
           {/* Photo grid or list */}
           <div className="flex-1 flex overflow-hidden">
             {view === "tiles" ? (

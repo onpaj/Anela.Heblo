@@ -22,6 +22,9 @@ interface PhotoListProps {
   isLoading: boolean;
   onPhotoSelect: (photo: PhotoDto) => void;
   onPageChange: (page: number) => void;
+  selectedIds: Set<number>;
+  onTogglePhotoSelection: (photoId: number, withRange: boolean) => void;
+  canSelect: boolean;
 }
 
 function PhotoList({
@@ -33,6 +36,9 @@ function PhotoList({
   isLoading,
   onPhotoSelect,
   onPageChange,
+  selectedIds,
+  onTogglePhotoSelection,
+  canSelect,
 }: PhotoListProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const canGoPrev = page > 1;
@@ -40,7 +46,7 @@ function PhotoList({
 
   if (isLoading) {
     return (
-      <div className="flex-1 p-4 space-y-3">
+      <div className="flex-1 p-4 space-y-3" data-testid="loading-skeleton">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex gap-3 animate-pulse">
             <div className="w-20 h-20 bg-gray-200 rounded-lg flex-shrink-0" />
@@ -72,18 +78,38 @@ function PhotoList({
           const overflowCount = photo.tags.length - MAX_VISIBLE_TAGS;
 
           return (
-            <button
+            <div
               key={photo.id}
-              onClick={() => onPhotoSelect(photo)}
               className={[
-                "w-full flex items-center gap-3 px-4 py-3 text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-blue",
+                "w-full flex items-center gap-3 px-4 py-3",
                 isSelected
                   ? "border-l-2 border-primary-blue bg-secondary-blue-pale"
                   : "hover:bg-gray-50",
               ].join(" ")}
-              aria-pressed={isSelected}
-              aria-label={photo.name}
             >
+              {canSelect && (
+                <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(photo.id)}
+                    aria-label="Vybrat fotku"
+                    data-testid={`photo-select-checkbox-${photo.id}`}
+                    onChange={(e) => {
+                      onTogglePhotoSelection(
+                        photo.id,
+                        e.nativeEvent instanceof MouseEvent && (e.nativeEvent as MouseEvent).shiftKey,
+                      );
+                    }}
+                    className="w-4 h-4 accent-primary-blue cursor-pointer"
+                  />
+                </div>
+              )}
+              <button
+                onClick={() => onPhotoSelect(photo)}
+                className="flex items-center gap-3 flex-1 min-w-0 text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-blue"
+                aria-pressed={isSelected}
+                aria-label={photo.name}
+              >
               <PhotoThumbnail
                 photoId={photo.id}
                 modifiedAt={photo.lastModifiedAt}
@@ -128,7 +154,8 @@ function PhotoList({
                   )}
                 </div>
               </div>
-            </button>
+              </button>
+            </div>
           );
         })}
       </div>

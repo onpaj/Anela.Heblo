@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRule;
 using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag;
+using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByIds;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRule;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos;
@@ -141,6 +142,29 @@ namespace Anela.Heblo.API.Controllers
                 Tags = body.Tags,
                 Search = body.Search,
                 FolderPath = body.FolderPath,
+                TagName = body.TagName,
+            };
+            var response = await _mediator.Send(request, cancellationToken);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Bulk-add a manual tag to an explicit list of photos by ID. Requires MarketingWriter role.
+        /// Capped at 5 000 photo IDs per call. Idempotent: photos already carrying the tag are counted
+        /// in AlreadyTaggedCount and not modified.
+        /// </summary>
+        [HttpPost("photos/tag-by-ids")]
+        [Authorize(Roles = AuthorizationConstants.Roles.MarketingWriter)]
+        [ProducesResponseType(typeof(BulkAddPhotoTagByIdsResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<BulkAddPhotoTagByIdsResponse>> BulkAddPhotoTagByIds(
+            [FromBody] BulkAddPhotoTagByIdsBody body,
+            CancellationToken cancellationToken = default)
+        {
+            var request = new BulkAddPhotoTagByIdsRequest
+            {
+                PhotoIds = body.PhotoIds,
                 TagName = body.TagName,
             };
             var response = await _mediator.Send(request, cancellationToken);
@@ -348,6 +372,12 @@ namespace Anela.Heblo.API.Controllers
         public List<string>? Tags { get; set; }
         public string? Search { get; set; }
         public string? FolderPath { get; set; }
+        public string TagName { get; set; } = null!;
+    }
+
+    public class BulkAddPhotoTagByIdsBody
+    {
+        public List<int> PhotoIds { get; set; } = [];
         public string TagName { get; set; } = null!;
     }
 }

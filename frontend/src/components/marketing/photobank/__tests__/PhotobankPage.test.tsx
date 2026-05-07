@@ -9,6 +9,10 @@ jest.mock("@azure/msal-react", () => ({
 jest.mock("../../../../api/hooks/usePhotobank", () => ({
   usePhotos: () => ({ data: undefined, isLoading: false }),
   usePhotoTags: () => ({ data: [] }),
+  useBulkAddPhotoTagByIds: () => ({
+    mutateAsync: jest.fn().mockResolvedValue(undefined),
+    isPending: false,
+  }),
 }));
 
 jest.mock("react-router-dom", () => ({
