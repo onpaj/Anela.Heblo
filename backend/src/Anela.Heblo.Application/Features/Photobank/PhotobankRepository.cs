@@ -302,6 +302,7 @@ namespace Anela.Heblo.Application.Features.Photobank
 
             var photosUpdated = 0;
             var now = DateTime.UtcNow;
+            var addedPairs = new HashSet<(int PhotoId, int TagId)>();
 
             foreach (var photo in photos)
             {
@@ -314,6 +315,9 @@ namespace Anela.Heblo.Application.Features.Photobank
                 {
                     var tag = await GetOrCreateTagAsync(tagName, cancellationToken);
                     if (tag == null)
+                        continue;
+
+                    if (!addedPairs.Add((photo.Id, tag.Id)))
                         continue;
 
                     _context.PhotoTags.Add(new PhotoTag

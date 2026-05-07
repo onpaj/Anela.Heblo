@@ -128,6 +128,7 @@ public class PhotobankAutoTagJob : IRecurringJob
     {
         var validTags = (result.Tags ?? [])
             .Where(name => tagsByName.ContainsKey(name))
+            .Distinct()
             .Take(_options.MaxTagsPerPhoto)
             .ToList();
 
