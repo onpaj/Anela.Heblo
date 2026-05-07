@@ -90,6 +90,16 @@ namespace Anela.Heblo.Application.Features.Photobank
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<List<int>> GetExistingPhotoIdsMissingTagAsync(
+            IReadOnlyList<int> photoIds, int tagId,
+            CancellationToken cancellationToken)
+        {
+            return await _context.Photos
+                .Where(p => photoIds.Contains(p.Id) && !p.Tags.Any(pt => pt.TagId == tagId))
+                .Select(p => p.Id)
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task<Photo?> GetPhotoByIdAsync(int id, CancellationToken cancellationToken)
         {
             return await _context.Photos

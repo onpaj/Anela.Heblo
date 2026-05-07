@@ -17,6 +17,8 @@ namespace Anela.Heblo.Domain.Features.Photobank
 
         Task<List<int>> GetFilteredPhotoIdsMissingTagAsync(List<string>? tags, string? search, string? folderPath, int tagId, CancellationToken cancellationToken);
 
+        Task<List<int>> GetExistingPhotoIdsMissingTagAsync(IReadOnlyList<int> photoIds, int tagId, CancellationToken cancellationToken);
+
         Task<Photo?> GetPhotoByIdAsync(int id, CancellationToken cancellationToken);
 
         Task<PhotoLocator?> GetLocatorAsync(int id, CancellationToken cancellationToken);

@@ -269,6 +269,8 @@ public enum ErrorCodes
     BulkTagFiltersRequired = 2605,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     BulkTagLimitExceeded = 2606,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    BulkTagInvalidRequest = 2607,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
