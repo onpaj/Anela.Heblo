@@ -180,7 +180,12 @@ export const useBulkAddPhotoTag = () => {
           }),
         },
       );
-      return response.json();
+      if (!response.ok && response.status !== 400) {
+        // Only parse structured error bodies for 400 (validation/business rule errors).
+        // For anything else (401, 403, 500, network), throw a descriptive error.
+        throw new Error(`Photobank API error: ${response.status} ${response.statusText}`);
+      }
+      return response.json() as Promise<BulkAddPhotoTagResult>;
     },
     onSuccess: (data) => {
       if (data.success) {

@@ -110,6 +110,9 @@ function PhotobankPage() {
     setSelectedPhoto(null);
   }, []);
 
+  const handleOpenBulkTagDialog = useCallback(() => setBulkTagDialogOpen(true), []);
+  const handleCloseBulkTagDialog = useCallback(() => setBulkTagDialogOpen(false), []);
+
   const sharedPhotoProps = {
     photos: photosData?.items ?? [],
     selectedPhotoId: selectedPhoto?.id ?? null,
@@ -160,7 +163,7 @@ function PhotobankPage() {
                   folderPath={folderPath}
                   selectedTagNames={selectedTagNames}
                   totalMatching={photosData?.total ?? 0}
-                  onOpenDialog={() => setBulkTagDialogOpen(true)}
+                  onOpenDialog={handleOpenBulkTagDialog}
                 />
               )}
             </div>
@@ -192,7 +195,7 @@ function PhotobankPage() {
           selectedTagNames={selectedTagNames}
           totalMatching={photosData?.total ?? 0}
           existingTags={tagsData ?? []}
-          onClose={() => setBulkTagDialogOpen(false)}
+          onClose={handleCloseBulkTagDialog}
         />
       )}
     </div>

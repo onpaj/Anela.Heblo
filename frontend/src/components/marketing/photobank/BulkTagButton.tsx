@@ -10,6 +10,7 @@ interface BulkTagButtonProps {
 }
 
 const NO_FILTER_TOOLTIP = "Nejprve použijte filtr";
+const ZERO_MATCH_TOOLTIP = "Žádné fotky neodpovídají filtru";
 
 function isFilterActive(search: string, folderPath: string, selectedTagNames: string[]): boolean {
   return search !== "" || folderPath !== "" || selectedTagNames.length > 0;
@@ -24,7 +25,11 @@ export default function BulkTagButton({
 }: BulkTagButtonProps) {
   const filterActive = isFilterActive(search, folderPath, selectedTagNames);
   const isDisabled = !filterActive || totalMatching === 0;
-  const tooltip = isDisabled ? NO_FILTER_TOOLTIP : undefined;
+  const tooltip = !filterActive
+    ? NO_FILTER_TOOLTIP
+    : totalMatching === 0
+      ? ZERO_MATCH_TOOLTIP
+      : undefined;
 
   return (
     <button

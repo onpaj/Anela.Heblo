@@ -33,6 +33,7 @@ export default function BulkTagDialog({
   onClose,
 }: BulkTagDialogProps) {
   const [tagName, setTagName] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { showSuccess } = useToast();
   const { mutateAsync, isPending } = useBulkAddPhotoTag();
@@ -96,10 +97,15 @@ export default function BulkTagDialog({
       className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+      <div
+        className="bg-white rounded-lg shadow-xl w-full max-w-md p-6"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bulk-tag-dialog-title"
+      >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-900">
+          <h2 id="bulk-tag-dialog-title" className="text-base font-semibold text-gray-900">
             Hromadné štítkování
           </h2>
           <button
@@ -146,13 +152,14 @@ export default function BulkTagDialog({
                 value={tagName}
                 onChange={(e) => {
                   setTagName(e.target.value);
+                  setShowSuggestions(true);
                   setErrorMessage(null);
                 }}
                 className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-blue"
                 placeholder="Zadejte název štítku"
                 autoComplete="off"
               />
-              {suggestions.length > 0 && (
+              {showSuggestions && suggestions.length > 0 && tagName.length > 0 && (
                 <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-sm mt-1 max-h-48 overflow-y-auto">
                   {suggestions.map((tag) => (
                     <li
@@ -162,6 +169,7 @@ export default function BulkTagDialog({
                         // Prevent blur before click registers
                         e.preventDefault();
                         setTagName(tag.name);
+                        setShowSuggestions(false);
                         setErrorMessage(null);
                       }}
                     >

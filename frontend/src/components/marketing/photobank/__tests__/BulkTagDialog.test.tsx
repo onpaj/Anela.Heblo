@@ -139,7 +139,7 @@ test("autocomplete dropdown appears when typing a matching prefix", () => {
 
   fireEvent.change(screen.getByLabelText("Štítek"), { target: { value: "pro" } });
 
-  // "produkty" and "promo" both contain "pro"; "portfolio" does not
+  // "produkty" and "promo" both contain "pro"; "portfolio" contains "por", not "pro" — should not appear in suggestions
   expect(screen.getByText("produkty")).toBeInTheDocument();
   expect(screen.getByText("promo")).toBeInTheDocument();
   expect(screen.queryByText("portfolio")).not.toBeInTheDocument();
@@ -184,4 +184,29 @@ test("backdrop click calls onClose", () => {
   fireEvent.click(screen.getByTestId("bulk-tag-dialog-backdrop"));
 
   expect(DEFAULT_PROPS.onClose).toHaveBeenCalled();
+});
+
+test("submit button is disabled when isPending is true", () => {
+  useBulkAddPhotoTag.mockReturnValue(buildMockMutation({ isPending: true }));
+
+  renderDialog();
+
+  fireEvent.change(screen.getByLabelText("Štítek"), { target: { value: "akce" } });
+
+  const submitBtn = screen.getByRole("button", { name: /Použít/i });
+  expect(submitBtn).toBeDisabled();
+});
+
+test("shows generic error message when mutateAsync rejects", async () => {
+  const mutateAsync = jest.fn().mockRejectedValue(new Error("Network error"));
+  useBulkAddPhotoTag.mockReturnValue(buildMockMutation({ mutateAsync }));
+
+  renderDialog({ search: "foo" });
+
+  fireEvent.change(screen.getByLabelText("Štítek"), { target: { value: "akce" } });
+  fireEvent.click(screen.getByRole("button", { name: /Použít/i }));
+
+  await waitFor(() => {
+    expect(screen.getByText("Operace selhala. Zkuste to prosím znovu.")).toBeInTheDocument();
+  });
 });
