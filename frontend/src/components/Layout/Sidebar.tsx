@@ -148,7 +148,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         { id: "leaflet-generator", name: "Generátor letáků", href: "/leaflet-generator" },
         { id: "articles", name: "Generátor článků", href: "/articles" },
         
-        ...(hasRole("knowledge_base_manager") || hasRole("genai_user")
+        ...(hasRole("super_user") || hasRole("genai_user")
           ? [{ id: "marketing-feedback", name: "Feedback", href: "/marketing/feedback" }]
           : []),
       ],
