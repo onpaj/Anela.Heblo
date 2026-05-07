@@ -6450,11 +6450,9 @@ export class ApiClient {
         return Promise.resolve<ProcessDailyConsumptionResponse>(null as any);
     }
 
-    packingMaterials_GetDailyConsumptionBreakdown(date: string | undefined, groupBy: string | undefined): Promise<GetDailyConsumptionBreakdownResponse> {
+    packingMaterials_GetDailyConsumptionBreakdown(date: string | null | undefined, groupBy: string | undefined): Promise<GetDailyConsumptionBreakdownResponse> {
         let url_ = this.baseUrl + "/api/packing-materials/consumption?";
-        if (date === null)
-            throw new Error("The parameter 'date' cannot be null.");
-        else if (date !== undefined)
+        if (date !== undefined && date !== null)
             url_ += "date=" + encodeURIComponent("" + date) + "&";
         if (groupBy === null)
             throw new Error("The parameter 'groupBy' cannot be null.");
@@ -6483,6 +6481,13 @@ export class ApiClient {
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result200 = GetDailyConsumptionBreakdownResponse.fromJS(resultData200);
             return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -6562,6 +6567,13 @@ export class ApiClient {
             result200 = GetAllocationsResponse.fromJS(resultData200);
             return result200;
             });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -6596,12 +6608,19 @@ export class ApiClient {
     protected processPackingMaterials_CreateAllocation(response: Response): Promise<CreateAllocationResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
+        if (status === 201) {
             return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = CreateAllocationResponse.fromJS(resultData200);
-            return result200;
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = CreateAllocationResponse.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -6647,6 +6666,13 @@ export class ApiClient {
             result200 = UpdateAllocationResponse.fromJS(resultData200);
             return result200;
             });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -6655,7 +6681,7 @@ export class ApiClient {
         return Promise.resolve<UpdateAllocationResponse>(null as any);
     }
 
-    packingMaterials_DeleteAllocation(id: number, allocationId: number): Promise<DeleteAllocationResponse> {
+    packingMaterials_DeleteAllocation(id: number, allocationId: number): Promise<void> {
         let url_ = this.baseUrl + "/api/packing-materials/{id}/allocations/{allocationId}";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -6668,7 +6694,6 @@ export class ApiClient {
         let options_: RequestInit = {
             method: "DELETE",
             headers: {
-                "Accept": "application/json"
             }
         };
 
@@ -6677,22 +6702,26 @@ export class ApiClient {
         });
     }
 
-    protected processPackingMaterials_DeleteAllocation(response: Response): Promise<DeleteAllocationResponse> {
+    protected processPackingMaterials_DeleteAllocation(response: Response): Promise<void> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
+        if (status === 204) {
             return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = DeleteAllocationResponse.fromJS(resultData200);
-            return result200;
+            return;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<DeleteAllocationResponse>(null as any);
+        return Promise.resolve<void>(null as any);
     }
 
     photobank_GetPhotos(tags: string[] | null | undefined, search: string | null | undefined, folderPath: string | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<GetPhotosResponse> {
@@ -24314,39 +24343,6 @@ export class UpdateAllocationRequestBody implements IUpdateAllocationRequestBody
 export interface IUpdateAllocationRequestBody {
     productCode?: string;
     amountPerUnit?: number;
-}
-
-export class DeleteAllocationResponse extends BaseResponse implements IDeleteAllocationResponse {
-    error?: string | undefined;
-
-    constructor(data?: IDeleteAllocationResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.error = _data["error"];
-        }
-    }
-
-    static override fromJS(data: any): DeleteAllocationResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new DeleteAllocationResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["error"] = this.error;
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface IDeleteAllocationResponse extends IBaseResponse {
-    error?: string | undefined;
 }
 
 export class GetPhotosResponse extends BaseResponse implements IGetPhotosResponse {

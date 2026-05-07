@@ -10,6 +10,7 @@ using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdateAllocatio
 using Anela.Heblo.API.Infrastructure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 
@@ -120,8 +121,10 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpGet("consumption")]
+    [ProducesResponseType(typeof(GetDailyConsumptionBreakdownResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetDailyConsumptionBreakdownResponse>> GetDailyConsumptionBreakdown(
-        [FromQuery] string date,
+        [FromQuery] string? date,
         [FromQuery] string groupBy = "material",
         CancellationToken cancellationToken = default)
     {
@@ -152,6 +155,8 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpGet("{id}/allocations")]
+    [ProducesResponseType(typeof(GetAllocationsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<GetAllocationsResponse>> GetAllocations(
         int id,
         CancellationToken cancellationToken = default)
@@ -162,6 +167,8 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost("{id}/allocations")]
+    [ProducesResponseType(typeof(CreateAllocationResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CreateAllocationResponse>> CreateAllocation(
         int id,
         [FromBody] CreateAllocationRequestBody body,
@@ -184,6 +191,8 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPut("{id}/allocations/{allocationId}")]
+    [ProducesResponseType(typeof(UpdateAllocationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<UpdateAllocationResponse>> UpdateAllocation(
         int id,
         int allocationId,
@@ -203,6 +212,8 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpDelete("{id}/allocations/{allocationId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<DeleteAllocationResponse>> DeleteAllocation(
         int id,
         int allocationId,
@@ -212,16 +223,4 @@ public class PackingMaterialsController : BaseApiController
         var response = await _mediator.Send(request, cancellationToken);
         return response.Success ? NoContent() : BadRequest(new { error = response.Error });
     }
-}
-
-public class CreateAllocationRequestBody
-{
-    public string ProductCode { get; set; } = string.Empty;
-    public decimal AmountPerUnit { get; set; }
-}
-
-public class UpdateAllocationRequestBody
-{
-    public string ProductCode { get; set; } = string.Empty;
-    public decimal AmountPerUnit { get; set; }
 }
