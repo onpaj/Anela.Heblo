@@ -15,7 +15,9 @@ public class UpdateRuleRequestValidator : AbstractValidator<UpdateRuleRequest>
             .NotEmpty()
             .WithMessage("PathPattern is required")
             .MaximumLength(500)
-            .WithMessage("PathPattern cannot exceed 500 characters");
+            .WithMessage("PathPattern cannot exceed 500 characters")
+            .Must(PhotobankValidationHelpers.BeValidRegex)
+            .WithMessage("Invalid regular expression pattern.");
 
         RuleFor(x => x.TagName)
             .NotEmpty()

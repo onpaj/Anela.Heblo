@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
@@ -13,7 +14,9 @@ using Anela.Heblo.Application.Features.Photobank.UseCases.RemovePhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule;
 using Anela.Heblo.Application.Features.Photobank.Validators;
 using Anela.Heblo.Domain.Features.Photobank;
+using Anela.Heblo.Persistence;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +28,8 @@ public static class PhotobankModule
     public static IServiceCollection AddPhotobankModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IPhotobankRepository, PhotobankRepository>();
+        services.AddScoped<PhotobankAutoTagJob>();
+        services.Configure<AutoTagOptions>(configuration.GetSection(AutoTagOptions.SectionName));
 
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
         var bypassJwtValidation = configuration.GetValue<bool>("BypassJwtValidation", false);
@@ -70,5 +75,19 @@ public static class PhotobankModule
         services.AddScoped<IPipelineBehavior<DeleteTagRequest, DeleteTagResponse>, ValidationBehavior<DeleteTagRequest, DeleteTagResponse>>();
 
         return services;
+    }
+
+    public static async Task MigrateTagRulePatternsAsync(ApplicationDbContext db, CancellationToken ct = default)
+    {
+        var rules = await db.PhotobankTagRules
+            .Where(r => !r.PathPattern.StartsWith("^"))
+            .ToListAsync(ct);
+
+        if (rules.Count == 0) return;
+
+        foreach (var rule in rules)
+            rule.PathPattern = TagRulePatternTranslator.Translate(rule.PathPattern);
+
+        await db.SaveChangesAsync(ct);
     }
 }

@@ -305,7 +305,7 @@ namespace Anela.Heblo.Application.Features.Photobank
 
             foreach (var photo in photos)
             {
-                var matchingTagNames = TagRuleMatcher.GetMatchingTags(photo.FolderPath, activeRules);
+                var matchingTagNames = TagRuleMatcher.GetMatchingTags(photo.FolderPath, photo.FileName, activeRules);
                 if (matchingTagNames.Count == 0)
                     continue;
 
@@ -331,6 +331,56 @@ namespace Anela.Heblo.Application.Features.Photobank
             }
 
             return photosUpdated;
+        }
+
+        // Auto-tagging
+
+        public async Task<List<PhotoAutoTagCandidate>> GetPhotosPendingAutoTagAsync(
+            int pageSize, int offset, CancellationToken cancellationToken)
+        {
+            return await _context.Photos
+                .Where(p => p.LastAutoTaggedAt == null)
+                .OrderBy(p => p.Id)
+                .Skip(offset)
+                .Take(pageSize)
+                .Select(p => new PhotoAutoTagCandidate(p.Id, p.FolderPath, p.FileName))
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task StampAutoTaggedAtAsync(
+            IReadOnlyList<int> photoIds, DateTime timestamp, CancellationToken cancellationToken)
+        {
+            await _context.Photos
+                .Where(p => photoIds.Contains(p.Id))
+                .ExecuteUpdateAsync(
+                    s => s.SetProperty(p => p.LastAutoTaggedAt, timestamp),
+                    cancellationToken);
+        }
+
+        public async Task ResetAutoTaggedAtAsync(
+            IReadOnlyList<int> photoIds, CancellationToken cancellationToken)
+        {
+            await _context.Photos
+                .Where(p => photoIds.Contains(p.Id))
+                .ExecuteUpdateAsync(
+                    s => s.SetProperty(p => p.LastAutoTaggedAt, (DateTime?)null),
+                    cancellationToken);
+        }
+
+        public async Task<List<Photo>> GetPhotosByIdsAsync(
+            IReadOnlyList<int> photoIds, CancellationToken cancellationToken)
+        {
+            return await _context.Photos
+                .Where(p => photoIds.Contains(p.Id))
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task RemovePhotoTagsBySourceAsync(
+            IReadOnlyList<int> photoIds, PhotoTagSource source, CancellationToken cancellationToken)
+        {
+            await _context.PhotoTags
+                .Where(pt => photoIds.Contains(pt.PhotoId) && pt.Source == source)
+                .ExecuteDeleteAsync(cancellationToken);
         }
 
         public async Task SaveChangesAsync(CancellationToken cancellationToken)

@@ -10,7 +10,7 @@ import PhotoViewToggle from "../PhotoViewToggle";
 import BulkTagButton from "../BulkTagButton";
 import BulkTagDialog from "../BulkTagDialog";
 import PhotobankBulkActionBar from "../PhotobankBulkActionBar";
-import { usePhotos, usePhotoTags, useBulkAddPhotoTagByIds } from "../../../../api/hooks/usePhotobank";
+import { usePhotos, usePhotoTags, useBulkAddPhotoTagByIds, useRetagPhotos } from "../../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../../api/hooks/usePhotobank";
 
 const ADMIN_ROLE = "super_user";
@@ -211,6 +211,7 @@ function PhotobankPage() {
   );
 
   const bulkAddByIdsMutation = useBulkAddPhotoTagByIds();
+  const retagMutation = useRetagPhotos();
 
   const handleApplyBulkTag = useCallback(
     async (tagName: string) => {
@@ -222,6 +223,13 @@ function PhotobankPage() {
     },
     [selectedIds, bulkAddByIdsMutation, handleClearSelection],
   );
+
+  const handleAutoTagSelected = useCallback(() => {
+    retagMutation.mutate({
+      photoIds: Array.from(selectedIds),
+      clearExistingAiTags: false,
+    });
+  }, [selectedIds, retagMutation]);
 
   const sharedPhotoProps = {
     photos: photosData?.items ?? [],
@@ -317,7 +325,9 @@ function PhotobankPage() {
               selectedCount={selectedIds.size}
               existingTags={tagsData ?? []}
               isApplying={bulkAddByIdsMutation.isPending}
+              isAutoTagging={retagMutation.isPending}
               onApplyTag={handleApplyBulkTag}
+              onAutoTag={handleAutoTagSelected}
               onClear={handleClearSelection}
             />
           )}

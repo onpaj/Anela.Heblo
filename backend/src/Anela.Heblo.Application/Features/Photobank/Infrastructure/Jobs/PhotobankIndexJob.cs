@@ -119,6 +119,9 @@ public class PhotobankIndexJob : IRecurringJob
     {
         var photo = await _db.Photos.FirstOrDefaultAsync(p => p.SharePointFileId == item.ItemId, ct);
 
+        var pathChanged = photo != null &&
+            (photo.FolderPath != item.FolderPath || photo.FileName != item.Name);
+
         if (photo == null)
         {
             photo = new Photo
@@ -136,6 +139,9 @@ public class PhotobankIndexJob : IRecurringJob
         photo.ModifiedAt = item.LastModifiedAt ?? DateTime.UtcNow;
         photo.DriveId = driveId;
 
+        if (pathChanged)
+            photo!.LastAutoTaggedAt = null;
+
         await _db.SaveChangesAsync(ct);
 
         // Re-apply rule tags: remove existing Rule-source tags, add new ones
@@ -144,7 +150,7 @@ public class PhotobankIndexJob : IRecurringJob
             .ToListAsync(ct);
         _db.PhotoTags.RemoveRange(existingRuleTags);
 
-        var matchingTagNames = TagRuleMatcher.GetMatchingTags(item.FolderPath, tagRules);
+        var matchingTagNames = TagRuleMatcher.GetMatchingTags(item.FolderPath, item.Name, tagRules);
         foreach (var tagName in matchingTagNames)
         {
             var tag = await _db.PhotobankTags.FirstOrDefaultAsync(t => t.Name == tagName, ct)

@@ -137,7 +137,7 @@ const TagRulesTab: React.FC = () => {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="pathPattern" className="block text-xs text-gray-500 mb-1">
-              Vzor cesty *
+              Pattern (regex) *
             </label>
             <input
               id="pathPattern"

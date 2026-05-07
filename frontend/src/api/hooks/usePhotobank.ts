@@ -221,6 +221,27 @@ export const useBulkAddPhotoTagByIds = () => {
   });
 };
 
+// ---- Auto-tag ---------------------------------------------------------------
+
+export interface RetagPhotosRequest {
+  photoIds: number[];
+  clearExistingAiTags: boolean;
+}
+
+export const useRetagPhotos = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: RetagPhotosRequest) => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      await apiPost(apiClient, `${baseUrl}/api/photobank/photos/auto-tag`, request);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
+    },
+  });
+};
+
 export const useBulkAddPhotoTag = () => {
   const queryClient = useQueryClient();
   return useMutation<BulkAddPhotoTagResult, Error, BulkAddPhotoTagParams>({

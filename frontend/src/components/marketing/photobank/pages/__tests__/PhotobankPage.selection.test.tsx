@@ -44,6 +44,10 @@ jest.mock("../../../../../api/hooks/usePhotobank", () => ({
   usePhotos: () => ({ data: { items: mockPhotos, total: 2, page: 1, pageSize: 48 }, isLoading: false }),
   usePhotoTags: () => ({ data: [] }),
   useBulkAddPhotoTagByIds: () => mockBulkAddByIdsMutation,
+  useRetagPhotos: () => ({
+    mutate: jest.fn(),
+    isPending: false,
+  }),
 }));
 
 jest.mock("react-router-dom", () => ({
