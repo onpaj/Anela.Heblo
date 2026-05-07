@@ -1,6 +1,7 @@
 import React from "react";
 import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import PhotoThumbnail from "./PhotoThumbnail";
+import { TagBadge } from "../../../components/ui/TagBadge";
 import type { PhotoDto } from "../../../api/hooks/usePhotobank";
 
 const MAX_VISIBLE_TAGS = 5;
@@ -100,15 +101,10 @@ function PhotoList({
                 {photo.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {visibleTags.map((tag) => (
-                      <span
-                        key={tag.id}
-                        className="inline-flex items-center px-2 py-0.5 bg-secondary-blue-pale text-primary-blue rounded-full text-xs"
-                      >
-                        {tag.name}
-                      </span>
+                      <TagBadge key={tag.id} name={tag.name} />
                     ))}
                     {overflowCount > 0 && (
-                      <span className="inline-flex items-center px-2 py-0.5 bg-secondary-blue-pale text-primary-blue rounded-full text-xs">
+                      <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
                         +{overflowCount}
                       </span>
                     )}
