@@ -24,8 +24,7 @@ public class DeleteAllocationHandler : IRequestHandler<DeleteAllocationRequest, 
     {
         try
         {
-            var materials = await _materialRepository.GetAllWithAllocationsAsync(cancellationToken);
-            var material = materials.FirstOrDefault(m => m.Id == request.PackingMaterialId);
+            var material = await _materialRepository.GetByIdWithAllocationsAsync(request.PackingMaterialId, cancellationToken);
 
             if (material == null)
                 return new DeleteAllocationResponse { Success = false, Error = $"Packing material with ID {request.PackingMaterialId} not found." };

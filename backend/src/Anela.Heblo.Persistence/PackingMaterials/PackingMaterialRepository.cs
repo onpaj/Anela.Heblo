@@ -44,6 +44,13 @@ public class PackingMaterialRepository : BaseRepository<PackingMaterial, int>, I
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<PackingMaterial?> GetByIdWithAllocationsAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Include(pm => pm.Allocations)
+            .FirstOrDefaultAsync(pm => pm.Id == id, cancellationToken);
+    }
+
     public async Task AddConsumptionRowsAsync(IEnumerable<PackingMaterialConsumption> rows, CancellationToken cancellationToken = default)
     {
         await Context.Set<PackingMaterialConsumption>().AddRangeAsync(rows, cancellationToken);

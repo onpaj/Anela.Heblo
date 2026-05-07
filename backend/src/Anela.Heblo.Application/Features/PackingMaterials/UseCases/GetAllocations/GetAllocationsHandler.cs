@@ -20,8 +20,7 @@ public class GetAllocationsHandler : IRequestHandler<GetAllocationsRequest, GetA
     {
         try
         {
-            var materials = await _repository.GetAllWithAllocationsAsync(cancellationToken);
-            var material = materials.FirstOrDefault(m => m.Id == request.PackingMaterialId);
+            var material = await _repository.GetByIdWithAllocationsAsync(request.PackingMaterialId, cancellationToken);
 
             if (material == null)
             {

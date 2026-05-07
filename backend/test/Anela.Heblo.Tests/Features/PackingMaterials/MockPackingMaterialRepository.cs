@@ -136,6 +136,9 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
     public Task<IEnumerable<PackingMaterial>> GetAllWithAllocationsAsync(CancellationToken cancellationToken = default)
         => Task.FromResult<IEnumerable<PackingMaterial>>(_materials);
 
+    public Task<PackingMaterial?> GetByIdWithAllocationsAsync(int id, CancellationToken cancellationToken = default)
+        => Task.FromResult(_materials.FirstOrDefault(m => m.Id == id));
+
     public Task AddConsumptionRowsAsync(IEnumerable<PackingMaterialConsumption> rows, CancellationToken cancellationToken = default)
     {
         AddedConsumptionRows.AddRange(rows);

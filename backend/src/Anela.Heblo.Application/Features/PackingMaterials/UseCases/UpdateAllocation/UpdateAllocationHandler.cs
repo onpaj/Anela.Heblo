@@ -30,8 +30,7 @@ public class UpdateAllocationHandler : IRequestHandler<UpdateAllocationRequest, 
             if (string.IsNullOrWhiteSpace(request.ProductCode))
                 return new UpdateAllocationResponse { Success = false, Error = "ProductCode must not be empty." };
 
-            var materials = await _materialRepository.GetAllWithAllocationsAsync(cancellationToken);
-            var material = materials.FirstOrDefault(m => m.Id == request.PackingMaterialId);
+            var material = await _materialRepository.GetByIdWithAllocationsAsync(request.PackingMaterialId, cancellationToken);
 
             if (material == null)
                 return new UpdateAllocationResponse { Success = false, Error = $"Packing material with ID {request.PackingMaterialId} not found." };

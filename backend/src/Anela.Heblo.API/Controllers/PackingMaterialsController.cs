@@ -1,11 +1,17 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.CreateAllocation;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeleteAllocation;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeletePackingMaterial;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetAllocations;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetDailyConsumptionBreakdown;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialLogs;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.ProcessDailyConsumption;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdateAllocation;
 using Anela.Heblo.API.Infrastructure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Globalization;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -113,6 +119,22 @@ public class PackingMaterialsController : BaseApiController
         return Ok(response);
     }
 
+    [HttpGet("consumption")]
+    public async Task<ActionResult<GetDailyConsumptionBreakdownResponse>> GetDailyConsumptionBreakdown(
+        [FromQuery] string date,
+        [FromQuery] string groupBy = "material",
+        CancellationToken cancellationToken = default)
+    {
+        if (!DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+        {
+            return BadRequest(new { error = "Invalid date format. Expected yyyy-MM-dd." });
+        }
+
+        var request = new GetDailyConsumptionBreakdownRequest { Date = parsedDate, GroupBy = groupBy };
+        var response = await _mediator.Send(request, cancellationToken);
+        return response.Success ? Ok(response) : BadRequest(new { error = response.Error });
+    }
+
     [HttpGet("{id}/logs")]
     public async Task<ActionResult<GetPackingMaterialLogsResponse>> GetPackingMaterialLogs(
         int id,
@@ -128,4 +150,78 @@ public class PackingMaterialsController : BaseApiController
         var response = await _mediator.Send(request, cancellationToken);
         return Ok(response);
     }
+
+    [HttpGet("{id}/allocations")]
+    public async Task<ActionResult<GetAllocationsResponse>> GetAllocations(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new GetAllocationsRequest { PackingMaterialId = id };
+        var response = await _mediator.Send(request, cancellationToken);
+        return response.Success ? Ok(response) : BadRequest(new { error = response.Error });
+    }
+
+    [HttpPost("{id}/allocations")]
+    public async Task<ActionResult<CreateAllocationResponse>> CreateAllocation(
+        int id,
+        [FromBody] CreateAllocationRequestBody body,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new CreateAllocationRequest
+        {
+            PackingMaterialId = id,
+            ProductCode = body.ProductCode,
+            AmountPerUnit = body.AmountPerUnit
+        };
+
+        var response = await _mediator.Send(request, cancellationToken);
+        if (!response.Success)
+        {
+            return BadRequest(new { error = response.Error });
+        }
+
+        return CreatedAtAction(nameof(GetAllocations), new { id }, response);
+    }
+
+    [HttpPut("{id}/allocations/{allocationId}")]
+    public async Task<ActionResult<UpdateAllocationResponse>> UpdateAllocation(
+        int id,
+        int allocationId,
+        [FromBody] UpdateAllocationRequestBody body,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new UpdateAllocationRequest
+        {
+            PackingMaterialId = id,
+            AllocationId = allocationId,
+            ProductCode = body.ProductCode,
+            AmountPerUnit = body.AmountPerUnit
+        };
+
+        var response = await _mediator.Send(request, cancellationToken);
+        return response.Success ? Ok(response) : BadRequest(new { error = response.Error });
+    }
+
+    [HttpDelete("{id}/allocations/{allocationId}")]
+    public async Task<ActionResult<DeleteAllocationResponse>> DeleteAllocation(
+        int id,
+        int allocationId,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new DeleteAllocationRequest { PackingMaterialId = id, AllocationId = allocationId };
+        var response = await _mediator.Send(request, cancellationToken);
+        return response.Success ? NoContent() : BadRequest(new { error = response.Error });
+    }
+}
+
+public class CreateAllocationRequestBody
+{
+    public string ProductCode { get; set; } = string.Empty;
+    public decimal AmountPerUnit { get; set; }
+}
+
+public class UpdateAllocationRequestBody
+{
+    public string ProductCode { get; set; } = string.Empty;
+    public decimal AmountPerUnit { get; set; }
 }
