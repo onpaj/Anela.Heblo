@@ -48,6 +48,9 @@ public class PackingMaterialConsumptionConfiguration : IEntityTypeConfiguration<
             .HasForeignKey(c => c.PackingMaterialId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasIndex(e => e.PackingMaterialId)
+            .HasDatabaseName("IX_PackingMaterialConsumptions_PackingMaterialId");
+
         builder.HasIndex(e => new { e.Date, e.PackingMaterialId })
             .HasDatabaseName("IX_PackingMaterialConsumptions_Date_MaterialId");
 
