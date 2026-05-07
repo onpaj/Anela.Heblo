@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260507080208_AddPackingMaterialAttribution")]
+    partial class AddPackingMaterialAttribution
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1599,50 +1602,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("ManufactureOrders", "public");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderConditionsReading", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal?>("InnerHumidity")
-                        .HasColumnType("numeric(5,2)");
-
-                    b.Property<decimal?>("InnerTemperature")
-                        .HasColumnType("numeric(5,2)");
-
-                    b.Property<int>("ManufactureOrderId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("OuterHumidity")
-                        .HasColumnType("numeric(5,2)");
-
-                    b.Property<decimal?>("OuterTemperature")
-                        .HasColumnType("numeric(5,2)");
-
-                    b.Property<DateTime>("RecordedAt")
-                        .HasColumnType("timestamp");
-
-                    b.Property<int>("Source")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Stage")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ManufactureOrderId")
-                        .HasDatabaseName("IX_ManufactureOrderConditionsReadings_ManufactureOrderId");
-
-                    b.HasIndex("ManufactureOrderId", "Stage")
-                        .IsUnique()
-                        .HasDatabaseName("IX_ManufactureOrderConditionsReadings_ManufactureOrderId_Stage");
-
-                    b.ToTable("ManufactureOrderConditionsReadings", "public");
-                });
-
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderNote", b =>
                 {
                     b.Property<int>("Id")
@@ -2097,8 +2056,7 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PackingMaterialId")
-                        .HasDatabaseName("IX_PackingMaterialConsumptions_PackingMaterialId");
+                    b.HasIndex("PackingMaterialId");
 
                     b.HasIndex("Date", "InvoiceId")
                         .HasDatabaseName("IX_PackingMaterialConsumptions_Date_InvoiceId");
@@ -2696,17 +2654,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderConditionsReading", b =>
-                {
-                    b.HasOne("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", "ManufactureOrder")
-                        .WithMany("ConditionsReadings")
-                        .HasForeignKey("ManufactureOrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ManufactureOrder");
-                });
-
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrderNote", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", "ManufactureOrder")
@@ -2888,8 +2835,6 @@ namespace Anela.Heblo.Persistence.Migrations
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Manufacture.ManufactureOrder", b =>
                 {
-                    b.Navigation("ConditionsReadings");
-
                     b.Navigation("Notes");
 
                     b.Navigation("Products");
