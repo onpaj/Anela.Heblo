@@ -93,7 +93,7 @@ Development:           Production/Test:
 - Migrations are stored in `backend/src/Anela.Heblo.Persistence/Migrations/`.
 - Single `ApplicationDbContext` in `Anela.Heblo.Persistence` (initially).
 - Migration naming convention: `AddXyzTable`, `AddIndexToProductName`, etc.
-- **Migrations are applied manually** – not part of automated CI/CD.
+- **Migrations apply automatically on Production startup; Development, Test, and Staging remain manual.**
 - Future evolution: Can move to module-specific DbContexts as needed.
 
 ### Applied Migrations
