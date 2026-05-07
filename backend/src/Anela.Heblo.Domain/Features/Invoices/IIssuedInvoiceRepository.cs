@@ -73,12 +73,12 @@ public interface IIssuedInvoiceRepository : IRepository<IssuedInvoice, string>
     /// <returns>Paginated result with total count</returns>
     Task<PaginatedResult<IssuedInvoice>> GetPaginatedAsync(IssuedInvoiceFilters filters, CancellationToken cancellationToken = default);
     /// <summary>
-    /// Gets invoice details for a specific date
+    /// Gets invoice headers for a specific date
     /// </summary>
-    /// <param name="date">The date to retrieve invoice details for</param>
+    /// <param name="date">The date to retrieve invoice headers for</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>List of invoice details for the given date</returns>
-    Task<IEnumerable<IssuedInvoiceDetail>> GetDetailsByDateAsync(DateOnly date, CancellationToken cancellationToken = default);
+    /// <returns>Invoice headers whose invoice date falls on the given date</returns>
+    Task<IEnumerable<IssuedInvoice>> GetDetailsByDateAsync(DateOnly date, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
