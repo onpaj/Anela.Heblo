@@ -24,7 +24,7 @@ public sealed class ArticlesController : BaseApiController
     }
 
     [HttpPost("generate")]
-    [Authorize(Policy = AuthorizationConstants.Policies.ArticleGenerator)]
+    [Authorize(Policy = AuthorizationConstants.Policies.GenAiUser)]
     public async Task<ActionResult<GenerateArticleResponse>> Generate(
         [FromBody] GenerateArticleRequest request,
         CancellationToken ct = default)
@@ -70,7 +70,7 @@ public sealed class ArticlesController : BaseApiController
     }
 
     [HttpGet("feedback/list")]
-    [Authorize(Policy = AuthorizationConstants.Policies.ArticleGenerator)]
+    [Authorize(Policy = AuthorizationConstants.Policies.GenAiUser)]
     public async Task<ActionResult<GetArticleFeedbackListResponse>> FeedbackList(
         [FromQuery] bool? hasFeedback = null,
         [FromQuery] string? requestedBy = null,

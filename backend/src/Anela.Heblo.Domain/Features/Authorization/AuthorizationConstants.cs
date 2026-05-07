@@ -46,14 +46,9 @@ public static class AuthorizationConstants
         public const string KnowledgeBaseManager = "knowledge_base_manager";
 
         /// <summary>
-        /// Role required for managing Leaflet documents (upload, process, index documents)
+        /// Role required for generating leaflets and articles (GenAI features)
         /// </summary>
-        public const string LeafletManager = "leaflet_manager";
-
-        /// <summary>
-        /// Role required for generating articles
-        /// </summary>
-        public const string ArticleGenerator = "article_generator";
+        public const string GenAiUser = "genai_user";
     }
 
     /// <summary>
@@ -67,13 +62,8 @@ public static class AuthorizationConstants
         public const string KnowledgeBaseUpload = "KnowledgeBaseUpload";
 
         /// <summary>
-        /// Policy required for uploading and managing Leaflet documents
+        /// Policy required for generating leaflets and articles
         /// </summary>
-        public const string LeafletUpload = "LeafletUpload";
-
-        /// <summary>
-        /// Policy required for generating articles
-        /// </summary>
-        public const string ArticleGenerator = "ArticleGenerator";
+        public const string GenAiUser = "GenAiUser";
     }
 }
