@@ -97,7 +97,7 @@ test('calls useDeleteTag mutate immediately when trash clicked on tag with count
   // 'akce' has count=0
   fireEvent.click(screen.getByRole('button', { name: 'Smazat štítek akce' }));
 
-  expect(mutate).toHaveBeenCalledWith(2);
+  expect(mutate).toHaveBeenCalledWith(2, expect.objectContaining({ onSettled: expect.any(Function) }));
 });
 
 test('opens confirm dialog when trash clicked on tag with count > 0', () => {
@@ -119,12 +119,26 @@ test('calls useDeleteTag mutate when confirm dialog is confirmed', () => {
 
   // Open dialog for 'produkty' (count=10)
   fireEvent.click(screen.getByRole('button', { name: 'Smazat štítek produkty' }));
-  // Click confirm (the red "Smazat" button inside the dialog)
-  const smazatButtons = screen.getAllByRole('button', { name: /Smazat/i });
-  // The dialog's confirm button is the last one
-  fireEvent.click(smazatButtons[smazatButtons.length - 1]);
+  // Click the dialog's confirm button (exact text "Smazat", distinct from trash aria-labels)
+  fireEvent.click(screen.getByRole('button', { name: 'Smazat' }));
 
-  expect(mutate).toHaveBeenCalledWith(1);
+  expect(mutate).toHaveBeenCalledWith(1, expect.objectContaining({ onSettled: expect.any(Function) }));
+});
+
+test('shows "Štítek již existuje" when response has alreadyExisted=true', async () => {
+  const mutateAsync = jest.fn().mockResolvedValue({ alreadyExisted: true });
+  useCreateTag.mockReturnValue(buildMockMutation({ mutateAsync }));
+
+  render(<TagsTab />);
+
+  fireEvent.change(screen.getByPlaceholderText('Název štítku'), {
+    target: { value: 'produkty' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: /Přidat štítek/i }));
+
+  await waitFor(() => {
+    expect(screen.getByText('Štítek již existuje')).toBeInTheDocument();
+  });
 });
 
 test('does NOT call useDeleteTag mutate when confirm dialog is cancelled', () => {

@@ -1,17 +1,12 @@
 import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import {
+  TagWithCountDto,
   usePhotoTags,
   useCreateTag,
   useDeleteTag,
 } from '../../../../api/hooks/usePhotobank';
 import ConfirmDeleteTagDialog from './ConfirmDeleteTagDialog';
-
-interface TagToDelete {
-  id: number;
-  name: string;
-  count: number;
-}
 
 const TagsTab: React.FC = () => {
   const { data: tags = [], isLoading } = usePhotoTags();
@@ -21,7 +16,8 @@ const TagsTab: React.FC = () => {
   const [tagName, setTagName] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [alreadyExisted, setAlreadyExisted] = useState(false);
-  const [tagToDelete, setTagToDelete] = useState<TagToDelete | null>(null);
+  const [tagToDelete, setTagToDelete] = useState<TagWithCountDto | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const isFormValid = tagName.trim() !== '';
 
@@ -41,9 +37,10 @@ const TagsTab: React.FC = () => {
     }
   };
 
-  const handleDeleteClick = (tag: TagToDelete) => {
+  const handleDeleteClick = (tag: TagWithCountDto) => {
     if (tag.count === 0) {
-      deleteTag.mutate(tag.id);
+      setDeletingId(tag.id);
+      deleteTag.mutate(tag.id, { onSettled: () => setDeletingId(null) });
     } else {
       setTagToDelete(tag);
     }
@@ -51,7 +48,8 @@ const TagsTab: React.FC = () => {
 
   const handleConfirmDelete = () => {
     if (tagToDelete) {
-      deleteTag.mutate(tagToDelete.id);
+      setDeletingId(tagToDelete.id);
+      deleteTag.mutate(tagToDelete.id, { onSettled: () => setDeletingId(null) });
       setTagToDelete(null);
     }
   };
@@ -69,9 +67,12 @@ const TagsTab: React.FC = () => {
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-3">
-        <h3 className="text-sm font-semibold text-gray-700">Přidat štítek</h3>
+        <label htmlFor="tag-name" className="block text-sm font-semibold text-gray-700">
+          Přidat štítek
+        </label>
         <div className="flex gap-3">
           <input
+            id="tag-name"
             type="text"
             value={tagName}
             onChange={(e) => setTagName(e.target.value)}
@@ -108,7 +109,7 @@ const TagsTab: React.FC = () => {
                   </span>
                   <button
                     onClick={() => handleDeleteClick(tag)}
-                    disabled={deleteTag.isPending}
+                    disabled={deletingId === tag.id}
                     className="p-1 text-gray-400 hover:text-red-500 rounded disabled:opacity-50"
                     aria-label={`Smazat štítek ${tag.name}`}
                   >
