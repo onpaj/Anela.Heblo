@@ -93,10 +93,10 @@ namespace Anela.Heblo.API.Controllers
         [ProducesResponseType(typeof(CreateTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public async Task<IActionResult> CreateTag([FromBody] CreateTagBody body, CancellationToken ct)
+        public async Task<ActionResult<CreateTagResponse>> CreateTag([FromBody] CreateTagBody body, CancellationToken ct)
         {
             var response = await _mediator.Send(new CreateTagRequest { Name = body.Name }, ct);
-            return Ok(response);
+            return HandleResponse(response);
         }
 
         /// <summary>
@@ -107,12 +107,10 @@ namespace Anela.Heblo.API.Controllers
         [ProducesResponseType(typeof(DeleteTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> DeleteTag(int id, CancellationToken ct)
+        public async Task<ActionResult<DeleteTagResponse>> DeleteTag(int id, CancellationToken ct)
         {
             var response = await _mediator.Send(new DeleteTagRequest { Id = id }, ct);
-            if (!response.Deleted)
-                return NotFound();
-            return Ok(response);
+            return HandleResponse(response);
         }
 
         /// <summary>

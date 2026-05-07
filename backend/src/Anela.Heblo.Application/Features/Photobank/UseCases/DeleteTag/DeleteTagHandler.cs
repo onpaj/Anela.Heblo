@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Photobank;
 using MediatR;
 
@@ -18,12 +19,12 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag
         {
             var tag = await _repository.GetTagByIdAsync(request.Id, cancellationToken);
             if (tag is null)
-                return new DeleteTagResponse { Deleted = false, RemovedAssignmentCount = 0 };
+                return new DeleteTagResponse(ErrorCodes.PhotobankTagNotFound);
 
             var assignmentCount = tag.PhotoTags.Count;
             await _repository.DeleteTagAsync(tag, cancellationToken);
 
-            return new DeleteTagResponse { Deleted = true, RemovedAssignmentCount = assignmentCount };
+            return new DeleteTagResponse { RemovedAssignmentCount = assignmentCount };
         }
     }
 }

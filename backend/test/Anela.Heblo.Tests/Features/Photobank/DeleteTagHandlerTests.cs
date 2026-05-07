@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Photobank;
 using FluentAssertions;
 using Moq;
@@ -10,14 +11,9 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 
 public class DeleteTagHandlerTests
 {
-    private readonly Mock<IPhotobankRepository> _repositoryMock;
-    private readonly DeleteTagHandler _handler;
+    private readonly Mock<IPhotobankRepository> _repositoryMock = new();
 
-    public DeleteTagHandlerTests()
-    {
-        _repositoryMock = new Mock<IPhotobankRepository>();
-        _handler = new DeleteTagHandler(_repositoryMock.Object);
-    }
+    private DeleteTagHandler CreateHandler() => new(_repositoryMock.Object);
 
     private static Tag BuildTag(int id, string name, int photoTagCount = 0)
     {
@@ -28,7 +24,7 @@ public class DeleteTagHandlerTests
     }
 
     [Fact]
-    public async Task Handle_TagExistsWithAssignments_DeletesAndReturnsCorrectCount()
+    public async Task Handle_TagExistsWithAssignments_ReturnsSuccessWithCorrectCount()
     {
         // Arrange
         var tag = BuildTag(5, "summer", photoTagCount: 3);
@@ -44,17 +40,17 @@ public class DeleteTagHandlerTests
         var request = new DeleteTagRequest { Id = 5 };
 
         // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
+        var result = await CreateHandler().Handle(request, CancellationToken.None);
 
         // Assert
-        result.Deleted.Should().BeTrue();
+        result.Success.Should().BeTrue();
         result.RemovedAssignmentCount.Should().Be(3);
 
         _repositoryMock.Verify(r => r.DeleteTagAsync(tag, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task Handle_TagExistsWithNoAssignments_DeletesAndReturnsZeroCount()
+    public async Task Handle_TagExistsWithNoAssignments_ReturnsSuccessWithZeroCount()
     {
         // Arrange
         var tag = BuildTag(7, "sale", photoTagCount: 0);
@@ -70,17 +66,17 @@ public class DeleteTagHandlerTests
         var request = new DeleteTagRequest { Id = 7 };
 
         // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
+        var result = await CreateHandler().Handle(request, CancellationToken.None);
 
         // Assert
-        result.Deleted.Should().BeTrue();
+        result.Success.Should().BeTrue();
         result.RemovedAssignmentCount.Should().Be(0);
 
         _repositoryMock.Verify(r => r.DeleteTagAsync(tag, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task Handle_TagNotFound_ReturnsFalseWithoutCallingDelete()
+    public async Task Handle_TagNotFound_ReturnsNotFoundErrorWithoutCallingDelete()
     {
         // Arrange
         _repositoryMock
@@ -90,11 +86,11 @@ public class DeleteTagHandlerTests
         var request = new DeleteTagRequest { Id = 99 };
 
         // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
+        var result = await CreateHandler().Handle(request, CancellationToken.None);
 
         // Assert
-        result.Deleted.Should().BeFalse();
-        result.RemovedAssignmentCount.Should().Be(0);
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.PhotobankTagNotFound);
 
         _repositoryMock.Verify(r => r.DeleteTagAsync(It.IsAny<Tag>(), It.IsAny<CancellationToken>()), Times.Never);
     }
