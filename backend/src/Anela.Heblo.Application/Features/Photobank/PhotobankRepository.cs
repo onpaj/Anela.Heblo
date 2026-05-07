@@ -54,12 +54,15 @@ namespace Anela.Heblo.Application.Features.Photobank
         }
 
         public async Task<(List<Photo> Items, int Total)> GetPhotosAsync(
-            List<string>? tags, string? search, string? folderPath, int page, int pageSize,
+            List<string>? tags, string? search, string? folderPath, bool withoutTags, int page, int pageSize,
             CancellationToken cancellationToken)
         {
-            var query = BuildFilterQuery(tags, search, folderPath)
+            IQueryable<Photo> query = BuildFilterQuery(tags, search, folderPath)
                 .Include(p => p.Tags)
                     .ThenInclude(pt => pt.Tag);
+
+            if (withoutTags)
+                query = query.Where(p => !p.Tags.Any());
 
             var total = await query.CountAsync(cancellationToken);
             var items = await query
