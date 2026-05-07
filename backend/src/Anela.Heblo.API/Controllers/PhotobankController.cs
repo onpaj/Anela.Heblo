@@ -144,7 +144,7 @@ namespace Anela.Heblo.API.Controllers
         }
 
         /// <summary>
-        /// Bulk-add a manual tag to an explicit list of photos by ID. Requires administrator role.
+        /// Bulk-add a manual tag to an explicit list of photos by ID. Requires MarketingWriter role.
         /// Capped at 5 000 photo IDs per call. Idempotent: photos already carrying the tag are counted
         /// in AlreadyTaggedCount and not modified.
         /// </summary>

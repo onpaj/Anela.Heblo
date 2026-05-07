@@ -100,6 +100,15 @@ namespace Anela.Heblo.Application.Features.Photobank
                 .ToListAsync(cancellationToken);
         }
 
+        public async Task<int> CountExistingPhotosAsync(
+            IReadOnlyList<int> photoIds,
+            CancellationToken cancellationToken)
+        {
+            return await _context.Photos
+                .Where(p => photoIds.Contains(p.Id))
+                .CountAsync(cancellationToken);
+        }
+
         public async Task<Photo?> GetPhotoByIdAsync(int id, CancellationToken cancellationToken)
         {
             return await _context.Photos

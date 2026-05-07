@@ -37,13 +37,15 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByI
                     },
                 };
 
+            var distinctIds = request.PhotoIds.Distinct().ToList();
+
             var normalizedName = request.TagName.Trim().ToLowerInvariant();
             var tag = await _repository.GetOrCreateTagAsync(normalizedName, cancellationToken);
             if (tag == null)
                 return new BulkAddPhotoTagByIdsResponse(ErrorCodes.PhotoTagCreationFailed);
 
             var toAdd = await _repository.GetExistingPhotoIdsMissingTagAsync(
-                request.PhotoIds, tag.Id, cancellationToken);
+                distinctIds, tag.Id, cancellationToken);
 
             var now = DateTime.UtcNow;
             foreach (var photoId in toAdd)
@@ -60,14 +62,14 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByI
             if (toAdd.Count > 0)
                 await _repository.SaveChangesAsync(cancellationToken);
 
-            var distinctCount = request.PhotoIds.Distinct().Count();
+            var existingCount = await _repository.CountExistingPhotosAsync(distinctIds, cancellationToken);
 
             return new BulkAddPhotoTagByIdsResponse
             {
                 TagId = tag.Id,
                 TagName = tag.Name,
                 AddedCount = toAdd.Count,
-                AlreadyTaggedCount = distinctCount - toAdd.Count,
+                AlreadyTaggedCount = existingCount - toAdd.Count,
             };
         }
     }

@@ -129,6 +129,11 @@ public class BulkAddPhotoTagByIdsHandlerTests
             .ReturnsAsync(missingTagIds);
 
         _repositoryMock
+            .Setup(r => r.CountExistingPhotosAsync(
+                It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(5); // all 5 IDs exist in the database
+
+        _repositoryMock
             .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -150,7 +155,7 @@ public class BulkAddPhotoTagByIdsHandlerTests
         result.TagId.Should().Be(7);
         result.TagName.Should().Be("flowers");
         result.AddedCount.Should().Be(3);
-        result.AlreadyTaggedCount.Should().Be(2);
+        result.AlreadyTaggedCount.Should().Be(2); // 5 existing - 3 added
 
         _repositoryMock.Verify(r => r.AddPhotoTagAsync(
             It.Is<PhotoTag>(pt => pt.TagId == 7 && pt.Source == PhotoTagSource.Manual),
@@ -175,6 +180,11 @@ public class BulkAddPhotoTagByIdsHandlerTests
                 It.IsAny<IReadOnlyList<int>>(), 3, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<int>());
 
+        _repositoryMock
+            .Setup(r => r.CountExistingPhotosAsync(
+                It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(3); // all 3 IDs exist in the database
+
         var request = new BulkAddPhotoTagByIdsRequest
         {
             PhotoIds = photoIds,
@@ -187,19 +197,20 @@ public class BulkAddPhotoTagByIdsHandlerTests
         // Assert
         result.Success.Should().BeTrue();
         result.AddedCount.Should().Be(0);
-        result.AlreadyTaggedCount.Should().Be(3);
+        result.AlreadyTaggedCount.Should().Be(3); // 3 existing - 0 added
 
         _repositoryMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Never);
         _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task Handle_DuplicatePhotoIdsProvided_AlreadyTaggedCountBasedOnDistinctCount()
+    public async Task Handle_DuplicatePhotoIdsProvided_DeduplicatesBeforeRepositoryCalls()
     {
         // Arrange
         var tag = BuildTag(5, "new");
         var photoIds = new List<int> { 1, 1, 2, 2, 3 }; // 5 items, 3 distinct
         var missingTagIds = new List<int> { 1, 2 };
+        var expectedDistinctIds = new List<int> { 1, 2, 3 };
 
         _repositoryMock
             .Setup(r => r.GetOrCreateTagAsync("new", It.IsAny<CancellationToken>()))
@@ -209,6 +220,11 @@ public class BulkAddPhotoTagByIdsHandlerTests
             .Setup(r => r.GetExistingPhotoIdsMissingTagAsync(
                 It.IsAny<IReadOnlyList<int>>(), 5, It.IsAny<CancellationToken>()))
             .ReturnsAsync(missingTagIds);
+
+        _repositoryMock
+            .Setup(r => r.CountExistingPhotosAsync(
+                It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(3); // all 3 distinct IDs exist in the database
 
         _repositoryMock
             .Setup(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()))
@@ -230,6 +246,17 @@ public class BulkAddPhotoTagByIdsHandlerTests
         // Assert
         result.Success.Should().BeTrue();
         result.AddedCount.Should().Be(2);
-        result.AlreadyTaggedCount.Should().Be(1); // 3 distinct - 2 added
+        result.AlreadyTaggedCount.Should().Be(1); // 3 existing - 2 added
+
+        // Verify CountExistingPhotosAsync is called with the deduplicated list
+        _repositoryMock.Verify(r => r.CountExistingPhotosAsync(
+            It.Is<IReadOnlyList<int>>(ids => ids.SequenceEqual(expectedDistinctIds)),
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        // Verify GetExistingPhotoIdsMissingTagAsync is called with the deduplicated list
+        _repositoryMock.Verify(r => r.GetExistingPhotoIdsMissingTagAsync(
+            It.Is<IReadOnlyList<int>>(ids => ids.SequenceEqual(expectedDistinctIds)),
+            5,
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 }
