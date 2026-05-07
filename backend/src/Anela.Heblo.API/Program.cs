@@ -14,6 +14,7 @@ using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application;
+using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Xcc;
@@ -114,6 +115,13 @@ public partial class Program
         if (app.Environment.IsProduction())
         {
             await app.MigrateDatabaseAsync();
+        }
+
+        // Migrate any remaining legacy glob PathPattern rows to .NET regex (idempotent).
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            await PhotobankModule.MigrateTagRulePatternsAsync(db);
         }
 
         // Seed default recurring job configurations from discovered IRecurringJob implementations.

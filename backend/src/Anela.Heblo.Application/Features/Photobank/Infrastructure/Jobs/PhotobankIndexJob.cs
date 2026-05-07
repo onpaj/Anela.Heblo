@@ -119,6 +119,9 @@ public class PhotobankIndexJob : IRecurringJob
     {
         var photo = await _db.Photos.FirstOrDefaultAsync(p => p.SharePointFileId == item.ItemId, ct);
 
+        var pathChanged = photo != null &&
+            (photo.FolderPath != item.FolderPath || photo.FileName != item.Name);
+
         if (photo == null)
         {
             photo = new Photo
@@ -135,6 +138,9 @@ public class PhotobankIndexJob : IRecurringJob
         photo.FileSizeBytes = item.FileSizeBytes;
         photo.ModifiedAt = item.LastModifiedAt ?? DateTime.UtcNow;
         photo.DriveId = driveId;
+
+        if (pathChanged)
+            photo!.LastAutoTaggedAt = null;
 
         await _db.SaveChangesAsync(ct);
 

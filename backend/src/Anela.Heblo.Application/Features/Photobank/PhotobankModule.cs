@@ -11,7 +11,9 @@ using Anela.Heblo.Application.Features.Photobank.UseCases.RemovePhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule;
 using Anela.Heblo.Application.Features.Photobank.Validators;
 using Anela.Heblo.Domain.Features.Photobank;
+using Anela.Heblo.Persistence;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -64,5 +66,19 @@ public static class PhotobankModule
         services.AddScoped<IPipelineBehavior<BulkAddPhotoTagByIdsRequest, BulkAddPhotoTagByIdsResponse>, ValidationBehavior<BulkAddPhotoTagByIdsRequest, BulkAddPhotoTagByIdsResponse>>();
 
         return services;
+    }
+
+    public static async Task MigrateTagRulePatternsAsync(ApplicationDbContext db, CancellationToken ct = default)
+    {
+        var rules = await db.PhotobankTagRules
+            .Where(r => !r.PathPattern.StartsWith("^"))
+            .ToListAsync(ct);
+
+        if (rules.Count == 0) return;
+
+        foreach (var rule in rules)
+            rule.PathPattern = TagRulePatternTranslator.Translate(rule.PathPattern);
+
+        await db.SaveChangesAsync(ct);
     }
 }
