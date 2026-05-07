@@ -1,11 +1,16 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Shared.Json;
 
 public static class JsonResponseParser
 {
+    private static readonly Regex FencePattern = new(
+        @"```(?:json)?\s*\r?\n(.*?)\r?\n?```",
+        RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     public static T ParseOrFallback<T>(
         string raw,
         T fallback,
@@ -27,7 +32,7 @@ public static class JsonResponseParser
         }
         catch (JsonException ex)
         {
-            logger.LogWarning(ex, "{HandlerName}: failed to parse JSON response, using fallback", handlerName);
+            logger.LogWarning(ex, "{HandlerName}: failed to parse JSON response, using fallback. Cleaned input: {Cleaned}", handlerName, cleaned[..Math.Min(cleaned.Length, 500)]);
             return fallback;
         }
     }
@@ -35,24 +40,7 @@ public static class JsonResponseParser
     private static string StripJsonFences(string raw)
     {
         var trimmed = raw.Trim();
-
-        if (!trimmed.StartsWith("```", StringComparison.Ordinal))
-        {
-            return trimmed;
-        }
-
-        var firstNewline = trimmed.IndexOf('\n');
-        if (firstNewline < 0)
-        {
-            return trimmed;
-        }
-
-        var withoutOpening = trimmed[(firstNewline + 1)..];
-
-        var trimmedForCheck = withoutOpening.TrimEnd();
-        if (trimmedForCheck.EndsWith("```", StringComparison.Ordinal))
-            return trimmedForCheck[..^3].TrimEnd();
-
-        return withoutOpening;
+        var match = FencePattern.Match(trimmed);
+        return match.Success ? match.Groups[1].Value.Trim() : trimmed;
     }
 }

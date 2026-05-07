@@ -61,7 +61,8 @@ public class WriteArticleStep : IArticlePipelineStep
     private const string SystemInstruction =
         """
         Jsi zkušený redaktor kosmetického obsahu. Píšeš výhradně v češtině.
-        Odpověz POUZE validním JSON bez markdown nebo code fences:
+        Odpověz POUZE validním JSON bez markdown nebo code fences.
+        V poli article_html použij výhradně HTML tagy – nikdy nepište doslovný text "\n" jako obsah.
         {"article_title":"...","article_html":"<article>...</article>","sources_used":[{"title":"...","url":"..."}]}
         """;
 
