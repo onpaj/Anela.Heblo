@@ -17,6 +17,7 @@ using Anela.Heblo.Application.Features.Photobank.UseCases.GetRules;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetTags;
 using Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules;
 using Anela.Heblo.Application.Features.Photobank.UseCases.RemovePhotoTag;
+using Anela.Heblo.Application.Features.Photobank.UseCases.RetagPhotos;
 using Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Photobank;
@@ -169,6 +170,23 @@ namespace Anela.Heblo.API.Controllers
             };
             var response = await _mediator.Send(request, cancellationToken);
             return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Re-tag specific photos via AI. Resets LastAutoTaggedAt and enqueues a Hangfire job.
+        /// Optionally clears existing AI tags before re-processing.
+        /// </summary>
+        [HttpPost("photos/auto-tag")]
+        [Authorize(Roles = AuthorizationConstants.Roles.MarketingWriter)]
+        [ProducesResponseType(typeof(RetagPhotosResponse), StatusCodes.Status202Accepted)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<RetagPhotosResponse>> RetagPhotos(
+            [FromBody] RetagPhotosRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return result.Success ? Accepted(result) : BadRequest(result);
         }
 
         // --- Settings: Index Roots ---
