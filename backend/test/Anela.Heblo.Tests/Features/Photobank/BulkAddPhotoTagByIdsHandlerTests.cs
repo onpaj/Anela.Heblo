@@ -162,6 +162,28 @@ public class BulkAddPhotoTagByIdsHandlerTests
             It.IsAny<CancellationToken>()), Times.Exactly(3));
 
         _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+
+        _repositoryMock.Verify(r => r.GetOrCreateTagAsync("flowers", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhitespaceOnlyTagName_ReturnsInvalidRequestError()
+    {
+        // Arrange
+        var request = new BulkAddPhotoTagByIdsRequest
+        {
+            PhotoIds = new List<int> { 1, 2, 3 },
+            TagName = "   ",
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.BulkTagInvalidRequest);
+
+        _repositoryMock.Verify(r => r.GetOrCreateTagAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

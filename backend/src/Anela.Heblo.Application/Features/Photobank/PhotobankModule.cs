@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRule;
+using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByIds;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRule;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos;
@@ -49,6 +50,7 @@ public static class PhotobankModule
         services.AddScoped<IValidator<RemovePhotoTagRequest>, RemovePhotoTagRequestValidator>();
         services.AddScoped<IValidator<GetPhotosRequest>, GetPhotosRequestValidator>();
         services.AddScoped<IValidator<UpdateRuleRequest>, UpdateRuleRequestValidator>();
+        services.AddScoped<IValidator<BulkAddPhotoTagByIdsRequest>, BulkAddPhotoTagByIdsRequestValidator>();
 
         // Register MediatR validation behavior for photobank requests
         services.AddScoped<IPipelineBehavior<AddPhotoTagRequest, AddPhotoTagResponse>, ValidationBehavior<AddPhotoTagRequest, AddPhotoTagResponse>>();
@@ -59,6 +61,7 @@ public static class PhotobankModule
         services.AddScoped<IPipelineBehavior<RemovePhotoTagRequest, RemovePhotoTagResponse>, ValidationBehavior<RemovePhotoTagRequest, RemovePhotoTagResponse>>();
         services.AddScoped<IPipelineBehavior<GetPhotosRequest, GetPhotosResponse>, ValidationBehavior<GetPhotosRequest, GetPhotosResponse>>();
         services.AddScoped<IPipelineBehavior<UpdateRuleRequest, UpdateRuleResponse>, ValidationBehavior<UpdateRuleRequest, UpdateRuleResponse>>();
+        services.AddScoped<IPipelineBehavior<BulkAddPhotoTagByIdsRequest, BulkAddPhotoTagByIdsResponse>, ValidationBehavior<BulkAddPhotoTagByIdsRequest, BulkAddPhotoTagByIdsResponse>>();
 
         return services;
     }

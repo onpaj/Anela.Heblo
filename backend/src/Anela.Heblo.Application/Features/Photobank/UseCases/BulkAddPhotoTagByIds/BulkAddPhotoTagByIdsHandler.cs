@@ -40,6 +40,9 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByI
             var distinctIds = request.PhotoIds.Distinct().ToList();
 
             var normalizedName = request.TagName.Trim().ToLowerInvariant();
+            if (normalizedName.Length == 0)
+                return new BulkAddPhotoTagByIdsResponse(ErrorCodes.BulkTagInvalidRequest);
+
             var tag = await _repository.GetOrCreateTagAsync(normalizedName, cancellationToken);
             if (tag == null)
                 return new BulkAddPhotoTagByIdsResponse(ErrorCodes.PhotoTagCreationFailed);
