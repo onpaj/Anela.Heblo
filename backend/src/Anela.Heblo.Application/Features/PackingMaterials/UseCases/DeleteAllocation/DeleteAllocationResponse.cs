@@ -1,7 +1,8 @@
+using Anela.Heblo.Application.Shared;
+
 namespace Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeleteAllocation;
 
-public class DeleteAllocationResponse
+public class DeleteAllocationResponse : BaseResponse
 {
-    public bool Success { get; set; }
     public string? Error { get; set; }
 }
