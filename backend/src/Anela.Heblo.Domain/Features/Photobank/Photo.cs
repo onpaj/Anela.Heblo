@@ -37,6 +37,8 @@ namespace Anela.Heblo.Domain.Features.Photobank
 
         public DateTime ModifiedAt { get; set; }
 
+        public DateTime? LastAutoTaggedAt { get; set; }
+
         public virtual ICollection<PhotoTag> Tags { get; set; } = new List<PhotoTag>();
     }
 }
