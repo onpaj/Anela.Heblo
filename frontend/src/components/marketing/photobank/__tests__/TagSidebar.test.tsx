@@ -17,12 +17,14 @@ function renderSidebar(overrides: Partial<React.ComponentProps<typeof TagSidebar
     folderPath: "",
     withoutTags: false,
     useRegex: false,
+    useFolderRegex: false,
     onTagToggle: jest.fn(),
     onSearchChange: jest.fn(),
     onFolderPathChange: jest.fn(),
     onWithoutTagsToggle: jest.fn(),
     onClearFilters: jest.fn(),
     onRegexChange: jest.fn(),
+    onFolderRegexChange: jest.fn(),
     ...overrides,
   };
   return { ...render(<TagSidebar {...defaults} />), props: defaults };
@@ -292,16 +294,95 @@ describe("TagSidebar", () => {
         folderPath=""
         withoutTags={false}
         useRegex={false}
+        useFolderRegex={false}
         onTagToggle={jest.fn()}
         onSearchChange={jest.fn()}
         onFolderPathChange={jest.fn()}
         onWithoutTagsToggle={jest.fn()}
         onClearFilters={jest.fn()}
         onRegexChange={jest.fn()}
+        onFolderRegexChange={jest.fn()}
       />
     );
 
     // Assert: error message is gone
     expect(screen.queryByText("Neplatný regulární výraz")).not.toBeInTheDocument();
+  });
+
+  test("folder regex toggle calls onFolderRegexChange", () => {
+    // Arrange
+    const onFolderRegexChange = jest.fn();
+    renderSidebar({ onFolderRegexChange });
+
+    // Act
+    const checkbox = screen.getByRole("checkbox", { name: /Regex složky/i });
+    fireEvent.click(checkbox);
+
+    // Assert
+    expect(onFolderRegexChange).toHaveBeenCalledWith(true);
+  });
+
+  test("folder regex mode with valid pattern calls onFolderPathChange after debounce", () => {
+    // Arrange
+    const onFolderPathChange = jest.fn();
+    renderSidebar({ useFolderRegex: true, onFolderPathChange });
+
+    // Act — target folder input by its stable aria-label
+    const folderInput = screen.getByLabelText("Hledat ve složkách");
+    fireEvent.change(folderInput, { target: { value: "^Marketing/" } });
+
+    // Assert: not called immediately
+    expect(onFolderPathChange).not.toHaveBeenCalled();
+
+    // Fast-forward debounce timer
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(onFolderPathChange).toHaveBeenCalledWith("^Marketing/");
+  });
+
+  test("folder regex mode with invalid pattern shows error and does not call onFolderPathChange after debounce", () => {
+    // Arrange
+    const onFolderPathChange = jest.fn();
+    renderSidebar({ useFolderRegex: true, onFolderPathChange });
+
+    const folderInput = screen.getByLabelText("Hledat ve složkách");
+
+    // Act — type an invalid regex
+    fireEvent.change(folderInput, { target: { value: "[bad" } });
+
+    // Assert: error message appears
+    expect(screen.getAllByText("Neplatný regulární výraz")).toHaveLength(1);
+
+    // Fast-forward debounce timer
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    // Assert: onFolderPathChange is NOT called
+    expect(onFolderPathChange).not.toHaveBeenCalled();
+  });
+
+  test("folder regex mode off with invalid regex-like folder input calls onFolderPathChange", () => {
+    // Arrange
+    const onFolderPathChange = jest.fn();
+    renderSidebar({ useFolderRegex: false, onFolderPathChange });
+
+    const folderInput = screen.getByLabelText("Hledat ve složkách");
+
+    // Act
+    fireEvent.change(folderInput, { target: { value: "[bad" } });
+
+    // Assert: no error shown
+    expect(screen.queryByText("Neplatný regulární výraz")).not.toBeInTheDocument();
+
+    // Fast-forward debounce timer
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    // Assert: onFolderPathChange is called as normal
+    expect(onFolderPathChange).toHaveBeenCalledWith("[bad");
   });
 });

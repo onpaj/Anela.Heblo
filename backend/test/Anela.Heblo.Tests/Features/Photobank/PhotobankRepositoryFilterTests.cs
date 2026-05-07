@@ -54,7 +54,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, false, folderPath, false, 1, 48, CancellationToken.None);
+            null, null, false, folderPath, false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(2);
@@ -71,7 +71,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, false, folderPath, false, 1, 48, CancellationToken.None);
+            null, null, false, folderPath, false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -87,7 +87,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, search, false, folderPath, false, 1, 48, CancellationToken.None);
+            null, search, false, folderPath, false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -114,7 +114,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
 
         // Act — folderPath "Produkty" matches photos 1 & 2; tag "featured" is only on photo 1
         var (items, total) = await _repository.GetPhotosAsync(
-            new List<string> { "featured" }, null, false, "Produkty", false, 1, 48, CancellationToken.None);
+            new List<string> { "featured" }, null, false, "Produkty", false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -129,7 +129,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
     {
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, false, folderPath, false, 1, 48, CancellationToken.None);
+            null, null, false, folderPath, false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(4);
@@ -185,7 +185,7 @@ public class PhotobankRepositoryRegexFilterTests : IDisposable
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, pattern, true, null, false, 1, 48, CancellationToken.None);
+            null, pattern, true, null, false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -202,12 +202,78 @@ public class PhotobankRepositoryRegexFilterTests : IDisposable
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, search, false, null, false, 1, 48, CancellationToken.None);
+            null, search, false, null, false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(2);
         items.Should().Contain(p => p.FileName == "report_2024.pdf");
         items.Should().Contain(p => p.FileName == "report_final.pdf");
         items.Should().NotContain(p => p.FileName == "IMG_001.png");
+    }
+}
+
+public class PhotobankRepositoryFolderRegexFilterTests : IDisposable
+{
+    private readonly ApplicationDbContext _context;
+    private readonly PhotobankRepository _repository;
+
+    public PhotobankRepositoryFolderRegexFilterTests()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        _context = new ApplicationDbContext(options);
+        _repository = new PhotobankRepository(_context);
+
+        SeedTestData();
+    }
+
+    private void SeedTestData()
+    {
+        var photos = new List<Photo>
+        {
+            new() { Id = 1, SharePointFileId = "sp-1", FileName = "a.jpg", FolderPath = "Marketing/2025/Q1", ModifiedAt = DateTime.UtcNow },
+            new() { Id = 2, SharePointFileId = "sp-2", FileName = "b.jpg", FolderPath = "Marketing/2025/Q2", ModifiedAt = DateTime.UtcNow },
+            new() { Id = 3, SharePointFileId = "sp-3", FileName = "c.jpg", FolderPath = "Vyrobky/2025",      ModifiedAt = DateTime.UtcNow },
+        };
+
+        _context.Photos.AddRange(photos);
+        _context.SaveChanges();
+    }
+
+    public void Dispose()
+    {
+        _context.Dispose();
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetPhotosAsync_folderRegex_matchesOnlyMarketingFolders()
+    {
+        // Arrange
+        var pattern = @"^Marketing/";
+
+        // Act
+        var (items, total) = await _repository.GetPhotosAsync(
+            null, null, false, pattern, true, false, 1, 48, CancellationToken.None);
+
+        // Assert
+        total.Should().Be(2);
+        items.Should().OnlyContain(p => p.FolderPath.StartsWith("Marketing/"));
+        items.Should().NotContain(p => p.FileName == "c.jpg");
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetPhotosAsync_folderRegexFalse_usesFolderSubstringFallback()
+    {
+        // Arrange
+        var term = "2025";
+
+        // Act
+        var (items, total) = await _repository.GetPhotosAsync(
+            null, null, false, term, false, false, 1, 48, CancellationToken.None);
+
+        // Assert
+        total.Should().Be(3);
     }
 }

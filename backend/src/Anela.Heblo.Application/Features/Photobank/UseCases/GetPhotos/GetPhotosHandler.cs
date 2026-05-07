@@ -28,6 +28,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
                     request.Search,
                     request.UseRegex,
                     request.FolderPath,
+                    request.UseFolderRegex,
                     request.WithoutTags,
                     request.Page,
                     request.PageSize,
@@ -41,13 +42,17 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
                     PageSize = request.PageSize,
                 };
             }
-            catch (PostgresException ex) when (request.UseRegex && ex.SqlState == "2201B")
+            catch (PostgresException ex) when ((request.UseRegex || request.UseFolderRegex) && ex.SqlState == "2201B")
             {
+                var pattern = request.UseFolderRegex
+                    ? (request.FolderPath ?? string.Empty)
+                    : (request.Search ?? string.Empty);
+
                 return new GetPhotosResponse
                 {
                     Success = false,
                     ErrorCode = ErrorCodes.PhotobankInvalidRegexPattern,
-                    Params = new Dictionary<string, string> { ["pattern"] = request.Search ?? string.Empty },
+                    Params = new Dictionary<string, string> { ["pattern"] = pattern },
                 };
             }
         }
