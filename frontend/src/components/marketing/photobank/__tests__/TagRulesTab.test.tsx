@@ -114,7 +114,7 @@ describe('TagRulesTab', () => {
     render(<TagRulesTab />, { wrapper: createWrapper() });
 
     // Act
-    fireEvent.change(screen.getByLabelText(/Vzor cesty \*/), {
+    fireEvent.change(screen.getByLabelText(/Pattern \(regex\) \*/), {
       target: { value: '/Fotky/Produkty/*' },
     });
     fireEvent.change(screen.getByLabelText(/Štítek \*/), { target: { value: 'produkty' } });
