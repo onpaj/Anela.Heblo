@@ -22,6 +22,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
                 request.Tags,
                 request.Search,
                 request.FolderPath,
+                request.WithoutTags,
                 request.Page,
                 request.PageSize,
                 cancellationToken);

@@ -1,15 +1,18 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Search, X, Tag, Folder } from "lucide-react";
 import type { TagWithCountDto } from "../../../api/hooks/usePhotobank";
+import { TagBadge } from "../../ui/TagBadge";
 
 interface TagSidebarProps {
   tags: TagWithCountDto[];
   selectedTagIds: number[];
   search: string;
   folderPath: string;
+  withoutTags: boolean;
   onTagToggle: (tagId: number) => void;
   onSearchChange: (value: string) => void;
   onFolderPathChange: (value: string) => void;
+  onWithoutTagsToggle: () => void;
   onClearFilters: () => void;
 }
 
@@ -20,13 +23,16 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
   selectedTagIds,
   search,
   folderPath,
+  withoutTags,
   onTagToggle,
   onSearchChange,
   onFolderPathChange,
+  onWithoutTagsToggle,
   onClearFilters,
 }) => {
   const [inputValue, setInputValue] = useState(search);
   const [folderPathValue, setFolderPathValue] = useState(folderPath);
+  const [tagFilter, setTagFilter] = useState("");
 
   // Sync external search value to local input
   useEffect(() => {
@@ -84,7 +90,11 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
     onFolderPathChange("");
   }, [onFolderPathChange]);
 
-  const hasActiveFilters = search.length > 0 || folderPath.length > 0 || selectedTagIds.length > 0;
+  const filteredTags = tagFilter.trim()
+    ? tags.filter((t) => t.name.toLowerCase().includes(tagFilter.trim().toLowerCase()))
+    : tags;
+
+  const hasActiveFilters = search.length > 0 || folderPath.length > 0 || selectedTagIds.length > 0 || withoutTags;
 
   return (
     <aside className="flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
@@ -159,25 +169,68 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
           </span>
         </div>
 
+        {/* Tag name filter input */}
+        {tags.length > 0 && (
+          <div className="relative mb-2">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+              placeholder="Filtrovat štítky..."
+              className="w-full pl-7 pr-6 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-blue focus:border-transparent"
+              aria-label="Filtrovat štítky"
+            />
+            {tagFilter && (
+              <button
+                type="button"
+                onClick={() => setTagFilter("")}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label="Vymazat filtr štítků"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        )}
+
         {tags.length === 0 ? (
           <p className="text-sm text-gray-400 mt-2">Žádné štítky</p>
         ) : (
           <ul className="space-y-0.5">
-            {tags.map((tag) => {
+            {/* "Without tags" special option */}
+            <li>
+              <button
+                type="button"
+                onClick={onWithoutTagsToggle}
+                className={[
+                  "w-full flex items-center justify-between px-2 py-1.5 rounded-md text-sm transition-colors text-left",
+                  withoutTags
+                    ? "bg-secondary-blue-pale text-primary-blue font-medium"
+                    : "text-gray-700 hover:bg-gray-50",
+                ].join(" ")}
+                aria-pressed={withoutTags}
+              >
+                <span className="text-xs italic text-gray-400">Bez štítků</span>
+                <span className="ml-2 text-xs tabular-nums flex-shrink-0 text-gray-300">—</span>
+              </button>
+            </li>
+
+            {/* Filtered tag list */}
+            {filteredTags.map((tag) => {
               const isSelected = selectedTagIds.includes(tag.id);
               return (
                 <li key={tag.id}>
                   <button
+                    type="button"
                     onClick={() => onTagToggle(tag.id)}
                     className={[
-                      "w-full flex items-center justify-between px-2 py-1.5 rounded-md text-sm transition-colors text-left",
-                      isSelected
-                        ? "bg-secondary-blue-pale text-primary-blue font-medium"
-                        : "text-gray-700 hover:bg-gray-50",
+                      "w-full flex items-center justify-between px-2 py-1.5 rounded-md transition-colors text-left",
+                      isSelected ? "bg-secondary-blue-pale" : "hover:bg-gray-50",
                     ].join(" ")}
                     aria-pressed={isSelected}
                   >
-                    <span className="truncate">{tag.name}</span>
+                    <TagBadge name={tag.name} />
                     <span
                       className={[
                         "ml-2 text-xs tabular-nums flex-shrink-0",
@@ -190,6 +243,10 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
                 </li>
               );
             })}
+
+            {filteredTags.length === 0 && tagFilter && (
+              <li className="px-2 py-1.5 text-xs text-gray-400">Žádné výsledky</li>
+            )}
           </ul>
         )}
       </div>

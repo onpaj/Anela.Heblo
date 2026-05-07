@@ -195,4 +195,96 @@ describe("PhotoGrid", () => {
       expect(onTogglePhotoSelection).toHaveBeenCalledWith(1, expect.any(Boolean));
     });
   });
+
+  test("renders tag overlay when showTags is true and photo has tags", () => {
+    // Arrange
+    const photo = makePhoto({
+      id: 1,
+      name: "tagged.jpg",
+      tags: [
+        { id: 10, name: "Léto", source: "manual" },
+        { id: 11, name: "Příroda", source: "manual" },
+      ],
+    });
+
+    // Act
+    renderGrid({ photos: [photo], total: 1, showTags: true });
+
+    // Assert — tag text is visible, confirming overlay rendered
+    expect(screen.getByText("Léto")).toBeInTheDocument();
+    expect(screen.getByText("Příroda")).toBeInTheDocument();
+  });
+
+  test("does not render tag overlay when showTags is false", () => {
+    // Arrange
+    const photo = makePhoto({
+      id: 1,
+      name: "tagged.jpg",
+      tags: [{ id: 10, name: "Léto", source: "manual" }],
+    });
+
+    // Act
+    renderGrid({ photos: [photo], total: 1, showTags: false });
+
+    // Assert
+    expect(screen.queryByText("Léto")).not.toBeInTheDocument();
+  });
+
+  test("does not render tag overlay when showTags is omitted (default false)", () => {
+    // Arrange
+    const photo = makePhoto({
+      id: 1,
+      name: "tagged.jpg",
+      tags: [{ id: 10, name: "Léto", source: "manual" }],
+    });
+
+    // Act — no showTags prop passed
+    renderGrid({ photos: [photo], total: 1 });
+
+    // Assert
+    expect(screen.queryByText("Léto")).not.toBeInTheDocument();
+  });
+
+  test("shows overflow chip when photo has more than 3 tags", () => {
+    // Arrange
+    const photo = makePhoto({
+      id: 1,
+      name: "many-tags.jpg",
+      tags: [
+        { id: 1, name: "Tag1", source: "manual" },
+        { id: 2, name: "Tag2", source: "manual" },
+        { id: 3, name: "Tag3", source: "manual" },
+        { id: 4, name: "Tag4", source: "manual" },
+        { id: 5, name: "Tag5", source: "manual" },
+      ],
+    });
+
+    // Act
+    renderGrid({ photos: [photo], total: 1, showTags: true });
+
+    // Assert — first 3 tags visible, rest truncated, overflow chip shows "+2"
+    expect(screen.getByText("Tag1")).toBeInTheDocument();
+    expect(screen.getByText("Tag2")).toBeInTheDocument();
+    expect(screen.getByText("Tag3")).toBeInTheDocument();
+    expect(screen.queryByText("Tag4")).not.toBeInTheDocument();
+    expect(screen.queryByText("Tag5")).not.toBeInTheDocument();
+    expect(screen.getByText("+2")).toBeInTheDocument();
+  });
+
+  test("overlay has pointer-events-none so click reaches the button", () => {
+    // Arrange
+    const onPhotoSelect = jest.fn();
+    const photo = makePhoto({
+      id: 1,
+      name: "click-test.jpg",
+      tags: [{ id: 10, name: "Léto", source: "manual" }],
+    });
+
+    // Act
+    renderGrid({ photos: [photo], total: 1, showTags: true, onPhotoSelect });
+    fireEvent.click(screen.getByLabelText("click-test.jpg"));
+
+    // Assert — click propagated through the overlay to the button
+    expect(onPhotoSelect).toHaveBeenCalledWith(photo);
+  });
 });

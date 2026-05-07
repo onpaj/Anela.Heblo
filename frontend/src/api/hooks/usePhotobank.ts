@@ -38,6 +38,7 @@ export interface GetPhotosParams {
   tags?: string[];
   search?: string;
   folderPath?: string;
+  withoutTags?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -82,6 +83,7 @@ function buildPhotosUrl(baseUrl: string, params: GetPhotosParams): string {
   const qs = new URLSearchParams();
   if (params.search) qs.set("search", params.search);
   if (params.folderPath) qs.set("folderPath", params.folderPath);
+  if (params.withoutTags) qs.set("withoutTags", "true");
   if (params.page != null) qs.set("page", String(params.page));
   if (params.pageSize != null) qs.set("pageSize", String(params.pageSize));
   (params.tags ?? []).forEach((t) => qs.append("tags", String(t)));

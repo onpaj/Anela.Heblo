@@ -55,6 +55,7 @@ namespace Anela.Heblo.API.Controllers
             [FromQuery] List<string>? tags,
             [FromQuery] string? search,
             [FromQuery] string? folderPath,
+            [FromQuery] bool withoutTags = false,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 48,
             CancellationToken cancellationToken = default)
@@ -64,6 +65,7 @@ namespace Anela.Heblo.API.Controllers
                 Tags = tags,
                 Search = search,
                 FolderPath = folderPath,
+                WithoutTags = withoutTags,
                 Page = page,
                 PageSize = pageSize,
             };
