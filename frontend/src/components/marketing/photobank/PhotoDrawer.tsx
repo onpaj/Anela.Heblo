@@ -149,7 +149,7 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
               <TagBadge
                 key={tag.id}
                 name={tag.name}
-                onRemove={isAdmin ? () => handleRemoveTag(tag.id) : undefined}
+                onRemove={isAdmin && !removeTagMutation.isPending ? () => handleRemoveTag(tag.id) : undefined}
               />
             ))}
           </div>

@@ -22,7 +22,7 @@ export const TagBadge: React.FC<TagBadgeProps> = ({
         <button
           type="button"
           onClick={onRemove}
-          aria-label="Odebrat štítek"
+          aria-label={`Odebrat štítek ${name}`}
           className="ml-0.5 hover:opacity-70 rounded-full"
         >
           <span aria-hidden="true">×</span>

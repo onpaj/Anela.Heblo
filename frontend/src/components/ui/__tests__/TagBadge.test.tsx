@@ -39,7 +39,7 @@ describe("TagBadge", () => {
       const handleRemove = jest.fn();
       render(<TagBadge name="test" onRemove={handleRemove} />);
 
-      const button = screen.getByLabelText("Odebrat štítek");
+      const button = screen.getByLabelText("Odebrat štítek test");
       expect(button).toBeInTheDocument();
       expect(button).toHaveTextContent("×");
     });
@@ -65,7 +65,7 @@ describe("TagBadge", () => {
       const handleRemove = jest.fn();
       render(<TagBadge name="test" onRemove={handleRemove} />);
 
-      const button = screen.getByRole("button", { name: "Odebrat štítek" });
+      const button = screen.getByRole("button", { name: "Odebrat štítek test" });
       expect(button).toBeInTheDocument();
     });
 
