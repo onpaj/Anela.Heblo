@@ -12,4 +12,7 @@ public class IndexDocumentRequest : IRequest<IndexDocumentResponse>
 
     /// <summary>Document type determined by the source folder. Drives indexing strategy selection.</summary>
     public DocumentType DocumentType { get; set; } = DocumentType.KnowledgeBase;
+
+    public string? DriveId { get; set; }
+    public string? GraphItemId { get; set; }
 }

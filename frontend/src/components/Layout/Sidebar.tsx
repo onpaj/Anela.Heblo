@@ -17,7 +17,6 @@ import {
   Users,
   ExternalLink,
   FileText,
-  Database,
   Megaphone,
 } from "lucide-react";
 import UserProfile from "../auth/UserProfile";
@@ -124,6 +123,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Expedice",
           href: "/logistics/expedition-archive",
         },
+        { id: "knowledge-base", name: "Poradenství (KB)", href: "/knowledge-base" },
       ],
     },
     {
@@ -144,6 +144,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       type: "section" as const,
       items: [
         { id: "marketing-calendar", name: "Kalendář", href: "/marketing/calendar" },
+        { id: "photobank", name: "Fotobanka", href: "/marketing/photobank" },
+        { id: "leaflet-generator", name: "Generátor letáků", href: "/leaflet-generator" },
+        { id: "articles", name: "Generátor článků", href: "/articles" },
+        
+        ...(hasRole("super_user") || hasRole("marketing_writer")
+          ? [{ id: "marketing-feedback", name: "Feedback", href: "/marketing/feedback" }]
+          : []),
       ],
     },
     {
@@ -293,22 +300,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Kvalita dat",
           href: "/automation/data-quality",
         },
-      ],
-    },
-    {
-      id: 'knowledgebase',
-      name: 'Knowledgebase',
-      icon: Database,
-      type: 'section' as const,
-      items: [
-        {
-          id: 'kb-poradenstvi',
-          name: 'Poradenství',
-          href: '/knowledge-base',
-        },
-        ...(hasRole('knowledge_base_manager')
-          ? [{ id: 'kb-feedback', name: 'Feedback', href: '/knowledge-base/feedback' }]
-          : []),
       ],
     },
   ];

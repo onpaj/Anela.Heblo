@@ -65,5 +65,13 @@ public class StockUpOperationConfiguration : IEntityTypeConfiguration<StockUpOpe
         // Index for failed operations queries
         builder.HasIndex(x => new { x.State, x.CreatedAt })
             .HasDatabaseName("IX_StockUpOperations_State_CreatedAt");
+
+        // Partial index for active-state summary lookups (Pending=0, Submitted=1, Failed=3).
+        // The actual DDL is emitted as raw CREATE INDEX CONCURRENTLY in the migration —
+        // EF cannot scaffold CONCURRENTLY by itself. This declaration only keeps the
+        // ApplicationDbContextModelSnapshot in sync with the database.
+        builder.HasIndex(x => new { x.SourceType, x.State })
+            .HasDatabaseName("IX_StockUpOperations_State_Active")
+            .HasFilter("\"State\" IN (0, 1, 3)");
     }
 }

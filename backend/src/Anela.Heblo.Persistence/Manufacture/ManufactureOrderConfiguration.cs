@@ -148,5 +148,10 @@ public class ManufactureOrderConfiguration : IEntityTypeConfiguration<Manufactur
             .WithOne(x => x.ManufactureOrder)
             .HasForeignKey(x => x.ManufactureOrderId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.ConditionsReadings)
+            .WithOne(x => x.ManufactureOrder)
+            .HasForeignKey(x => x.ManufactureOrderId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

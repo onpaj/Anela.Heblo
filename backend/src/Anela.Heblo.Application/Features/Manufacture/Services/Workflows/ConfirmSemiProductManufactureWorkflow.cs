@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.SubmitManufacture;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -57,7 +58,9 @@ public class ConfirmSemiProductManufactureWorkflow : IConfirmSemiProductManufact
             {
                 _logger.LogError("Failed to update actual quantity for order {OrderId}: {ErrorCode}",
                     orderId, updateResult.ErrorCode);
-                return new ConfirmSemiProductManufactureResult(false, string.Format(ManufactureMessages.QuantityUpdateErrorFormat, updateResult.ErrorCode));
+                return new ConfirmSemiProductManufactureResult(false,
+                    string.Format(ManufactureMessages.QuantityUpdateErrorFormat, updateResult.ErrorCode),
+                    updateResult.ErrorCode ?? ErrorCodes.InternalServerError);
             }
 
             // Step 2: Create manufacture via external client
@@ -70,17 +73,24 @@ public class ConfirmSemiProductManufactureWorkflow : IConfirmSemiProductManufact
             {
                 _logger.LogError("Failed to update status for order {OrderId}: {ErrorCode}",
                     orderId, result.ErrorCode);
-                return new ConfirmSemiProductManufactureResult(false, string.Format(ManufactureMessages.StatusChangeErrorFormat, result.ErrorCode));
+                return new ConfirmSemiProductManufactureResult(false,
+                    string.Format(ManufactureMessages.StatusChangeErrorFormat, result.ErrorCode),
+                    result.ErrorCode ?? ErrorCodes.InternalServerError);
             }
 
             _logger.LogInformation("Successfully confirmed semi-product manufacture for order {OrderId}", orderId);
             return new ConfirmSemiProductManufactureResult(true,
                 string.Format(ManufactureMessages.SemiProductManufacturedSuccessFormat, actualQuantity));
         }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogError(ex, "ERP submission was cancelled (timeout) for order {OrderId}", orderId);
+            return new ConfirmSemiProductManufactureResult(false, ManufactureMessages.UnexpectedSemiProductError, ErrorCodes.ErpGatewayError);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error confirming semi-product manufacture for order {OrderId}", orderId);
-            return new ConfirmSemiProductManufactureResult(false, ManufactureMessages.UnexpectedSemiProductError);
+            return new ConfirmSemiProductManufactureResult(false, ManufactureMessages.UnexpectedSemiProductError, ErrorCodes.InternalServerError);
         }
     }
 

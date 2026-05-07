@@ -1,13 +1,14 @@
 using Anela.Heblo.Adapters.Anthropic;
 using Anela.Heblo.Adapters.Azure;
+using Anela.Heblo.Adapters.HomeAssistant;
 using Anela.Heblo.Adapters.SendGrid;
 using Anela.Heblo.Adapters.Comgate;
 using Anela.Heblo.Adapters.GoogleAds;
 using Anela.Heblo.Adapters.MetaAds;
 using Anela.Heblo.Adapters.Flexi;
 using Anela.Heblo.Adapters.OpenAI;
+using Anela.Heblo.Adapters.WebSearch;
 using Anela.Heblo.Adapters.Shoptet;
-using Anela.Heblo.Adapters.Shoptet.Playwright;
 using Anela.Heblo.Adapters.ShoptetApi;
 using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
 using Anela.Heblo.API.Extensions;
@@ -63,7 +64,7 @@ public partial class Program
 
         // Adapters
         builder.Services.AddFlexiAdapter(builder.Configuration);
-        builder.Services.AddShoptetPlaywrightAdapter(builder.Configuration);
+        builder.Services.AddShoptetCsvAdapter(builder.Configuration);
         builder.Services.AddShoptetApiAdapter(builder.Configuration);
         builder.Services.AddShoptetPayAdapter(builder.Configuration);
         builder.Services.AddComgateAdapter(builder.Configuration);
@@ -71,21 +72,11 @@ public partial class Program
         builder.Services.AddGoogleAdsAdapter(builder.Configuration);
         builder.Services.AddAnthropicAdapter(builder.Configuration);
         builder.Services.AddOpenAiAdapter(builder.Configuration);
+        builder.Services.AddWebSearchAdapter(builder.Configuration);
         builder.Services.AddSendGridAdapter(builder.Configuration);
+        builder.Services.AddHomeAssistantAdapter(builder.Configuration);
 
-        // Bind IIssuedInvoiceSource to the implementation selected by Invoices:Source config flag.
-        // Valid values: "RestApi" | "Playwright" (default)
-        var invoicesSource = builder.Configuration["Invoices:Source"] ?? "Playwright";
-        if (string.Equals(invoicesSource, "RestApi", StringComparison.OrdinalIgnoreCase))
-        {
-            builder.Services.AddSingleton<IIssuedInvoiceSource>(
-                sp => sp.GetRequiredService<ShoptetApiInvoiceSource>());
-        }
-        else
-        {
-            builder.Services.AddSingleton<IIssuedInvoiceSource>(
-                sp => sp.GetRequiredService<ShoptetPlaywrightInvoiceSource>());
-        }
+        builder.Services.AddSingleton<IIssuedInvoiceSource>(sp => sp.GetRequiredService<ShoptetApiInvoiceSource>());
 
         // Print queue sink — valid values: "FileSystem" (default), "AzureBlob", "Cups", "Combined"
         builder.Services.AddPrintQueueSink(builder.Configuration);
@@ -118,10 +109,15 @@ public partial class Program
         // Initialize tile registry with all registered tiles
         app.InitializeTileRegistry();
 
-        // Seed default recurring job configurations from discovered IRecurringJob implementations
-        // Note: Database creation and migrations are handled automatically by EF Core during first connection
-        // This seeding runs after app.Build() to ensure the DI container is ready, but before pipeline
-        // configuration and Hangfire startup. This guarantees job configurations exist before recurring jobs start.
+        // Apply pending EF Core migrations in Production only.
+        // Other environments (Dev/Test/Staging/Automation) keep the manual `dotnet ef database update` workflow.
+        if (app.Environment.IsProduction())
+        {
+            await app.MigrateDatabaseAsync();
+        }
+
+        // Seed default recurring job configurations from discovered IRecurringJob implementations.
+        // Runs before pipeline configuration and Hangfire startup to guarantee job configurations exist before recurring jobs start.
         await app.SeedRecurringJobConfigurationsAsync();
 
         // Configure pipeline

@@ -112,7 +112,7 @@ jobs:
       fail-fast: false
       matrix:
         # Conditional matrix: parallel mode runs modules separately, sequential mode runs all at once
-        module: ${{ fromJSON(github.event.inputs.enable_parallel == 'true' && '["catalog", "issued-invoices", "stock-operations", "transport", "manufacturing", "core"]' || '["all"]') }}
+        module: ${{ fromJSON(github.event.inputs.enable_parallel == 'true' && '["catalog", "issued-invoices", "stock-operations", "transport", "manufacturing", "core", "marketing"]' || '["all"]') }}
 
     steps:
       - name: ℹ️ Test execution mode

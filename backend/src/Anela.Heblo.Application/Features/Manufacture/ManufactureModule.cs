@@ -56,6 +56,7 @@ public static class ManufactureModule
         services.RegisterTile<TodayProductionTile>();
         services.RegisterTile<NextDayProductionTile>();
         services.RegisterTile<ManualActionRequiredTile>();
+        services.RegisterTile<ManufactureConditionsTile>();
 
         // Register protocol renderer placeholder (replaced by QuestPdfManufactureProtocolRenderer in Phase 6)
         services.AddScoped<IManufactureProtocolRenderer, NotImplementedManufactureProtocolRenderer>();

@@ -98,7 +98,7 @@ length:   Short (~200 words) | Medium (~400 words) | Long (~700 words)
 
 ### `POST /api/leaflet/generate`
 
-Authentication: `[Authorize]` — Microsoft Entra ID JWT.
+Authentication: `[Authorize(Roles = "marketing_writer")]` — Microsoft Entra ID JWT. Requires the `marketing_writer` role for generation access.
 
 **Request:**
 ```json

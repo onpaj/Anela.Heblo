@@ -57,14 +57,14 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
                 var stockItem = stockItems.FirstOrDefault(s => s.ProductCode == consumptionItem.ProductCode);
                 var unitPrice = stockItem != null ? (double)stockItem.Price : 0;
 
-                // Round to 4 decimal places to eliminate double-precision drift that
-                // originates from (decimal -> double) conversions accumulating across
-                // FEFO lot allocations. Without this, Flexi rejects movements like
-                // 5800.0000000000009 > 5800.0 available. See PR #572 / commit fba995e1.
-                var amount = Math.Round(consumptionItem.Amount, 4);
+                // Truncate to 6 decimal places so we never submit more than available stock.
+                // Truncation (MidpointRounding.ToZero) is used deliberately — rounding up
+                // could produce a value exceeding the lot quantity on record in FlexiBee.
+                // See PR #572 / commit fba995e1.
+                var amount = RoundForFlexi(consumptionItem.Amount);
 
                 // Track cost per manufactured product
-                productCosts[consumptionItem.SourceProductCode] += unitPrice * amount;
+                productCosts[consumptionItem.SourceProductCode] += unitPrice * (double)amount;
 
                 stockMovementItems.Add(new StockItemsMovementUpsertRequestItemFlexiDto
                 {
@@ -140,8 +140,8 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
                 {
                     ProductCode = item.ProductCode,
                     ProductName = item.ProductName,
-                    Amount = (double)item.Amount,
-                    AmountIssued = (double)item.Amount,
+                    Amount = RoundForFlexi(item.Amount),
+                    AmountIssued = RoundForFlexi(item.Amount),
                     LotNumber = request.LotNumber,
                     Expiration = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
                     UnitPrice = unitPrice
@@ -211,10 +211,10 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
                 var stockItem = stockItems.FirstOrDefault(s => s.ProductCode == consumptionItem.ProductCode);
                 var unitPrice = stockItem != null ? (double)stockItem.Price : 0;
 
-                // Round to 4 decimal places — see SubmitConsolidatedConsumptionAsync above.
-                var amount = Math.Round(consumptionItem.Amount, 4);
+                // Truncate to 6 decimal places — see SubmitConsolidatedConsumptionAsync above.
+                var amount = RoundForFlexi(consumptionItem.Amount);
 
-                totalConsumptionCost += unitPrice * amount;
+                totalConsumptionCost += unitPrice * (double)amount;
 
                 stockMovementItems.Add(new StockItemsMovementUpsertRequestItemFlexiDto
                 {
@@ -263,6 +263,7 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
             capturedDocCode = consumptionResult?.Result?.Results?.FirstOrDefault()?.Code;
         }
 
+        // totalConsumptionCost is double (cost arithmetic) — rounds to 4dp for invoice precision, not stock precision.
         return new ConsumptionResult(Math.Round(totalConsumptionCost, 4), capturedDocCode);
     }
 
@@ -276,15 +277,15 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
             : FlexiStockClient.ProductsWarehouseId;
 
         var documentType = GetProductionDocumentType(request.ManufactureType);
-        var totalManufacturedAmount = request.Items.Sum(i => (double)i.Amount);
+        var totalManufacturedAmount = (double)request.Items.Sum(i => i.Amount);
         var manufacturedUnitPrice = totalManufacturedAmount > 0 ? totalConsumptionCost / totalManufacturedAmount : 0;
 
         var productMovementItems = request.Items.Select(item => new StockItemsMovementUpsertRequestItemFlexiDto
         {
             ProductCode = item.ProductCode,
             ProductName = item.ProductName,
-            Amount = (double)item.Amount,
-            AmountIssued = (double)item.Amount,
+            Amount = RoundForFlexi(item.Amount),
+            AmountIssued = RoundForFlexi(item.Amount),
             LotNumber = request.LotNumber,
             Expiration = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
             UnitPrice = manufacturedUnitPrice
@@ -327,7 +328,7 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
         var stockItem = stockItems.FirstOrDefault(s => s.ProductCode == request.DirectSemiProductOutputCode);
         var unitPrice = stockItem != null ? (double)stockItem.Price : 0;
 
-        var amount = Math.Round((double)request.DirectSemiProductOutputAmount, 4);
+        var amount = RoundForFlexi(request.DirectSemiProductOutputAmount);
 
         var movementItem = new StockItemsMovementUpsertRequestItemFlexiDto
         {
@@ -364,7 +365,7 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
                     request.DirectSemiProductOutputName ?? request.DirectSemiProductOutputCode!,
                     request.LotNumber,
                     request.ExpirationDate,
-                    (double)request.DirectSemiProductOutputAmount)
+                    request.DirectSemiProductOutputAmount)
             ];
 
             throw new FlexiManufactureException(
@@ -377,6 +378,8 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
 
         return result?.Result?.Results?.FirstOrDefault()?.Code;
     }
+
+    private static decimal RoundForFlexi(decimal x) => Math.Round(x, 6, MidpointRounding.ToZero);
 
     private static string GetProductionDocumentType(ErpManufactureType manufactureType)
     {

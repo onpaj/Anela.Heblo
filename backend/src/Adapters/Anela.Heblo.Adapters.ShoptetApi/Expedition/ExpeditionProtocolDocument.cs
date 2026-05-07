@@ -1,3 +1,4 @@
+using System.Globalization;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -20,6 +21,7 @@ public class ExpeditionProtocolDocument : IDocument
     private const float PopisCol = 8f; // absorbs former Varianta column (current 5 + 3)
     private const float MnozstviCol = 1.5f;
     private const float PoziceCol = 2f;
+    private const float CenaCol = 2f;
     private const float StavCol = 2f;
 
     private readonly ExpeditionProtocolData _data;
@@ -90,7 +92,11 @@ public class ExpeditionProtocolDocument : IDocument
                 $"{order.CustomerName}, {order.Address} {order.Phone}".Trim())
                 .FontSize(8);
 
+            // Items table
+            BuildItemsTable(orderCol.Item(), order.Items);
+
             // Notes — shown only when at least one remark is present
+            // Appears below items table with PaddingTop(2) separator
             var hasCustomerRemark = !string.IsNullOrWhiteSpace(order.CustomerRemark);
             var hasEshopRemark = !string.IsNullOrWhiteSpace(order.EshopRemark);
             if (hasCustomerRemark || hasEshopRemark)
@@ -105,11 +111,6 @@ public class ExpeditionProtocolDocument : IDocument
                             .FontSize(8).Italic();
                 });
             }
-
-            orderCol.Item().PaddingTop(2);
-
-            // Items table
-            BuildItemsTable(orderCol.Item(), order.Items);
 
         });
     }
@@ -157,7 +158,7 @@ public class ExpeditionProtocolDocument : IDocument
                 columns.RelativeColumn(KodCol);
                 columns.RelativeColumn(PopisCol);
                 columns.RelativeColumn(MnozstviCol);
-                columns.RelativeColumn(PoziceCol);
+                columns.RelativeColumn(CenaCol);
                 columns.RelativeColumn(StavCol);
             });
 
@@ -167,7 +168,7 @@ public class ExpeditionProtocolDocument : IDocument
                 header.Cell().Element(HeaderCell).Text("Kód").Bold();
                 header.Cell().Element(HeaderCell).Text("Popis položky").Bold();
                 header.Cell().Element(HeaderCellCenter).Text("Množství").Bold();
-                header.Cell().Element(HeaderCellCenter).Text("Pozice").Bold();
+                header.Cell().Element(HeaderCellCenter).Text("Cena").Bold();
                 header.Cell().Element(HeaderCellCenter).Text("Stav skladu").Bold();
             });
 
@@ -184,7 +185,7 @@ public class ExpeditionProtocolDocument : IDocument
                 table.Cell().Element(CenteredDataCell)
                     .Text(FormatAmount(item.Quantity, item.Unit)).FontSize(11).Bold();
                 table.Cell().Element(CenteredDataCell)
-                    .Text(item.WarehousePosition ?? string.Empty).FontSize(8);
+                    .Text(FormatPrice(item.UnitPrice)).FontSize(8);
                 table.Cell().Element(CenteredDataCell)
                     .Text(item.StockCount.ToString("0.##"));
             }
@@ -202,7 +203,7 @@ public class ExpeditionProtocolDocument : IDocument
                     table.Cell().Element(CenteredDataCell)
                         .Text(FormatAmount(item.Quantity, item.Unit)).FontSize(11).Bold().Italic();
                     table.Cell().Element(CenteredDataCell)
-                        .Text(item.WarehousePosition ?? string.Empty).FontSize(8).Italic();
+                        .Text(FormatPrice(item.UnitPrice)).FontSize(8).Italic();
                     table.Cell().Element(CenteredDataCell)
                         .Text(item.StockCount.ToString("0.##")).Italic();
                 }
@@ -274,6 +275,11 @@ public class ExpeditionProtocolDocument : IDocument
             ? variant[prefix.Length..]
             : variant;
     }
+
+    private static readonly CultureInfo CzechCulture = CultureInfo.GetCultureInfo("cs-CZ");
+
+    private static string FormatPrice(decimal price) =>
+        price == 0m ? string.Empty : $"{price.ToString("N0", CzechCulture)} Kč";
 
     private static byte[] GenerateBarcode(string text)
     {

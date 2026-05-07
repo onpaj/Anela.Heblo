@@ -5,6 +5,10 @@ namespace Anela.Heblo.Domain.Features.DataQuality;
 public interface IDqtRunRepository : IRepository<DqtRun, Guid>
 {
     Task<DqtRun?> GetLatestByTestTypeAsync(DqtTestType testType, CancellationToken cancellationToken = default);
+    Task<DqtRun?> GetLatestByTestTypeAndCoveredDateAsync(
+        DqtTestType testType,
+        DateOnly coveredDate,
+        CancellationToken cancellationToken = default);
     Task<(List<DqtRun> Items, int TotalCount)> GetPaginatedAsync(
         DqtTestType? testType,
         DqtRunStatus? status,

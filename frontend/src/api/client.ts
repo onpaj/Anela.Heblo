@@ -365,6 +365,25 @@ export const getAuthenticatedApiClientWithProvider = (
   return new ApiClient(config.apiUrl, customHttp);
 };
 
+/**
+ * Make a single GET request with the same authentication headers as the API client.
+ * Use this for resources that must be fetched via JS (e.g. images behind auth).
+ */
+export const authenticatedFetch = async (url: string): Promise<Response> => {
+  const authHeader = await getAuthHeader();
+  const headers: Record<string, string> = {};
+  if (isE2ETestMode()) {
+    const e2eToken = getE2EAccessToken();
+    if (e2eToken) headers["X-E2E-Test-Token"] = e2eToken;
+  } else if (authHeader) {
+    headers["Authorization"] = authHeader;
+  }
+  return fetch(url, {
+    headers,
+    credentials: isE2ETestMode() ? "include" : "same-origin",
+  });
+};
+
 // Legacy export for backward compatibility
 export { getApiClient as apiClient };
 
@@ -386,6 +405,7 @@ export const QUERY_KEYS = {
   financialOverview: ["financialOverview"] as const,
   journal: ["journal"] as const,
   marketingCalendar: ["marketing-calendar"] as const,
+  photobank: ["photobank"] as const,
   transportBox: ["transport-boxes"] as const,
   transportBoxTransitions: ["transportBoxTransitions"] as const,
   manufactureOutput: ["manufacture-output"] as const,
@@ -408,8 +428,10 @@ export const QUERY_KEYS = {
   stockUpOperations: ["stock-up-operations"] as const,
   recurringJobs: ["recurring-jobs"] as const,
   knowledgeBase: ["knowledge-base"] as const,
+  leaflet: ["leaflet"] as const,
   expeditionListArchive: ["expedition-list-archive"] as const,
   dataQuality: ["data-quality"] as const,
+  articles: ["articles"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

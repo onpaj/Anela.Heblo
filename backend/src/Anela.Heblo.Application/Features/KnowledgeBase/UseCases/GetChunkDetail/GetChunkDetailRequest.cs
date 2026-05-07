@@ -19,6 +19,7 @@ public class GetChunkDetailResponse : BaseResponse
     public int ChunkIndex { get; set; }
     public string Summary { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
+    public string? SourcePath { get; set; }
 
     public GetChunkDetailResponse() { }
 

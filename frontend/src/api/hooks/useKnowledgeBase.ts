@@ -134,6 +134,7 @@ export interface GetChunkDetailResponse {
   chunkIndex: number;
   summary: string;
   content: string;
+  sourcePath?: string;
 }
 
 export interface GetFeedbackListParams {
@@ -158,7 +159,7 @@ export interface GetFeedbackListResponse {
 // ---- Permission hooks ----
 
 /**
- * Returns true when the current MSAL account has the knowledge_base_manager role.
+ * Returns true when the current MSAL account has the super_user role.
  * Controls visibility of the Upload tab and delete buttons.
  */
 export const useKnowledgeBaseUploadPermission = (): boolean => {
@@ -167,14 +168,14 @@ export const useKnowledgeBaseUploadPermission = (): boolean => {
   // In mock auth mode, MSAL has no accounts — read roles from mockAuthService instead
   if (shouldUseMockAuth()) {
     const user = mockAuthService.getUser();
-    return !!(Array.isArray(user?.roles) && user?.roles.includes('knowledge_base_manager'));
+    return !!(Array.isArray(user?.roles) && user?.roles.includes('super_user'));
   }
 
   const account = accounts[0];
   if (!account) return false;
   const claims = account.idTokenClaims as Record<string, unknown> | undefined;
   const roles = claims?.['roles'];
-  return Array.isArray(roles) && roles.includes('knowledge_base_manager');
+  return Array.isArray(roles) && roles.includes('super_user');
 };
 
 // ---- Query key factory ----
@@ -451,7 +452,7 @@ export const useUploadKnowledgeBaseDocumentMutation = () => {
 
 /**
  * Fetch paginated, filtered, sorted feedback logs for the Feedback Browser.
- * Only accessible to knowledge_base_manager role.
+ * Only accessible to super_user role.
  */
 export const useKnowledgeBaseFeedbackListQuery = (params: GetFeedbackListParams = {}) => {
   return useQuery({
