@@ -22,12 +22,6 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag
 
         public async Task<BulkAddPhotoTagResponse> Handle(BulkAddPhotoTagRequest request, CancellationToken cancellationToken)
         {
-            bool hasFilter = !string.IsNullOrWhiteSpace(request.Search)
-                || !string.IsNullOrWhiteSpace(request.FolderPath)
-                || (request.Tags != null && request.Tags.Any(t => !string.IsNullOrWhiteSpace(t)));
-            if (!hasFilter)
-                return new BulkAddPhotoTagResponse(ErrorCodes.BulkTagFiltersRequired);
-
             var total = await _repository.CountFilteredPhotosAsync(
                 request.Tags, request.Search, request.FolderPath, cancellationToken);
 

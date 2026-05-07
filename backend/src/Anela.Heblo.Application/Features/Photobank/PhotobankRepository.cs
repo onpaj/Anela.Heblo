@@ -22,10 +22,7 @@ namespace Anela.Heblo.Application.Features.Photobank
 
         private IQueryable<Photo> BuildFilterQuery(List<string>? tags, string? search, string? folderPath)
         {
-            var query = _context.Photos
-                .Include(p => p.Tags)
-                    .ThenInclude(pt => pt.Tag)
-                .AsQueryable();
+            var query = _context.Photos.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -60,7 +57,9 @@ namespace Anela.Heblo.Application.Features.Photobank
             List<string>? tags, string? search, string? folderPath, int page, int pageSize,
             CancellationToken cancellationToken)
         {
-            var query = BuildFilterQuery(tags, search, folderPath);
+            var query = BuildFilterQuery(tags, search, folderPath)
+                .Include(p => p.Tags)
+                    .ThenInclude(pt => pt.Tag);
 
             var total = await query.CountAsync(cancellationToken);
             var items = await query

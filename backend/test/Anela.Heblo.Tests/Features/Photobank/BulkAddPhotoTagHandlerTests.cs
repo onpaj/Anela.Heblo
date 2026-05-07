@@ -24,50 +24,6 @@ public class BulkAddPhotoTagHandlerTests
     private static Tag BuildTag(int id, string name) => new() { Id = id, Name = name };
 
     [Fact]
-    public async Task Handle_EmptyFilter_ReturnsBulkTagFiltersRequiredError()
-    {
-        // Arrange
-        var request = new BulkAddPhotoTagRequest
-        {
-            TagName = "flowers",
-            Tags = null,
-            Search = null,
-            FolderPath = null,
-        };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.BulkTagFiltersRequired);
-
-        _repositoryMock.Verify(r => r.CountFilteredPhotosAsync(
-            It.IsAny<List<string>?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_EmptyTagList_ReturnsBulkTagFiltersRequiredError()
-    {
-        // Arrange — Tags list present but all whitespace
-        var request = new BulkAddPhotoTagRequest
-        {
-            TagName = "flowers",
-            Tags = new List<string> { "  ", "" },
-            Search = null,
-            FolderPath = null,
-        };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.BulkTagFiltersRequired);
-    }
-
-    [Fact]
     public async Task Handle_OnlySearchProvided_TagsAllPhotosAndReturnsSuccess()
     {
         // Arrange
