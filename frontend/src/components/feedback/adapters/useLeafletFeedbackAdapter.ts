@@ -14,7 +14,7 @@ export function useLeafletFeedbackAdapter(params: GenericFeedbackParams) {
   const rows: FeedbackDetail[] = (query.data?.items ?? []).map((item) => ({
     id: item.id,
     primaryText: item.topic,
-    secondaryText: (item.finalMarkdown ?? '').slice(0, 120),
+    secondaryText: item.finalMarkdown ?? '',
     createdAt: item.createdAt,
     userId: item.userId ?? undefined,
     precisionScore: item.precisionScore,
