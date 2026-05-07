@@ -1,50 +1,67 @@
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Xcc.Services.Dashboard;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.DataQuality.DashboardTiles;
 
 public class DqtYesterdayStatusTile : ITile
 {
+    private const string DrillDownHref = "/automation/data-quality";
+
     private readonly IDqtRunRepository _repository;
     private readonly TimeProvider _timeProvider;
+    private readonly ILogger<DqtYesterdayStatusTile> _logger;
 
     public string Title => "DQT včera";
     public string Description => "Stav včerejšího DQT testu faktur";
-    public TileSize Size => TileSize.Small;
+    public TileSize Size => TileSize.Medium;
     public TileCategory Category => TileCategory.DataQuality;
     public bool DefaultEnabled => true;
     public bool AutoShow => false;
     public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
-    public DqtYesterdayStatusTile(IDqtRunRepository repository, TimeProvider timeProvider)
+    public DqtYesterdayStatusTile(
+        IDqtRunRepository repository,
+        TimeProvider timeProvider,
+        ILogger<DqtYesterdayStatusTile> logger)
     {
         _repository = repository;
         _timeProvider = timeProvider;
+        _logger = logger;
     }
 
-    public async Task<object> LoadDataAsync(Dictionary<string, string>? parameters = null, CancellationToken cancellationToken = default)
+    public async Task<object> LoadDataAsync(
+        Dictionary<string, string>? parameters = null,
+        CancellationToken cancellationToken = default)
     {
+        var yesterday = DateOnly.FromDateTime(_timeProvider.GetUtcNow().DateTime).AddDays(-1);
+
         try
         {
-            var yesterday = DateOnly.FromDateTime(_timeProvider.GetUtcNow().Date.AddDays(-1));
-            var run = await _repository.GetLatestByTestTypeAsync(DqtTestType.IssuedInvoiceComparison, cancellationToken);
+            var run = await _repository.GetLatestByTestTypeAndCoveredDateAsync(
+                DqtTestType.IssuedInvoiceComparison,
+                yesterday,
+                cancellationToken);
 
-            if (run is null || run.DateFrom != yesterday)
+            if (run is null)
             {
                 return new
                 {
                     status = "no_data",
                     data = (object?)null,
-                    drillDown = new { href = "/data-quality", enabled = true }
+                    drillDown = new { href = DrillDownHref, enabled = true }
                 };
             }
 
-            var statusStr = run.Status == DqtRunStatus.Failed
-                ? "error"
-                : run.TotalMismatches > 0
-                    ? "warning"
-                    : "success";
+            var statusStr = run.Status switch
+            {
+                DqtRunStatus.Failed => "error",
+                DqtRunStatus.Running => "warning",
+                DqtRunStatus.Completed when run.TotalMismatches > 0 => "warning",
+                DqtRunStatus.Completed => "success",
+                _ => "error"
+            };
 
             return new
             {
@@ -58,16 +75,22 @@ public class DqtYesterdayStatusTile : ITile
                     totalChecked = run.TotalChecked,
                     totalMismatches = run.TotalMismatches
                 },
-                drillDown = new { href = "/data-quality", enabled = true }
+                drillDown = new { href = DrillDownHref, enabled = true }
             };
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(
+                ex,
+                "Failed to load yesterday DQT status for {TestType} on {TargetDate}",
+                DqtTestType.IssuedInvoiceComparison,
+                yesterday);
+
             return new
             {
                 status = "error",
                 data = (object?)null,
-                drillDown = new { href = "/data-quality", enabled = true }
+                drillDown = new { href = DrillDownHref, enabled = true }
             };
         }
     }

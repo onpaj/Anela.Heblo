@@ -10,7 +10,7 @@ public class ManufactureConditionsTile : ITile
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<ManufactureConditionsTile> _logger;
 
-    public string Title => "Podmínky v dílně";
+    public string Title => "Podmínky ve výrobně";
     public string Description => "Aktuální teplota a vlhkost (vnitřní / venkovní)";
     public TileSize Size => TileSize.Medium;
     public TileCategory Category => TileCategory.Manufacture;

@@ -1,8 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useMsal } from '@azure/msal-react';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
-import { shouldUseMockAuth } from '../../config/runtimeConfig';
-import { mockAuthService } from '../../auth/mockAuth';
 import {
   ArticleStatus,
   GenerateArticleRequest,
@@ -111,23 +108,6 @@ export const IN_PROGRESS_STATUSES = new Set<ArticleStatus>([
   ArticleStatus.Researching,
   ArticleStatus.Writing,
 ]);
-
-// ---- Permission hook ----
-
-export const useArticleGeneratorPermission = (): boolean => {
-  const { accounts } = useMsal();
-
-  if (shouldUseMockAuth()) {
-    const user = mockAuthService.getUser();
-    return !!(Array.isArray(user?.roles) && user?.roles.includes('article_generator'));
-  }
-
-  const account = accounts[0];
-  if (!account) return false;
-  const claims = account.idTokenClaims as Record<string, unknown> | undefined;
-  const roles = claims?.['roles'];
-  return Array.isArray(roles) && roles.includes('article_generator');
-};
 
 // ---- Query key factory ----
 

@@ -299,13 +299,11 @@ namespace Anela.Heblo.API.Controllers
                 return NotFound();
             }
 
-            using var thumbnail = rawThumbnail;
-
             Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
-            if (thumbnail.ContentLength.HasValue)
-                Response.ContentLength = thumbnail.ContentLength;
+            if (rawThumbnail.ContentLength.HasValue)
+                Response.ContentLength = rawThumbnail.ContentLength;
 
-            return new FileStreamResult(thumbnail.Content, thumbnail.ContentType);
+            return new FileStreamResult(rawThumbnail.Content, rawThumbnail.ContentType);
         }
     }
 
