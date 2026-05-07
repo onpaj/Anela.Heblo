@@ -10,8 +10,6 @@ public class CreateTagRequestValidator : AbstractValidator<CreateTagRequest>
         RuleFor(x => x.Name)
             .NotEmpty()
             .WithMessage("Name is required")
-            .Must(name => !string.IsNullOrWhiteSpace(name))
-            .WithMessage("Name cannot be whitespace only")
             .MaximumLength(100)
             .WithMessage("Name cannot exceed 100 characters");
     }

@@ -71,30 +71,32 @@ public class CreateTagHandlerTests
         _repositoryMock.Verify(r => r.GetOrCreateTagAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    [Fact]
-    public async Task Handle_MixedCaseInput_PassesNormalizedNameToRepositoryCalls()
+    [Theory]
+    [InlineData("HELLO World", "hello world")]
+    [InlineData("  Summer  ", "summer")]
+    public async Task Handle_NormalizableInput_PassesNormalizedNameToRepositoryCalls(string input, string expectedNormalized)
     {
         // Arrange
-        var createdTag = BuildTag(10, "hello world");
+        var createdTag = BuildTag(10, expectedNormalized);
 
         _repositoryMock
-            .Setup(r => r.GetTagByNameAsync("hello world", It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetTagByNameAsync(expectedNormalized, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Tag?)null);
 
         _repositoryMock
-            .Setup(r => r.GetOrCreateTagAsync("hello world", It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetOrCreateTagAsync(expectedNormalized, It.IsAny<CancellationToken>()))
             .ReturnsAsync(createdTag);
 
-        var request = new CreateTagRequest { Name = "HELLO World" };
+        var request = new CreateTagRequest { Name = input };
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        result.Name.Should().Be("hello world");
+        result.Name.Should().Be(expectedNormalized);
         result.AlreadyExisted.Should().BeFalse();
 
-        _repositoryMock.Verify(r => r.GetTagByNameAsync("hello world", It.IsAny<CancellationToken>()), Times.Once);
-        _repositoryMock.Verify(r => r.GetOrCreateTagAsync("hello world", It.IsAny<CancellationToken>()), Times.Once);
+        _repositoryMock.Verify(r => r.GetTagByNameAsync(expectedNormalized, It.IsAny<CancellationToken>()), Times.Once);
+        _repositoryMock.Verify(r => r.GetOrCreateTagAsync(expectedNormalized, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

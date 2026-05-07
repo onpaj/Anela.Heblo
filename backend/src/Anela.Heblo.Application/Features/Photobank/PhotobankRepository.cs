@@ -130,10 +130,15 @@ namespace Anela.Heblo.Application.Features.Photobank
             return results.Select(x => (x.Tag, x.Count)).ToList();
         }
 
+        private Task<Tag?> FindTagByNameAsync(string normalizedName, CancellationToken ct)
+        {
+            return _context.PhotobankTags
+                .FirstOrDefaultAsync(t => t.Name == normalizedName, ct);
+        }
+
         public async Task<Tag?> GetOrCreateTagAsync(string normalizedName, CancellationToken cancellationToken)
         {
-            var existing = await _context.PhotobankTags
-                .FirstOrDefaultAsync(t => t.Name == normalizedName, cancellationToken);
+            var existing = await FindTagByNameAsync(normalizedName, cancellationToken);
 
             if (existing != null)
                 return existing;
@@ -149,10 +154,9 @@ namespace Anela.Heblo.Application.Features.Photobank
             return await _context.PhotobankTags.FindAsync(new object[] { id }, cancellationToken);
         }
 
-        public async Task<Tag?> GetTagByNameAsync(string normalizedName, CancellationToken cancellationToken)
+        public Task<Tag?> GetTagByNameAsync(string normalizedName, CancellationToken cancellationToken)
         {
-            return await _context.PhotobankTags
-                .FirstOrDefaultAsync(t => t.Name == normalizedName, cancellationToken);
+            return FindTagByNameAsync(normalizedName, cancellationToken);
         }
 
         public async Task<bool> DeleteTagAsync(int tagId, CancellationToken cancellationToken)
