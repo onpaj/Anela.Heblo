@@ -8,6 +8,8 @@ using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRule;
 using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag;
+using Anela.Heblo.Application.Features.Photobank.UseCases.CreateTag;
+using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRule;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos;
@@ -81,6 +83,36 @@ namespace Anela.Heblo.API.Controllers
         {
             var response = await _mediator.Send(new GetTagsRequest(), cancellationToken);
             return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Create a new tag. Requires marketing writer role.
+        /// </summary>
+        [HttpPost("tags")]
+        [Authorize(Roles = AuthorizationConstants.Roles.MarketingWriter)]
+        [ProducesResponseType(typeof(CreateTagResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> CreateTag([FromBody] CreateTagBody body, CancellationToken ct)
+        {
+            var response = await _mediator.Send(new CreateTagRequest { Name = body.Name }, ct);
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Delete a tag by ID. Requires marketing writer role.
+        /// </summary>
+        [HttpDelete("tags/{id:int}")]
+        [Authorize(Roles = AuthorizationConstants.Roles.MarketingWriter)]
+        [ProducesResponseType(typeof(DeleteTagResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteTag(int id, CancellationToken ct)
+        {
+            var response = await _mediator.Send(new DeleteTagRequest { Id = id }, ct);
+            if (!response.Deleted)
+                return NotFound();
+            return Ok(response);
         }
 
         /// <summary>
@@ -338,6 +370,11 @@ namespace Anela.Heblo.API.Controllers
     public class AddPhotoTagBody
     {
         public string TagName { get; set; } = null!;
+    }
+
+    public class CreateTagBody
+    {
+        public string Name { get; set; } = string.Empty;
     }
 
     public class BulkAddPhotoTagBody
