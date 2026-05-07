@@ -87,7 +87,7 @@ function PhotobankPage() {
     [selectedTagIds, tagsData],
   );
 
-  const { data: photosData, isLoading: photosLoading } = usePhotos({
+  const { data: photosData, isLoading: photosLoading, isError: photosError } = usePhotos({
     tags: selectedTagNames.length > 0 ? selectedTagNames : undefined,
     search: search || undefined,
     useRegex: useRegex || undefined,
@@ -96,6 +96,10 @@ function PhotobankPage() {
     page,
     pageSize: DEFAULT_PAGE_SIZE,
   });
+
+  const searchErrorMessage = photosError && useRegex
+    ? "Neplatný regulární výraz"
+    : null;
 
   const handleTagToggle = useCallback((tagId: number) => {
     setSelectedTagIds((prev) =>
@@ -184,6 +188,7 @@ function PhotobankPage() {
             onWithoutTagsToggle={() => { setWithoutTags((v) => !v); setPage(1); }}
             onClearFilters={handleClearFilters}
             onRegexChange={handleRegexChange}
+            errorMessage={searchErrorMessage}
           />
         </div>
 

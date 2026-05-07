@@ -16,6 +16,7 @@ interface TagSidebarProps {
   onWithoutTagsToggle: () => void;
   onClearFilters: () => void;
   onRegexChange: (value: boolean) => void;
+  errorMessage?: string | null;
 }
 
 const DEBOUNCE_MS = 300;
@@ -33,6 +34,7 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
   onWithoutTagsToggle,
   onClearFilters,
   onRegexChange,
+  errorMessage,
 }) => {
   const [inputValue, setInputValue] = useState(search);
   const [folderPathValue, setFolderPathValue] = useState(folderPath);
@@ -170,6 +172,9 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
         </label>
         {regexError && (
           <p className="mt-1 text-xs text-red-600">{regexError}</p>
+        )}
+        {!regexError && errorMessage && (
+          <p className="mt-1 text-xs text-red-600">{errorMessage}</p>
         )}
 
         {/* Folder path input */}
