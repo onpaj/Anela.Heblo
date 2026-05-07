@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule;
 using FluentValidation;
 
@@ -17,7 +16,7 @@ public class UpdateRuleRequestValidator : AbstractValidator<UpdateRuleRequest>
             .WithMessage("PathPattern is required")
             .MaximumLength(500)
             .WithMessage("PathPattern cannot exceed 500 characters")
-            .Must(BeValidRegex)
+            .Must(PhotobankValidationHelpers.BeValidRegex)
             .WithMessage("Invalid regular expression pattern.");
 
         RuleFor(x => x.TagName)
@@ -28,12 +27,5 @@ public class UpdateRuleRequestValidator : AbstractValidator<UpdateRuleRequest>
 
         RuleFor(x => x.SortOrder)
             .GreaterThanOrEqualTo(0);
-    }
-
-    private static bool BeValidRegex(string? pattern)
-    {
-        if (string.IsNullOrWhiteSpace(pattern)) return true;
-        try { _ = new Regex(pattern); return true; }
-        catch (ArgumentException) { return false; }
     }
 }

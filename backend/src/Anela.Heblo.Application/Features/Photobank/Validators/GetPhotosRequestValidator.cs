@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos;
 using FluentValidation;
 
@@ -21,15 +20,8 @@ public class GetPhotosRequestValidator : AbstractValidator<GetPhotosRequest>
             .WithMessage($"PageSize cannot exceed {MaxPageSize}");
 
         RuleFor(x => x.Search)
-            .Must(BeValidRegex)
+            .Must(PhotobankValidationHelpers.BeValidRegex)
             .When(x => x.UseRegex && !string.IsNullOrWhiteSpace(x.Search))
             .WithMessage("Invalid regular expression pattern.");
-    }
-
-    private static bool BeValidRegex(string? pattern)
-    {
-        if (string.IsNullOrWhiteSpace(pattern)) return true;
-        try { _ = new Regex(pattern); return true; }
-        catch (ArgumentException) { return false; }
     }
 }
