@@ -9,6 +9,8 @@ using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRule;
 using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByIds;
+using Anela.Heblo.Application.Features.Photobank.UseCases.CreateTag;
+using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRule;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos;
@@ -84,6 +86,34 @@ namespace Anela.Heblo.API.Controllers
         public async Task<ActionResult<GetTagsResponse>> GetTags(CancellationToken cancellationToken = default)
         {
             var response = await _mediator.Send(new GetTagsRequest(), cancellationToken);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Create a new tag. Requires super user role.
+        /// </summary>
+        [HttpPost("tags")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(CreateTagResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<CreateTagResponse>> CreateTag([FromBody] CreateTagBody body, CancellationToken ct)
+        {
+            var response = await _mediator.Send(new CreateTagRequest { Name = body.Name }, ct);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Delete a tag by ID. Requires super user role.
+        /// </summary>
+        [HttpDelete("tags/{id:int}")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(DeleteTagResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<DeleteTagResponse>> DeleteTag(int id, CancellationToken ct)
+        {
+            var response = await _mediator.Send(new DeleteTagRequest { Id = id }, ct);
             return HandleResponse(response);
         }
 
@@ -365,6 +395,11 @@ namespace Anela.Heblo.API.Controllers
     public class AddPhotoTagBody
     {
         public string TagName { get; set; } = null!;
+    }
+
+    public class CreateTagBody
+    {
+        public string Name { get; set; } = string.Empty;
     }
 
     public class BulkAddPhotoTagBody
