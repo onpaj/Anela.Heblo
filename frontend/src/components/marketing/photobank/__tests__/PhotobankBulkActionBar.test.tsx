@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import PhotobankBulkActionBar from "../PhotobankBulkActionBar";
 import type { TagWithCountDto } from "../../../../api/hooks/usePhotobank";
 
@@ -59,13 +60,13 @@ describe("PhotobankBulkActionBar", () => {
   test("clicking apply calls onApplyTag with trimmed value", async () => {
     // Arrange
     const onApplyTag = jest.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
     renderBar({ onApplyTag });
 
     // Act
-    fireEvent.change(screen.getByTestId("bulk-tag-input"), {
-      target: { value: "  akce  " },
-    });
-    fireEvent.click(screen.getByTestId("bulk-apply-btn"));
+    await user.clear(screen.getByTestId("bulk-tag-input"));
+    await user.type(screen.getByTestId("bulk-tag-input"), "  akce  ");
+    await user.click(screen.getByTestId("bulk-apply-btn"));
 
     // Assert
     await waitFor(() => {
@@ -76,12 +77,13 @@ describe("PhotobankBulkActionBar", () => {
   test("pressing Enter in input calls onApplyTag", async () => {
     // Arrange
     const onApplyTag = jest.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
     renderBar({ onApplyTag });
 
     // Act
-    const input = screen.getByTestId("bulk-tag-input");
-    fireEvent.change(input, { target: { value: "test" } });
-    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    await user.click(screen.getByTestId("bulk-tag-input"));
+    await user.type(screen.getByTestId("bulk-tag-input"), "test");
+    await user.keyboard("{Enter}");
 
     // Assert
     await waitFor(() => {

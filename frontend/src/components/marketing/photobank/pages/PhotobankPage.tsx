@@ -83,6 +83,8 @@ function PhotobankPage() {
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
     );
     setPage(1);
+    setSelectedIds(new Set());
+    setSelectionAnchorId(null);
   }, []);
 
   const handleSearchChange = useCallback((value: string) => {
@@ -104,6 +106,8 @@ function PhotobankPage() {
     setSearch("");
     setFolderPath("");
     setPage(1);
+    setSelectedIds(new Set());
+    setSelectionAnchorId(null);
   }, []);
 
   const handlePhotoSelect = useCallback((photo: PhotoDto) => {

@@ -45,7 +45,7 @@ function PhotoList({
 
   if (isLoading) {
     return (
-      <div className="flex-1 p-4 space-y-3">
+      <div className="flex-1 p-4 space-y-3" data-testid="loading-skeleton">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex gap-3 animate-pulse">
             <div className="w-20 h-20 bg-gray-200 rounded-lg flex-shrink-0" />

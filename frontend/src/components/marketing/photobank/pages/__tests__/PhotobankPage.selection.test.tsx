@@ -80,19 +80,9 @@ test("initial state: bulk action bar not shown when nothing selected", () => {
   expect(screen.queryByTestId("bulk-action-bar")).not.toBeInTheDocument();
 });
 
-test("bulk action bar not shown when canBulkTag=false (no marketing_writer role)", () => {
-  // Arrange — use no-role account
-  jest.resetModules();
-  // Re-render with explicit no-role mock (test isolation via different module mock)
-  // This test verifies that canBulkTag gate works via absence of action bar when role missing.
-  // The simpler approach: mock useMsal to return no roles
-  render(<PhotobankPage />);
-
-  // Since the default mock includes marketing_writer, the action bar is hidden (no selection),
-  // so we just verify that checkboxes rendered from PhotoGrid pass canSelect properly.
-  // Full role-gate test is covered by the grid/list unit tests.
-  expect(screen.queryByTestId("bulk-action-bar")).not.toBeInTheDocument();
-});
+// TODO: Add a test for canBulkTag=false (no marketing_writer role) that properly isolates
+// the useMsal mock per describe block. The role gate is exercised implicitly by unit tests
+// on PhotoGrid and PhotoList (canSelect=false hides checkboxes).
 
 test("checkboxes are rendered in grid view when canBulkTag=true", () => {
   // Arrange & Act

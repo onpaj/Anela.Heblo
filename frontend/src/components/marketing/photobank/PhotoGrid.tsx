@@ -66,17 +66,14 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
             const isSelected = photo.id === selectedPhotoId;
             const isChecked = selectedIds.has(photo.id);
             return (
-              <button
+              <div
                 key={photo.id}
-                onClick={() => onPhotoSelect(photo)}
                 className={[
-                  "group relative aspect-square rounded-lg overflow-hidden border-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary-blue focus:ring-offset-2",
+                  "group relative aspect-square rounded-lg overflow-hidden border-2 transition-all",
                   isSelected
                     ? "border-primary-blue ring-2 ring-primary-blue ring-offset-1"
                     : "border-transparent hover:border-gray-300",
                 ].join(" ")}
-                aria-pressed={isSelected}
-                aria-label={photo.name}
               >
                 {canSelect && (
                   <div
@@ -86,7 +83,6 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
                         ? "opacity-100"
                         : "opacity-0 group-hover:opacity-100 focus-within:opacity-100",
                     ].join(" ")}
-                    onClick={(e) => e.stopPropagation()}
                   >
                     <input
                       type="checkbox"
@@ -103,17 +99,24 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
                     />
                   </div>
                 )}
-                <PhotoThumbnail
-                  photoId={photo.id}
-                  modifiedAt={photo.lastModifiedAt}
-                  alt={photo.name}
-                  className="w-full h-full"
-                  size="medium"
-                />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 hover:opacity-100 transition-opacity">
-                  <p className="text-white text-xs truncate">{photo.name}</p>
-                </div>
-              </button>
+                <button
+                  onClick={() => onPhotoSelect(photo)}
+                  className="w-full h-full focus:outline-none focus:ring-2 focus:ring-primary-blue focus:ring-offset-2"
+                  aria-pressed={isSelected}
+                  aria-label={photo.name}
+                >
+                  <PhotoThumbnail
+                    photoId={photo.id}
+                    modifiedAt={photo.lastModifiedAt}
+                    alt={photo.name}
+                    className="w-full h-full"
+                    size="medium"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 hover:opacity-100 transition-opacity">
+                    <p className="text-white text-xs truncate">{photo.name}</p>
+                  </div>
+                </button>
+              </div>
             );
           })}
         </div>

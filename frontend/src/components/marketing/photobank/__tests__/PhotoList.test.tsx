@@ -177,7 +177,7 @@ describe("PhotoList", () => {
 
     // Assert — no photos rendered, skeleton present via animate-pulse divs
     expect(screen.queryByRole("button", { name: /photo/ })).not.toBeInTheDocument();
-    expect(document.querySelector(".animate-pulse")).toBeInTheDocument();
+    expect(screen.getByTestId("loading-skeleton")).toBeInTheDocument();
   });
 
   test("shows empty state when photos is empty and not loading", () => {
