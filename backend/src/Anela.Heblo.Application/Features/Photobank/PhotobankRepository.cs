@@ -20,14 +20,9 @@ namespace Anela.Heblo.Application.Features.Photobank
 
         // Photos
 
-        public async Task<(List<Photo> Items, int Total)> GetPhotosAsync(
-            List<string>? tags, string? search, string? folderPath, int page, int pageSize,
-            CancellationToken cancellationToken)
+        private IQueryable<Photo> BuildFilterQuery(List<string>? tags, string? search, string? folderPath)
         {
-            var query = _context.Photos
-                .Include(p => p.Tags)
-                    .ThenInclude(pt => pt.Tag)
-                .AsQueryable();
+            var query = _context.Photos.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -55,6 +50,20 @@ namespace Anela.Heblo.Application.Features.Photobank
                 }
             }
 
+            return query;
+        }
+
+        public async Task<(List<Photo> Items, int Total)> GetPhotosAsync(
+            List<string>? tags, string? search, string? folderPath, bool withoutTags, int page, int pageSize,
+            CancellationToken cancellationToken)
+        {
+            IQueryable<Photo> query = BuildFilterQuery(tags, search, folderPath)
+                .Include(p => p.Tags)
+                    .ThenInclude(pt => pt.Tag);
+
+            if (withoutTags)
+                query = query.Where(p => !p.Tags.Any());
+
             var total = await query.CountAsync(cancellationToken);
             var items = await query
                 .OrderByDescending(p => p.ModifiedAt)
@@ -63,6 +72,25 @@ namespace Anela.Heblo.Application.Features.Photobank
                 .ToListAsync(cancellationToken);
 
             return (items, total);
+        }
+
+        public async Task<int> CountFilteredPhotosAsync(
+            List<string>? tags, string? search, string? folderPath,
+            CancellationToken cancellationToken)
+        {
+            var query = BuildFilterQuery(tags, search, folderPath);
+            return await query.CountAsync(cancellationToken);
+        }
+
+        public async Task<List<int>> GetFilteredPhotoIdsMissingTagAsync(
+            List<string>? tags, string? search, string? folderPath, int tagId,
+            CancellationToken cancellationToken)
+        {
+            var query = BuildFilterQuery(tags, search, folderPath);
+            return await query
+                .Where(p => !p.Tags.Any(pt => pt.TagId == tagId))
+                .Select(p => p.Id)
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<Photo?> GetPhotoByIdAsync(int id, CancellationToken cancellationToken)

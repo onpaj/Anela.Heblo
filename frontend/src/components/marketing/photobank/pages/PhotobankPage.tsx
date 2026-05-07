@@ -1,20 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Grid3x3, List, Settings } from "lucide-react";
+import { Grid3x3, List, Settings, Tag } from "lucide-react";
 import { useMsal } from "@azure/msal-react";
 import TagSidebar from "../TagSidebar";
 import PhotoGrid from "../PhotoGrid";
 import PhotoList from "../PhotoList";
 import PhotoDrawer from "../PhotoDrawer";
 import PhotoViewToggle from "../PhotoViewToggle";
+import BulkTagButton from "../BulkTagButton";
+import BulkTagDialog from "../BulkTagDialog";
 import { usePhotos, usePhotoTags } from "../../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../../api/hooks/usePhotobank";
 
 const ADMIN_ROLE = "super_user";
+const TAGGER_ROLE = "marketing_writer";
 
 const DEFAULT_PAGE_SIZE = 48;
 const SIDEBAR_WIDTH = "220px";
 const STORAGE_KEY = "photobank.view";
+const STORAGE_KEY_TAGS_ON_TILES = "photobank.tagsOnTiles";
 
 type ViewMode = "tiles" | "list";
 
@@ -32,17 +36,29 @@ function readViewMode(): ViewMode {
   }
 }
 
+function readTagsOnTiles(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY_TAGS_ON_TILES) === "1";
+  } catch {
+    return false;
+  }
+}
+
 function PhotobankPage() {
   const { accounts } = useMsal();
-  const isAdmin =
-    (accounts[0]?.idTokenClaims as any)?.roles?.includes(ADMIN_ROLE) ?? false;
+  const roles = (accounts[0]?.idTokenClaims as any)?.roles as string[] | undefined;
+  const isAdmin = roles?.includes(ADMIN_ROLE) ?? false;
+  const canBulkTag = roles?.includes(TAGGER_ROLE) ?? false;
 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [search, setSearch] = useState("");
   const [folderPath, setFolderPath] = useState("");
+  const [withoutTags, setWithoutTags] = useState(false);
   const [page, setPage] = useState(1);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoDto | null>(null);
   const [view, setView] = useState<ViewMode>(readViewMode);
+  const [tagsOnTiles, setTagsOnTiles] = useState<boolean>(readTagsOnTiles);
+  const [bulkTagDialogOpen, setBulkTagDialogOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -51,6 +67,14 @@ function PhotobankPage() {
       // private browsing
     }
   }, [view]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_TAGS_ON_TILES, tagsOnTiles ? "1" : "0");
+    } catch {
+      // private browsing
+    }
+  }, [tagsOnTiles]);
 
   const { data: tagsData } = usePhotoTags();
 
@@ -66,6 +90,7 @@ function PhotobankPage() {
     tags: selectedTagNames.length > 0 ? selectedTagNames : undefined,
     search: search || undefined,
     folderPath: folderPath || undefined,
+    withoutTags: withoutTags || undefined,
     page,
     pageSize: DEFAULT_PAGE_SIZE,
   });
@@ -91,6 +116,7 @@ function PhotobankPage() {
     setSelectedTagIds([]);
     setSearch("");
     setFolderPath("");
+    setWithoutTags(false);
     setPage(1);
   }, []);
 
@@ -106,6 +132,9 @@ function PhotobankPage() {
     setPage(newPage);
     setSelectedPhoto(null);
   }, []);
+
+  const handleOpenBulkTagDialog = useCallback(() => setBulkTagDialogOpen(true), []);
+  const handleCloseBulkTagDialog = useCallback(() => setBulkTagDialogOpen(false), []);
 
   const sharedPhotoProps = {
     photos: photosData?.items ?? [],
@@ -139,27 +168,58 @@ function PhotobankPage() {
             selectedTagIds={selectedTagIds}
             search={search}
             folderPath={folderPath}
+            withoutTags={withoutTags}
             onTagToggle={handleTagToggle}
             onSearchChange={handleSearchChange}
             onFolderPathChange={handleFolderPathChange}
+            onWithoutTagsToggle={() => { setWithoutTags((v) => !v); setPage(1); }}
             onClearFilters={handleClearFilters}
           />
         </div>
 
         {/* Main content area */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* View toggle bar */}
-          <div className="flex items-center justify-end px-4 py-2 border-b border-gray-100">
-            <PhotoViewToggle
-              options={VIEW_OPTIONS}
-              value={view}
-              onChange={(v) => setView(v as ViewMode)}
-            />
+          {/* View toggle + bulk tag bar */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+            <div>
+              {canBulkTag && (
+                <BulkTagButton
+                  search={search}
+                  folderPath={folderPath}
+                  selectedTagNames={selectedTagNames}
+                  totalMatching={photosData?.total ?? 0}
+                  onOpenDialog={handleOpenBulkTagDialog}
+                />
+              )}
+            </div>
+            <div className="flex items-center">
+              <PhotoViewToggle
+                options={VIEW_OPTIONS}
+                value={view}
+                onChange={(v) => setView(v as ViewMode)}
+              />
+              {view === "tiles" && (
+                <button
+                  type="button"
+                  title="Zobrazit štítky na dlaždicích"
+                  aria-pressed={tagsOnTiles}
+                  onClick={() => setTagsOnTiles((v) => !v)}
+                  className={[
+                    "w-8 h-8 flex items-center justify-center rounded ml-2",
+                    tagsOnTiles
+                      ? "bg-primary-blue text-white"
+                      : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50",
+                  ].join(" ")}
+                >
+                  <Tag className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
           {/* Photo grid or list */}
           <div className="flex-1 flex overflow-hidden">
             {view === "tiles" ? (
-              <PhotoGrid {...sharedPhotoProps} />
+              <PhotoGrid {...sharedPhotoProps} showTags={tagsOnTiles} />
             ) : (
               <PhotoList {...sharedPhotoProps} />
             )}
@@ -171,6 +231,16 @@ function PhotobankPage() {
           <PhotoDrawer photo={selectedPhoto} onClose={handleDrawerClose} />
         )}
       </div>
+      {bulkTagDialogOpen && (
+        <BulkTagDialog
+          search={search}
+          folderPath={folderPath}
+          selectedTagNames={selectedTagNames}
+          totalMatching={photosData?.total ?? 0}
+          existingTags={tagsData ?? []}
+          onClose={handleCloseBulkTagDialog}
+        />
+      )}
     </div>
   );
 }

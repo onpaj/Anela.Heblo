@@ -60,6 +60,7 @@ const resources = {
           Orders: "Objednávky",
           Logistics: "Logistika",
           Analytics: "Analytika",
+          DataQuality: "Kvalita dat",
           Error: "Chyba"
         },
         tileSizes: {
@@ -212,6 +213,8 @@ const resources = {
         PhotobankRootNotFound: "Kořenový adresář fotobanka nebyl nalezen",
         PhotobankRuleNotFound: "Pravidlo tagu nebylo nalezeno",
         PhotoTagCreationFailed: "Vytvoření tagu fotky selhalo.",
+        BulkTagFiltersRequired: "Pro hromadné tagování musí být aktivní alespoň jeden filtr.",
+        BulkTagLimitExceeded: "Filtr odpovídá příliš mnoha fotkám ({{Count}}). Upřesněte filtry (max {{Limit}}).",
 
         // Article Generation errors
         ArticleNotFound: "Článek nebyl nalezen (ID: {{id}})",
@@ -287,6 +290,7 @@ const resources = {
           Orders: "Orders",
           Logistics: "Logistics",
           Analytics: "Analytics",
+          DataQuality: "Data Quality",
           Error: "Error"
         },
         tileSizes: {

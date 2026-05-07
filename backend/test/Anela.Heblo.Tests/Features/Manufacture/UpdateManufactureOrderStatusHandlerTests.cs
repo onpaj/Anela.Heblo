@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,7 @@ public class UpdateManufactureOrderStatusHandlerTests
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
     private readonly Mock<ILogger<UpdateManufactureOrderStatusHandler>> _loggerMock;
     private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
+    private readonly Mock<IConditionsReadingProvider> _conditionsProviderMock;
     private readonly UpdateManufactureOrderStatusHandler _handler;
 
     private const int ValidOrderId = 1;
@@ -27,6 +29,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         _repositoryMock = new Mock<IManufactureOrderRepository>();
         _loggerMock = new Mock<ILogger<UpdateManufactureOrderStatusHandler>>();
         _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+        _conditionsProviderMock = new Mock<IConditionsReadingProvider>();
 
         // Setup HTTP context with user
         var claims = new List<Claim>
@@ -43,11 +46,16 @@ public class UpdateManufactureOrderStatusHandlerTests
             .Setup(x => x.HttpContext)
             .Returns(httpContext.Object);
 
+        _conditionsProviderMock
+            .Setup(x => x.GetCurrentSnapshotAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConditionsSnapshot(null, null, null, null, DateTime.UtcNow, ConditionsReadingSource.Unavailable));
+
         _handler = new UpdateManufactureOrderStatusHandler(
             _repositoryMock.Object,
             TimeProvider.System,
             _loggerMock.Object,
-            _httpContextAccessorMock.Object);
+            _httpContextAccessorMock.Object,
+            _conditionsProviderMock.Object);
     }
 
     [Fact]

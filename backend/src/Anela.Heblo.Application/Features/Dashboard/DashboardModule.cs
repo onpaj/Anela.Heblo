@@ -14,6 +14,7 @@ public static class DashboardModule
         // Register dashboard tiles
         services.RegisterTile<PurchaseOrdersInTransitTile>();
         services.RegisterTile<DataQualityStatusTile>();
+        services.RegisterTile<DqtYesterdayStatusTile>();
 
         return services;
     }

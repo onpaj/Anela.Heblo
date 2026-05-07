@@ -1,5 +1,6 @@
 using Anela.Heblo.Adapters.Anthropic;
 using Anela.Heblo.Adapters.Azure;
+using Anela.Heblo.Adapters.HomeAssistant;
 using Anela.Heblo.Adapters.SendGrid;
 using Anela.Heblo.Adapters.Comgate;
 using Anela.Heblo.Adapters.GoogleAds;
@@ -73,6 +74,7 @@ public partial class Program
         builder.Services.AddOpenAiAdapter(builder.Configuration);
         builder.Services.AddWebSearchAdapter(builder.Configuration);
         builder.Services.AddSendGridAdapter(builder.Configuration);
+        builder.Services.AddHomeAssistantAdapter(builder.Configuration);
 
         builder.Services.AddSingleton<IIssuedInvoiceSource>(sp => sp.GetRequiredService<ShoptetApiInvoiceSource>());
 
@@ -107,10 +109,15 @@ public partial class Program
         // Initialize tile registry with all registered tiles
         app.InitializeTileRegistry();
 
-        // Seed default recurring job configurations from discovered IRecurringJob implementations
-        // Note: Database creation and migrations are handled automatically by EF Core during first connection
-        // This seeding runs after app.Build() to ensure the DI container is ready, but before pipeline
-        // configuration and Hangfire startup. This guarantees job configurations exist before recurring jobs start.
+        // Apply pending EF Core migrations in Production only.
+        // Other environments (Dev/Test/Staging/Automation) keep the manual `dotnet ef database update` workflow.
+        if (app.Environment.IsProduction())
+        {
+            await app.MigrateDatabaseAsync();
+        }
+
+        // Seed default recurring job configurations from discovered IRecurringJob implementations.
+        // Runs before pipeline configuration and Hangfire startup to guarantee job configurations exist before recurring jobs start.
         await app.SeedRecurringJobConfigurationsAsync();
 
         // Configure pipeline

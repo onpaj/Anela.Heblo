@@ -317,7 +317,7 @@ graph TD
 ## ⚠️ Important Notes
 
 1. **CI Validation**: Deployment workflows no longer wait for CI to pass by default
-2. **Manual Database Migrations**: EF Core migrations are not part of automated deployment
+2. **Database Migrations**: Migrations apply automatically on Production startup (`MigrateDatabaseAsync` runs when `app.Environment.IsProduction()`). Development, Test, and Staging environments still require manual `dotnet ef database update`.
 3. **AI Code Reviews**: PRs reviewed by AI agent for solo developer workflow
 4. **Container Ports**: Internal port 80, Azure maps to 443 (HTTPS)
 5. **Static Files**: Served by ASP.NET Core in production, React dev server in development

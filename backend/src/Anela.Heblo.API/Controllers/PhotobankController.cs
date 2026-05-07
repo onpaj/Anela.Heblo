@@ -7,6 +7,7 @@ using Microsoft.Identity.Client;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRule;
+using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRule;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos;
@@ -53,6 +54,7 @@ namespace Anela.Heblo.API.Controllers
             [FromQuery] List<string>? tags,
             [FromQuery] string? search,
             [FromQuery] string? folderPath,
+            [FromQuery] bool withoutTags = false,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 48,
             CancellationToken cancellationToken = default)
@@ -62,6 +64,7 @@ namespace Anela.Heblo.API.Controllers
                 Tags = tags,
                 Search = search,
                 FolderPath = folderPath,
+                WithoutTags = withoutTags,
                 Page = page,
                 PageSize = pageSize,
             };
@@ -84,7 +87,7 @@ namespace Anela.Heblo.API.Controllers
         /// Add a manual tag to a photo. Requires administrator role.
         /// </summary>
         [HttpPost("photos/{id:int}/tags")]
-        [Authorize(Roles = AuthorizationConstants.Roles.Administrator)]
+        [Authorize(Roles = AuthorizationConstants.Roles.MarketingWriter)]
         [ProducesResponseType(typeof(AddPhotoTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -102,7 +105,7 @@ namespace Anela.Heblo.API.Controllers
         /// Remove a tag from a photo. Requires administrator role.
         /// </summary>
         [HttpDelete("photos/{id:int}/tags/{tagId:int}")]
-        [Authorize(Roles = AuthorizationConstants.Roles.Administrator)]
+        [Authorize(Roles = AuthorizationConstants.Roles.MarketingWriter)]
         [ProducesResponseType(typeof(RemovePhotoTagResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -112,6 +115,31 @@ namespace Anela.Heblo.API.Controllers
             CancellationToken cancellationToken = default)
         {
             var request = new RemovePhotoTagRequest { PhotoId = id, TagId = tagId };
+            var response = await _mediator.Send(request, cancellationToken);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Bulk-add a manual tag to all photos matching the given filters. Requires administrator role.
+        /// At least one filter (Search, FolderPath, or Tags) must be provided.
+        /// Capped at 5 000 matching photos per call.
+        /// </summary>
+        [HttpPost("photos/bulk-tag")]
+        [Authorize(Roles = AuthorizationConstants.Roles.MarketingWriter)]
+        [ProducesResponseType(typeof(BulkAddPhotoTagResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<BulkAddPhotoTagResponse>> BulkAddPhotoTag(
+            [FromBody] BulkAddPhotoTagBody body,
+            CancellationToken cancellationToken = default)
+        {
+            var request = new BulkAddPhotoTagRequest
+            {
+                Tags = body.Tags,
+                Search = body.Search,
+                FolderPath = body.FolderPath,
+                TagName = body.TagName,
+            };
             var response = await _mediator.Send(request, cancellationToken);
             return HandleResponse(response);
         }
@@ -309,6 +337,14 @@ namespace Anela.Heblo.API.Controllers
 
     public class AddPhotoTagBody
     {
+        public string TagName { get; set; } = null!;
+    }
+
+    public class BulkAddPhotoTagBody
+    {
+        public List<string>? Tags { get; set; }
+        public string? Search { get; set; }
+        public string? FolderPath { get; set; }
         public string TagName { get; set; } = null!;
     }
 }
