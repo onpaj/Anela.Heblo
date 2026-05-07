@@ -53,7 +53,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, folderPath, 1, 48, CancellationToken.None);
+            null, null, folderPath, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(2);
@@ -70,7 +70,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, folderPath, 1, 48, CancellationToken.None);
+            null, null, folderPath, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -86,7 +86,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, search, folderPath, 1, 48, CancellationToken.None);
+            null, search, folderPath, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -113,7 +113,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
 
         // Act — folderPath "Produkty" matches photos 1 & 2; tag "featured" is only on photo 1
         var (items, total) = await _repository.GetPhotosAsync(
-            new List<string> { "featured" }, null, "Produkty", 1, 48, CancellationToken.None);
+            new List<string> { "featured" }, null, "Produkty", false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -128,7 +128,7 @@ public class PhotobankRepositoryFilterTests : IDisposable
     {
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, folderPath, 1, 48, CancellationToken.None);
+            null, null, folderPath, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(4);
