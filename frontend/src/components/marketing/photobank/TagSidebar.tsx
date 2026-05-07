@@ -10,12 +10,14 @@ interface TagSidebarProps {
   folderPath: string;
   withoutTags: boolean;
   useRegex: boolean;
+  useFolderRegex: boolean;
   onTagToggle: (tagId: number) => void;
   onSearchChange: (value: string) => void;
   onFolderPathChange: (value: string) => void;
   onWithoutTagsToggle: () => void;
   onClearFilters: () => void;
   onRegexChange: (value: boolean) => void;
+  onFolderRegexChange: (value: boolean) => void;
   errorMessage?: string | null;
 }
 
@@ -28,25 +30,26 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
   folderPath,
   withoutTags,
   useRegex,
+  useFolderRegex,
   onTagToggle,
   onSearchChange,
   onFolderPathChange,
   onWithoutTagsToggle,
   onClearFilters,
   onRegexChange,
+  onFolderRegexChange,
   errorMessage,
 }) => {
   const [inputValue, setInputValue] = useState(search);
   const [folderPathValue, setFolderPathValue] = useState(folderPath);
   const [tagFilter, setTagFilter] = useState("");
   const [regexError, setRegexError] = useState<string | null>(null);
+  const [folderRegexError, setFolderRegexError] = useState<string | null>(null);
 
-  // Sync external search value to local input
   useEffect(() => {
     setInputValue(search);
   }, [search]);
 
-  // Validate regex pattern when regex mode is active
   useEffect(() => {
     if (!useRegex || !inputValue) {
       setRegexError(null);
@@ -60,7 +63,6 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
     }
   }, [inputValue, useRegex]);
 
-  // Debounce search input changes
   useEffect(() => {
     const timer = setTimeout(() => {
       if (inputValue !== search && regexError === null) {
@@ -83,21 +85,32 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
     onSearchChange("");
   }, [onSearchChange]);
 
-  // Sync external folderPath value to local input
   useEffect(() => {
     setFolderPathValue(folderPath);
   }, [folderPath]);
 
-  // Debounce folder path input changes
+  useEffect(() => {
+    if (!useFolderRegex || !folderPathValue) {
+      setFolderRegexError(null);
+      return;
+    }
+    try {
+      new RegExp(folderPathValue);
+      setFolderRegexError(null);
+    } catch {
+      setFolderRegexError("Neplatný regulární výraz");
+    }
+  }, [folderPathValue, useFolderRegex]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (folderPathValue !== folderPath) {
+      if (folderPathValue !== folderPath && folderRegexError === null) {
         onFolderPathChange(folderPathValue);
       }
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [folderPathValue, folderPath, onFolderPathChange]);
+  }, [folderPathValue, folderPath, onFolderPathChange, folderRegexError]);
 
   const handleFolderPathInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,7 +128,7 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
     ? tags.filter((t) => t.name.toLowerCase().includes(tagFilter.trim().toLowerCase()))
     : tags;
 
-  const hasActiveFilters = search.length > 0 || folderPath.length > 0 || selectedTagIds.length > 0 || withoutTags || useRegex;
+  const hasActiveFilters = search.length > 0 || folderPath.length > 0 || selectedTagIds.length > 0 || withoutTags || useRegex || useFolderRegex;
 
   return (
     <aside className="flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
@@ -160,7 +173,7 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
           )}
         </div>
 
-        {/* Regex toggle */}
+        {/* Filename regex toggle */}
         <label className="flex items-center gap-1.5 mt-2 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -184,8 +197,10 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
             type="text"
             value={folderPathValue}
             onChange={handleFolderPathInputChange}
-            placeholder="Hledat ve složkách..."
-            className="w-full pl-8 pr-7 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+            placeholder={useFolderRegex ? "Regex (POSIX, case-insensitive)..." : "Hledat ve složkách..."}
+            className={`w-full pl-8 pr-7 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent ${
+              folderRegexError ? "border-red-400" : "border-gray-300"
+            }`}
             aria-label="Hledat ve složkách"
           />
           {folderPathValue && (
@@ -198,6 +213,21 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
             </button>
           )}
         </div>
+
+        {/* Folder regex toggle */}
+        <label className="flex items-center gap-1.5 mt-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={useFolderRegex}
+            onChange={(e) => onFolderRegexChange(e.target.checked)}
+            className="w-3.5 h-3.5 accent-primary-blue"
+            aria-label="Regex složky"
+          />
+          <span className="text-xs text-gray-600">Regex</span>
+        </label>
+        {folderRegexError && (
+          <p className="mt-1 text-xs text-red-600">{folderRegexError}</p>
+        )}
       </div>
 
       {/* Tag list */}
@@ -238,7 +268,6 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
           <p className="text-sm text-gray-400 mt-2">Žádné štítky</p>
         ) : (
           <ul className="space-y-0.5">
-            {/* "Without tags" special option */}
             <li>
               <button
                 type="button"
@@ -256,7 +285,6 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
               </button>
             </li>
 
-            {/* Filtered tag list */}
             {filteredTags.map((tag) => {
               const isSelected = selectedTagIds.includes(tag.id);
               return (
