@@ -137,6 +137,11 @@ public class PhotobankRepositoryFilterTests : IDisposable
     }
 }
 
+// NOTE: These tests run against the EF Core InMemory provider, which evaluates
+// Regex.IsMatch via the .NET regex engine. In production, Npgsql translates
+// this to Postgres POSIX ~* syntax. The two engines differ on some constructs
+// (e.g., .NET lookahead, \b). Postgres-specific failures are caught by the
+// PostgresException handler in GetPhotosHandler.
 public class PhotobankRepositoryRegexFilterTests : IDisposable
 {
     private readonly ApplicationDbContext _context;

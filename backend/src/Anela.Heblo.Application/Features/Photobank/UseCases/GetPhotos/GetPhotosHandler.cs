@@ -46,7 +46,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos
                 return new GetPhotosResponse
                 {
                     Success = false,
-                    ErrorCode = ErrorCodes.InvalidFormat,
+                    ErrorCode = ErrorCodes.PhotobankInvalidRegexPattern,
                     Params = new Dictionary<string, string> { ["pattern"] = request.Search ?? string.Empty },
                 };
             }

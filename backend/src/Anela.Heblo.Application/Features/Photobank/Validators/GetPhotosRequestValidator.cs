@@ -23,7 +23,7 @@ public class GetPhotosRequestValidator : AbstractValidator<GetPhotosRequest>
         RuleFor(x => x.Search)
             .Must(BeValidRegex)
             .When(x => x.UseRegex && !string.IsNullOrWhiteSpace(x.Search))
-            .WithMessage("Neplatný regulární výraz.");
+            .WithMessage("Invalid regular expression pattern.");
     }
 
     private static bool BeValidRegex(string? pattern)

@@ -29,7 +29,7 @@ public class GetPhotosRequestValidatorTests
 
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.Search)
-            .WithErrorMessage("Neplatný regulární výraz.");
+            .WithErrorMessage("Invalid regular expression pattern.");
     }
 
     [Fact]
