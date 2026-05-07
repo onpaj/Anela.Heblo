@@ -42,6 +42,7 @@ import ProductsDataGrid from "../detail/ProductsDataGrid";
 import NotesTabContent from "../detail/NotesTabContent";
 import DetailActionButtons from "../detail/DetailActionButtons";
 import ConfirmationDialogs from "../detail/ConfirmationDialogs";
+import ConditionsReadingsSection from "../detail/ConditionsReadingsSection";
 
 interface ManufactureOrderDetailProps {
   orderId?: number;
@@ -617,49 +618,53 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
             {/* Tab Content */}
             <div className="overflow-y-auto p-3">
               {activeTab === "info" && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="flex flex-col space-y-4">
-                    <BasicInfoSection
-                      order={order}
-                      canEditFields={canEditFields}
-                      editableResponsiblePerson={editableResponsiblePerson}
-                      editablePlannedDate={editablePlannedDate}
-                      editableLotNumber={editableLotNumber}
-                      editableExpirationDate={editableExpirationDate}
-                      editableManualActionRequired={editableManualActionRequired}
-                      onResponsiblePersonChange={(value) => setEditableResponsiblePerson(value || "")}
-                      onPlannedDateChange={setEditablePlannedDate}
-                      onLotNumberChange={setEditableLotNumber}
-                      onExpirationDateChange={setEditableExpirationDate}
-                      onManualActionRequiredChange={setEditableManualActionRequired}
-                      onResolveManualAction={() => setShowResolveModal(true)}
-                      onExpandNote={handleExpandNote}
-                      formatDateTime={formatDateTime}
-                      formatDate={formatDate}
-                      shouldTruncateText={shouldTruncateText}
-                      truncateText={truncateText}
-                    />
-                  </div>
-
-                  <div className="flex flex-col space-y-4">
-                    {/* Hide SemiProduct section for SinglePhase manufacturing */}
-                    {order?.manufactureType !== ManufactureType.SinglePhase && (
-                      <SemiProductSection
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="flex flex-col space-y-4">
+                      <BasicInfoSection
                         order={order}
                         canEditFields={canEditFields}
-                        editableSemiProductQuantity={editableSemiProductQuantity}
-                        onSemiProductQuantityChange={setEditableSemiProductQuantity}
+                        editableResponsiblePerson={editableResponsiblePerson}
+                        editablePlannedDate={editablePlannedDate}
+                        editableLotNumber={editableLotNumber}
+                        editableExpirationDate={editableExpirationDate}
+                        editableManualActionRequired={editableManualActionRequired}
+                        onResponsiblePersonChange={(value) => setEditableResponsiblePerson(value || "")}
+                        onPlannedDateChange={setEditablePlannedDate}
+                        onLotNumberChange={setEditableLotNumber}
+                        onExpirationDateChange={setEditableExpirationDate}
+                        onManualActionRequiredChange={setEditableManualActionRequired}
+                        onResolveManualAction={() => setShowResolveModal(true)}
+                        onExpandNote={handleExpandNote}
+                        formatDateTime={formatDateTime}
+                        formatDate={formatDate}
+                        shouldTruncateText={shouldTruncateText}
+                        truncateText={truncateText}
                       />
-                    )}
-                    
-                    <ProductsDataGrid
-                      order={order}
-                      canEditFields={canEditFields}
-                      editableProductQuantities={editableProductQuantities}
-                      onProductQuantityChange={handleProductQuantityChange}
-                    />
+                    </div>
+
+                    <div className="flex flex-col space-y-4">
+                      {/* Hide SemiProduct section for SinglePhase manufacturing */}
+                      {order?.manufactureType !== ManufactureType.SinglePhase && (
+                        <SemiProductSection
+                          order={order}
+                          canEditFields={canEditFields}
+                          editableSemiProductQuantity={editableSemiProductQuantity}
+                          onSemiProductQuantityChange={setEditableSemiProductQuantity}
+                        />
+                      )}
+
+                      <ProductsDataGrid
+                        order={order}
+                        canEditFields={canEditFields}
+                        editableProductQuantities={editableProductQuantities}
+                        onProductQuantityChange={handleProductQuantityChange}
+                      />
+                    </div>
                   </div>
-                </div>
+
+                  <ConditionsReadingsSection readings={order?.conditionsReadings ?? []} />
+                </>
               )}
 
               {activeTab === "notes" && (

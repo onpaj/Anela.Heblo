@@ -50,6 +50,7 @@ public class ManufactureOrderDto
     public ManufactureOrderSemiProductDto? SemiProduct { get; set; }
     public List<ManufactureOrderProductDto> Products { get; set; } = new();
     public List<ManufactureOrderNoteDto> Notes { get; set; } = new();
+    public List<ManufactureOrderConditionsReadingDto> ConditionsReadings { get; set; } = new();
 }
 
 public class ManufactureOrderSemiProductDto
@@ -81,5 +82,17 @@ public class ManufactureOrderNoteDto
     public string Text { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
     public string CreatedByUser { get; set; } = null!;
+}
+
+public class ManufactureOrderConditionsReadingDto
+{
+    public int Id { get; set; }
+    public ManufactureOrderState Stage { get; set; }
+    public decimal? InnerTemperature { get; set; }
+    public decimal? InnerHumidity { get; set; }
+    public decimal? OuterTemperature { get; set; }
+    public decimal? OuterHumidity { get; set; }
+    public DateTime RecordedAt { get; set; }
+    public int Source { get; set; }
 }
 
