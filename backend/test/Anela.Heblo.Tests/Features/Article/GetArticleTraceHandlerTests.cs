@@ -37,6 +37,12 @@ public class GetArticleTraceHandlerTests
         result.Success.Should().BeTrue();
         result.ArticleId.Should().Be(articleId);
         result.Steps.Should().HaveCount(3);
+
+        // Verify at least one step's field mapping
+        var firstStep = result.Steps.First();
+        firstStep.StepName.Should().NotBeEmpty();
+        firstStep.Status.Should().BeOneOf("Running", "Succeeded", "Failed");
+        firstStep.StartedAt.Should().NotBe(default(DateTimeOffset));
     }
 
     [Fact]
@@ -63,7 +69,7 @@ public class GetArticleTraceHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Returns404Envelope_WhenArticleMissing()
+    public async Task Handle_ReturnsFailureResponse_WhenArticleMissing()
     {
         var articleId = Guid.NewGuid();
 
@@ -75,6 +81,17 @@ public class GetArticleTraceHandlerTests
 
         result.Success.Should().BeFalse();
         result.Steps.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsFailureResponse_WhenIdIsEmpty()
+    {
+        var result = await _handler.Handle(
+            new GetArticleTraceRequest { Id = Guid.Empty },
+            CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        _repositoryMock.Verify(r => r.GetWithStepsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static DomainArticle CreateArticle(Guid id, List<ArticleGenerationStep> steps)
