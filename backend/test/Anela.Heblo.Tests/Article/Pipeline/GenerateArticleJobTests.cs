@@ -31,6 +31,15 @@ public class GenerateArticleJobTests
             Status = ArticleStatus.Queued
         };
 
+    private static PipelineStepRecorder CreateNoOpRecorder()
+    {
+        var repo = new Mock<IArticleRepository>();
+        repo.Setup(r => r.AddStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repo.Setup(r => r.UpdateStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        return new PipelineStepRecorder(repo.Object);
+    }
+
     private GenerateArticleJob CreateJob(
         PlanQueriesStep? planQueries = null,
         GatherContextStep? gatherContext = null,
@@ -39,13 +48,14 @@ public class GenerateArticleJobTests
         WriteArticleStep? writeArticle = null)
     {
         var optionsWrapper = Options.Create(_options);
+        var recorder = CreateNoOpRecorder();
         return new GenerateArticleJob(
             _repository.Object,
-            planQueries ?? new PlanQueriesStep(_chat.Object, optionsWrapper, NullLogger<PlanQueriesStep>.Instance),
-            gatherContext ?? new GatherContextStep(_mediator.Object, _webSearch.Object, _oneDrive.Object, optionsWrapper, NullLogger<GatherContextStep>.Instance),
-            aggregateFacts ?? new AggregateFactsStep(_chat.Object, optionsWrapper, NullLogger<AggregateFactsStep>.Instance),
-            validateFacts ?? new ValidateFactsStep(_chat.Object, optionsWrapper, NullLogger<ValidateFactsStep>.Instance),
-            writeArticle ?? new WriteArticleStep(_chat.Object, optionsWrapper, NullLogger<WriteArticleStep>.Instance),
+            planQueries ?? new PlanQueriesStep(_chat.Object, optionsWrapper, NullLogger<PlanQueriesStep>.Instance, recorder),
+            gatherContext ?? new GatherContextStep(_mediator.Object, _webSearch.Object, _oneDrive.Object, optionsWrapper, NullLogger<GatherContextStep>.Instance, recorder),
+            aggregateFacts ?? new AggregateFactsStep(_chat.Object, optionsWrapper, NullLogger<AggregateFactsStep>.Instance, recorder),
+            validateFacts ?? new ValidateFactsStep(_chat.Object, optionsWrapper, NullLogger<ValidateFactsStep>.Instance, recorder),
+            writeArticle ?? new WriteArticleStep(_chat.Object, optionsWrapper, NullLogger<WriteArticleStep>.Instance, recorder),
             NullLogger<GenerateArticleJob>.Instance);
     }
 

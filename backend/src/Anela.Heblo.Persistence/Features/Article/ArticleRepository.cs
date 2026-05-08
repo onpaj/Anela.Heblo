@@ -111,6 +111,26 @@ public class ArticleRepository : IArticleRepository
         return stats ?? new ArticleFeedbackStats(0, 0, null, null);
     }
 
+    public async Task<DomainArticle?> GetWithStepsAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _context.Articles
+            .AsNoTracking()
+            .Include(a => a.Steps.OrderBy(s => s.Sequence))
+            .FirstOrDefaultAsync(a => a.Id == id, ct);
+    }
+
+    public Task AddStepAsync(ArticleGenerationStep step, CancellationToken ct = default)
+    {
+        _context.ArticleGenerationSteps.Add(step);
+        return Task.CompletedTask;
+    }
+
+    public Task UpdateStepAsync(ArticleGenerationStep step, CancellationToken ct = default)
+    {
+        _context.ArticleGenerationSteps.Update(step);
+        return Task.CompletedTask;
+    }
+
     public Task SaveChangesAsync(CancellationToken ct = default)
     {
         return _context.SaveChangesAsync(ct);

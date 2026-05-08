@@ -93,6 +93,7 @@ public class ApplicationDbContext : DbContext
     // Article module
     public DbSet<Article> Articles { get; set; } = null!;
     public DbSet<ArticleSource> ArticleSources { get; set; } = null!;
+    public DbSet<ArticleGenerationStep> ArticleGenerationSteps { get; set; } = null!;
 
     // Grid Layouts module
     public DbSet<GridLayout> GridLayouts { get; set; } = null!;

@@ -3,6 +3,7 @@ import { ArticleDetail as ArticleDetailType, useGetArticleQuery, IN_PROGRESS_STA
 import { ArticleStatus } from '../../api/generated/api-client';
 import ArticleSourceList from './ArticleSourceList';
 import ArticleFeedbackSection from './ArticleFeedbackSection';
+import ArticleDebugPanel from './ArticleDebugPanel';
 
 interface ArticleDetailProps {
   articleId: string;
@@ -118,6 +119,7 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
 
       {IN_PROGRESS_STATUSES.has(article.status) && <InProgressView article={article} />}
       {article.status === ArticleStatus.Generated && <ArticleView article={article} />}
+      {!IN_PROGRESS_STATUSES.has(article.status) && <ArticleDebugPanel articleId={article.id} />}
     </div>
   );
 }
