@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Persistence.Smartsupp;
 
-public class SmartsuppRepository : ISmartsuppRepository
+public sealed class SmartsuppRepository : ISmartsuppRepository
 {
     private readonly ApplicationDbContext _db;
 
@@ -19,6 +19,7 @@ public class SmartsuppRepository : ISmartsuppRepository
         CancellationToken cancellationToken)
     {
         var query = _db.SmartsuppConversations
+            .AsNoTracking()
             .Where(c => c.Status == status)
             .OrderByDescending(c => c.LastMessageAt);
 
@@ -35,6 +36,7 @@ public class SmartsuppRepository : ISmartsuppRepository
         string id,
         CancellationToken cancellationToken) =>
         await _db.SmartsuppConversations
+            .AsNoTracking()
             .Include(c => c.Messages.OrderBy(m => m.CreatedAt))
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
@@ -68,16 +70,22 @@ public class SmartsuppRepository : ISmartsuppRepository
         List<SmartsuppMessage> messages,
         CancellationToken cancellationToken)
     {
-        var existingIdsList = await _db.SmartsuppMessages
+        var existing = await _db.SmartsuppMessages
             .Where(m => m.ConversationId == conversationId)
-            .Select(m => m.Id)
-            .ToListAsync(cancellationToken);
-        var existingIds = existingIdsList.ToHashSet();
+            .ToDictionaryAsync(m => m.Id, cancellationToken);
 
         foreach (var message in messages)
         {
-            if (!existingIds.Contains(message.Id))
+            if (existing.TryGetValue(message.Id, out var tracked))
+            {
+                tracked.Content = message.Content;
+                tracked.AuthorName = message.AuthorName;
+                tracked.AttachmentsJson = message.AttachmentsJson;
+            }
+            else
+            {
                 _db.SmartsuppMessages.Add(message);
+            }
         }
     }
 
@@ -94,11 +102,9 @@ public class SmartsuppRepository : ISmartsuppRepository
 
     public async Task SetSyncWatermarkAsync(DateTime lastUpdatedAtSeen, CancellationToken cancellationToken)
     {
-        var state = await _db.SmartsuppSyncState.FirstOrDefaultAsync(cancellationToken)
-                    ?? new SmartsuppSyncState();
+        var state = await GetOrCreateSyncStateAsync(cancellationToken);
         state.LastUpdatedAtSeen = lastUpdatedAtSeen;
         state.LastSyncStartedAt = DateTime.UtcNow;
-        if (state.Id == 0) _db.SmartsuppSyncState.Add(state);
         await _db.SaveChangesAsync(cancellationToken);
     }
 

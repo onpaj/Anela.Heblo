@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Anela.Heblo.Persistence.Smartsupp;
 
-public class SmartsuppMessageConfiguration : IEntityTypeConfiguration<SmartsuppMessage>
+public sealed class SmartsuppMessageConfiguration : IEntityTypeConfiguration<SmartsuppMessage>
 {
     public void Configure(EntityTypeBuilder<SmartsuppMessage> builder)
     {

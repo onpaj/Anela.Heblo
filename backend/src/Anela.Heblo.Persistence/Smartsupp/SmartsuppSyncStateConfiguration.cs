@@ -4,13 +4,15 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Anela.Heblo.Persistence.Smartsupp;
 
-public class SmartsuppSyncStateConfiguration : IEntityTypeConfiguration<SmartsuppSyncState>
+public sealed class SmartsuppSyncStateConfiguration : IEntityTypeConfiguration<SmartsuppSyncState>
 {
     public void Configure(EntityTypeBuilder<SmartsuppSyncState> builder)
     {
-        builder.ToTable("SmartsuppSyncState", "public");
+        builder.ToTable("SmartsuppSyncState", "public",
+            t => t.HasCheckConstraint("CK_SmartsuppSyncState_SingleRow", "\"Id\" = 1"));
         builder.HasKey(e => e.Id);
         builder.Property(e => e.LastUpdatedAtSeen).HasColumnType("timestamp without time zone");
         builder.Property(e => e.LastSyncStartedAt).HasColumnType("timestamp without time zone");
+        builder.HasData(new SmartsuppSyncState { Id = 1, LastSyncStartedAt = DateTime.SpecifyKind(new DateTime(2024, 1, 1), DateTimeKind.Utc) });
     }
 }
