@@ -21,6 +21,7 @@ public class SmartsuppController : BaseApiController
 
     [HttpGet("conversations")]
     [ProducesResponseType(typeof(ListConversationsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ListConversationsResponse>> GetConversations(
         [FromQuery] string status = "Open",
         [FromQuery] int page = 1,

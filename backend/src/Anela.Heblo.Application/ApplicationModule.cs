@@ -85,7 +85,7 @@ public static class ApplicationModule
         services.AddMarketingInvoicesModule();
         services.AddDataQualityModule();
         services.AddPhotobankModule(configuration);
-        services.AddSmartsuppModule(configuration);
+        services.AddSmartsuppModule();
         // services.AddOrdersModule();
 
         return services;

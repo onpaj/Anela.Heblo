@@ -7,14 +7,13 @@ using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Persistence.Smartsupp;
 using FluentValidation;
 using MediatR;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anela.Heblo.Application.Features.Smartsupp;
 
 public static class SmartsuppModule
 {
-    public static IServiceCollection AddSmartsuppModule(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddSmartsuppModule(this IServiceCollection services)
     {
         services.AddScoped<ISmartsuppRepository, SmartsuppRepository>();
         services.AddScoped<SmartsuppSyncJob>();
