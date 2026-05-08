@@ -122,13 +122,13 @@ public class ArticleRepository : IArticleRepository
     public Task AddStepAsync(ArticleGenerationStep step, CancellationToken ct = default)
     {
         _context.ArticleGenerationSteps.Add(step);
-        return _context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 
     public Task UpdateStepAsync(ArticleGenerationStep step, CancellationToken ct = default)
     {
         _context.ArticleGenerationSteps.Update(step);
-        return _context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 
     public Task SaveChangesAsync(CancellationToken ct = default)
