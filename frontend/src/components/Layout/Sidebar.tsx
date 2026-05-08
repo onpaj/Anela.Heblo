@@ -348,9 +348,11 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* App Title */}
                 <div className="flex items-center md:justify-start justify-center flex-1">
-                  <div className="w-8 h-8 bg-primary-blue rounded flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">AH</span>
-                  </div>
+                  <img
+                    src="/logo192.png"
+                    alt="Anela Heblo"
+                    className="w-8 h-8 rounded"
+                  />
                   <span className="ml-3 text-lg font-semibold text-gray-900">
                     Anela Heblo
                   </span>
@@ -358,9 +360,11 @@ const Sidebar: React.FC<SidebarProps> = ({
               </div>
             ) : (
               <div className="flex items-center justify-center w-full">
-                <div className="w-8 h-8 bg-primary-blue rounded flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">A</span>
-                </div>
+                <img
+                  src="/logo192.png"
+                  alt="Anela Heblo"
+                  className="w-8 h-8 rounded"
+                />
               </div>
             )}
           </div>
