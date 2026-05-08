@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 export interface ArticleGenerationStep {
   id: string;
@@ -22,7 +22,7 @@ export interface ArticleTrace {
 
 export const useArticleTraceQuery = (id: string, enabled: boolean) => {
   return useQuery({
-    queryKey: ['article-trace', id],
+    queryKey: [...QUERY_KEYS.articleTrace, id],
     queryFn: async (): Promise<ArticleTrace> => {
       const apiClient = getAuthenticatedApiClient();
       const fullUrl = `${(apiClient as any).baseUrl}/api/articles/${id}/trace`;
