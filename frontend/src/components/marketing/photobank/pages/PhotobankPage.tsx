@@ -56,7 +56,7 @@ function PhotobankPage() {
   const [withoutTags, setWithoutTags] = useState(false);
   const [useRegex, setUseRegex] = useState(false);
   const [page, setPage] = useState(1);
-  const [selectedPhoto, setSelectedPhoto] = useState<PhotoDto | null>(null);
+  const [selectedPhotoId, setSelectedPhotoId] = useState<number | null>(null);
   const [view, setView] = useState<ViewMode>(readViewMode);
   const [tagsOnTiles, setTagsOnTiles] = useState<boolean>(readTagsOnTiles);
   const [bulkTagDialogOpen, setBulkTagDialogOpen] = useState(false);
@@ -98,6 +98,11 @@ function PhotobankPage() {
     pageSize: DEFAULT_PAGE_SIZE,
   });
 
+  const selectedPhoto = useMemo(
+    () => (selectedPhotoId != null ? (photosData?.items.find((p) => p.id === selectedPhotoId) ?? null) : null),
+    [selectedPhotoId, photosData],
+  );
+
   const searchErrorMessage = photosError && useRegex
     ? "Neplatný regulární výraz"
     : null;
@@ -134,16 +139,16 @@ function PhotobankPage() {
   }, []);
 
   const handlePhotoSelect = useCallback((photo: PhotoDto) => {
-    setSelectedPhoto((prev) => (prev?.id === photo.id ? null : photo));
+    setSelectedPhotoId((prev) => (prev === photo.id ? null : photo.id));
   }, []);
 
   const handleDrawerClose = useCallback(() => {
-    setSelectedPhoto(null);
+    setSelectedPhotoId(null);
   }, []);
 
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
-    setSelectedPhoto(null);
+    setSelectedPhotoId(null);
     setSelectedIds(new Set());
     setSelectionAnchorId(null);
   }, []);
@@ -215,7 +220,7 @@ function PhotobankPage() {
 
   const sharedPhotoProps = {
     photos: photosData?.items ?? [],
-    selectedPhotoId: selectedPhoto?.id ?? null,
+    selectedPhotoId: selectedPhotoId,
     total: photosData?.total ?? 0,
     page: photosData?.page ?? page,
     pageSize: DEFAULT_PAGE_SIZE,
