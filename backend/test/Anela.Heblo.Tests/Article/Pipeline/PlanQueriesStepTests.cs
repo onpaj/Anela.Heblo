@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Article;
 using Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
+using Anela.Heblo.Domain.Features.Article;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -14,8 +15,17 @@ public class PlanQueriesStepTests
     private readonly Mock<IChatClient> _chat = new();
     private readonly ArticleOptions _options = new();
 
+    private static PipelineStepRecorder CreateNoOpRecorder()
+    {
+        var repo = new Mock<IArticleRepository>();
+        repo.Setup(r => r.AddStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repo.Setup(r => r.UpdateStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        return new PipelineStepRecorder(repo.Object);
+    }
+
     private PlanQueriesStep CreateStep() =>
-        new(_chat.Object, Options.Create(_options), NullLogger<PlanQueriesStep>.Instance);
+        new(_chat.Object, Options.Create(_options), NullLogger<PlanQueriesStep>.Instance, CreateNoOpRecorder());
 
     private static ArticlePipelineContext CreateContext(string topic = "Sun protection") =>
         new() { Article = new DomainArticle { Topic = topic } };

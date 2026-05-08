@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Article.UseCases.GenerateArticle;
 using Anela.Heblo.Application.Features.Article.UseCases.GetArticle;
+using Anela.Heblo.Application.Features.Article.UseCases.GetArticleTrace;
 using Anela.Heblo.Application.Features.Article.UseCases.GetFeedbackList;
 using Anela.Heblo.Application.Features.Article.UseCases.ListArticles;
 using Anela.Heblo.Application.Features.Article.UseCases.SubmitFeedback;
@@ -39,6 +40,15 @@ public sealed class ArticlesController : BaseApiController
         CancellationToken ct = default)
     {
         var result = await _mediator.Send(new GetArticleRequest { Id = id }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("{id:guid}/trace")]
+    public async Task<ActionResult<GetArticleTraceResponse>> GetTrace(
+        Guid id,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetArticleTraceRequest { Id = id }, ct);
         return HandleResponse(result);
     }
 

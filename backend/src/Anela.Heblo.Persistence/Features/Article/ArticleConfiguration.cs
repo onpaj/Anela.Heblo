@@ -41,5 +41,10 @@ public class ArticleConfiguration : IEntityTypeConfiguration<DomainArticle>
             .WithOne()
             .HasForeignKey(x => x.ArticleId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.Steps)
+            .WithOne()
+            .HasForeignKey(x => x.ArticleId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
