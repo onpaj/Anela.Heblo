@@ -15,5 +15,8 @@ public interface IArticleRepository
         int pageSize,
         CancellationToken ct = default);
     Task<ArticleFeedbackStats> GetFeedbackStatsAsync(CancellationToken ct = default);
+    Task<Article?> GetWithStepsAsync(Guid id, CancellationToken ct = default);
+    Task AddStepAsync(ArticleGenerationStep step, CancellationToken ct = default);
+    Task UpdateStepAsync(ArticleGenerationStep step, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }
