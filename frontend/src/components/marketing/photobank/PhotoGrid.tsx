@@ -17,7 +17,7 @@ interface PhotoGridProps {
   onPhotoSelect: (photo: PhotoDto) => void;
   onPageChange: (page: number) => void;
   selectedIds: Set<number>;
-  onTogglePhotoSelection: (photoId: number, withRange: boolean) => void;
+  onPhotoSelection: (photoId: number, mode: "toggle" | "range") => void;
   canSelect: boolean;
 }
 
@@ -32,7 +32,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
   onPhotoSelect,
   onPageChange,
   selectedIds,
-  onTogglePhotoSelection,
+  onPhotoSelection,
   canSelect,
 }) => {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -66,7 +66,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Photo grid */}
       <div className="flex-1 overflow-y-auto p-4">
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 select-none">
           {photos.map((photo) => {
             const isSelected = photo.id === selectedPhotoId;
             const isChecked = selectedIds.has(photo.id);
@@ -75,39 +75,34 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
                 key={photo.id}
                 className={[
                   "group relative aspect-square rounded-lg overflow-hidden border-2 transition-all",
-                  isSelected
+                  isChecked
                     ? "border-primary-blue ring-2 ring-primary-blue ring-offset-1"
-                    : "border-transparent hover:border-gray-300",
+                    : isSelected
+                      ? "border-primary-blue/60"
+                      : "border-transparent hover:border-gray-300",
                 ].join(" ")}
               >
-                {canSelect && (
-                  <div
-                    className={[
-                      "absolute top-1 left-1 z-10",
-                      isChecked
-                        ? "opacity-100"
-                        : "opacity-0 group-hover:opacity-100 focus-within:opacity-100",
-                    ].join(" ")}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      aria-label="Vybrat fotku"
-                      data-testid={`photo-select-checkbox-${photo.id}`}
-                      onChange={(e) => {
-                        onTogglePhotoSelection(
-                          photo.id,
-                          e.nativeEvent instanceof MouseEvent && (e.nativeEvent as MouseEvent).shiftKey,
-                        );
-                      }}
-                      className="w-4 h-4 accent-primary-blue cursor-pointer"
-                    />
-                  </div>
-                )}
                 <button
-                  onClick={() => onPhotoSelect(photo)}
+                  data-testid={`photo-tile-${photo.id}`}
+                  onClick={(e) => {
+                    if (!canSelect) {
+                      onPhotoSelect(photo);
+                      return;
+                    }
+                    if (e.shiftKey) {
+                      e.preventDefault();
+                      onPhotoSelection(photo.id, "range");
+                      return;
+                    }
+                    if (e.metaKey || e.ctrlKey) {
+                      e.preventDefault();
+                      onPhotoSelection(photo.id, "toggle");
+                      return;
+                    }
+                    onPhotoSelect(photo);
+                  }}
                   className="w-full h-full focus:outline-none focus:ring-2 focus:ring-primary-blue focus:ring-offset-2"
-                  aria-pressed={isSelected}
+                  aria-pressed={isChecked}
                   aria-label={photo.name}
                 >
                   <PhotoThumbnail

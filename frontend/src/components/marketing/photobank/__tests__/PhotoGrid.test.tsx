@@ -1,15 +1,17 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import PhotoGrid from "../PhotoGrid";
-import type { PhotoDto } from "../../../../api/hooks/usePhotobank";
 
-// Stub PhotoThumbnail to avoid MSAL/fetch dependencies in unit tests
-jest.mock("../PhotoThumbnail", () => ({
-  __esModule: true,
-  default: ({ alt }: { alt: string }) => <div data-testid="thumbnail">{alt}</div>,
-}));
+jest.mock("../PhotoThumbnail", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: ({ alt }) => React.createElement("div", { "data-testid": "thumbnail" }, alt),
+  };
+});
 
-const makePhoto = (overrides: Partial<PhotoDto> = {}): PhotoDto => ({
+const makePhoto = (overrides = {}) => ({
   id: 1,
   sharePointFileId: "file-001",
   driveId: "drive-xyz",
@@ -22,14 +24,14 @@ const makePhoto = (overrides: Partial<PhotoDto> = {}): PhotoDto => ({
   ...overrides,
 });
 
-const mockPhotos: PhotoDto[] = [
+const mockPhotos = [
   makePhoto({ id: 1, name: "photo-01.jpg" }),
   makePhoto({ id: 2, name: "photo-02.jpg", sharePointFileId: "file-002" }),
   makePhoto({ id: 3, name: "photo-03.jpg", sharePointFileId: "file-003" }),
 ];
 
-function renderGrid(overrides: Partial<React.ComponentProps<typeof PhotoGrid>> = {}) {
-  const defaults: React.ComponentProps<typeof PhotoGrid> = {
+function renderGrid(overrides = {}) {
+  const defaults = {
     photos: mockPhotos,
     selectedPhotoId: null,
     total: 3,
@@ -38,12 +40,12 @@ function renderGrid(overrides: Partial<React.ComponentProps<typeof PhotoGrid>> =
     isLoading: false,
     onPhotoSelect: jest.fn(),
     onPageChange: jest.fn(),
-    selectedIds: new Set<number>(),
-    onTogglePhotoSelection: jest.fn(),
+    selectedIds: new Set(),
+    onPhotoSelection: jest.fn(),
     canSelect: false,
     ...overrides,
   };
-  return { ...render(<PhotoGrid {...defaults} />), props: defaults };
+  return { ...render(React.createElement(PhotoGrid, defaults)), props: defaults };
 }
 
 describe("PhotoGrid", () => {
@@ -72,9 +74,9 @@ describe("PhotoGrid", () => {
     expect(onPhotoSelect).toHaveBeenCalledWith(mockPhotos[0]);
   });
 
-  test("selected photo has aria-pressed true", () => {
+  test("multi-selected photo has aria-pressed true", () => {
     // Arrange
-    renderGrid({ selectedPhotoId: 2 });
+    renderGrid({ selectedIds: new Set([2]) });
 
     // Assert
     const btn = screen.getByLabelText("photo-02.jpg");
@@ -83,7 +85,7 @@ describe("PhotoGrid", () => {
 
   test("non-selected photo has aria-pressed false", () => {
     // Arrange
-    renderGrid({ selectedPhotoId: 2 });
+    renderGrid({ selectedIds: new Set([2]) });
 
     // Assert
     const btn = screen.getByLabelText("photo-01.jpg");
@@ -155,44 +157,91 @@ describe("PhotoGrid", () => {
   });
 
   describe("selection", () => {
-    test("with canSelect=false checkboxes are not rendered", () => {
+    test("no checkboxes are rendered regardless of canSelect", () => {
       // Arrange & Act
-      renderGrid({ canSelect: false });
+      renderGrid({ canSelect: true, selectedIds: new Set() });
 
-      // Assert
+      // Assert — checkboxes are gone; selection is frame-only
       expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     });
 
-    test("with canSelect=true checkboxes are rendered for each photo", () => {
-      // Arrange & Act
-      renderGrid({ canSelect: true, selectedIds: new Set<number>() });
-
-      // Assert
-      const checkboxes = screen.getAllByRole("checkbox");
-      expect(checkboxes).toHaveLength(mockPhotos.length);
-    });
-
-    test("checkbox for selected photo is checked", () => {
+    test("selected tile gets ring class when canSelect=true", () => {
       // Arrange & Act
       renderGrid({ canSelect: true, selectedIds: new Set([1]) });
 
-      // Assert
-      const checkbox1 = screen.getByTestId("photo-select-checkbox-1");
-      const checkbox2 = screen.getByTestId("photo-select-checkbox-2");
-      expect(checkbox1).toBeChecked();
-      expect(checkbox2).not.toBeChecked();
+      // Assert — the tile wrapper for photo 1 has the ring class
+      const tile = screen.getByTestId("photo-tile-1").parentElement;
+      expect(tile?.className).toContain("ring-2");
     });
 
-    test("checkbox onChange calls onTogglePhotoSelection with photoId", () => {
+    test("plain click calls onPhotoSelect and does NOT call onPhotoSelection", () => {
       // Arrange
-      const onTogglePhotoSelection = jest.fn();
-      renderGrid({ canSelect: true, selectedIds: new Set<number>(), onTogglePhotoSelection });
+      const onPhotoSelect = jest.fn();
+      const onPhotoSelection = jest.fn();
+      renderGrid({ canSelect: true, onPhotoSelect, onPhotoSelection });
 
       // Act
-      fireEvent.click(screen.getByTestId("photo-select-checkbox-1"));
+      fireEvent.click(screen.getByTestId("photo-tile-1"));
 
       // Assert
-      expect(onTogglePhotoSelection).toHaveBeenCalledWith(1, expect.any(Boolean));
+      expect(onPhotoSelect).toHaveBeenCalledWith(mockPhotos[0]);
+      expect(onPhotoSelection).not.toHaveBeenCalled();
+    });
+
+    test("Cmd+click calls onPhotoSelection(id, toggle) and does NOT open drawer", () => {
+      // Arrange
+      const onPhotoSelect = jest.fn();
+      const onPhotoSelection = jest.fn();
+      renderGrid({ canSelect: true, onPhotoSelect, onPhotoSelection });
+
+      // Act
+      fireEvent.click(screen.getByTestId("photo-tile-1"), { metaKey: true });
+
+      // Assert
+      expect(onPhotoSelection).toHaveBeenCalledWith(1, "toggle");
+      expect(onPhotoSelect).not.toHaveBeenCalled();
+    });
+
+    test("Ctrl+click calls onPhotoSelection(id, toggle) and does NOT open drawer", () => {
+      // Arrange
+      const onPhotoSelect = jest.fn();
+      const onPhotoSelection = jest.fn();
+      renderGrid({ canSelect: true, onPhotoSelect, onPhotoSelection });
+
+      // Act
+      fireEvent.click(screen.getByTestId("photo-tile-1"), { ctrlKey: true });
+
+      // Assert
+      expect(onPhotoSelection).toHaveBeenCalledWith(1, "toggle");
+      expect(onPhotoSelect).not.toHaveBeenCalled();
+    });
+
+    test("Shift+click calls onPhotoSelection(id, range) and does NOT open drawer", () => {
+      // Arrange
+      const onPhotoSelect = jest.fn();
+      const onPhotoSelection = jest.fn();
+      renderGrid({ canSelect: true, onPhotoSelect, onPhotoSelection });
+
+      // Act
+      fireEvent.click(screen.getByTestId("photo-tile-2"), { shiftKey: true });
+
+      // Assert
+      expect(onPhotoSelection).toHaveBeenCalledWith(2, "range");
+      expect(onPhotoSelect).not.toHaveBeenCalled();
+    });
+
+    test("when canSelect=false, Cmd+click falls through to onPhotoSelect", () => {
+      // Arrange
+      const onPhotoSelect = jest.fn();
+      const onPhotoSelection = jest.fn();
+      renderGrid({ canSelect: false, onPhotoSelect, onPhotoSelection });
+
+      // Act
+      fireEvent.click(screen.getByTestId("photo-tile-1"), { metaKey: true });
+
+      // Assert — read-only users always open drawer regardless of modifier
+      expect(onPhotoSelect).toHaveBeenCalledWith(mockPhotos[0]);
+      expect(onPhotoSelection).not.toHaveBeenCalled();
     });
   });
 

@@ -40,7 +40,7 @@ function renderList(overrides: Partial<React.ComponentProps<typeof PhotoList>> =
     onPhotoSelect: jest.fn(),
     onPageChange: jest.fn(),
     selectedIds: new Set<number>(),
-    onTogglePhotoSelection: jest.fn(),
+    onPhotoSelection: jest.fn(),
     canSelect: false,
     ...overrides,
   };
@@ -139,9 +139,9 @@ describe("PhotoList", () => {
     expect(onPhotoSelect).toHaveBeenCalledWith(mockPhotos[0]);
   });
 
-  test("selected row has aria-pressed true", () => {
+  test("multi-selected row has aria-pressed true", () => {
     // Arrange
-    renderList({ selectedPhotoId: 2 });
+    renderList({ selectedIds: new Set([2]) });
 
     // Assert
     expect(screen.getByLabelText("photo-02.jpg")).toHaveAttribute("aria-pressed", "true");
@@ -149,7 +149,7 @@ describe("PhotoList", () => {
 
   test("non-selected row has aria-pressed false", () => {
     // Arrange
-    renderList({ selectedPhotoId: 2 });
+    renderList({ selectedIds: new Set([2]) });
 
     // Assert
     expect(screen.getByLabelText("photo-01.jpg")).toHaveAttribute("aria-pressed", "false");
@@ -189,44 +189,82 @@ describe("PhotoList", () => {
   });
 
   describe("selection", () => {
-    test("with canSelect=false checkboxes are not rendered", () => {
-      // Arrange & Act
-      renderList({ canSelect: false });
-
-      // Assert
-      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-    });
-
-    test("with canSelect=true checkboxes are rendered for each photo", () => {
+    test("no checkboxes are rendered regardless of canSelect", () => {
       // Arrange & Act
       renderList({ canSelect: true, selectedIds: new Set<number>() });
 
-      // Assert
-      const checkboxes = screen.getAllByRole("checkbox");
-      expect(checkboxes).toHaveLength(mockPhotos.length);
+      // Assert — checkboxes gone
+      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     });
 
-    test("checkbox for selected photo is checked", () => {
-      // Arrange & Act
-      renderList({ canSelect: true, selectedIds: new Set([1]) });
-
-      // Assert
-      const checkbox1 = screen.getByTestId("photo-select-checkbox-1");
-      const checkbox2 = screen.getByTestId("photo-select-checkbox-2");
-      expect(checkbox1).toBeChecked();
-      expect(checkbox2).not.toBeChecked();
-    });
-
-    test("checkbox onChange calls onTogglePhotoSelection with photoId", () => {
+    test("plain click calls onPhotoSelect and does NOT call onPhotoSelection", () => {
       // Arrange
-      const onTogglePhotoSelection = jest.fn();
-      renderList({ canSelect: true, selectedIds: new Set<number>(), onTogglePhotoSelection });
+      const onPhotoSelect = jest.fn();
+      const onPhotoSelection = jest.fn();
+      renderList({ canSelect: true, onPhotoSelect, onPhotoSelection });
 
       // Act
-      fireEvent.click(screen.getByTestId("photo-select-checkbox-1"));
+      fireEvent.click(screen.getByTestId("photo-row-1"));
 
       // Assert
-      expect(onTogglePhotoSelection).toHaveBeenCalledWith(1, expect.any(Boolean));
+      expect(onPhotoSelect).toHaveBeenCalledWith(mockPhotos[0]);
+      expect(onPhotoSelection).not.toHaveBeenCalled();
+    });
+
+    test("Cmd+click calls onPhotoSelection(id, toggle) and does NOT open drawer", () => {
+      // Arrange
+      const onPhotoSelect = jest.fn();
+      const onPhotoSelection = jest.fn();
+      renderList({ canSelect: true, onPhotoSelect, onPhotoSelection });
+
+      // Act
+      fireEvent.click(screen.getByTestId("photo-row-1"), { metaKey: true });
+
+      // Assert
+      expect(onPhotoSelection).toHaveBeenCalledWith(1, "toggle");
+      expect(onPhotoSelect).not.toHaveBeenCalled();
+    });
+
+    test("Ctrl+click calls onPhotoSelection(id, toggle) and does NOT open drawer", () => {
+      // Arrange
+      const onPhotoSelect = jest.fn();
+      const onPhotoSelection = jest.fn();
+      renderList({ canSelect: true, onPhotoSelect, onPhotoSelection });
+
+      // Act
+      fireEvent.click(screen.getByTestId("photo-row-1"), { ctrlKey: true });
+
+      // Assert
+      expect(onPhotoSelection).toHaveBeenCalledWith(1, "toggle");
+      expect(onPhotoSelect).not.toHaveBeenCalled();
+    });
+
+    test("Shift+click calls onPhotoSelection(id, range) and does NOT open drawer", () => {
+      // Arrange
+      const onPhotoSelect = jest.fn();
+      const onPhotoSelection = jest.fn();
+      renderList({ canSelect: true, onPhotoSelect, onPhotoSelection });
+
+      // Act
+      fireEvent.click(screen.getByTestId("photo-row-2"), { shiftKey: true });
+
+      // Assert
+      expect(onPhotoSelection).toHaveBeenCalledWith(2, "range");
+      expect(onPhotoSelect).not.toHaveBeenCalled();
+    });
+
+    test("when canSelect=false, Cmd+click falls through to onPhotoSelect", () => {
+      // Arrange
+      const onPhotoSelect = jest.fn();
+      const onPhotoSelection = jest.fn();
+      renderList({ canSelect: false, onPhotoSelect, onPhotoSelection });
+
+      // Act
+      fireEvent.click(screen.getByTestId("photo-row-1"), { metaKey: true });
+
+      // Assert
+      expect(onPhotoSelect).toHaveBeenCalledWith(mockPhotos[0]);
+      expect(onPhotoSelection).not.toHaveBeenCalled();
     });
   });
 });
