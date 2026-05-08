@@ -48,6 +48,7 @@ import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
 import DataQualityPage from "./pages/customer/DataQualityPage";
 import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
+import SmartsuppChatsPage from "./components/customer-support/smartsupp/pages/SmartsuppChatsPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
 import { UserStorage } from "./auth/userStorage";
 import { apiRequest } from "./auth/msalConfig";
@@ -463,6 +464,10 @@ function App() {
                         <Route
                           path="/customer/bank-statements-overview"
                           element={<BankStatementsOverviewPage />}
+                        />
+                        <Route
+                          path="/customer/smartsupp"
+                          element={<SmartsuppChatsPage />}
                         />
                         <Route path="/orgchart" element={<OrgChartPage />} />
                         <Route
