@@ -18,12 +18,14 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag
         public async Task<DeleteTagResponse> Handle(DeleteTagRequest request, CancellationToken cancellationToken)
         {
             var tag = await _repository.GetTagByIdAsync(request.Id, cancellationToken);
-            if (tag == null)
+            if (tag is null)
                 return new DeleteTagResponse(ErrorCodes.PhotobankTagNotFound);
 
+            var assignmentCount = tag.PhotoTags.Count;
             await _repository.DeleteTagAsync(tag, cancellationToken);
+            await _repository.SaveChangesAsync(cancellationToken);
 
-            return new DeleteTagResponse();
+            return new DeleteTagResponse { RemovedAssignmentCount = assignmentCount };
         }
     }
 }

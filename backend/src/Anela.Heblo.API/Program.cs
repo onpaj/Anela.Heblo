@@ -14,6 +14,7 @@ using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.Application;
+using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Xcc;
@@ -111,7 +112,7 @@ public partial class Program
 
         // Apply pending EF Core migrations in Production only.
         // Other environments (Dev/Test/Staging/Automation) keep the manual `dotnet ef database update` workflow.
-        if (app.Environment.IsProduction())
+        if (app.Environment.IsProduction() || app.Environment.IsStaging())
         {
             await app.MigrateDatabaseAsync();
         }

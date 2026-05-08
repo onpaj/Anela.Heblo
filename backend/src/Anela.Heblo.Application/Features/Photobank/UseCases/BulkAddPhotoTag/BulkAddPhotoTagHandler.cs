@@ -23,7 +23,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag
         public async Task<BulkAddPhotoTagResponse> Handle(BulkAddPhotoTagRequest request, CancellationToken cancellationToken)
         {
             var total = await _repository.CountFilteredPhotosAsync(
-                request.Tags, request.Search, request.FolderPath, cancellationToken);
+                request.Tags, request.Search, cancellationToken);
 
             if (total > BulkTagLimit)
                 return new BulkAddPhotoTagResponse(ErrorCodes.BulkTagLimitExceeded)
@@ -41,7 +41,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag
                 return new BulkAddPhotoTagResponse(ErrorCodes.PhotoTagCreationFailed);
 
             var photoIds = await _repository.GetFilteredPhotoIdsMissingTagAsync(
-                request.Tags, request.Search, request.FolderPath, tag.Id, cancellationToken);
+                request.Tags, request.Search, tag.Id, cancellationToken);
 
             var now = DateTime.UtcNow;
             foreach (var photoId in photoIds)

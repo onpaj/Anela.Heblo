@@ -55,10 +55,9 @@ public sealed class ArticleOptions
 
     public string WriteArticleSystemPromptTemplate { get; set; } =
         """
-        Jsi zkušený redaktor kosmetického obsahu. Napiš článek na téma {topic} pro publikum {audience}.
+        Napiš článek na téma {topic} pro publikum {audience}.
         Délka: {length}. Úhel pohledu: {angle}.
         Využij tato fakta: {facts}
         {style_guide}
-        Odpověz JSON: {"title":"...","html_content":"<article>...</article>"}.
         """;
 }

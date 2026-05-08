@@ -7,72 +7,94 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 
 public class TagRuleMatcherTests
 {
-    private static TagRule Rule(string pattern, string tag, bool active = true, int sort = 0) =>
-        new() { PathPattern = pattern, TagName = tag, IsActive = active, SortOrder = sort };
+    private static TagRule Rule(string pattern, string tagName, bool isActive = true) =>
+        new() { Id = 1, PathPattern = pattern, TagName = tagName, IsActive = isActive, SortOrder = 0 };
 
     [Fact]
-    public void ExactPrefix_Matches()
+    public void GetMatchingTags_FindsTagInsideFolderSegment()
     {
-        var rules = new[] { Rule("Photos/2025/Events", "events") };
-        var result = TagRuleMatcher.GetMatchingTags("Photos/2025/Events/Party", rules);
-        result.Should().ContainSingle("events");
+        var rule = Rule("peťa", "peta");
+        var path = "Grafika_interní/PROFI_FOCENI/_Vánoce + Advent/2024_Háta/garance dodání_Andy, Peťa";
+        var fileName = "dsc-6411.jpg";
+
+        var result = TagRuleMatcher.GetMatchingTags(path, fileName, new[] { rule });
+
+        result.Should().Contain("peta");
     }
 
     [Fact]
-    public void Wildcard_MatchesSingleSegment()
+    public void GetMatchingTags_MatchesFileName_WhenPatternAppearsOnlyInFileName()
     {
-        var rules = new[] { Rule("Photos/*/Events", "events") };
-        var result = TagRuleMatcher.GetMatchingTags("Photos/2025/Events/Party", rules);
-        result.Should().ContainSingle("events");
+        var rule = Rule("andy", "andy");
+        var result = TagRuleMatcher.GetMatchingTags("marketing/2024", "andy_portrait.jpg", new[] { rule });
+        result.Should().Contain("andy");
     }
 
     [Fact]
-    public void Wildcard_DoesNotMatchMultipleSegments()
+    public void GetMatchingTags_TranslatedLegacyWildcard_StillMatches()
     {
-        var rules = new[] { Rule("Photos/*", "any") };
-        // '*' only matches one segment, so "Photos/2025/Events" should NOT match "Photos/*"
-        // because the path has more segments beyond the wildcard position
-        // BUT the pattern "Photos/*" means: prefix must be Photos/{one segment}
-        // path "Photos/2025/Events" has Photos, 2025, Events — 3 segments, pattern has 2
-        // pattern segments <= path segments, wildcard matches "2025" — so it DOES match as prefix
-        // The spec says '*' matches exactly one segment in position, not "rest of path"
-        var result = TagRuleMatcher.GetMatchingTags("Photos/2025/Events", rules);
-        result.Should().ContainSingle("any"); // prefix "Photos/*" matches "Photos/2025/..."
+        var rule = Rule(@"^people/[^/]+/2024(/|$)", "team2024");
+        var result = TagRuleMatcher.GetMatchingTags("people/foo/2024", "photo.jpg", new[] { rule });
+        result.Should().Contain("team2024");
     }
 
     [Fact]
-    public void AllMatchingRulesApply_NotFirstMatchWins()
+    public void GetMatchingTags_TranslatedLegacyWildcard_DoesNotMatchMultipleSegments()
     {
-        var rules = new[]
-        {
-            Rule("Photos/2025", "year-2025"),
-            Rule("Photos/2025/Events", "events"),
-        };
-        var result = TagRuleMatcher.GetMatchingTags("Photos/2025/Events/Party", rules);
-        result.Should().BeEquivalentTo(new[] { "year-2025", "events" });
-    }
-
-    [Fact]
-    public void CaseInsensitive_Matches()
-    {
-        var rules = new[] { Rule("photos/2025/events", "events") };
-        var result = TagRuleMatcher.GetMatchingTags("Photos/2025/Events/Party", rules);
-        result.Should().ContainSingle("events");
-    }
-
-    [Fact]
-    public void InactiveRules_AreSkipped()
-    {
-        var rules = new[] { Rule("Photos/2025", "year-2025", active: false) };
-        var result = TagRuleMatcher.GetMatchingTags("Photos/2025/Party", rules);
+        var rule = Rule(@"^people/[^/]+/2024(/|$)", "team2024");
+        var result = TagRuleMatcher.GetMatchingTags("people/foo/bar/2024", "photo.jpg", new[] { rule });
         result.Should().BeEmpty();
     }
 
     [Fact]
-    public void NoMatch_ReturnsEmpty()
+    public void GetMatchingTags_CaseInsensitive()
     {
-        var rules = new[] { Rule("Videos/2025", "videos") };
-        var result = TagRuleMatcher.GetMatchingTags("Photos/2025/Party", rules);
+        var rule = Rule("profi", "profi");
+        var result = TagRuleMatcher.GetMatchingTags("Grafika/PROFI_FOCENI", "img.jpg", new[] { rule });
+        result.Should().Contain("profi");
+    }
+
+    [Fact]
+    public void GetMatchingTags_DiacriticSensitive_PatternWithHacek_DoesNotMatchPlain()
+    {
+        var rule = Rule("peťa", "peta");
+        var result = TagRuleMatcher.GetMatchingTags("marketing/peta_photos", "img.jpg", new[] { rule });
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GetMatchingTags_DiacriticSensitive_PatternPlain_DoesNotMatchHacek()
+    {
+        var rule = Rule("peta", "peta_plain");
+        var result = TagRuleMatcher.GetMatchingTags("marketing/Peťa", "img.jpg", new[] { rule });
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GetMatchingTags_SkipsInactiveRules()
+    {
+        var rule = Rule("photos", "photos", isActive: false);
+        var result = TagRuleMatcher.GetMatchingTags("photos/2024", "img.jpg", new[] { rule });
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GetMatchingTags_ReturnsDistinctTagNames()
+    {
+        var rules = new[]
+        {
+            Rule("photos", "products"),
+            Rule("2024", "products"),
+        };
+        var result = TagRuleMatcher.GetMatchingTags("photos/2024", "img.jpg", rules);
+        result.Should().ContainSingle(t => t == "products");
+    }
+
+    [Fact]
+    public void GetMatchingTags_EmptyFolderPathAndFileName_ReturnsEmpty()
+    {
+        var rule = Rule("photos", "photos");
+        var result = TagRuleMatcher.GetMatchingTags("", "", new[] { rule });
         result.Should().BeEmpty();
     }
 }

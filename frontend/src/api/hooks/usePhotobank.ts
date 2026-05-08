@@ -38,7 +38,6 @@ export interface GetPhotosParams {
   tags?: string[];
   search?: string;
   useRegex?: boolean;
-  folderPath?: string;
   withoutTags?: boolean;
   page?: number;
   pageSize?: number;
@@ -84,7 +83,6 @@ function buildPhotosUrl(baseUrl: string, params: GetPhotosParams): string {
   const qs = new URLSearchParams();
   if (params.search) qs.set("search", params.search);
   if (params.useRegex) qs.set("useRegex", "true");
-  if (params.folderPath) qs.set("folderPath", params.folderPath);
   if (params.withoutTags) qs.set("withoutTags", "true");
   if (params.page != null) qs.set("page", String(params.page));
   if (params.pageSize != null) qs.set("pageSize", String(params.pageSize));
@@ -147,12 +145,41 @@ export const useRemovePhotoTag = (photoId: number) => {
   });
 };
 
+// ---- Tag CRUD ---------------------------------------------------------------
+
+export const useCreateTag = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await apiPost(apiClient, `${baseUrl}/api/photobank/tags`, { name });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
+    },
+  });
+};
+
+export const useDeleteTag = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (tagId: number) => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await apiDelete(apiClient, `${baseUrl}/api/photobank/tags/${tagId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
+    },
+  });
+};
+
 // ---- Bulk tag ---------------------------------------------------------------
 
 export interface BulkAddPhotoTagParams {
   tags?: string[];
   search?: string;
-  folderPath?: string;
   tagName: string;
 }
 
@@ -189,6 +216,27 @@ export const useBulkAddPhotoTagByIds = () => {
   });
 };
 
+// ---- Auto-tag ---------------------------------------------------------------
+
+export interface RetagPhotosRequest {
+  photoIds: number[];
+  clearExistingAiTags: boolean;
+}
+
+export const useRetagPhotos = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (request: RetagPhotosRequest) => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      await apiPost(apiClient, `${baseUrl}/api/photobank/photos/auto-tag`, request);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.photobank });
+    },
+  });
+};
+
 export const useBulkAddPhotoTag = () => {
   const queryClient = useQueryClient();
   return useMutation<BulkAddPhotoTagResult, Error, BulkAddPhotoTagParams>({
@@ -202,7 +250,6 @@ export const useBulkAddPhotoTag = () => {
           body: JSON.stringify({
             tags: params.tags,
             search: params.search,
-            folderPath: params.folderPath,
             tagName: params.tagName,
           }),
         },

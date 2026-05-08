@@ -7,12 +7,12 @@ export const useMarketingWriterPermission = (): boolean => {
 
   if (shouldUseMockAuth()) {
     const user = mockAuthService.getUser();
-    return !!(Array.isArray(user?.roles) && user?.roles.includes('marketing_writer'));
+    return !!(Array.isArray(user?.roles) && user?.roles.includes('marketing_reader'));
   }
 
   const account = accounts[0];
   if (!account) return false;
   const claims = account.idTokenClaims as Record<string, unknown> | undefined;
   const roles = claims?.['roles'];
-  return Array.isArray(roles) && roles.includes('marketing_writer');
+  return Array.isArray(roles) && roles.includes('marketing_reader');
 };

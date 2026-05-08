@@ -10,12 +10,12 @@ namespace Anela.Heblo.Domain.Features.Photobank
     {
         // Photos
         Task<(List<Photo> Items, int Total)> GetPhotosAsync(
-            List<string>? tags, string? search, bool useRegex, string? folderPath, bool withoutTags, int page, int pageSize,
+            List<string>? tags, string? search, bool useRegex, bool withoutTags, int page, int pageSize,
             CancellationToken cancellationToken);
 
-        Task<int> CountFilteredPhotosAsync(List<string>? tags, string? search, string? folderPath, CancellationToken cancellationToken);
+        Task<int> CountFilteredPhotosAsync(List<string>? tags, string? search, CancellationToken cancellationToken);
 
-        Task<List<int>> GetFilteredPhotoIdsMissingTagAsync(List<string>? tags, string? search, string? folderPath, int tagId, CancellationToken cancellationToken);
+        Task<List<int>> GetFilteredPhotoIdsMissingTagAsync(List<string>? tags, string? search, int tagId, CancellationToken cancellationToken);
 
         Task<List<int>> GetExistingPhotoIdsMissingTagAsync(IReadOnlyList<int> photoIds, int tagId, CancellationToken cancellationToken);
 
@@ -29,6 +29,7 @@ namespace Anela.Heblo.Domain.Features.Photobank
         Task<List<(Tag Tag, int Count)>> GetTagsWithCountsAsync(CancellationToken cancellationToken);
         Task<Tag?> GetOrCreateTagAsync(string normalizedName, CancellationToken cancellationToken);
         Task<Tag?> GetTagByIdAsync(int id, CancellationToken cancellationToken);
+        Task<Tag?> GetTagByNameAsync(string normalizedName, CancellationToken cancellationToken);
         Task DeleteTagAsync(Tag tag, CancellationToken cancellationToken);
 
         // Photo tags
@@ -49,7 +50,14 @@ namespace Anela.Heblo.Domain.Features.Photobank
         Task<bool> DeleteRuleAsync(int id, CancellationToken cancellationToken);
 
         // Reapply rules
-        Task<int> ReapplyRulesAsync(List<TagRule> activeRules, CancellationToken cancellationToken);
+        Task<int> ReapplyRulesAsync(List<TagRule> allRules, string? scopeToTagName, CancellationToken cancellationToken);
+
+        // Auto-tagging
+        Task<List<PhotoAutoTagCandidate>> GetPhotosPendingAutoTagAsync(int pageSize, int offset, CancellationToken cancellationToken);
+        Task StampAutoTaggedAtAsync(IReadOnlyList<int> photoIds, DateTime timestamp, CancellationToken cancellationToken);
+        Task ResetAutoTaggedAtAsync(IReadOnlyList<int> photoIds, CancellationToken cancellationToken);
+        Task<List<Photo>> GetPhotosByIdsAsync(IReadOnlyList<int> photoIds, CancellationToken cancellationToken);
+        Task RemovePhotoTagsBySourceAsync(IReadOnlyList<int> photoIds, PhotoTagSource source, CancellationToken cancellationToken);
 
         Task SaveChangesAsync(CancellationToken cancellationToken);
     }

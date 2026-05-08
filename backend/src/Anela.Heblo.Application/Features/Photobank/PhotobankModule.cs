@@ -1,17 +1,22 @@
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRule;
 using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByIds;
+using Anela.Heblo.Application.Features.Photobank.UseCases.CreateTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRule;
+using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos;
 using Anela.Heblo.Application.Features.Photobank.UseCases.RemovePhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule;
 using Anela.Heblo.Application.Features.Photobank.Validators;
 using Anela.Heblo.Domain.Features.Photobank;
+using Anela.Heblo.Persistence;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +28,8 @@ public static class PhotobankModule
     public static IServiceCollection AddPhotobankModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IPhotobankRepository, PhotobankRepository>();
+        services.AddScoped<PhotobankAutoTagJob>();
+        services.Configure<AutoTagOptions>(configuration.GetSection(AutoTagOptions.SectionName));
 
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
         var bypassJwtValidation = configuration.GetValue<bool>("BypassJwtValidation", false);
@@ -51,6 +58,8 @@ public static class PhotobankModule
         services.AddScoped<IValidator<GetPhotosRequest>, GetPhotosRequestValidator>();
         services.AddScoped<IValidator<UpdateRuleRequest>, UpdateRuleRequestValidator>();
         services.AddScoped<IValidator<BulkAddPhotoTagByIdsRequest>, BulkAddPhotoTagByIdsRequestValidator>();
+        services.AddScoped<IValidator<CreateTagRequest>, CreateTagRequestValidator>();
+        services.AddScoped<IValidator<DeleteTagRequest>, DeleteTagRequestValidator>();
 
         // Register MediatR validation behavior for photobank requests
         services.AddScoped<IPipelineBehavior<AddPhotoTagRequest, AddPhotoTagResponse>, ValidationBehavior<AddPhotoTagRequest, AddPhotoTagResponse>>();
@@ -62,7 +71,10 @@ public static class PhotobankModule
         services.AddScoped<IPipelineBehavior<GetPhotosRequest, GetPhotosResponse>, ValidationBehavior<GetPhotosRequest, GetPhotosResponse>>();
         services.AddScoped<IPipelineBehavior<UpdateRuleRequest, UpdateRuleResponse>, ValidationBehavior<UpdateRuleRequest, UpdateRuleResponse>>();
         services.AddScoped<IPipelineBehavior<BulkAddPhotoTagByIdsRequest, BulkAddPhotoTagByIdsResponse>, ValidationBehavior<BulkAddPhotoTagByIdsRequest, BulkAddPhotoTagByIdsResponse>>();
+        services.AddScoped<IPipelineBehavior<CreateTagRequest, CreateTagResponse>, ValidationBehavior<CreateTagRequest, CreateTagResponse>>();
+        services.AddScoped<IPipelineBehavior<DeleteTagRequest, DeleteTagResponse>, ValidationBehavior<DeleteTagRequest, DeleteTagResponse>>();
 
         return services;
     }
+
 }

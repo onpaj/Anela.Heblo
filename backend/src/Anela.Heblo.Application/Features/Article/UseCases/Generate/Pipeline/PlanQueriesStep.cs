@@ -14,47 +14,61 @@ public class PlanQueriesStep : IArticlePipelineStep
     private readonly IChatClient _chat;
     private readonly ArticleOptions _options;
     private readonly ILogger<PlanQueriesStep> _logger;
+    private readonly PipelineStepRecorder _recorder;
 
     public PlanQueriesStep(
         IChatClient chat,
         IOptions<ArticleOptions> options,
-        ILogger<PlanQueriesStep> logger)
+        ILogger<PlanQueriesStep> logger,
+        PipelineStepRecorder recorder)
     {
         _chat = chat;
         _options = options.Value;
         _logger = logger;
+        _recorder = recorder;
     }
 
     public async Task ExecuteAsync(ArticlePipelineContext context, CancellationToken ct)
     {
-        var topic = context.Article.Topic;
+        await _recorder.RecordAsync<bool>(
+            context.Article.Id,
+            "PlanQueries",
+            1,
+            _options.QueryPlannerModel,
+            new { topic = context.Article.Topic },
+            async (token) =>
+            {
+                var topic = context.Article.Topic;
+                var chatOptions = new ChatOptions
+                {
+                    ModelId = _options.QueryPlannerModel,
+                    MaxOutputTokens = 512
+                };
 
-        var chatOptions = new ChatOptions
-        {
-            ModelId = _options.QueryPlannerModel,
-            MaxOutputTokens = 512
-        };
+                var response = await ChatRetry.RetryOnceAsync(
+                    () => _chat.GetResponseAsync(
+                        [
+                            new ChatMessage(ChatRole.System, _options.QueryPlannerSystemPrompt),
+                            new ChatMessage(ChatRole.User, topic)
+                        ],
+                        chatOptions,
+                        token),
+                    _logger,
+                    token);
 
-        var response = await ChatRetry.RetryOnceAsync(
-            () => _chat.GetResponseAsync(
-                [
-                    new ChatMessage(ChatRole.System, _options.QueryPlannerSystemPrompt),
-                    new ChatMessage(ChatRole.User, topic)
-                ],
-                chatOptions,
-                ct),
-            _logger,
+                var raw = response.Text ?? string.Empty;
+                var fallback = BuildFallback(topic);
+
+                var parsed = JsonResponseParser.ParseOrFallback<QueryPlanOutput>(raw, new QueryPlanOutput([]), _logger);
+                var queries = parsed.Queries is { Count: > 0 }
+                    ? parsed.Queries.Take(MaxQueries).ToList()
+                    : fallback;
+
+                context.SearchQueries = queries;
+
+                return (true, (object?)new { rawResponse = raw, queries });
+            },
             ct);
-
-        var raw = response.Text ?? string.Empty;
-        var fallback = BuildFallback(topic);
-
-        var parsed = JsonResponseParser.ParseOrFallback<QueryPlanOutput>(raw, new QueryPlanOutput([]), _logger);
-        var queries = parsed.Queries is { Count: > 0 }
-            ? parsed.Queries.Take(MaxQueries).ToList()
-            : fallback;
-
-        context.SearchQueries = queries;
     }
 
     private static List<string> BuildFallback(string topic) =>

@@ -29,7 +29,6 @@ const EXISTING_TAGS: TagWithCountDto[] = [
 
 const DEFAULT_PROPS = {
   search: "",
-  folderPath: "",
   selectedTagNames: [],
   totalMatching: 42,
   existingTags: EXISTING_TAGS,
@@ -57,19 +56,13 @@ beforeEach(() => {
 });
 
 test("renders filter chips for active search filter", () => {
-  renderDialog({ search: "produkty", folderPath: "", selectedTagNames: [] });
+  renderDialog({ search: "produkty", selectedTagNames: [] });
 
   expect(screen.getByText('Název: "produkty"')).toBeInTheDocument();
 });
 
-test("renders filter chip for folderPath", () => {
-  renderDialog({ search: "", folderPath: "kampane", selectedTagNames: [] });
-
-  expect(screen.getByText('Složka: "kampane"')).toBeInTheDocument();
-});
-
 test("renders filter chips for each selected tag name", () => {
-  renderDialog({ search: "", folderPath: "", selectedTagNames: ["jarní", "letní"] });
+  renderDialog({ search: "", selectedTagNames: ["jarní", "letní"] });
 
   expect(screen.getByText("jarní")).toBeInTheDocument();
   expect(screen.getByText("letní")).toBeInTheDocument();

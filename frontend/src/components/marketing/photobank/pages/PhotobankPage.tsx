@@ -10,7 +10,7 @@ import PhotoViewToggle from "../PhotoViewToggle";
 import BulkTagButton from "../BulkTagButton";
 import BulkTagDialog from "../BulkTagDialog";
 import PhotobankBulkActionBar from "../PhotobankBulkActionBar";
-import { usePhotos, usePhotoTags, useBulkAddPhotoTagByIds } from "../../../../api/hooks/usePhotobank";
+import { usePhotos, usePhotoTags, useBulkAddPhotoTagByIds, useRetagPhotos } from "../../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../../api/hooks/usePhotobank";
 
 const ADMIN_ROLE = "super_user";
@@ -53,11 +53,10 @@ function PhotobankPage() {
 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [search, setSearch] = useState("");
-  const [folderPath, setFolderPath] = useState("");
   const [withoutTags, setWithoutTags] = useState(false);
   const [useRegex, setUseRegex] = useState(false);
   const [page, setPage] = useState(1);
-  const [selectedPhoto, setSelectedPhoto] = useState<PhotoDto | null>(null);
+  const [selectedPhotoId, setSelectedPhotoId] = useState<number | null>(null);
   const [view, setView] = useState<ViewMode>(readViewMode);
   const [tagsOnTiles, setTagsOnTiles] = useState<boolean>(readTagsOnTiles);
   const [bulkTagDialogOpen, setBulkTagDialogOpen] = useState(false);
@@ -94,11 +93,15 @@ function PhotobankPage() {
     tags: selectedTagNames.length > 0 ? selectedTagNames : undefined,
     search: search || undefined,
     useRegex: useRegex || undefined,
-    folderPath: folderPath || undefined,
     withoutTags: withoutTags || undefined,
     page,
     pageSize: DEFAULT_PAGE_SIZE,
   });
+
+  const selectedPhoto = useMemo(
+    () => (selectedPhotoId != null ? (photosData?.items.find((p) => p.id === selectedPhotoId) ?? null) : null),
+    [selectedPhotoId, photosData],
+  );
 
   const searchErrorMessage = photosError && useRegex
     ? "Neplatný regulární výraz"
@@ -120,13 +123,6 @@ function PhotobankPage() {
     setSelectionAnchorId(null);
   }, []);
 
-  const handleFolderPathChange = useCallback((value: string) => {
-    setFolderPath(value);
-    setPage(1);
-    setSelectedIds(new Set());
-    setSelectionAnchorId(null);
-  }, []);
-
   const handleRegexChange = useCallback((value: boolean) => {
     setUseRegex(value);
     setPage(1);
@@ -135,7 +131,6 @@ function PhotobankPage() {
   const handleClearFilters = useCallback(() => {
     setSelectedTagIds([]);
     setSearch("");
-    setFolderPath("");
     setWithoutTags(false);
     setUseRegex(false);
     setPage(1);
@@ -144,16 +139,16 @@ function PhotobankPage() {
   }, []);
 
   const handlePhotoSelect = useCallback((photo: PhotoDto) => {
-    setSelectedPhoto((prev) => (prev?.id === photo.id ? null : photo));
+    setSelectedPhotoId((prev) => (prev === photo.id ? null : photo.id));
   }, []);
 
   const handleDrawerClose = useCallback(() => {
-    setSelectedPhoto(null);
+    setSelectedPhotoId(null);
   }, []);
 
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
-    setSelectedPhoto(null);
+    setSelectedPhotoId(null);
     setSelectedIds(new Set());
     setSelectionAnchorId(null);
   }, []);
@@ -203,6 +198,7 @@ function PhotobankPage() {
   );
 
   const bulkAddByIdsMutation = useBulkAddPhotoTagByIds();
+  const retagMutation = useRetagPhotos();
 
   const handleApplyBulkTag = useCallback(
     async (tagName: string) => {
@@ -215,9 +211,16 @@ function PhotobankPage() {
     [selectedIds, bulkAddByIdsMutation, handleClearSelection],
   );
 
+  const handleAutoTagSelected = useCallback(() => {
+    retagMutation.mutate({
+      photoIds: Array.from(selectedIds),
+      clearExistingAiTags: false,
+    });
+  }, [selectedIds, retagMutation]);
+
   const sharedPhotoProps = {
     photos: photosData?.items ?? [],
-    selectedPhotoId: selectedPhoto?.id ?? null,
+    selectedPhotoId: selectedPhotoId,
     total: photosData?.total ?? 0,
     page: photosData?.page ?? page,
     pageSize: DEFAULT_PAGE_SIZE,
@@ -249,12 +252,10 @@ function PhotobankPage() {
             tags={tagsData ?? []}
             selectedTagIds={selectedTagIds}
             search={search}
-            folderPath={folderPath}
             withoutTags={withoutTags}
             useRegex={useRegex}
             onTagToggle={handleTagToggle}
             onSearchChange={handleSearchChange}
-            onFolderPathChange={handleFolderPathChange}
             onWithoutTagsToggle={() => { setWithoutTags((v) => !v); setPage(1); }}
             onClearFilters={handleClearFilters}
             onRegexChange={handleRegexChange}
@@ -270,7 +271,6 @@ function PhotobankPage() {
               {canBulkTag && (
                 <BulkTagButton
                   search={search}
-                  folderPath={folderPath}
                   selectedTagNames={selectedTagNames}
                   totalMatching={photosData?.total ?? 0}
                   onOpenDialog={handleOpenBulkTagDialog}
@@ -307,7 +307,9 @@ function PhotobankPage() {
               selectedCount={selectedIds.size}
               existingTags={tagsData ?? []}
               isApplying={bulkAddByIdsMutation.isPending}
+              isAutoTagging={retagMutation.isPending}
               onApplyTag={handleApplyBulkTag}
+              onAutoTag={handleAutoTagSelected}
               onClear={handleClearSelection}
             />
           )}
@@ -329,7 +331,6 @@ function PhotobankPage() {
       {bulkTagDialogOpen && (
         <BulkTagDialog
           search={search}
-          folderPath={folderPath}
           selectedTagNames={selectedTagNames}
           totalMatching={photosData?.total ?? 0}
           existingTags={tagsData ?? []}

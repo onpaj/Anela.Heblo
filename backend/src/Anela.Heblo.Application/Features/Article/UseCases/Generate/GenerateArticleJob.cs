@@ -37,7 +37,7 @@ public sealed class GenerateArticleJob
 
     public async Task RunAsync(Guid articleId, CancellationToken ct = default)
     {
-        var article = await _repository.GetByIdAsync(articleId, ct);
+        var article = await _repository.GetForUpdateAsync(articleId, ct);
         if (article == null)
         {
             _logger.LogWarning("GenerateArticleJob: article {Id} not found, skipping", articleId);

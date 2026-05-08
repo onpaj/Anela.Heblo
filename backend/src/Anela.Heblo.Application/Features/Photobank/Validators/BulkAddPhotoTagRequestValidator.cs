@@ -16,9 +16,8 @@ public class BulkAddPhotoTagRequestValidator : AbstractValidator<BulkAddPhotoTag
         RuleFor(x => x)
             .Must(x =>
                 !string.IsNullOrWhiteSpace(x.Search)
-                || !string.IsNullOrWhiteSpace(x.FolderPath)
                 || (x.Tags != null && x.Tags.Exists(t => !string.IsNullOrWhiteSpace(t))))
-            .WithMessage("At least one filter (Tags, Search, or FolderPath) must be provided")
+            .WithMessage("At least one filter (Tags or Search) must be provided")
             .WithErrorCode(((int)Shared.ErrorCodes.BulkTagFiltersRequired).ToString());
     }
 }

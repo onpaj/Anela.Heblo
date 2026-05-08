@@ -82,4 +82,5 @@ public class GetPhotosRequestValidatorTests
         // Assert
         result.ShouldNotHaveAnyValidationErrors();
     }
+
 }

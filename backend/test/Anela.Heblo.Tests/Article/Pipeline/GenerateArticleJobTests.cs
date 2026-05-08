@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Features.Article;
 using Anela.Heblo.Application.Features.Article.UseCases.Generate;
 using Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
-using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Shared.WebSearch;
 using Anela.Heblo.Domain.Features.Article;
 using FluentAssertions;
@@ -32,6 +31,15 @@ public class GenerateArticleJobTests
             Status = ArticleStatus.Queued
         };
 
+    private static PipelineStepRecorder CreateNoOpRecorder()
+    {
+        var repo = new Mock<IArticleRepository>();
+        repo.Setup(r => r.AddStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repo.Setup(r => r.UpdateStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        return new PipelineStepRecorder(repo.Object);
+    }
+
     private GenerateArticleJob CreateJob(
         PlanQueriesStep? planQueries = null,
         GatherContextStep? gatherContext = null,
@@ -40,13 +48,14 @@ public class GenerateArticleJobTests
         WriteArticleStep? writeArticle = null)
     {
         var optionsWrapper = Options.Create(_options);
+        var recorder = CreateNoOpRecorder();
         return new GenerateArticleJob(
             _repository.Object,
-            planQueries ?? new PlanQueriesStep(_chat.Object, optionsWrapper, NullLogger<PlanQueriesStep>.Instance),
-            gatherContext ?? new GatherContextStep(_mediator.Object, _webSearch.Object, _oneDrive.Object, optionsWrapper, NullLogger<GatherContextStep>.Instance),
-            aggregateFacts ?? new AggregateFactsStep(_chat.Object, optionsWrapper, NullLogger<AggregateFactsStep>.Instance),
-            validateFacts ?? new ValidateFactsStep(_chat.Object, optionsWrapper, NullLogger<ValidateFactsStep>.Instance),
-            writeArticle ?? new WriteArticleStep(_chat.Object, optionsWrapper, NullLogger<WriteArticleStep>.Instance),
+            planQueries ?? new PlanQueriesStep(_chat.Object, optionsWrapper, NullLogger<PlanQueriesStep>.Instance, recorder),
+            gatherContext ?? new GatherContextStep(_mediator.Object, _webSearch.Object, _oneDrive.Object, optionsWrapper, NullLogger<GatherContextStep>.Instance, recorder),
+            aggregateFacts ?? new AggregateFactsStep(_chat.Object, optionsWrapper, NullLogger<AggregateFactsStep>.Instance, recorder),
+            validateFacts ?? new ValidateFactsStep(_chat.Object, optionsWrapper, NullLogger<ValidateFactsStep>.Instance, recorder),
+            writeArticle ?? new WriteArticleStep(_chat.Object, optionsWrapper, NullLogger<WriteArticleStep>.Instance, recorder),
             NullLogger<GenerateArticleJob>.Instance);
     }
 
@@ -72,7 +81,7 @@ public class GenerateArticleJobTests
         article.UsedKnowledgeBase = false;
         article.UsedWebSearch = false;
         _repository
-            .Setup(r => r.GetByIdAsync(article.Id, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetForUpdateAsync(article.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(article);
 
         SetupChatResponses(
@@ -101,6 +110,9 @@ public class GenerateArticleJobTests
         _repository.Verify(
             r => r.SaveChangesAsync(It.IsAny<CancellationToken>()),
             Times.AtLeast(3));
+        // Regression guard: must use the tracked variant, never the read-only one
+        _repository.Verify(r => r.GetForUpdateAsync(article.Id, It.IsAny<CancellationToken>()), Times.Once);
+        _repository.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -108,7 +120,7 @@ public class GenerateArticleJobTests
     {
         var id = Guid.NewGuid();
         _repository
-            .Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetForUpdateAsync(id, It.IsAny<CancellationToken>()))
             .ReturnsAsync((DomainArticle?)null);
 
         await CreateJob().RunAsync(id, default);
@@ -125,7 +137,7 @@ public class GenerateArticleJobTests
         article.UsedKnowledgeBase = false;
         article.UsedWebSearch = false;
         _repository
-            .Setup(r => r.GetByIdAsync(article.Id, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetForUpdateAsync(article.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(article);
 
         var callCount = 0;
@@ -159,7 +171,7 @@ public class GenerateArticleJobTests
         article.UsedKnowledgeBase = false;
         article.UsedWebSearch = false;
         _repository
-            .Setup(r => r.GetByIdAsync(article.Id, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetForUpdateAsync(article.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(article);
 
         _chat

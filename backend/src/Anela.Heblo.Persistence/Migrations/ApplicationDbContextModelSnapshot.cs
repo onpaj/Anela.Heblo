@@ -114,6 +114,59 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("Articles", (string)null);
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Article.ArticleGenerationStep", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long?>("DurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InputJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("OutputJson")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("StepName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArticleId", "Sequence")
+                        .HasDatabaseName("IX_ArticleGenerationSteps_ArticleId_Sequence");
+
+                    b.ToTable("ArticleGenerationSteps", (string)null);
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Article.ArticleSource", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2184,6 +2237,9 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<DateTime>("IndexedAt")
                         .HasColumnType("timestamp");
 
+                    b.Property<DateTime?>("LastAutoTaggedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("MimeType")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -2547,6 +2603,15 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("UserDashboardTiles", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.Article.ArticleGenerationStep", b =>
+                {
+                    b.HasOne("Anela.Heblo.Domain.Features.Article.Article", null)
+                        .WithMany("Steps")
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Article.ArticleSource", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.Article.Article", null)
@@ -2840,6 +2905,8 @@ namespace Anela.Heblo.Persistence.Migrations
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Article.Article", b =>
                 {
                     b.Navigation("Sources");
+
+                    b.Navigation("Steps");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.DataQuality.DqtRun", b =>

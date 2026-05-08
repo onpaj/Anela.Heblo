@@ -13,6 +13,10 @@ jest.mock("../../../../api/hooks/usePhotobank", () => ({
     mutateAsync: jest.fn().mockResolvedValue(undefined),
     isPending: false,
   }),
+  useRetagPhotos: () => ({
+    mutate: jest.fn(),
+    isPending: false,
+  }),
 }));
 
 jest.mock("react-router-dom", () => ({

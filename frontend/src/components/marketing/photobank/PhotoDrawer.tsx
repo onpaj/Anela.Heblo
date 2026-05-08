@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from "react";
 import { useMsal } from "@azure/msal-react";
-import { X, ExternalLink, Copy, Check, Plus, Tag } from "lucide-react";
+import { X, ExternalLink, Copy, Check, Plus, Tag, Sparkles } from "lucide-react";
 import PhotoThumbnail from "./PhotoThumbnail";
 import { TagBadge } from "../../../components/ui/TagBadge";
-import { useAddPhotoTag, useRemovePhotoTag } from "../../../api/hooks/usePhotobank";
+import { useAddPhotoTag, useRemovePhotoTag, useRetagPhotos } from "../../../api/hooks/usePhotobank";
 import type { PhotoDto } from "../../../api/hooks/usePhotobank";
 
 interface PhotoDrawerProps {
@@ -24,6 +24,15 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
 
   const addTagMutation = useAddPhotoTag(photo.id);
   const removeTagMutation = useRemovePhotoTag(photo.id);
+  const retagMutation = useRetagPhotos();
+
+  const [retagSuccess, setRetagSuccess] = useState(false);
+
+  const handleRetag = useCallback(async () => {
+    await retagMutation.mutateAsync({ photoIds: [photo.id], clearExistingAiTags: false });
+    setRetagSuccess(true);
+    setTimeout(() => setRetagSuccess(false), 2000);
+  }, [photo.id, retagMutation]);
 
   const handleCopyLink = useCallback(async () => {
     if (!photo.sharePointWebUrl) return;
@@ -126,6 +135,25 @@ const PhotoDrawer: React.FC<PhotoDrawerProps> = ({ photo, onClose }) => {
               <>
                 <Copy className="w-3.5 h-3.5" />
                 Kopírovat odkaz
+              </>
+            )}
+          </button>
+        )}
+        {isAdmin && (
+          <button
+            onClick={() => void handleRetag()}
+            disabled={retagMutation.isPending}
+            className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {retagSuccess ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-green-500" />
+                <span className="text-green-600">Přetagováno!</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-3.5 h-3.5" />
+                {retagMutation.isPending ? "Přetagování…" : "Re-tag s AI"}
               </>
             )}
           </button>

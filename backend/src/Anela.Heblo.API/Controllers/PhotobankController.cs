@@ -9,6 +9,8 @@ using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRule;
 using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByIds;
+using Anela.Heblo.Application.Features.Photobank.UseCases.CreateTag;
+using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteRule;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetPhotos;
@@ -17,6 +19,7 @@ using Anela.Heblo.Application.Features.Photobank.UseCases.GetRules;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetTags;
 using Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules;
 using Anela.Heblo.Application.Features.Photobank.UseCases.RemovePhotoTag;
+using Anela.Heblo.Application.Features.Photobank.UseCases.RetagPhotos;
 using Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Photobank;
@@ -47,8 +50,8 @@ namespace Anela.Heblo.API.Controllers
         }
 
         /// <summary>
-        /// Get photos with optional tag AND filter, filename search, and pagination.
-        /// Set useRegex=true to use POSIX regex matching on filename instead of substring search.
+        /// Get photos with optional tag AND filter, path search (matches folderPath/fileName), and pagination.
+        /// Set useRegex=true to use POSIX regex matching on the full path instead of substring search.
         /// </summary>
         [HttpGet("photos")]
         [ProducesResponseType(typeof(GetPhotosResponse), StatusCodes.Status200OK)]
@@ -56,7 +59,6 @@ namespace Anela.Heblo.API.Controllers
             [FromQuery] List<string>? tags,
             [FromQuery] string? search,
             [FromQuery] bool useRegex = false,
-            [FromQuery] string? folderPath = null,
             [FromQuery] bool withoutTags = false,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 48,
@@ -67,7 +69,6 @@ namespace Anela.Heblo.API.Controllers
                 Tags = tags,
                 Search = search,
                 UseRegex = useRegex,
-                FolderPath = folderPath,
                 WithoutTags = withoutTags,
                 Page = page,
                 PageSize = pageSize,
@@ -84,6 +85,34 @@ namespace Anela.Heblo.API.Controllers
         public async Task<ActionResult<GetTagsResponse>> GetTags(CancellationToken cancellationToken = default)
         {
             var response = await _mediator.Send(new GetTagsRequest(), cancellationToken);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Create a new tag. Requires super user role.
+        /// </summary>
+        [HttpPost("tags")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(CreateTagResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<CreateTagResponse>> CreateTag([FromBody] CreateTagBody body, CancellationToken ct)
+        {
+            var response = await _mediator.Send(new CreateTagRequest { Name = body.Name }, ct);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Delete a tag by ID. Requires super user role.
+        /// </summary>
+        [HttpDelete("tags/{id:int}")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(DeleteTagResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<DeleteTagResponse>> DeleteTag(int id, CancellationToken ct)
+        {
+            var response = await _mediator.Send(new DeleteTagRequest { Id = id }, ct);
             return HandleResponse(response);
         }
 
@@ -141,7 +170,6 @@ namespace Anela.Heblo.API.Controllers
             {
                 Tags = body.Tags,
                 Search = body.Search,
-                FolderPath = body.FolderPath,
                 TagName = body.TagName,
             };
             var response = await _mediator.Send(request, cancellationToken);
@@ -169,6 +197,23 @@ namespace Anela.Heblo.API.Controllers
             };
             var response = await _mediator.Send(request, cancellationToken);
             return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Re-tag specific photos via AI. Resets LastAutoTaggedAt and enqueues a Hangfire job.
+        /// Optionally clears existing AI tags before re-processing.
+        /// </summary>
+        [HttpPost("photos/auto-tag")]
+        [Authorize(Roles = AuthorizationConstants.Roles.MarketingWriter)]
+        [ProducesResponseType(typeof(RetagPhotosResponse), StatusCodes.Status202Accepted)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<RetagPhotosResponse>> RetagPhotos(
+            [FromBody] RetagPhotosRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _mediator.Send(request, cancellationToken);
+            return result.Success ? Accepted(result) : BadRequest(result);
         }
 
         // --- Settings: Index Roots ---
@@ -293,8 +338,8 @@ namespace Anela.Heblo.API.Controllers
         }
 
         /// <summary>
-        /// Re-apply all active tag rules. Deletes Rule-sourced tags and recomputes them.
-        /// Manual tags are never touched.
+        /// Re-apply all active tag rules. Deletes all Rule-sourced tags and recomputes them from scratch.
+        /// Manual and AI tags are never touched.
         /// </summary>
         [HttpPost("settings/rules/reapply")]
         [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
@@ -303,6 +348,21 @@ namespace Anela.Heblo.API.Controllers
         public async Task<ActionResult<ReapplyRulesResponse>> ReapplyRules(CancellationToken cancellationToken = default)
         {
             var response = await _mediator.Send(new ReapplyRulesRequest(), cancellationToken);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Re-apply a single tag rule. Only Rule-sourced tags for the tag name this rule produces
+        /// are removed and recomputed; all other rules' tags are left untouched.
+        /// </summary>
+        [HttpPost("settings/rules/{id:int}/reapply")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(ReapplyRulesResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ReapplyRulesResponse>> ReapplyRule(int id, CancellationToken cancellationToken = default)
+        {
+            var response = await _mediator.Send(new ReapplyRulesRequest { RuleId = id }, cancellationToken);
             return HandleResponse(response);
         }
 
@@ -367,11 +427,15 @@ namespace Anela.Heblo.API.Controllers
         public string TagName { get; set; } = null!;
     }
 
+    public class CreateTagBody
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+
     public class BulkAddPhotoTagBody
     {
         public List<string>? Tags { get; set; }
         public string? Search { get; set; }
-        public string? FolderPath { get; set; }
         public string TagName { get; set; } = null!;
     }
 
