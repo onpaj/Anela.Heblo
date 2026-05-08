@@ -3,6 +3,7 @@ import { ArticleDetail as ArticleDetailType, useGetArticleQuery, IN_PROGRESS_STA
 import { ArticleStatus } from '../../api/generated/api-client';
 import ArticleSourceList from './ArticleSourceList';
 import ArticleFeedbackSection from './ArticleFeedbackSection';
+import ArticleDebugPanel from './ArticleDebugPanel';
 
 interface ArticleDetailProps {
   articleId: string;
@@ -78,6 +79,7 @@ function ArticleView({ article }: { article: ArticleDetailType }) {
       {article.htmlContent && <HtmlContent html={article.htmlContent} />}
       <ArticleSourceList sources={article.sources} />
       <ArticleFeedbackSection article={article} />
+      <ArticleDebugPanel articleId={article.id} />
     </div>
   );
 }
