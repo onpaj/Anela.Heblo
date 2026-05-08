@@ -24,7 +24,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({ conversationId,
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [data?.messages?.length]);
+  }, [data?.messages?.length, conversationId]);
 
   return (
     <div className="flex flex-col h-full">

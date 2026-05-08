@@ -16,7 +16,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   if (isBot) {
     return (
       <div className="flex justify-center my-1">
-        <span className="text-xs text-gray-400 italic">{message.content}</span>
+        <span className="text-xs text-gray-400 italic">{message.content ?? ""}</span>
       </div>
     );
   }
@@ -33,7 +33,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         {!isVisitor && message.authorName && (
           <div className="text-xs text-blue-200 mb-1">{message.authorName}</div>
         )}
-        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+        <p className="text-sm whitespace-pre-wrap break-words">{message.content ?? ""}</p>
         <div className={`text-xs mt-1 ${isVisitor ? "text-gray-400" : "text-blue-200"} text-right`}>
           {formatTime(message.createdAt)}
         </div>
