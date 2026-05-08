@@ -113,12 +113,12 @@ public class GetArticleTraceHandlerTests
         string stepName,
         int sequence,
         ArticleGenerationStepStatus status) => new()
-    {
-        Id = Guid.NewGuid(),
-        ArticleId = articleId,
-        StepName = stepName,
-        Sequence = sequence,
-        Status = status,
-        StartedAt = DateTimeOffset.UtcNow,
-    };
+        {
+            Id = Guid.NewGuid(),
+            ArticleId = articleId,
+            StepName = stepName,
+            Sequence = sequence,
+            Status = status,
+            StartedAt = DateTimeOffset.UtcNow,
+        };
 }
