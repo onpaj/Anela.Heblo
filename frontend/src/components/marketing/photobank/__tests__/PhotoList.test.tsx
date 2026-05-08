@@ -155,6 +155,15 @@ describe("PhotoList", () => {
     expect(screen.getByLabelText("photo-01.jpg")).toHaveAttribute("aria-pressed", "false");
   });
 
+  test("drawer-open row has aria-expanded true", () => {
+    // Arrange — selectedPhotoId=2 means the drawer is open for photo 2
+    renderList({ selectedPhotoId: 2 });
+
+    // Assert
+    expect(screen.getByLabelText("photo-02.jpg")).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("photo-01.jpg")).toHaveAttribute("aria-expanded", "false");
+  });
+
   test("clicking SharePoint link does NOT fire onPhotoSelect", () => {
     // Arrange
     const onPhotoSelect = jest.fn();

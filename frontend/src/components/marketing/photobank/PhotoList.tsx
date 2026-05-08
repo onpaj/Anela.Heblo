@@ -111,6 +111,7 @@ function PhotoList({
                 }}
                 className="flex items-center gap-3 flex-1 min-w-0 text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-blue"
                 aria-pressed={isChecked}
+                aria-expanded={isSelected}
                 aria-label={photo.name}
               >
                 <PhotoThumbnail

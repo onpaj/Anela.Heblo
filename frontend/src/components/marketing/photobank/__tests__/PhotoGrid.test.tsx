@@ -92,6 +92,15 @@ describe("PhotoGrid", () => {
     expect(btn).toHaveAttribute("aria-pressed", "false");
   });
 
+  test("drawer-open photo has aria-expanded true", () => {
+    // Arrange — selectedPhotoId=2 means the drawer is open for photo 2
+    renderGrid({ selectedPhotoId: 2 });
+
+    // Assert
+    expect(screen.getByLabelText("photo-02.jpg")).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("photo-01.jpg")).toHaveAttribute("aria-expanded", "false");
+  });
+
   test("pagination shows correct page info", () => {
     // Arrange
     renderGrid({ total: 100, page: 2, pageSize: 48 });

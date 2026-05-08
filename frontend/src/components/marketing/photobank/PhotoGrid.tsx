@@ -103,6 +103,7 @@ const PhotoGrid: React.FC<PhotoGridProps> = ({
                   }}
                   className="w-full h-full focus:outline-none focus:ring-2 focus:ring-primary-blue focus:ring-offset-2"
                   aria-pressed={isChecked}
+                  aria-expanded={isSelected}
                   aria-label={photo.name}
                 >
                   <PhotoThumbnail
