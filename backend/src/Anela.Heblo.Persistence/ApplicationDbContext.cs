@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Marketing;
@@ -115,6 +116,11 @@ public class ApplicationDbContext : DbContext
     public DbSet<MarketingAction> MarketingActions { get; set; } = null!;
     public DbSet<MarketingActionProduct> MarketingActionProducts { get; set; } = null!;
     public DbSet<MarketingActionFolderLink> MarketingActionFolderLinks { get; set; } = null!;
+
+    // Smartsupp module
+    public DbSet<SmartsuppConversation> SmartsuppConversations { get; set; } = null!;
+    public DbSet<SmartsuppMessage> SmartsuppMessages { get; set; } = null!;
+    public DbSet<SmartsuppSyncState> SmartsuppSyncState { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
