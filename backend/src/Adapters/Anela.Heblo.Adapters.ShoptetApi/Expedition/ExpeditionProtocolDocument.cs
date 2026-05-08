@@ -105,10 +105,10 @@ public class ExpeditionProtocolDocument : IDocument
                 {
                     if (hasCustomerRemark)
                         notesCol.Item().Text($"Poznámka zákazníka: {order.CustomerRemark}")
-                            .FontSize(8).Italic();
+                            .FontSize(8).Italic().Bold();
                     if (hasEshopRemark)
                         notesCol.Item().Text($"Interní poznámka: {order.EshopRemark}")
-                            .FontSize(8).Italic();
+                            .FontSize(8).Italic().Bold();
                 });
             }
 
