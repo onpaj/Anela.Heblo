@@ -117,13 +117,6 @@ public partial class Program
             await app.MigrateDatabaseAsync();
         }
 
-        // Migrate any remaining legacy glob PathPattern rows to .NET regex (idempotent).
-        using (var scope = app.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            await PhotobankModule.MigrateTagRulePatternsAsync(db);
-        }
-
         // Seed default recurring job configurations from discovered IRecurringJob implementations.
         // Runs before pipeline configuration and Hangfire startup to guarantee job configurations exist before recurring jobs start.
         await app.SeedRecurringJobConfigurationsAsync();

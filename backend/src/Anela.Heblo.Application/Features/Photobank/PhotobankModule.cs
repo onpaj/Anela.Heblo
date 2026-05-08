@@ -77,17 +77,4 @@ public static class PhotobankModule
         return services;
     }
 
-    public static async Task MigrateTagRulePatternsAsync(ApplicationDbContext db, CancellationToken ct = default)
-    {
-        var rules = await db.PhotobankTagRules
-            .Where(r => !r.PathPattern.StartsWith("^"))
-            .ToListAsync(ct);
-
-        if (rules.Count == 0) return;
-
-        foreach (var rule in rules)
-            rule.PathPattern = TagRulePatternTranslator.Translate(rule.PathPattern);
-
-        await db.SaveChangesAsync(ct);
-    }
 }
