@@ -344,8 +344,8 @@ namespace Anela.Heblo.API.Controllers
         }
 
         /// <summary>
-        /// Re-apply all active tag rules. Deletes Rule-sourced tags and recomputes them.
-        /// Manual tags are never touched.
+        /// Re-apply all active tag rules. Deletes all Rule-sourced tags and recomputes them from scratch.
+        /// Manual and AI tags are never touched.
         /// </summary>
         [HttpPost("settings/rules/reapply")]
         [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
@@ -354,6 +354,21 @@ namespace Anela.Heblo.API.Controllers
         public async Task<ActionResult<ReapplyRulesResponse>> ReapplyRules(CancellationToken cancellationToken = default)
         {
             var response = await _mediator.Send(new ReapplyRulesRequest(), cancellationToken);
+            return HandleResponse(response);
+        }
+
+        /// <summary>
+        /// Re-apply a single tag rule. Only Rule-sourced tags for the tag name this rule produces
+        /// are removed and recomputed; all other rules' tags are left untouched.
+        /// </summary>
+        [HttpPost("settings/rules/{id:int}/reapply")]
+        [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+        [ProducesResponseType(typeof(ReapplyRulesResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<ReapplyRulesResponse>> ReapplyRule(int id, CancellationToken cancellationToken = default)
+        {
+            var response = await _mediator.Send(new ReapplyRulesRequest { RuleId = id }, cancellationToken);
             return HandleResponse(response);
         }
 

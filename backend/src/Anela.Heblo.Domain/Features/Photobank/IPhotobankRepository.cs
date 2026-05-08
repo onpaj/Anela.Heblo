@@ -50,7 +50,7 @@ namespace Anela.Heblo.Domain.Features.Photobank
         Task<bool> DeleteRuleAsync(int id, CancellationToken cancellationToken);
 
         // Reapply rules
-        Task<int> ReapplyRulesAsync(List<TagRule> activeRules, CancellationToken cancellationToken);
+        Task<int> ReapplyRulesAsync(List<TagRule> allRules, string? scopeToTagName, CancellationToken cancellationToken);
 
         // Auto-tagging
         Task<List<PhotoAutoTagCandidate>> GetPhotosPendingAutoTagAsync(int pageSize, int offset, CancellationToken cancellationToken);
