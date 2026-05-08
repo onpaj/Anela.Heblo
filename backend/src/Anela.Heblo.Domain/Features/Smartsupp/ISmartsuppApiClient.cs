@@ -23,7 +23,7 @@ public class SmartsuppSearchResult
 public class SmartsuppConversationData
 {
     public string Id { get; set; } = null!;
-    public string Status { get; set; } = null!;
+    public string? Status { get; set; }
     public bool Unread { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
