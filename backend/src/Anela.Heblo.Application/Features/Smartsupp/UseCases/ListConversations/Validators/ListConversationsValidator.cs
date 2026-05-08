@@ -8,7 +8,9 @@ public class ListConversationsValidator : AbstractValidator<ListConversationsReq
 
     public ListConversationsValidator()
     {
-        RuleFor(r => r.Status).Must(s => AllowedStatuses.Contains(s))
+        RuleFor(r => r.Status)
+            .NotEmpty()
+            .Must(s => AllowedStatuses.Contains(s))
             .WithMessage("Status must be 'Open' or 'Resolved'.");
         RuleFor(r => r.Page).GreaterThanOrEqualTo(1);
         RuleFor(r => r.PageSize).InclusiveBetween(1, 200);

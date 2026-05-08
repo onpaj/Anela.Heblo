@@ -35,7 +35,7 @@ public class ListConversationsHandlerTests
     }
 
     [Fact]
-    public async Task Handle_DefaultsToOpenStatus_WhenStatusIsNull()
+    public async Task Handle_ReturnsSuccess_WhenUsingDefaultRequest()
     {
         // Arrange
         _repo.Setup(r => r.ListConversationsAsync(SmartsuppConversationStatus.Open, 1, 50, default))
@@ -43,6 +43,24 @@ public class ListConversationsHandlerTests
 
         var handler = new ListConversationsHandler(_repo.Object);
         var request = new ListConversationsRequest();
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        _repo.Verify(r => r.ListConversationsAsync(SmartsuppConversationStatus.Open, 1, 50, default), Times.Once);
+        result.Success.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_DefaultsToOpenStatus_WhenStatusIsUnparseable()
+    {
+        // Arrange
+        _repo.Setup(r => r.ListConversationsAsync(SmartsuppConversationStatus.Open, 1, 50, default))
+             .ReturnsAsync((new List<SmartsuppConversation>(), 0));
+
+        var handler = new ListConversationsHandler(_repo.Object);
+        var request = new ListConversationsRequest { Status = "garbage", Page = 1, PageSize = 50 };
 
         // Act
         var result = await handler.Handle(request, CancellationToken.None);

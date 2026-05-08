@@ -20,7 +20,7 @@ public class SmartsuppSyncJobTests
     {
         // Arrange
         var syncState = new SmartsuppSyncState { LastUpdatedAtSeen = null };
-        _repo.Setup(r => r.GetOrCreateSyncStateAsync(default)).ReturnsAsync(syncState);
+        _repo.Setup(r => r.GetOrCreateSyncStateAsync(It.IsAny<CancellationToken>())).ReturnsAsync(syncState);
 
         var searchResult = new SmartsuppSearchResult
         {
@@ -39,18 +39,18 @@ public class SmartsuppSyncJobTests
                 }
             }
         };
-        _apiClient.Setup(c => c.SearchConversationsAsync(null, null, 50, default))
+        _apiClient.Setup(c => c.SearchConversationsAsync(null, null, 50, It.IsAny<CancellationToken>()))
                   .ReturnsAsync(searchResult);
 
-        _apiClient.Setup(c => c.GetConversationMessagesAsync("c1", default))
+        _apiClient.Setup(c => c.GetConversationMessagesAsync("c1", It.IsAny<CancellationToken>()))
                   .ReturnsAsync(new List<SmartsuppMessageData>());
 
-        _repo.Setup(r => r.UpsertConversationAsync(It.IsAny<SmartsuppConversation>(), default))
+        _repo.Setup(r => r.UpsertConversationAsync(It.IsAny<SmartsuppConversation>(), It.IsAny<CancellationToken>()))
              .Returns(Task.CompletedTask);
-        _repo.Setup(r => r.UpsertMessagesAsync("c1", It.IsAny<List<SmartsuppMessage>>(), default))
+        _repo.Setup(r => r.UpsertMessagesAsync("c1", It.IsAny<List<SmartsuppMessage>>(), It.IsAny<CancellationToken>()))
              .Returns(Task.CompletedTask);
-        _repo.Setup(r => r.SaveChangesAsync(default)).Returns(Task.CompletedTask);
-        _repo.Setup(r => r.SetSyncWatermarkAsync(It.IsAny<DateTime>(), default)).Returns(Task.CompletedTask);
+        _repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _repo.Setup(r => r.SetSyncWatermarkAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
         var job = CreateJob();
 
@@ -60,8 +60,8 @@ public class SmartsuppSyncJobTests
         // Assert
         _repo.Verify(r => r.UpsertConversationAsync(
             It.Is<SmartsuppConversation>(c => c.Id == "c1" && c.ContactName == "Petra"),
-            default), Times.Once);
-        _repo.Verify(r => r.SetSyncWatermarkAsync(It.IsAny<DateTime>(), default), Times.Once);
+            It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.SetSyncWatermarkAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -69,9 +69,9 @@ public class SmartsuppSyncJobTests
     {
         // Arrange
         var syncState = new SmartsuppSyncState { LastUpdatedAtSeen = null };
-        _repo.Setup(r => r.GetOrCreateSyncStateAsync(default)).ReturnsAsync(syncState);
+        _repo.Setup(r => r.GetOrCreateSyncStateAsync(It.IsAny<CancellationToken>())).ReturnsAsync(syncState);
 
-        _apiClient.SetupSequence(c => c.SearchConversationsAsync(null, null, 50, default))
+        _apiClient.SetupSequence(c => c.SearchConversationsAsync(null, null, 50, It.IsAny<CancellationToken>()))
                   .ReturnsAsync(new SmartsuppSearchResult
                   {
                       Total = 2,
@@ -82,7 +82,7 @@ public class SmartsuppSyncJobTests
                       }
                   });
 
-        _apiClient.Setup(c => c.SearchConversationsAsync(null, "cursor-page2", 50, default))
+        _apiClient.Setup(c => c.SearchConversationsAsync(null, "cursor-page2", 50, It.IsAny<CancellationToken>()))
                   .ReturnsAsync(new SmartsuppSearchResult
                   {
                       Total = 2,
@@ -93,12 +93,12 @@ public class SmartsuppSyncJobTests
                       }
                   });
 
-        _apiClient.Setup(c => c.GetConversationMessagesAsync(It.IsAny<string>(), default))
+        _apiClient.Setup(c => c.GetConversationMessagesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                   .ReturnsAsync(new List<SmartsuppMessageData>());
-        _repo.Setup(r => r.UpsertConversationAsync(It.IsAny<SmartsuppConversation>(), default)).Returns(Task.CompletedTask);
-        _repo.Setup(r => r.UpsertMessagesAsync(It.IsAny<string>(), It.IsAny<List<SmartsuppMessage>>(), default)).Returns(Task.CompletedTask);
-        _repo.Setup(r => r.SaveChangesAsync(default)).Returns(Task.CompletedTask);
-        _repo.Setup(r => r.SetSyncWatermarkAsync(It.IsAny<DateTime>(), default)).Returns(Task.CompletedTask);
+        _repo.Setup(r => r.UpsertConversationAsync(It.IsAny<SmartsuppConversation>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _repo.Setup(r => r.UpsertMessagesAsync(It.IsAny<string>(), It.IsAny<List<SmartsuppMessage>>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _repo.Setup(r => r.SetSyncWatermarkAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
         var job = CreateJob();
 
@@ -106,7 +106,25 @@ public class SmartsuppSyncJobTests
         await job.ExecuteAsync();
 
         // Assert — both pages were processed
-        _repo.Verify(r => r.UpsertConversationAsync(It.Is<SmartsuppConversation>(c => c.Id == "c1"), default), Times.Once);
-        _repo.Verify(r => r.UpsertConversationAsync(It.Is<SmartsuppConversation>(c => c.Id == "c2"), default), Times.Once);
+        _repo.Verify(r => r.UpsertConversationAsync(It.Is<SmartsuppConversation>(c => c.Id == "c1"), It.IsAny<CancellationToken>()), Times.Once);
+        _repo.Verify(r => r.UpsertConversationAsync(It.Is<SmartsuppConversation>(c => c.Id == "c2"), It.IsAny<CancellationToken>()), Times.Once);
+        _apiClient.Verify(c => c.SearchConversationsAsync(null, "cursor-page2", 50, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_DoesNotAdvanceWatermark_WhenNoConversationsReturned()
+    {
+        // Arrange
+        _repo.Setup(r => r.GetOrCreateSyncStateAsync(It.IsAny<CancellationToken>()))
+             .ReturnsAsync(new SmartsuppSyncState { LastUpdatedAtSeen = null });
+        _apiClient.Setup(c => c.SearchConversationsAsync(null, null, 50, It.IsAny<CancellationToken>()))
+                  .ReturnsAsync(new SmartsuppSearchResult { Total = 0, After = null, Items = new() });
+        _repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        // Act
+        await CreateJob().ExecuteAsync();
+
+        // Assert
+        _repo.Verify(r => r.SetSyncWatermarkAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

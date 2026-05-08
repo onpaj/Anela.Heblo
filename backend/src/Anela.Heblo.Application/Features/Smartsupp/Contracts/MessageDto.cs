@@ -7,4 +7,6 @@ public class MessageDto
     public string? AuthorName { get; set; }
     public string? Content { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    // AttachmentsJson excluded — attachment rendering is out of scope for this phase.
 }

@@ -36,6 +36,7 @@ public class SmartsuppSyncJob : IRecurringJob
     {
         var syncState = await _repository.GetOrCreateSyncStateAsync(cancellationToken);
         var watermark = syncState.LastUpdatedAtSeen;
+        var syncedAt = DateTime.UtcNow;
 
         _logger.LogInformation("smartsupp-sync starting — watermark: {Watermark}", watermark?.ToString("o") ?? "none");
 
@@ -59,7 +60,7 @@ public class SmartsuppSyncJob : IRecurringJob
 
             foreach (var item in page.Items)
             {
-                await ProcessConversationAsync(item, cancellationToken);
+                await ProcessConversationAsync(item, syncedAt, cancellationToken);
                 totalUpserted++;
 
                 if (newWatermark is null || item.UpdatedAt > newWatermark.Value)
@@ -80,7 +81,7 @@ public class SmartsuppSyncJob : IRecurringJob
             newWatermark?.ToString("o") ?? "unchanged");
     }
 
-    private async Task ProcessConversationAsync(SmartsuppConversationData data, CancellationToken cancellationToken)
+    private async Task ProcessConversationAsync(SmartsuppConversationData data, DateTime syncedAt, CancellationToken cancellationToken)
     {
         var status = data.Status?.ToLowerInvariant() == "resolved"
             ? SmartsuppConversationStatus.Resolved
@@ -100,7 +101,7 @@ public class SmartsuppSyncJob : IRecurringJob
             LastMessageAt = data.LastMessageAt,
             CreatedAt = data.CreatedAt,
             UpdatedAt = data.UpdatedAt,
-            SyncedAt = DateTime.UtcNow,
+            SyncedAt = syncedAt,
         };
 
         await _repository.UpsertConversationAsync(conversation, cancellationToken);
@@ -112,7 +113,9 @@ public class SmartsuppSyncJob : IRecurringJob
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch messages for conversation {Id}, skipping messages", data.Id);
+            _logger.LogWarning(ex,
+                "Failed to fetch messages for conversation {ConversationId} — conversation upserted without messages",
+                data.Id);
             return;
         }
 

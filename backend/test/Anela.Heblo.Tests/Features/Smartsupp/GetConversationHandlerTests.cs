@@ -53,6 +53,6 @@ public class GetConversationHandlerTests
 
         // Assert
         result.Success.Should().BeFalse();
-        result.ErrorCode.Should().NotBeNull();
+        result.ErrorCode.Should().Be(ErrorCodes.SmartsuppConversationNotFound);
     }
 }
