@@ -24,11 +24,6 @@ public class GetPhotosRequestValidator : AbstractValidator<GetPhotosRequest>
             .Must(BeValidRegex)
             .When(x => x.UseRegex && !string.IsNullOrWhiteSpace(x.Search))
             .WithMessage("Invalid regular expression pattern.");
-
-        RuleFor(x => x.FolderPath)
-            .Must(BeValidRegex)
-            .When(x => x.UseFolderRegex && !string.IsNullOrWhiteSpace(x.FolderPath))
-            .WithMessage("Invalid regular expression pattern.");
     }
 
     private static bool BeValidRegex(string? pattern)

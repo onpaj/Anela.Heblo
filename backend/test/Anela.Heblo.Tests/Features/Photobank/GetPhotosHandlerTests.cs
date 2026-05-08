@@ -46,7 +46,7 @@ public class GetPhotosHandlerTests
         };
 
         _repositoryMock
-            .Setup(r => r.GetPhotosAsync(null, null, false, null, false, false, 1, 48, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetPhotosAsync(null, null, false, false, 1, 48, It.IsAny<CancellationToken>()))
             .ReturnsAsync((photos, 2));
 
         var request = new GetPhotosRequest();
@@ -77,7 +77,7 @@ public class GetPhotosHandlerTests
         var tagFilter = new List<string> { "products" };
 
         _repositoryMock
-            .Setup(r => r.GetPhotosAsync(tagFilter, null, false, null, false, false, 1, 48, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetPhotosAsync(tagFilter, null, false, false, 1, 48, It.IsAny<CancellationToken>()))
             .ReturnsAsync((photos, 1));
 
         var request = new GetPhotosRequest { Tags = tagFilter };
@@ -91,7 +91,7 @@ public class GetPhotosHandlerTests
         result.Items.Should().HaveCount(1);
         result.Items[0].Tags.Should().ContainSingle(t => t.Name == "products");
 
-        _repositoryMock.Verify(r => r.GetPhotosAsync(tagFilter, null, false, null, false, false, 1, 48, It.IsAny<CancellationToken>()), Times.Once);
+        _repositoryMock.Verify(r => r.GetPhotosAsync(tagFilter, null, false, false, 1, 48, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class GetPhotosHandlerTests
         };
 
         _repositoryMock
-            .Setup(r => r.GetPhotosAsync(null, "ruze", false, null, false, false, 1, 48, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetPhotosAsync(null, "ruze", false, false, 1, 48, It.IsAny<CancellationToken>()))
             .ReturnsAsync((photos, 1));
 
         var request = new GetPhotosRequest { Search = "ruze" };
@@ -123,7 +123,7 @@ public class GetPhotosHandlerTests
     {
         // Arrange
         _repositoryMock
-            .Setup(r => r.GetPhotosAsync(It.IsAny<List<string>?>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<bool>(), 1, 48, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetPhotosAsync(It.IsAny<List<string>?>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<bool>(), 1, 48, It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<Photo>(), 0));
 
         var request = new GetPhotosRequest { Tags = new List<string> { "nonexistent" } };
@@ -138,32 +138,6 @@ public class GetPhotosHandlerTests
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task Handle_FilterByFolderPath_PassesFolderPathToRepository()
-    {
-        // Arrange
-        var photos = new List<Photo>
-        {
-            BuildPhoto(1, "ruze-cervena.jpg", "Marketing/Produkty/Ruze"),
-        };
-
-        _repositoryMock
-            .Setup(r => r.GetPhotosAsync(null, null, false, "Produkty", false, false, 1, 48, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((photos, 1));
-
-        var request = new GetPhotosRequest { FolderPath = "Produkty" };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeTrue();
-        result.Items.Should().HaveCount(1);
-        result.Items[0].FolderPath.Should().Be("Marketing/Produkty/Ruze");
-
-        _repositoryMock.Verify(r => r.GetPhotosAsync(null, null, false, "Produkty", false, false, 1, 48, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
     public async System.Threading.Tasks.Task Handle_UseRegexTrue_ForwardsUseRegexToRepository()
     {
         // Arrange
@@ -173,7 +147,7 @@ public class GetPhotosHandlerTests
         };
 
         _repositoryMock
-            .Setup(r => r.GetPhotosAsync(null, @"^report_\d+", true, null, false, false, 1, 48, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetPhotosAsync(null, @"^report_\d+", true, false, 1, 48, It.IsAny<CancellationToken>()))
             .ReturnsAsync((photos, 1));
 
         var request = new GetPhotosRequest { Search = @"^report_\d+", UseRegex = true };
@@ -185,60 +159,6 @@ public class GetPhotosHandlerTests
         result.Success.Should().BeTrue();
         result.Items.Should().ContainSingle(p => p.Name == "report_2024.pdf");
 
-        _repositoryMock.Verify(r => r.GetPhotosAsync(null, @"^report_\d+", true, null, false, false, 1, 48, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async System.Threading.Tasks.Task Handle_UseFolderRegexTrue_ForwardsUseFolderRegexToRepository()
-    {
-        // Arrange
-        var photos = new List<Photo>
-        {
-            BuildPhoto(1, "a.jpg", "Marketing/2025/Q1"),
-        };
-
-        _repositoryMock
-            .Setup(r => r.GetPhotosAsync(null, null, false, @"^Marketing/", true, false, 1, 48, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((photos, 1));
-
-        var request = new GetPhotosRequest { FolderPath = @"^Marketing/", UseFolderRegex = true };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeTrue();
-        result.Items.Should().ContainSingle(p => p.FolderPath == "Marketing/2025/Q1");
-
-        _repositoryMock.Verify(r => r.GetPhotosAsync(null, null, false, @"^Marketing/", true, false, 1, 48, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async System.Threading.Tasks.Task Handle_UseFolderRegexTrue_PostgresException2201B_ReturnsFolderPathAsPattern()
-    {
-        // Arrange — simulate Postgres rejecting a POSIX-invalid pattern
-        var postgresEx = new Npgsql.PostgresException(
-            messageText: "ERROR: invalid regular expression: quantifier operand invalid",
-            severity: "ERROR",
-            invariantSeverity: "ERROR",
-            sqlState: "2201B");
-
-        _repositoryMock
-            .Setup(r => r.GetPhotosAsync(null, null, false, "(?<x>foo)", true, false, 1, 48, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(postgresEx);
-
-        var request = new GetPhotosRequest
-        {
-            FolderPath = "(?<x>foo)",
-            UseFolderRegex = true,
-        };
-
-        // Act
-        var result = await _handler.Handle(request, CancellationToken.None);
-
-        // Assert
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.PhotobankInvalidRegexPattern);
-        result.Params.Should().ContainKey("pattern").WhoseValue.Should().Be("(?<x>foo)");
+        _repositoryMock.Verify(r => r.GetPhotosAsync(null, @"^report_\d+", true, false, 1, 48, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

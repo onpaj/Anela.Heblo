@@ -38,8 +38,6 @@ export interface GetPhotosParams {
   tags?: string[];
   search?: string;
   useRegex?: boolean;
-  useFolderRegex?: boolean;
-  folderPath?: string;
   withoutTags?: boolean;
   page?: number;
   pageSize?: number;
@@ -85,8 +83,6 @@ function buildPhotosUrl(baseUrl: string, params: GetPhotosParams): string {
   const qs = new URLSearchParams();
   if (params.search) qs.set("search", params.search);
   if (params.useRegex) qs.set("useRegex", "true");
-  if (params.useFolderRegex) qs.set("useFolderRegex", "true");
-  if (params.folderPath) qs.set("folderPath", params.folderPath);
   if (params.withoutTags) qs.set("withoutTags", "true");
   if (params.page != null) qs.set("page", String(params.page));
   if (params.pageSize != null) qs.set("pageSize", String(params.pageSize));
@@ -184,7 +180,6 @@ export const useDeleteTag = () => {
 export interface BulkAddPhotoTagParams {
   tags?: string[];
   search?: string;
-  folderPath?: string;
   tagName: string;
 }
 
@@ -255,7 +250,6 @@ export const useBulkAddPhotoTag = () => {
           body: JSON.stringify({
             tags: params.tags,
             search: params.search,
-            folderPath: params.folderPath,
             tagName: params.tagName,
           }),
         },

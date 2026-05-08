@@ -50,9 +50,8 @@ namespace Anela.Heblo.API.Controllers
         }
 
         /// <summary>
-        /// Get photos with optional tag AND filter, filename search, and pagination.
-        /// Set useRegex=true to use POSIX regex matching on filename instead of substring search.
-        /// Set useFolderRegex=true to use POSIX regex matching on folder path instead of substring search.
+        /// Get photos with optional tag AND filter, path search (matches folderPath/fileName), and pagination.
+        /// Set useRegex=true to use POSIX regex matching on the full path instead of substring search.
         /// </summary>
         [HttpGet("photos")]
         [ProducesResponseType(typeof(GetPhotosResponse), StatusCodes.Status200OK)]
@@ -60,8 +59,6 @@ namespace Anela.Heblo.API.Controllers
             [FromQuery] List<string>? tags,
             [FromQuery] string? search,
             [FromQuery] bool useRegex = false,
-            [FromQuery] string? folderPath = null,
-            [FromQuery] bool useFolderRegex = false,
             [FromQuery] bool withoutTags = false,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 48,
@@ -72,8 +69,6 @@ namespace Anela.Heblo.API.Controllers
                 Tags = tags,
                 Search = search,
                 UseRegex = useRegex,
-                FolderPath = folderPath,
-                UseFolderRegex = useFolderRegex,
                 WithoutTags = withoutTags,
                 Page = page,
                 PageSize = pageSize,
@@ -175,7 +170,6 @@ namespace Anela.Heblo.API.Controllers
             {
                 Tags = body.Tags,
                 Search = body.Search,
-                FolderPath = body.FolderPath,
                 TagName = body.TagName,
             };
             var response = await _mediator.Send(request, cancellationToken);
@@ -442,7 +436,6 @@ namespace Anela.Heblo.API.Controllers
     {
         public List<string>? Tags { get; set; }
         public string? Search { get; set; }
-        public string? FolderPath { get; set; }
         public string TagName { get; set; } = null!;
     }
 

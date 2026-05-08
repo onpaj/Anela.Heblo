@@ -3,7 +3,6 @@ import { Tag } from "lucide-react";
 
 interface BulkTagButtonProps {
   search: string;
-  folderPath: string;
   selectedTagNames: string[];
   totalMatching: number;
   onOpenDialog: () => void;
@@ -12,18 +11,17 @@ interface BulkTagButtonProps {
 const NO_FILTER_TOOLTIP = "Nejprve použijte filtr";
 const ZERO_MATCH_TOOLTIP = "Žádné fotky neodpovídají filtru";
 
-function isFilterActive(search: string, folderPath: string, selectedTagNames: string[]): boolean {
-  return search !== "" || folderPath !== "" || selectedTagNames.length > 0;
+function isFilterActive(search: string, selectedTagNames: string[]): boolean {
+  return search !== "" || selectedTagNames.length > 0;
 }
 
 export default function BulkTagButton({
   search,
-  folderPath,
   selectedTagNames,
   totalMatching,
   onOpenDialog,
 }: BulkTagButtonProps) {
-  const filterActive = isFilterActive(search, folderPath, selectedTagNames);
+  const filterActive = isFilterActive(search, selectedTagNames);
   const isDisabled = !filterActive || totalMatching === 0;
   const tooltip = !filterActive
     ? NO_FILTER_TOOLTIP

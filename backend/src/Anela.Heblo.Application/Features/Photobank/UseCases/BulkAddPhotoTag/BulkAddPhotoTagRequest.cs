@@ -7,7 +7,6 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag
     {
         public List<string>? Tags { get; set; }
         public string? Search { get; set; }
-        public string? FolderPath { get; set; }
         public string TagName { get; set; } = null!;
     }
 }

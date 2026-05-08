@@ -21,7 +21,7 @@ namespace Anela.Heblo.Application.Features.Photobank
 
         // Photos
 
-        private IQueryable<Photo> BuildFilterQuery(List<string>? tags, string? search, bool useRegex, string? folderPath, bool useFolderRegex)
+        private IQueryable<Photo> BuildFilterQuery(List<string>? tags, string? search, bool useRegex)
         {
             var query = _context.Photos.AsQueryable();
 
@@ -30,26 +30,12 @@ namespace Anela.Heblo.Application.Features.Photobank
                 if (useRegex)
                 {
                     var pattern = search.Trim();
-                    query = query.Where(p => Regex.IsMatch(p.FileName, pattern, RegexOptions.IgnoreCase));
+                    query = query.Where(p => Regex.IsMatch(p.FolderPath + "/" + p.FileName, pattern, RegexOptions.IgnoreCase));
                 }
                 else
                 {
                     var term = search.Trim().ToLowerInvariant();
-                    query = query.Where(p => p.FileName.ToLower().Contains(term));
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(folderPath))
-            {
-                if (useFolderRegex)
-                {
-                    var pattern = folderPath.Trim();
-                    query = query.Where(p => Regex.IsMatch(p.FolderPath, pattern, RegexOptions.IgnoreCase));
-                }
-                else
-                {
-                    var pathTerm = folderPath.Trim().ToLowerInvariant();
-                    query = query.Where(p => p.FolderPath.ToLower().Contains(pathTerm));
+                    query = query.Where(p => (p.FolderPath + "/" + p.FileName).ToLower().Contains(term));
                 }
             }
 
@@ -71,10 +57,10 @@ namespace Anela.Heblo.Application.Features.Photobank
         }
 
         public async Task<(List<Photo> Items, int Total)> GetPhotosAsync(
-            List<string>? tags, string? search, bool useRegex, string? folderPath, bool useFolderRegex, bool withoutTags, int page, int pageSize,
+            List<string>? tags, string? search, bool useRegex, bool withoutTags, int page, int pageSize,
             CancellationToken cancellationToken)
         {
-            IQueryable<Photo> query = BuildFilterQuery(tags, search, useRegex, folderPath, useFolderRegex)
+            IQueryable<Photo> query = BuildFilterQuery(tags, search, useRegex)
                 .Include(p => p.Tags)
                     .ThenInclude(pt => pt.Tag);
 
@@ -92,18 +78,18 @@ namespace Anela.Heblo.Application.Features.Photobank
         }
 
         public async Task<int> CountFilteredPhotosAsync(
-            List<string>? tags, string? search, string? folderPath,
+            List<string>? tags, string? search,
             CancellationToken cancellationToken)
         {
-            var query = BuildFilterQuery(tags, search, false, folderPath, false);
+            var query = BuildFilterQuery(tags, search, false);
             return await query.CountAsync(cancellationToken);
         }
 
         public async Task<List<int>> GetFilteredPhotoIdsMissingTagAsync(
-            List<string>? tags, string? search, string? folderPath, int tagId,
+            List<string>? tags, string? search, int tagId,
             CancellationToken cancellationToken)
         {
-            var query = BuildFilterQuery(tags, search, false, folderPath, false);
+            var query = BuildFilterQuery(tags, search, false);
             return await query
                 .Where(p => !p.Tags.Any(pt => pt.TagId == tagId))
                 .Select(p => p.Id)

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Search, X, Tag, Folder } from "lucide-react";
+import { Search, X, Tag } from "lucide-react";
 import type { TagWithCountDto } from "../../../api/hooks/usePhotobank";
 import { TagBadge } from "../../ui/TagBadge";
 
@@ -7,17 +7,13 @@ interface TagSidebarProps {
   tags: TagWithCountDto[];
   selectedTagIds: number[];
   search: string;
-  folderPath: string;
   withoutTags: boolean;
   useRegex: boolean;
-  useFolderRegex: boolean;
   onTagToggle: (tagId: number) => void;
   onSearchChange: (value: string) => void;
-  onFolderPathChange: (value: string) => void;
   onWithoutTagsToggle: () => void;
   onClearFilters: () => void;
   onRegexChange: (value: boolean) => void;
-  onFolderRegexChange: (value: boolean) => void;
   errorMessage?: string | null;
 }
 
@@ -27,24 +23,18 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
   tags,
   selectedTagIds,
   search,
-  folderPath,
   withoutTags,
   useRegex,
-  useFolderRegex,
   onTagToggle,
   onSearchChange,
-  onFolderPathChange,
   onWithoutTagsToggle,
   onClearFilters,
   onRegexChange,
-  onFolderRegexChange,
   errorMessage,
 }) => {
   const [inputValue, setInputValue] = useState(search);
-  const [folderPathValue, setFolderPathValue] = useState(folderPath);
   const [tagFilter, setTagFilter] = useState("");
   const [regexError, setRegexError] = useState<string | null>(null);
-  const [folderRegexError, setFolderRegexError] = useState<string | null>(null);
 
   useEffect(() => {
     setInputValue(search);
@@ -85,50 +75,11 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
     onSearchChange("");
   }, [onSearchChange]);
 
-  useEffect(() => {
-    setFolderPathValue(folderPath);
-  }, [folderPath]);
-
-  useEffect(() => {
-    if (!useFolderRegex || !folderPathValue) {
-      setFolderRegexError(null);
-      return;
-    }
-    try {
-      new RegExp(folderPathValue);
-      setFolderRegexError(null);
-    } catch {
-      setFolderRegexError("Neplatný regulární výraz");
-    }
-  }, [folderPathValue, useFolderRegex]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (folderPathValue !== folderPath && folderRegexError === null) {
-        onFolderPathChange(folderPathValue);
-      }
-    }, DEBOUNCE_MS);
-
-    return () => clearTimeout(timer);
-  }, [folderPathValue, folderPath, onFolderPathChange, folderRegexError]);
-
-  const handleFolderPathInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setFolderPathValue(e.target.value);
-    },
-    [],
-  );
-
-  const handleClearFolderPath = useCallback(() => {
-    setFolderPathValue("");
-    onFolderPathChange("");
-  }, [onFolderPathChange]);
-
   const filteredTags = tagFilter.trim()
     ? tags.filter((t) => t.name.toLowerCase().includes(tagFilter.trim().toLowerCase()))
     : tags;
 
-  const hasActiveFilters = search.length > 0 || folderPath.length > 0 || selectedTagIds.length > 0 || withoutTags || useRegex || useFolderRegex;
+  const hasActiveFilters = search.length > 0 || selectedTagIds.length > 0 || withoutTags || useRegex;
 
   return (
     <aside className="flex flex-col h-full bg-white border-r border-gray-200 overflow-hidden">
@@ -156,11 +107,11 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
             type="text"
             value={inputValue}
             onChange={handleInputChange}
-            placeholder={useRegex ? "Regex (POSIX, case-insensitive)..." : "Hledat soubory..."}
+            placeholder={useRegex ? "Regex (POSIX, case-insensitive)..." : "Hledat soubory a složky..."}
             className={`w-full pl-8 pr-7 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent ${
               regexError ? "border-red-400" : "border-gray-300"
             }`}
-            aria-label="Hledat soubory"
+            aria-label="Hledat soubory a složky"
           />
           {inputValue && (
             <button
@@ -173,7 +124,7 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
           )}
         </div>
 
-        {/* Filename regex toggle */}
+        {/* Regex toggle */}
         <label className="flex items-center gap-1.5 mt-2 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -188,45 +139,6 @@ const TagSidebar: React.FC<TagSidebarProps> = ({
         )}
         {!regexError && errorMessage && (
           <p className="mt-1 text-xs text-red-600">{errorMessage}</p>
-        )}
-
-        {/* Folder path input */}
-        <div className="relative mt-2">
-          <Folder className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-          <input
-            type="text"
-            value={folderPathValue}
-            onChange={handleFolderPathInputChange}
-            placeholder={useFolderRegex ? "Regex (POSIX, case-insensitive)..." : "Hledat ve složkách..."}
-            className={`w-full pl-8 pr-7 py-1.5 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent ${
-              folderRegexError ? "border-red-400" : "border-gray-300"
-            }`}
-            aria-label="Hledat ve složkách"
-          />
-          {folderPathValue && (
-            <button
-              onClick={handleClearFolderPath}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              aria-label="Vymazat složku"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* Folder regex toggle */}
-        <label className="flex items-center gap-1.5 mt-2 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={useFolderRegex}
-            onChange={(e) => onFolderRegexChange(e.target.checked)}
-            className="w-3.5 h-3.5 accent-primary-blue"
-            aria-label="Regex složky"
-          />
-          <span className="text-xs text-gray-600">Regex</span>
-        </label>
-        {folderRegexError && (
-          <p className="mt-1 text-xs text-red-600">{folderRegexError}</p>
         )}
       </div>
 

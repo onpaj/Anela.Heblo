@@ -25,7 +25,6 @@ public class BulkAddPhotoTagRequestValidatorTests
             TagName = "flowers",
             Tags = null,
             Search = null,
-            FolderPath = null,
         };
 
         // Act
@@ -45,7 +44,6 @@ public class BulkAddPhotoTagRequestValidatorTests
             TagName = "flowers",
             Tags = new List<string> { "  ", "" },
             Search = null,
-            FolderPath = null,
         };
 
         // Act
@@ -64,23 +62,6 @@ public class BulkAddPhotoTagRequestValidatorTests
         {
             TagName = "flowers",
             Search = "ruze",
-        };
-
-        // Act
-        var result = _validator.TestValidate(request);
-
-        // Assert
-        result.ShouldNotHaveAnyValidationErrors();
-    }
-
-    [Fact]
-    public void FolderPathProvided_PassesFilterValidation()
-    {
-        // Arrange
-        var request = new BulkAddPhotoTagRequest
-        {
-            TagName = "flowers",
-            FolderPath = "Photos/Summer",
         };
 
         // Act

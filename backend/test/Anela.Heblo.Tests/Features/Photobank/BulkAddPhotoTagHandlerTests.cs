@@ -31,7 +31,7 @@ public class BulkAddPhotoTagHandlerTests
         var photoIds = new List<int> { 1, 2, 3, 4, 5 };
 
         _repositoryMock
-            .Setup(r => r.CountFilteredPhotosAsync(null, "ruze", null, It.IsAny<CancellationToken>()))
+            .Setup(r => r.CountFilteredPhotosAsync(null, "ruze", It.IsAny<CancellationToken>()))
             .ReturnsAsync(5);
 
         _repositoryMock
@@ -39,7 +39,7 @@ public class BulkAddPhotoTagHandlerTests
             .ReturnsAsync(tag);
 
         _repositoryMock
-            .Setup(r => r.GetFilteredPhotoIdsMissingTagAsync(null, "ruze", null, 7, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetFilteredPhotoIdsMissingTagAsync(null, "ruze", 7, It.IsAny<CancellationToken>()))
             .ReturnsAsync(photoIds);
 
         _repositoryMock
@@ -78,13 +78,13 @@ public class BulkAddPhotoTagHandlerTests
     {
         // Arrange
         _repositoryMock
-            .Setup(r => r.CountFilteredPhotosAsync(null, null, "Photos", It.IsAny<CancellationToken>()))
+            .Setup(r => r.CountFilteredPhotosAsync(null, "Photos", It.IsAny<CancellationToken>()))
             .ReturnsAsync(5_001);
 
         var request = new BulkAddPhotoTagRequest
         {
             TagName = "flowers",
-            FolderPath = "Photos",
+            Search = "Photos",
         };
 
         // Act
@@ -107,7 +107,7 @@ public class BulkAddPhotoTagHandlerTests
         const int totalCount = 10;
 
         _repositoryMock
-            .Setup(r => r.CountFilteredPhotosAsync(null, "produkt", null, It.IsAny<CancellationToken>()))
+            .Setup(r => r.CountFilteredPhotosAsync(null, "produkt", It.IsAny<CancellationToken>()))
             .ReturnsAsync(totalCount);
 
         _repositoryMock
@@ -115,7 +115,7 @@ public class BulkAddPhotoTagHandlerTests
             .ReturnsAsync(tag);
 
         _repositoryMock
-            .Setup(r => r.GetFilteredPhotoIdsMissingTagAsync(null, "produkt", null, 3, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetFilteredPhotoIdsMissingTagAsync(null, "produkt", 3, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<int>());
 
         var request = new BulkAddPhotoTagRequest
@@ -144,7 +144,7 @@ public class BulkAddPhotoTagHandlerTests
         const int totalCount = 8;
 
         _repositoryMock
-            .Setup(r => r.CountFilteredPhotosAsync(It.IsAny<List<string>?>(), null, null, It.IsAny<CancellationToken>()))
+            .Setup(r => r.CountFilteredPhotosAsync(It.IsAny<List<string>?>(), null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(totalCount);
 
         _repositoryMock
@@ -153,7 +153,7 @@ public class BulkAddPhotoTagHandlerTests
 
         _repositoryMock
             .Setup(r => r.GetFilteredPhotoIdsMissingTagAsync(
-                It.IsAny<List<string>?>(), null, null, 5, It.IsAny<CancellationToken>()))
+                It.IsAny<List<string>?>(), null, 5, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<int> { 10, 11, 12 });
 
         _repositoryMock
@@ -187,7 +187,7 @@ public class BulkAddPhotoTagHandlerTests
         var tag = BuildTag(2, "archived");
 
         _repositoryMock
-            .Setup(r => r.CountFilteredPhotosAsync(null, null, "Archive", It.IsAny<CancellationToken>()))
+            .Setup(r => r.CountFilteredPhotosAsync(null, "Archive", It.IsAny<CancellationToken>()))
             .ReturnsAsync(4);
 
         _repositoryMock
@@ -195,13 +195,13 @@ public class BulkAddPhotoTagHandlerTests
             .ReturnsAsync(tag);
 
         _repositoryMock
-            .Setup(r => r.GetFilteredPhotoIdsMissingTagAsync(null, null, "Archive", 2, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetFilteredPhotoIdsMissingTagAsync(null, "Archive", 2, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<int>());
 
         var request = new BulkAddPhotoTagRequest
         {
             TagName = "archived",
-            FolderPath = "Archive",
+            Search = "Archive",
         };
 
         // Act

@@ -53,10 +53,8 @@ function PhotobankPage() {
 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [search, setSearch] = useState("");
-  const [folderPath, setFolderPath] = useState("");
   const [withoutTags, setWithoutTags] = useState(false);
   const [useRegex, setUseRegex] = useState(false);
-  const [useFolderRegex, setUseFolderRegex] = useState(false);
   const [page, setPage] = useState(1);
   const [selectedPhoto, setSelectedPhoto] = useState<PhotoDto | null>(null);
   const [view, setView] = useState<ViewMode>(readViewMode);
@@ -95,8 +93,6 @@ function PhotobankPage() {
     tags: selectedTagNames.length > 0 ? selectedTagNames : undefined,
     search: search || undefined,
     useRegex: useRegex || undefined,
-    useFolderRegex: useFolderRegex || undefined,
-    folderPath: folderPath || undefined,
     withoutTags: withoutTags || undefined,
     page,
     pageSize: DEFAULT_PAGE_SIZE,
@@ -122,30 +118,16 @@ function PhotobankPage() {
     setSelectionAnchorId(null);
   }, []);
 
-  const handleFolderPathChange = useCallback((value: string) => {
-    setFolderPath(value);
-    setPage(1);
-    setSelectedIds(new Set());
-    setSelectionAnchorId(null);
-  }, []);
-
   const handleRegexChange = useCallback((value: boolean) => {
     setUseRegex(value);
-    setPage(1);
-  }, []);
-
-  const handleFolderRegexChange = useCallback((value: boolean) => {
-    setUseFolderRegex(value);
     setPage(1);
   }, []);
 
   const handleClearFilters = useCallback(() => {
     setSelectedTagIds([]);
     setSearch("");
-    setFolderPath("");
     setWithoutTags(false);
     setUseRegex(false);
-    setUseFolderRegex(false);
     setPage(1);
     setSelectedIds(new Set());
     setSelectionAnchorId(null);
@@ -265,17 +247,13 @@ function PhotobankPage() {
             tags={tagsData ?? []}
             selectedTagIds={selectedTagIds}
             search={search}
-            folderPath={folderPath}
             withoutTags={withoutTags}
             useRegex={useRegex}
-            useFolderRegex={useFolderRegex}
             onTagToggle={handleTagToggle}
             onSearchChange={handleSearchChange}
-            onFolderPathChange={handleFolderPathChange}
             onWithoutTagsToggle={() => { setWithoutTags((v) => !v); setPage(1); }}
             onClearFilters={handleClearFilters}
             onRegexChange={handleRegexChange}
-            onFolderRegexChange={handleFolderRegexChange}
             errorMessage={searchErrorMessage}
           />
         </div>
@@ -288,7 +266,6 @@ function PhotobankPage() {
               {canBulkTag && (
                 <BulkTagButton
                   search={search}
-                  folderPath={folderPath}
                   selectedTagNames={selectedTagNames}
                   totalMatching={photosData?.total ?? 0}
                   onOpenDialog={handleOpenBulkTagDialog}
@@ -349,7 +326,6 @@ function PhotobankPage() {
       {bulkTagDialogOpen && (
         <BulkTagDialog
           search={search}
-          folderPath={folderPath}
           selectedTagNames={selectedTagNames}
           totalMatching={photosData?.total ?? 0}
           existingTags={tagsData ?? []}

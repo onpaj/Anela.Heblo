@@ -9,7 +9,6 @@ const BULK_TAG_LIMIT_EXCEEDED_CODE = 2606;
 
 interface BulkTagDialogProps {
   search: string;
-  folderPath: string;
   selectedTagNames: string[];
   totalMatching: number;
   existingTags: TagWithCountDto[];
@@ -26,7 +25,6 @@ function FilterChip({ label }: { label: string }) {
 
 export default function BulkTagDialog({
   search,
-  folderPath,
   selectedTagNames,
   totalMatching,
   existingTags,
@@ -63,7 +61,6 @@ export default function BulkTagDialog({
       const result = await mutateAsync({
         tags: selectedTagNames.length > 0 ? selectedTagNames : undefined,
         search: search || undefined,
-        folderPath: folderPath || undefined,
         tagName: tagName.trim(),
       });
 
@@ -124,7 +121,6 @@ export default function BulkTagDialog({
             <p className="text-xs text-gray-500 mb-1.5">Bude aplikováno na:</p>
             <div className="flex flex-wrap gap-1.5">
               {search && <FilterChip label={`Název: "${search}"`} />}
-              {folderPath && <FilterChip label={`Složka: "${folderPath}"`} />}
               {selectedTagNames.map((name) => (
                 <FilterChip key={name} label={name} />
               ))}

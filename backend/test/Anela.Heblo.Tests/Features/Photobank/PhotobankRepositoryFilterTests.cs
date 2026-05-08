@@ -49,12 +49,12 @@ public class PhotobankRepositoryFilterTests : IDisposable
     [Fact]
     public async System.Threading.Tasks.Task GetPhotosAsync_filtersByFolderPath_substringMatch()
     {
-        // Arrange — "Produkty" is a substring of two folder paths
-        var folderPath = "Produkty";
+        // Arrange — "Produkty" is a substring of two combined paths
+        var search = "Produkty";
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, false, folderPath, false, false, 1, 48, CancellationToken.None);
+            null, search, false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(2);
@@ -67,11 +67,11 @@ public class PhotobankRepositoryFilterTests : IDisposable
     public async System.Threading.Tasks.Task GetPhotosAsync_filterByFolderPath_caseInsensitive()
     {
         // Arrange — uppercase input, lowercase stored path
-        var folderPath = "MARKETING/WEB";
+        var search = "MARKETING/WEB";
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, false, folderPath, false, false, 1, 48, CancellationToken.None);
+            null, search, false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -79,15 +79,14 @@ public class PhotobankRepositoryFilterTests : IDisposable
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task GetPhotosAsync_combinesFolderPathWithFilename()
+    public async System.Threading.Tasks.Task GetPhotosAsync_searchMatchesInsideCombinedPath()
     {
-        // Arrange — folderPath matches two photos, filename narrows to one
-        var folderPath = "Produkty";
+        // Arrange — "ruze" appears in both the folder name and the filename of photo 1
         var search = "ruze";
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, search, false, folderPath, false, false, 1, 48, CancellationToken.None);
+            null, search, false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -112,9 +111,9 @@ public class PhotobankRepositoryFilterTests : IDisposable
         _context.PhotoTags.Add(photoTag);
         await _context.SaveChangesAsync(CancellationToken.None);
 
-        // Act — folderPath "Produkty" matches photos 1 & 2; tag "featured" is only on photo 1
+        // Act — search "Produkty" matches photos 1 & 2; tag "featured" is only on photo 1
         var (items, total) = await _repository.GetPhotosAsync(
-            new List<string> { "featured" }, null, false, "Produkty", false, false, 1, 48, CancellationToken.None);
+            new List<string> { "featured" }, "Produkty", false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -125,11 +124,11 @@ public class PhotobankRepositoryFilterTests : IDisposable
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public async System.Threading.Tasks.Task GetPhotosAsync_emptyFolderPath_doesNotFilter(string? folderPath)
+    public async System.Threading.Tasks.Task GetPhotosAsync_emptySearch_doesNotFilter(string? search)
     {
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, false, folderPath, false, false, 1, 48, CancellationToken.None);
+            null, search, false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(4);
@@ -180,12 +179,13 @@ public class PhotobankRepositoryRegexFilterTests : IDisposable
     [Fact]
     public async System.Threading.Tasks.Task GetPhotosAsync_regexSearch_matchesOnlyNumericReport()
     {
-        // Arrange — pattern matches "report_" followed by digits
-        var pattern = @"^report_\d+";
+        // Arrange — pattern matches "report_" followed by digits; no ^ anchor since search targets
+        // the combined folderPath+"/"+fileName string (e.g. "Reports/report_2024.pdf")
+        var pattern = @"report_\d+";
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, pattern, true, null, false, false, 1, 48, CancellationToken.None);
+            null, pattern, true, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(1);
@@ -197,12 +197,12 @@ public class PhotobankRepositoryRegexFilterTests : IDisposable
     [Fact]
     public async System.Threading.Tasks.Task GetPhotosAsync_substringSearch_matchesBothReportFiles()
     {
-        // Arrange — plain substring search returns all files containing "report"
+        // Arrange — plain substring search returns all files in folders whose combined path contains "report"
         var search = "report";
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, search, false, null, false, false, 1, 48, CancellationToken.None);
+            null, search, false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(2);
@@ -212,12 +212,12 @@ public class PhotobankRepositoryRegexFilterTests : IDisposable
     }
 }
 
-public class PhotobankRepositoryFolderRegexFilterTests : IDisposable
+public class PhotobankRepositoryPathRegexFilterTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly PhotobankRepository _repository;
 
-    public PhotobankRepositoryFolderRegexFilterTests()
+    public PhotobankRepositoryPathRegexFilterTests()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
@@ -248,14 +248,14 @@ public class PhotobankRepositoryFolderRegexFilterTests : IDisposable
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task GetPhotosAsync_folderRegex_matchesOnlyMarketingFolders()
+    public async System.Threading.Tasks.Task GetPhotosAsync_regexSearch_matchesOnlyMarketingFolderPaths()
     {
-        // Arrange
+        // Arrange — anchored pattern matches combined paths that start with "Marketing/"
         var pattern = @"^Marketing/";
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, false, pattern, true, false, 1, 48, CancellationToken.None);
+            null, pattern, true, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(2);
@@ -264,14 +264,14 @@ public class PhotobankRepositoryFolderRegexFilterTests : IDisposable
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task GetPhotosAsync_folderRegexFalse_usesFolderSubstringFallback()
+    public async System.Threading.Tasks.Task GetPhotosAsync_substringSearch_matchesAllPathsContaining2025()
     {
         // Arrange
         var term = "2025";
 
         // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, null, false, term, false, false, 1, 48, CancellationToken.None);
+            null, term, false, false, 1, 48, CancellationToken.None);
 
         // Assert
         total.Should().Be(3);

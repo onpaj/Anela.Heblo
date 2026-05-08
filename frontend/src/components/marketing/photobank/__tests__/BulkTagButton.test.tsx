@@ -6,7 +6,6 @@ import BulkTagButton from "../BulkTagButton";
 
 const DEFAULT_PROPS = {
   search: "",
-  folderPath: "",
   selectedTagNames: [] as string[],
   totalMatching: 0,
   onOpenDialog: jest.fn(),
@@ -29,7 +28,7 @@ test("renders Otagovat label", () => {
 });
 
 test("is disabled with 'Nejprve použijte filtr' tooltip when no filters are active", () => {
-  renderButton({ search: "", folderPath: "", selectedTagNames: [], totalMatching: 0 });
+  renderButton({ search: "", selectedTagNames: [], totalMatching: 0 });
 
   const btn = screen.getByRole("button", { name: /Otagovat/i });
   expect(btn).toBeDisabled();
@@ -37,7 +36,7 @@ test("is disabled with 'Nejprve použijte filtr' tooltip when no filters are act
 });
 
 test("is disabled with 'Žádné fotky neodpovídají filtru' tooltip when filters active but totalMatching is 0", () => {
-  renderButton({ search: "test", folderPath: "", selectedTagNames: [], totalMatching: 0 });
+  renderButton({ search: "test", selectedTagNames: [], totalMatching: 0 });
 
   const btn = screen.getByRole("button", { name: /Otagovat/i });
   expect(btn).toBeDisabled();
@@ -45,7 +44,7 @@ test("is disabled with 'Žádné fotky neodpovídají filtru' tooltip when filte
 });
 
 test("is enabled and calls onOpenDialog when filters active and totalMatching > 0", () => {
-  renderButton({ search: "test", folderPath: "", selectedTagNames: [], totalMatching: 5 });
+  renderButton({ search: "test", selectedTagNames: [], totalMatching: 5 });
 
   const btn = screen.getByRole("button", { name: /Otagovat/i });
   expect(btn).not.toBeDisabled();
