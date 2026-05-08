@@ -27,6 +27,7 @@ public sealed class Article
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? GeneratedAt { get; set; }
     public List<ArticleSource> Sources { get; set; } = new();
+    public List<ArticleGenerationStep> Steps { get; set; } = new();
 
     public void MarkAsResearching() => Status = ArticleStatus.Researching;
 

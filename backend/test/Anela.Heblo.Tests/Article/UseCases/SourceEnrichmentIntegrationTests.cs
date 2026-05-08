@@ -76,13 +76,18 @@ public class SourceEnrichmentIntegrationTests
             .ReturnsAsync(() => new ChatResponse([new ChatMessage(ChatRole.Assistant, queue.Dequeue())]));
 
         var optionsWrapper = Options.Create(_options);
+        var recorderRepo = new Mock<IArticleRepository>();
+        recorderRepo.Setup(r => r.AddStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        recorderRepo.Setup(r => r.UpdateStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        recorderRepo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        var recorder = new PipelineStepRecorder(recorderRepo.Object);
         var job = new GenerateArticleJob(
             _repository.Object,
-            new PlanQueriesStep(_chat.Object, optionsWrapper, NullLogger<PlanQueriesStep>.Instance),
-            new GatherContextStep(_mediator.Object, _webSearch.Object, _oneDrive.Object, optionsWrapper, NullLogger<GatherContextStep>.Instance),
-            new AggregateFactsStep(_chat.Object, optionsWrapper, NullLogger<AggregateFactsStep>.Instance),
-            new ValidateFactsStep(_chat.Object, optionsWrapper, NullLogger<ValidateFactsStep>.Instance),
-            new WriteArticleStep(_chat.Object, optionsWrapper, NullLogger<WriteArticleStep>.Instance),
+            new PlanQueriesStep(_chat.Object, optionsWrapper, NullLogger<PlanQueriesStep>.Instance, recorder),
+            new GatherContextStep(_mediator.Object, _webSearch.Object, _oneDrive.Object, optionsWrapper, NullLogger<GatherContextStep>.Instance, recorder),
+            new AggregateFactsStep(_chat.Object, optionsWrapper, NullLogger<AggregateFactsStep>.Instance, recorder),
+            new ValidateFactsStep(_chat.Object, optionsWrapper, NullLogger<ValidateFactsStep>.Instance, recorder),
+            new WriteArticleStep(_chat.Object, optionsWrapper, NullLogger<WriteArticleStep>.Instance, recorder),
             NullLogger<GenerateArticleJob>.Instance);
 
         await job.RunAsync(articleId);

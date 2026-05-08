@@ -432,6 +432,7 @@ export const QUERY_KEYS = {
   expeditionListArchive: ["expedition-list-archive"] as const,
   dataQuality: ["data-quality"] as const,
   articles: ["articles"] as const,
+  articleTrace: ["article-trace"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

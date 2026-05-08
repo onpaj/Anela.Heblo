@@ -17,56 +17,70 @@ public class WriteArticleStep : IArticlePipelineStep
     private readonly IChatClient _chat;
     private readonly ArticleOptions _options;
     private readonly ILogger<WriteArticleStep> _logger;
+    private readonly PipelineStepRecorder _recorder;
 
     public WriteArticleStep(
         IChatClient chat,
         IOptions<ArticleOptions> options,
-        ILogger<WriteArticleStep> logger)
+        ILogger<WriteArticleStep> logger,
+        PipelineStepRecorder recorder)
     {
         _chat = chat;
         _options = options.Value;
         _logger = logger;
+        _recorder = recorder;
     }
 
     public async Task ExecuteAsync(ArticlePipelineContext context, CancellationToken ct)
     {
-        var article = context.Article;
-        var systemPrompt = BuildSystemPrompt(context.StyleGuideText);
-        var userMessage = BuildUserMessage(context);
+        await _recorder.RecordAsync<bool>(
+            context.Article.Id,
+            "WriteArticle",
+            5,
+            _options.DefaultModel,
+            new { topic = context.Article.Topic, factCount = context.Facts.Count, styleGuideLength = context.StyleGuideText?.Length },
+            async (token) =>
+            {
+                var article = context.Article;
+                var systemPrompt = BuildSystemPrompt(context.StyleGuideText);
+                var userMessage = BuildUserMessage(context);
 
-        var chatOptions = new ChatOptions
-        {
-            ModelId = _options.DefaultModel,
-            MaxOutputTokens = _options.WriteMaxTokens
-        };
+                var chatOptions = new ChatOptions
+                {
+                    ModelId = _options.DefaultModel,
+                    MaxOutputTokens = _options.WriteMaxTokens
+                };
 
-        var response = await ChatRetry.RetryOnceAsync(
-            () => _chat.GetResponseAsync(
-                [
-                    new ChatMessage(ChatRole.System, systemPrompt),
-                    new ChatMessage(ChatRole.User, userMessage)
-                ],
-                chatOptions,
-                ct),
-            _logger,
+                var response = await ChatRetry.RetryOnceAsync(
+                    () => _chat.GetResponseAsync(
+                        [
+                            new ChatMessage(ChatRole.System, systemPrompt),
+                            new ChatMessage(ChatRole.User, userMessage)
+                        ],
+                        chatOptions,
+                        token),
+                    _logger,
+                    token);
+
+                var raw = response.Text ?? string.Empty;
+
+                if (JsonResponseParser.TryParse<WriteArticleOutput>(raw, out var parsed, _logger))
+                {
+                    context.GeneratedTitle = parsed.ArticleTitle ?? article.Topic;
+                    context.GeneratedHtml = parsed.ArticleHtml ?? FallbackHtml(raw);
+                    context.SourceRefs = MapSources(parsed.SourcesUsed, context.ContextSnippets, context.Facts);
+                    return (true, (object?)new { rawResponse = raw, articleTitle = parsed.ArticleTitle, sourcesUsed = parsed.SourcesUsed });
+                }
+
+                _logger.LogWarning("WriteArticle: strict JSON parse failed, attempting rescue. Raw head: {Head}",
+                    raw[..Math.Min(raw.Length, 500)]);
+
+                context.GeneratedTitle = RescueArticleTitle(raw) ?? article.Topic;
+                context.GeneratedHtml = RescueArticleHtml(raw) ?? FallbackHtml(raw);
+                context.SourceRefs = [];
+                return (true, (object?)new { rawResponse = raw, articleTitle = context.GeneratedTitle, rescueAttempted = true });
+            },
             ct);
-
-        var raw = response.Text ?? string.Empty;
-
-        if (JsonResponseParser.TryParse<WriteArticleOutput>(raw, out var parsed, _logger))
-        {
-            context.GeneratedTitle = parsed.ArticleTitle ?? article.Topic;
-            context.GeneratedHtml = parsed.ArticleHtml ?? FallbackHtml(raw);
-            context.SourceRefs = MapSources(parsed.SourcesUsed, context.ContextSnippets, context.Facts);
-            return;
-        }
-
-        _logger.LogWarning("WriteArticle: strict JSON parse failed, attempting rescue. Raw head: {Head}",
-            raw[..Math.Min(raw.Length, 500)]);
-
-        context.GeneratedTitle = RescueArticleTitle(raw) ?? article.Topic;
-        context.GeneratedHtml = RescueArticleHtml(raw) ?? FallbackHtml(raw);
-        context.SourceRefs = [];
     }
 
     private const string SystemInstruction =
