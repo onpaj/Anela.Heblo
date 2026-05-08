@@ -16,6 +16,7 @@ public static class ArticleModule
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddScoped<PipelineStepRecorder>();
         services.AddScoped<PlanQueriesStep>();
         services.AddScoped<GatherContextStep>();
         services.AddScoped<AggregateFactsStep>();
