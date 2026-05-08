@@ -79,7 +79,6 @@ function ArticleView({ article }: { article: ArticleDetailType }) {
       {article.htmlContent && <HtmlContent html={article.htmlContent} />}
       <ArticleSourceList sources={article.sources} />
       <ArticleFeedbackSection article={article} />
-      <ArticleDebugPanel articleId={article.id} />
     </div>
   );
 }
@@ -120,6 +119,7 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
 
       {IN_PROGRESS_STATUSES.has(article.status) && <InProgressView article={article} />}
       {article.status === ArticleStatus.Generated && <ArticleView article={article} />}
+      {!IN_PROGRESS_STATUSES.has(article.status) && <ArticleDebugPanel articleId={article.id} />}
     </div>
   );
 }
