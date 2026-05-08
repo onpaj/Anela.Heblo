@@ -297,6 +297,16 @@ namespace Anela.Heblo.Application.Features.Photobank
                 .ToListAsync(cancellationToken);
             _context.PhotoTags.RemoveRange(ruleTags);
 
+            // Snapshot existing Manual/AI tags — a Rule tag cannot be inserted if the same
+            // (PhotoId, TagId) already exists under a different source (shared PK).
+            var existingNonRulePairs = await _context.PhotoTags
+                .Where(pt => pt.Source != PhotoTagSource.Rule)
+                .Select(pt => new { pt.PhotoId, pt.TagId })
+                .ToListAsync(cancellationToken);
+            var occupiedPairs = existingNonRulePairs
+                .Select(x => (x.PhotoId, x.TagId))
+                .ToHashSet();
+
             // Load all photos to re-evaluate
             var photos = await _context.Photos.ToListAsync(cancellationToken);
 
@@ -317,7 +327,11 @@ namespace Anela.Heblo.Application.Features.Photobank
                     if (tag == null)
                         continue;
 
-                    if (!addedPairs.Add((photo.Id, tag.Id)))
+                    var pair = (photo.Id, tag.Id);
+                    if (!addedPairs.Add(pair))
+                        continue;
+
+                    if (occupiedPairs.Contains(pair))
                         continue;
 
                     _context.PhotoTags.Add(new PhotoTag
