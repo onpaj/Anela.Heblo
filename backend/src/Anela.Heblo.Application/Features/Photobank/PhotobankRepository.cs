@@ -299,13 +299,37 @@ namespace Anela.Heblo.Application.Features.Photobank
 
             // Snapshot existing Manual/AI tags — a Rule tag cannot be inserted if the same
             // (PhotoId, TagId) already exists under a different source (shared PK).
-            var existingNonRulePairs = await _context.PhotoTags
+            var occupiedPairs = await _context.PhotoTags
                 .Where(pt => pt.Source != PhotoTagSource.Rule)
                 .Select(pt => new { pt.PhotoId, pt.TagId })
                 .ToListAsync(cancellationToken);
-            var occupiedPairs = existingNonRulePairs
+            var occupiedSet = occupiedPairs
                 .Select(x => (x.PhotoId, x.TagId))
                 .ToHashSet();
+
+            // Resolve all tag names referenced by active rules in one batch to avoid
+            // N per-photo queries. Create any tags that don't exist yet.
+            var ruleTagNames = activeRules
+                .Select(r => r.TagName.ToLowerInvariant())
+                .Distinct()
+                .ToList();
+
+            var tagsByName = await _context.PhotobankTags
+                .Where(t => ruleTagNames.Contains(t.Name))
+                .ToDictionaryAsync(t => t.Name, cancellationToken);
+
+            var newTagsCreated = false;
+            foreach (var name in ruleTagNames.Where(n => !tagsByName.ContainsKey(n)))
+            {
+                var newTag = new Tag { Name = name };
+                _context.PhotobankTags.Add(newTag);
+                tagsByName[name] = newTag;
+                newTagsCreated = true;
+            }
+
+            // Flush new Tag inserts so they have DB-assigned IDs before we use them in PhotoTags.
+            if (newTagsCreated)
+                await _context.SaveChangesAsync(cancellationToken);
 
             // Load all photos to re-evaluate
             var photos = await _context.Photos.ToListAsync(cancellationToken);
@@ -323,15 +347,14 @@ namespace Anela.Heblo.Application.Features.Photobank
                 var tagsUpdated = false;
                 foreach (var tagName in matchingTagNames)
                 {
-                    var tag = await GetOrCreateTagAsync(tagName, cancellationToken);
-                    if (tag == null)
+                    if (!tagsByName.TryGetValue(tagName, out var tag))
                         continue;
 
                     var pair = (photo.Id, tag.Id);
                     if (!addedPairs.Add(pair))
                         continue;
 
-                    if (occupiedPairs.Contains(pair))
+                    if (occupiedSet.Contains(pair))
                         continue;
 
                     _context.PhotoTags.Add(new PhotoTag
