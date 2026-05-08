@@ -20,12 +20,21 @@ public class PipelineStepRecorderTests
     [Fact]
     public async Task RecordAsync_AddsRunningStep_ThenSucceededStep_OnSuccess()
     {
-        ArticleGenerationStep? addedStep = null;
+        ArticleGenerationStepStatus? addedStatus = null;
+        string? addedStepName = null;
+        int? addedSequence = null;
+        string? addedModel = null;
         ArticleGenerationStep? updatedStep = null;
 
         _repositoryMock
             .Setup(r => r.AddStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>()))
-            .Callback<ArticleGenerationStep, CancellationToken>((s, _) => addedStep = s)
+            .Callback<ArticleGenerationStep, CancellationToken>((s, _) =>
+            {
+                addedStatus = s.Status;
+                addedStepName = s.StepName;
+                addedSequence = s.Sequence;
+                addedModel = s.Model;
+            })
             .Returns(Task.CompletedTask);
 
         _repositoryMock
@@ -40,7 +49,7 @@ public class PipelineStepRecorderTests
         var result = await _recorder.RecordAsync<string>(
             Guid.NewGuid(), "PlanQueries", 1, "gpt-4o",
             new { query = "test" },
-            async () =>
+            async (ct) =>
             {
                 await Task.Yield();
                 return ("hello", (object?)new { result = "world" });
@@ -49,11 +58,10 @@ public class PipelineStepRecorderTests
 
         result.Should().Be("hello");
 
-        addedStep.Should().NotBeNull();
-        addedStep!.Status.Should().Be(ArticleGenerationStepStatus.Running);
-        addedStep.StepName.Should().Be("PlanQueries");
-        addedStep.Sequence.Should().Be(1);
-        addedStep.Model.Should().Be("gpt-4o");
+        addedStatus.Should().Be(ArticleGenerationStepStatus.Running);
+        addedStepName.Should().Be("PlanQueries");
+        addedSequence.Should().Be(1);
+        addedModel.Should().Be("gpt-4o");
 
         updatedStep.Should().NotBeNull();
         updatedStep!.Status.Should().Be(ArticleGenerationStepStatus.Succeeded);
@@ -86,7 +94,7 @@ public class PipelineStepRecorderTests
         var act = async () => await _recorder.RecordAsync<string>(
             Guid.NewGuid(), "WriteArticle", 5, null,
             null,
-            async () =>
+            async (ct) =>
             {
                 await Task.Yield();
                 throw new InvalidOperationException("boom");
@@ -130,7 +138,7 @@ public class PipelineStepRecorderTests
         await _recorder.RecordAsync<int>(
             Guid.NewGuid(), "PlanQueries", 1, null,
             input,
-            async () => { await Task.Yield(); return (42, (object?)output); },
+            async (ct) => { await Task.Yield(); return (42, (object?)output); },
             CancellationToken.None);
 
         addedStep!.InputJson.Should().NotBeNull();

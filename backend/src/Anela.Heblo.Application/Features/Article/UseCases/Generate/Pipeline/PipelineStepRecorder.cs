@@ -23,7 +23,7 @@ public sealed class PipelineStepRecorder
         int sequence,
         string? model,
         object? input,
-        Func<Task<(T result, object? output)>> action,
+        Func<CancellationToken, Task<(T result, object? output)>> action,
         CancellationToken ct)
     {
         var step = new ArticleGenerationStep
@@ -43,44 +43,24 @@ public sealed class PipelineStepRecorder
         var sw = Stopwatch.StartNew();
         try
         {
-            var (result, output) = await action();
+            var (result, output) = await action(ct);
             sw.Stop();
-            var succeeded = new ArticleGenerationStep
-            {
-                Id = step.Id,
-                ArticleId = step.ArticleId,
-                StepName = step.StepName,
-                Sequence = step.Sequence,
-                Model = step.Model,
-                InputJson = step.InputJson,
-                StartedAt = step.StartedAt,
-                Status = ArticleGenerationStepStatus.Succeeded,
-                FinishedAt = DateTimeOffset.UtcNow,
-                DurationMs = sw.ElapsedMilliseconds,
-                OutputJson = SerializeOrNull(output),
-            };
-            await _repository.UpdateStepAsync(succeeded, ct);
+            step.Status = ArticleGenerationStepStatus.Succeeded;
+            step.FinishedAt = DateTimeOffset.UtcNow;
+            step.DurationMs = sw.ElapsedMilliseconds;
+            step.OutputJson = SerializeOrNull(output);
+            await _repository.UpdateStepAsync(step, ct);
             await _repository.SaveChangesAsync(ct);
             return result;
         }
         catch (Exception ex)
         {
             sw.Stop();
-            var failed = new ArticleGenerationStep
-            {
-                Id = step.Id,
-                ArticleId = step.ArticleId,
-                StepName = step.StepName,
-                Sequence = step.Sequence,
-                Model = step.Model,
-                InputJson = step.InputJson,
-                StartedAt = step.StartedAt,
-                Status = ArticleGenerationStepStatus.Failed,
-                FinishedAt = DateTimeOffset.UtcNow,
-                DurationMs = sw.ElapsedMilliseconds,
-                ErrorMessage = Truncate(ex.Message, 2000),
-            };
-            await _repository.UpdateStepAsync(failed, CancellationToken.None);
+            step.Status = ArticleGenerationStepStatus.Failed;
+            step.FinishedAt = DateTimeOffset.UtcNow;
+            step.DurationMs = sw.ElapsedMilliseconds;
+            step.ErrorMessage = Truncate(ex.Message, 2000);
+            await _repository.UpdateStepAsync(step, CancellationToken.None);
             await _repository.SaveChangesAsync(CancellationToken.None);
             throw;
         }
