@@ -23,7 +23,7 @@ interface PhotoListProps {
   onPhotoSelect: (photo: PhotoDto) => void;
   onPageChange: (page: number) => void;
   selectedIds: Set<number>;
-  onTogglePhotoSelection: (photoId: number, withRange: boolean) => void;
+  onPhotoSelection: (photoId: number, mode: "toggle" | "range") => void;
   canSelect: boolean;
 }
 
@@ -37,7 +37,7 @@ function PhotoList({
   onPhotoSelect,
   onPageChange,
   selectedIds,
-  onTogglePhotoSelection,
+  onPhotoSelection,
   canSelect,
 }: PhotoListProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -74,6 +74,7 @@ function PhotoList({
       <div className="flex-1 overflow-y-auto divide-y divide-gray-200">
         {photos.map((photo) => {
           const isSelected = photo.id === selectedPhotoId;
+          const isChecked = selectedIds.has(photo.id);
           const visibleTags = photo.tags.slice(0, MAX_VISIBLE_TAGS);
           const overflowCount = photo.tags.length - MAX_VISIBLE_TAGS;
 
@@ -81,79 +82,82 @@ function PhotoList({
             <div
               key={photo.id}
               className={[
-                "w-full flex items-center gap-3 px-4 py-3",
-                isSelected
-                  ? "border-l-2 border-primary-blue bg-secondary-blue-pale"
-                  : "hover:bg-gray-50",
+                "w-full flex items-center gap-3 px-4 py-3 select-none",
+                isChecked
+                  ? "border-l-4 border-primary-blue bg-secondary-blue-pale ring-1 ring-inset ring-primary-blue/30"
+                  : isSelected
+                    ? "border-l-2 border-primary-blue bg-secondary-blue-pale"
+                    : "hover:bg-gray-50",
               ].join(" ")}
             >
-              {canSelect && (
-                <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(photo.id)}
-                    aria-label="Vybrat fotku"
-                    data-testid={`photo-select-checkbox-${photo.id}`}
-                    onChange={(e) => {
-                      onTogglePhotoSelection(
-                        photo.id,
-                        e.nativeEvent instanceof MouseEvent && (e.nativeEvent as MouseEvent).shiftKey,
-                      );
-                    }}
-                    className="w-4 h-4 accent-primary-blue cursor-pointer"
-                  />
-                </div>
-              )}
               <button
-                onClick={() => onPhotoSelect(photo)}
+                data-testid={`photo-row-${photo.id}`}
+                onClick={(e) => {
+                  if (!canSelect) {
+                    onPhotoSelect(photo);
+                    return;
+                  }
+                  if (e.shiftKey) {
+                    e.preventDefault();
+                    onPhotoSelection(photo.id, "range");
+                    return;
+                  }
+                  if (e.metaKey || e.ctrlKey) {
+                    e.preventDefault();
+                    onPhotoSelection(photo.id, "toggle");
+                    return;
+                  }
+                  onPhotoSelect(photo);
+                }}
                 className="flex items-center gap-3 flex-1 min-w-0 text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-blue"
-                aria-pressed={isSelected}
+                aria-pressed={isChecked}
+                aria-expanded={isSelected}
                 aria-label={photo.name}
               >
-              <PhotoThumbnail
-                photoId={photo.id}
-                modifiedAt={photo.lastModifiedAt}
-                alt={photo.name}
-                className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
-                size="medium"
-              />
-              <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                <span className="text-base font-medium text-gray-900 truncate">
-                  {photo.name}
-                </span>
-                <span className="text-sm text-gray-500 truncate">
-                  {photo.folderPath}
-                </span>
-                {photo.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {visibleTags.map((tag) => (
-                      <TagBadge key={tag.id} name={tag.name} />
-                    ))}
-                    {overflowCount > 0 && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
-                        +{overflowCount}
-                      </span>
+                <PhotoThumbnail
+                  photoId={photo.id}
+                  modifiedAt={photo.lastModifiedAt}
+                  alt={photo.name}
+                  className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                  size="medium"
+                />
+                <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                  <span className="text-base font-medium text-gray-900 truncate">
+                    {photo.name}
+                  </span>
+                  <span className="text-sm text-gray-500 truncate">
+                    {photo.folderPath}
+                  </span>
+                  {photo.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {visibleTags.map((tag) => (
+                        <TagBadge key={tag.id} name={tag.name} />
+                      ))}
+                      {overflowCount > 0 && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
+                          +{overflowCount}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                    <span>{formatFileSize(photo.fileSizeBytes)}</span>
+                    <span>
+                      {new Date(photo.lastModifiedAt).toLocaleDateString("cs-CZ")}
+                    </span>
+                    {photo.sharePointWebUrl && (
+                      <a
+                        href={photo.sharePointWebUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-primary-blue flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
                     )}
                   </div>
-                )}
-                <div className="flex items-center gap-3 text-xs text-gray-500">
-                  <span>{formatFileSize(photo.fileSizeBytes)}</span>
-                  <span>
-                    {new Date(photo.lastModifiedAt).toLocaleDateString("cs-CZ")}
-                  </span>
-                  {photo.sharePointWebUrl && (
-                    <a
-                      href={photo.sharePointWebUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-primary-blue flex items-center gap-1"
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
                 </div>
-              </div>
               </button>
             </div>
           );

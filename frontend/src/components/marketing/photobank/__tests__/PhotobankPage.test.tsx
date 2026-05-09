@@ -1,13 +1,26 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent } from "@testing-library/react";
 import PhotobankPage from "../pages/PhotobankPage";
 
 jest.mock("@azure/msal-react", () => ({
-  useMsal: () => ({ accounts: [] }),
+  useMsal: () => ({
+    accounts: [{ idTokenClaims: { roles: ["marketing_writer"] } }],
+  }),
 }));
 
 jest.mock("../../../../api/hooks/usePhotobank", () => ({
-  usePhotos: () => ({ data: undefined, isLoading: false }),
+  usePhotos: () => ({
+    data: {
+      items: [
+        { id: 1, name: "p1.jpg", sharePointFileId: "f1", driveId: "d", folderPath: "/", sharePointWebUrl: null, fileSizeBytes: null, lastModifiedAt: "2026-01-01T00:00:00Z", tags: [] },
+        { id: 2, name: "p2.jpg", sharePointFileId: "f2", driveId: "d", folderPath: "/", sharePointWebUrl: null, fileSizeBytes: null, lastModifiedAt: "2026-01-01T00:00:00Z", tags: [] },
+        { id: 3, name: "p3.jpg", sharePointFileId: "f3", driveId: "d", folderPath: "/", sharePointWebUrl: null, fileSizeBytes: null, lastModifiedAt: "2026-01-01T00:00:00Z", tags: [] },
+      ],
+      total: 3,
+      page: 1,
+    },
+    isLoading: false,
+  }),
   usePhotoTags: () => ({ data: [] }),
   useBulkAddPhotoTagByIds: () => ({
     mutateAsync: jest.fn().mockResolvedValue(undefined),
@@ -28,9 +41,13 @@ jest.mock("../PhotoThumbnail", () => ({
   default: ({ alt }: { alt: string }) => <img alt={alt} />,
 }));
 
+let capturedGridProps: any;
 jest.mock("../PhotoGrid", () => ({
   __esModule: true,
-  default: () => <div data-testid="photo-grid" />,
+  default: (props: any) => {
+    capturedGridProps = props;
+    return <div data-testid="photo-grid" />;
+  },
 }));
 
 jest.mock("../PhotoList", () => ({
@@ -93,4 +110,35 @@ test("reads initial view from localStorage", () => {
 
   expect(screen.getByTestId("photo-list")).toBeInTheDocument();
   expect(screen.queryByTestId("photo-grid")).not.toBeInTheDocument();
+});
+
+test("Shift+click (range mode) with no prior anchor treats click as single toggle", () => {
+  // Arrange — render with no prior anchor (fresh page)
+  render(<PhotobankPage />);
+
+  // Act — simulate Shift+click on photo 2 (mode=range, no anchor set)
+  act(() => {
+    capturedGridProps.onPhotoSelection(2, "range");
+  });
+
+  // Assert — no anchor means range falls through to single toggle:
+  // photo 2 is selected and the bulk action bar appears
+  expect(screen.getByTestId("bulk-action-bar")).toBeInTheDocument();
+});
+
+test("Cmd+click then Shift+click replaces selection with range (not additive)", () => {
+  // Arrange
+  render(<PhotobankPage />);
+
+  // Act — Cmd+click photo 1 (anchor=1, selected={1})
+  act(() => {
+    capturedGridProps.onPhotoSelection(1, "toggle");
+  });
+  // Shift+click photo 3 (range from anchor=1 to 3, REPLACE)
+  act(() => {
+    capturedGridProps.onPhotoSelection(3, "range");
+  });
+
+  // Assert — bulk action bar shows 3 selected (photos 1, 2, 3)
+  expect(screen.getByText(/^3 fotek/)).toBeInTheDocument();
 });

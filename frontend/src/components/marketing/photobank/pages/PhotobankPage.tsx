@@ -161,28 +161,22 @@ function PhotobankPage() {
     setSelectionAnchorId(null);
   }, []);
 
-  const handleTogglePhotoSelection = useCallback(
-    (photoId: number, withRange: boolean) => {
+  const handlePhotoSelection = useCallback(
+    (photoId: number, mode: "toggle" | "range") => {
       const items = photosData?.items ?? [];
 
-      if (withRange && selectionAnchorId !== null) {
+      if (mode === "range" && selectionAnchorId !== null) {
         const anchorIdx = items.findIndex((p) => p.id === selectionAnchorId);
         const targetIdx = items.findIndex((p) => p.id === photoId);
 
         if (anchorIdx !== -1 && targetIdx !== -1) {
           const lo = Math.min(anchorIdx, targetIdx);
           const hi = Math.max(anchorIdx, targetIdx);
-          const rangeIds = items.slice(lo, hi + 1).map((p) => p.id);
-          setSelectedIds((prev) => {
-            const next = new Set(prev);
-            rangeIds.forEach((id) => next.add(id));
-            return next;
-          });
+          setSelectedIds(new Set(items.slice(lo, hi + 1).map((p) => p.id)));
           return;
         }
       }
 
-      // Single toggle
       setSelectedIds((prev) => {
         const next = new Set(prev);
         if (next.has(photoId)) {
@@ -228,7 +222,7 @@ function PhotobankPage() {
     onPhotoSelect: handlePhotoSelect,
     onPageChange: handlePageChange,
     selectedIds,
-    onTogglePhotoSelection: handleTogglePhotoSelection,
+    onPhotoSelection: handlePhotoSelection,
     canSelect: canBulkTag,
   };
 
