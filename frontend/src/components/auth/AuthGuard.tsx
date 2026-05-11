@@ -25,8 +25,14 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const { isAuthenticated, inProgress, login } = auth;
 
   useEffect(() => {
-    // If not authenticated and not in progress, trigger login
     if (!isAuthenticated && inProgress === "none") {
+      // Preserve the current path so the user lands back here after the login redirect.
+      // App.tsx clears auth.returnUrl on non-redirect page loads, so this runs after
+      // that cleanup and is preserved through the Azure AD redirect cycle.
+      const currentPath = window.location.pathname + window.location.search;
+      if (currentPath && currentPath !== "/") {
+        localStorage.setItem("auth.returnUrl", currentPath);
+      }
       login().catch((error) => {
         console.error("Authentication failed:", error);
       });

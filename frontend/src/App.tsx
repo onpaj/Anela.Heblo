@@ -340,7 +340,7 @@ function App() {
                   <AuthGuard>
                     <Routes>
                       {/* Mobile terminal — no sidebar, no topbar */}
-                      <Route path="/terminal/*" element={<TerminalLayout />}>
+                      <Route path="/terminal" element={<TerminalLayout />}>
                         <Route index element={<TerminalHome />} />
                         <Route path="receive" element={<ComingSoonPage title="Příjem boxu" />} />
                         <Route path="stocktake" element={<ComingSoonPage title="Inventura" />} />
