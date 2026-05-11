@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import UserProfile from '../auth/UserProfile';
@@ -9,6 +9,15 @@ const TerminalLayout: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const isHome = pathname === TERMINAL_ROOT || pathname === `${TERMINAL_ROOT}/`;
+
+  useEffect(() => {
+    const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    const prev = link?.getAttribute("href") ?? null;
+    link?.setAttribute("href", "/manifest.terminal.json");
+    return () => {
+      if (link && prev !== null) link.setAttribute("href", prev);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-background-gray">
