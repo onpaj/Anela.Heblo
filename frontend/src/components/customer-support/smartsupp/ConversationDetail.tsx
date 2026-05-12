@@ -30,7 +30,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({ conversationId,
     <div className="flex flex-col h-full">
       <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
         <div>
-          <h3 className="font-semibold text-gray-900">{conversation.contactName ?? "Neznámý"}</h3>
+          <h3 className="font-semibold text-gray-900">{conversation.contactName ?? conversation.contactEmail ?? "Neznámý"}</h3>
           <p className="text-xs text-gray-500">
             Poslední aktivita{" "}
             {formatLastActivity(conversation.lastMessageAt ?? conversation.updatedAt)}

@@ -31,7 +31,8 @@ const ConversationListItem: React.FC<ConversationListItemProps> = ({
   isSelected,
   onClick,
 }) => {
-  const initials = getInitials(conversation.contactName);
+  const displayName = conversation.contactName ?? conversation.contactEmail ?? null;
+  const initials = getInitials(displayName);
   const relativeTime = formatRelativeTime(conversation.lastMessageAt ?? conversation.updatedAt);
 
   return (
@@ -46,7 +47,7 @@ const ConversationListItem: React.FC<ConversationListItemProps> = ({
         {conversation.contactAvatarUrl ? (
           <img
             src={conversation.contactAvatarUrl}
-            alt={conversation.contactName ?? ""}
+            alt={displayName ?? ""}
             className="w-9 h-9 rounded-full object-cover"
           />
         ) : (
@@ -56,7 +57,7 @@ const ConversationListItem: React.FC<ConversationListItemProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span className="font-medium text-sm text-gray-900 truncate">
-            {conversation.contactName ?? "Neznámý"}
+            {displayName ?? "Neznámý"}
           </span>
           <span className="text-xs text-gray-400 flex-shrink-0">{relativeTime}</span>
         </div>

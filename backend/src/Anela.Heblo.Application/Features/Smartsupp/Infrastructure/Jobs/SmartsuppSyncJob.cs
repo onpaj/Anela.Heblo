@@ -34,15 +34,16 @@ public class SmartsuppSyncJob : IRecurringJob
 
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
     {
-        var syncState = await _repository.GetOrCreateSyncStateAsync(cancellationToken);
-        var watermark = syncState.LastUpdatedAtSeen;
         var syncedAt = DateTime.UtcNow;
 
-        _logger.LogInformation("smartsupp-sync starting — watermark: {Watermark}", watermark?.ToString("o") ?? "none");
+        _logger.LogInformation("smartsupp-sync starting");
+
+        var syncState = await _repository.GetOrCreateSyncStateAsync(cancellationToken);
+        var updatedAfter = syncState.LastUpdatedAtSeen;
 
         var totalUpserted = 0;
-        DateTime? newWatermark = null;
         string? cursor = null;
+        DateTime? latestUpdatedAt = null;
 
         do
         {
@@ -50,7 +51,7 @@ public class SmartsuppSyncJob : IRecurringJob
 
             try
             {
-                page = await _apiClient.SearchConversationsAsync(watermark, cursor, PageSize, cancellationToken);
+                page = await _apiClient.SearchConversationsAsync(updatedAfter, cursor, PageSize, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -63,8 +64,8 @@ public class SmartsuppSyncJob : IRecurringJob
                 await ProcessConversationAsync(item, syncedAt, cancellationToken);
                 totalUpserted++;
 
-                if (newWatermark is null || item.UpdatedAt > newWatermark.Value)
-                    newWatermark = item.UpdatedAt;
+                if (latestUpdatedAt is null || item.UpdatedAt > latestUpdatedAt)
+                    latestUpdatedAt = item.UpdatedAt;
             }
 
             await _repository.SaveChangesAsync(cancellationToken);
@@ -72,13 +73,10 @@ public class SmartsuppSyncJob : IRecurringJob
 
         } while (cursor is not null);
 
-        if (newWatermark.HasValue)
-            await _repository.SetSyncWatermarkAsync(newWatermark.Value, cancellationToken);
+        if (latestUpdatedAt.HasValue)
+            await _repository.SetSyncWatermarkAsync(latestUpdatedAt.Value, cancellationToken);
 
-        _logger.LogInformation(
-            "smartsupp-sync completed — {Count} conversations upserted, watermark: {Watermark}",
-            totalUpserted,
-            newWatermark?.ToString("o") ?? "unchanged");
+        _logger.LogInformation("smartsupp-sync completed — {Count} conversations upserted", totalUpserted);
     }
 
     private async Task ProcessConversationAsync(SmartsuppConversationData data, DateTime syncedAt, CancellationToken cancellationToken)

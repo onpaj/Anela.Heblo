@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -31,8 +32,9 @@ public class SmartsuppApiClient : ISmartsuppApiClient
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
     private readonly SmartsuppOptions _options;
@@ -61,17 +63,16 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         if (string.IsNullOrEmpty(_options.ApiToken))
             throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
 
-        var body = new Dictionary<string, object>
+        var body = new ConversationSearchRequest
         {
-            ["size"] = size,
-            ["sort"] = new[] { new Dictionary<string, string> { ["updatedAt"] = "asc" } },
+            Size = size,
+            Query = [new ConversationQueryItem { Field = "status", Value = ["open", "served"] }],
+            Sort = [new ConversationSortItem()],
+            Filter = updatedAfter.HasValue
+                ? new ConversationSearchFilter { UpdatedAt = new DateTimeRangeFilter { Gt = updatedAfter.Value.ToString("o") } }
+                : null,
+            After = cursor is not null ? JsonSerializer.Deserialize<JsonElement[]>(cursor) : null,
         };
-
-        if (updatedAfter.HasValue)
-            body["filter"] = new { updatedAt = new { gt = updatedAfter.Value.ToString("o") } };
-
-        if (cursor is not null)
-            body["after"] = cursor;
 
         var json = JsonSerializer.Serialize(body, JsonOptions);
 
@@ -136,7 +137,7 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         new()
         {
             Total = r.Total,
-            After = r.After,
+            After = r.After is not null ? JsonSerializer.Serialize(r.After) : null,
             Items = r.Items?.Select(MapConversation).ToList() ?? new List<SmartsuppConversationData>()
         };
 
@@ -146,13 +147,13 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             Id = item.Id ?? "",
             Status = item.Status ?? "open",
             Unread = item.Unread,
-            CreatedAt = item.CreatedAt,
-            UpdatedAt = item.UpdatedAt,
+            CreatedAt = Unspecified(item.CreatedAt),
+            UpdatedAt = Unspecified(item.UpdatedAt),
             ContactName = item.Contact?.Name,
             ContactEmail = item.Contact?.Email,
             ContactAvatarUrl = item.Contact?.AvatarUrl,
             LastMessageText = item.LastMessage?.Text,
-            LastMessageAt = item.LastMessage?.CreatedAt,
+            LastMessageAt = item.LastMessage?.CreatedAt is { } lm ? Unspecified(lm) : null,
         };
 
     private static SmartsuppMessageData MapMessage(SmartsuppMessageApiItem item) =>
@@ -162,15 +163,50 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             AuthorType = item.Author?.Type ?? "visitor",
             AuthorName = item.Author?.Name,
             Content = item.Content?.Text,
-            CreatedAt = item.CreatedAt,
+            CreatedAt = Unspecified(item.CreatedAt),
         };
+
+    private static DateTime Unspecified(DateTime dt) =>
+        DateTime.SpecifyKind(dt, DateTimeKind.Unspecified);
+
+    // ---- API request shapes (private, internal to adapter) ----
+
+    private sealed class ConversationSearchRequest
+    {
+        public int Size { get; init; }
+        public List<ConversationQueryItem> Query { get; init; } = [];
+        public List<ConversationSortItem> Sort { get; init; } = [];
+        public ConversationSearchFilter? Filter { get; init; }
+        public JsonElement[]? After { get; init; }
+    }
+
+    private sealed class ConversationQueryItem
+    {
+        public string Field { get; init; } = "";
+        public string[] Value { get; init; } = [];
+    }
+
+    private sealed class ConversationSortItem
+    {
+        public string CreatedAt { get; init; } = "desc";
+    }
+
+    private sealed class ConversationSearchFilter
+    {
+        public DateTimeRangeFilter? UpdatedAt { get; init; }
+    }
+
+    private sealed class DateTimeRangeFilter
+    {
+        public string? Gt { get; init; }
+    }
 
     // ---- API response shapes (private, internal to adapter) ----
 
     private sealed class SmartsuppSearchApiResponse
     {
         public int Total { get; set; }
-        public string? After { get; set; }
+        public JsonElement[]? After { get; set; }
         public List<SmartsuppConversationApiItem>? Items { get; set; }
     }
 
