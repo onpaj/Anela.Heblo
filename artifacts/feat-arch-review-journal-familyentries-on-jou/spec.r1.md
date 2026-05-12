@@ -1,14 +1,14 @@
 # Specification: Resolve unimplemented `FamilyEntries` on Journal indicators
 
 ## Summary
-`JournalIndicator` (domain) and `JournalIndicatorDto` (contract) expose `FamilyEntries` and a derived `TotalEntries`, but `JournalRepository.GetJournalIndicatorsAsync` never assigns `FamilyEntries`, so the value is always `0` and `TotalEntries` is identical to `DirectEntries`. A repository-wide search also shows that the entire indicator surface (`GetJournalIndicatorsAsync`, `JournalIndicator`, `JournalIndicatorDto`) has zero consumers in either the .NET backend or the React frontend. Applying YAGNI, this spec deletes the speculative `FamilyEntries`/`TotalEntries` members and additionally removes the unreferenced indicator surface; an Open Question captures the alternative of implementing the prefix-based count instead.
+`JournalIndicator` (domain) and `JournalIndicatorDto` (contract) expose `FamilyEntries` and a derived `TotalEntries`, but `JournalRepository.GetJournalIndicatorsAsync` never assigns `FamilyEntries`, so the value is always `0` and `TotalEntries` is identical to `DirectEntries`. A repo-wide search confirms the entire indicator surface (`GetJournalIndicatorsAsync`, `JournalIndicator`, `JournalIndicatorDto`) has zero consumers in either the .NET backend or the React frontend. Applying YAGNI, this spec deletes the speculative `FamilyEntries`/`TotalEntries` members and additionally removes the unreferenced indicator surface; an Open Question captures the alternative of implementing the prefix-based count instead.
 
 ## Background
 
 ### How journal entries link to products
 Journal entries associate to a product via a `ProductCodePrefix` stored on `JournalEntryProduct`. Other repository methods use prefix matching: a journal entry is "linked" to product code `X` when an associated prefix `pa.ProductCodePrefix` satisfies `X.StartsWith(pa.ProductCodePrefix)` (see `JournalRepository.GetEntriesByProductAsync` at `backend/src/Anela.Heblo.Persistence/Catalog/Journal/JournalRepository.cs:161–173`, and the product filter inside `GetEntriesAsync`).
 
-This creates a conceptual distinction the brief refers to:
+This creates the conceptual distinction the brief refers to:
 - **Direct entry** — associated prefix equals the product code exactly.
 - **Family entry** — associated prefix is a strictly shorter prefix of the product code (e.g. an entry logged against `TON` when the indicator is computed for `TON001A`).
 
@@ -18,20 +18,20 @@ This creates a conceptual distinction the brief refers to:
 ### The wider finding: the indicator surface is dead code
 Repo-wide search (`grep -rn "GetJournalIndicators\|JournalIndicator"`) finds matches only in the four files that define the surface:
 
-- `backend/src/Anela.Heblo.Domain/Features/Journal/IJournalRepository.cs` — declares `GetJournalIndicatorsAsync`.
+- `backend/src/Anela.Heblo.Domain/Features/Journal/IJournalRepository.cs` — declares `GetJournalIndicatorsAsync` (lines 21–23).
 - `backend/src/Anela.Heblo.Domain/Features/Journal/JournalIndicator.cs` — domain type.
-- `backend/src/Anela.Heblo.Persistence/Catalog/Journal/JournalRepository.cs` — implementation.
+- `backend/src/Anela.Heblo.Persistence/Catalog/Journal/JournalRepository.cs` — implementation (lines 175–220).
 - `backend/src/Anela.Heblo.Application/Features/Journal/Contracts/JournalIndicatorDto.cs` — contract type.
 
-There are **no** call sites: no MediatR handler, no controller, no test, no mapper, and no frontend reference to either type. Likewise, `frontend/` contains zero hits for `journalIndicator`, `familyEntries`, or `totalEntries`. The only test hits for "FamilyEntries" are method names in `JournalRepositoryIntegrationTests.cs` (`ShouldFindFamilyEntries`, `ShouldFindCorrectFamilyEntries`) which exercise `GetEntriesByProductAsync`'s prefix matching and do **not** assert on indicator fields.
+There are **no** call sites: no MediatR handler, no controller, no test, no mapper, and no frontend reference to either type. `frontend/` contains zero hits for `journalIndicator`, `familyEntries`, or `totalEntries` (verified). The only test hits for "FamilyEntries" are method names in `JournalRepositoryIntegrationTests.cs` (`ShouldFindFamilyEntries`, `ShouldFindCorrectFamilyEntries`) which exercise `GetEntriesByProductAsync`'s prefix matching and do **not** assert on indicator fields.
 
 ### Direction
 Per CLAUDE.md ("surgical changes", YAGNI) and the global coding-style rule ("Do not build features or abstractions before they are needed"), this spec removes the dead code rather than implementing a feature for which no consumer or product requirement exists. Two layers of cleanup are defined:
 
 1. **Property-level (FR-1/FR-2)** — remove `FamilyEntries` and `TotalEntries` from the indicator type and its DTO. This is the literal scope of the brief.
-2. **Surface-level (FR-3/FR-4)** — remove the unreferenced `GetJournalIndicatorsAsync` method, the `JournalIndicator` domain type, and the `JournalIndicatorDto` contract. This handles the broader dead-code observation surfaced during verification.
+2. **Surface-level (FR-3/FR-4)** — also remove the unreferenced `GetJournalIndicatorsAsync` method, the `JournalIndicator` domain type, and the `JournalIndicatorDto` contract. This handles the broader dead-code observation surfaced during verification.
 
-FR-5/FR-6 cover code-hygiene cleanup after the deletions. NFR-1 captures the breaking-change posture. The Open Questions confirm the chosen direction before implementation begins.
+FR-5/FR-6 cover code-hygiene cleanup and tests after the deletions. NFR-1 captures the breaking-change posture. The Open Questions confirm the chosen direction before implementation begins.
 
 ## Functional Requirements
 
