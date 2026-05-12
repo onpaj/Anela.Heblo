@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading;
 using Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.Photobank.UseCases.RetagPhotos;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Xcc.Services;
@@ -15,13 +16,14 @@ public class RetagPhotosHandlerTests
 {
     private readonly Mock<IPhotobankRepository> _repositoryMock;
     private readonly Mock<IBackgroundWorker> _backgroundWorkerMock;
+    private readonly Mock<IPhotobankTagsCache> _cacheMock = new();
     private readonly RetagPhotosHandler _handler;
 
     public RetagPhotosHandlerTests()
     {
         _repositoryMock = new Mock<IPhotobankRepository>();
         _backgroundWorkerMock = new Mock<IBackgroundWorker>();
-        _handler = new RetagPhotosHandler(_repositoryMock.Object, _backgroundWorkerMock.Object);
+        _handler = new RetagPhotosHandler(_repositoryMock.Object, _backgroundWorkerMock.Object, _cacheMock.Object);
     }
 
     [Fact]
