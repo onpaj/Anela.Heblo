@@ -39,7 +39,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetTags
             var rows = await _repository.GetTagsWithCountsAsync(cancellationToken);
             stopwatch.Stop();
 
-            IReadOnlyList<TagWithCountDto> dtos = rows
+            var dtos = rows
                 .Select(r => new TagWithCountDto { Id = r.Id, Name = r.Name, Count = r.Count })
                 .ToList();
 
@@ -50,7 +50,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetTags
                 dtos.Count,
                 stopwatch.ElapsedMilliseconds);
 
-            return new GetTagsResponse { Tags = dtos.ToList() };
+            return new GetTagsResponse { Tags = dtos };
         }
     }
 }
