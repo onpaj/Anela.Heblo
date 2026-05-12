@@ -1,15 +1,24 @@
 using System.Linq.Expressions;
+using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Services;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
 using Hangfire.Storage;
+using Microsoft.Extensions.Options;
 using System.ComponentModel;
 
 namespace Anela.Heblo.API.Infrastructure.Hangfire;
 
 public class HangfireBackgroundWorker : IBackgroundWorker
 {
+    private readonly HangfireOptions _options;
+
+    public HangfireBackgroundWorker(IOptions<HangfireOptions> options)
+    {
+        _options = options.Value;
+    }
+
     public string Enqueue<T>(Expression<Func<T, Task>> methodCall)
     {
         return BackgroundJob.Enqueue(methodCall);
@@ -42,20 +51,22 @@ public class HangfireBackgroundWorker : IBackgroundWorker
 
     public IList<BackgroundJobInfo> GetPendingJobs()
     {
-        using var connection = JobStorage.Current.GetConnection();
+        var pageSize = _options.MaxPendingJobsPageSize;
         var monitoring = JobStorage.Current.GetMonitoringApi();
 
-        var enqueuedJobs = monitoring.EnqueuedJobs("default", 0, int.MaxValue);
-        var scheduledJobs = monitoring.ScheduledJobs(0, int.MaxValue);
+        var enqueuedJobs = monitoring.EnqueuedJobs("default", 0, pageSize);
+        var scheduledJobs = monitoring.ScheduledJobs(0, pageSize);
 
         var result = new List<BackgroundJobInfo>();
+
+        using var connection = JobStorage.Current.GetConnection();
 
         foreach (var job in enqueuedJobs)
         {
             result.Add(new BackgroundJobInfo
             {
                 Id = job.Key,
-                JobName = GetJobDisplayName(job.Key, job.Value.Job),
+                JobName = GetJobDisplayName(connection, job.Key, job.Value.Job),
                 State = "Enqueued",
                 CreatedAt = job.Value.EnqueuedAt,
                 Queue = "default"
@@ -70,7 +81,7 @@ public class HangfireBackgroundWorker : IBackgroundWorker
                 result.Add(new BackgroundJobInfo
                 {
                     Id = job.Key,
-                    JobName = GetJobDisplayName(job.Key, job.Value.Job),
+                    JobName = GetJobDisplayName(connection, job.Key, job.Value.Job),
                     State = "Scheduled",
                     CreatedAt = job.Value.EnqueueAt,
                     Queue = jobDetails.Job.Queue ?? "default"
@@ -83,14 +94,16 @@ public class HangfireBackgroundWorker : IBackgroundWorker
 
     public IList<BackgroundJobInfo> GetRunningJobs()
     {
+        var pageSize = _options.MaxPendingJobsPageSize;
         var monitoring = JobStorage.Current.GetMonitoringApi();
-        var processingJobs = monitoring.ProcessingJobs(0, int.MaxValue);
+        var processingJobs = monitoring.ProcessingJobs(0, pageSize);
 
         var result = new List<BackgroundJobInfo>();
 
+        using var connection = JobStorage.Current.GetConnection();
+
         foreach (var job in processingJobs)
         {
-            using var connection = JobStorage.Current.GetConnection();
             var jobDetails = connection.GetJobData(job.Key);
 
             if (jobDetails?.Job != null)
@@ -98,7 +111,7 @@ public class HangfireBackgroundWorker : IBackgroundWorker
                 result.Add(new BackgroundJobInfo
                 {
                     Id = job.Key,
-                    JobName = GetJobDisplayName(job.Key, job.Value.Job),
+                    JobName = GetJobDisplayName(connection, job.Key, job.Value.Job),
                     State = "Processing",
                     CreatedAt = jobDetails.CreatedAt,
                     StartedAt = job.Value.StartedAt,
@@ -125,7 +138,7 @@ public class HangfireBackgroundWorker : IBackgroundWorker
             return new BackgroundJobInfo
             {
                 Id = jobId,
-                JobName = GetJobDisplayName(jobId, jobDetails.Job),
+                JobName = GetJobDisplayName(connection, jobId, jobDetails.Job),
                 State = state,
                 CreatedAt = jobDetails.CreatedAt,
                 StartedAt = GetJobStartedAt(connection, jobId),
@@ -163,14 +176,13 @@ public class HangfireBackgroundWorker : IBackgroundWorker
         }
     }
 
-    private static string GetJobDisplayName(string jobId, Job job)
+    private static string GetJobDisplayName(IStorageConnection connection, string jobId, Job job)
     {
         if (job?.Method?.Name == null)
             return "Unknown Job";
 
         try
         {
-            using var connection = JobStorage.Current.GetConnection();
             var customDisplayName = connection.GetJobParameter(jobId, "DisplayName");
             if (!string.IsNullOrEmpty(customDisplayName))
                 return customDisplayName;
