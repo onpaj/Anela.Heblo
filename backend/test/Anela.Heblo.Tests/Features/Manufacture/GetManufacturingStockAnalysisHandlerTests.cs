@@ -55,7 +55,7 @@ public class GetManufacturingStockAnalysisHandlerTests
         var request = new GetManufacturingStockAnalysisRequest();
         var emptyCatalogItems = new List<CatalogAggregate>();
 
-        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriodFilter>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
             .Returns(new List<(DateTime, DateTime)> { (DateTime.Today.AddDays(-30), DateTime.Today) });
 
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
@@ -78,7 +78,7 @@ public class GetManufacturingStockAnalysisHandlerTests
         // Arrange
         var request = new GetManufacturingStockAnalysisRequest
         {
-            TimePeriod = TimePeriodFilter.PreviousQuarter,
+            TimePeriod = TimePeriod.PreviousQuarter,
             PageNumber = 1,
             PageSize = 10
         };
@@ -87,7 +87,7 @@ public class GetManufacturingStockAnalysisHandlerTests
         var analysisItems = CreateTestAnalysisItems();
         var summary = CreateTestSummary();
 
-        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriodFilter>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
             .Returns(new List<(DateTime, DateTime)> { (DateTime.Today.AddDays(-90), DateTime.Today) });
 
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
@@ -210,7 +210,7 @@ public class GetManufacturingStockAnalysisHandlerTests
             })
             .ToList();
 
-        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriodFilter>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
             .Returns(new List<(DateTime, DateTime)> { (DateTime.Today.AddDays(-30), DateTime.Today) });
 
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
@@ -300,7 +300,7 @@ public class GetManufacturingStockAnalysisHandlerTests
         };
 
         // Set up mocks
-        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriodFilter>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
             .Returns(new List<(DateTime, DateTime)> { (DateTime.Today.AddDays(-30), DateTime.Today) });
 
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
@@ -363,7 +363,7 @@ public class GetManufacturingStockAnalysisHandlerTests
 
         var catalogItems = CreateTestCatalogItems();
 
-        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriodFilter>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
             .Returns(new List<(DateTime, DateTime)> { (DateTime.Today.AddDays(-30), DateTime.Today) });
 
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
@@ -420,7 +420,7 @@ public class GetManufacturingStockAnalysisHandlerTests
             }
         };
 
-        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriodFilter>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
             .Returns(new List<(DateTime, DateTime)> { (DateTime.Today.AddDays(-30), DateTime.Today) });
 
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))

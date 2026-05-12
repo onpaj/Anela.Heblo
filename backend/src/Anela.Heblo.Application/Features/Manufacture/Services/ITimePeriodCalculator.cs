@@ -1,16 +1,16 @@
-using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
+using Anela.Heblo.Application.Common.TimePeriods;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
 public interface ITimePeriodCalculator
 {
     (DateTime fromDate, DateTime toDate) CalculateTimePeriod(
-        TimePeriodFilter timePeriod,
+        TimePeriod timePeriod,
         DateTime? customFromDate = null,
         DateTime? customToDate = null);
 
     IReadOnlyList<(DateTime fromDate, DateTime toDate)> CalculateTimePeriodRanges(
-        TimePeriodFilter timePeriod,
+        TimePeriod timePeriod,
         DateTime? customFromDate = null,
         DateTime? customToDate = null);
 }

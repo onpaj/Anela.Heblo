@@ -1,9 +1,7 @@
-using FluentAssertions;
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.Services;
-using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
 using FluentAssertions;
 using Xunit;
-using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Manufacture.Services;
 
@@ -25,7 +23,7 @@ public class TimePeriodCalculatorTests
 
         // Act
         var (fromDate, toDate) = _sut.CalculateTimePeriod(
-            TimePeriodFilter.CustomPeriod, customFromDate, customToDate);
+            TimePeriod.CustomPeriod, customFromDate, customToDate);
 
         // Assert
         fromDate.Should().Be(customFromDate);
@@ -36,7 +34,7 @@ public class TimePeriodCalculatorTests
     public void CalculateTimePeriod_WithCustomPeriodButNoDates_FallsBackToDefault()
     {
         // Act
-        var (fromDate, toDate) = _sut.CalculateTimePeriod(TimePeriodFilter.CustomPeriod);
+        var (fromDate, toDate) = _sut.CalculateTimePeriod(TimePeriod.CustomPeriod);
 
         // Assert
         // Should fall back to default (previous quarter)
@@ -48,7 +46,7 @@ public class TimePeriodCalculatorTests
     public void CalculateTimePeriod_WithPreviousQuarter_ReturnsLast3Months()
     {
         // Act
-        var (fromDate, toDate) = _sut.CalculateTimePeriod(TimePeriodFilter.PreviousQuarter);
+        var (fromDate, toDate) = _sut.CalculateTimePeriod(TimePeriod.PreviousQuarter);
 
         // Assert
         var now = DateTime.UtcNow;
@@ -63,7 +61,7 @@ public class TimePeriodCalculatorTests
     public void CalculateTimePeriod_WithY2Y_ReturnsLast12Months()
     {
         // Act
-        var (fromDate, toDate) = _sut.CalculateTimePeriod(TimePeriodFilter.Y2Y);
+        var (fromDate, toDate) = _sut.CalculateTimePeriod(TimePeriod.Y2Y);
 
         // Assert
         var now = DateTime.UtcNow;
@@ -78,7 +76,7 @@ public class TimePeriodCalculatorTests
     public void CalculateTimePeriod_WithFutureQuarter_ReturnsCorrespondingPeriodFromPreviousYear()
     {
         // Act
-        var (fromDate, toDate) = _sut.CalculateTimePeriod(TimePeriodFilter.FutureQuarter);
+        var (fromDate, toDate) = _sut.CalculateTimePeriod(TimePeriod.FutureQuarter);
 
         // Assert
         var now = DateTime.UtcNow;
@@ -93,7 +91,7 @@ public class TimePeriodCalculatorTests
     public void CalculateTimePeriod_WithPreviousSeason_ReturnsOctoberToJanuaryPeriod()
     {
         // Act
-        var (fromDate, toDate) = _sut.CalculateTimePeriod(TimePeriodFilter.PreviousSeason);
+        var (fromDate, toDate) = _sut.CalculateTimePeriod(TimePeriod.PreviousSeason);
 
         // Assert
         var now = DateTime.UtcNow;
@@ -105,8 +103,8 @@ public class TimePeriodCalculatorTests
     }
 
     [Theory]
-    [InlineData((TimePeriodFilter)999)] // Invalid enum value
-    public void CalculateTimePeriod_WithInvalidTimePeriod_ReturnsDefaultPeriod(TimePeriodFilter invalidPeriod)
+    [InlineData((TimePeriod)999)] // Invalid enum value
+    public void CalculateTimePeriod_WithInvalidTimePeriod_ReturnsDefaultPeriod(TimePeriod invalidPeriod)
     {
         // Act
         var (fromDate, toDate) = _sut.CalculateTimePeriod(invalidPeriod);
@@ -124,7 +122,7 @@ public class TimePeriodCalculatorTests
     public void CalculateTimePeriodRanges_WithQ9M_ReturnsTwoRanges()
     {
         // Act
-        var ranges = _sut.CalculateTimePeriodRanges(TimePeriodFilter.Q9M);
+        var ranges = _sut.CalculateTimePeriodRanges(TimePeriod.Q9M);
 
         // Assert
         var now = DateTime.UtcNow;
@@ -143,8 +141,8 @@ public class TimePeriodCalculatorTests
     public void CalculateTimePeriodRanges_WithPreviousQuarter_ReturnsSingleRangeMatchingLegacy()
     {
         // Act
-        var ranges = _sut.CalculateTimePeriodRanges(TimePeriodFilter.PreviousQuarter);
-        var legacy = _sut.CalculateTimePeriod(TimePeriodFilter.PreviousQuarter);
+        var ranges = _sut.CalculateTimePeriodRanges(TimePeriod.PreviousQuarter);
+        var legacy = _sut.CalculateTimePeriod(TimePeriod.PreviousQuarter);
 
         // Assert
         ranges.Should().HaveCount(1);
@@ -153,10 +151,10 @@ public class TimePeriodCalculatorTests
     }
 
     [Theory]
-    [InlineData(TimePeriodFilter.FutureQuarter)]
-    [InlineData(TimePeriodFilter.Y2Y)]
-    [InlineData(TimePeriodFilter.PreviousSeason)]
-    public void CalculateTimePeriodRanges_WithSingleRangePeriods_ReturnsSingleElementList(TimePeriodFilter period)
+    [InlineData(TimePeriod.FutureQuarter)]
+    [InlineData(TimePeriod.Y2Y)]
+    [InlineData(TimePeriod.PreviousSeason)]
+    public void CalculateTimePeriodRanges_WithSingleRangePeriods_ReturnsSingleElementList(TimePeriod period)
     {
         // Act
         var ranges = _sut.CalculateTimePeriodRanges(period);

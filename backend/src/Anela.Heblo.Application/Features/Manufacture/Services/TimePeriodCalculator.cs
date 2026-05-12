@@ -1,11 +1,11 @@
-using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
+using Anela.Heblo.Application.Common.TimePeriods;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
 public class TimePeriodCalculator : ITimePeriodCalculator
 {
     public (DateTime fromDate, DateTime toDate) CalculateTimePeriod(
-        TimePeriodFilter timePeriod,
+        TimePeriod timePeriod,
         DateTime? customFromDate = null,
         DateTime? customToDate = null)
     {
@@ -14,7 +14,7 @@ public class TimePeriodCalculator : ITimePeriodCalculator
     }
 
     public IReadOnlyList<(DateTime fromDate, DateTime toDate)> CalculateTimePeriodRanges(
-        TimePeriodFilter timePeriod,
+        TimePeriod timePeriod,
         DateTime? customFromDate = null,
         DateTime? customToDate = null)
     {
@@ -22,32 +22,32 @@ public class TimePeriodCalculator : ITimePeriodCalculator
 
         switch (timePeriod)
         {
-            case TimePeriodFilter.PreviousQuarter:
+            case TimePeriod.PreviousQuarter:
                 // Last 3 completed months
                 var startOfCurrentMonth = new DateTime(now.Year, now.Month, 1);
                 var endOfPreviousMonth = startOfCurrentMonth.AddDays(-1);
                 var startOfPreviousQuarter = startOfCurrentMonth.AddMonths(-3);
                 return [(startOfPreviousQuarter, endOfPreviousMonth)];
 
-            case TimePeriodFilter.FutureQuarter:
+            case TimePeriod.FutureQuarter:
                 // Next 3 months from previous year (for demand forecasting)
                 var startOfFutureQuarterLastYear = new DateTime(now.Year - 1, now.Month, 1);
                 var endOfFutureQuarterLastYear = startOfFutureQuarterLastYear.AddMonths(3).AddDays(-1);
                 return [(startOfFutureQuarterLastYear, endOfFutureQuarterLastYear)];
 
-            case TimePeriodFilter.Y2Y:
+            case TimePeriod.Y2Y:
                 // Last 12 months
                 var startOfY2Y = new DateTime(now.Year, now.Month, 1).AddMonths(-12);
                 var endOfY2Y = new DateTime(now.Year, now.Month, 1).AddDays(-1);
                 return [(startOfY2Y, endOfY2Y)];
 
-            case TimePeriodFilter.PreviousSeason:
+            case TimePeriod.PreviousSeason:
                 // October-January of previous year
                 var seasonStart = new DateTime(now.Year - 1, 10, 1);
                 var seasonEnd = new DateTime(now.Year, 1, 31);
                 return [(seasonStart, seasonEnd)];
 
-            case TimePeriodFilter.Q9M:
+            case TimePeriod.Q9M:
                 // Last 6 months (real data) + upcoming 3 months of previous year (seasonal proxy)
                 var rangeAFrom = now.AddMonths(-6);
                 var rangeATo = now;
@@ -55,7 +55,7 @@ public class TimePeriodCalculator : ITimePeriodCalculator
                 var rangeBTo = now.AddYears(-1).AddMonths(3);
                 return [(rangeAFrom, rangeATo), (rangeBFrom, rangeBTo)];
 
-            case TimePeriodFilter.CustomPeriod:
+            case TimePeriod.CustomPeriod:
                 if (customFromDate.HasValue && customToDate.HasValue)
                 {
                     return [(customFromDate.Value, customToDate.Value)];
