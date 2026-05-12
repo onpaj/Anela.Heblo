@@ -1,292 +1,367 @@
-# Design: Dashboard Tile — Yesterday's DQT Status
-
-## UX/UI Design
-
-### States and Visual Layout
-
-The tile shares the same container shape as `DataQualityTile` (flex column, centered, `min-h-44`, `cursor-pointer`, hover/active transition). The `error` state is non-interactive (no pointer, no hover), matching the sibling tile.
-
-#### State: `no_data`
-```
-┌──────────────────────────┐
-│                          │
-│         🕐               │
-│      Žádná data          │
-│  Včerejší test neproběhl │
-│                          │
-└──────────────────────────┘
-```
-- `Clock` icon — `text-gray-400`
-- `"Žádná data"` — `text-gray-500 text-sm`
-- `"Včerejší test neproběhl"` — `text-gray-400 text-xs mt-1`
-
-#### State: `error`
-```
-┌──────────────────────────┐
-│                          │
-│         ✕                │
-│  Chyba při načítání dat  │
-│                          │
-└──────────────────────────┘
-```
-- `XCircle` icon — `text-red-500`
-- `"Chyba při načítání dat"` — `text-red-600 text-sm`
-- Not clickable (no `cursor-pointer`, no hover/active)
-
-#### State: `warning` — `runStatus === 'Running'`
-```
-┌──────────────────────────┐
-│                          │
-│         🕐               │
-│        probíhá           │
-│      DD.MM.YYYY          │
-│                          │
-└──────────────────────────┘
-```
-- `Clock` icon — `text-amber-500`
-- `"probíhá"` — `text-amber-600 text-sm`
-- Yesterday's date formatted as `DD.MM.YYYY` (derived from `data.data.dateTo`) — `text-gray-400 text-xs mt-1`
-
-#### State: `warning` — `runStatus === 'Completed'` with mismatches
-```
-┌──────────────────────────┐
-│                          │
-│         ⚠                │
-│           4              │
-│        neshod            │
-│    z 123 faktur          │
-│      DD.MM.YYYY          │
-│                          │
-└──────────────────────────┘
-```
-- `AlertTriangle` icon — `text-red-500`
-- Mismatch count — `text-red-700 text-3xl font-bold mb-1`
-- `"neshod"` — `text-gray-500 text-sm`
-- `"z X faktur"` (when `totalChecked > 0`) — `text-gray-400 text-xs mt-1`
-- Yesterday's date as `DD.MM.YYYY` — `text-gray-400 text-xs mt-1`
-
-#### State: `success`
-```
-┌──────────────────────────┐
-│                          │
-│         🛡                │
-│           0              │
-│        vše OK            │
-│    z 123 faktur          │
-│      DD.MM.YYYY          │
-│                          │
-└──────────────────────────┘
-```
-- `ShieldCheck` icon — `text-green-500`
-- `"0"` — `text-green-700 text-3xl font-bold mb-1`
-- `"vše OK"` — `text-gray-500 text-sm`
-- `"z X faktur"` (when `totalChecked > 0`) — `text-gray-400 text-xs mt-1`
-- Yesterday's date as `DD.MM.YYYY` — `text-gray-400 text-xs mt-1`
-
-### Component Hierarchy
-
-```
-DqtYesterdayStatusTile
-└── div (container, click handler — all states except error)
-    ├── [icon]           — varies by state
-    ├── [count / label]  — varies by state
-    └── [sub-labels]     — "z X faktur", date, "probíhá", etc.
-```
-
-### Key Interactions
-
-- Click anywhere on the tile (all states except `error`) → `navigate('/automation/data-quality')`.
-- The `error` state renders without hover styling and without a click handler, matching `DataQualityTile`.
-- Date label for `warning`/`success` states: format `data.data.dateTo` (ISO string `YYYY-MM-DD`) as `DD.MM.YYYY`. If `dateTo` is absent, fall back to the static string `"včera"`.
-
----
+# Design: Optimize GetRunningInvoiceImportJobs Endpoint Performance
 
 ## Component Design
 
-### Backend
+### 1. `HangfireOptions` — extended configuration
 
-#### `DqtYesterdayStatusTile` (new)
+**File:** `backend/src/Anela.Heblo.API/Extensions/HangfireOptions.cs`
 
-**Location:** `backend/src/Anela.Heblo.Application/Features/DataQuality/DashboardTiles/DqtYesterdayStatusTile.cs`
+Add two properties to the existing class. Both are optional with safe defaults so no `appsettings.json` changes are required for deployment.
 
-**Implements:** `ITile`
-
-**Constructor dependencies:**
-| Parameter | Type |
-|---|---|
-| `repository` | `IDqtRunRepository` |
-| `timeProvider` | `TimeProvider` |
-| `logger` | `ILogger<DqtYesterdayStatusTile>` |
-
-**Metadata properties:**
-| Property | Value |
-|---|---|
-| `Title` | `"DQT včera"` |
-| `Description` | `"Stav včerejšího DQT testu faktur"` |
-| `Size` | `TileSize.Medium` |
-| `Category` | `TileCategory.DataQuality` |
-| `DefaultEnabled` | `true` |
-| `AutoShow` | `false` |
-| `ComponentType` | `typeof(object)` |
-| `RequiredPermissions` | `Array.Empty<string>()` |
-
-**Framework-derived tile id:** `"dqtyesterdaystatus"` — produced by `TileExtensions.GetTileId` (`Type.Name.ToLowerInvariant().Replace("tile", "")`). No override needed; the class name alone is sufficient. There is no `GetTileId()` method on `ITile`.
-
-**`LoadDataAsync` responsibilities:**
-1. Compute `yesterday = DateOnly.FromDateTime(_timeProvider.GetLocalNow().LocalDateTime).AddDays(-1)`
-2. Call `_repository.GetLatestByTestTypeAndCoveredDateAsync(DqtTestType.IssuedInvoiceComparison, yesterday, ct)`
-3. Map result to status payload per the truth table in Data Schemas
-4. Wrap entire body in try/catch: on exception log with `_logger.LogError` (include exception, test type, target date) and return the error payload — never rethrow
-
-#### `IDqtRunRepository` (modified)
-
-**Location:** `backend/src/Anela.Heblo.Domain/Features/DataQuality/IDqtRunRepository.cs`
-
-**New method appended to interface:**
 ```csharp
-Task<DqtRun?> GetLatestByTestTypeAndCoveredDateAsync(
-    DqtTestType testType,
-    DateOnly coveredDate,
-    CancellationToken cancellationToken = default);
-```
-
-**Semantics:** Returns the most recent run (by `StartedAt DESC`) of the given `testType` satisfying `DateFrom <= coveredDate && DateTo >= coveredDate`. Returns `null` when no such run exists. Does not load navigation properties (`Results` excluded).
-
-#### `DqtRunRepository` (modified)
-
-**Location:** `backend/src/Anela.Heblo.Persistence/DataQuality/DqtRunRepository.cs`
-
-**Implementation:**
-```csharp
-public async Task<DqtRun?> GetLatestByTestTypeAndCoveredDateAsync(
-    DqtTestType testType,
-    DateOnly coveredDate,
-    CancellationToken cancellationToken = default)
+public class HangfireOptions
 {
-    return await DbSet
-        .Where(r => r.TestType == testType
-                    && r.DateFrom <= coveredDate
-                    && r.DateTo >= coveredDate)
-        .OrderByDescending(r => r.StartedAt)
-        .FirstOrDefaultAsync(cancellationToken);
+    public static string ConfigurationKey => "Hangfire";
+    public string SchemaName { get; set; } = "hangfire_heblo";
+    public bool SchedulerEnabled { get; set; } = false;
+    public int WorkerCount { get; set; } = 1;
+    public bool UseInMemoryStorage { get; set; } = false;
+    public int ConnectionLimit { get; set; } = 5;
+
+    // NEW
+    public int MaxPendingJobsPageSize { get; set; } = 200;
+    public int RunningJobsCacheSeconds { get; set; } = 2;
 }
 ```
 
-Ordering uses `StartedAt DESC` only, matching `GetLatestByTestTypeAsync`. No `.Include` — the tile reads only scalar fields on `DqtRun`. No index migration required (see Data Schemas).
+`MaxPendingJobsPageSize` caps all Hangfire monitoring API page requests.
+`RunningJobsCacheSeconds <= 0` disables caching entirely (useful in tests).
 
-#### `DashboardModule` (modified)
+---
 
-**Location:** `backend/src/Anela.Heblo.Application/Features/Dashboard/DashboardModule.cs`
+### 2. `HangfireBackgroundWorker` — connection reuse + page cap
 
-Append after the `DataQualityStatusTile` registration:
+**File:** `backend/src/Anela.Heblo.API/Infrastructure/Hangfire/HangfireBackgroundWorker.cs`
+
+**Changes:**
+
+- Add constructor accepting `IOptions<HangfireOptions>`; store `_options`.
+- `GetRunningJobs()`: open **one** `IStorageConnection` before the loop; pass it to `GetJobDisplayName`; apply page cap to `ProcessingJobs`.
+- `GetPendingJobs()`: apply page cap to `EnqueuedJobs` and `ScheduledJobs`; pass the existing `connection` to `GetJobDisplayName`.
+- `GetJobDisplayName(string jobId, Job job)` → `GetJobDisplayName(IStorageConnection connection, string jobId, Job job)`: accepts the caller's connection; never opens its own.
+
+**Public surface (`IBackgroundWorker`) is unchanged.**
+
+`GetJobById`, `GetJobStartedAt`, and `GetJobState` are out of scope — do not modify them.
+
+Responsibility boundaries after the change:
+
+| Method | Connections opened | Page cap applied |
+|---|---|---|
+| `GetRunningJobs()` | 1 (shared across all jobs) | `ProcessingJobs(0, MaxPendingJobsPageSize)` |
+| `GetPendingJobs()` | 1 (shared across all jobs) | `EnqueuedJobs` + `ScheduledJobs` both capped |
+| `GetJobDisplayName(conn, …)` | 0 (uses caller's connection) | — |
+| `GetJobById` | 1 (unchanged — out of scope) | — |
+
+Refactored method signatures:
+
 ```csharp
-services.RegisterTile<DqtYesterdayStatusTile>();
+public class HangfireBackgroundWorker : IBackgroundWorker
+{
+    private readonly HangfireOptions _options;
+
+    public HangfireBackgroundWorker(IOptions<HangfireOptions> options)
+        => _options = options.Value;
+
+    public IList<BackgroundJobInfo> GetRunningJobs()
+    {
+        var monitoring = JobStorage.Current.GetMonitoringApi();
+        var processingJobs = monitoring.ProcessingJobs(0, _options.MaxPendingJobsPageSize);
+        var result = new List<BackgroundJobInfo>();
+
+        using var connection = JobStorage.Current.GetConnection();
+        foreach (var job in processingJobs)
+        {
+            var jobDetails = connection.GetJobData(job.Key);
+            if (jobDetails?.Job == null) continue;
+
+            result.Add(new BackgroundJobInfo
+            {
+                Id = job.Key,
+                JobName = GetJobDisplayName(connection, job.Key, job.Value.Job),
+                State = "Processing",
+                CreatedAt = jobDetails.CreatedAt,
+                StartedAt = job.Value.StartedAt,
+                Queue = jobDetails.Job.Queue ?? "default"
+            });
+        }
+        return result;
+    }
+
+    public IList<BackgroundJobInfo> GetPendingJobs()
+    {
+        var monitoring = JobStorage.Current.GetMonitoringApi();
+        var enqueuedJobs = monitoring.EnqueuedJobs("default", 0, _options.MaxPendingJobsPageSize);
+        var scheduledJobs = monitoring.ScheduledJobs(0, _options.MaxPendingJobsPageSize);
+        var result = new List<BackgroundJobInfo>();
+
+        using var connection = JobStorage.Current.GetConnection();
+        foreach (var job in enqueuedJobs)
+        {
+            result.Add(new BackgroundJobInfo
+            {
+                Id = job.Key,
+                JobName = GetJobDisplayName(connection, job.Key, job.Value.Job),
+                State = "Enqueued",
+                CreatedAt = job.Value.EnqueuedAt,
+                Queue = "default"
+            });
+        }
+        foreach (var job in scheduledJobs)
+        {
+            var jobDetails = connection.GetJobData(job.Key);
+            if (jobDetails?.Job == null) continue;
+
+            result.Add(new BackgroundJobInfo
+            {
+                Id = job.Key,
+                JobName = GetJobDisplayName(connection, job.Key, job.Value.Job),
+                State = "Scheduled",
+                CreatedAt = job.Value.EnqueueAt,
+                Queue = jobDetails.Job.Queue ?? "default"
+            });
+        }
+        return result;
+    }
+
+    private static string GetJobDisplayName(IStorageConnection connection, string jobId, Job job)
+    {
+        // no longer opens its own connection
+        if (job?.Method?.Name == null) return "Unknown Job";
+
+        try
+        {
+            var customDisplayName = connection.GetJobParameter(jobId, "DisplayName");
+            if (!string.IsNullOrEmpty(customDisplayName)) return customDisplayName;
+        }
+        catch { /* fall through */ }
+
+        // ... existing DisplayNameAttribute + method-name fallback logic unchanged
+    }
+}
 ```
 
-### Frontend
+---
 
-#### `DqtYesterdayStatusTile.tsx` (new)
+### 3. `GetRunningInvoiceImportJobsHandler` — short-lived cache
 
-**Location:** `frontend/src/components/dashboard/tiles/DqtYesterdayStatusTile.tsx`
+**File:** `backend/src/Anela.Heblo.Application/Features/Invoices/UseCases/GetRunningInvoiceImportJobs/GetRunningInvoiceImportJobsHandler.cs`
 
-**Responsibilities:**
-- Accept `DqtYesterdayStatusTileProps` (see Data Schemas)
-- Branch on `data.status` to render one of four visual states
-- Within `warning`: further branch on `data.data?.runStatus === 'Running'` → Clock + `"probíhá"` vs. AlertTriangle + mismatch count
-- Format `data.data?.dateTo` (`YYYY-MM-DD`) as `DD.MM.YYYY` for the date sub-label; fall back to `"včera"` when absent
-- Attach `onClick → navigate('/automation/data-quality')` to the container for all states except `error`
-- Source icons from `lucide-react`: `ShieldCheck`, `AlertTriangle`, `XCircle`, `Clock` (all already imported by `DataQualityTile.tsx`)
+**New dependencies:** `IMemoryCache`, `IOptions<HangfireOptions>`.
 
-#### `TileContent.tsx` (modified)
+**Responsibility:** wrap the existing `GetRunningJobs() + GetPendingJobs() + filter` pipeline with a read-through cache keyed on `"invoices:running-import-jobs"`.
 
-**Location:** `frontend/src/components/dashboard/tiles/TileContent.tsx`
+Cache key is a `private const string` inside the handler class.
 
-Add one import:
-```typescript
-import { DqtYesterdayStatusTile } from './DqtYesterdayStatusTile';
+Cache logic (pseudo-code):
+
+```
+if RunningJobsCacheSeconds <= 0  → bypass cache, call worker directly
+if memoryCache.TryGetValue(CacheKey) → return cached result
+else:
+    result = query worker + filter
+    memoryCache.Set(CacheKey, result, AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(RunningJobsCacheSeconds))
+    return result
 ```
 
-Add one switch case after `case 'dataqualitystatus'`:
-```typescript
-case 'dqtyesterdaystatus':
-  return <DqtYesterdayStatusTile data={tile.data} />;
+Absolute expiration (not sliding) prevents indefinite extension under heavy polling.
+
+Refactored class shape:
+
+```csharp
+public class GetRunningInvoiceImportJobsHandler
+    : IRequestHandler<GetRunningInvoiceImportJobsRequest, IList<BackgroundJobInfo>>
+{
+    private const string CacheKey = "invoices:running-import-jobs";
+
+    private readonly IBackgroundWorker _backgroundWorker;
+    private readonly IMemoryCache _memoryCache;
+    private readonly HangfireOptions _options;
+    private readonly ILogger<GetRunningInvoiceImportJobsHandler> _logger;
+
+    public GetRunningInvoiceImportJobsHandler(
+        IBackgroundWorker backgroundWorker,
+        IMemoryCache memoryCache,
+        IOptions<HangfireOptions> options,
+        ILogger<GetRunningInvoiceImportJobsHandler> logger)
+    {
+        _backgroundWorker = backgroundWorker;
+        _memoryCache = memoryCache;
+        _options = options.Value;
+        _logger = logger;
+    }
+
+    public Task<IList<BackgroundJobInfo>> Handle(
+        GetRunningInvoiceImportJobsRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (_options.RunningJobsCacheSeconds > 0 &&
+            _memoryCache.TryGetValue<IList<BackgroundJobInfo>>(CacheKey, out var cached) &&
+            cached is not null)
+        {
+            return Task.FromResult(cached);
+        }
+
+        try
+        {
+            var result = _backgroundWorker.GetRunningJobs()
+                .Concat(_backgroundWorker.GetPendingJobs())
+                .Where(job => job.JobName != null &&
+                              job.JobName.Contains("InvoiceImport", StringComparison.OrdinalIgnoreCase))
+                .ToList<BackgroundJobInfo>();
+
+            _logger.LogDebug("Found {Count} running/pending invoice import jobs", result.Count);
+
+            if (_options.RunningJobsCacheSeconds > 0)
+            {
+                _memoryCache.Set(CacheKey, (IList<BackgroundJobInfo>)result,
+                    new MemoryCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow =
+                            TimeSpan.FromSeconds(_options.RunningJobsCacheSeconds)
+                    });
+            }
+
+            return Task.FromResult<IList<BackgroundJobInfo>>(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to get running invoice import jobs");
+            return Task.FromResult<IList<BackgroundJobInfo>>(new List<BackgroundJobInfo>());
+        }
+    }
+}
 ```
+
+---
+
+### 4. DI registration — defensive `AddMemoryCache`
+
+**File:** `backend/src/Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs` → `AddHangfireServices()`
+
+Add `services.AddMemoryCache();` inside `AddHangfireServices()`. The call is idempotent — harmless if `IMemoryCache` is already registered by another module.
+
+---
+
+### Call flow summary
+
+**Cache hit (steady-state during active import polling):**
+```
+InvoicesController
+  → MediatR.Send(GetRunningInvoiceImportJobsRequest)
+    → GetRunningInvoiceImportJobsHandler.Handle
+      → IMemoryCache.TryGetValue("invoices:running-import-jobs") → HIT
+        → return cached IList<BackgroundJobInfo>
+```
+Zero Hangfire calls. Zero PostgreSQL round-trips. Target < 5 ms.
+
+**Cache miss (first poll, or every ~2 s after TTL expiry):**
+```
+InvoicesController
+  → MediatR.Send(GetRunningInvoiceImportJobsRequest)
+    → GetRunningInvoiceImportJobsHandler.Handle
+      → IMemoryCache.TryGetValue → MISS
+        → HangfireBackgroundWorker.GetRunningJobs()
+            1× IStorageConnection
+            1× ProcessingJobs(0, 200)
+            for each job: connection.GetJobData + connection.GetJobParameter
+        → HangfireBackgroundWorker.GetPendingJobs()
+            1× IStorageConnection
+            1× EnqueuedJobs("default", 0, 200)
+            1× ScheduledJobs(0, 200)
+            for each job: connection.GetJobData + connection.GetJobParameter
+        → filter by "InvoiceImport"
+        → IMemoryCache.Set("invoices:running-import-jobs", result, TTL=2s)
+        → return IList<BackgroundJobInfo>
+```
+2 storage connections total (one per worker method), O(N) `GetJobData`/`GetJobParameter` calls over those connections. Down from the previous `~2N` connection acquisitions.
+
+---
+
+### Test surface
+
+Two new test files under `backend/test/Anela.Heblo.Tests/Features/Invoices/`:
+
+**`GetRunningInvoiceImportJobsHandlerTests`**
+- Cache hit: second call returns cached result; worker is not called again.
+- Cache miss: worker is called; result is stored in cache.
+- Cache disabled (`RunningJobsCacheSeconds = 0`): worker is called on every invocation.
+- Filter: jobs without "InvoiceImport" in the name are excluded.
+- On worker exception: handler returns empty list and logs a warning (existing behavior preserved).
+
+**`HangfireBackgroundWorkerTests`** _(unit-level; mock `IStorageConnection` and `IMonitoringApi`)_
+- `GetRunningJobs()` passes the same `IStorageConnection` instance to every `GetJobDisplayName` call.
+- `GetPendingJobs()` calls `EnqueuedJobs` with `MaxPendingJobsPageSize`, not `int.MaxValue`.
+- `GetPendingJobs()` calls `ScheduledJobs` with `MaxPendingJobsPageSize`, not `int.MaxValue`.
+- `GetRunningJobs()` calls `ProcessingJobs` with `MaxPendingJobsPageSize`, not `int.MaxValue`.
 
 ---
 
 ## Data Schemas
 
-### Backend payload (`LoadDataAsync` return)
+### `BackgroundJobInfo` DTO (unchanged)
 
-**Success / Warning:**
-```json
+`backend/src/Anela.Heblo.Xcc/Services/BackgroundJobInfo.cs`
+
+```csharp
+public class BackgroundJobInfo
 {
-  "status": "success" | "warning",
-  "data": {
-    "runId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "runStatus": "Completed" | "Running",
-    "dateFrom": "2026-05-05",
-    "dateTo": "2026-05-05",
-    "totalChecked": 123,
-    "totalMismatches": 4
-  },
-  "drillDown": { "href": "/automation/data-quality", "enabled": true }
+    public string Id { get; set; } = string.Empty;
+    public string JobName { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
+    public DateTime? CreatedAt { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public string Queue { get; set; } = string.Empty;
 }
 ```
 
-**No data / Error:**
+Field semantics, types, and nullability are unchanged.
+
+---
+
+### HTTP endpoint (unchanged contract)
+
+```
+GET /api/invoices/import/running-jobs
+Authorization: existing scheme (unchanged)
+
+200 OK
+Content-Type: application/json
+
+[
+  {
+    "id": "string",
+    "jobName": "string",
+    "state": "Processing" | "Enqueued" | "Scheduled",
+    "createdAt": "2025-01-01T00:00:00Z" | null,
+    "startedAt": "2025-01-01T00:00:00Z" | null,
+    "queue": "string"
+  }
+]
+```
+
+The response is always an array. Returns an empty array on error or when no matching jobs exist.
+
+---
+
+### Configuration schema — new keys
+
+Both keys are optional. Defaults apply when absent from `appsettings.json`.
+
 ```json
 {
-  "status": "no_data" | "error",
-  "data": null,
-  "drillDown": { "href": "/automation/data-quality", "enabled": true }
+  "Hangfire": {
+    "MaxPendingJobsPageSize": 200,
+    "RunningJobsCacheSeconds": 2
+  }
 }
 ```
 
-### Status mapping truth table
-
-| Run | `run.Status` | `run.TotalMismatches` | Response `status` |
+| Key | Type | Default | Effect |
 |---|---|---|---|
-| `null` | — | — | `"no_data"` |
-| present | `Failed` | — | `"error"` |
-| present | `Running` | — | `"warning"` |
-| present | `Completed` | `> 0` | `"warning"` |
-| present | `Completed` | `0` | `"success"` |
-| (exception) | — | — | `"error"` (caught + logged) |
+| `Hangfire:MaxPendingJobsPageSize` | `int` | `200` | Page cap for `ProcessingJobs`, `EnqueuedJobs`, `ScheduledJobs` |
+| `Hangfire:RunningJobsCacheSeconds` | `int` | `2` | Cache TTL in seconds; `<= 0` disables caching |
 
-### Frontend props contract
-
-```typescript
-interface DqtYesterdayStatusTileProps {
-  data: {
-    status?: 'success' | 'warning' | 'error' | 'no_data';
-    data?: {
-      runId?: string;
-      runStatus?: 'Completed' | 'Failed' | 'Running';
-      dateFrom?: string;        // ISO date "YYYY-MM-DD"
-      dateTo?: string;          // ISO date "YYYY-MM-DD"
-      totalChecked?: number;
-      totalMismatches?: number;
-    } | null;
-    drillDown?: {
-      href: string;
-      enabled: boolean;
-    };
-  };
-}
-```
-
-> Note: the sibling `DataQualityTile.tsx` reads `data.data?.mismatchCount` — a pre-existing field name mismatch with its own backend. This tile uses `totalMismatches` consistently end-to-end and does not inherit that discrepancy.
-
-### Repository EF Core query
-
-```sql
-SELECT TOP 1 *
-FROM   DqtRuns
-WHERE  TestType = @testType
-  AND  DateFrom <= @coveredDate
-  AND  DateTo   >= @coveredDate
-ORDER BY StartedAt DESC
-```
-
-No new index or migration. The existing `IX_DqtRuns_TestType_StartedAt` narrows rows by test type; the date-range predicate operates over small cardinality (≈1–few rows per test type per day). Revisit only if `DqtRuns` exceeds ~10 000 rows.
+Environment variable overrides follow ASP.NET Core double-underscore convention:
+- `Hangfire__MaxPendingJobsPageSize`
+- `Hangfire__RunningJobsCacheSeconds`
