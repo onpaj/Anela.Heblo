@@ -21,9 +21,12 @@ namespace Anela.Heblo.Application.Features.Photobank
 
         // Photos
 
+        private static string EscapeLikePattern(string input) =>
+            input.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+
         private IQueryable<Photo> BuildFilterQuery(List<string>? tags, string? search, bool useRegex)
         {
-            var query = _context.Photos.AsQueryable();
+            var query = _context.Photos.AsNoTracking().AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -34,8 +37,14 @@ namespace Anela.Heblo.Application.Features.Photobank
                 }
                 else
                 {
-                    var term = search.Trim().ToLowerInvariant();
-                    query = query.Where(p => (p.FolderPath + "/" + p.FileName).ToLower().Contains(term));
+                    // EF emits: LOWER("FolderPath" || '/' || "FileName") LIKE @pattern ESCAPE '\'
+                    // This matches the IX_Photos_PathTrgm GIN expression byte-for-byte.
+                    var escapedLower = EscapeLikePattern(search.Trim()).ToLowerInvariant();
+                    var pattern = $"%{escapedLower}%";
+                    query = query.Where(p => EF.Functions.Like(
+                        (p.FolderPath + "/" + p.FileName).ToLower(),
+                        pattern,
+                        "\\"));
                 }
             }
 
@@ -44,12 +53,19 @@ namespace Anela.Heblo.Application.Features.Photobank
                 var normalizedTags = tags
                     .Where(t => !string.IsNullOrWhiteSpace(t))
                     .Select(t => t.Trim().ToLowerInvariant())
+                    .Distinct()
                     .ToList();
 
-                foreach (var tag in normalizedTags)
+                if (normalizedTags.Count > 0)
                 {
-                    var t = tag;
-                    query = query.Where(p => p.Tags.Any(pt => pt.Tag.Name == t));
+                    var requiredCount = normalizedTags.Count;
+                    var matchingPhotoIds = _context.PhotoTags
+                        .Where(pt => normalizedTags.Contains(pt.Tag.Name))
+                        .GroupBy(pt => pt.PhotoId)
+                        .Where(g => g.Select(x => x.TagId).Distinct().Count() == requiredCount)
+                        .Select(g => g.Key);
+
+                    query = query.Where(p => matchingPhotoIds.Contains(p.Id));
                 }
             }
 

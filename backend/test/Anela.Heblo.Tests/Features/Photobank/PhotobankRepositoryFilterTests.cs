@@ -175,6 +175,62 @@ public class PhotobankRepositoryFilterTests : IAsyncLifetime
         total.Should().Be(4);
         items.Should().HaveCount(4);
     }
+
+    [Fact]
+    public async Task GetPhotosAsync_searchWithLikeWildcards_treatsWildcardsAsLiterals()
+    {
+        var now = DateTime.UtcNow;
+        _context.Photos.Add(new Photo
+        {
+            Id = 100,
+            SharePointFileId = "sp-100",
+            FileName = "with_underscore.jpg",
+            FolderPath = "Marketing/Special",
+            IndexedAt = now,
+            ModifiedAt = now,
+        });
+        _context.Photos.Add(new Photo
+        {
+            Id = 101,
+            SharePointFileId = "sp-101",
+            FileName = "without-underscore.jpg",
+            FolderPath = "Marketing/Special",
+            IndexedAt = now,
+            ModifiedAt = now,
+        });
+        await _context.SaveChangesAsync();
+
+        var (items, total) = await _repository.GetPhotosAsync(
+            null, "with_underscore", false, false, 1, 48, CancellationToken.None);
+
+        total.Should().Be(1);
+        items.Should().ContainSingle(p => p.FileName == "with_underscore.jpg");
+    }
+
+    [Fact]
+    public async Task GetPhotosAsync_multiTagAnd_returnsOnlyPhotosWithEveryTag()
+    {
+        var now = DateTime.UtcNow;
+        var tagA = new Tag { Id = 200, Name = "alpha" };
+        var tagB = new Tag { Id = 201, Name = "beta" };
+        var tagC = new Tag { Id = 202, Name = "gamma" };
+        _context.PhotobankTags.AddRange(tagA, tagB, tagC);
+
+        _context.PhotoTags.AddRange(
+            new PhotoTag { PhotoId = 1, TagId = 200, Source = PhotoTagSource.Manual, CreatedAt = now },
+            new PhotoTag { PhotoId = 1, TagId = 201, Source = PhotoTagSource.Manual, CreatedAt = now },
+            new PhotoTag { PhotoId = 1, TagId = 202, Source = PhotoTagSource.Manual, CreatedAt = now },
+            new PhotoTag { PhotoId = 2, TagId = 200, Source = PhotoTagSource.Manual, CreatedAt = now },
+            new PhotoTag { PhotoId = 2, TagId = 201, Source = PhotoTagSource.Manual, CreatedAt = now },
+            new PhotoTag { PhotoId = 3, TagId = 200, Source = PhotoTagSource.Manual, CreatedAt = now });
+        await _context.SaveChangesAsync();
+
+        var (items, total) = await _repository.GetPhotosAsync(
+            new List<string> { "alpha", "beta", "gamma" }, null, false, false, 1, 48, CancellationToken.None);
+
+        total.Should().Be(1);
+        items.Should().ContainSingle(p => p.Id == 1);
+    }
 }
 
 [Trait("Category", "Integration")]
