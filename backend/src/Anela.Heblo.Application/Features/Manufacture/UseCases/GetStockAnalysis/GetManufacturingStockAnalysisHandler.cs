@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -9,7 +10,7 @@ namespace Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis
 public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufacturingStockAnalysisRequest, GetManufacturingStockAnalysisResponse>
 {
     private readonly ICatalogRepository _catalogRepository;
-    private readonly ITimePeriodCalculator _timePeriodCalculator;
+    private readonly ITimePeriodResolver _timePeriodResolver;
     private readonly IConsumptionRateCalculator _consumptionCalculator;
     private readonly IProductionActivityAnalyzer _productionAnalyzer;
     private readonly IManufactureSeverityCalculator _severityCalculator;
@@ -19,7 +20,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
 
     public GetManufacturingStockAnalysisHandler(
         ICatalogRepository catalogRepository,
-        ITimePeriodCalculator timePeriodCalculator,
+        ITimePeriodResolver timePeriodResolver,
         IConsumptionRateCalculator consumptionCalculator,
         IProductionActivityAnalyzer productionAnalyzer,
         IManufactureSeverityCalculator severityCalculator,
@@ -28,7 +29,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         ILogger<GetManufacturingStockAnalysisHandler> logger)
     {
         _catalogRepository = catalogRepository;
-        _timePeriodCalculator = timePeriodCalculator;
+        _timePeriodResolver = timePeriodResolver;
         _consumptionCalculator = consumptionCalculator;
         _productionAnalyzer = productionAnalyzer;
         _severityCalculator = severityCalculator;
@@ -42,11 +43,11 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         CancellationToken cancellationToken)
     {
         // 1. Calculate time period(s)
-        var ranges = _timePeriodCalculator.CalculateTimePeriodRanges(
+        var ranges = _timePeriodResolver.Resolve(
             request.TimePeriod, request.CustomFromDate, request.CustomToDate);
 
-        var outerFrom = ranges.Min(r => r.fromDate);
-        var outerTo = ranges.Max(r => r.toDate);
+        var outerFrom = ranges.Min(r => r.From);
+        var outerTo = ranges.Max(r => r.To);
 
         // 2. Get finished products data
         var allCatalogItems = await _catalogRepository.GetAllAsync(cancellationToken);
@@ -105,7 +106,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
 
     private ManufacturingStockItemDto AnalyzeManufacturingStockItem(
         CatalogAggregate item,
-        IReadOnlyList<(DateTime fromDate, DateTime toDate)> ranges,
+        IReadOnlyList<DateRange> ranges,
         double salesMultiplier = 1.0)
     {
         // Calculate daily sales rate across all ranges using domain service
@@ -113,7 +114,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         dailySalesRate *= salesMultiplier;
 
         // Calculate total sales across all ranges for display
-        var salesInPeriod = ranges.Sum(r => item.GetTotalSold(r.fromDate, r.toDate)) * salesMultiplier;
+        var salesInPeriod = ranges.Sum(r => item.GetTotalSold(r.From, r.To)) * salesMultiplier;
 
         // Calculate stock days available using domain service - now includes reserve stock
         var stockDaysAvailable = _consumptionCalculator.CalculateStockDaysAvailable(item.Stock.Total, dailySalesRate);

@@ -30,7 +30,6 @@ public static class ManufactureModule
         });
 
         // Register domain services for manufacturing stock analysis
-        services.AddScoped<ITimePeriodCalculator, TimePeriodCalculator>();
         services.AddScoped<IConsumptionRateCalculator, ConsumptionRateCalculator>();
         services.AddScoped<IProductionActivityAnalyzer, ProductionActivityAnalyzer>();
         services.AddScoped<IManufactureSeverityCalculator, ManufactureSeverityCalculator>();

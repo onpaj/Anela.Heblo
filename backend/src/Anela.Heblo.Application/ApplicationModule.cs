@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common;
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Application.Features.Analytics;
@@ -52,6 +53,9 @@ public static class ApplicationModule
 
         // Register AutoMapper
         services.AddAutoMapper(cfg => { }, typeof(ApplicationModule).Assembly);
+
+        // Register shared time period services
+        services.AddScoped<ITimePeriodResolver, TimePeriodResolver>();
 
         // Background refresh system, hydration, and service readiness tracking are handled by XCC module
 
