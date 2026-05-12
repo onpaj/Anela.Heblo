@@ -76,4 +76,58 @@ public class GetChunkDetailHandlerTests
         Assert.False(result.Success);
         Assert.Equal(ErrorCodes.KnowledgeBaseChunkNotFound, result.ErrorCode);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsSharePointSourcePath_WhenDocumentSourcedFromSharePoint()
+    {
+        var chunkId = Guid.NewGuid();
+        var chunk = MakeChunk(id: chunkId);
+        chunk.Document.SourcePath = "https://anelacz.sharepoint.com/sites/x/doc.docx";
+
+        _repository
+            .Setup(r => r.GetChunkByIdAsync(chunkId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(chunk);
+
+        var handler = new GetChunkDetailHandler(_repository.Object);
+        var result = await handler.Handle(new GetChunkDetailRequest { ChunkId = chunkId }, default);
+
+        Assert.True(result.Success);
+        Assert.Equal("https://anelacz.sharepoint.com/sites/x/doc.docx", result.SourcePath);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsSyntheticUploadPath_WhenDocumentManuallyUploaded()
+    {
+        var chunkId = Guid.NewGuid();
+        var chunk = MakeChunk(id: chunkId);
+        chunk.Document.SourcePath = "upload/abc-123/file.pdf";
+
+        _repository
+            .Setup(r => r.GetChunkByIdAsync(chunkId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(chunk);
+
+        var handler = new GetChunkDetailHandler(_repository.Object);
+        var result = await handler.Handle(new GetChunkDetailRequest { ChunkId = chunkId }, default);
+
+        Assert.True(result.Success);
+        Assert.Equal("upload/abc-123/file.pdf", result.SourcePath);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsEmptyString_WhenDocumentHasNoSourcePath()
+    {
+        var chunkId = Guid.NewGuid();
+        var chunk = MakeChunk(id: chunkId);
+        chunk.Document.SourcePath = string.Empty;
+
+        _repository
+            .Setup(r => r.GetChunkByIdAsync(chunkId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(chunk);
+
+        var handler = new GetChunkDetailHandler(_repository.Object);
+        var result = await handler.Handle(new GetChunkDetailRequest { ChunkId = chunkId }, default);
+
+        Assert.True(result.Success);
+        Assert.Equal(string.Empty, result.SourcePath);
+    }
 }

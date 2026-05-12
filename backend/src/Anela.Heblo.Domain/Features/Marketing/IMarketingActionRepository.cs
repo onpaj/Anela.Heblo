@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Xcc.Persistance;
 
 namespace Anela.Heblo.Domain.Features.Marketing
@@ -19,5 +18,9 @@ namespace Anela.Heblo.Domain.Features.Marketing
             DateTime from,
             DateTime to,
             CancellationToken cancellationToken = default);
+
+        Task<List<MarketingAction>> GetFailedOutlookSyncAsync(int batchSize, CancellationToken cancellationToken = default);
+
+        Task<List<MarketingAction>> GetByOutlookEventIdsAsync(IReadOnlyCollection<string> outlookEventIds, CancellationToken cancellationToken = default);
     }
 }

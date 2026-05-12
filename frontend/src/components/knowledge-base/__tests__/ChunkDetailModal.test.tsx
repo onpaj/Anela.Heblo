@@ -80,3 +80,42 @@ test('calls onClose on Escape key', () => {
   fireEvent.keyDown(document, { key: 'Escape' });
   expect(mockOnClose).toHaveBeenCalledTimes(1);
 });
+
+test('renders SharePoint link when sourcePath is an https URL', () => {
+  jest.spyOn(hooks, 'useChunkDetailQuery').mockReturnValue({
+    data: { ...mockChunkDetail, sourcePath: 'https://anelacz.sharepoint.com/sites/x/doc.docx' },
+    isLoading: false,
+    isError: false,
+  } as any);
+
+  renderModal();
+
+  const link = screen.getByRole('link', { name: /Otevřít v SharePoint/i });
+  expect(link).toHaveAttribute('href', 'https://anelacz.sharepoint.com/sites/x/doc.docx');
+  expect(link).toHaveAttribute('target', '_blank');
+  expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+});
+
+test('hides SharePoint link when sourcePath is a synthetic upload path', () => {
+  jest.spyOn(hooks, 'useChunkDetailQuery').mockReturnValue({
+    data: { ...mockChunkDetail, sourcePath: 'upload/abc/file.pdf' },
+    isLoading: false,
+    isError: false,
+  } as any);
+
+  renderModal();
+
+  expect(screen.queryByRole('link', { name: /Otevřít v SharePoint/i })).not.toBeInTheDocument();
+});
+
+test('hides SharePoint link when sourcePath is missing', () => {
+  jest.spyOn(hooks, 'useChunkDetailQuery').mockReturnValue({
+    data: { ...mockChunkDetail, sourcePath: undefined },
+    isLoading: false,
+    isError: false,
+  } as any);
+
+  renderModal();
+
+  expect(screen.queryByRole('link', { name: /Otevřít v SharePoint/i })).not.toBeInTheDocument();
+});

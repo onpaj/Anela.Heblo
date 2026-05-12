@@ -17,6 +17,7 @@ public class FlexiProductPriceErpClientTests
     private readonly Mock<IResultHandler> _resultHandlerMock;
     private readonly Mock<IMemoryCache> _memoryCacheMock;
     private readonly Mock<ILogger<ReceivedInvoiceClient>> _loggerMock;
+    private readonly Mock<ILogger<FlexiProductPriceErpClient>> _clientLoggerMock;
     private readonly Mock<IBoMClient> _bomClientMock;
     private readonly FlexiBeeSettings _flexiBeeSettings;
     private readonly FlexiProductPriceErpClient _client;
@@ -27,6 +28,7 @@ public class FlexiProductPriceErpClientTests
         _resultHandlerMock = new Mock<IResultHandler>();
         _memoryCacheMock = new Mock<IMemoryCache>();
         _loggerMock = new Mock<ILogger<ReceivedInvoiceClient>>();
+        _clientLoggerMock = new Mock<ILogger<FlexiProductPriceErpClient>>();
         _bomClientMock = new Mock<IBoMClient>();
 
         _flexiBeeSettings = new FlexiBeeSettings
@@ -43,7 +45,8 @@ public class FlexiProductPriceErpClientTests
             _resultHandlerMock.Object,
             _memoryCacheMock.Object,
             _loggerMock.Object,
-            _bomClientMock.Object);
+            _bomClientMock.Object,
+            _clientLoggerMock.Object);
     }
 
     [Fact]
@@ -144,5 +147,77 @@ public class FlexiProductPriceErpClientTests
 
         // Assert
         _bomClientMock.Verify(x => x.RecalculatePurchasePrice(bomId, cancellationToken), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_WhenInternalTimeoutCancels_LogsWarningAndRethrows()
+    {
+        // Arrange — HttpClient internal timeout: its own CTS fires, not the caller's
+        var timeoutCts = new CancellationTokenSource();
+        var timeoutException = new TaskCanceledException("HttpClient timeout", null, timeoutCts.Token);
+        await timeoutCts.CancelAsync();
+
+        // Cache miss
+        object? cacheOut = null;
+        _memoryCacheMock.Setup(x => x.TryGetValue(It.IsAny<object>(), out cacheOut)).Returns(false);
+
+        // HTTP client throws timeout exception
+        var handler = new ThrowingHttpMessageHandler(timeoutException);
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://test.flexibee.com/") };
+        _httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        // Act — caller's token is NOT canceled
+        var act = async () => await _client.GetAllAsync(false, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _clientLoggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("timed out")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_WhenCallerCancels_LogsInformationAndRethrows()
+    {
+        // Arrange — caller cancels via their own token
+        using var callerCts = new CancellationTokenSource();
+        var canceledException = new TaskCanceledException("Caller canceled", null, callerCts.Token);
+        await callerCts.CancelAsync();
+
+        // Cache miss
+        object? cacheOut = null;
+        _memoryCacheMock.Setup(x => x.TryGetValue(It.IsAny<object>(), out cacheOut)).Returns(false);
+
+        // HTTP client throws caller cancellation exception
+        var handler = new ThrowingHttpMessageHandler(canceledException);
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://test.flexibee.com/") };
+        _httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        // Act — same token is canceled
+        var act = async () => await _client.GetAllAsync(false, callerCts.Token);
+
+        // Assert
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        _clientLoggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("canceled by the caller")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    private sealed class ThrowingHttpMessageHandler : HttpMessageHandler
+    {
+        private readonly Exception _exception;
+        public ThrowingHttpMessageHandler(Exception exception) => _exception = exception;
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => throw _exception;
     }
 }

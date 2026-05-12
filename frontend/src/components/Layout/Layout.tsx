@@ -40,8 +40,8 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
 
         {/* Page content */}
         <main className="flex-1 relative overflow-auto">
-          <div className="p-3 md:p-4 bg-gray-50">
-            <div className="w-full">{children}</div>
+          <div className="p-3 md:p-4 bg-gray-50 min-h-full flex flex-col">
+            <div className="w-full flex-1 flex flex-col min-h-0">{children}</div>
           </div>
         </main>
       </div>

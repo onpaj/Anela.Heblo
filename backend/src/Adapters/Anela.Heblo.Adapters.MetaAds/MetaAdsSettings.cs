@@ -5,7 +5,7 @@ public class MetaAdsSettings
     public const string ConfigurationKey = "MetaAds";
 
     /// <summary>Ad account ID in the form "act_123456789".</summary>
-    public string AdAccountId { get; set; } = string.Empty;
+    public string AccountId { get; set; } = string.Empty;
 
     /// <summary>System User token from Meta Business Manager. Store in secrets.json / Key Vault.</summary>
     public string AccessToken { get; set; } = string.Empty;

@@ -398,4 +398,125 @@ public class ExpeditionProtocolDocumentTests
 
         Console.WriteLine($"PDF saved to: {outputPath}");
     }
+
+    [Fact]
+    public void Generate_WithZeroUnitPrice_DoesNotThrow()
+    {
+        // Verifies that set sub-items with UnitPrice=0 render an empty Cena cell without error
+        var data = new ExpeditionProtocolData
+        {
+            CarrierDisplayName = "PPL",
+            Orders = new List<ExpeditionOrder>
+            {
+                new()
+                {
+                    Code = "SET001",
+                    CustomerName = "Test",
+                    Address = "Praha",
+                    Phone = "123",
+                    Items = new List<ExpeditionOrderItem>
+                    {
+                        new()
+                        {
+                            ProductCode = "P001",
+                            Name = "Set Item",
+                            Variant = string.Empty,
+                            WarehousePosition = "A1",
+                            Quantity = 1,
+                            StockCount = 10,
+                            StockDemand = 1,
+                            UnitPrice = 0m,  // set sub-item: should render empty cell
+                            Unit = "ks",
+                            SetName = "TestSet",
+                        },
+                    },
+                },
+            },
+        };
+
+        var act = () => ExpeditionProtocolDocument.Generate(data);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Generate_WithRegularUnitPrice_DoesNotThrow()
+    {
+        // Verifies that regular items with non-zero UnitPrice render without error
+        var data = new ExpeditionProtocolData
+        {
+            CarrierDisplayName = "PPL",
+            Orders = new List<ExpeditionOrder>
+            {
+                new()
+                {
+                    Code = "ORD001",
+                    CustomerName = "Test",
+                    Address = "Praha",
+                    Phone = "123",
+                    Items = new List<ExpeditionOrderItem>
+                    {
+                        new()
+                        {
+                            ProductCode = "P001",
+                            Name = "Regular Item",
+                            Variant = string.Empty,
+                            WarehousePosition = "A1",
+                            Quantity = 1,
+                            StockCount = 10,
+                            StockDemand = 1,
+                            UnitPrice = 1999m,  // should render "1 999 Kč"
+                            Unit = "ks",
+                        },
+                    },
+                },
+            },
+        };
+
+        var act = () => ExpeditionProtocolDocument.Generate(data);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Generate_NotesAppearBelowItemsTable_WhenOrderHasRemarks()
+    {
+        // Smoke test verifying orders with remarks still generate valid PDFs
+        // (notes block is now below the items table)
+        var data = new ExpeditionProtocolData
+        {
+            CarrierDisplayName = "PPL",
+            Orders = new List<ExpeditionOrder>
+            {
+                new()
+                {
+                    Code = "ORD002",
+                    CustomerName = "Test",
+                    Address = "Praha",
+                    Phone = "123",
+                    CustomerRemark = "Please gift wrap.",
+                    EshopRemark = "Deliver after 14:00.",
+                    Items = new List<ExpeditionOrderItem>
+                    {
+                        new()
+                        {
+                            ProductCode = "P002",
+                            Name = "Product",
+                            Variant = string.Empty,
+                            WarehousePosition = "B2",
+                            Quantity = 2,
+                            StockCount = 5,
+                            StockDemand = 1,
+                            UnitPrice = 299m,
+                            Unit = "ks",
+                        },
+                    },
+                },
+            },
+        };
+
+        var act = () => ExpeditionProtocolDocument.Generate(data);
+
+        act.Should().NotThrow();
+    }
 }

@@ -1,6 +1,6 @@
-using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Persistence.Repositories;
+using Anela.Heblo.Xcc.Persistance;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -125,6 +125,30 @@ namespace Anela.Heblo.Persistence.Marketing
                     x.StartDate <= to &&
                     (!x.EndDate.HasValue || x.EndDate >= from))
                 .OrderBy(x => x.StartDate)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<MarketingAction>> GetFailedOutlookSyncAsync(int batchSize, CancellationToken cancellationToken = default)
+        {
+            return await Context.Set<MarketingAction>()
+                .IgnoreQueryFilters()
+                .Where(x => x.OutlookSyncStatus == MarketingSyncStatus.Failed)
+                .OrderBy(x => x.Id)
+                .Take(batchSize)
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task<List<MarketingAction>> GetByOutlookEventIdsAsync(
+            IReadOnlyCollection<string> outlookEventIds,
+            CancellationToken cancellationToken = default)
+        {
+            if (outlookEventIds.Count == 0)
+                return new List<MarketingAction>();
+
+            return await Context.Set<MarketingAction>()
+                // Include soft-deleted records — a deleted import must not be re-created.
+                .IgnoreQueryFilters()
+                .Where(x => x.OutlookEventId != null && outlookEventIds.Contains(x.OutlookEventId))
                 .ToListAsync(cancellationToken);
         }
     }

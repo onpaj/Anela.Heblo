@@ -61,13 +61,15 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
             CREATE TABLE IF NOT EXISTS public."KnowledgeBaseDocuments" (
                 "Id"           uuid NOT NULL PRIMARY KEY,
                 "Filename"     varchar(500) NOT NULL,
-                "SourcePath"   varchar(1000) NOT NULL UNIQUE,
+                "SourcePath"   varchar(1000) NOT NULL,
                 "ContentType"  varchar(100) NOT NULL,
                 "ContentHash"  varchar(64) NOT NULL UNIQUE,
                 "Status"       varchar(50) NOT NULL,
                 "DocumentType" integer NOT NULL DEFAULT 0,
                 "CreatedAt"    timestamp NOT NULL,
-                "IndexedAt"    timestamp NULL
+                "IndexedAt"    timestamp NULL,
+                "DriveId"      text NULL,
+                "GraphItemId"  text NULL
             );
 
             CREATE TABLE IF NOT EXISTS public."KnowledgeBaseChunks" (
@@ -88,7 +90,11 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
         await cmd.ExecuteNonQueryAsync();
     }
 
-    private static KnowledgeBaseDocument MakeDocument(string filename = "test.pdf", string hash = "abc123") =>
+    private static KnowledgeBaseDocument MakeDocument(
+        string filename = "test.pdf",
+        string hash = "abc123",
+        string? driveId = null,
+        string? graphItemId = null) =>
         new()
         {
             Id = Guid.NewGuid(),
@@ -98,7 +104,9 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
             ContentHash = hash,
             Status = DocumentStatus.Indexed,
             CreatedAt = DateTime.UtcNow,
-            IndexedAt = DateTime.UtcNow
+            IndexedAt = DateTime.UtcNow,
+            DriveId = driveId,
+            GraphItemId = graphItemId
         };
 
     [Fact]
@@ -250,6 +258,41 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
     public async Task GetChunkByIdAsync_ReturnsNull_WhenNotExists()
     {
         var result = await _repository.GetChunkByIdAsync(Guid.NewGuid());
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetDocumentByGraphItemIdAsync_ReturnsNull_WhenMissing()
+    {
+        var result = await _repository.GetDocumentByGraphItemIdAsync("drive-x", "item-y");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetDocumentByGraphItemIdAsync_ReturnsDocument_WhenBothFieldsMatch()
+    {
+        var doc = MakeDocument("graph-kb.pdf", "deadbeef007", driveId: "drive-kb", graphItemId: "item-kb-001");
+        await _repository.AddDocumentAsync(doc);
+        await _repository.SaveChangesAsync();
+
+        var result = await _repository.GetDocumentByGraphItemIdAsync("drive-kb", "item-kb-001");
+
+        Assert.NotNull(result);
+        Assert.Equal(doc.Id, result!.Id);
+        Assert.Equal("drive-kb", result.DriveId);
+        Assert.Equal("item-kb-001", result.GraphItemId);
+    }
+
+    [Fact]
+    public async Task GetDocumentByGraphItemIdAsync_ReturnsNull_WhenOnlyDriveIdMatches()
+    {
+        var doc = MakeDocument("graph-kb-partial.pdf", "deadbeef008", driveId: "drive-kb", graphItemId: "item-kb-002");
+        await _repository.AddDocumentAsync(doc);
+        await _repository.SaveChangesAsync();
+
+        var result = await _repository.GetDocumentByGraphItemIdAsync("drive-kb", "item-different");
 
         Assert.Null(result);
     }

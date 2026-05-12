@@ -22,24 +22,36 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
     return yesterday.toISOString().split('T')[0];
   });
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const processDailyConsumptionMutation = useProcessDailyConsumption();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMessage(null);
+    setInfoMessage(null);
+    setLocalError(null);
 
     try {
       const request = new ProcessDailyConsumptionRequest({
         processingDate: new Date(selectedDate)
       });
       const result = await processDailyConsumptionMutation.mutateAsync(request);
-      
+
       if (result.success) {
-        setSuccessMessage(result.message || 'Spotřeba byla úspěšně odečtena');
+        if ((result.materialsProcessed ?? 0) > 0) {
+          setSuccessMessage(`Odečteno pro ${result.materialsProcessed} materiálů`);
+        } else {
+          setInfoMessage('Pro tento den nebyly nalezeny žádné faktury — nic nebylo odečteno');
+        }
         setTimeout(() => {
           onSuccess?.();
           onClose();
         }, 2000);
+      }
+
+      if (!result.success) {
+        setLocalError(result.message || 'Nepodařilo se odečíst spotřebu.');
       }
     } catch (error) {
       console.error('Error processing daily consumption:', error);
@@ -50,6 +62,8 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
   const handleClose = () => {
     if (!processDailyConsumptionMutation.isPending) {
       setSuccessMessage(null);
+      setInfoMessage(null);
+      setLocalError(null);
       onClose();
     }
   };
@@ -99,9 +113,9 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
           </div>
 
           {/* Error Message */}
-          {processDailyConsumptionMutation.error && (
+          {(processDailyConsumptionMutation.error || localError) && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {processDailyConsumptionMutation.error.message || 'Nepodařilo se odečíst spotřebu. Zkuste to znovu.'}
+              {localError || processDailyConsumptionMutation.error?.message || 'Nepodařilo se odečíst spotřebu. Zkuste to znovu.'}
             </div>
           )}
 
@@ -109,6 +123,13 @@ const ProcessDailyConsumptionModal: React.FC<ProcessDailyConsumptionModalProps> 
           {successMessage && (
             <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
               {successMessage}
+            </div>
+          )}
+
+          {/* Info Message — zero consumption */}
+          {infoMessage && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
+              {infoMessage}
             </div>
           )}
 

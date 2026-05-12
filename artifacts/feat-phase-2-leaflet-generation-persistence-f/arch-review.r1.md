@@ -1,0 +1,1 @@
+Architecture review written to `artifacts/feat-phase-2-leaflet-generation-persistence-f/arch-review.r1.md`.

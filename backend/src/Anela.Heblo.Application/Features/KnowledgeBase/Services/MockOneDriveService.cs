@@ -27,9 +27,15 @@ public class MockOneDriveService : IOneDriveService
         return Task.FromResult(Array.Empty<byte>());
     }
 
-    public Task MoveToArchivedAsync(string driveId, string fileId, string filename, string archivedPath, CancellationToken ct = default)
+    public Task<string> MoveToArchivedAsync(string driveId, string fileId, string filename, string archivedPath, CancellationToken ct = default)
     {
         _logger.LogInformation("Mock OneDriveService: simulated archive for file {Filename} to {Path} in drive {DriveId}", filename, archivedPath, driveId);
-        return Task.CompletedTask;
+        return Task.FromResult($"https://mock.sharepoint.com/archived/{filename}");
+    }
+
+    public Task<string> DownloadFileTextByPathAsync(string driveId, string path, CancellationToken ct = default)
+    {
+        _logger.LogInformation("Mock OneDriveService: returning canned text for path {Path} in drive {DriveId}", path, driveId);
+        return Task.FromResult($"# Mock style guide for {path}\n\nWrite clearly and concisely.");
     }
 }

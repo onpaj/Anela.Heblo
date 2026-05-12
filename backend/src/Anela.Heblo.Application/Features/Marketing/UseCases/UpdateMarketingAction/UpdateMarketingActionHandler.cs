@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
+using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAction
 {
@@ -17,15 +20,21 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAct
         private readonly IMarketingActionRepository _repository;
         private readonly ICurrentUserService _currentUserService;
         private readonly ILogger<UpdateMarketingActionHandler> _logger;
+        private readonly IOutlookCalendarSync _outlookSync;
+        private readonly IOptions<MarketingCalendarOptions> _options;
 
         public UpdateMarketingActionHandler(
             IMarketingActionRepository repository,
             ICurrentUserService currentUserService,
-            ILogger<UpdateMarketingActionHandler> logger)
+            ILogger<UpdateMarketingActionHandler> logger,
+            IOutlookCalendarSync outlookSync,
+            IOptions<MarketingCalendarOptions> options)
         {
             _repository = repository;
             _currentUserService = currentUserService;
             _logger = logger;
+            _outlookSync = outlookSync;
+            _options = options;
         }
 
         public async Task<UpdateMarketingActionResponse> Handle(
@@ -83,6 +92,40 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAct
 
             await _repository.UpdateAsync(action, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
+
+            if (_options.Value.PushEnabled)
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(action.OutlookEventId))
+                    {
+                        await _outlookSync.UpdateEventAsync(action, cancellationToken);
+                        action.MarkOutlookSynced(action.OutlookEventId, now);
+                    }
+                    else
+                    {
+                        var eventId = await _outlookSync.CreateEventAsync(action, cancellationToken);
+                        action.MarkOutlookSynced(eventId, now);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to sync MarketingAction {ActionId} to Outlook; will retry", action.Id);
+                    action.MarkOutlookFailed(ex.Message, now);
+                }
+
+                // Best-effort: persist Outlook sync status. A failure here is non-blocking.
+                try
+                {
+                    await _repository.SaveChangesAsync(cancellationToken);
+                }
+                catch (Exception dbEx)
+                {
+                    _logger.LogWarning(dbEx,
+                        "Outlook sync status for MarketingAction {ActionId} could not be persisted to the database",
+                        action.Id);
+                }
+            }
 
             _logger.LogInformation(
                 "MarketingAction {ActionId} updated by user {UserId}",

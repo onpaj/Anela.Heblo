@@ -108,7 +108,11 @@ public static class AuthenticationExtensions
 
             options.AddPolicy(AuthorizationConstants.Policies.KnowledgeBaseUpload, policy =>
                 policy.RequireAuthenticatedUser()
-                      .RequireRole(AuthorizationConstants.Roles.KnowledgeBaseManager));
+                      .RequireRole(AuthorizationConstants.Roles.SuperUser));
+
+            options.AddPolicy(AuthorizationConstants.Policies.MarketingReader, policy =>
+                policy.RequireAuthenticatedUser()
+                      .RequireRole(AuthorizationConstants.Roles.MarketingReader));
         });
     }
 }

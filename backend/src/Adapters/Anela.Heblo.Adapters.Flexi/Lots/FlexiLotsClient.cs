@@ -13,7 +13,16 @@ public class FlexiLotsClient : ILotsClient
 
     public async Task<IReadOnlyList<CatalogLot>> GetAsync(string? productCode = null, int limit = 0, int skip = 0, CancellationToken cancellationToken = default)
     {
-        var lots = await _lotsClient.GetAsync(productCode, limit, skip, cancellationToken);
+        IReadOnlyList<Rem.FlexiBeeSDK.Model.Products.Lots.ProductLot> lots;
+        try
+        {
+            lots = await _lotsClient.GetAsync(productCode, limit, skip, cancellationToken);
+        }
+        catch (KeyNotFoundException ex) when (ex.Message == "Entity LotsItem not found")
+        {
+            return Array.Empty<CatalogLot>();
+        }
+
         return lots.Select(s => new CatalogLot()
         {
             Id = s.Id,

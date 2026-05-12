@@ -257,9 +257,9 @@ describe('useKnowledgeBase hooks', () => {
   });
 
   describe('useKnowledgeBaseUploadPermission', () => {
-    it('returns true when knowledge_base_manager role is present', () => {
+    it('returns true when super_user role is present', () => {
       mockUseMsal.mockReturnValue({
-        accounts: [{ idTokenClaims: { roles: ['heblo_user', 'knowledge_base_manager'] } }],
+        accounts: [{ idTokenClaims: { roles: ['heblo_user', 'super_user'] } }],
       });
       const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
         wrapper: createWrapper,
@@ -291,15 +291,15 @@ describe('useKnowledgeBase hooks', () => {
       mockShouldUseMockAuth.mockReturnValue(true);
     });
 
-    it('returns true when mock user has knowledge_base_manager role', () => {
-      mockGetUser.mockReturnValue({ roles: ['finance_reader', 'knowledge_base_manager'] });
+    it('returns true when mock user has super_user role', () => {
+      mockGetUser.mockReturnValue({ roles: ['finance_reader', 'super_user'] });
       const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
         wrapper: createWrapper,
       });
       expect(result.current).toBe(true);
     });
 
-    it('returns false when mock user lacks knowledge_base_manager role', () => {
+    it('returns false when mock user lacks super_user role', () => {
       mockGetUser.mockReturnValue({ roles: ['finance_reader'] });
       const { result } = renderHook(() => useKnowledgeBaseUploadPermission(), {
         wrapper: createWrapper,

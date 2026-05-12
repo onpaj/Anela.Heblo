@@ -4,7 +4,7 @@ namespace Anela.Heblo.Adapters.Flexi.Manufacture.Internal;
 
 internal sealed class FefoConsumptionAllocator : IFefoConsumptionAllocator
 {
-    public const double AllocationEpsilon = 0.001;
+    public const decimal AllocationEpsilon = 0.001m;
 
     public List<ConsumptionItem> Allocate(
         Dictionary<string, IngredientRequirement> ingredientRequirements,
@@ -37,7 +37,7 @@ internal sealed class FefoConsumptionAllocator : IFefoConsumptionAllocator
                 .OrderBy(l => l.Expiration ?? DateOnly.MaxValue)
                 .ThenBy(s => s.Id)
                 .ToList();
-            double remainingToAllocate = requirement.RequiredAmount;
+            var remainingToAllocate = requirement.RequiredAmount;
 
             foreach (var lot in sortedLots)
             {
@@ -46,7 +46,7 @@ internal sealed class FefoConsumptionAllocator : IFefoConsumptionAllocator
                     break;
                 }
 
-                var amountFromThisLot = Math.Min(remainingToAllocate, (double)lot.Amount);
+                var amountFromThisLot = Math.Min(remainingToAllocate, lot.Amount);
 
                 consumptionItems.Add(new ConsumptionItem
                 {

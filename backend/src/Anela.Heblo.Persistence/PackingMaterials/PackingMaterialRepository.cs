@@ -36,4 +36,30 @@ public class PackingMaterialRepository : BaseRepository<PackingMaterial, int>, I
         return await Context.Set<PackingMaterialLog>()
             .AnyAsync(log => log.Date == date && log.LogType == LogEntryType.AutomaticConsumption, cancellationToken);
     }
+
+    public async Task<IEnumerable<PackingMaterial>> GetAllWithAllocationsAsync(CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Include(pm => pm.Allocations)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<PackingMaterial?> GetByIdWithAllocationsAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .Include(pm => pm.Allocations)
+            .FirstOrDefaultAsync(pm => pm.Id == id, cancellationToken);
+    }
+
+    public async Task AddConsumptionRowsAsync(IEnumerable<PackingMaterialConsumption> rows, CancellationToken cancellationToken = default)
+    {
+        await Context.Set<PackingMaterialConsumption>().AddRangeAsync(rows, cancellationToken);
+    }
+
+    public async Task<IEnumerable<PackingMaterialConsumption>> GetConsumptionsByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
+    {
+        return await Context.Set<PackingMaterialConsumption>()
+            .Where(c => c.Date == date)
+            .ToListAsync(cancellationToken);
+    }
 }

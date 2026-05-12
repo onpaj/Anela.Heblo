@@ -48,11 +48,18 @@ public class CalculatedBatchSizeHandler : IRequestHandler<CalculatedBatchSizeReq
 
             double scaleFactor = (request.DesiredBatchSize / template.OriginalAmount).Value;
 
+            // Batch-load all ingredient catalog entries in a single call (avoids N+1 queries)
+            var ingredientCodes = template.Ingredients.Select(i => i.ProductCode).ToHashSet();
+            var ingredientCatalogEntries = await _catalogRepository.FindAsync(
+                x => ingredientCodes.Contains(x.ProductCode),
+                cancellationToken);
+            var ingredientCatalogByCode = ingredientCatalogEntries.ToDictionary(x => x.ProductCode);
+
             // Create ingredients list with stock information
             var ingredientsWithStock = new List<CalculatedIngredientDto>();
             foreach (var ingredient in template.Ingredients)
             {
-                var ingredientCatalog = await _catalogRepository.GetByIdAsync(ingredient.ProductCode, cancellationToken);
+                ingredientCatalogByCode.TryGetValue(ingredient.ProductCode, out var ingredientCatalog);
 
                 // Get the latest stock taking date for this ingredient
                 var lastStockTaking = ingredientCatalog?.StockTakingHistory

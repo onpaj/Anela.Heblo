@@ -68,7 +68,7 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
         {
             response = await _chatClient.GetResponseAsync(messages, cancellationToken: cancellationToken);
         }
-        catch (Exception ex) when (ex is HttpRequestException or TimeoutException or TaskCanceledException)
+        catch (Exception ex) when (ex is HttpRequestException or TimeoutException or TaskCanceledException or ObjectDisposedException)
         {
             _logger.LogWarning(ex, "AI service unavailable while processing KnowledgeBase/Ask");
             return new AskQuestionResponse

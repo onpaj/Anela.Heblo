@@ -9,7 +9,7 @@ public class DataQualityStatusTile : ITile
 
     public string Title => "Kvalita dat";
     public string Description => "Stav posledního DQT testu faktur";
-    public TileSize Size => TileSize.Medium;
+    public TileSize Size => TileSize.Small;
     public TileCategory Category => TileCategory.DataQuality;
     public bool DefaultEnabled => true;
     public bool AutoShow => false;

@@ -23,6 +23,7 @@
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="3.6.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.8" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.3" />
   </ItemGroup>
 
@@ -33,6 +34,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Anthropic\Anela.Heblo.Adapters.Anthropic.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.GoogleAds\Anela.Heblo.Adapters.GoogleAds.csproj" />
+    <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.WebSearch\Anela.Heblo.Adapters.WebSearch.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.MetaAds\Anela.Heblo.Adapters.MetaAds.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.Comgate\Anela.Heblo.Adapters.Comgate.csproj" />
     <ProjectReference Include="..\..\src\Adapters\Anela.Heblo.Adapters.ShoptetApi\Anela.Heblo.Adapters.ShoptetApi.csproj" />

@@ -1,12 +1,10 @@
 using System.Reflection;
 using Anela.Heblo.Adapters.Shoptet;
-using Anela.Heblo.Adapters.Shoptet.Playwright;
 using Anela.Heblo.Adapters.ShoptetApi;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Invoices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -32,8 +30,8 @@ public class ShoptetIntegrationTestFixture
 
         services.AddLogging(builder => builder.AddConsole());
 
-        services.AddShoptetPlaywrightAdapter(Configuration);
         services.AddShoptetApiAdapter(Configuration);
+        services.AddShoptetCsvAdapter(Configuration);
         services.AddCrossCuttingServices();
         services.AddHttpClient();
 
@@ -43,9 +41,6 @@ public class ShoptetIntegrationTestFixture
         });
         services.AddScoped<IPrintQueueSink, FileSystemPrintQueueSink>();
         services.AddSingleton(new Mock<ICatalogRepository>().Object);
-
-        services.AddSingleton<IIssuedInvoiceSource>(
-            sp => sp.GetRequiredService<ShoptetPlaywrightInvoiceSource>());
 
         ServiceProvider = services.BuildServiceProvider();
     }

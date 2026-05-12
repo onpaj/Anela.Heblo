@@ -1,187 +1,167 @@
-import React, { useMemo } from "react";
-import type { CalendarEvent, EventSegment } from "./useCalendarLayout";
-import { useCalendarLayout } from "./useCalendarLayout";
-import MarketingEventBar, {
-  BAR_HEIGHT_PX_EXPORT as BAR_H,
-  BAR_GAP_PX_EXPORT as BAR_G,
-  TOP_OFFSET_PX_EXPORT as TOP_OFF,
-} from "./MarketingEventBar";
+import React, { useMemo } from 'react';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import csLocale from '@fullcalendar/core/locales/cs';
+import type { EventClickArg, EventDropArg, DatesSetArg, EventContentArg } from '@fullcalendar/core';
+import type { EventResizeDoneArg } from '@fullcalendar/interaction';
+import type { CalendarEvent } from './fullcalendarAdapters';
+import { toFcEvent, fromFcDates } from './fullcalendarAdapters';
+import './marketingCalendar.css';
 
-const WEEK_DAYS = ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"];
+export type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
 
-// Minimum row height when no events; grows per lane
-const BASE_ROW_HEIGHT_PX = 64;
+const CALENDAR_VIEWS = {
+  fiveWeeks: { type: 'dayGrid', duration: { weeks: 5 }, dayMaxEvents: true },
+  twoWeeks:  { type: 'dayGrid', duration: { weeks: 2 }, dayMaxEvents: false },
+} as const;
+
+const ACTION_TYPE_LABELS: Record<string, string> = {
+  SocialMedia: 'SoMe',
+  Blog: 'Blog',
+  Newsletter: 'NL',
+  PR: 'PR',
+  Event: 'Akce',
+  Meeting: 'Porada',
+};
+
+function formatCzechDate(d: Date): string {
+  return `${d.getDate()}. ${d.getMonth() + 1}.`;
+}
+
+function formatEventDateRange(start: Date, fcEnd: Date | null): string {
+  // fcEnd is exclusive in FullCalendar; subtract 1 day to get inclusive display end
+  const end = fcEnd ? new Date(fcEnd.getTime() - 86400000) : start;
+  const startStr = formatCzechDate(start);
+  if (start.toDateString() === end.toDateString()) return startStr;
+  return `${startStr} – ${formatCzechDate(end)}`;
+}
+
+function formatProductLabel(count: number): string | null {
+  if (count === 0) return null;
+  if (count === 1) return '1 produkt';
+  if (count < 5) return `${count} produkty`;
+  return `${count} produktů`;
+}
+
+function renderCardEvent(arg: EventContentArg): React.ReactElement {
+  const actionType = (arg.event.extendedProps.actionType as string) ?? 'Other';
+  const products = (arg.event.extendedProps.associatedProducts as string[]) ?? [];
+  const typeLabel = ACTION_TYPE_LABELS[actionType] ?? actionType;
+  const dateStr = formatEventDateRange(arg.event.start!, arg.event.end);
+  const productLabel = formatProductLabel(products.length);
+
+  return (
+    <div className="px-1.5 py-0.5 flex flex-col gap-0.5 w-full overflow-hidden">
+      <div className="text-xs font-semibold leading-4 line-clamp-2">
+        {arg.event.title}
+      </div>
+      <div className="flex items-center gap-1 text-[10px] font-medium opacity-90">
+        <span className="bg-white/20 rounded px-1 shrink-0">{typeLabel}</span>
+        <span className="truncate">
+          {dateStr}{productLabel ? ` · ${productLabel}` : ''}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function renderCompactEvent(arg: EventContentArg): React.ReactElement {
+  return (
+    <div className="px-1 text-xs font-medium truncate leading-5">
+      {arg.event.title}
+    </div>
+  );
+}
 
 interface MarketingMonthCalendarProps {
-  year: number;
-  month: number; // 0-based
   events: CalendarEvent[];
+  initialDate: Date;
+  viewName: CalendarViewName;
   onEventClick: (id: number) => void;
+  onEventMove: (id: number, dateFrom: string, dateTo: string) => void;
+  onEventResize: (id: number, dateFrom: string, dateTo: string) => void;
+  onDateRangeSelect: (dateFrom: string, dateTo: string) => void;
+  onDatesSet: (visibleStart: Date, visibleEnd: Date, currentStart: Date) => void;
+  calendarRef: React.RefObject<FullCalendar>;
   className?: string;
 }
 
-interface DayCell {
-  date: Date;
-  isCurrentMonth: boolean;
-  weekRow: number;
-  col: number; // 1–7
-}
-
 const MarketingMonthCalendar: React.FC<MarketingMonthCalendarProps> = ({
-  year,
-  month,
   events,
+  initialDate,
+  viewName,
   onEventClick,
+  onEventMove,
+  onEventResize,
+  onDateRangeSelect,
+  onDatesSet,
+  calendarRef,
   className,
 }) => {
-  const today = new Date();
-  const segments = useCalendarLayout(events, year, month);
+  const fcEvents = useMemo(() => events.map(toFcEvent), [events]);
 
-  // Build day cells — same Monday-anchor logic as useCalendarLayout
-  const { dayCells, weekCount } = useMemo(() => {
-    const firstOfMonth = new Date(year, month, 1);
-    const firstMonday = new Date(firstOfMonth);
-    const dow = firstOfMonth.getDay();
-    firstMonday.setDate(firstOfMonth.getDate() + (dow === 0 ? -6 : 1 - dow));
+  const wrapperClassName = [
+    'marketing-calendar',
+    viewName === 'twoWeeks' && 'two-weeks',
+    'h-full',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
-    const cells: DayCell[] = [];
-    let weekRow = 0;
-    let col = 1;
+  const handleEventClick = (info: EventClickArg) => {
+    onEventClick(Number(info.event.id));
+  };
 
-    // 6 weeks × 7 days
-    for (let i = 0; i < 42; i++) {
-      const date = new Date(firstMonday);
-      date.setDate(firstMonday.getDate() + i);
-      cells.push({
-        date,
-        isCurrentMonth: date.getMonth() === month,
-        weekRow,
-        col,
-      });
-      col++;
-      if (col > 7) {
-        col = 1;
-        weekRow++;
-      }
-    }
+  const handleEventDrop = (info: EventDropArg) => {
+    const { dateFrom, dateTo } = fromFcDates(
+      info.event.start!,
+      info.event.end,
+    );
+    onEventMove(Number(info.event.id), dateFrom, dateTo);
+  };
 
-    // Trim trailing empty weeks (all outside current month)
-    const isWeekAllOutsideMonth = (w: number) =>
-      cells.filter((c) => c.weekRow === w).every((c) => !c.isCurrentMonth);
+  const handleEventResize = (info: EventResizeDoneArg) => {
+    const { dateFrom, dateTo } = fromFcDates(
+      info.event.start!,
+      info.event.end,
+    );
+    onEventResize(Number(info.event.id), dateFrom, dateTo);
+  };
 
-    let lastWeek = 5;
-    while (lastWeek > 0 && isWeekAllOutsideMonth(lastWeek)) {
-      lastWeek--;
-    }
+  const handleSelect = (info: { start: Date; end: Date; jsEvent: MouseEvent | null }) => {
+    const { dateFrom, dateTo } = fromFcDates(info.start, info.end);
+    onDateRangeSelect(dateFrom, dateTo);
+    calendarRef.current?.getApi().unselect();
+  };
 
-    return {
-      dayCells: cells.filter((c) => c.weekRow <= lastWeek),
-      weekCount: lastWeek + 1,
-    };
-  }, [year, month]);
-
-  // Calculate min-height per week row based on max lane used
-  const rowMinHeights = useMemo(() => {
-    const heights: number[] = Array(weekCount).fill(BASE_ROW_HEIGHT_PX);
-    for (const seg of segments) {
-      if (seg.weekRow < weekCount) {
-        const needed = TOP_OFF + (seg.lane + 1) * (BAR_H + BAR_G) + 4;
-        if (needed > heights[seg.weekRow]) {
-          heights[seg.weekRow] = needed;
-        }
-      }
-    }
-    return heights;
-  }, [segments, weekCount]);
-
-  const isToday = (date: Date) =>
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate();
-
-  // Group segments by weekRow for rendering
-  const segmentsByRow = useMemo(() => {
-    const map = new Map<number, EventSegment[]>();
-    for (const seg of segments) {
-      const list = map.get(seg.weekRow) ?? [];
-      list.push(seg);
-      map.set(seg.weekRow, list);
-    }
-    return map;
-  }, [segments]);
+  const handleDatesSet = (info: DatesSetArg) => {
+    onDatesSet(info.start, info.end, info.view.currentStart);
+  };
 
   return (
-    <div className={`flex flex-col border border-gray-200 rounded-lg overflow-hidden bg-white${className ? ` ${className}` : ""}`}>
-      {/* Header row */}
-      <div className="grid grid-cols-7 border-b border-gray-200 flex-shrink-0">
-        {WEEK_DAYS.map((day) => (
-          <div
-            key={day}
-            className="py-2 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider"
-          >
-            {day}
-          </div>
-        ))}
-      </div>
-
-      {/* Week rows */}
-      <div className="flex flex-col flex-1">
-      {Array.from({ length: weekCount }, (_, w) => {
-        const rowCells = dayCells.filter((c) => c.weekRow === w);
-        const rowSegs = segmentsByRow.get(w) ?? [];
-
-        return (
-          <div
-            key={w}
-            className="relative flex-1 grid grid-cols-7 border-b border-gray-200 last:border-b-0"
-            style={{ minHeight: rowMinHeights[w] }}
-          >
-            {/* Background: day cells */}
-            {rowCells.map((cell) => (
-              <div
-                key={cell.date.toISOString()}
-                className={`
-                  border-r border-gray-100 last:border-r-0 p-1
-                  ${!cell.isCurrentMonth ? "bg-gray-50" : ""}
-                `}
-              >
-                <span
-                  className={`
-                    inline-flex items-center justify-center w-6 h-6 text-sm rounded-full
-                    ${
-                      isToday(cell.date)
-                        ? "bg-indigo-600 text-white font-bold"
-                        : cell.isCurrentMonth
-                          ? "text-gray-900"
-                          : "text-gray-400"
-                    }
-                  `}
-                >
-                  {cell.date.getDate()}
-                </span>
-              </div>
-            ))}
-
-            {/* Overlay: event bars — direct absolutely positioned grid children */}
-            <div
-              className="absolute inset-0 grid grid-cols-7"
-              style={{ pointerEvents: "none" }}
-            >
-              {rowSegs.map((seg) => (
-                <MarketingEventBar
-                  key={`${seg.event.id}-${seg.weekRow}`}
-                  event={seg.event}
-                  startCol={seg.startCol}
-                  endCol={seg.endCol}
-                  lane={seg.lane}
-                  onClick={onEventClick}
-                />
-              ))}
-            </div>
-          </div>
-        );
-      })}
-      </div>
+    <div className={wrapperClassName} data-testid="marketing-calendar-wrapper">
+      <FullCalendar
+        ref={calendarRef}
+        plugins={[dayGridPlugin, interactionPlugin]}
+        initialView={viewName}
+        views={CALENDAR_VIEWS}
+        locale={csLocale}
+        initialDate={initialDate}
+        headerToolbar={false}
+        events={fcEvents}
+        editable={true}
+        selectable={true}
+        selectMirror={true}
+        height="100%"
+        eventClick={handleEventClick}
+        eventDrop={handleEventDrop}
+        eventResize={handleEventResize}
+        select={handleSelect}
+        datesSet={handleDatesSet}
+        eventContent={viewName === 'twoWeeks' ? renderCardEvent : renderCompactEvent}
+      />
     </div>
   );
 };

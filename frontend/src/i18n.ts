@@ -60,6 +60,7 @@ const resources = {
           Orders: "Objednávky",
           Logistics: "Logistika",
           Analytics: "Analytika",
+          DataQuality: "Kvalita dat",
           Error: "Chyba"
         },
         tileSizes: {
@@ -194,6 +195,11 @@ const resources = {
         KnowledgeBaseChunkNotFound: "Fragment znalostní báze nebyl nalezen (ID: {id})",
         KnowledgeBaseAiUnavailable: "Služba AI je dočasně nedostupná. Zkuste to prosím znovu.",
 
+        // Leaflet module errors
+        LeafletChunkNotFound: "Fragment letáku nebyl nalezen",
+        LeafletFeedbackNotFound: "Zpětná vazba k letáku nebyla nalezena",
+        LeafletFeedbackAlreadySubmitted: "Zpětná vazba k letáku již byla odeslána",
+
         // ShoptetOrders module errors
         ShoptetOrderInvalidSourceState: "Objednávku nelze zablokovat – není ve povoleném stavu",
         ShoptetOrderNotFound: "Objednávka nebyla nalezena",
@@ -202,11 +208,32 @@ const resources = {
         MarketingActionNotFound: "Marketingová akce nebyla nalezena",
         UnauthorizedMarketingAccess: "Nemáte oprávnění k této marketingové akci",
 
+        // Photobank module errors
+        PhotoNotFound: "Fotka nebyla nalezena",
+        PhotobankRootNotFound: "Kořenový adresář fotobanka nebyl nalezen",
+        PhotobankRuleNotFound: "Pravidlo tagu nebylo nalezeno",
+        PhotoTagCreationFailed: "Vytvoření tagu fotky selhalo.",
+        BulkTagFiltersRequired: "Pro hromadné tagování musí být aktivní alespoň jeden filtr.",
+        BulkTagLimitExceeded: "Filtr odpovídá příliš mnoha fotkám ({{Count}}). Upřesněte filtry (max {{Limit}}).",
+        BulkTagInvalidRequest: "Neplatný požadavek pro hromadné tagování.",
+        PhotobankTagNotFound: "Tag fotobanka nebyl nalezen.",
+        PhotobankInvalidRegexPattern: "Neplatný regulární výraz.",
+
+        // Article Generation errors
+        ArticleNotFound: "Článek nebyl nalezen (ID: {{id}})",
+        ArticleGenerationFailed: "Generování článku selhalo. Zkuste to prosím znovu.",
+        WebSearchUnavailable: "Webové vyhledávání je dočasně nedostupné.",
+        StyleGuideFetchFailed: "Nepodařilo se načíst stylový průvodce.",
+        ArticleAlreadyGenerated: "Článek již byl vygenerován.",
+        ArticleNotGenerated: "Článek ještě nebyl vygenerován.",
+        ArticleFeedbackAlreadySubmitted: "Zpětná vazba k tomuto článku již byla odeslána.",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",
         ShoptetApiError: "Chyba Shoptet API",
         PaymentGatewayError: "Chyba platební brány",
+        ErpGatewayError: "Chyba ERP brány (časový limit nebo nedostupnost)",
       },
     },
   },
@@ -266,6 +293,7 @@ const resources = {
           Orders: "Orders",
           Logistics: "Logistics",
           Analytics: "Analytics",
+          DataQuality: "Data Quality",
           Error: "Error"
         },
         tileSizes: {
@@ -302,6 +330,15 @@ const resources = {
         DqtRunNotFound: "Data quality test run not found (ID: {{runId}})",
         DqtInvalidDateRange: "Invalid date range: DateFrom must be before or equal to DateTo",
         DqtExternalServiceError: "External service error during data quality test: {{service}}",
+
+        // Article Generation errors
+        ArticleNotFound: "Article not found (ID: {{id}})",
+        ArticleGenerationFailed: "Article generation failed. Please try again.",
+        WebSearchUnavailable: "Web search is temporarily unavailable.",
+        StyleGuideFetchFailed: "Failed to load style guide.",
+        ArticleAlreadyGenerated: "Article has already been generated.",
+        ArticleNotGenerated: "Article has not been generated yet.",
+        ArticleFeedbackAlreadySubmitted: "Feedback for this article has already been submitted.",
       },
     },
   },

@@ -1,5 +1,7 @@
 using System.Reflection;
 using Npgsql;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Anela.Heblo.API.HealthChecks.DataQuality;
 using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.Xcc.Telemetry;
 using Anela.Heblo.API.Infrastructure.Telemetry;
@@ -78,13 +80,20 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddHealthCheckServices(this IServiceCollection services, IConfiguration configuration)
     {
         var healthChecksBuilder = services.AddHealthChecks()
-            .AddCheck<Anela.Heblo.Application.Common.BackgroundServicesReadyHealthCheck>("background-services-ready", tags: new[] { "ready" });
+            .AddCheck<Anela.Heblo.Application.Common.BackgroundServicesReadyHealthCheck>("background-services-ready", tags: new[] { "ready" })
+            .AddCheck<DataQualitySchemaHealthCheck>(
+                name: "data-quality-schema",
+                failureStatus: HealthStatus.Unhealthy,
+                tags: new[] { "ready", "db", "schema" });
 
-        // Add database health check if connection string exists
+        // Add database health check via the shared NpgsqlDataSource so the probe
+        // reuses the application connection pool instead of opening a fresh connection
+        // on every health-check probe (which caused TaskCanceledException spikes).
         var dbConnectionString = configuration.GetConnectionString(ConfigurationConstants.DEFAULT_CONNECTION);
         if (!string.IsNullOrEmpty(dbConnectionString))
         {
-            healthChecksBuilder.AddNpgSql(dbConnectionString,
+            healthChecksBuilder.AddNpgSql(
+                sp => sp.GetRequiredService<NpgsqlDataSource>(),
                 name: ConfigurationConstants.DATABASE_HEALTH_CHECK,
                 tags: new[] { ConfigurationConstants.DB_TAG, ConfigurationConstants.POSTGRESQL_TAG });
         }

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using MediatR;
 using Microsoft.Extensions.AI;
@@ -11,20 +12,20 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
     private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddingGenerator;
     private readonly IKnowledgeBaseRepository _repository;
     private readonly KnowledgeBaseOptions _options;
-    private readonly IChatClient _chatClient;
+    private readonly IRagQueryExpander _expander;
     private readonly ILogger<SearchDocumentsHandler> _logger;
 
     public SearchDocumentsHandler(
         IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator,
         IKnowledgeBaseRepository repository,
         IOptions<KnowledgeBaseOptions> options,
-        IChatClient chatClient,
+        IRagQueryExpander expander,
         ILogger<SearchDocumentsHandler> logger)
     {
         _embeddingGenerator = embeddingGenerator;
         _repository = repository;
         _options = options.Value;
-        _chatClient = chatClient;
+        _expander = expander;
         _logger = logger;
     }
 
@@ -32,9 +33,7 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
         SearchDocumentsRequest request,
         CancellationToken cancellationToken)
     {
-        var queryToEmbed = _options.QueryExpansionEnabled
-            ? await ExpandQueryAsync(request.Query, cancellationToken)
-            : request.Query;
+        var queryToEmbed = await _expander.ExpandAsync(request.Query, _options.ToExpansionConfig(), cancellationToken);
 
         float[] queryEmbedding;
         try
@@ -85,25 +84,5 @@ public class SearchDocumentsHandler : IRequestHandler<SearchDocumentsRequest, Se
                 SourcePath = r.Chunk.Document.SourcePath
             }).ToList()
         };
-    }
-
-    private async Task<string> ExpandQueryAsync(string query, CancellationToken cancellationToken)
-    {
-        var messages = new List<ChatMessage>
-        {
-            new(ChatRole.User, _options.QueryExpansionPrompt + "\n" + query)
-        };
-
-        var chatOptions = new ChatOptions { ModelId = _options.QueryExpansionModel };
-        try
-        {
-            var response = await _chatClient.GetResponseAsync(messages, chatOptions, cancellationToken);
-            return string.IsNullOrWhiteSpace(response.Text) ? query : response.Text;
-        }
-        catch (Exception ex) when (ex is HttpRequestException or TimeoutException or TaskCanceledException)
-        {
-            _logger.LogWarning(ex, "Query expansion failed for query '{Query}', falling back to raw query", query);
-            return query;
-        }
     }
 }
