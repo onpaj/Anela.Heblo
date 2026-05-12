@@ -231,6 +231,30 @@ public class PhotobankRepositoryFilterTests : IAsyncLifetime
         total.Should().Be(1);
         items.Should().ContainSingle(p => p.Id == 1);
     }
+
+    [Fact]
+    public async Task GetPhotosAsync_tiesInModifiedAt_brokenByDescendingId_acrossPages()
+    {
+        var sharedTs = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        _context.Photos.RemoveRange(_context.Photos);
+        await _context.SaveChangesAsync();
+        _context.Photos.AddRange(new List<Photo>
+        {
+            new() { Id = 1, SharePointFileId = "sp-t1", FileName = "x.jpg", FolderPath = "T", IndexedAt = sharedTs, ModifiedAt = sharedTs },
+            new() { Id = 2, SharePointFileId = "sp-t2", FileName = "y.jpg", FolderPath = "T", IndexedAt = sharedTs, ModifiedAt = sharedTs },
+            new() { Id = 3, SharePointFileId = "sp-t3", FileName = "z.jpg", FolderPath = "T", IndexedAt = sharedTs, ModifiedAt = sharedTs },
+        });
+        await _context.SaveChangesAsync();
+
+        var (page1, total) = await _repository.GetPhotosAsync(
+            null, null, false, false, 1, 2, CancellationToken.None);
+        var (page2, _) = await _repository.GetPhotosAsync(
+            null, null, false, false, 2, 2, CancellationToken.None);
+
+        total.Should().Be(3);
+        page1.Select(p => p.Id).Should().Equal(3, 2);
+        page2.Select(p => p.Id).Should().Equal(1);
+    }
 }
 
 [Trait("Category", "Integration")]

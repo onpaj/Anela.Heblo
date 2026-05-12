@@ -76,18 +76,21 @@ namespace Anela.Heblo.Application.Features.Photobank
             List<string>? tags, string? search, bool useRegex, bool withoutTags, int page, int pageSize,
             CancellationToken cancellationToken)
         {
-            IQueryable<Photo> query = BuildFilterQuery(tags, search, useRegex)
-                .Include(p => p.Tags)
-                    .ThenInclude(pt => pt.Tag);
+            IQueryable<Photo> baseQuery = BuildFilterQuery(tags, search, useRegex);
 
             if (withoutTags)
-                query = query.Where(p => !p.Tags.Any());
+                baseQuery = baseQuery.Where(p => !p.Tags.Any());
 
-            var total = await query.CountAsync(cancellationToken);
-            var items = await query
+            var total = await baseQuery.CountAsync(cancellationToken);
+
+            var items = await baseQuery
                 .OrderByDescending(p => p.ModifiedAt)
+                .ThenByDescending(p => p.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Include(p => p.Tags)
+                    .ThenInclude(pt => pt.Tag)
+                .AsSplitQuery()
                 .ToListAsync(cancellationToken);
 
             return (items, total);
