@@ -6,6 +6,7 @@ using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Model;
+using System.Diagnostics;
 using System.Net;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture.Internal;
@@ -35,13 +36,24 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public Task<ManufactureTemplate?> GetManufactureTemplateAsync(string productCode, CancellationToken cancellationToken = default)
+    public async Task<ManufactureTemplate?> GetManufactureTemplateAsync(string productCode, CancellationToken cancellationToken = default)
     {
-        return _cache.GetOrFetchAsync(productCode, ct => FetchAsync(productCode, ct), cancellationToken);
+        var totalStopwatch = Stopwatch.StartNew();
+        var fetchTimings = new FetchTimings();
+
+        var template = await _cache.GetOrFetchAsync(
+            productCode,
+            ct => FetchAsync(productCode, ct, fetchTimings),
+            cancellationToken);
+
+        totalStopwatch.Stop();
+        EmitTelemetry(productCode, fetchTimings, totalStopwatch.ElapsedMilliseconds, template);
+        return template;
     }
 
-    private async Task<ManufactureTemplate?> FetchAsync(string productCode, CancellationToken cancellationToken)
+    private async Task<ManufactureTemplate?> FetchAsync(string productCode, CancellationToken cancellationToken, FetchTimings timings)
     {
+        var bomStopwatch = Stopwatch.StartNew();
         IEnumerable<BoMItemFlexiDto> bom;
         try
         {
@@ -55,6 +67,8 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
                 productCode);
             throw;
         }
+        bomStopwatch.Stop();
+        timings.BomMs = bomStopwatch.ElapsedMilliseconds;
 
         var header = bom.SingleOrDefault(s => s.Level == 1);
         if (header == null)
@@ -64,11 +78,15 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
 
         var stockDate = _timeProvider.GetLocalNow().DateTime;
 
+        var stockStopwatch = Stopwatch.StartNew();
         var materialStockTask = _stockClient.StockToDateAsync(stockDate, FlexiStockClient.MaterialWarehouseId, cancellationToken);
         var semiProductsStockTask = _stockClient.StockToDateAsync(stockDate, FlexiStockClient.SemiProductsWarehouseId, cancellationToken);
         var productsStockTask = _stockClient.StockToDateAsync(stockDate, FlexiStockClient.ProductsWarehouseId, cancellationToken);
 
         await Task.WhenAll(materialStockTask, semiProductsStockTask, productsStockTask);
+        stockStopwatch.Stop();
+        timings.StockMs = stockStopwatch.ElapsedMilliseconds;
+        timings.FetchInvoked = true;
 
         // Narrow the three full snapshots to a single HasLots dictionary (FR-4).
         // Larger DTOs go out of scope immediately after this block.
@@ -131,6 +149,37 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
         catch
         {
             return ProductType.UNDEFINED;
+        }
+    }
+
+    private sealed class FetchTimings
+    {
+        public bool FetchInvoked { get; set; }
+        public long BomMs { get; set; }
+        public long StockMs { get; set; }
+    }
+
+    private void EmitTelemetry(string productCode, FetchTimings timings, long totalMs, ManufactureTemplate? template)
+    {
+        try
+        {
+            var properties = new Dictionary<string, string>
+            {
+                ["product_code"] = productCode,
+                ["cache_hit"] = (!timings.FetchInvoked).ToString().ToLowerInvariant(),
+                ["ingredient_count"] = (template?.Ingredients.Count ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            };
+            var metrics = new Dictionary<string, double>
+            {
+                ["bom_duration_ms"] = timings.BomMs,
+                ["stock_duration_ms"] = timings.StockMs,
+                ["total_duration_ms"] = totalMs
+            };
+            _telemetry.TrackBusinessEvent("manufacture_template_fetched", properties, metrics);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to emit manufacture_template_fetched telemetry for {ProductCode}", productCode);
         }
     }
 }

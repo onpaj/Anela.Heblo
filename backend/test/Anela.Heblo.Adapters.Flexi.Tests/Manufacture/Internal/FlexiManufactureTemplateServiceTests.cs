@@ -145,6 +145,76 @@ public class FlexiManufactureTemplateServiceTests
         template.Ingredients.Single(i => i.ProductCode == "AKL003").HasLots.Should().BeFalse();
     }
 
+    [Fact]
+    public async Task GetManufactureTemplateAsync_OnCacheMiss_EmitsTelemetryEvent()
+    {
+        var header = ManufactureTestData.CreateBoMItem(1, 1, 10, ManufactureTestData.SemiProducts.SilkBar);
+        var ingredient = ManufactureTestData.CreateBoMItem(2, 2, 1, ManufactureTestData.Materials.Bisabolol);
+
+        _mockBomClient
+            .Setup(x => x.GetAsync(ManufactureTestData.SemiProducts.SilkBar.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<BoMItemFlexiDto> { header, ingredient });
+        _mockStockClient
+            .Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<ErpStock>)new List<ErpStock>());
+
+        await _service.GetManufactureTemplateAsync(ManufactureTestData.SemiProducts.SilkBar.Code, CancellationToken.None);
+
+        _mockTelemetry.Verify(
+            t => t.TrackBusinessEvent(
+                "manufacture_template_fetched",
+                It.Is<Dictionary<string, string>>(p =>
+                    p["product_code"] == ManufactureTestData.SemiProducts.SilkBar.Code &&
+                    p["cache_hit"] == "false" &&
+                    p["ingredient_count"] == "1"),
+                It.Is<Dictionary<string, double>>(m =>
+                    m.ContainsKey("bom_duration_ms") &&
+                    m.ContainsKey("stock_duration_ms") &&
+                    m.ContainsKey("total_duration_ms"))),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetManufactureTemplateAsync_OnCacheHit_EmitsTelemetryWithCacheHitTrue()
+    {
+        var cachedTemplate = ManufactureTestData.CreateTemplate(
+            ManufactureTestData.SemiProducts.SilkBar,
+            templateAmount: 10,
+            (ManufactureTestData.Materials.Bisabolol, amount: 1, hasLots: false));
+
+        var hitCache = new HitOnlyCache(cachedTemplate);
+
+        var service = new FlexiManufactureTemplateService(
+            _mockBomClient.Object,
+            _mockStockClient.Object,
+            TimeProvider.System,
+            hitCache,
+            _mockTelemetry.Object,
+            _mockLogger.Object);
+
+        await service.GetManufactureTemplateAsync(ManufactureTestData.SemiProducts.SilkBar.Code, CancellationToken.None);
+
+        _mockTelemetry.Verify(
+            t => t.TrackBusinessEvent(
+                "manufacture_template_fetched",
+                It.Is<Dictionary<string, string>>(p =>
+                    p["product_code"] == ManufactureTestData.SemiProducts.SilkBar.Code &&
+                    p["cache_hit"] == "true" &&
+                    p["ingredient_count"] == "1"),
+                It.Is<Dictionary<string, double>>(m =>
+                    m["bom_duration_ms"] == 0 &&
+                    m["stock_duration_ms"] == 0 &&
+                    m.ContainsKey("total_duration_ms"))),
+            Times.Once);
+
+        _mockBomClient.Verify(
+            x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _mockStockClient.Verify(
+            x => x.StockToDateAsync(It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     /// <summary>
     /// Test cache that always invokes the fetcher (acts as pass-through so we test
     /// the inner fetch logic directly).
@@ -160,6 +230,21 @@ public class FlexiManufactureTemplateServiceTests
         {
             Calls++;
             return await fetch(cancellationToken);
+        }
+    }
+
+    private sealed class HitOnlyCache : IManufactureTemplateCache
+    {
+        private readonly ManufactureTemplate _cached;
+        public HitOnlyCache(ManufactureTemplate cached) => _cached = cached;
+
+        public Task<ManufactureTemplate?> GetOrFetchAsync(
+            string productCode,
+            Func<CancellationToken, Task<ManufactureTemplate?>> fetch,
+            CancellationToken cancellationToken)
+        {
+            // Simulate a hit: do not invoke fetch.
+            return Task.FromResult<ManufactureTemplate?>(ManufactureTemplateCloner.Clone(_cached));
         }
     }
 }
