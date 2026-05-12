@@ -9,7 +9,7 @@ public class GridLayoutConfiguration : IEntityTypeConfiguration<GridLayout>
 {
     public void Configure(EntityTypeBuilder<GridLayout> builder)
     {
-        builder.ToTable("GridLayouts");
+        builder.ToTable("GridLayouts", "public");
 
         builder.HasKey(x => x.Id);
 

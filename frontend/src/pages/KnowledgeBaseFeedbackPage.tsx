@@ -1,3 +1,4 @@
+// frontend/src/pages/KnowledgeBaseFeedbackPage.tsx
 import React, { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import {
@@ -5,10 +6,12 @@ import {
   GetFeedbackListParams,
   useKnowledgeBaseFeedbackListQuery,
 } from '../api/hooks/useKnowledgeBase';
-import FeedbackStatsBar from '../components/knowledge-base/FeedbackStatsBar';
-import FeedbackFilters from '../components/knowledge-base/FeedbackFilters';
-import FeedbackTable from '../components/knowledge-base/FeedbackTable';
-import FeedbackDetailModal from '../components/knowledge-base/FeedbackDetailModal';
+import GenericFeedbackStatsBar from '../components/feedback/GenericFeedbackStatsBar';
+import GenericFeedbackFilters from '../components/feedback/GenericFeedbackFilters';
+import GenericFeedbackTable from '../components/feedback/GenericFeedbackTable';
+import GenericFeedbackDetailModal from '../components/feedback/GenericFeedbackDetailModal';
+import type { FeedbackDetail } from '../components/feedback/types';
+import { SORT_COLUMNS } from '../components/feedback/types';
 
 const defaultParams: GetFeedbackListParams = {
   pageNumber: 1,
@@ -17,50 +20,74 @@ const defaultParams: GetFeedbackListParams = {
   sortDescending: true,
 };
 
+function mapLogToDetail(log: FeedbackLogSummary): FeedbackDetail {
+  return {
+    id: log.id,
+    primaryText: log.question,
+    secondaryText: log.answer ?? '',
+    createdAt: log.createdAt,
+    userId: log.userId ?? undefined,
+    precisionScore: log.precisionScore,
+    styleScore: log.styleScore,
+    hasFeedback: log.hasFeedback,
+    feedbackComment: log.feedbackComment,
+    extra: (
+      <div className="grid grid-cols-3 gap-4 text-sm">
+        <div>
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">TopK</p>
+          <p className="text-gray-900">{log.topK}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Zdrojů</p>
+          <p className="text-gray-900">{log.sourceCount}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Doba odezvy</p>
+          <p className="text-gray-900">{log.durationMs} ms</p>
+        </div>
+      </div>
+    ),
+  };
+}
+
 const KnowledgeBaseFeedbackPage: React.FC = () => {
   const [params, setParams] = useState<GetFeedbackListParams>(defaultParams);
-  const [selectedLog, setSelectedLog] = useState<FeedbackLogSummary | null>(null);
+  const [selectedRow, setSelectedRow] = useState<FeedbackDetail | null>(null);
 
   const { data, isLoading, isError } = useKnowledgeBaseFeedbackListQuery(params);
 
-  const handleParamsChange = (next: GetFeedbackListParams) => {
-    setParams(next);
-    setSelectedLog(null);
-  };
+  const rows: FeedbackDetail[] = (data?.logs ?? []).map(mapLogToDetail);
 
-  const handlePageChange = (page: number) => {
-    setParams((prev) => ({ ...prev, pageNumber: page }));
-    setSelectedLog(null);
-  };
-
-  const handleSelect = (log: FeedbackLogSummary) => {
-    setSelectedLog((prev) => (prev?.id === log.id ? null : log));
-  };
-
-  const handleClosePanel = () => setSelectedLog(null);
+  const stats = data?.stats
+    ? {
+        totalItems: data.stats.totalQuestions,
+        totalWithFeedback: data.stats.totalWithFeedback,
+        avgPrecisionScore: data.stats.avgPrecisionScore,
+        avgStyleScore: data.stats.avgStyleScore,
+      }
+    : undefined;
 
   return (
     <div className="flex flex-col h-full">
-      {/* Page header */}
       <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
         <MessageSquare className="w-6 h-6 text-blue-600" />
         <h1 className="text-2xl font-semibold text-gray-900">Feedback</h1>
       </div>
 
-      {/* Main content */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {/* Stats */}
-        {data?.stats && <FeedbackStatsBar stats={data.stats} />}
+        <GenericFeedbackStatsBar stats={stats} isLoading={isLoading} itemLabel="dotazů" />
 
-        {/* Filters */}
-        <FeedbackFilters params={params} onParamsChange={handleParamsChange} />
-
-        {/* Loading / error / table */}
-        {isLoading && (
-          <div className="flex items-center justify-center h-32 text-sm text-gray-500">
-            Načítám…
-          </div>
-        )}
+        <GenericFeedbackFilters
+          hasFeedback={params.hasFeedback}
+          sortBy={params.sortBy ?? 'CreatedAt'}
+          sortDescending={params.sortDescending ?? true}
+          pageSize={params.pageSize ?? 20}
+          allowedSortColumns={SORT_COLUMNS}
+          onHasFeedbackChange={(v) => setParams((p) => ({ ...p, pageNumber: 1, hasFeedback: v }))}
+          onSortByChange={(v) => setParams((p) => ({ ...p, pageNumber: 1, sortBy: v }))}
+          onSortDescendingChange={(v) => setParams((p) => ({ ...p, pageNumber: 1, sortDescending: v }))}
+          onPageSizeChange={(v) => setParams((p) => ({ ...p, pageNumber: 1, pageSize: v }))}
+        />
 
         {isError && (
           <div className="flex items-center justify-center h-32 text-sm text-red-600">
@@ -68,22 +95,33 @@ const KnowledgeBaseFeedbackPage: React.FC = () => {
           </div>
         )}
 
-        {data && !isLoading && (
-          <FeedbackTable
-            logs={data.logs}
-            totalCount={data.totalCount}
-            pageNumber={data.pageNumber}
-            pageSize={data.pageSize}
-            totalPages={data.totalPages}
-            onSelect={handleSelect}
-            onPageChange={handlePageChange}
+        {!isError && (
+          <GenericFeedbackTable
+            rows={rows}
+            isLoading={isLoading}
+            totalCount={data?.totalCount ?? 0}
+            pageNumber={data?.pageNumber ?? 1}
+            pageSize={params.pageSize ?? 20}
+            totalPages={data?.totalPages ?? 0}
+            onPageChange={(page) => {
+              setParams((p) => ({ ...p, pageNumber: page }));
+              setSelectedRow(null);
+            }}
+            onRowClick={(id) =>
+              setSelectedRow((prev) => (prev?.id === id ? null : rows.find((r) => r.id === id) ?? null))
+            }
+            primaryLabel="Dotaz"
           />
         )}
       </div>
 
-      {/* Detail modal */}
-      {selectedLog && (
-        <FeedbackDetailModal log={selectedLog} onClose={handleClosePanel} />
+      {selectedRow && (
+        <GenericFeedbackDetailModal
+          detail={selectedRow}
+          onClose={() => setSelectedRow(null)}
+          primaryLabel="Dotaz"
+          secondaryLabel="Odpověď"
+        />
       )}
     </div>
   );

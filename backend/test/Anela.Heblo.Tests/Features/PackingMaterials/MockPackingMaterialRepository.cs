@@ -9,6 +9,7 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
     private List<PackingMaterial> _materials = new();
     private readonly Dictionary<DateOnly, bool> _dailyProcessingStatus = new();
     public List<PackingMaterial> UpdatedMaterials { get; } = new();
+    public IReadOnlyList<PackingMaterial> Materials => _materials;
     public bool GetAllAsyncWasCalled { get; private set; }
 
     public void SetMaterials(IEnumerable<PackingMaterial> materials)
@@ -128,4 +129,22 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
         var count = predicate == null ? _materials.Count : _materials.Count(predicate.Compile());
         return Task.FromResult(count);
     }
+
+    public List<PackingMaterialConsumption> AddedConsumptionRows { get; } = new();
+    public Dictionary<DateOnly, List<PackingMaterialConsumption>> ConsumptionRowsByDate { get; } = new();
+
+    public Task<IEnumerable<PackingMaterial>> GetAllWithAllocationsAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult<IEnumerable<PackingMaterial>>(_materials);
+
+    public Task<PackingMaterial?> GetByIdWithAllocationsAsync(int id, CancellationToken cancellationToken = default)
+        => Task.FromResult(_materials.FirstOrDefault(m => m.Id == id));
+
+    public Task AddConsumptionRowsAsync(IEnumerable<PackingMaterialConsumption> rows, CancellationToken cancellationToken = default)
+    {
+        AddedConsumptionRows.AddRange(rows);
+        return Task.CompletedTask;
+    }
+
+    public Task<IEnumerable<PackingMaterialConsumption>> GetConsumptionsByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
+        => Task.FromResult<IEnumerable<PackingMaterialConsumption>>(ConsumptionRowsByDate.TryGetValue(date, out var rows) ? rows : new List<PackingMaterialConsumption>());
 }

@@ -39,17 +39,20 @@ test.describe('Classification History - Classify Invoice Button', () => {
     await expect(classifyButton).toBeVisible();
   });
 
-  test.skip('should show loading state when classifying invoice', async ({
+});
+
+// TODO(e2e-map): These tests expect a "Klasifikovat" modal that does not exist.
+// The button calls classifySingleInvoiceMutation.mutateAsync() directly — no modal, no form fields.
+// Options: (a) rewrite to test the button + loading-spinner behaviour, or (b) delete after product decision.
+// See docs/testing/e2e-test-map.md § core/invoice-classification-history-actions.spec.ts for details.
+test.describe.skip('Classification History - Classify Invoice Modal (not implemented in current UI)', () => {
+  test.beforeEach(async ({ page }) => {
+    await navigateToClassificationHistory(page);
+  });
+
+  test('should show loading state when classifying invoice', async ({
     page,
   }) => {
-    // SKIPPED: Incorrect test expectations - Klasifikovat button does NOT open a modal
-    // The button directly triggers classification via API call (classifySingleInvoiceMutation.mutateAsync)
-    // and shows a loading spinner on the button itself during processing.
-    // There is no modal that opens for classification - the button performs direct API action.
-    // Test expectations: Modal opens with form fields → Actual behavior: Direct API call with loading spinner
-    // See ClassificationHistoryPage.tsx line 100-111 (handleClassifyInvoice function)
-
-    // Arrange
     const rowCount = await getRowCount(page);
     if (rowCount === 0) {
       throw new Error(
@@ -57,30 +60,14 @@ test.describe('Classification History - Classify Invoice Button', () => {
       );
     }
 
-    // Act - click classify button
     await clickFirstRowClassifyButton(page);
-
-    // Wait for modal to appear
     await page.waitForSelector('div[role="dialog"]', { state: 'visible' });
 
-    // Assert - modal title should be visible
     const modalTitle = await getClassifyInvoiceModalTitle(page);
     expect(modalTitle).toBe('Rechnung klassifizieren');
   });
 
-  test.skip('should disable save button when form is invalid', async ({ page }) => {
-    // SKIPPED: Test expects modal form validation that doesn't exist in the application
-    // Root cause: The "Klasifikovat" button does NOT open a modal with form fields
-    // Application behavior (ClassificationHistoryPage.tsx line 100-111):
-    //   - Click button → Direct API call via classifySingleInvoiceMutation.mutateAsync(invoiceId)
-    //   - Loading spinner appears on the button itself during processing
-    //   - No modal, no form fields, no save button to validate
-    // Test expectations: Click button → Modal opens → Form fields appear → Save button validation
-    // This test (and tests #40-52) test modal form functionality that doesn't exist
-    // See FAILED_TESTS.md and WORKLOG.md Iteration 19 for detailed analysis
-    // TODO: Either remove this test or rewrite to test actual button click + API call behavior
-
-    // Arrange
+  test('should disable save button when form is invalid', async ({ page }) => {
     const rowCount = await getRowCount(page);
     if (rowCount === 0) {
       throw new Error(
@@ -88,29 +75,15 @@ test.describe('Classification History - Classify Invoice Button', () => {
       );
     }
 
-    // Act - open modal
     await openClassifyInvoiceModal(page);
 
-    // Assert - save button should be disabled initially (no selections made)
     const saveButton = page.locator('button:has-text("Speichern")');
     await expect(saveButton).toBeDisabled();
   });
 
-  test.skip('should successfully classify invoice when all required fields are filled', async ({
+  test('should successfully classify invoice when all required fields are filled', async ({
     page,
   }) => {
-    // SKIPPED: Test expects modal form functionality that doesn't exist in the application
-    // Root cause: The "Klasifikovat" button does NOT open a modal with form fields
-    // Application behavior (ClassificationHistoryPage.tsx line 100-111):
-    //   - Click button → Direct API call via classifySingleInvoiceMutation.mutateAsync(invoiceId)
-    //   - Loading spinner appears on the button itself during processing
-    //   - No modal, no form fields, no save button
-    // Test expectations: Click button → Modal opens → Fill form (rule type, template, department, description) → Click save → Modal closes
-    // This test (and tests #41-52) test modal form functionality that doesn't exist
-    // See FAILED_TESTS.md and WORKLOG.md Iterations 19-20 for detailed analysis
-    // TODO: Either remove this test or rewrite to test actual button click + API call behavior
-
-    // Arrange
     const rowCount = await getRowCount(page);
     if (rowCount === 0) {
       throw new Error(
@@ -118,45 +91,23 @@ test.describe('Classification History - Classify Invoice Button', () => {
       );
     }
 
-    // Act - open modal and fill form
     await openClassifyInvoiceModal(page);
 
-    // Select rule type
     await selectClassificationRuleType(page, 'Buchhaltungsvorlage');
-
-    // Select accounting template (first option after placeholder)
     await selectClassificationAccountingTemplate(page, 1);
 
-    // Optional: Select department if visible
     const departmentSelect = page.locator('select[name="department"]');
     if (await departmentSelect.isVisible()) {
       await selectClassificationDepartment(page, 1);
     }
 
-    // Fill description
     await fillClassificationDescription(page, 'E2E Test Classification');
-
-    // Click save
     await clickClassifyInvoiceSave(page);
 
-    // Assert - modal should close
     await page.waitForSelector('div[role="dialog"]', { state: 'hidden' });
-
-    // Success message or table refresh should occur
-    // (Implementation depends on actual behavior)
   });
 
-  test.skip('should handle classification errors gracefully', async ({ page }) => {
-    // SKIPPED: Modal form functionality doesn't exist in the application
-    // The "Klasifikovat" button does NOT open a modal with form validation and error handling.
-    // Instead, it directly triggers classification via API call: classifySingleInvoiceMutation.mutateAsync(invoiceId)
-    // Application behavior: Click button → Direct API call → Loading spinner on button (no modal, no form, no validation UI)
-    // Test expects: Click button → Modal opens → Try to save with invalid data → Error message appears
-    // See WORKLOG.md Iterations 19-21 for detailed analysis of this systematic issue.
-    // All tests #39-52 in this file test modal form functionality that doesn't exist.
-    // TODO: Remove test or rewrite to test actual API error handling behavior (e.g., API returns error, toast notification appears)
-
-    // Arrange
+  test('should handle classification errors gracefully', async ({ page }) => {
     const rowCount = await getRowCount(page);
     if (rowCount === 0) {
       throw new Error(
@@ -164,23 +115,15 @@ test.describe('Classification History - Classify Invoice Button', () => {
       );
     }
 
-    // Act - open modal
     await openClassifyInvoiceModal(page);
 
-    // Try to save without filling required fields
-    // (if form validation allows clicking save)
     const saveButton = page.locator('button:has-text("Speichern")');
 
-    // If save button is enabled (shouldn't be, but test error handling)
     if (await saveButton.isEnabled()) {
       await clickClassifyInvoiceSave(page);
-
-      // Assert - error message should appear or modal stays open
-      // (Implementation depends on actual error handling)
       await expect(page.locator('div[role="dialog"]')).toBeVisible();
     }
 
-    // Clean up - close modal
     await clickClassifyInvoiceCancel(page);
   });
 });
@@ -422,15 +365,12 @@ test.describe('Classification History - Rule Creation Modal', () => {
     }
   });
 
+  // TODO(e2e-map): "Vytvořit" button stays enabled even when required fields are empty (missing client-side validation).
+  // Fix RuleForm component to disable the button until required fields are filled, then unskip.
+  // See docs/testing/e2e-test-map.md § core/invoice-classification-history-actions.spec.ts.
   test.skip('should validate required fields before submission', async ({
     page,
   }) => {
-    // SKIPPED: Application bug - form validation not implemented on client side
-    // The "Vytvořit" (Create) button remains ENABLED even when required fields are empty
-    // Expected: Button should be disabled when required fields (Rule name, Rule type, Pattern, Accounting template) are not filled
-    // Actual: Button is enabled regardless of form state (class="disabled:opacity-50" exists but button not disabled)
-    // Validation might happen on server-side submit, but proper UX would disable submit button for incomplete forms
-    // TODO: Implement client-side form validation in RuleForm component before re-enabling this test
 
     // Arrange & Act
     await openRuleModal(page);

@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Flexi.Stock;
+using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
@@ -56,14 +57,14 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
                 var stockItem = stockItems.FirstOrDefault(s => s.ProductCode == consumptionItem.ProductCode);
                 var unitPrice = stockItem != null ? (double)stockItem.Price : 0;
 
-                // Round to 4 decimal places to eliminate double-precision drift that
-                // originates from (decimal -> double) conversions accumulating across
-                // FEFO lot allocations. Without this, Flexi rejects movements like
-                // 5800.0000000000009 > 5800.0 available. See PR #572 / commit fba995e1.
-                var amount = Math.Round(consumptionItem.Amount, 4);
+                // Truncate to 6 decimal places so we never submit more than available stock.
+                // Truncation (MidpointRounding.ToZero) is used deliberately — rounding up
+                // could produce a value exceeding the lot quantity on record in FlexiBee.
+                // See PR #572 / commit fba995e1.
+                var amount = RoundForFlexi(consumptionItem.Amount);
 
                 // Track cost per manufactured product
-                productCosts[consumptionItem.SourceProductCode] += unitPrice * amount;
+                productCosts[consumptionItem.SourceProductCode] += unitPrice * (double)amount;
 
                 stockMovementItems.Add(new StockItemsMovementUpsertRequestItemFlexiDto
                 {
@@ -97,11 +98,16 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
 
             if (consumptionResult != null && !consumptionResult.IsSuccess)
             {
+                var failedItems = warehouseGroup
+                    .Select(i => new FailedConsumptionItem(i.ProductCode, i.ProductName, i.LotNumber, i.Expiration, i.Amount))
+                    .ToList();
+
                 throw new FlexiManufactureException(
                     FlexiManufactureOperationKind.ConsumptionMovement,
                     $"Failed to create consumption stock movement for warehouse {warehouseId}",
                     warehouseId: warehouseId,
-                    rawFlexiError: consumptionResult.GetErrorMessage());
+                    rawFlexiError: consumptionResult.GetErrorMessage(),
+                    failedItems: failedItems);
             }
 
             var docCode = consumptionResult?.Result?.Results?.FirstOrDefault()?.Code;
@@ -134,8 +140,8 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
                 {
                     ProductCode = item.ProductCode,
                     ProductName = item.ProductName,
-                    Amount = (double)item.Amount,
-                    AmountIssued = (double)item.Amount,
+                    Amount = RoundForFlexi(item.Amount),
+                    AmountIssued = RoundForFlexi(item.Amount),
                     LotNumber = request.LotNumber,
                     Expiration = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
                     UnitPrice = unitPrice
@@ -205,10 +211,10 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
                 var stockItem = stockItems.FirstOrDefault(s => s.ProductCode == consumptionItem.ProductCode);
                 var unitPrice = stockItem != null ? (double)stockItem.Price : 0;
 
-                // Round to 4 decimal places — see SubmitConsolidatedConsumptionAsync above.
-                var amount = Math.Round(consumptionItem.Amount, 4);
+                // Truncate to 6 decimal places — see SubmitConsolidatedConsumptionAsync above.
+                var amount = RoundForFlexi(consumptionItem.Amount);
 
-                totalConsumptionCost += unitPrice * amount;
+                totalConsumptionCost += unitPrice * (double)amount;
 
                 stockMovementItems.Add(new StockItemsMovementUpsertRequestItemFlexiDto
                 {
@@ -242,16 +248,22 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
 
             if (consumptionResult != null && !consumptionResult.IsSuccess)
             {
+                var failedItems = warehouseGroup
+                    .Select(i => new FailedConsumptionItem(i.ProductCode, i.ProductName, i.LotNumber, i.Expiration, i.Amount))
+                    .ToList();
+
                 throw new FlexiManufactureException(
                     FlexiManufactureOperationKind.ConsumptionMovement,
                     $"Failed to create consumption stock movement for warehouse {warehouseId}",
                     warehouseId: warehouseId,
-                    rawFlexiError: consumptionResult.GetErrorMessage());
+                    rawFlexiError: consumptionResult.GetErrorMessage(),
+                    failedItems: failedItems);
             }
 
             capturedDocCode = consumptionResult?.Result?.Results?.FirstOrDefault()?.Code;
         }
 
+        // totalConsumptionCost is double (cost arithmetic) — rounds to 4dp for invoice precision, not stock precision.
         return new ConsumptionResult(Math.Round(totalConsumptionCost, 4), capturedDocCode);
     }
 
@@ -265,15 +277,15 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
             : FlexiStockClient.ProductsWarehouseId;
 
         var documentType = GetProductionDocumentType(request.ManufactureType);
-        var totalManufacturedAmount = request.Items.Sum(i => (double)i.Amount);
+        var totalManufacturedAmount = (double)request.Items.Sum(i => i.Amount);
         var manufacturedUnitPrice = totalManufacturedAmount > 0 ? totalConsumptionCost / totalManufacturedAmount : 0;
 
         var productMovementItems = request.Items.Select(item => new StockItemsMovementUpsertRequestItemFlexiDto
         {
             ProductCode = item.ProductCode,
             ProductName = item.ProductName,
-            Amount = (double)item.Amount,
-            AmountIssued = (double)item.Amount,
+            Amount = RoundForFlexi(item.Amount),
+            AmountIssued = RoundForFlexi(item.Amount),
             LotNumber = request.LotNumber,
             Expiration = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
             UnitPrice = manufacturedUnitPrice
@@ -306,6 +318,68 @@ internal sealed class FlexiManufactureDocumentService : IFlexiManufactureDocumen
 
         return productionResult?.Result?.Results?.FirstOrDefault()?.Code;
     }
+
+    public async Task<string?> SubmitDirectSemiProductOutputAsync(
+        SubmitManufactureClientRequest request,
+        CancellationToken cancellationToken)
+    {
+        var warehouseId = FlexiStockClient.SemiProductsWarehouseId;
+        var stockItems = await _stockClient.StockToDateAsync(request.Date, warehouseId, cancellationToken);
+        var stockItem = stockItems.FirstOrDefault(s => s.ProductCode == request.DirectSemiProductOutputCode);
+        var unitPrice = stockItem != null ? (double)stockItem.Price : 0;
+
+        var amount = RoundForFlexi(request.DirectSemiProductOutputAmount);
+
+        var movementItem = new StockItemsMovementUpsertRequestItemFlexiDto
+        {
+            ProductCode = request.DirectSemiProductOutputCode!,
+            ProductName = request.DirectSemiProductOutputName ?? request.DirectSemiProductOutputCode!,
+            Amount = amount,
+            AmountIssued = amount,
+            LotNumber = request.LotNumber,
+            Expiration = request.ExpirationDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            UnitPrice = unitPrice,
+        };
+
+        var discardRequest = new StockItemsMovementUpsertRequestFlexiDto
+        {
+            CreatedBy = request.CreatedBy,
+            AccountingDate = request.Date,
+            IssueDate = request.Date,
+            StockItems = new List<StockItemsMovementUpsertRequestItemFlexiDto> { movementItem },
+            Description = request.ManufactureInternalNumber,
+            DocumentTypeCode = WarehouseDocumentType_OutboundSemiProduct,
+            StockMovementDirection = StockMovementDirection.Out,
+            Note = request.ManufactureOrderCode,
+            WarehouseId = warehouseId.ToString(),
+        };
+
+        var result = await _stockMovementClient.SaveAsync(discardRequest, cancellationToken);
+
+        if (result != null && !result.IsSuccess)
+        {
+            List<FailedConsumptionItem> failedItems =
+            [
+                new(
+                    request.DirectSemiProductOutputCode!,
+                    request.DirectSemiProductOutputName ?? request.DirectSemiProductOutputCode!,
+                    request.LotNumber,
+                    request.ExpirationDate,
+                    request.DirectSemiProductOutputAmount)
+            ];
+
+            throw new FlexiManufactureException(
+                FlexiManufactureOperationKind.ConsumptionMovement,
+                "Failed to create discard stock movement for direct semiproduct output",
+                warehouseId: warehouseId,
+                rawFlexiError: result.GetErrorMessage(),
+                failedItems: failedItems);
+        }
+
+        return result?.Result?.Results?.FirstOrDefault()?.Code;
+    }
+
+    private static decimal RoundForFlexi(decimal x) => Math.Round(x, 6, MidpointRounding.ToZero);
 
     private static string GetProductionDocumentType(ErpManufactureType manufactureType)
     {

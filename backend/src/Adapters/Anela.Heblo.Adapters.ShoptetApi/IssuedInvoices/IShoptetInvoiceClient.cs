@@ -10,4 +10,6 @@ public interface IShoptetInvoiceClient
         CancellationToken ct = default);
 
     Task<ShoptetInvoiceDto?> GetInvoiceAsync(string code, CancellationToken ct = default);
+
+    Task<string> GetInvoiceRawJsonAsync(string code, CancellationToken ct = default);
 }

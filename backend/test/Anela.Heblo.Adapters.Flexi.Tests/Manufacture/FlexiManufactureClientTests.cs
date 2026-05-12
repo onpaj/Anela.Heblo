@@ -141,13 +141,13 @@ public class FlexiManufactureClientTests
     }
 
     [Fact]
-    public async Task SubmitManufactureAsync_Product_ConsumptionAmountsRoundedToFourDecimals()
+    public async Task SubmitManufactureAsync_Product_ConsumptionAmountsTruncatedToSixDecimals()
     {
         // Arrange — template: 5800.0 of Bisabolol per 1 unit of ConfidentBar.
         // Requesting 1.0000000000001m units forces (decimal -> double) drift:
         // the FEFO allocator computes 5800.0 * (double)1.0000000000001m which
-        // produces something like 5800.0000000000009 — more than 4 decimal places.
-        // Without Math.Round, this gets posted to Flexi and gets rejected.
+        // produces something like 5800.0000000000009 — more than 6 decimal places.
+        // Without truncation, this gets posted to Flexi and gets rejected.
         SetupSuccessfulManufacture(
             ManufactureTestData.Products.ConfidentBar,
             ManufactureTestData.Materials.Bisabolol,
@@ -162,19 +162,19 @@ public class FlexiManufactureClientTests
         await _client.SubmitManufactureAsync(request);
 
         // Assert — every Out-direction stock movement must have all amounts
-        // rounded to exactly 4 decimal places (amount == Math.Round(amount, 4)).
+        // truncated to exactly 6 decimal places (truncation, not rounding).
         _mockStockMovementClient.Verify(
             m => m.SaveAsync(
                 It.Is<StockItemsMovementUpsertRequestFlexiDto>(req =>
                     req.StockMovementDirection == StockMovementDirection.Out &&
-                    req.StockItems.All(i => i.Amount == Math.Round((double)i.Amount!, 4)) &&
-                    req.StockItems.All(i => i.AmountIssued == Math.Round((double)i.AmountIssued!, 4))),
+                    req.StockItems.All(i => i.Amount == Math.Round(i.Amount, 6, MidpointRounding.ToZero)) &&
+                    req.StockItems.All(i => i.AmountIssued == Math.Round(i.AmountIssued!.Value, 6, MidpointRounding.ToZero))),
                 It.IsAny<CancellationToken>()),
             Times.AtLeastOnce);
     }
 
     [Fact]
-    public async Task SubmitManufactureAsync_SemiProduct_ConsumptionAmountsRoundedToFourDecimals()
+    public async Task SubmitManufactureAsync_SemiProduct_ConsumptionAmountsTruncatedToSixDecimals()
     {
         // Arrange — SemiProduct path uses SubmitConsumptionAsync (aggregated).
         SetupSuccessfulManufacture(
@@ -190,15 +190,68 @@ public class FlexiManufactureClientTests
         // Act
         await _client.SubmitManufactureAsync(request);
 
-        // Assert — same rounding invariant on the semi-product path.
+        // Assert — same 6 decimal places (truncation) invariant on the semi-product path.
         _mockStockMovementClient.Verify(
             m => m.SaveAsync(
                 It.Is<StockItemsMovementUpsertRequestFlexiDto>(req =>
                     req.StockMovementDirection == StockMovementDirection.Out &&
-                    req.StockItems.All(i => i.Amount == Math.Round((double)i.Amount!, 4)) &&
-                    req.StockItems.All(i => i.AmountIssued == Math.Round((double)i.AmountIssued!, 4))),
+                    req.StockItems.All(i => i.Amount == Math.Round(i.Amount, 6, MidpointRounding.ToZero)) &&
+                    req.StockItems.All(i => i.AmountIssued == Math.Round(i.AmountIssued!.Value, 6, MidpointRounding.ToZero))),
                 It.IsAny<CancellationToken>()),
             Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task SubmitManufactureAsync_LotAmountWithSixDecimalPlaces_IsNotTruncatedOrExpanded()
+    {
+        // Arrange — this is the exact original bug scenario:
+        // CatalogLot.Amount = 6.597599m was being drifted via double arithmetic to
+        // 6.5975999999999999 or rounded up to 6.5976 before submission to FlexiBee.
+        // The lot quantity must survive the full pipeline without any drift.
+        var ingredient = ManufactureTestData.Materials.Bisabolol;
+
+        // Template: ingredient amount 6.597599 per 10 units, so RequiredAmount = 6.597599m exactly.
+        // This matches the lot quantity — all of it is consumed, preserving the exact decimal value.
+        var template = ManufactureTestData.CreateTemplate(
+            ManufactureTestData.Products.ConfidentBar, 10.0,
+            (ingredient, 6.597599, true)); // hasLots: true → FEFO path
+
+        _mockTemplateService
+            .Setup(x => x.GetManufactureTemplateAsync(ManufactureTestData.Products.ConfidentBar.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+
+        SetupStockDataForIngredients((ingredient, 100m, 10m, hasLots: true));
+
+        // Single lot whose Amount has exactly 6 decimal places
+        var lots = new List<CatalogLot>
+        {
+            ManufactureTestData.CreateLot(ingredient, 6.597599m, "LOT-EXACT6DP", new DateOnly(2025, 6, 1))
+        };
+
+        _mockLotsClient
+            .Setup(x => x.GetAsync(ingredient.Code, 0, 0, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(lots);
+
+        StockItemsMovementUpsertRequestFlexiDto? capturedRequest = null;
+        _mockStockMovementClient
+            .Setup(x => x.SaveAsync(
+                It.Is<StockItemsMovementUpsertRequestFlexiDto>(r => r.StockMovementDirection == StockMovementDirection.Out),
+                It.IsAny<CancellationToken>()))
+            .Callback<StockItemsMovementUpsertRequestFlexiDto, CancellationToken>((req, _) => capturedRequest = req)
+            .ReturnsAsync((StockItemsMovementUpsertRequestFlexiDto _, CancellationToken _) => null!);
+
+        var request = ManufactureTestData.CreateManufactureRequest(
+            ManufactureTestData.Products.ConfidentBar, amount: 10m);
+        request.ManufactureType = ErpManufactureType.Product;
+
+        // Act
+        await _client.SubmitManufactureAsync(request);
+
+        // Assert — the exact lot quantity must survive the round-trip without drift
+        Assert.NotNull(capturedRequest);
+        var item = capturedRequest!.StockItems.Single(i => i.LotNumber == "LOT-EXACT6DP");
+        Assert.Equal(6.597599m, item.Amount);
+        Assert.Equal(6.597599m, item.AmountIssued);
     }
 
     #endregion
@@ -295,8 +348,8 @@ public class FlexiManufactureClientTests
         _mockStockMovementClient.Verify(x => x.SaveAsync(
             It.Is<StockItemsMovementUpsertRequestFlexiDto>(req =>
                 req.StockMovementDirection == StockMovementDirection.Out &&
-                req.StockItems.Any(i => i.ProductCode == ManufactureTestData.Materials.Bisabolol.Code && i.Amount == 10.0) &&
-                req.StockItems.Any(i => i.ProductCode == ManufactureTestData.Materials.Glycerol.Code && i.Amount == 6.0)),
+                req.StockItems.Any(i => i.ProductCode == ManufactureTestData.Materials.Bisabolol.Code && i.Amount == 10.0m) &&
+                req.StockItems.Any(i => i.ProductCode == ManufactureTestData.Materials.Glycerol.Code && i.Amount == 6.0m)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -421,7 +474,7 @@ public class FlexiManufactureClientTests
                 req.StockItems.Any(i =>
                     i.ProductCode == ManufactureTestData.Materials.Bisabolol.Code &&
                     i.LotNumber == "LOT-001" &&
-                    i.Amount == 5.0)),
+                    i.Amount == 5.0m)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -465,9 +518,9 @@ public class FlexiManufactureClientTests
             It.Is<StockItemsMovementUpsertRequestFlexiDto>(req =>
                 req.StockMovementDirection == StockMovementDirection.Out &&
                 req.StockItems.Count(i => i.ProductCode == ManufactureTestData.Materials.Bisabolol.Code) == 3 &&
-                req.StockItems.Any(i => i.LotNumber == "LOT-001" && i.Amount == 5.0) &&
-                req.StockItems.Any(i => i.LotNumber == "LOT-002" && i.Amount == 5.0) &&
-                req.StockItems.Any(i => i.LotNumber == "LOT-003" && i.Amount == 2.0)),
+                req.StockItems.Any(i => i.LotNumber == "LOT-001" && i.Amount == 5.0m) &&
+                req.StockItems.Any(i => i.LotNumber == "LOT-002" && i.Amount == 5.0m) &&
+                req.StockItems.Any(i => i.LotNumber == "LOT-003" && i.Amount == 2.0m)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -541,7 +594,7 @@ public class FlexiManufactureClientTests
                 req.StockItems.Any(i =>
                     i.ProductCode == ManufactureTestData.Materials.Bisabolol.Code &&
                     i.LotNumber == null &&
-                    i.Amount == 5.0)),
+                    i.Amount == 5.0m)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -1106,6 +1159,87 @@ public class FlexiManufactureClientTests
         result.SemiProductIssueForProductDocCode.Should().NotBeNullOrEmpty();
         result.MaterialIssueForProductDocCode.Should().BeNull();
         result.ProductReceiptDocCode.Should().NotBeNullOrEmpty();
+    }
+
+    #endregion
+
+    #region Direct Semiproduct Output Tests
+
+    [Fact]
+    public async Task SubmitManufactureAsync_WithDirectSemiproductOutput_CreatesDiscardDocument()
+    {
+        // Arrange — request has a single product plus direct semiproduct output
+        var request = ManufactureTestData.CreateManufactureRequest(
+            ManufactureTestData.Products.ConfidentBar, 10m);
+        request.ManufactureType = ErpManufactureType.Product;
+        request.DirectSemiProductOutputCode = ManufactureTestData.SemiProducts.SilkBar.Code;
+        request.DirectSemiProductOutputName = ManufactureTestData.SemiProducts.SilkBar.Name;
+        request.DirectSemiProductOutputAmount = 500m;
+
+        SetupSuccessfulManufacture(
+            ManufactureTestData.Products.ConfidentBar,
+            ManufactureTestData.Materials.Bisabolol, 5.0);
+
+        // Act
+        var result = await _client.SubmitManufactureAsync(request);
+
+        // Assert — 3 stock movements: 1 consumption + 1 production + 1 discard
+        VerifyStockMovementsCreated(times: 3);
+
+        // Verify the discard document is V-VYDEJ-POLOTOVAR from warehouse 20
+        _mockStockMovementClient.Verify(x => x.SaveAsync(
+            It.Is<StockItemsMovementUpsertRequestFlexiDto>(req =>
+                req.DocumentTypeCode == "V-VYDEJ-POLOTOVAR" &&
+                req.StockMovementDirection == StockMovementDirection.Out &&
+                req.WarehouseId == FlexiStockClient.SemiProductsWarehouseId.ToString() &&
+                req.StockItems.Count == 1 &&
+                req.StockItems[0].ProductCode == ManufactureTestData.SemiProducts.SilkBar.Code &&
+                req.StockItems[0].Amount == 500.0m &&
+                req.StockItems[0].LotNumber == "LOT123"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SubmitManufactureAsync_WithoutDirectSemiproductOutput_DoesNotCreateDiscardDocument()
+    {
+        // Arrange — no direct output
+        var request = ManufactureTestData.CreateManufactureRequest(
+            ManufactureTestData.Products.ConfidentBar, 10m);
+        request.ManufactureType = ErpManufactureType.Product;
+
+        SetupSuccessfulManufacture(
+            ManufactureTestData.Products.ConfidentBar,
+            ManufactureTestData.Materials.Bisabolol, 5.0);
+
+        // Act
+        var result = await _client.SubmitManufactureAsync(request);
+
+        // Assert — only 2 stock movements: 1 consumption + 1 production (no discard)
+        VerifyStockMovementsCreated(times: 2);
+        result.DirectSemiProductOutputDocCode.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SubmitManufactureAsync_WithDirectSemiproductOutput_CapturesDocCode()
+    {
+        // Arrange
+        var request = ManufactureTestData.CreateManufactureRequest(
+            ManufactureTestData.Products.ConfidentBar, 10m);
+        request.ManufactureType = ErpManufactureType.Product;
+        request.DirectSemiProductOutputCode = ManufactureTestData.SemiProducts.SilkBar.Code;
+        request.DirectSemiProductOutputName = ManufactureTestData.SemiProducts.SilkBar.Name;
+        request.DirectSemiProductOutputAmount = 500m;
+
+        SetupSuccessfulManufacture(
+            ManufactureTestData.Products.ConfidentBar,
+            ManufactureTestData.Materials.Bisabolol, 5.0);
+        SetupStockMovementsWithDocCodes();
+
+        // Act
+        var result = await _client.SubmitManufactureAsync(request);
+
+        // Assert — the discard doc code should be V-VYDEJ-POLOTOVAR's code
+        result.DirectSemiProductOutputDocCode.Should().Be("DOC-SP-OUT-001");
     }
 
     #endregion

@@ -1,8 +1,13 @@
+using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.Photobank;
+using Anela.Heblo.Domain.Features.DataQuality;
+using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.Leaflet;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
@@ -80,11 +85,37 @@ public class ApplicationDbContext : DbContext
     public DbSet<KnowledgeBaseChunk> KnowledgeBaseChunks { get; set; } = null!;
     public DbSet<KnowledgeBaseQuestionLog> KnowledgeBaseQuestionLogs { get; set; } = null!;
 
+    // Leaflet module
+    public DbSet<LeafletDocument> LeafletDocuments { get; set; } = null!;
+    public DbSet<LeafletChunk> LeafletChunks { get; set; } = null!;
+    public DbSet<LeafletGeneration> LeafletGenerations { get; set; } = null!;
+
+    // Article module
+    public DbSet<Article> Articles { get; set; } = null!;
+    public DbSet<ArticleSource> ArticleSources { get; set; } = null!;
+    public DbSet<ArticleGenerationStep> ArticleGenerationSteps { get; set; } = null!;
+
     // Grid Layouts module
     public DbSet<GridLayout> GridLayouts { get; set; } = null!;
 
     // Marketing Invoices module
     public DbSet<ImportedMarketingTransaction> ImportedMarketingTransactions { get; set; } = null!;
+
+    // Data Quality module
+    public DbSet<DqtRun> DqtRuns { get; set; } = null!;
+    public DbSet<InvoiceDqtResult> InvoiceDqtResults { get; set; } = null!;
+
+    // Photobank
+    public DbSet<PhotobankIndexRoot> PhotobankIndexRoots { get; set; } = null!;
+    public DbSet<Photo> Photos { get; set; } = null!;
+    public DbSet<Tag> PhotobankTags { get; set; } = null!;
+    public DbSet<PhotoTag> PhotoTags { get; set; } = null!;
+    public DbSet<TagRule> PhotobankTagRules { get; set; } = null!;
+
+    // Marketing Calendar module
+    public DbSet<MarketingAction> MarketingActions { get; set; } = null!;
+    public DbSet<MarketingActionProduct> MarketingActionProducts { get; set; } = null!;
+    public DbSet<MarketingActionFolderLink> MarketingActionFolderLinks { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -50,31 +50,17 @@ RUN dotnet publish backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj \
     -o /app/publish \
     --force
 
-# Install Playwright and browsers in the build stage
-RUN dotnet tool install --global Microsoft.Playwright.CLI \
-    && export PATH="$PATH:/root/.dotnet/tools" \
-    && playwright install chromium \
-    && playwright install-deps
-
 # Stage 3: Runtime - ASP.NET Core serving React + API
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
-# Install system dependencies for Playwright
+# Install system dependencies (libfontconfig1 + libfreetype6 required by SkiaSharp)
 RUN apt-get update && apt-get install -y \
     tzdata \
     curl \
     wget \
-    libnss3 \
-    libatk-bridge2.0-0 \
-    libdrm2 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    libgbm1 \
-    libgtk-3-0 \
-    libglib2.0-0 \
-    libasound2 \
+    libfontconfig1 \
+    libfreetype6 \
     && ln -sf /usr/share/zoneinfo/Europe/Prague /etc/localtime \
     && echo "Europe/Prague" > /etc/timezone \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -85,21 +71,14 @@ COPY --from=backend-build /app/publish ./
 # Copy built React frontend to wwwroot (ASP.NET Core serves static files)
 COPY --from=frontend-build /app/frontend/build ./wwwroot
 
-# Copy Playwright browsers from build stage
-COPY --from=backend-build /root/.cache/ms-playwright /opt/ms-playwright
-
 # Configure ASP.NET Core
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV TZ=Europe/Prague
-ENV PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos "" --uid 1001 appuser
 RUN chown -R appuser:appuser /app
-
-# Make Playwright browsers accessible to appuser
-RUN chown -R appuser:appuser /opt/ms-playwright
 
 USER appuser
 

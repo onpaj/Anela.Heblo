@@ -27,7 +27,7 @@ public class LowStockAlertTile : ITile
 
     public string Title => "K přeskladnění (S/R/T)";
     public string Description => "Produkty s nízkou zásobou na základě průměrných prodejů";
-    public TileSize Size => TileSize.Medium;
+    public TileSize Size => TileSize.Small;
     public TileCategory Category => TileCategory.Warehouse;
     public bool DefaultEnabled => true;
     public bool AutoShow => true;

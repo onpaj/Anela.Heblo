@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Features.Configuration;
+using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Application.Features.Analytics;
 using Anela.Heblo.Application.Features.GridLayouts;
 using Anela.Heblo.Application.Features.MarketingInvoices;
@@ -13,14 +14,19 @@ using Anela.Heblo.Application.Features.Invoices;
 using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.KnowledgeBase;
+using Anela.Heblo.Application.Features.Article;
+using Anela.Heblo.Application.Features.Leaflet;
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.Journal;
+using Anela.Heblo.Application.Features.Marketing;
 using Anela.Heblo.Application.Features.Logistics;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture;
 using Anela.Heblo.Application.Features.Manufacture;
 using Anela.Heblo.Application.Features.OrgChart;
 using Anela.Heblo.Application.Features.PackingMaterials;
+using Anela.Heblo.Application.Features.DataQuality;
+using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.UserManagement;
 using Anela.Heblo.Xcc.Services.Dashboard;
@@ -37,6 +43,9 @@ public static class ApplicationModule
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment? environment = null)
     {
+        // Register shared RAG infrastructure
+        services.AddSharedRagModule();
+
         // Register MediatR
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ApplicationModule).Assembly));
 
@@ -56,6 +65,7 @@ public static class ApplicationModule
         services.AddPurchaseModule();
         services.AddFinancialOverviewModule(configuration);
         services.AddJournalModule();
+        services.AddMarketingModule(configuration);
         services.AddManufactureModule(configuration);
         services.AddTransportModule();
         services.AddGiftPackageManufactureModule();
@@ -65,11 +75,15 @@ public static class ApplicationModule
         services.AddPackingMaterialsModule();
         services.AddInvoicesModule();
         services.AddKnowledgeBaseModule(configuration);
+        services.AddLeafletModule(configuration);
+        services.AddArticleModule(configuration);
         services.AddExpeditionListModule(configuration);
         services.AddExpeditionListArchiveModule();
         services.AddShoptetOrdersModule(configuration);
         services.AddGridLayoutsModule();
         services.AddMarketingInvoicesModule();
+        services.AddDataQualityModule();
+        services.AddPhotobankModule(configuration);
         // services.AddOrdersModule();
 
         return services;

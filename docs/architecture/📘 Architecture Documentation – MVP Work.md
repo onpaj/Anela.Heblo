@@ -16,7 +16,7 @@ Backend API	ASP.NET Core (.NET 8), MediatR + Controllers, REST
 Auth	MS Entra ID (OIDC), Claims-based roles
 Database	PostgreSQL (EF Core Migrations)
 Background Tasks	Hangfire
-Integration	ABRA (custom API client), Shoptet (Playwright-based)
+Integration	ABRA (custom API client), Shoptet (REST API via `Anela.Heblo.Adapters.ShoptetApi`)
 Observability	Application Insights
 Deployment	Docker, GitHub Environments, .NET Environments (on-prem now, Azure later)
 
@@ -41,7 +41,7 @@ Unifies product and material data across systems. Provides:
 	•	Purchase, sales, and consumption history
 	•	Price & description metadata
 Sources:
-	•	Products/goods → Shoptet (via Playwright)
+	•	Products/goods → Shoptet (via REST API)
 	•	Materials → ABRA (via custom client)
 	•	Descriptions/local data → App DB
 
@@ -72,7 +72,7 @@ Sources:
 ⸻
 
 🧾 Invoice Automation
-	•	Periodically scrapes Shoptet for invoices (Playwright)
+	•	Periodically fetches Shoptet invoices via REST API
 	•	Pushes data into ABRA Flexi via custom API
 	•	Errors shown in Admin dashboard
 	•	Manual re-trigger supported

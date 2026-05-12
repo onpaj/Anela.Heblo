@@ -9,7 +9,7 @@ public class PackingMaterialConfiguration : IEntityTypeConfiguration<PackingMate
 {
     public void Configure(EntityTypeBuilder<PackingMaterial> builder)
     {
-        builder.ToTable("PackingMaterial", "dbo");
+        builder.ToTable("PackingMaterials", "public");
 
         builder.HasKey(e => e.Id);
 
@@ -39,6 +39,6 @@ public class PackingMaterialConfiguration : IEntityTypeConfiguration<PackingMate
 
         // Index for efficient name searches
         builder.HasIndex(e => e.Name)
-            .HasDatabaseName("IX_PackingMaterial_Name");
+            .HasDatabaseName("IX_PackingMaterials_Name");
     }
 }

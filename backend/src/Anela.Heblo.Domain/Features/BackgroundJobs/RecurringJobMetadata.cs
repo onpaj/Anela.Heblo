@@ -31,7 +31,12 @@ public class RecurringJobMetadata
     public bool DefaultIsEnabled { get; init; } = true;
 
     /// <summary>
+    /// Default timezone for cron expressions
+    /// </summary>
+    public const string DefaultTimeZoneId = "Europe/Prague";
+
+    /// <summary>
     /// Timezone for cron expression (defaults to Europe/Prague)
     /// </summary>
-    public string TimeZoneId { get; init; } = "Europe/Prague";
+    public string TimeZoneId { get; init; } = DefaultTimeZoneId;
 }

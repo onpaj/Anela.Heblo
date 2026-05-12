@@ -4,16 +4,17 @@ This document defines the modular structure of E2E tests, module boundaries, and
 
 ## Module Overview
 
-The E2E test suite is organized into 6 logical modules to enable parallel execution in CI/CD:
+The E2E test suite is organized into 7 logical modules to enable parallel execution in CI/CD:
 
 | Module | Test Count | Purpose | Estimated Runtime |
 |--------|-----------|---------|-------------------|
 | **catalog** | 9 | Catalog page functionality | 2-3 min |
-| **issued-invoices** | 6 | Issued invoices management | 2 min |
+| **issued-invoices** | 5 | Issued invoices management | 2 min |
 | **stock-operations** | 9 | Stock operations workflow | 2-3 min |
 | **transport** | 7 | Transport box management | 2-3 min |
-| **manufacturing** | 4 | Manufacturing orders & batches | 1-2 min |
-| **core** | 10 | Core features & navigation | 2 min |
+| **manufacturing** | 5 | Manufacturing orders & batches | 1-2 min |
+| **core** | 8 | Core features & navigation | 2 min |
+| **marketing** | 4 | Marketing calendar & actions | 2-3 min |
 
 ## Module Definitions
 
@@ -45,7 +46,6 @@ The E2E test suite is organized into 6 logical modules to enable parallel execut
 
 **Scope:**
 - Invoice filtering and search
-- Invoice import modal
 - Navigation between invoice views
 - Pagination
 - Sorting invoices
@@ -53,7 +53,6 @@ The E2E test suite is organized into 6 logical modules to enable parallel execut
 
 **Test Files:**
 - `filters.spec.ts` - Invoice filtering functionality
-- `import-modal.spec.ts` - Invoice import workflow
 - `navigation.spec.ts` - Navigation within issued invoices
 - `pagination.spec.ts` - Invoice list pagination
 - `sorting.spec.ts` - Invoice sorting
@@ -113,12 +112,14 @@ The E2E test suite is organized into 6 logical modules to enable parallel execut
 - Batch planning error handling
 - Manufacturing order creation
 - Order state transitions
+- Manufacture order protocol PDF generation
 
 **Test Files:**
 - `batch-planning-error-handling.spec.ts` - Error handling in batch planning
 - `batch-planning-workflow.spec.ts` - Complete batch planning workflow
 - `order-creation.spec.ts` - Creating manufacturing orders
 - `order-state-return.spec.ts` - Order state transitions
+- `protocol.spec.ts` - Manufacture order protocol PDF generation
 
 ### 6. Core Module (`core/`)
 
@@ -131,20 +132,32 @@ The E2E test suite is organized into 6 logical modules to enable parallel execut
 - Authentication flows
 - Invoice classification history
 - Recurring jobs management
-- Gift package disassembly
-- Debug pages
 
 **Test Files:**
 - `changelog.spec.ts` - Changelog page functionality
 - `dashboard.spec.ts` - Dashboard functionality
-- `debug-transport-page.spec.ts` - Debug transport page
-- `gift-package-disassembly.spec.ts` - Gift package disassembly workflow
 - `invoice-classification-history.spec.ts` - Invoice classification history
 - `invoice-classification-history-actions.spec.ts` - Classification history actions
 - `invoice-classification-history-filters.spec.ts` - Classification history filters
 - `recurring-jobs-management.spec.ts` - Recurring jobs management
 - `sidebar-navigation.spec.ts` - Sidebar navigation
 - `staging-auth.spec.ts` - Staging authentication
+
+### 7. Marketing Module (`marketing/`)
+
+**Purpose:** Tests for the Marketing calendar and actions management, including calendar view, action creation, and grid view.
+
+**Scope:**
+- Marketing calendar view (month/week display)
+- Marketing action creation
+- Marketing actions grid (seznam) view
+- Page loading and initial state
+
+**Test Files:**
+- `calendar-view.spec.ts` - Marketing calendar functionality
+- `create-record.spec.ts` - Creating new marketing actions
+- `grid-view.spec.ts` - Marketing actions grid (seznam) view
+- `loading.spec.ts` - Page loading and initial state
 
 ## Module Boundaries & Isolation
 
@@ -235,6 +248,7 @@ Run the specific module to ensure tests execute correctly:
 ./scripts/run-playwright-tests.sh transport
 ./scripts/run-playwright-tests.sh manufacturing
 ./scripts/run-playwright-tests.sh core
+./scripts/run-playwright-tests.sh marketing
 
 # Run by pattern (searches across all modules)
 ./scripts/run-playwright-tests.sh auth
@@ -256,6 +270,7 @@ strategy:
       - transport
       - manufacturing
       - core
+      - marketing
 ```
 
 ## Performance Characteristics
@@ -265,13 +280,14 @@ strategy:
 | Module | Test Count | Estimated Runtime |
 |--------|-----------|-------------------|
 | catalog | 9 | 2-3 min |
-| issued-invoices | 6 | 2 min |
+| issued-invoices | 5 | 2 min |
 | stock-operations | 9 | 2-3 min |
 | transport | 7 | 2-3 min |
-| manufacturing | 4 | 1-2 min |
-| core | 10 | 2 min |
+| manufacturing | 5 | 1-2 min |
+| core | 8 | 2 min |
+| marketing | 4 | 2-3 min |
 
-**Total Sequential:** 10-15 minutes
+**Total Sequential:** 12-18 minutes
 **Total Parallel (CI/CD):** 3-5 minutes (limited by slowest module)
 
 ### Speedup Calculation

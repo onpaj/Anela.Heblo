@@ -897,6 +897,14 @@ public class CatalogRepository : ICatalogRepository
     }
 
     public Task<CatalogAggregate?> GetByIdAsync(string id, CancellationToken cancellationToken = default) => Task.FromResult(CatalogData.SingleOrDefault(s => s.ProductCode == id));
+    public Task<IReadOnlyDictionary<string, CatalogAggregate>> GetByIdsAsync(IEnumerable<string> ids, CancellationToken cancellationToken = default)
+    {
+        var idSet = new HashSet<string>(ids);
+        IReadOnlyDictionary<string, CatalogAggregate> result = CatalogData
+            .Where(p => idSet.Contains(p.ProductCode))
+            .ToDictionary(p => p.ProductCode, p => p);
+        return Task.FromResult(result);
+    }
     public async Task<IEnumerable<CatalogAggregate>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var catalogData = await GetCatalogDataAsync();

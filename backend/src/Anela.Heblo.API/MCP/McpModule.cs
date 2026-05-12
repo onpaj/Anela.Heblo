@@ -17,7 +17,8 @@ public static class McpModule
             .WithTools<CatalogMcpTools>()
             .WithTools<ManufactureOrderMcpTools>()
             .WithTools<ManufactureBatchMcpTools>()
-            .WithTools<KnowledgeBaseTools>();
+            .WithTools<KnowledgeBaseTools>()
+            .WithTools<LeafletTools>();
 
         return services;
     }

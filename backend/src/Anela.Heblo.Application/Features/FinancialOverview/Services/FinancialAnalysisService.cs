@@ -45,18 +45,34 @@ public class FinancialAnalysisService : IFinancialAnalysisService
         _logger.LogInformation("Fetching financial overview for {Months} months, IncludeStock={IncludeStock}, ExcludedDepartments={ExcludedDepartments}, IncludeCurrentMonth={IncludeCurrentMonth}",
             months, includeStockData, excludedDepartments?.Count ?? 0, includeCurrentMonth);
 
-        // When departments are excluded or current month is requested, use real-time calculation.
-        // The cache stores pre-aggregated totals per completed month and cannot handle these cases.
-        if (excludedDepartments is { Count: > 0 } || includeCurrentMonth)
+        // Department filter always requires real-time (cache stores undivided totals per month)
+        if (excludedDepartments is { Count: > 0 })
         {
-            if (excludedDepartments is { Count: > 0 })
-                _logger.LogInformation("Department filter active ({Count} excluded), bypassing cache for real-time calculation",
-                    excludedDepartments.Count);
-
-            if (includeCurrentMonth)
-                _logger.LogInformation("Current month requested, bypassing cache for real-time calculation");
-
+            _logger.LogInformation("Department filter active ({Count} excluded), bypassing cache for real-time calculation",
+                excludedDepartments.Count);
             return await GetFinancialOverviewRealTimeAsync(months, includeStockData, excludedDepartments, includeCurrentMonth, cancellationToken);
+        }
+
+        // Current month requested without department filter: use hybrid path
+        // (cache for completed months + real-time for current partial month only)
+        if (includeCurrentMonth)
+        {
+            _logger.LogInformation("Current month requested, using hybrid calculation (cache + real-time current month only)");
+            try
+            {
+                var hybridCacheStatus = GetCacheStatus();
+                if (hybridCacheStatus.CachedMonthsCount == 0)
+                {
+                    _logger.LogInformation("Cache is empty, falling back to full real-time calculation for current month request");
+                    return await GetFinancialOverviewRealTimeAsync(months, includeStockData, null, true, cancellationToken);
+                }
+                return await GetHybridWithCurrentMonthAsync(months, includeStockData, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Hybrid current-month calculation failed, falling back to full real-time");
+                return await GetFinancialOverviewRealTimeAsync(months, includeStockData, null, true, cancellationToken);
+            }
         }
 
         try
@@ -245,6 +261,102 @@ public class FinancialAnalysisService : IFinancialAnalysisService
             _logger.LogError(ex, "Failed to refresh monthly data for {Year}-{Month:D2}",
                 monthStart.Year, monthStart.Month);
         }
+    }
+
+    private async Task<GetFinancialOverviewResponse> GetHybridWithCurrentMonthAsync(
+        int months,
+        bool includeStockData,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var currentMonthStart = new DateTime(now.Year, now.Month, 1);
+        var currentMonthEnd = now.Date;
+
+        _logger.LogInformation(
+            "Fetching current month ({Year}-{Month:D2}) data in real-time, serving {CompletedMonths} completed month(s) from cache",
+            now.Year, now.Month, months - 1);
+
+        // Fetch only the current (partial) month in parallel — narrow query instead of full date range
+        var debitItemsTask = _ledgerService.GetLedgerItems(
+            currentMonthStart,
+            currentMonthEnd,
+            debitAccountPrefix: new[] { "5", "6" },
+            cancellationToken: cancellationToken);
+
+        var creditItemsTask = _ledgerService.GetLedgerItems(
+            currentMonthStart,
+            currentMonthEnd,
+            creditAccountPrefix: new[] { "5", "6" },
+            cancellationToken: cancellationToken);
+
+        var stockChangesTask = includeStockData
+            ? _stockValueService.GetStockValueChangesAsync(currentMonthStart, currentMonthEnd, cancellationToken)
+            : Task.FromResult<IReadOnlyList<MonthlyStockChange>>(new List<MonthlyStockChange>());
+
+        await Task.WhenAll(debitItemsTask, creditItemsTask, stockChangesTask);
+
+        var debitItems = await debitItemsTask;
+        var creditItems = await creditItemsTask;
+        var stockChanges = await stockChangesTask;
+
+        // Compute income/expenses for current month
+        var debit5 = debitItems.Where(i => i.DebitAccountNumber?.StartsWith("5") == true).Sum(i => i.Amount);
+        var credit5 = creditItems.Where(i => i.CreditAccountNumber?.StartsWith("5") == true).Sum(i => i.Amount);
+        var expenses = debit5 - credit5;
+
+        var credit6 = creditItems.Where(i => i.CreditAccountNumber?.StartsWith("6") == true).Sum(i => i.Amount);
+        var debit6 = debitItems.Where(i => i.DebitAccountNumber?.StartsWith("6") == true).Sum(i => i.Amount);
+        var income = credit6 - debit6;
+        var financialBalance = income - expenses;
+
+        var stockChange = stockChanges.FirstOrDefault();
+        var currentMonthDto = new MonthlyFinancialDataDto
+        {
+            Year = now.Year,
+            Month = now.Month,
+            MonthYearDisplay = $"{now.Month:D2}/{now.Year}",
+            Income = income,
+            Expenses = expenses,
+            FinancialBalance = financialBalance,
+            StockChanges = includeStockData && stockChange != null ? new StockChangeDto
+            {
+                Materials = stockChange.StockChanges.Materials,
+                SemiProducts = stockChange.StockChanges.SemiProducts,
+                Products = stockChange.StockChanges.Products
+            } : null,
+            TotalStockValueChange = includeStockData ? (stockChange?.TotalStockValueChange ?? 0) : null,
+            TotalBalance = includeStockData
+                ? financialBalance + (stockChange?.TotalStockValueChange ?? 0)
+                : null
+        };
+
+        // Get cached data for completed months (months-1 most recent completed months)
+        var completedData = months > 1
+            ? GetCachedFinancialOverview(months - 1, includeStockData).Data
+            : new List<MonthlyFinancialDataDto>();
+
+        // Merge: current month first (most recent), then completed months in descending order
+        var allData = new List<MonthlyFinancialDataDto> { currentMonthDto };
+        allData.AddRange(completedData);
+
+        _logger.LogInformation(
+            "Hybrid financial overview ready: 1 real-time month + {CompletedCount} cached month(s)",
+            completedData.Count);
+
+        return new GetFinancialOverviewResponse
+        {
+            Data = allData,
+            Summary = new FinancialSummaryDto
+            {
+                TotalIncome = allData.Sum(d => d.Income),
+                TotalExpenses = allData.Sum(d => d.Expenses),
+                TotalBalance = allData.Sum(d => d.FinancialBalance),
+                AverageMonthlyIncome = allData.Any() ? allData.Average(d => d.Income) : 0,
+                AverageMonthlyExpenses = allData.Any() ? allData.Average(d => d.Expenses) : 0,
+                AverageMonthlyBalance = allData.Any() ? allData.Average(d => d.FinancialBalance) : 0,
+                StockSummary = includeStockData ? CreateStockSummary(allData) : null
+            }
+        };
     }
 
     private GetFinancialOverviewResponse GetCachedFinancialOverview(int months, bool includeStockData)

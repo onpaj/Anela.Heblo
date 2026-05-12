@@ -37,6 +37,18 @@ public class GetRecurringJobsListHandler : IRequestHandler<GetRecurringJobsListR
         var jobDtos = _mapper.Map<List<RecurringJobDto>>(jobs);
 
         var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
+
+        TimeZoneInfo? tz = null;
+        try
+        {
+            tz = TimeZoneInfo.FindSystemTimeZoneById(RecurringJobMetadata.DefaultTimeZoneId);
+        }
+        catch (TimeZoneNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Timezone '{TimeZoneId}' not found on host, NextRunAt will be null for all jobs",
+                RecurringJobMetadata.DefaultTimeZoneId);
+        }
+
         foreach (var dto in jobDtos)
         {
             if (!dto.IsEnabled)
@@ -45,11 +57,19 @@ public class GetRecurringJobsListHandler : IRequestHandler<GetRecurringJobsListR
                 continue;
             }
 
+            if (tz is null)
+            {
+                dto.NextRunAt = null;
+                continue;
+            }
+
             try
             {
-                dto.NextRunAt = DateTime.SpecifyKind(
-                    CrontabSchedule.Parse(dto.CronExpression).GetNextOccurrence(utcNow),
-                    DateTimeKind.Utc);
+                var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(utcNow, tz);
+                var nextLocal = CrontabSchedule.Parse(dto.CronExpression).GetNextOccurrence(nowLocal);
+                var nextUtc = TimeZoneInfo.ConvertTimeToUtc(
+                    DateTime.SpecifyKind(nextLocal, DateTimeKind.Unspecified), tz);
+                dto.NextRunAt = DateTime.SpecifyKind(nextUtc, DateTimeKind.Utc);
             }
             catch (CrontabException ex)
             {

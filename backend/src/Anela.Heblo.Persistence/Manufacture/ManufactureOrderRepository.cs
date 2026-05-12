@@ -117,6 +117,7 @@ public class ManufactureOrderRepository : IManufactureOrderRepository
             .Include(x => x.SemiProduct)
             .Include(x => x.Products)
             .Include(x => x.Notes.OrderByDescending(n => n.CreatedAt))
+            .Include(x => x.ConditionsReadings.OrderBy(r => r.RecordedAt))
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 

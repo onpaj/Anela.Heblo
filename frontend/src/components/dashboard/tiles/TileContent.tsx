@@ -6,8 +6,11 @@ import { ProductionTile } from './ProductionTile';
 import { CountTile } from './CountTile';
 import { InventorySummaryTile } from './InventorySummaryTile';
 import { ManualActionRequiredTile } from './ManualActionRequiredTile';
+import { ConditionsTile } from './ConditionsTile';
 import { PurchaseOrdersInTransitTile } from './PurchaseOrdersInTransitTile';
 import { LowStockAlertTile } from './LowStockAlertTile';
+import { DataQualityTile } from './DataQualityTile';
+import { DqtYesterdayStatusTile } from './DqtYesterdayStatusTile';
 import { DefaultTile } from './DefaultTile';
 import { Truck, PackageCheck, Package, FileText, Landmark, ClipboardList, Beaker, AlertTriangle, Gift } from 'lucide-react';
 
@@ -28,6 +31,8 @@ export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
     case 'nextdayproduction':
       return <ProductionTile data={tile.data} title={tile.title || 'Zítra'} />;
     // Manufacture tiles
+    case 'manufactureconditions':
+      return <ConditionsTile data={tile.data} />;
     case 'manualactionrequired':
       return <ManualActionRequiredTile data={tile.data} tileCategory={tile.category} tileTitle={tile.title} />;
     // Purchase tiles
@@ -65,6 +70,11 @@ export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
     // Low stock alert tile
     case 'lowstockalert':
       return <LowStockAlertTile data={tile.data} />;
+    // Data quality tile
+    case 'dataqualitystatus':
+      return <DataQualityTile data={tile.data} />;
+    case 'dqtyesterdaystatus':
+      return <DqtYesterdayStatusTile data={tile.data} />;
     default:
       return <DefaultTile data={tile.data} />;
   }

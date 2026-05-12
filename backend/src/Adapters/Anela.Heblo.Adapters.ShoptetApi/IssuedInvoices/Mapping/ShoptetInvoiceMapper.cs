@@ -5,6 +5,17 @@ namespace Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices.Mapping;
 
 public class ShoptetInvoiceMapper
 {
+    // Shoptet rounds invoice totals to the nearest full crown (max ±0.50 Kč),
+    // so any difference within 1 crown is a rounding artefact, not a data discrepancy.
+    private const decimal RoundingToleranceCrowns = 1m;
+
+    private static readonly HashSet<string> AggregateDiscountTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "discount-coupon",
+        "volume-discount",
+        "gift",
+    };
+
     private readonly BillingMethodMapper _billingMapper;
     private readonly ShippingMethodMapper _shippingMapper;
 
@@ -17,24 +28,60 @@ public class ShoptetInvoiceMapper
     public IssuedInvoiceDetail Map(ShoptetInvoiceDto src)
     {
         var billingAddress = MapAddress(src.BillingAddress);
-        var deliveryAddress = src.DeliveryAddress != null
-            ? MapAddress(src.DeliveryAddress)
-            : billingAddress;
+        var deliveryAddress = src.DeliveryAddress != null ? MapAddress(src.DeliveryAddress) : billingAddress;
 
         var currencyCode = src.Price?.CurrencyCode ?? "CZK";
-        var items = src.Items.Select(item => MapItem(item, currencyCode)).ToList();
 
-        // Mirror Playwright's IssuedInvoiceMapping price calculation:
-        //   WithVat    = sum of TotalWithVat for taxable items only (VatRate != "none")
-        //              — mirrors Playwright's PriceHighSum which excludes zero-VAT items (e.g. billing fees)
-        //              — the REST price.withVat total includes zero-rate items; PriceHighSum does not
-        //   WithoutVat = sum of per-unit prices for ALL items (ItemPrice.WithoutVat = unitWithoutVat)
-        //              — Playwright sums ItemPrice.WithoutVat (per-unit) not TotalWithoutVat (line total)
-        //   Vat        = WithVat - WithoutVat (derived, consistent with Playwright)
-        var price = MapInvoicePrice(src.Price);
-        price.WithVat = items.Where(i => i.ItemPrice.VatRate != "none").Sum(i => i.ItemPrice.TotalWithVat);
-        price.WithoutVat = items.Sum(i => i.ItemPrice.WithoutVat);
-        price.Vat = items.Sum(i => i.ItemPrice.Vat);
+        var products = src.Items
+            .Where(i => !IsAggregateDiscount(i.ItemType))
+            .Select(item => MapItem(item, currencyCode))
+            .ToList();
+
+        var aggregateWithoutVat = src.Items
+            .Where(i => IsAggregateDiscount(i.ItemType))
+            .Sum(i => ParseDecimal(i.ItemPrice?.WithoutVat ?? i.UnitPrice?.WithoutVat));
+        var aggregateWithVat = src.Items
+            .Where(i => IsAggregateDiscount(i.ItemType))
+            .Sum(i => ParseDecimal(i.ItemPrice?.WithVat ?? i.UnitPrice?.WithVat));
+
+        if ((aggregateWithoutVat != 0m || aggregateWithVat != 0m) && products.Count > 0)
+        {
+            var baseSum = products.Sum(p => p.ItemPrice.TotalWithoutVat);
+            if (baseSum != 0m)
+            {
+                foreach (var p in products)
+                {
+                    var weight = p.ItemPrice.TotalWithoutVat / baseSum;
+                    var newTotalWithoutVat = Math.Round(p.ItemPrice.TotalWithoutVat + weight * aggregateWithoutVat, 2);
+                    var newTotalWithVat = Math.Round(p.ItemPrice.TotalWithVat + weight * aggregateWithVat, 2);
+
+                    p.ItemPrice = new InvoicePrice
+                    {
+                        TotalWithoutVat = newTotalWithoutVat,
+                        TotalWithVat = newTotalWithVat,
+                        Vat = newTotalWithVat - newTotalWithoutVat,
+                        WithoutVat = p.Amount != 0m ? Math.Round(newTotalWithoutVat / p.Amount, 4) : p.ItemPrice.WithoutVat,
+                        WithVat = p.Amount != 0m ? Math.Round(newTotalWithVat / p.Amount, 4) : p.ItemPrice.WithVat,
+                        VatRate = p.ItemPrice.VatRate,
+                        CurrencyCode = p.ItemPrice.CurrencyCode,
+                    };
+                }
+            }
+        }
+
+        var headerPrice = MapInvoicePrice(src.Price);   // WithVat is toPay (post-rounding) or withVat fallback
+        var totalWithVat = products.Where(i => i.ItemPrice.VatRate != "none").Sum(i => i.ItemPrice.TotalWithVat);
+        var totalWithoutVat = products.Sum(i => i.ItemPrice.TotalWithoutVat);
+
+        // Use the header's effective WithVat (toPay when within rounding range, otherwise withVat) as the
+        // authoritative total when it is close to the item-sum. This handles the "Zaokrouhlení" (rounding)
+        // line: items sum to e.g. 14321.50 and toPay/header = 14322.00 — Flexi reports 14322.00.
+        // headerPrice.WithVat was already resolved by MapInvoicePrice (toPay if within RoundingToleranceCrowns
+        // of withVat, else withVat). This second guard handles the deposit-adjusted case where even the
+        // header's chosen value diverges from items by ≥ 1 Kč — fall back to the item sum to preserve
+        // parity with the Playwright adapter.
+        var headerDiff = Math.Abs(headerPrice.WithVat - totalWithVat);
+        var effectiveTotalWithVat = headerDiff < RoundingToleranceCrowns ? headerPrice.WithVat : totalWithVat;
 
         return new IssuedInvoiceDetail
         {
@@ -45,15 +92,27 @@ public class ShoptetInvoiceMapper
             DueDate = ParseDate(src.DueDate),
             TaxDate = ParseDate(src.TaxDate),
             BillingMethod = _billingMapper.Map(src.BillingMethod?.Name),
-            ShippingMethod = ResolveShippingFromItemNames(items.Select(i => i.Name)),
+            ShippingMethod = ResolveShippingFromItemNames(products.Select(i => i.Name)),
             VatPayer = !string.IsNullOrEmpty(src.BillingAddress?.VatId),
             BillingAddress = billingAddress,
             DeliveryAddress = deliveryAddress,
             Customer = MapCustomer(src.BillingAddress),
-            Price = price,
-            Items = items,
+            Price = new InvoicePrice
+            {
+                WithVat = effectiveTotalWithVat,
+                WithoutVat = totalWithoutVat,
+                TotalWithVat = effectiveTotalWithVat,
+                TotalWithoutVat = totalWithoutVat,
+                Vat = effectiveTotalWithVat - totalWithoutVat,
+                CurrencyCode = headerPrice.CurrencyCode,
+                ExchangeRate = headerPrice.ExchangeRate,
+            },
+            Items = products,
         };
     }
+
+    private static bool IsAggregateDiscount(string? itemType) =>
+        itemType is not null && AggregateDiscountTypes.Contains(itemType);
 
     /// <summary>
     /// Converts a Shoptet REST API numeric VAT rate string (e.g. "21.00") to a Pohoda named rate
@@ -155,20 +214,38 @@ public class ShoptetInvoiceMapper
             return new InvoicePrice();
         }
 
-        _ = decimal.TryParse(src.WithVat, System.Globalization.NumberStyles.Any,
-            System.Globalization.CultureInfo.InvariantCulture, out var withVat);
-        _ = decimal.TryParse(src.WithoutVat, System.Globalization.NumberStyles.Any,
-            System.Globalization.CultureInfo.InvariantCulture, out var withoutVat);
+        var withVat = ParseDecimal(src.WithVat);
+        var withoutVat = ParseDecimal(src.WithoutVat);
+
+        // Use toPay (post-rounding "Částka k úhradě") as the authoritative with-VAT total only when
+        // it differs from withVat by a rounding-sized amount (< 1 Kč). Shoptet invoices with a
+        // "Zaokrouhlení" line expose the pre-rounding sum as withVat and the final rounded total as
+        // toPay. Flexi's sumCelkem equals toPay, so we must use toPay here to avoid a false DQT
+        // mismatch on "Celkem s DPH".
+        // When toPay differs by ≥ 1 Kč (e.g. invoice with advance deposit already paid), fall back
+        // to withVat so we compare the full invoice total, not the residual amount due.
+        var toPay = ParseDecimal(src.ToPay);
+        var roundingDifference = Math.Abs(toPay - withVat);
+        var effectiveWithVat = src.ToPay is not null && toPay > 0m && roundingDifference < RoundingToleranceCrowns
+            ? toPay
+            : withVat;
 
         return new InvoicePrice
         {
-            WithVat = withVat,
+            WithVat = effectiveWithVat,
             WithoutVat = withoutVat,
-            Vat = withVat - withoutVat,
+            Vat = effectiveWithVat - withoutVat,
             CurrencyCode = src.CurrencyCode ?? "CZK",
             ExchangeRate = decimal.TryParse(src.ExchangeRate, System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out var exchangeRate) ? exchangeRate : 1m,
         };
+    }
+
+    private static decimal ParseDecimal(string? value)
+    {
+        _ = decimal.TryParse(value, System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out var d);
+        return d;
     }
 
     private static IssuedInvoiceDetailItem MapItem(ShoptetInvoiceItemDto src, string currencyCode)
@@ -183,6 +260,16 @@ public class ShoptetInvoiceMapper
         _ = decimal.TryParse(src.UnitPrice?.Vat, System.Globalization.NumberStyles.Any,
             System.Globalization.CultureInfo.InvariantCulture, out var unitVat);
 
+        // Fold per-line discount: priceRatio is the fraction of unitPrice the customer actually paid.
+        // priceRatio=0.78 → 22% discount; priceRatio=0.0 → 100% free; priceRatio=1.0 (or null) → no discount.
+        // Use >= 0 to include the priceRatio=0.0 free-item case (real-world: invoice 126000039).
+        _ = decimal.TryParse(src.PriceRatio, System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out var parsedRatio);
+        var ratio = src.PriceRatio is not null && parsedRatio >= 0m && parsedRatio < 1m ? parsedRatio : 1m;
+        var discountedWithoutVat = unitWithoutVat * ratio;
+        var discountedWithVat = unitWithVat * ratio;
+        var discountedVat = unitVat * ratio;
+
         return new IssuedInvoiceDetailItem
         {
             Code = src.Code ?? string.Empty,
@@ -191,11 +278,11 @@ public class ShoptetInvoiceMapper
             AmountUnit = src.AmountUnit,
             ItemPrice = new InvoicePrice
             {
-                WithoutVat = unitWithoutVat,
-                Vat = unitVat,
-                WithVat = unitWithVat,
-                TotalWithoutVat = amount * unitWithoutVat,
-                TotalWithVat = amount * unitWithVat,
+                WithoutVat = discountedWithoutVat,
+                Vat = discountedVat,
+                WithVat = discountedWithVat,
+                TotalWithoutVat = Math.Round(amount * discountedWithoutVat, 2),
+                TotalWithVat = Math.Round(amount * discountedWithVat, 2),
                 VatRate = MapVatRate(src.UnitPrice?.VatRate),
                 CurrencyCode = currencyCode,
             },

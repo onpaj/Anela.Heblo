@@ -33,7 +33,7 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             var embedding = new Vector(chunk.Embedding);
             await using var cmd = new NpgsqlCommand(
                 """
-                INSERT INTO dbo."KnowledgeBaseChunks" ("Id", "DocumentId", "ChunkIndex", "Content", "Summary", "DocumentType", "Embedding")
+                INSERT INTO public."KnowledgeBaseChunks" ("Id", "DocumentId", "ChunkIndex", "Content", "Summary", "DocumentType", "Embedding")
                 VALUES (@id, @documentId, @chunkIndex, @content, @summary, @documentType, @embedding)
                 ON CONFLICT ("Id") DO NOTHING
                 """,
@@ -124,8 +124,8 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
             SELECT c."Id", c."DocumentId", c."ChunkIndex", c."Content",
                    1 - (c."Embedding" <=> @embedding) AS "Score",
                    d."Filename", d."SourcePath"
-            FROM dbo."KnowledgeBaseChunks" c
-            JOIN dbo."KnowledgeBaseDocuments" d ON c."DocumentId" = d."Id"
+            FROM public."KnowledgeBaseChunks" c
+            JOIN public."KnowledgeBaseDocuments" d ON c."DocumentId" = d."Id"
             ORDER BY c."Embedding" <=> @embedding
             LIMIT @topK
             """,
@@ -176,13 +176,22 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
     public async Task<KnowledgeBaseDocument?> GetDocumentByHashAsync(string contentHash, CancellationToken ct = default)
     {
         return await _context.KnowledgeBaseDocuments
+            .AsNoTracking()
             .FirstOrDefaultAsync(d => d.ContentHash == contentHash, ct);
     }
 
     public async Task<KnowledgeBaseDocument?> GetDocumentBySourcePathAsync(string sourcePath, CancellationToken ct = default)
     {
         return await _context.KnowledgeBaseDocuments
+            .AsNoTracking()
             .FirstOrDefaultAsync(d => d.SourcePath == sourcePath, ct);
+    }
+
+    public async Task<KnowledgeBaseDocument?> GetDocumentByGraphItemIdAsync(string driveId, string graphItemId, CancellationToken ct = default)
+    {
+        return await _context.KnowledgeBaseDocuments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.DriveId == driveId && d.GraphItemId == graphItemId, ct);
     }
 
     public async Task DeleteDocumentAsync(Guid documentId, CancellationToken ct = default)
@@ -216,6 +225,15 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
         await _context.KnowledgeBaseDocuments
             .Where(d => d.Id == documentId)
             .ExecuteUpdateAsync(s => s.SetProperty(d => d.SourcePath, newSourcePath), ct);
+    }
+
+    public async Task UpdateDocumentGraphItemIdAsync(Guid documentId, string driveId, string graphItemId, CancellationToken ct = default)
+    {
+        await _context.KnowledgeBaseDocuments
+            .Where(d => d.Id == documentId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(d => d.DriveId, driveId)
+                .SetProperty(d => d.GraphItemId, graphItemId), ct);
     }
 
     public async Task SaveChangesAsync(CancellationToken ct = default)

@@ -93,8 +93,14 @@ Development:           Production/Test:
 - Migrations are stored in `backend/src/Anela.Heblo.Persistence/Migrations/`.
 - Single `ApplicationDbContext` in `Anela.Heblo.Persistence` (initially).
 - Migration naming convention: `AddXyzTable`, `AddIndexToProductName`, etc.
-- **Migrations are applied manually** – not part of automated CI/CD.
+- **Migrations apply automatically on Production startup; Development, Test, and Staging remain manual.**
 - Future evolution: Can move to module-specific DbContexts as needed.
+
+### Applied Migrations
+
+| Migration | Date | Description | Apply command |
+|---|---|---|---|
+| `20260430170922_AddLeafletStore` | 2026-04-30 | Adds `LeafletDocuments` and `LeafletChunks` tables with `vector(1536)` embedding column and HNSW index (m=16, ef_construction=64). Requires pgvector extension (already enabled). | `dotnet ef database update --project backend/src/Anela.Heblo.Persistence --startup-project backend/src/Anela.Heblo.API` |
 
 ---
 

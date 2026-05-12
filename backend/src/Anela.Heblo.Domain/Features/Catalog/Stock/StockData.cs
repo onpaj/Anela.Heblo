@@ -19,7 +19,7 @@ public record StockData
     /// <summary>
     /// Total stock including both available stock and reserve stock
     /// </summary>
-    public decimal Total => Available + Reserve + Quarantine;
+    public decimal Total => Available + Reserve; //  + Quarantine; // 2025-05-12 Quarantine should be out of all stock
 
     /// <summary>
     /// Effective stock including both available and ordered stock for purchase planning

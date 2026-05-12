@@ -1,33 +1,29 @@
-using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Application.Shared.Rag;
 
 namespace Anela.Heblo.Application.Features.KnowledgeBase;
 
-public class KnowledgeBaseOptions
+public class KnowledgeBaseOptions : RagFeatureOptions
 {
-    /// <summary>OpenAI embedding model used to vectorise chunks and queries.</summary>
-    public string EmbeddingModel { get; set; } = "text-embedding-3-large";
+    public const string SectionName = "KnowledgeBase";
 
-    /// <summary>Dimension count of the chosen embedding model (must match the DB column width).</summary>
-    public int EmbeddingDimensions { get; set; } = 1536;
+    public KnowledgeBaseOptions()
+    {
+        QueryExpansionPrompt =
+            """
+            Jsi asistent kosmetické firmy Anela. Přepiš zákazníkův dotaz do strukturovaného
+            formátu vhodného pro sémantické vyhledávání v databázi zákaznických konverzací.
+            Vypiš POUZE relevantní položky (vynech kategorie bez obsahu):
 
-    /// <summary>Anthropic model used for AskQuestion answers and chunk/topic summarisation.</summary>
-    public string ChatModel { get; set; } = "claude-sonnet-4-6";
+            Problém: <co zákazník řeší, formuluj jako zákazníkův dotaz>
+            Kontext: <typ pleti, stávající rutina, situace>
+            Doporučení: <co by mohlo být doporučeno>
+            Ingredience: <účinné látky, složky>
 
-    /// <summary>Max tokens cap forwarded to the Anthropic API for every KB chat call.</summary>
-    public int ChatMaxTokens { get; set; } = 1024;
+            Dotaz:
+            """;
+    }
 
-    public List<OneDriveFolderMapping> OneDriveFolderMappings { get; set; } = [];
-    public int ChunkSize { get; set; } = 512;
-    public int ChunkOverlapTokens { get; set; } = 50;
     public int MaxRetrievedChunks { get; set; } = 5;
-
-    /// <summary>
-    /// Minimum cosine similarity score [0–1] for a chunk to be included in results.
-    /// Chunks below this threshold are discarded even if they are in the top-K.
-    /// Default 0.60 is intentionally below current observed average so nothing is
-    /// removed until pipeline improvements push good results up and noisy ones down.
-    /// </summary>
-    public double MinSimilarityScore { get; set; } = 0.60;
 
     /// <summary>
     /// Regex patterns stripped from documents before chunking.
@@ -54,17 +50,17 @@ public class KnowledgeBaseOptions
     /// </summary>
     public string SummarizationPrompt { get; set; } =
         """
-        Jsi asistent extrahující klíčová data z úryvku zákaznického chatu 
+        Jsi asistent extrahující klíčová data z úryvku zákaznického chatu
         kosmetické firmy Anela. Extrahuj data vhodná pro sémantické vyhledávání.
         Vypiš POUZE relevantní položky v tomto formátu (vynech kategorie bez obsahu):
-        
+
         Problém: <co zákazník řeší, formuluj jako zákazníkův dotaz>
         Kontext: <typ pleti, stávající rutina, situace>
         Doporučení: <co bylo doporučeno a proč>
         Produkty: <názvy produktů>
         Ingredience: <účinné látky, složky>
         Výsledek: <vyřešeno | nevyřešeno | eskalováno>
-        
+
         Text:
         """;
 
@@ -80,7 +76,7 @@ public class KnowledgeBaseOptions
         vhodná pro sémantické vyhledávání.
         Odpověz POUZE bloky níže – žádný nadpis, žádný úvod, žádný závěr.
         Každý blok začni PŘESNĚ značkou [TOPIC] na samostatném řádku (vynech kategorie bez obsahu):
-        
+
         [TOPIC]
         Problém: <co zákazník řeší, formuluj jako zákazníkův dotaz>
         Kontext: <typ pleti, stávající rutina, situace>
@@ -88,7 +84,7 @@ public class KnowledgeBaseOptions
         Produkty: <názvy produktů>
         Ingredience: <účinné látky, složky>
         Výsledek: <vyřešeno | nevyřešeno | eskalováno>
-        
+
         Konverzace:
         """;
 
@@ -102,38 +98,6 @@ public class KnowledgeBaseOptions
     /// before a fresh load from the catalog repository is triggered.
     /// </summary>
     public int ProductEnrichmentCacheTtlMinutes { get; set; } = 60;
-
-    /// <summary>
-    /// When true, user queries are rewritten into the structured summary format used
-    /// by stored embeddings before calling the embedding model (HyDE variant).
-    /// Set to false to skip the LLM call and embed the raw query directly.
-    /// </summary>
-    public bool QueryExpansionEnabled { get; set; } = true;
-
-    /// <summary>
-    /// Model ID used for query expansion. A lite/fast model is sufficient — the task
-    /// is purely mechanical (rewrite short informal question into structured template).
-    /// Defaults to claude-haiku-4-5 to minimise latency and cost.
-    /// </summary>
-    public string QueryExpansionModel { get; set; } = "claude-haiku-4-5-20251001";
-
-    /// <summary>
-    /// Prompt prepended to the user query when requesting query expansion.
-    /// The raw query is appended after a newline.
-    /// </summary>
-    public string QueryExpansionPrompt { get; set; } =
-        """
-        Jsi asistent kosmetické firmy Anela. Přepiš zákazníkův dotaz do strukturovaného
-        formátu vhodného pro sémantické vyhledávání v databázi zákaznických konverzací.
-        Vypiš POUZE relevantní položky (vynech kategorie bez obsahu):
-
-        Problém: <co zákazník řeší, formuluj jako zákazníkův dotaz>
-        Kontext: <typ pleti, stávající rutina, situace>
-        Doporučení: <co by mohlo být doporučeno>
-        Ingredience: <účinné látky, složky>
-
-        Dotaz:
-        """;
 
     /// <summary>
     /// System prompt used by AskQuestionHandler. Supports {context}, {products} and {query} placeholders.

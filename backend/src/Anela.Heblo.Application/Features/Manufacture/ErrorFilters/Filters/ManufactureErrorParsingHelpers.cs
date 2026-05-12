@@ -26,6 +26,17 @@ internal static class ManufactureErrorParsingHelpers
         return (required.Trim(), available.Trim());
     }
 
+    internal static string ExtractBetween(string text, string startMarker, string endMarker)
+    {
+        var start = text.IndexOf(startMarker, StringComparison.Ordinal);
+        if (start < 0)
+            return "?";
+
+        start += startMarker.Length;
+        var end = text.IndexOf(endMarker, start, StringComparison.Ordinal);
+        return end > start ? text[start..end].Trim() : "?";
+    }
+
     internal static string ExtractAfter(string text, string marker, string? terminator)
     {
         var start = text.IndexOf(marker, StringComparison.Ordinal);

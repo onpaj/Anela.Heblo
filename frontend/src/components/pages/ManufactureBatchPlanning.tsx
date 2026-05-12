@@ -58,6 +58,9 @@ const BatchPlanningCalculator: React.FC = () => {
   const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
   const [createdOrderDate, setCreatedOrderDate] = useState<Date | null>(null);
   
+  // Direct semiproduct amount (MultiPhase only): kg reserved as bulk sellable output
+  const [directSemiproductAmount, setDirectSemiproductAmount] = useState<number>(0);
+
   // State to track if recalculation is needed
   const [needsRecalculation, setNeedsRecalculation] = useState(false);
   
@@ -293,6 +296,7 @@ const BatchPlanningCalculator: React.FC = () => {
       fromDate: fromDateParam || fromDate,
       toDate: toDateParam || toDate,
       salesMultiplier: salesMultiplier,
+      directSemiproductAmount: directSemiproductAmount > 0 ? directSemiproductAmount : undefined,
     };
 
     // Add mode-specific parameters
@@ -329,7 +333,8 @@ const BatchPlanningCalculator: React.FC = () => {
       fromDate: fromDateParam || fromDate,
       toDate: toDateParam || toDate,
       salesMultiplier: salesMultiplier,
-      productConstraints: constraints
+      productConstraints: constraints,
+      directSemiproductAmount: directSemiproductAmount > 0 ? directSemiproductAmount : undefined,
     };
 
     // Add mode-specific parameters
@@ -356,6 +361,7 @@ const BatchPlanningCalculator: React.FC = () => {
     setMmqMultiplier(1.0);
     setTotalBatchSize(0);
     setTargetDaysCoverage(30);
+    setDirectSemiproductAmount(0);
     setInputMode('multiplier');
     setControlMode(BatchPlanControlMode.MmqMultiplier); // Reset to default mode
     // Clear constraints when changing product
@@ -476,7 +482,8 @@ const BatchPlanningCalculator: React.FC = () => {
         })),
         plannedDate: plannedDate,
         responsiblePerson: undefined,
-        manufactureType: response.manufactureType
+        manufactureType: response.manufactureType,
+        directSemiproductAmount: response.manufactureType !== ManufactureType.SinglePhase ? directSemiproductAmount : undefined,
       });
 
       const orderResponse = await createOrderMutation.mutateAsync(orderRequest);
@@ -944,6 +951,38 @@ const BatchPlanningCalculator: React.FC = () => {
                               </td>
                             </tr>
                           ))
+                        )}
+                        {/* Direct Semiproduct Amount row (MultiPhase only) */}
+                        {response?.manufactureType !== ManufactureType.SinglePhase && response?.manufactureType !== undefined && (
+                          <tr className="bg-amber-50 border-t-2 border-amber-200">
+                            <td className="px-4 py-3 text-sm font-mono text-amber-800">
+                              {response.semiproduct?.productCode}
+                            </td>
+                            <td className="px-4 py-3 text-sm font-medium text-amber-800">
+                              Přímý výstup
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-400">—</td>
+                            <td className="px-4 py-3 text-sm text-gray-400">—</td>
+                            <td className="px-4 py-3 text-sm text-gray-400">—</td>
+                            <td className="px-4 py-3 text-sm text-gray-400">—</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.1"
+                                  value={directSemiproductAmount}
+                                  onChange={(e) => {
+                                    setDirectSemiproductAmount(Number(e.target.value));
+                                    setNeedsRecalculation(true);
+                                  }}
+                                  className="w-20 px-2 py-1 text-sm border border-amber-300 bg-white text-amber-900 rounded focus:ring-amber-500 focus:border-amber-500 text-center"
+                                />
+                                <span className="text-sm text-amber-700">g</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-400">—</td>
+                          </tr>
                         )}
                       </tbody>
                     </table>

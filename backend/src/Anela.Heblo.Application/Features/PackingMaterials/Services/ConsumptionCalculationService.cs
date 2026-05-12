@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using Microsoft.Extensions.Logging;
@@ -7,91 +8,80 @@ namespace Anela.Heblo.Application.Features.PackingMaterials.Services;
 public class ConsumptionCalculationService : IConsumptionCalculationService
 {
     private readonly IPackingMaterialRepository _repository;
+    private readonly IIssuedInvoiceRepository _invoiceRepository;
     private readonly ILogger<ConsumptionCalculationService> _logger;
 
     public ConsumptionCalculationService(
         IPackingMaterialRepository repository,
+        IIssuedInvoiceRepository invoiceRepository,
         ILogger<ConsumptionCalculationService> logger)
     {
         _repository = repository;
+        _invoiceRepository = invoiceRepository;
         _logger = logger;
     }
 
-    public Task<decimal> CalculateConsumptionAsync(
-        PackingMaterial material,
-        int orderCount,
-        int productCount)
-    {
-        var consumption = material.ConsumptionType switch
-        {
-            ConsumptionType.PerOrder => material.ConsumptionRate * orderCount,
-            ConsumptionType.PerProduct => material.ConsumptionRate * productCount,
-            ConsumptionType.PerDay => material.ConsumptionRate, // Fixed amount per day
-            _ => throw new ArgumentOutOfRangeException(nameof(material.ConsumptionType))
-        };
-
-        _logger.LogDebug("Calculated consumption for material {MaterialId} ({MaterialName}): {Consumption} (Type: {Type}, Rate: {Rate}, Orders: {Orders}, Products: {Products})",
-            material.Id, material.Name, consumption, material.ConsumptionType, material.ConsumptionRate, orderCount, productCount);
-
-        return Task.FromResult(consumption);
-    }
-
-    public async Task<bool> ProcessDailyConsumptionAsync(
+    public async Task<ProcessDailyConsumptionResult> ProcessDailyConsumptionAsync(
         DateOnly processingDate,
-        int orderCount,
-        int productCount,
         CancellationToken cancellationToken = default)
     {
-        // Check if day already processed to prevent duplicates
         if (await HasDayAlreadyBeenProcessedAsync(processingDate, cancellationToken))
         {
             _logger.LogInformation("Daily consumption processing for {Date} already completed, skipping", processingDate);
-            return false;
+            return new ProcessDailyConsumptionResult(false, 0);
         }
 
-        _logger.LogInformation("Starting daily consumption processing for {Date} with {OrderCount} orders and {ProductCount} products",
-            processingDate, orderCount, productCount);
+        _logger.LogInformation("Starting daily consumption processing for {Date}", processingDate);
 
-        // Get all active materials
-        var materials = await _repository.GetAllAsync(cancellationToken);
+        var materials = (await _repository.GetAllWithAllocationsAsync(cancellationToken)).ToList();
+        var invoices = (await _invoiceRepository.GetHeadersByDateAsync(processingDate, cancellationToken)).ToList();
+
+        var allFactRows = new List<PackingMaterialConsumption>();
+        var decrementByMaterial = new Dictionary<PackingMaterial, decimal>();
+
         var processedCount = 0;
 
         foreach (var material in materials)
         {
-            try
+            var rows = BuildFactRows(material, invoices, processingDate);
+            var total = rows.Sum(r => r.Amount);
+
+            if (total > 0)
             {
-                var consumptionAmount = await CalculateConsumptionAsync(material, orderCount, productCount);
-
-                if (consumptionAmount > 0)
-                {
-                    // Calculate new quantity after consumption
-                    var newQuantity = Math.Max(0, material.CurrentQuantity - consumptionAmount);
-
-                    // Update quantity and log the consumption
-                    material.UpdateQuantity(newQuantity, processingDate, LogEntryType.AutomaticConsumption);
-
-                    await _repository.UpdateAsync(material, cancellationToken);
-                    processedCount++;
-
-                    _logger.LogInformation("Processed material {MaterialName}: consumed {Consumption}, new quantity: {NewQuantity}",
-                        material.Name, consumptionAmount, newQuantity);
-                }
-                else
-                {
-                    _logger.LogDebug("Skipping material {MaterialName}: no consumption calculated", material.Name);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing material {MaterialId} ({MaterialName}) for date {Date}",
-                    material.Id, material.Name, processingDate);
+                allFactRows.AddRange(rows);
+                decrementByMaterial[material] = total;
+                processedCount++;
             }
         }
+
+        foreach (var material in materials)
+        {
+            if (decrementByMaterial.TryGetValue(material, out var decrement))
+            {
+                var newQuantity = Math.Max(0, material.CurrentQuantity - decrement);
+                material.UpdateQuantity(newQuantity, processingDate, LogEntryType.AutomaticConsumption);
+
+                _logger.LogInformation("Processed material {MaterialName}: consumed {Consumption}, new quantity: {NewQuantity}",
+                    material.Name, decrement, newQuantity);
+            }
+        }
+
+        // Relies on EF change tracking — GetAllWithAllocationsAsync must NOT use AsNoTracking
+        if (processedCount == 0 && materials.Count > 0)
+        {
+            var marker = materials[0];
+            marker.UpdateQuantity(marker.CurrentQuantity, processingDate, LogEntryType.AutomaticConsumption);
+        }
+
+        if (allFactRows.Count > 0)
+            await _repository.AddConsumptionRowsAsync(allFactRows, cancellationToken);
+
         await _repository.SaveChangesAsync(cancellationToken);
+
         _logger.LogInformation("Completed daily consumption processing for {Date}. Processed {ProcessedCount} materials",
             processingDate, processedCount);
 
-        return true;
+        return new ProcessDailyConsumptionResult(true, processedCount);
     }
 
     public async Task<bool> HasDayAlreadyBeenProcessedAsync(
@@ -99,5 +89,29 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
         CancellationToken cancellationToken = default)
     {
         return await _repository.HasDailyProcessingBeenRunAsync(date, cancellationToken);
+    }
+
+    private static List<PackingMaterialConsumption> BuildFactRows(
+        PackingMaterial material,
+        List<IssuedInvoice> invoices,
+        DateOnly date)
+    {
+        return material.ConsumptionType switch
+        {
+            ConsumptionType.PerDay => new List<PackingMaterialConsumption>
+            {
+                new PackingMaterialConsumption(material.Id, date, ConsumptionType.PerDay, material.ConsumptionRate)
+            },
+            ConsumptionType.PerOrder => invoices
+                .Select(inv => new PackingMaterialConsumption(
+                    material.Id, date, ConsumptionType.PerOrder, material.ConsumptionRate, inv.Id))
+                .ToList(),
+            ConsumptionType.PerProduct => invoices
+                .Select(inv => new PackingMaterialConsumption(
+                    material.Id, date, ConsumptionType.PerProduct, material.ConsumptionRate * inv.ItemsCount, inv.Id))
+                .Where(r => r.Amount > 0)
+                .ToList(),
+            _ => throw new ArgumentOutOfRangeException(nameof(material.ConsumptionType))
+        };
     }
 }

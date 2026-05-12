@@ -1,3 +1,4 @@
+using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -37,6 +38,9 @@ public class FlexiIntegrationTestFixture : IDisposable
 
         // Add logging
         services.AddLogging();
+
+        // Add telemetry service (NoOp for testing)
+        services.AddScoped<ITelemetryService, NoOpTelemetryService>();
 
         ServiceProvider = services.BuildServiceProvider();
     }

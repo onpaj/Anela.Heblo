@@ -13,6 +13,14 @@ export const SemiProductSection: React.FC<SemiProductSectionProps> = ({
   editableSemiProductQuantity,
   onSemiProductQuantityChange,
 }) => {
+  const directRow = order.semiProduct?.productCode && order.products
+    ? order.products.find((p: any) => p.productCode === order.semiProduct.productCode)
+    : undefined;
+
+  const directQuantity = directRow
+    ? (directRow.actualQuantity ?? directRow.plannedQuantity ?? null)
+    : null;
+
   return (
     <div className="bg-blue-50 rounded-lg p-3">
       {order.semiProduct ? (
@@ -24,6 +32,11 @@ export const SemiProductSection: React.FC<SemiProductSectionProps> = ({
             <div className="text-sm text-gray-600">
               {order.semiProduct.productCode || "Bez kódu"}
             </div>
+            {directQuantity !== null && (
+              <div className="text-xs text-amber-700 mt-0.5">
+                z toho {directQuantity}g přímý výstup
+              </div>
+            )}
           </div>
           <div className="ml-2">
             {canEditFields ? (

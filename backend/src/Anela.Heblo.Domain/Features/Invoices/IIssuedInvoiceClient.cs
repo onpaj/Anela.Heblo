@@ -7,6 +7,7 @@ public interface IIssuedInvoiceClient
 {
     Task<string?> SaveAsync(IssuedInvoiceDetail invoiceDetail, CancellationToken cancellationToken = default);
     Task<IssuedInvoiceDetail> GetAsync(string invoiceId, CancellationToken cancellationToken = default);
+    Task<List<IssuedInvoiceDetail>> GetAllAsync(DateOnly from, DateOnly to, CancellationToken ct);
 }
 
 

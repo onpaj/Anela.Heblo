@@ -13,4 +13,9 @@ public class SubmitManufactureClientRequest
     public DateOnly? ExpirationDate { get; set; }
     public bool ValidateIngredientStock { get; set; } = false;
     public ResidueDistribution? ResidueDistribution { get; set; }
+
+    // Direct semiproduct output: bulk semiproduct sold as-is, needs a discard document
+    public string? DirectSemiProductOutputCode { get; set; }
+    public string? DirectSemiProductOutputName { get; set; }
+    public decimal DirectSemiProductOutputAmount { get; set; }
 }

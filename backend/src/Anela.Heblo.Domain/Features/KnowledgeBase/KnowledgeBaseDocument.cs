@@ -11,6 +11,8 @@ public class KnowledgeBaseDocument
     public DocumentType DocumentType { get; set; } = DocumentType.KnowledgeBase;
     public DateTime CreatedAt { get; set; }
     public DateTime? IndexedAt { get; set; }
+    public string? DriveId { get; set; }
+    public string? GraphItemId { get; set; }
 
     public ICollection<KnowledgeBaseChunk> Chunks { get; set; } = new List<KnowledgeBaseChunk>();
 }
@@ -25,5 +27,7 @@ public enum DocumentStatus
 public enum DocumentType
 {
     KnowledgeBase = 0,
-    Conversation = 1
+    Conversation = 1,
+    Leaflet = 2,
+    Article = 3
 }

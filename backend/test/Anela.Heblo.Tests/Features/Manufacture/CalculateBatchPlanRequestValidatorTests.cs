@@ -252,4 +252,64 @@ public class CalculateBatchPlanRequestValidatorTests
         // Assert
         result.ShouldHaveValidationErrorFor("ProductConstraints[0].FixedQuantity");
     }
+
+    [Fact]
+    public void Validate_NegativeDirectSemiproductAmount_FailsValidation()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.0,
+            DirectSemiproductAmount = -1.0
+        };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.DirectSemiproductAmount);
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(100.0)]
+    [InlineData(500.5)]
+    public void Validate_ValidDirectSemiproductAmount_PassesValidation(double amount)
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.0,
+            DirectSemiproductAmount = amount
+        };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.DirectSemiproductAmount);
+    }
+
+    [Fact]
+    public void Validate_NullDirectSemiproductAmount_PassesValidation()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.0,
+            DirectSemiproductAmount = null
+        };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.DirectSemiproductAmount);
+    }
 }

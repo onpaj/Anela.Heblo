@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockUpOperationsSumm
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using MockQueryable;
 using Moq;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Catalog;
@@ -18,7 +19,8 @@ public class GetStockUpOperationsSummaryHandlerTests
     public GetStockUpOperationsSummaryHandlerTests()
     {
         _repositoryMock = new Mock<IStockUpOperationRepository>();
-        _handler = new GetStockUpOperationsSummaryHandler(_repositoryMock.Object);
+        var logger = NullLogger<GetStockUpOperationsSummaryHandler>.Instance;
+        _handler = new GetStockUpOperationsSummaryHandler(_repositoryMock.Object, logger);
     }
 
     [Fact]
@@ -105,5 +107,41 @@ public class GetStockUpOperationsSummaryHandlerTests
         Assert.Equal(0, result.SubmittedCount);
         Assert.Equal(0, result.FailedCount);
         Assert.Equal(2, result.TotalInQueue);
+    }
+
+    [Fact]
+    public async Task Handle_CompletedState_IsExcludedAndFailedIsIncluded()
+    {
+        // Arrange — one operation per state. Completed must be excluded; Failed must be counted.
+        var request = new GetStockUpOperationsSummaryRequest();
+        var now = System.DateTime.UtcNow;
+
+        var pending = new StockUpOperation("GPM-Pending", "P1", 1, StockUpSourceType.GiftPackageManufacture, 1);
+
+        var submitted = new StockUpOperation("GPM-Submitted", "P2", 1, StockUpSourceType.GiftPackageManufacture, 1);
+        submitted.MarkAsSubmitted(now);
+
+        var completed = new StockUpOperation("GPM-Completed", "P3", 1, StockUpSourceType.GiftPackageManufacture, 1);
+        completed.MarkAsCompleted(now); // StockUpOperation.MarkAsCompleted can transition from Pending directly
+
+        var failed = new StockUpOperation("GPM-Failed", "P4", 1, StockUpSourceType.GiftPackageManufacture, 1);
+        failed.MarkAsSubmitted(now);
+        failed.MarkAsFailed(now, "boom");
+
+        var operations = new List<StockUpOperation> { pending, submitted, completed, failed };
+
+        _repositoryMock.Setup(r => r.GetAll())
+            .Returns(operations.BuildMock());
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert — Completed must contribute zero to every counter; Failed must be counted.
+        Assert.True(result.Success);
+        Assert.Equal(1, result.PendingCount);
+        Assert.Equal(1, result.SubmittedCount);
+        Assert.Equal(1, result.FailedCount);
+        Assert.Equal(2, result.TotalInQueue); // Pending + Submitted
+        Assert.Equal(3, result.PendingCount + result.SubmittedCount + result.FailedCount);
     }
 }

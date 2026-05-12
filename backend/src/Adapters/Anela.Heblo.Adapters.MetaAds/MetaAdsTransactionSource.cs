@@ -47,7 +47,7 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
 
         _logger.LogInformation(
             "MetaAds: fetching transactions for account {AccountId} from {From:yyyy-MM-dd} to {To:yyyy-MM-dd}",
-            _settings.AdAccountId, from, to);
+            _settings.AccountId, from, to);
 
         try
         {
@@ -82,7 +82,7 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
             _logger.LogError(
                 ex,
                 "MetaAds: HTTP error fetching transactions for account {AccountId} from {From:yyyy-MM-dd} to {To:yyyy-MM-dd}. StatusCode={StatusCode}",
-                _settings.AdAccountId, from, to, (int?)ex.StatusCode);
+                _settings.AccountId, from, to, (int?)ex.StatusCode);
             throw;
         }
 
@@ -108,7 +108,7 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
     }
 
     private string BuildInitialUrl() =>
-        $"https://graph.facebook.com/{_settings.ApiVersion}/{_settings.AdAccountId}/transactions" +
+        $"https://graph.facebook.com/{_settings.ApiVersion}/{_settings.AccountId}/transactions" +
         $"?fields=id,time,amount,currency,payment_type" +
         $"&access_token={_settings.AccessToken}";
 

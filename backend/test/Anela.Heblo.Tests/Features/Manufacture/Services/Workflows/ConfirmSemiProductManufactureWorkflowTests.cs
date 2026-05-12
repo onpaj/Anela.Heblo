@@ -112,6 +112,7 @@ public class ConfirmSemiProductManufactureWorkflowTests
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
         result.Message.Should().Contain("Chyba při aktualizaci množství");
+        result.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
 
         _mediatorMock.Verify(x => x.Send(It.IsAny<SubmitManufactureRequest>(), It.IsAny<CancellationToken>()), Times.Never);
         _mediatorMock.Verify(x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -164,6 +165,7 @@ public class ConfirmSemiProductManufactureWorkflowTests
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
         result.Message.Should().Contain("Chyba při změně stavu");
+        result.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
 
         _mediatorMock.Verify(x => x.Send(
             It.Is<UpdateManufactureOrderStatusRequest>(r =>
@@ -186,11 +188,12 @@ public class ConfirmSemiProductManufactureWorkflowTests
         // Act
         var result = await _workflow.ExecuteAsync(ValidOrderId, ValidQuantity, ValidChangeReason, cts.Token);
 
-        // Assert — OperationCanceledException is caught by the outer catch and returns a generic failure
-        // The workflow catches all exceptions and returns a failure result to avoid unhandled exceptions bubbling to the caller
+        // Assert — OperationCanceledException is caught by the specific catch and returns ErpGatewayError
+        // The workflow catches OperationCanceledException separately to distinguish ERP timeout from generic errors
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
         result.Message.Should().Be("Došlo k neočekávané chybě při potvrzení výroby polotovaru");
+        result.ErrorCode.Should().Be(ErrorCodes.ErpGatewayError);
 
         _loggerMock.Verify(
             x => x.Log(
@@ -217,6 +220,7 @@ public class ConfirmSemiProductManufactureWorkflowTests
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
         result.Message.Should().Be("Došlo k neočekávané chybě při potvrzení výroby polotovaru");
+        result.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
 
         _loggerMock.Verify(
             x => x.Log(
@@ -270,6 +274,34 @@ public class ConfirmSemiProductManufactureWorkflowTests
         capturedStatusRequest.FlexiDocSemiProductIssueForProduct.Should().BeNull();
         capturedStatusRequest.FlexiDocMaterialIssueForProduct.Should().BeNull();
         capturedStatusRequest.FlexiDocProductReceipt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_HappyPath_HasNullErrorCode()
+    {
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
+        var submitManufactureResponse = CreateSuccessfulSubmitManufactureResponse("ERP_SEMI_123");
+        var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
+        SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
+
+        var result = await _workflow.ExecuteAsync(ValidOrderId, ValidQuantity, ValidChangeReason, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.ErrorCode.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenOperationCancelled_ReturnsErpGatewayError()
+    {
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException("ERP timeout"));
+
+        var result = await _workflow.ExecuteAsync(ValidOrderId, ValidQuantity, ValidChangeReason, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ErpGatewayError);
     }
 
     #region Helper Methods
