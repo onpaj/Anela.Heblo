@@ -53,6 +53,7 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
 
     private async Task<ManufactureTemplate?> FetchAsync(string productCode, CancellationToken cancellationToken, FetchTimings timings)
     {
+        timings.FetchInvoked = true;
         var bomStopwatch = Stopwatch.StartNew();
         IEnumerable<BoMItemFlexiDto> bom;
         try
@@ -86,7 +87,6 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
         await Task.WhenAll(materialStockTask, semiProductsStockTask, productsStockTask);
         stockStopwatch.Stop();
         timings.StockMs = stockStopwatch.ElapsedMilliseconds;
-        timings.FetchInvoked = true;
 
         // Narrow the three full snapshots to a single HasLots dictionary (FR-4).
         // Larger DTOs go out of scope immediately after this block.

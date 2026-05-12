@@ -215,6 +215,30 @@ public class FlexiManufactureTemplateServiceTests
             Times.Never);
     }
 
+    [Fact]
+    public async Task GetManufactureTemplateAsync_WhenHeaderNotFound_EmitsTelemetryAsCacheMiss()
+    {
+        // BoM returns no Level-1 header → FetchAsync returns null
+        _mockBomClient
+            .Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<BoMItemFlexiDto>());
+
+        var result = await _service.GetManufactureTemplateAsync("PROD-UNKNOWN", CancellationToken.None);
+
+        result.Should().BeNull();
+        _mockTelemetry.Verify(
+            t => t.TrackBusinessEvent(
+                "manufacture_template_fetched",
+                It.Is<Dictionary<string, string>>(p =>
+                    p["product_code"] == "PROD-UNKNOWN" &&
+                    p["cache_hit"] == "false" &&
+                    p["ingredient_count"] == "0"),
+                It.Is<Dictionary<string, double>>(m =>
+                    m["stock_duration_ms"] == 0 &&
+                    m.ContainsKey("total_duration_ms"))),
+            Times.Once);
+    }
+
     /// <summary>
     /// Test cache that always invokes the fetcher (acts as pass-through so we test
     /// the inner fetch logic directly).
