@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
 using FluentValidation;
 
@@ -18,7 +19,7 @@ public class GetManufacturingStockAnalysisRequestValidator : AbstractValidator<G
             .WithMessage($"PageNumber must be at least {ManufactureConstants.MIN_PAGE_NUMBER}");
 
         // Custom period validation
-        When(x => x.TimePeriod == TimePeriodFilter.CustomPeriod, () =>
+        When(x => x.TimePeriod == TimePeriod.CustomPeriod, () =>
         {
             RuleFor(x => x.CustomFromDate)
                 .NotNull()
