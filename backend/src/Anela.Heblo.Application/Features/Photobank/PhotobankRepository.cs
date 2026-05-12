@@ -140,23 +140,11 @@ namespace Anela.Heblo.Application.Features.Photobank
 
         public async Task<IReadOnlyList<TagCount>> GetTagsWithCountsAsync(CancellationToken cancellationToken)
         {
-            var tagProjections = await _context.PhotobankTags
-                .AsNoTracking()
-                .Select(t => new { t.Id, t.Name })
-                .ToListAsync(cancellationToken);
-
-            var counts = await _context.PhotoTags
-                .GroupBy(pt => pt.TagId)
-                .Select(g => new { TagId = g.Key, Count = g.Count() })
-                .ToListAsync(cancellationToken);
-
-            var countMap = counts.ToDictionary(c => c.TagId, c => c.Count);
-
-            return tagProjections
-                .Select(t => new TagCount(t.Id, t.Name, countMap.GetValueOrDefault(t.Id, 0)))
+            return await _context.PhotobankTags
+                .Select(t => new TagCount(t.Id, t.Name, t.PhotoTags.Count))
                 .OrderByDescending(x => x.Count)
                 .ThenBy(x => x.Name)
-                .ToList();
+                .ToListAsync(cancellationToken);
         }
 
         private Task<Tag?> FindTagByNameAsync(string normalizedName, CancellationToken ct)
