@@ -763,5 +763,3 @@ After all tasks are complete:
 ---
 
 > **Integration:** Create your feature branch from `feat/meeting-task-validation-epic`. When done, open a PR targeting `feat/meeting-task-validation-epic` (not `main`).
-
-
