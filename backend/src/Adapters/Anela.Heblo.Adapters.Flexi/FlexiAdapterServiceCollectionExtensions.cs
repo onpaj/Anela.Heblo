@@ -70,6 +70,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<ISeasonalDataParser, SeasonalDataParser>();
 
         services.AddSingleton<ILedgerService, LedgerService>();
+        services.AddSingleton<IManufactureTemplateCache, ManufactureTemplateCache>();
         services.AddScoped<IFlexiManufactureTemplateService, FlexiManufactureTemplateService>();
         services.AddScoped<IFefoConsumptionAllocator, FefoConsumptionAllocator>();
         services.AddScoped<IFlexiIngredientRequirementAggregator, FlexiIngredientRequirementAggregator>();

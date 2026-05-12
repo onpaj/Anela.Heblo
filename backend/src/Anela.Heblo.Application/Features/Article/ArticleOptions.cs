@@ -9,8 +9,8 @@ public sealed class ArticleOptions
     [Required, MinLength(1)]
     public string DefaultModel { get; set; } = "claude-sonnet-4-6";
 
-    [Range(1, 8192)]
-    public int WriteMaxTokens { get; set; } = 4096;
+    [Range(1, 16384)]
+    public int WriteMaxTokens { get; set; } = 8192;
 
     [Range(1, 4096)]
     public int AggregateMaxTokens { get; set; } = 1024;

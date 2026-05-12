@@ -9,8 +9,8 @@ namespace Anela.Heblo.Application.Features.Photobank.Contracts
 
     public class TagWithCountDto
     {
-        public int Id { get; set; }
-        public string Name { get; set; } = null!;
-        public int Count { get; set; }
+        public int Id { get; init; }
+        public string Name { get; init; } = null!;
+        public int Count { get; init; }
     }
 }

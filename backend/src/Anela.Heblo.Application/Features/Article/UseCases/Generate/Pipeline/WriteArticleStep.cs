@@ -1,5 +1,8 @@
+using System.Net;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Anela.Heblo.Application.Shared.Http;
 using Anela.Heblo.Application.Shared.Json;
 using Anela.Heblo.Domain.Features.Article;
@@ -61,14 +64,21 @@ public class WriteArticleStep : IArticlePipelineStep
 
                 var raw = response.Text ?? string.Empty;
 
-                var fallback = new WriteArticleOutput(article.Topic, $"<p>{raw}</p>", null);
-                var parsed = JsonResponseParser.ParseOrFallback<WriteArticleOutput>(raw, fallback, _logger);
+                if (JsonResponseParser.TryParse<WriteArticleOutput>(raw, out var parsed, _logger))
+                {
+                    context.GeneratedTitle = parsed.ArticleTitle ?? article.Topic;
+                    context.GeneratedHtml = parsed.ArticleHtml ?? FallbackHtml(raw);
+                    context.SourceRefs = MapSources(parsed.SourcesUsed, context.ContextSnippets, context.Facts);
+                    return (true, (object?)new { rawResponse = raw, articleTitle = parsed.ArticleTitle, sourcesUsed = parsed.SourcesUsed });
+                }
 
-                context.GeneratedTitle = parsed.ArticleTitle ?? article.Topic;
-                context.GeneratedHtml = parsed.ArticleHtml ?? $"<p>{raw}</p>";
-                context.SourceRefs = MapSources(parsed.SourcesUsed, context.ContextSnippets, context.Facts);
+                _logger.LogWarning("WriteArticle: strict JSON parse failed, attempting rescue. Raw head: {Head}",
+                    raw[..Math.Min(raw.Length, 500)]);
 
-                return (true, (object?)new { rawResponse = raw, articleTitle = parsed.ArticleTitle, sourcesUsed = parsed.SourcesUsed });
+                context.GeneratedTitle = RescueArticleTitle(raw) ?? article.Topic;
+                context.GeneratedHtml = RescueArticleHtml(raw) ?? FallbackHtml(raw);
+                context.SourceRefs = [];
+                return (true, (object?)new { rawResponse = raw, articleTitle = context.GeneratedTitle, rescueAttempted = true });
             },
             ct);
     }
@@ -128,6 +138,53 @@ public class WriteArticleStep : IArticlePipelineStep
 
         return sb.ToString();
     }
+
+    // Rescue helpers — extract fields from partially-valid or truncated JSON
+
+    private static readonly Regex RescueHtmlComplete = new(
+        "\"article_html\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"",
+        RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private static readonly Regex RescueHtmlPartial = new(
+        "\"article_html\"\\s*:\\s*\"(.+)$",
+        RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private static readonly Regex RescueTitleComplete = new(
+        "\"article_title\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"",
+        RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private static string? RescueArticleHtml(string raw)
+    {
+        var complete = RescueHtmlComplete.Match(raw);
+        if (complete.Success)
+        {
+            try { return JsonSerializer.Deserialize<string>($"\"{complete.Groups[1].Value}\""); }
+            catch (JsonException) { return UnescapeJsonString(complete.Groups[1].Value); }
+        }
+
+        var partial = RescueHtmlPartial.Match(raw);
+        return partial.Success ? UnescapeJsonString(partial.Groups[1].Value) : null;
+    }
+
+    private static string? RescueArticleTitle(string raw)
+    {
+        var match = RescueTitleComplete.Match(raw);
+        if (!match.Success) return null;
+        try { return JsonSerializer.Deserialize<string>($"\"{match.Groups[1].Value}\""); }
+        catch (JsonException) { return UnescapeJsonString(match.Groups[1].Value); }
+    }
+
+    private static string UnescapeJsonString(string s) =>
+        s.Replace("\\\\", "\\")
+         .Replace("\\\"", "\"")
+         .Replace("\\n", "\n")
+         .Replace("\\r", "\r")
+         .Replace("\\t", "\t");
+
+    private static string FallbackHtml(string raw) =>
+        $"<p>{WebUtility.HtmlEncode(raw)}</p>";
+
+    // Source mapping
 
     private static List<ArticleSourceRef> MapSources(
         List<SourceUsedDto>? sourcesUsed,
