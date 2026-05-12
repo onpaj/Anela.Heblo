@@ -36,6 +36,12 @@ Only proceed to writing the review once you have verified your proposal against 
 ```markdown
 # Architecture Review: {feature name}
 
+## Skip Design: true|false
+{Set to `true` when the feature has no UI/UX design work — e.g. backend-only changes,
+performance fixes, data migrations, CLI additions, pure refactors, config changes, or
+anything with no new visual components. Set to `false` when new or changed UI components,
+screens, layouts, or visual design decisions are required.}
+
 ## Architectural Fit Assessment
 {Does this feature align with existing patterns? What are the main integration points?}
 
