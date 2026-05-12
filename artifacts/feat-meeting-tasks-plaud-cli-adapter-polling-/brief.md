@@ -2,8 +2,6 @@
 
 **Parent Epic:** Meeting Task Validation Checkpoint
 
-CRITICAL - This is part of epic, you **MUST** use epic branch - feat/meeting-task-validation-epic as a source for this feature branch and create a PR back to this branch instead of main
-
 > **Architecture change:** The original n8n email-webhook approach is replaced by a Hangfire polling job that pulls recordings directly from the Plaud CLI. Heblo calls `plaud` CLI via `System.Diagnostics.Process`, detects new completed recordings, extracts tasks via Claude (`IChatClient`), and stores them for human review.
 
 ## File Structure
