@@ -1,62 +1,115 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Persistence;
-using Anela.Heblo.Application.Features.Photobank;
+using DotNet.Testcontainers.Configurations;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Photobank;
 
-public class PhotobankRepositoryFilterTests : IDisposable
+[Trait("Category", "Integration")]
+public class PhotobankRepositoryFilterTests : IAsyncLifetime
 {
-    private readonly ApplicationDbContext _context;
-    private readonly PhotobankRepository _repository;
-
-    public PhotobankRepositoryFilterTests()
+    static PhotobankRepositoryFilterTests()
     {
+        TestcontainersSettings.ResourceReaperEnabled = false;
+    }
+
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
+        .WithImage("postgres:16-alpine")
+        .Build();
+
+    private ApplicationDbContext _context = null!;
+    private PhotobankRepository _repository = null!;
+
+    public async Task InitializeAsync()
+    {
+        await _container.StartAsync();
+
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseNpgsql(_container.GetConnectionString())
             .Options;
 
         _context = new ApplicationDbContext(options);
+
+        await SetupSchemaAsync();
+
         _repository = new PhotobankRepository(_context);
 
-        SeedTestData();
+        await SeedAsync();
     }
 
-    private void SeedTestData()
+    private async Task SetupSchemaAsync()
     {
+        await using var conn = new NpgsqlConnection(_container.GetConnectionString());
+        await conn.OpenAsync();
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS public."Photos" (
+                "Id" SERIAL PRIMARY KEY,
+                "SharePointFileId" VARCHAR(500) NOT NULL UNIQUE,
+                "FolderPath" VARCHAR(2000) NOT NULL,
+                "FileName" VARCHAR(200) NOT NULL,
+                "SharePointWebUrl" VARCHAR(2000),
+                "DriveId" VARCHAR(500),
+                "MimeType" VARCHAR(50),
+                "FileSizeBytes" BIGINT,
+                "TakenAt" TIMESTAMP,
+                "IndexedAt" TIMESTAMP NOT NULL,
+                "ModifiedAt" TIMESTAMP NOT NULL,
+                "LastAutoTaggedAt" TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS public."PhotobankTags" (
+                "Id" SERIAL PRIMARY KEY,
+                "Name" VARCHAR(100) NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS public."PhotoTags" (
+                "PhotoId" INT NOT NULL REFERENCES public."Photos"("Id") ON DELETE CASCADE,
+                "TagId" INT NOT NULL REFERENCES public."PhotobankTags"("Id") ON DELETE CASCADE,
+                "Source" VARCHAR(20) NOT NULL,
+                "CreatedAt" TIMESTAMP NOT NULL,
+                PRIMARY KEY ("PhotoId", "TagId")
+            );
+            """;
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _context.DisposeAsync();
+        await _container.DisposeAsync();
+    }
+
+    private async Task SeedAsync()
+    {
+        var now = DateTime.UtcNow;
         var photos = new List<Photo>
         {
-            new() { Id = 1, SharePointFileId = "sp-1", FileName = "ruze-cervena.jpg",    FolderPath = "Marketing/Produkty/Ruze",    ModifiedAt = DateTime.UtcNow },
-            new() { Id = 2, SharePointFileId = "sp-2", FileName = "levandule.jpg",       FolderPath = "Marketing/Produkty/Levandule", ModifiedAt = DateTime.UtcNow },
-            new() { Id = 3, SharePointFileId = "sp-3", FileName = "banner-homepage.png", FolderPath = "Marketing/Web",              ModifiedAt = DateTime.UtcNow },
-            new() { Id = 4, SharePointFileId = "sp-4", FileName = "vyrobek-01.jpg",      FolderPath = "Vyrobky/2025",               ModifiedAt = DateTime.UtcNow },
+            new() { Id = 1, SharePointFileId = "sp-1", FileName = "ruze-cervena.jpg",    FolderPath = "Marketing/Produkty/Ruze",    IndexedAt = now, ModifiedAt = now },
+            new() { Id = 2, SharePointFileId = "sp-2", FileName = "levandule.jpg",       FolderPath = "Marketing/Produkty/Levandule", IndexedAt = now, ModifiedAt = now },
+            new() { Id = 3, SharePointFileId = "sp-3", FileName = "banner-homepage.png", FolderPath = "Marketing/Web",              IndexedAt = now, ModifiedAt = now },
+            new() { Id = 4, SharePointFileId = "sp-4", FileName = "vyrobek-01.jpg",      FolderPath = "Vyrobky/2025",               IndexedAt = now, ModifiedAt = now },
         };
-
         _context.Photos.AddRange(photos);
-        _context.SaveChanges();
-    }
-
-    public void Dispose()
-    {
-        _context.Dispose();
+        await _context.SaveChangesAsync();
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task GetPhotosAsync_filtersByFolderPath_substringMatch()
+    public async Task GetPhotosAsync_filtersByFolderPath_substringMatch()
     {
-        // Arrange — "Produkty" is a substring of two combined paths
-        var search = "Produkty";
-
-        // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, search, false, false, 1, 48, CancellationToken.None);
+            null, "Produkty", false, false, 1, 48, CancellationToken.None);
 
-        // Assert
         total.Should().Be(2);
         items.Should().OnlyContain(p => p.FolderPath.Contains("Produkty", StringComparison.OrdinalIgnoreCase));
         items.Should().NotContain(p => p.FileName == "banner-homepage.png");
@@ -64,58 +117,42 @@ public class PhotobankRepositoryFilterTests : IDisposable
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task GetPhotosAsync_filterByFolderPath_caseInsensitive()
+    public async Task GetPhotosAsync_filterByFolderPath_caseInsensitive()
     {
-        // Arrange — uppercase input, lowercase stored path
-        var search = "MARKETING/WEB";
-
-        // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, search, false, false, 1, 48, CancellationToken.None);
+            null, "MARKETING/WEB", false, false, 1, 48, CancellationToken.None);
 
-        // Assert
         total.Should().Be(1);
         items.Should().ContainSingle(p => p.FileName == "banner-homepage.png");
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task GetPhotosAsync_searchMatchesInsideCombinedPath()
+    public async Task GetPhotosAsync_searchMatchesInsideCombinedPath()
     {
-        // Arrange — "ruze" appears in both the folder name and the filename of photo 1
-        var search = "ruze";
-
-        // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, search, false, false, 1, 48, CancellationToken.None);
+            null, "ruze", false, false, 1, 48, CancellationToken.None);
 
-        // Assert
         total.Should().Be(1);
         items.Should().ContainSingle(p => p.FileName == "ruze-cervena.jpg");
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task GetPhotosAsync_combinesFolderPathWithTag()
+    public async Task GetPhotosAsync_combinesFolderPathWithTag()
     {
-        // Arrange — seed a tag on one of the two "Produkty" photos
         var tag = new Tag { Id = 10, Name = "featured" };
-        // Safe: each test gets its own in-memory DB (Guid name + per-instance constructor).
         _context.PhotobankTags.Add(tag);
-
-        var photoTag = new PhotoTag
+        _context.PhotoTags.Add(new PhotoTag
         {
-            PhotoId = 1, // ruze-cervena.jpg
+            PhotoId = 1,
             TagId = 10,
             Source = PhotoTagSource.Manual,
             CreatedAt = DateTime.UtcNow,
-        };
-        _context.PhotoTags.Add(photoTag);
-        await _context.SaveChangesAsync(CancellationToken.None);
+        });
+        await _context.SaveChangesAsync();
 
-        // Act — search "Produkty" matches photos 1 & 2; tag "featured" is only on photo 1
         var (items, total) = await _repository.GetPhotosAsync(
             new List<string> { "featured" }, "Produkty", false, false, 1, 48, CancellationToken.None);
 
-        // Assert
         total.Should().Be(1);
         items.Should().ContainSingle(p => p.FileName == "ruze-cervena.jpg");
     }
@@ -124,70 +161,105 @@ public class PhotobankRepositoryFilterTests : IDisposable
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public async System.Threading.Tasks.Task GetPhotosAsync_emptySearch_doesNotFilter(string? search)
+    public async Task GetPhotosAsync_emptySearch_doesNotFilter(string? search)
     {
-        // Act
         var (items, total) = await _repository.GetPhotosAsync(
             null, search, false, false, 1, 48, CancellationToken.None);
 
-        // Assert
         total.Should().Be(4);
         items.Should().HaveCount(4);
     }
 }
 
-// NOTE: These tests run against the EF Core InMemory provider, which evaluates
-// Regex.IsMatch via the .NET regex engine. In production, Npgsql translates
-// this to Postgres POSIX ~* syntax. The two engines differ on some constructs
-// (e.g., .NET lookahead, \b). Postgres-specific failures are caught by the
-// PostgresException handler in GetPhotosHandler.
-public class PhotobankRepositoryRegexFilterTests : IDisposable
+[Trait("Category", "Integration")]
+public class PhotobankRepositoryRegexFilterTests : IAsyncLifetime
 {
-    private readonly ApplicationDbContext _context;
-    private readonly PhotobankRepository _repository;
-
-    public PhotobankRepositoryRegexFilterTests()
+    static PhotobankRepositoryRegexFilterTests()
     {
+        TestcontainersSettings.ResourceReaperEnabled = false;
+    }
+
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
+        .WithImage("postgres:16-alpine")
+        .Build();
+
+    private ApplicationDbContext _context = null!;
+    private PhotobankRepository _repository = null!;
+
+    public async Task InitializeAsync()
+    {
+        await _container.StartAsync();
+
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseNpgsql(_container.GetConnectionString())
             .Options;
 
         _context = new ApplicationDbContext(options);
+
+        await SetupSchemaAsync();
+
         _repository = new PhotobankRepository(_context);
 
-        SeedTestData();
-    }
-
-    private void SeedTestData()
-    {
-        var photos = new List<Photo>
+        var now = DateTime.UtcNow;
+        _context.Photos.AddRange(new List<Photo>
         {
-            new() { Id = 1, SharePointFileId = "sp-1", FileName = "report_2024.pdf",  FolderPath = "Reports", ModifiedAt = DateTime.UtcNow },
-            new() { Id = 2, SharePointFileId = "sp-2", FileName = "IMG_001.png",      FolderPath = "Photos",  ModifiedAt = DateTime.UtcNow },
-            new() { Id = 3, SharePointFileId = "sp-3", FileName = "report_final.pdf", FolderPath = "Reports", ModifiedAt = DateTime.UtcNow },
-        };
-
-        _context.Photos.AddRange(photos);
-        _context.SaveChanges();
+            new() { Id = 1, SharePointFileId = "sp-1", FileName = "report_2024.pdf",  FolderPath = "Reports", IndexedAt = now, ModifiedAt = now },
+            new() { Id = 2, SharePointFileId = "sp-2", FileName = "IMG_001.png",      FolderPath = "Photos",  IndexedAt = now, ModifiedAt = now },
+            new() { Id = 3, SharePointFileId = "sp-3", FileName = "report_final.pdf", FolderPath = "Reports", IndexedAt = now, ModifiedAt = now },
+        });
+        await _context.SaveChangesAsync();
     }
 
-    public void Dispose()
+    private async Task SetupSchemaAsync()
     {
-        _context.Dispose();
+        await using var conn = new NpgsqlConnection(_container.GetConnectionString());
+        await conn.OpenAsync();
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS public."Photos" (
+                "Id" SERIAL PRIMARY KEY,
+                "SharePointFileId" VARCHAR(500) NOT NULL UNIQUE,
+                "FolderPath" VARCHAR(2000) NOT NULL,
+                "FileName" VARCHAR(200) NOT NULL,
+                "SharePointWebUrl" VARCHAR(2000),
+                "DriveId" VARCHAR(500),
+                "MimeType" VARCHAR(50),
+                "FileSizeBytes" BIGINT,
+                "TakenAt" TIMESTAMP,
+                "IndexedAt" TIMESTAMP NOT NULL,
+                "ModifiedAt" TIMESTAMP NOT NULL,
+                "LastAutoTaggedAt" TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS public."PhotobankTags" (
+                "Id" SERIAL PRIMARY KEY,
+                "Name" VARCHAR(100) NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS public."PhotoTags" (
+                "PhotoId" INT NOT NULL REFERENCES public."Photos"("Id") ON DELETE CASCADE,
+                "TagId" INT NOT NULL REFERENCES public."PhotobankTags"("Id") ON DELETE CASCADE,
+                "Source" VARCHAR(20) NOT NULL,
+                "CreatedAt" TIMESTAMP NOT NULL,
+                PRIMARY KEY ("PhotoId", "TagId")
+            );
+            """;
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _context.DisposeAsync();
+        await _container.DisposeAsync();
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task GetPhotosAsync_regexSearch_matchesOnlyNumericReport()
+    public async Task GetPhotosAsync_regexSearch_matchesOnlyNumericReport()
     {
-        // Arrange — pattern matches "report_" followed by digits; no ^ anchor since search targets
-        // the combined folderPath+"/"+fileName string (e.g. "Reports/report_2024.pdf")
-        var pattern = @"report_\d+";
-
-        // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, pattern, true, false, 1, 48, CancellationToken.None);
+            null, @"report_\d+", true, false, 1, 48, CancellationToken.None);
 
-        // Assert
         total.Should().Be(1);
         items.Should().ContainSingle(p => p.FileName == "report_2024.pdf");
         items.Should().NotContain(p => p.FileName == "report_final.pdf");
@@ -195,16 +267,11 @@ public class PhotobankRepositoryRegexFilterTests : IDisposable
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task GetPhotosAsync_substringSearch_matchesBothReportFiles()
+    public async Task GetPhotosAsync_substringSearch_matchesBothReportFiles()
     {
-        // Arrange — plain substring search returns all files in folders whose combined path contains "report"
-        var search = "report";
-
-        // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, search, false, false, 1, 48, CancellationToken.None);
+            null, "report", false, false, 1, 48, CancellationToken.None);
 
-        // Assert
         total.Should().Be(2);
         items.Should().Contain(p => p.FileName == "report_2024.pdf");
         items.Should().Contain(p => p.FileName == "report_final.pdf");
@@ -212,68 +279,106 @@ public class PhotobankRepositoryRegexFilterTests : IDisposable
     }
 }
 
-public class PhotobankRepositoryPathRegexFilterTests : IDisposable
+[Trait("Category", "Integration")]
+public class PhotobankRepositoryPathRegexFilterTests : IAsyncLifetime
 {
-    private readonly ApplicationDbContext _context;
-    private readonly PhotobankRepository _repository;
-
-    public PhotobankRepositoryPathRegexFilterTests()
+    static PhotobankRepositoryPathRegexFilterTests()
     {
+        TestcontainersSettings.ResourceReaperEnabled = false;
+    }
+
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
+        .WithImage("postgres:16-alpine")
+        .Build();
+
+    private ApplicationDbContext _context = null!;
+    private PhotobankRepository _repository = null!;
+
+    public async Task InitializeAsync()
+    {
+        await _container.StartAsync();
+
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseNpgsql(_container.GetConnectionString())
             .Options;
 
         _context = new ApplicationDbContext(options);
+
+        await SetupSchemaAsync();
+
         _repository = new PhotobankRepository(_context);
 
-        SeedTestData();
-    }
-
-    private void SeedTestData()
-    {
-        var photos = new List<Photo>
+        var now = DateTime.UtcNow;
+        _context.Photos.AddRange(new List<Photo>
         {
-            new() { Id = 1, SharePointFileId = "sp-1", FileName = "a.jpg", FolderPath = "Marketing/2025/Q1", ModifiedAt = DateTime.UtcNow },
-            new() { Id = 2, SharePointFileId = "sp-2", FileName = "b.jpg", FolderPath = "Marketing/2025/Q2", ModifiedAt = DateTime.UtcNow },
-            new() { Id = 3, SharePointFileId = "sp-3", FileName = "c.jpg", FolderPath = "Vyrobky/2025",      ModifiedAt = DateTime.UtcNow },
-        };
-
-        _context.Photos.AddRange(photos);
-        _context.SaveChanges();
+            new() { Id = 1, SharePointFileId = "sp-1", FileName = "a.jpg", FolderPath = "Marketing/2025/Q1", IndexedAt = now, ModifiedAt = now },
+            new() { Id = 2, SharePointFileId = "sp-2", FileName = "b.jpg", FolderPath = "Marketing/2025/Q2", IndexedAt = now, ModifiedAt = now },
+            new() { Id = 3, SharePointFileId = "sp-3", FileName = "c.jpg", FolderPath = "Vyrobky/2025",      IndexedAt = now, ModifiedAt = now },
+        });
+        await _context.SaveChangesAsync();
     }
 
-    public void Dispose()
+    private async Task SetupSchemaAsync()
     {
-        _context.Dispose();
+        await using var conn = new NpgsqlConnection(_container.GetConnectionString());
+        await conn.OpenAsync();
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            CREATE TABLE IF NOT EXISTS public."Photos" (
+                "Id" SERIAL PRIMARY KEY,
+                "SharePointFileId" VARCHAR(500) NOT NULL UNIQUE,
+                "FolderPath" VARCHAR(2000) NOT NULL,
+                "FileName" VARCHAR(200) NOT NULL,
+                "SharePointWebUrl" VARCHAR(2000),
+                "DriveId" VARCHAR(500),
+                "MimeType" VARCHAR(50),
+                "FileSizeBytes" BIGINT,
+                "TakenAt" TIMESTAMP,
+                "IndexedAt" TIMESTAMP NOT NULL,
+                "ModifiedAt" TIMESTAMP NOT NULL,
+                "LastAutoTaggedAt" TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS public."PhotobankTags" (
+                "Id" SERIAL PRIMARY KEY,
+                "Name" VARCHAR(100) NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS public."PhotoTags" (
+                "PhotoId" INT NOT NULL REFERENCES public."Photos"("Id") ON DELETE CASCADE,
+                "TagId" INT NOT NULL REFERENCES public."PhotobankTags"("Id") ON DELETE CASCADE,
+                "Source" VARCHAR(20) NOT NULL,
+                "CreatedAt" TIMESTAMP NOT NULL,
+                PRIMARY KEY ("PhotoId", "TagId")
+            );
+            """;
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _context.DisposeAsync();
+        await _container.DisposeAsync();
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task GetPhotosAsync_regexSearch_matchesOnlyMarketingFolderPaths()
+    public async Task GetPhotosAsync_regexSearch_matchesOnlyMarketingFolderPaths()
     {
-        // Arrange — anchored pattern matches combined paths that start with "Marketing/"
-        var pattern = @"^Marketing/";
-
-        // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, pattern, true, false, 1, 48, CancellationToken.None);
+            null, @"^Marketing/", true, false, 1, 48, CancellationToken.None);
 
-        // Assert
         total.Should().Be(2);
         items.Should().OnlyContain(p => p.FolderPath.StartsWith("Marketing/"));
         items.Should().NotContain(p => p.FileName == "c.jpg");
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task GetPhotosAsync_substringSearch_matchesAllPathsContaining2025()
+    public async Task GetPhotosAsync_substringSearch_matchesAllPathsContaining2025()
     {
-        // Arrange
-        var term = "2025";
-
-        // Act
         var (items, total) = await _repository.GetPhotosAsync(
-            null, term, false, false, 1, 48, CancellationToken.None);
+            null, "2025", false, false, 1, 48, CancellationToken.None);
 
-        // Assert
         total.Should().Be(3);
     }
 }
