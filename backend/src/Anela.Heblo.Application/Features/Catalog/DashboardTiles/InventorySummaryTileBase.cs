@@ -22,7 +22,7 @@ public abstract class InventorySummaryTileBase : ITile
     public abstract string Description { get; }
     protected abstract Func<CatalogAggregate, bool> ItemFilter { get; }
 
-    public TileSize Size => TileSize.Medium;
+    public TileSize Size => TileSize.Small;
     public TileCategory Category => TileCategory.Warehouse;
     public bool DefaultEnabled => true;
     public bool AutoShow => true;

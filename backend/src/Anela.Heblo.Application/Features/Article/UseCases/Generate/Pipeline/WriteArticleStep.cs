@@ -1,5 +1,8 @@
+using System.Net;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Anela.Heblo.Application.Shared.Http;
 using Anela.Heblo.Application.Shared.Json;
 using Anela.Heblo.Domain.Features.Article;
@@ -14,54 +17,77 @@ public class WriteArticleStep : IArticlePipelineStep
     private readonly IChatClient _chat;
     private readonly ArticleOptions _options;
     private readonly ILogger<WriteArticleStep> _logger;
+    private readonly PipelineStepRecorder _recorder;
 
     public WriteArticleStep(
         IChatClient chat,
         IOptions<ArticleOptions> options,
-        ILogger<WriteArticleStep> logger)
+        ILogger<WriteArticleStep> logger,
+        PipelineStepRecorder recorder)
     {
         _chat = chat;
         _options = options.Value;
         _logger = logger;
+        _recorder = recorder;
     }
 
     public async Task ExecuteAsync(ArticlePipelineContext context, CancellationToken ct)
     {
-        var article = context.Article;
-        var systemPrompt = BuildSystemPrompt(context.StyleGuideText);
-        var userMessage = BuildUserMessage(context);
+        await _recorder.RecordAsync<bool>(
+            context.Article.Id,
+            "WriteArticle",
+            5,
+            _options.DefaultModel,
+            new { topic = context.Article.Topic, factCount = context.Facts.Count, styleGuideLength = context.StyleGuideText?.Length },
+            async (token) =>
+            {
+                var article = context.Article;
+                var systemPrompt = BuildSystemPrompt(context.StyleGuideText);
+                var userMessage = BuildUserMessage(context);
 
-        var chatOptions = new ChatOptions
-        {
-            ModelId = _options.DefaultModel,
-            MaxOutputTokens = _options.WriteMaxTokens
-        };
+                var chatOptions = new ChatOptions
+                {
+                    ModelId = _options.DefaultModel,
+                    MaxOutputTokens = _options.WriteMaxTokens
+                };
 
-        var response = await ChatRetry.RetryOnceAsync(
-            () => _chat.GetResponseAsync(
-                [
-                    new ChatMessage(ChatRole.System, systemPrompt),
-                    new ChatMessage(ChatRole.User, userMessage)
-                ],
-                chatOptions,
-                ct),
-            _logger,
+                var response = await ChatRetry.RetryOnceAsync(
+                    () => _chat.GetResponseAsync(
+                        [
+                            new ChatMessage(ChatRole.System, systemPrompt),
+                            new ChatMessage(ChatRole.User, userMessage)
+                        ],
+                        chatOptions,
+                        token),
+                    _logger,
+                    token);
+
+                var raw = response.Text ?? string.Empty;
+
+                if (JsonResponseParser.TryParse<WriteArticleOutput>(raw, out var parsed, _logger))
+                {
+                    context.GeneratedTitle = parsed.ArticleTitle ?? article.Topic;
+                    context.GeneratedHtml = parsed.ArticleHtml ?? FallbackHtml(raw);
+                    context.SourceRefs = MapSources(parsed.SourcesUsed, context.ContextSnippets, context.Facts);
+                    return (true, (object?)new { rawResponse = raw, articleTitle = parsed.ArticleTitle, sourcesUsed = parsed.SourcesUsed });
+                }
+
+                _logger.LogWarning("WriteArticle: strict JSON parse failed, attempting rescue. Raw head: {Head}",
+                    raw[..Math.Min(raw.Length, 500)]);
+
+                context.GeneratedTitle = RescueArticleTitle(raw) ?? article.Topic;
+                context.GeneratedHtml = RescueArticleHtml(raw) ?? FallbackHtml(raw);
+                context.SourceRefs = [];
+                return (true, (object?)new { rawResponse = raw, articleTitle = context.GeneratedTitle, rescueAttempted = true });
+            },
             ct);
-
-        var raw = response.Text ?? string.Empty;
-
-        var fallback = new WriteArticleOutput(article.Topic, $"<p>{raw}</p>", null);
-        var parsed = JsonResponseParser.ParseOrFallback<WriteArticleOutput>(raw, fallback, _logger);
-
-        context.GeneratedTitle = parsed.ArticleTitle ?? article.Topic;
-        context.GeneratedHtml = parsed.ArticleHtml ?? $"<p>{raw}</p>";
-        context.SourceRefs = MapSources(parsed.SourcesUsed);
     }
 
     private const string SystemInstruction =
         """
         Jsi zkušený redaktor kosmetického obsahu. Píšeš výhradně v češtině.
-        Odpověz POUZE validním JSON bez markdown nebo code fences:
+        Odpověz POUZE validním JSON bez markdown nebo code fences.
+        V poli article_html použij výhradně HTML tagy – nikdy nepište doslovný text "\n" jako obsah.
         {"article_title":"...","article_html":"<article>...</article>","sources_used":[{"title":"...","url":"..."}]}
         """;
 
@@ -113,15 +139,84 @@ public class WriteArticleStep : IArticlePipelineStep
         return sb.ToString();
     }
 
-    private static List<(string Title, string? Url, SourceType Type)> MapSources(
-        List<SourceUsedDto>? sourcesUsed)
+    // Rescue helpers — extract fields from partially-valid or truncated JSON
+
+    private static readonly Regex RescueHtmlComplete = new(
+        "\"article_html\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"",
+        RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private static readonly Regex RescueHtmlPartial = new(
+        "\"article_html\"\\s*:\\s*\"(.+)$",
+        RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private static readonly Regex RescueTitleComplete = new(
+        "\"article_title\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"",
+        RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private static string? RescueArticleHtml(string raw)
+    {
+        var complete = RescueHtmlComplete.Match(raw);
+        if (complete.Success)
+        {
+            try { return JsonSerializer.Deserialize<string>($"\"{complete.Groups[1].Value}\""); }
+            catch (JsonException) { return UnescapeJsonString(complete.Groups[1].Value); }
+        }
+
+        var partial = RescueHtmlPartial.Match(raw);
+        return partial.Success ? UnescapeJsonString(partial.Groups[1].Value) : null;
+    }
+
+    private static string? RescueArticleTitle(string raw)
+    {
+        var match = RescueTitleComplete.Match(raw);
+        if (!match.Success) return null;
+        try { return JsonSerializer.Deserialize<string>($"\"{match.Groups[1].Value}\""); }
+        catch (JsonException) { return UnescapeJsonString(match.Groups[1].Value); }
+    }
+
+    private static string UnescapeJsonString(string s) =>
+        s.Replace("\\\\", "\\")
+         .Replace("\\\"", "\"")
+         .Replace("\\n", "\n")
+         .Replace("\\r", "\r")
+         .Replace("\\t", "\t");
+
+    private static string FallbackHtml(string raw) =>
+        $"<p>{WebUtility.HtmlEncode(raw)}</p>";
+
+    // Source mapping
+
+    private static List<ArticleSourceRef> MapSources(
+        List<SourceUsedDto>? sourcesUsed,
+        List<ContextSnippet> snippets,
+        List<AggregatedFact> facts)
     {
         if (sourcesUsed == null)
             return [];
 
-        return sourcesUsed
-            .Select(s => (s.Title, s.Url, s.Url != null ? SourceType.Web : SourceType.KnowledgeBase))
-            .ToList();
+        return sourcesUsed.Select(source =>
+        {
+            var snippetMatch = snippets.FirstOrDefault(s =>
+                string.Equals(s.Title, source.Title, StringComparison.OrdinalIgnoreCase));
+            var factMatch = facts.FirstOrDefault(f =>
+                string.Equals(f.SourceTitle, source.Title, StringComparison.OrdinalIgnoreCase));
+
+            return new ArticleSourceRef(
+                Title: source.Title,
+                Url: source.Url,
+                Type: source.Url != null ? SourceType.Web : SourceType.KnowledgeBase,
+                ChunkId: snippetMatch?.ChunkId,
+                Confidence: snippetMatch?.Score,
+                Excerpt: TruncateExcerpt(factMatch?.Claim),
+                ValidationNote: factMatch?.ValidationNote);
+        }).ToList();
+    }
+
+    private static string? TruncateExcerpt(string? claim)
+    {
+        if (string.IsNullOrEmpty(claim))
+            return null;
+        return claim.Length <= 200 ? claim : claim[..200];
     }
 
     private sealed record WriteArticleOutput(

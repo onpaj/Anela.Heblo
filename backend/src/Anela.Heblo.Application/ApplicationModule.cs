@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common;
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Application.Features.Analytics;
@@ -27,6 +28,7 @@ using Anela.Heblo.Application.Features.OrgChart;
 using Anela.Heblo.Application.Features.PackingMaterials;
 using Anela.Heblo.Application.Features.Campaigns;
 using Anela.Heblo.Application.Features.DataQuality;
+using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.UserManagement;
 using Anela.Heblo.Xcc.Services.Dashboard;
@@ -51,6 +53,9 @@ public static class ApplicationModule
 
         // Register AutoMapper
         services.AddAutoMapper(cfg => { }, typeof(ApplicationModule).Assembly);
+
+        // Register shared time period services
+        services.AddScoped<ITimePeriodResolver, TimePeriodResolver>();
 
         // Background refresh system, hydration, and service readiness tracking are handled by XCC module
 
@@ -84,6 +89,7 @@ public static class ApplicationModule
         services.AddCampaignsModule();
         services.AddMarketingInvoicesModule();
         services.AddDataQualityModule();
+        services.AddPhotobankModule(configuration);
         // services.AddOrdersModule();
 
         return services;

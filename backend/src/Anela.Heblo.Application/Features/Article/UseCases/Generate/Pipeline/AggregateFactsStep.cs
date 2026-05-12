@@ -15,55 +15,70 @@ public class AggregateFactsStep : IArticlePipelineStep
     private readonly IChatClient _chat;
     private readonly ArticleOptions _options;
     private readonly ILogger<AggregateFactsStep> _logger;
+    private readonly PipelineStepRecorder _recorder;
 
     public AggregateFactsStep(
         IChatClient chat,
         IOptions<ArticleOptions> options,
-        ILogger<AggregateFactsStep> logger)
+        ILogger<AggregateFactsStep> logger,
+        PipelineStepRecorder recorder)
     {
         _chat = chat;
         _options = options.Value;
         _logger = logger;
+        _recorder = recorder;
     }
 
     public async Task ExecuteAsync(ArticlePipelineContext context, CancellationToken ct)
     {
-        var article = context.Article;
-        var snippets = context.ContextSnippets.Take(MaxSnippets).ToList();
-
-        var userMessage = BuildUserMessage(article.Topic, article.Angle, article.Scope, snippets);
-
-        var chatOptions = new ChatOptions
-        {
-            ModelId = _options.AggregateFactsModel,
-            MaxOutputTokens = _options.AggregateMaxTokens
-        };
-
-        var response = await ChatRetry.RetryOnceAsync(
-            () => _chat.GetResponseAsync(
-                [
-                    new ChatMessage(ChatRole.System, _options.AggregateFactsSystemPrompt),
-                    new ChatMessage(ChatRole.User, userMessage)
-                ],
-                chatOptions,
-                ct),
-            _logger,
-            ct);
-
-        var raw = response.Text ?? string.Empty;
-        var fallback = BuildFallback(snippets);
-
-        var parsed = JsonResponseParser.ParseOrFallback<AggregateOutput>(raw, fallback, _logger);
-
-        context.Facts = (parsed.Facts ?? [])
-            .Select(dto => new AggregatedFact
+        await _recorder.RecordAsync<bool>(
+            context.Article.Id,
+            "AggregateFacts",
+            3,
+            _options.AggregateFactsModel,
+            new { topic = context.Article.Topic, snippetCount = context.ContextSnippets.Count },
+            async (token) =>
             {
-                Claim = dto.Claim,
-                Confidence = dto.Confidence,
-                SourceUrl = dto.SourceUrl,
-                SourceTitle = dto.SourceTitle
-            })
-            .ToList();
+                var article = context.Article;
+                var snippets = context.ContextSnippets.Take(MaxSnippets).ToList();
+
+                var userMessage = BuildUserMessage(article.Topic, article.Angle, article.Scope, snippets);
+
+                var chatOptions = new ChatOptions
+                {
+                    ModelId = _options.AggregateFactsModel,
+                    MaxOutputTokens = _options.AggregateMaxTokens
+                };
+
+                var response = await ChatRetry.RetryOnceAsync(
+                    () => _chat.GetResponseAsync(
+                        [
+                            new ChatMessage(ChatRole.System, _options.AggregateFactsSystemPrompt),
+                            new ChatMessage(ChatRole.User, userMessage)
+                        ],
+                        chatOptions,
+                        token),
+                    _logger,
+                    token);
+
+                var raw = response.Text ?? string.Empty;
+                var fallback = BuildFallback(snippets);
+
+                var parsed = JsonResponseParser.ParseOrFallback<AggregateOutput>(raw, fallback, _logger);
+
+                context.Facts = (parsed.Facts ?? [])
+                    .Select(dto => new AggregatedFact
+                    {
+                        Claim = dto.Claim,
+                        Confidence = dto.Confidence,
+                        SourceUrl = dto.SourceUrl,
+                        SourceTitle = dto.SourceTitle
+                    })
+                    .ToList();
+
+                return (true, (object?)new { rawResponse = raw, facts = parsed.Facts, summary = parsed.Summary, gaps = parsed.Gaps });
+            },
+            ct);
     }
 
     private static string BuildUserMessage(

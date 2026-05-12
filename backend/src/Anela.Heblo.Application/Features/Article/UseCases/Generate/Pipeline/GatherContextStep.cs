@@ -16,47 +16,63 @@ public class GatherContextStep : IArticlePipelineStep
     private readonly IOneDriveService _oneDrive;
     private readonly ArticleOptions _options;
     private readonly ILogger<GatherContextStep> _logger;
+    private readonly PipelineStepRecorder _recorder;
 
     public GatherContextStep(
         IMediator mediator,
         IWebSearchClient webSearch,
         IOneDriveService oneDrive,
         IOptions<ArticleOptions> options,
-        ILogger<GatherContextStep> logger)
+        ILogger<GatherContextStep> logger,
+        PipelineStepRecorder recorder)
     {
         _mediator = mediator;
         _webSearch = webSearch;
         _oneDrive = oneDrive;
         _options = options.Value;
         _logger = logger;
+        _recorder = recorder;
     }
 
     public async Task ExecuteAsync(ArticlePipelineContext context, CancellationToken ct)
     {
-        var article = context.Article;
+        await _recorder.RecordAsync<bool>(
+            context.Article.Id,
+            "GatherContext",
+            2,
+            null,
+            new { queries = context.SearchQueries },
+            async (token) =>
+            {
+                var article = context.Article;
 
-        var kbTask = article.UsedKnowledgeBase
-            ? GatherKnowledgeBaseSnippetsAsync(context.SearchQueries, ct)
-            : Task.FromResult<List<ContextSnippet>>([]);
+                var kbTask = article.UsedKnowledgeBase
+                    ? GatherKnowledgeBaseSnippetsAsync(context.SearchQueries, token)
+                    : Task.FromResult<List<ContextSnippet>>([]);
 
-        var webTask = article.UsedWebSearch
-            ? GatherWebSnippetsAsync(context.SearchQueries, ct)
-            : Task.FromResult<List<ContextSnippet>>([]);
+                var webTask = article.UsedWebSearch
+                    ? GatherWebSnippetsAsync(context.SearchQueries, token)
+                    : Task.FromResult<List<ContextSnippet>>([]);
 
-        var styleGuideTask = HasStyleGuide(article)
-            ? LoadStyleGuideAsync(article, ct)
-            : Task.FromResult<string?>(null);
+                var styleGuideTask = HasStyleGuide(article)
+                    ? LoadStyleGuideAsync(article, token)
+                    : Task.FromResult<string?>(null);
 
-        await Task.WhenAll(kbTask, webTask, styleGuideTask);
+                await Task.WhenAll(kbTask, webTask, styleGuideTask);
 
-        var kbSnippets = kbTask.Result;
-        var webSnippets = webTask.Result;
-        var styleGuideText = styleGuideTask.Result;
+                var kbSnippets = kbTask.Result;
+                var webSnippets = webTask.Result;
+                var styleGuideText = styleGuideTask.Result;
 
-        var deduplicatedWeb = DeduplicateByUrl(webSnippets);
+                var deduplicatedWeb = DeduplicateByUrl(webSnippets);
 
-        context.ContextSnippets = [.. kbSnippets, .. deduplicatedWeb];
-        context.StyleGuideText = styleGuideText;
+                context.ContextSnippets = [.. kbSnippets, .. deduplicatedWeb];
+                context.StyleGuideText = styleGuideText;
+
+                var allSnippets = kbSnippets.Concat(webSnippets).ToList();
+                return (true, (object?)new { snippets = allSnippets, styleGuideLength = styleGuideText?.Length });
+            },
+            ct);
     }
 
     private async Task<List<ContextSnippet>> GatherKnowledgeBaseSnippetsAsync(
@@ -79,7 +95,8 @@ public class GatherContextStep : IArticlePipelineStep
                     Title = chunk.SourceFilename,
                     Excerpt = chunk.Content,
                     Url = null,
-                    ChunkId = chunk.ChunkId
+                    ChunkId = chunk.ChunkId,
+                    Score = chunk.Score
                 }));
             }
             catch (Exception ex) when (ex is not OperationCanceledException)

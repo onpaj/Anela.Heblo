@@ -139,6 +139,7 @@ Common supported formats (verify with extractor registrations in `LeafletModule.
 POST /api/leaflet/generate
 Content-Type: application/json
 Authorization: Bearer <Entra ID token>
+Requires: marketing_writer role
 ```
 
 **Request body:**

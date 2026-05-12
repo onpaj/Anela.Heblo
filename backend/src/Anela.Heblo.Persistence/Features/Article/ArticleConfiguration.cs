@@ -26,11 +26,23 @@ public class ArticleConfiguration : IEntityTypeConfiguration<DomainArticle>
         builder.Property(x => x.RequestedBy).IsRequired(false).HasMaxLength(200);
         builder.Property(x => x.CreatedAt).IsRequired();
         builder.Property(x => x.GeneratedAt).IsRequired(false);
+        builder.Property(x => x.PrecisionScore).IsRequired(false);
+        builder.Property(x => x.StyleScore).IsRequired(false);
+        builder.Property(x => x.FeedbackComment).IsRequired(false).HasColumnType("text");
 
         builder.HasIndex(x => new { x.Status, x.CreatedAt })
             .HasDatabaseName("IX_Articles_Status_CreatedAt");
 
+        builder.HasIndex(x => x.PrecisionScore)
+            .HasDatabaseName("IX_Articles_PrecisionScore")
+            .HasFilter("\"PrecisionScore\" IS NOT NULL");
+
         builder.HasMany(x => x.Sources)
+            .WithOne()
+            .HasForeignKey(x => x.ArticleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.Steps)
             .WithOne()
             .HasForeignKey(x => x.ArticleId)
             .OnDelete(DeleteBehavior.Cascade);

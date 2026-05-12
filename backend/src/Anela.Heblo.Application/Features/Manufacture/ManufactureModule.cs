@@ -30,7 +30,6 @@ public static class ManufactureModule
         });
 
         // Register domain services for manufacturing stock analysis
-        services.AddScoped<ITimePeriodCalculator, TimePeriodCalculator>();
         services.AddScoped<IConsumptionRateCalculator, ConsumptionRateCalculator>();
         services.AddScoped<IProductionActivityAnalyzer, ProductionActivityAnalyzer>();
         services.AddScoped<IManufactureSeverityCalculator, ManufactureSeverityCalculator>();
@@ -56,6 +55,7 @@ public static class ManufactureModule
         services.RegisterTile<TodayProductionTile>();
         services.RegisterTile<NextDayProductionTile>();
         services.RegisterTile<ManualActionRequiredTile>();
+        services.RegisterTile<ManufactureConditionsTile>();
 
         // Register protocol renderer placeholder (replaced by QuestPdfManufactureProtocolRenderer in Phase 6)
         services.AddScoped<IManufactureProtocolRenderer, NotImplementedManufactureProtocolRenderer>();

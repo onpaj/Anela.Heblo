@@ -77,4 +77,106 @@ public class GetLeafletChunkDetailHandlerTests
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(ErrorCodes.LeafletChunkNotFound);
     }
+
+    [Fact]
+    public async Task Handle_returns_sharepoint_source_path_when_document_sourced_from_sharepoint()
+    {
+        // Arrange
+        var chunkId = Guid.NewGuid();
+        var chunk = new LeafletChunk
+        {
+            Id = chunkId,
+            DocumentId = Guid.NewGuid(),
+            ChunkIndex = 0,
+            Content = "c",
+            Summary = "s",
+            Document = new LeafletDocument
+            {
+                Id = Guid.NewGuid(),
+                Filename = "leaflet.pdf",
+                SourcePath = "https://anelacz.sharepoint.com/sites/x/leaflet.pdf",
+            },
+        };
+
+        _repoMock
+            .Setup(r => r.GetChunkByIdAsync(chunkId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(chunk);
+
+        var handler = CreateHandler();
+
+        // Act
+        var response = await handler.Handle(new GetLeafletChunkDetailRequest { ChunkId = chunkId }, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.SourcePath.Should().Be("https://anelacz.sharepoint.com/sites/x/leaflet.pdf");
+    }
+
+    [Fact]
+    public async Task Handle_returns_synthetic_upload_path_when_document_manually_uploaded()
+    {
+        // Arrange
+        var chunkId = Guid.NewGuid();
+        var chunk = new LeafletChunk
+        {
+            Id = chunkId,
+            DocumentId = Guid.NewGuid(),
+            ChunkIndex = 0,
+            Content = "c",
+            Summary = "s",
+            Document = new LeafletDocument
+            {
+                Id = Guid.NewGuid(),
+                Filename = "uploaded.pdf",
+                SourcePath = "upload/xyz-9/uploaded.pdf",
+            },
+        };
+
+        _repoMock
+            .Setup(r => r.GetChunkByIdAsync(chunkId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(chunk);
+
+        var handler = CreateHandler();
+
+        // Act
+        var response = await handler.Handle(new GetLeafletChunkDetailRequest { ChunkId = chunkId }, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.SourcePath.Should().Be("upload/xyz-9/uploaded.pdf");
+    }
+
+    [Fact]
+    public async Task Handle_returns_empty_string_when_document_has_no_source_path()
+    {
+        // Arrange
+        var chunkId = Guid.NewGuid();
+        var chunk = new LeafletChunk
+        {
+            Id = chunkId,
+            DocumentId = Guid.NewGuid(),
+            ChunkIndex = 0,
+            Content = "c",
+            Summary = "s",
+            Document = new LeafletDocument
+            {
+                Id = Guid.NewGuid(),
+                Filename = "no-source.pdf",
+                SourcePath = string.Empty,
+            },
+        };
+
+        _repoMock
+            .Setup(r => r.GetChunkByIdAsync(chunkId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(chunk);
+
+        var handler = CreateHandler();
+
+        // Act
+        var response = await handler.Handle(new GetLeafletChunkDetailRequest { ChunkId = chunkId }, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.SourcePath.Should().Be(string.Empty);
+    }
 }

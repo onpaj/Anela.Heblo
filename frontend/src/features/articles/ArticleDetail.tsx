@@ -1,6 +1,9 @@
-import { Loader2, ExternalLink, BookOpen, Globe } from 'lucide-react';
-import { ArticleDetail as ArticleDetailType, ArticleSource, useGetArticleQuery, IN_PROGRESS_STATUSES } from '../../api/hooks/useArticles';
+import { Loader2 } from 'lucide-react';
+import { ArticleDetail as ArticleDetailType, useGetArticleQuery, IN_PROGRESS_STATUSES } from '../../api/hooks/useArticles';
 import { ArticleStatus } from '../../api/generated/api-client';
+import ArticleSourceList from './ArticleSourceList';
+import ArticleFeedbackSection from './ArticleFeedbackSection';
+import ArticleDebugPanel from './ArticleDebugPanel';
 
 interface ArticleDetailProps {
   articleId: string;
@@ -21,41 +24,6 @@ const STATUS_COLORS: Record<ArticleStatus, string> = {
   [ArticleStatus.Generated]: 'bg-green-100 text-green-700',
   [ArticleStatus.Failed]: 'bg-red-100 text-red-700',
 };
-
-function SourceIcon({ type }: { type: string }) {
-  if (type === 'Web') return <Globe className="w-4 h-4 text-blue-500 shrink-0" />;
-  return <BookOpen className="w-4 h-4 text-green-600 shrink-0" />;
-}
-
-function SourceList({ sources }: { sources: ArticleSource[] }) {
-  if (sources.length === 0) return null;
-
-  return (
-    <div className="mt-6 border-t pt-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-2">Zdroje</h3>
-      <ul className="space-y-1">
-        {sources.map((source) => (
-          <li key={`${source.type}:${source.url ?? source.title}`} className="flex items-start gap-2 text-sm">
-            <SourceIcon type={source.type} />
-            {source.url ? (
-              <a
-                href={source.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline flex items-center gap-1"
-              >
-                {source.title}
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            ) : (
-              <span className="text-gray-700">{source.title}</span>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 function HtmlContent({ html }: { html: string }) {
   const srcdoc = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
@@ -109,7 +77,8 @@ function ArticleView({ article }: { article: ArticleDetailType }) {
       </div>
 
       {article.htmlContent && <HtmlContent html={article.htmlContent} />}
-      <SourceList sources={article.sources} />
+      <ArticleSourceList sources={article.sources} />
+      <ArticleFeedbackSection article={article} />
     </div>
   );
 }
@@ -150,6 +119,7 @@ export default function ArticleDetail({ articleId }: ArticleDetailProps) {
 
       {IN_PROGRESS_STATUSES.has(article.status) && <InProgressView article={article} />}
       {article.status === ArticleStatus.Generated && <ArticleView article={article} />}
+      {!IN_PROGRESS_STATUSES.has(article.status) && <ArticleDebugPanel articleId={article.id} />}
     </div>
   );
 }

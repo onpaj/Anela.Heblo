@@ -2,9 +2,11 @@ using Anela.Heblo.Adapters.Flexi.Stock;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Model;
+using System.Diagnostics;
 using System.Net;
 
 namespace Anela.Heblo.Adapters.Flexi.Manufacture.Internal;
@@ -14,22 +16,45 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
     private readonly IBoMClient _bomClient;
     private readonly IErpStockClient _stockClient;
     private readonly TimeProvider _timeProvider;
+    private readonly IManufactureTemplateCache _cache;
+    private readonly ITelemetryService _telemetry;
     private readonly ILogger<FlexiManufactureTemplateService> _logger;
 
     public FlexiManufactureTemplateService(
         IBoMClient bomClient,
         IErpStockClient stockClient,
         TimeProvider timeProvider,
+        IManufactureTemplateCache cache,
+        ITelemetryService telemetry,
         ILogger<FlexiManufactureTemplateService> logger)
     {
         _bomClient = bomClient ?? throw new ArgumentNullException(nameof(bomClient));
         _stockClient = stockClient ?? throw new ArgumentNullException(nameof(stockClient));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+        _telemetry = telemetry ?? throw new ArgumentNullException(nameof(telemetry));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<ManufactureTemplate?> GetManufactureTemplateAsync(string productCode, CancellationToken cancellationToken = default)
     {
+        var totalStopwatch = Stopwatch.StartNew();
+        var fetchTimings = new FetchTimings();
+
+        var template = await _cache.GetOrFetchAsync(
+            productCode,
+            ct => FetchAsync(productCode, ct, fetchTimings),
+            cancellationToken);
+
+        totalStopwatch.Stop();
+        EmitTelemetry(productCode, fetchTimings, totalStopwatch.ElapsedMilliseconds, template);
+        return template;
+    }
+
+    private async Task<ManufactureTemplate?> FetchAsync(string productCode, CancellationToken cancellationToken, FetchTimings timings)
+    {
+        timings.FetchInvoked = true;
+        var bomStopwatch = Stopwatch.StartNew();
         IEnumerable<BoMItemFlexiDto> bom;
         try
         {
@@ -43,6 +68,8 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
                 productCode);
             throw;
         }
+        bomStopwatch.Stop();
+        timings.BomMs = bomStopwatch.ElapsedMilliseconds;
 
         var header = bom.SingleOrDefault(s => s.Level == 1);
         if (header == null)
@@ -50,22 +77,26 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
 
         var ingredients = bom.Where(w => w.Level != 1);
 
-        // Get stock data to determine HasLots for each ingredient
         var stockDate = _timeProvider.GetLocalNow().DateTime;
-        var allStockData = new List<ErpStock>();
 
-        // Load stock from all warehouses to get HasLots information
-        var warehouseIds = new[]
-        {
-            FlexiStockClient.MaterialWarehouseId,
-            FlexiStockClient.SemiProductsWarehouseId,
-            FlexiStockClient.ProductsWarehouseId
-        };
+        var stockStopwatch = Stopwatch.StartNew();
+        var materialStockTask = _stockClient.StockToDateAsync(stockDate, FlexiStockClient.MaterialWarehouseId, cancellationToken);
+        var semiProductsStockTask = _stockClient.StockToDateAsync(stockDate, FlexiStockClient.SemiProductsWarehouseId, cancellationToken);
+        var productsStockTask = _stockClient.StockToDateAsync(stockDate, FlexiStockClient.ProductsWarehouseId, cancellationToken);
 
-        foreach (var warehouseId in warehouseIds)
+        await Task.WhenAll(materialStockTask, semiProductsStockTask, productsStockTask);
+        stockStopwatch.Stop();
+        timings.StockMs = stockStopwatch.ElapsedMilliseconds;
+
+        // Narrow the three full snapshots to a single HasLots dictionary (FR-4).
+        // Larger DTOs go out of scope immediately after this block.
+        var hasLotsByProductCode = new Dictionary<string, bool>(StringComparer.Ordinal);
+        foreach (var snapshot in new[] { materialStockTask.Result, semiProductsStockTask.Result, productsStockTask.Result })
         {
-            var stockItems = await _stockClient.StockToDateAsync(stockDate, warehouseId, cancellationToken);
-            allStockData.AddRange(stockItems);
+            foreach (var stockItem in snapshot)
+            {
+                hasLotsByProductCode[stockItem.ProductCode] = stockItem.HasLots;
+            }
         }
 
         var template = new ManufactureTemplate()
@@ -78,7 +109,6 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
             Ingredients = ingredients.Select(s =>
             {
                 var code = s.IngredientCode.RemoveCodePrefix();
-                var stockItem = allStockData.FirstOrDefault(stock => stock.ProductCode == code);
 
                 return new Ingredient()
                 {
@@ -87,8 +117,8 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
                     ProductName = s.IngredientFullName,
                     Amount = s.Amount,
                     ProductType = ResolveProductType(s),
-                    HasLots = stockItem?.HasLots ?? false,
-                    HasExpiration = false // This information is not available from BoM, set to false as default
+                    HasLots = hasLotsByProductCode.TryGetValue(code, out var hasLots) && hasLots,
+                    HasExpiration = false
                 };
             }).ToList(),
         };
@@ -106,26 +136,50 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
         try
         {
             var productTypeId = boMItemFlexiDto.Ingredient?.FirstOrDefault()?.ProductTypeId;
-
-            // Return UNDEFINED if no ProductTypeId is available
             if (!productTypeId.HasValue)
             {
                 return ProductType.UNDEFINED;
             }
-
-            // Check if the value is a valid ProductType enum value
             if (Enum.IsDefined(typeof(ProductType), productTypeId.Value))
             {
                 return (ProductType)productTypeId.Value;
             }
-
-            // Return UNDEFINED for unknown enum values
             return ProductType.UNDEFINED;
         }
         catch
         {
-            // Return UNDEFINED for any exceptions
             return ProductType.UNDEFINED;
+        }
+    }
+
+    private sealed class FetchTimings
+    {
+        public bool FetchInvoked { get; set; }
+        public long BomMs { get; set; }
+        public long StockMs { get; set; }
+    }
+
+    private void EmitTelemetry(string productCode, FetchTimings timings, long totalMs, ManufactureTemplate? template)
+    {
+        try
+        {
+            var properties = new Dictionary<string, string>
+            {
+                ["product_code"] = productCode,
+                ["cache_hit"] = (!timings.FetchInvoked).ToString().ToLowerInvariant(),
+                ["ingredient_count"] = (template?.Ingredients.Count ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture)
+            };
+            var metrics = new Dictionary<string, double>
+            {
+                ["bom_duration_ms"] = timings.BomMs,
+                ["stock_duration_ms"] = timings.StockMs,
+                ["total_duration_ms"] = totalMs
+            };
+            _telemetry.TrackBusinessEvent("manufacture_template_fetched", properties, metrics);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to emit manufacture_template_fetched telemetry for {ProductCode}", productCode);
         }
     }
 }

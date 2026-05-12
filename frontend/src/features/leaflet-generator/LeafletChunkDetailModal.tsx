@@ -1,7 +1,8 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, ExternalLink } from 'lucide-react';
 import { useLeafletChunkDetailQuery } from '../../api/hooks/useLeaflet';
 import { formatDateTime } from '../../utils/formatters';
+import { getSharePointLink } from '../../utils/sharepointLink';
 
 interface LeafletChunkDetailModalProps {
   chunkId: string;
@@ -64,6 +65,18 @@ const LeafletChunkDetailModal: React.FC<LeafletChunkDetailModalProps> = ({ chunk
                   <span>Indexováno: {formatDateTime(data.indexedAt)}</span>
                 )}
               </div>
+
+              {getSharePointLink(data.sourcePath) && (
+                <a
+                  href={getSharePointLink(data.sourcePath)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                >
+                  Otevřít v SharePoint
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
 
               {/* Summary */}
               <div>

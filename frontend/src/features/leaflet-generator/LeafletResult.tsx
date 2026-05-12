@@ -1,14 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import RagFeedbackForm from '../../components/feedback/RagFeedbackForm';
+import { useSubmitLeafletFeedbackMutation } from '../../api/hooks/useLeaflet';
 
 interface LeafletResultProps {
   content: string;
+  generationId?: string | null;
   onRegenerate: () => void;
 }
 
-export default function LeafletResult({ content, onRegenerate }: LeafletResultProps) {
+export default function LeafletResult({ content, generationId, onRegenerate }: LeafletResultProps) {
   const [copied, setCopied] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const submitFeedback = useSubmitLeafletFeedbackMutation();
+
+  useEffect(() => {
+    setIsSuccess(false);
+    setAlreadySubmitted(false);
+  }, [generationId]);
 
   useEffect(() => {
     return () => {
@@ -27,6 +38,22 @@ export default function LeafletResult({ content, onRegenerate }: LeafletResultPr
     } catch {
       // clipboard unavailable — no feedback change
     }
+  };
+
+  const handleFeedbackSubmit = (data: { precisionScore: number; styleScore: number; comment?: string }) => {
+    if (!generationId) return;
+    submitFeedback.mutate(
+      { generationId, precisionScore: data.precisionScore, styleScore: data.styleScore, comment: data.comment || undefined },
+      {
+        onSuccess: (result) => {
+          if (result.alreadySubmitted) {
+            setAlreadySubmitted(true);
+          } else {
+            setIsSuccess(true);
+          }
+        },
+      }
+    );
   };
 
   return (
@@ -50,6 +77,14 @@ export default function LeafletResult({ content, onRegenerate }: LeafletResultPr
           Generovat znovu
         </button>
       </div>
+      {generationId && (
+        <RagFeedbackForm
+          onSubmit={handleFeedbackSubmit}
+          isSubmitting={submitFeedback.isPending}
+          isSuccess={isSuccess}
+          alreadySubmitted={alreadySubmitted}
+        />
+      )}
     </div>
   );
 }

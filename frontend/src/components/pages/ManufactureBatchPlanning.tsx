@@ -22,6 +22,7 @@ import { QUERY_KEYS } from "../../api/client";
 import ManufactureOrderDetail from "../manufacture/pages/ManufactureOrderDetail";
 import { usePlanningList } from "../../contexts/PlanningListContext";
 import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
+import { TimePeriod, resolveTimePeriod } from '../../utils/timePeriod';
 
 const BatchPlanningCalculator: React.FC = () => {
   // Selected semiproduct state
@@ -47,7 +48,7 @@ const BatchPlanningCalculator: React.FC = () => {
   
   // Sales settings state
   const [salesMultiplier, setSalesMultiplier] = useState<number>(1.3);
-  const [fromDate, setFromDate] = useState<Date>(new Date(new Date().getFullYear() - 1, new Date().getMonth(), new Date().getDate()));
+  const [fromDate, setFromDate] = useState<Date>(resolveTimePeriod(TimePeriod.Y2Y).primary?.from ?? new Date());
   const [toDate, setToDate] = useState<Date>(new Date());
   
   // Product constraints state (for fixed quantities)
@@ -236,57 +237,28 @@ const BatchPlanningCalculator: React.FC = () => {
   const handleQuickDateRange = (
     type: "lastq" | "y2y" | "nextq",
   ) => {
-    const now = new Date();
-    let fromDateNew: Date;
-    let toDateNew: Date;
-
-    switch (type) {
-      case "lastq":
-        // Previous quarter (last 3 months)
-        fromDateNew = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-        toDateNew = new Date(now.getFullYear(), now.getMonth(), 0);
-        break;
-      case "y2y":
-        // Year to year (12 months back)
-        fromDateNew = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-        toDateNew = new Date();
-        break;
-      case "nextq":
-        // Next quarter from previous year (3 months forward from same period last year)
-        const lastYear = now.getFullYear() - 1;
-        fromDateNew = new Date(lastYear, now.getMonth(), 1);
-        toDateNew = new Date(lastYear, now.getMonth() + 3, 0);
-        break;
-    }
-
-    setFromDate(fromDateNew);
-    setToDate(toDateNew);
+    const periodMap: Record<"lastq" | "y2y" | "nextq", TimePeriod> = {
+      lastq: TimePeriod.PreviousQuarter,
+      y2y: TimePeriod.Y2Y,
+      nextq: TimePeriod.FutureQuarter,
+    };
+    const resolved = resolveTimePeriod(periodMap[type]);
+    if (!resolved.primary) return;
+    setFromDate(resolved.primary.from);
+    setToDate(resolved.primary.to);
     setNeedsRecalculation(true);
   };
 
   // Get tooltip text for date range buttons
   const getDateRangeTooltip = (type: "lastq" | "y2y" | "nextq") => {
-    const now = new Date();
-    let fromDateNew: Date;
-    let toDateNew: Date;
-
-    switch (type) {
-      case "lastq":
-        fromDateNew = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-        toDateNew = new Date(now.getFullYear(), now.getMonth(), 0);
-        break;
-      case "y2y":
-        fromDateNew = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-        toDateNew = new Date();
-        break;
-      case "nextq":
-        const lastYear = now.getFullYear() - 1;
-        fromDateNew = new Date(lastYear, now.getMonth(), 1);
-        toDateNew = new Date(lastYear, now.getMonth() + 3, 0);
-        break;
-    }
-
-    return `${fromDateNew.toLocaleDateString("cs-CZ")} - ${toDateNew.toLocaleDateString("cs-CZ")}`;
+    const periodMap: Record<"lastq" | "y2y" | "nextq", TimePeriod> = {
+      lastq: TimePeriod.PreviousQuarter,
+      y2y: TimePeriod.Y2Y,
+      nextq: TimePeriod.FutureQuarter,
+    };
+    const resolved = resolveTimePeriod(periodMap[type]);
+    if (!resolved.primary) return "";
+    return `${resolved.primary.from.toLocaleDateString("cs-CZ")} - ${resolved.primary.to.toLocaleDateString("cs-CZ")}`;
   };
 
   const calculateBatchPlan = (semiproductCode: string, fromDateParam?: Date, toDateParam?: Date) => {

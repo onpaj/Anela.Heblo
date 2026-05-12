@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
 import { MsalProvider } from "@azure/msal-react";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -36,10 +36,13 @@ import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
+import MarketingFeedbackPage from "./pages/MarketingFeedbackPage";
 import ArticlesPage from "./pages/ArticlesPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
 import CampaignsPage from "./components/pages/Campaigns/CampaignsPage";
 import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
+import PhotobankPage from "./components/marketing/photobank/pages/PhotobankPage";
+import PhotobankSettingsPage from "./components/marketing/photobank/pages/PhotobankSettingsPage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -60,6 +63,9 @@ import { GlobalLoadingIndicator } from "./components/GlobalLoadingIndicator";
 import { AppInitializer } from "./components/AppInitializer";
 import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog";
 import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
+import TerminalLayout from "./components/terminal/TerminalLayout";
+import TerminalHome from "./components/terminal/TerminalHome";
+import ComingSoonPage from "./components/terminal/ComingSoonPage";
 import "./i18n";
 
 let isRedirecting = false;
@@ -333,158 +339,65 @@ function App() {
                   }}
                 >
                   <AuthGuard>
-                    <Layout statusBar={<StatusBar />}>
-                      <Routes>
+                    <Routes>
+                      {/* Mobile terminal — no sidebar, no topbar */}
+                      <Route path="/terminal" element={<TerminalLayout />}>
+                        <Route index element={<TerminalHome />} />
+                        <Route path="receive" element={<ComingSoonPage title="Příjem boxu" />} />
+                        <Route path="stocktake" element={<ComingSoonPage title="Inventura" />} />
+                        <Route
+                          path="lot-identification"
+                          element={<ComingSoonPage title="Identifikace šarže" />}
+                        />
+                      </Route>
+
+                      {/* Desktop app — full Layout with sidebar (pathless layout route) */}
+                      <Route element={<Layout statusBar={<StatusBar />}><Outlet /></Layout>}>
                         <Route path="/" element={<Dashboard />} />
-                        <Route
-                          path="/finance/overview"
-                          element={<FinancialOverview />}
-                        />
-                        <Route
-                          path="/finance/bank-statements"
-                          element={<BankStatementImportChart />}
-                        />
-                        <Route
-                          path="/analytics/product-margin-summary"
-                          element={<ProductMarginSummary />}
-                        />
+                        <Route path="/finance/overview" element={<FinancialOverview />} />
+                        <Route path="/finance/bank-statements" element={<BankStatementImportChart />} />
+                        <Route path="/analytics/product-margin-summary" element={<ProductMarginSummary />} />
                         <Route path="/catalog" element={<CatalogList />} />
-                        <Route
-                          path="/purchase/orders"
-                          element={<PurchaseOrderList />}
-                        />
-                        <Route
-                          path="/purchase/stock-analysis"
-                          element={<PurchaseStockAnalysis />}
-                        />
-                        <Route
-                          path="/purchase/invoice-classification"
-                          element={<InvoiceClassificationPage />}
-                        />
-                        <Route
-                          path="/manufacturing/stock-analysis"
-                          element={<ManufacturingStockAnalysis />}
-                        />
-                        <Route
-                          path="/manufacturing/output"
-                          element={<ManufactureOutput />}
-                        />
-                        <Route
-                          path="/manufacturing/batch-calculator"
-                          element={<ManufactureBatchCalculator />}
-                        />
-                        <Route
-                          path="/manufacturing/batch-planning"
-                          element={<BatchPlanningCalculator />}
-                        />
-                        <Route
-                          path="/manufacturing/orders"
-                          element={<ManufactureOrderList />}
-                        />
-                        <Route
-                          path="/manufacturing/orders/:id"
-                          element={<ManufactureOrderDetail />}
-                        />
-                        <Route
-                          path="/products/margins"
-                          element={<ProductMarginsList />}
-                        />
+                        <Route path="/purchase/orders" element={<PurchaseOrderList />} />
+                        <Route path="/purchase/stock-analysis" element={<PurchaseStockAnalysis />} />
+                        <Route path="/purchase/invoice-classification" element={<InvoiceClassificationPage />} />
+                        <Route path="/manufacturing/stock-analysis" element={<ManufacturingStockAnalysis />} />
+                        <Route path="/manufacturing/output" element={<ManufactureOutput />} />
+                        <Route path="/manufacturing/batch-calculator" element={<ManufactureBatchCalculator />} />
+                        <Route path="/manufacturing/batch-planning" element={<BatchPlanningCalculator />} />
+                        <Route path="/manufacturing/orders" element={<ManufactureOrderList />} />
+                        <Route path="/manufacturing/orders/:id" element={<ManufactureOrderDetail />} />
+                        <Route path="/products/margins" element={<ProductMarginsList />} />
                         <Route path="/journal" element={<JournalList />} />
-                        <Route
-                          path="/marketing/calendar"
-                          element={<MarketingCalendarPage />}
-                        />
-                        <Route
-                          path="/leaflet-generator"
-                          element={<LeafletGeneratorPage />}
-                        />
-                        <Route
-                          path="/journal/new"
-                          element={<JournalEntryNew />}
-                        />
-                        <Route
-                          path="/journal/:id/edit"
-                          element={<JournalEntryEdit />}
-                        />
-                        <Route
-                          path="/logistics/inventory"
-                          element={<InventoryList />}
-                        />
-                        <Route
-                          path="/manufacturing/inventory"
-                          element={<ManufactureInventoryList />}
-                        />
-                        <Route
-                          path="/logistics/transport-boxes"
-                          element={<TransportBoxList />}
-                        />
-                        <Route
-                          path="/logistics/receive-boxes"
-                          element={<TransportBoxReceive />}
-                        />
-                        <Route
-                          path="/logistics/gift-package-manufacturing"
-                          element={<GiftPackageManufacturing />}
-                        />
-                        <Route
-                          path="/logistics/warehouse-statistics"
-                          element={<WarehouseStatistics />}
-                        />
-                        <Route
-                          path="/logistics/packing-materials"
-                          element={<PackingMaterialsPage />}
-                        />
-                        <Route
-                          path="/logistics/expedition-archive"
-                          element={<ExpeditionListArchivePage />}
-                        />
-                        <Route
-                          path="/automation/invoice-import-statistics"
-                          element={<InvoiceImportStatistics />}
-                        />
-                        <Route
-                          path="/automation/background-tasks"
-                          element={<BackgroundTasks />}
-                        />
-                        <Route
-                          path="/customer/issued-invoices"
-                          element={<IssuedInvoicesPage />}
-                        />
-                        <Route
-                          path="/customer/bank-statements-overview"
-                          element={<BankStatementsOverviewPage />}
-                        />
+                        <Route path="/marketing/calendar" element={<MarketingCalendarPage />} />
+                        <Route path="/marketing/photobank" element={<PhotobankPage />} />
+                        <Route path="/marketing/photobank/settings" element={<PhotobankSettingsPage />} />
+                        <Route path="/leaflet-generator" element={<LeafletGeneratorPage />} />
+                        <Route path="/journal/new" element={<JournalEntryNew />} />
+                        <Route path="/journal/:id/edit" element={<JournalEntryEdit />} />
+                        <Route path="/logistics/inventory" element={<InventoryList />} />
+                        <Route path="/manufacturing/inventory" element={<ManufactureInventoryList />} />
+                        <Route path="/logistics/transport-boxes" element={<TransportBoxList />} />
+                        <Route path="/logistics/receive-boxes" element={<TransportBoxReceive />} />
+                        <Route path="/logistics/gift-package-manufacturing" element={<GiftPackageManufacturing />} />
+                        <Route path="/logistics/warehouse-statistics" element={<WarehouseStatistics />} />
+                        <Route path="/logistics/packing-materials" element={<PackingMaterialsPage />} />
+                        <Route path="/logistics/expedition-archive" element={<ExpeditionListArchivePage />} />
+                        <Route path="/automation/invoice-import-statistics" element={<InvoiceImportStatistics />} />
+                        <Route path="/automation/background-tasks" element={<BackgroundTasks />} />
+                        <Route path="/customer/issued-invoices" element={<IssuedInvoicesPage />} />
+                        <Route path="/customer/bank-statements-overview" element={<BankStatementsOverviewPage />} />
                         <Route path="/orgchart" element={<OrgChartPage />} />
-                        <Route
-                          path="/stock-operations"
-                          element={<StockOperationsPage />}
-                        />
-                        <Route
-                          path="/recurring-jobs"
-                          element={<RecurringJobsPage />}
-                        />
-                        <Route
-                          path="/knowledge-base"
-                          element={<KnowledgeBasePage />}
-                        />
-                        <Route
-                          path="/knowledge-base/feedback"
-                          element={<KnowledgeBaseFeedbackPage />}
-                        />
-                        <Route
-                          path="/campaigns"
-                          element={<CampaignsPage />}
-                        />
-                        <Route
-                          path="/articles"
-                          element={<ArticlesPage />}
-                        />
-                        <Route
-                          path="/automation/data-quality"
-                          element={<DataQualityPage />}
-                        />
-                      </Routes>
-                    </Layout>
+                        <Route path="/stock-operations" element={<StockOperationsPage />} />
+                        <Route path="/recurring-jobs" element={<RecurringJobsPage />} />
+                        <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
+                        <Route path="/knowledge-base/feedback" element={<KnowledgeBaseFeedbackPage />} />
+                        <Route path="/campaigns" element={<CampaignsPage />} />
+                        <Route path="/marketing/feedback" element={<MarketingFeedbackPage />} />
+                        <Route path="/articles" element={<ArticlesPage />} />
+                        <Route path="/automation/data-quality" element={<DataQualityPage />} />
+                      </Route>
+                    </Routes>
                   </AuthGuard>
                 </Router>
               </MsalProvider>

@@ -2,9 +2,17 @@ import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import LeafletResult from '../LeafletResult';
 
+jest.mock('../../../api/hooks/useLeaflet', () => ({
+  useSubmitLeafletFeedbackMutation: () => ({
+    mutate: jest.fn(),
+    isPending: false,
+    isError: false,
+  }),
+}));
+
 jest.mock('react-markdown', () => ({
   __esModule: true,
-  default: ({ children }: { children: string }) => {
+  default: ({ children }) => {
     const lines = children.split('\n');
     return (
       <div>
@@ -93,5 +101,21 @@ describe('LeafletResult', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Generovat znovu' }));
 
     expect(onRegenerate).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not render feedback form when generationId is absent', () => {
+    render(<LeafletResult content="Some content" onRegenerate={jest.fn()} />);
+    expect(screen.queryByText('Ohodnoťte odpověď')).not.toBeInTheDocument();
+  });
+
+  it('renders feedback form when generationId is provided', () => {
+    render(
+      <LeafletResult
+        content="Some content"
+        generationId="gen-abc-123"
+        onRegenerate={jest.fn()}
+      />
+    );
+    expect(screen.getByText('Ohodnoťte odpověď')).toBeInTheDocument();
   });
 });

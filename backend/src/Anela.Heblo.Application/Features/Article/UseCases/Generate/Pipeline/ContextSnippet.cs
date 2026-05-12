@@ -9,4 +9,5 @@ public sealed record ContextSnippet
     public string Excerpt { get; init; } = "";
     public string? Url { get; init; }
     public Guid? ChunkId { get; init; }
+    public double? Score { get; init; }
 }

@@ -40,10 +40,10 @@ function getCalendarStartForToday(): Date {
   return start;
 }
 
-type ViewMode = 'calendar' | 'list';
+type ViewMode = 'fiveWeeks' | 'twoWeeks' | 'list';
 
 const MarketingCalendarPage: React.FC = () => {
-  const [viewMode, setViewMode] = useState<ViewMode>('calendar');
+  const [viewMode, setViewMode] = useState<ViewMode>('fiveWeeks');
   const [currentDate, setCurrentDate] = useState(getCalendarStartForToday);
   const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date } | null>(null);
   const [filters, setFilters] = useState<MarketingFilters>(EMPTY_FILTERS);
@@ -56,20 +56,23 @@ const MarketingCalendarPage: React.FC = () => {
 
   const calendarRef = useRef<FullCalendar>(null);
 
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    if (mode !== 'list') setVisibleRange(null);
+  };
+
   const { getUserInfo } = useAuth();
   const isAdmin = getUserInfo()?.roles?.includes(MARKETING_IMPORT_ROLE) ?? false;
 
-  // API query range comes from FullCalendar's visible range (set via datesSet callback).
-  // Fall back to a manual calculation on first render before datesSet fires.
   const { startDate, endDate } = useMemo(() => {
     if (visibleRange) {
       return { startDate: visibleRange.start, endDate: visibleRange.end };
     }
     const start = getCalendarStartForToday();
     const end = new Date(start);
-    end.setDate(start.getDate() + 35);
+    end.setDate(start.getDate() + (viewMode === 'twoWeeks' ? 14 : 35));
     return { startDate: start, endDate: end };
-  }, [visibleRange]);
+  }, [visibleRange, viewMode]);
 
   const calendarQuery = useMarketingCalendar({ startDate, endDate });
   const listQuery = useMarketingActions({
@@ -116,7 +119,6 @@ const MarketingCalendarPage: React.FC = () => {
   const periodLabel = useMemo(() => {
     const start = visibleRange?.start ?? currentDate;
     const rawEnd = visibleRange?.end ?? currentDate;
-    // end is exclusive — step back one day for display
     const end = new Date(rawEnd);
     end.setDate(end.getDate() - 1);
 
@@ -134,10 +136,8 @@ const MarketingCalendarPage: React.FC = () => {
     return `${CZECH_MONTHS[startMonth]} ${startYear} – ${CZECH_MONTHS[endMonth]} ${endYear}`;
   }, [visibleRange, currentDate]);
 
-  // CalendarNavigation drives FullCalendar; datesSet callback syncs currentDate back
   const goToPrev = () => calendarRef.current?.getApi().prev();
   const goToNext = () => calendarRef.current?.getApi().next();
-  // Navigate to the window where today is in week 2
   const goToToday = () => calendarRef.current?.getApi().gotoDate(getCalendarStartForToday());
 
   const handleDatesSet = useCallback(
@@ -166,7 +166,6 @@ const MarketingCalendarPage: React.FC = () => {
     setPrefillDates(null);
   };
 
-  // Sync detail data into editingAction when it arrives
   React.useEffect(() => {
     if ((detailQuery.data as any)?.action) {
       const a = (detailQuery.data as any).action;
@@ -219,27 +218,36 @@ const MarketingCalendarPage: React.FC = () => {
 
   return (
     <div className="flex flex-col" style={{ height: PAGE_CONTAINER_HEIGHT }}>
-      {/* Toolbar */}
       <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200 flex-shrink-0">
         <h1 className="text-xl font-semibold text-gray-900">
           Marketingový kalendář
         </h1>
         <div className="flex items-center gap-3">
-          {/* View toggle */}
           <div className="flex border border-gray-200 rounded-lg overflow-hidden">
             <button
-              onClick={() => setViewMode('calendar')}
+              onClick={() => handleViewModeChange('fiveWeeks')}
               className={`px-3 py-2 text-sm flex items-center gap-1.5 transition-colors ${
-                viewMode === 'calendar'
+                viewMode === 'fiveWeeks'
                   ? 'bg-indigo-600 text-white'
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
               <Calendar className="h-4 w-4" />
-              Kalendář
+              5 týdnů
             </button>
             <button
-              onClick={() => setViewMode('list')}
+              onClick={() => handleViewModeChange('twoWeeks')}
+              className={`px-3 py-2 text-sm flex items-center gap-1.5 transition-colors ${
+                viewMode === 'twoWeeks'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+              14 dní
+            </button>
+            <button
+              onClick={() => handleViewModeChange('list')}
               className={`px-3 py-2 text-sm flex items-center gap-1.5 transition-colors ${
                 viewMode === 'list'
                   ? 'bg-indigo-600 text-white'
@@ -269,9 +277,8 @@ const MarketingCalendarPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-auto p-6">
-        {viewMode === 'calendar' ? (
+        {viewMode !== 'list' ? (
           <div className="flex flex-col h-full gap-4">
             <div className="flex-shrink-0">
               <CalendarNavigation
@@ -292,6 +299,8 @@ const MarketingCalendarPage: React.FC = () => {
             ) : (
               <div className="flex-1 min-h-0">
                 <MarketingMonthCalendar
+                  key={viewMode}
+                  viewName={viewMode}
                   events={calendarEvents}
                   initialDate={currentDate}
                   onEventClick={openEdit}
@@ -332,7 +341,6 @@ const MarketingCalendarPage: React.FC = () => {
         )}
       </div>
 
-      {/* Modal */}
       <MarketingActionModal
         isOpen={isModalOpen}
         onClose={closeModal}

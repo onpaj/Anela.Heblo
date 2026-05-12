@@ -3,7 +3,7 @@ id: analyst
 display_name: "Analyst Agent"
 model: claude-opus-4-7
 phase: analyzing
-max_turns: 1
+max_turns: 50
 allowed_tools: []
 output_format: markdown
 visibility_timeout: 600

@@ -9,8 +9,8 @@ public sealed class ArticleOptions
     [Required, MinLength(1)]
     public string DefaultModel { get; set; } = "claude-sonnet-4-6";
 
-    [Range(1, 8192)]
-    public int WriteMaxTokens { get; set; } = 4096;
+    [Range(1, 16384)]
+    public int WriteMaxTokens { get; set; } = 8192;
 
     [Range(1, 4096)]
     public int AggregateMaxTokens { get; set; } = 1024;
@@ -55,10 +55,9 @@ public sealed class ArticleOptions
 
     public string WriteArticleSystemPromptTemplate { get; set; } =
         """
-        Jsi zkušený redaktor kosmetického obsahu. Napiš článek na téma {topic} pro publikum {audience}.
+        Napiš článek na téma {topic} pro publikum {audience}.
         Délka: {length}. Úhel pohledu: {angle}.
         Využij tato fakta: {facts}
         {style_guide}
-        Odpověz JSON: {"title":"...","html_content":"<article>...</article>"}.
         """;
 }

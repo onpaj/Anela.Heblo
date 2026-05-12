@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
@@ -12,17 +13,20 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<UpdateManufactureOrderStatusHandler> _logger;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IConditionsReadingProvider _conditionsProvider;
 
     public UpdateManufactureOrderStatusHandler(
         IManufactureOrderRepository repository,
         TimeProvider timeProvider,
         ILogger<UpdateManufactureOrderStatusHandler> logger,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IConditionsReadingProvider conditionsProvider)
     {
         _repository = repository;
         _timeProvider = timeProvider;
         _logger = logger;
         _httpContextAccessor = httpContextAccessor;
+        _conditionsProvider = conditionsProvider;
     }
 
     public async Task<UpdateManufactureOrderStatusResponse> Handle(UpdateManufactureOrderStatusRequest request, CancellationToken cancellationToken)
@@ -115,6 +119,11 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
                 });
             }
 
+            if (request.NewState is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Completed)
+            {
+                var reading = await CaptureConditionsReadingAsync(order, request.NewState, cancellationToken);
+                order.ConditionsReadings.Add(reading);
+            }
 
             await _repository.UpdateOrderAsync(order, cancellationToken);
 
@@ -151,5 +160,38 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
     {
         var user = _httpContextAccessor.HttpContext?.User;
         return user?.Identity?.Name ?? "System";
+    }
+
+    private async Task<ManufactureOrderConditionsReading> CaptureConditionsReadingAsync(
+        ManufactureOrder order,
+        ManufactureOrderState stage,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var snapshot = await _conditionsProvider.GetCurrentSnapshotAsync(cancellationToken);
+            return new ManufactureOrderConditionsReading
+            {
+                ManufactureOrderId = order.Id,
+                Stage = stage,
+                InnerTemperature = snapshot.InnerTemperature,
+                InnerHumidity = snapshot.InnerHumidity,
+                OuterTemperature = snapshot.OuterTemperature,
+                OuterHumidity = snapshot.OuterHumidity,
+                RecordedAt = snapshot.RecordedAt,
+                Source = snapshot.Source,
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to capture conditions reading for order {OrderId}, stage {Stage}", order.Id, stage);
+            return new ManufactureOrderConditionsReading
+            {
+                ManufactureOrderId = order.Id,
+                Stage = stage,
+                RecordedAt = _timeProvider.GetUtcNow().DateTime,
+                Source = ConditionsReadingSource.Unavailable,
+            };
+        }
     }
 }

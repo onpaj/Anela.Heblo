@@ -1,4 +1,5 @@
 using Anela.Heblo.API.Controllers;
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
 using Anela.Heblo.Application.Shared;
 using FluentAssertions;
@@ -72,12 +73,12 @@ public class ManufacturingStockAnalysisControllerTests
     }
 
     [Fact]
-    public async Task GetStockAnalysis_WithTimePeriodFilter_SendsCorrectRequest()
+    public async Task GetStockAnalysis_WithTimePeriod_SendsCorrectRequest()
     {
         // Arrange
         var request = new GetManufacturingStockAnalysisRequest
         {
-            TimePeriod = TimePeriodFilter.PreviousQuarter,
+            TimePeriod = TimePeriod.PreviousQuarter,
             PageSize = 10,
             PageNumber = 1
         };
@@ -102,7 +103,7 @@ public class ManufacturingStockAnalysisControllerTests
         };
 
         _mediatorMock.Setup(m => m.Send(It.Is<GetManufacturingStockAnalysisRequest>(
-                r => r.TimePeriod == TimePeriodFilter.PreviousQuarter &&
+                r => r.TimePeriod == TimePeriod.PreviousQuarter &&
                      r.PageSize == 10 &&
                      r.PageNumber == 1),
                 It.IsAny<CancellationToken>()))
@@ -127,7 +128,7 @@ public class ManufacturingStockAnalysisControllerTests
 
         var request = new GetManufacturingStockAnalysisRequest
         {
-            TimePeriod = TimePeriodFilter.CustomPeriod,
+            TimePeriod = TimePeriod.CustomPeriod,
             CustomFromDate = fromDate,
             CustomToDate = toDate
         };
@@ -152,7 +153,7 @@ public class ManufacturingStockAnalysisControllerTests
         };
 
         _mediatorMock.Setup(m => m.Send(It.Is<GetManufacturingStockAnalysisRequest>(
-                r => r.TimePeriod == TimePeriodFilter.CustomPeriod &&
+                r => r.TimePeriod == TimePeriod.CustomPeriod &&
                      r.CustomFromDate == fromDate &&
                      r.CustomToDate == toDate),
                 It.IsAny<CancellationToken>()))

@@ -125,6 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Expedice",
           href: "/logistics/expedition-archive",
         },
+        { id: "knowledge-base", name: "Poradenství (KB)", href: "/knowledge-base" },
       ],
     },
     {
@@ -145,7 +146,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       type: "section" as const,
       items: [
         { id: "marketing-calendar", name: "Kalendář", href: "/marketing/calendar" },
+        { id: "photobank", name: "Fotobanka", href: "/marketing/photobank" },
         { id: "leaflet-generator", name: "Generátor letáků", href: "/leaflet-generator" },
+        { id: "articles", name: "Generátor článků", href: "/articles" },
+        
+        ...(hasRole("super_user") || hasRole("marketing_reader")
+          ? [{ id: "marketing-feedback", name: "Feedback", href: "/marketing/feedback" }]
+          : []),
       ],
     },
     {
@@ -245,9 +252,14 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Sledování materiálů",
           href: "/logistics/packing-materials",
         },
+        {
+          id: "terminal",
+          name: "Terminál",
+          href: "/terminal",
+        },
       ],
     },
-    
+
     {
       id: "personalni",
       name: "Personální",
@@ -368,9 +380,11 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* App Title */}
                 <div className="flex items-center md:justify-start justify-center flex-1">
-                  <div className="w-8 h-8 bg-primary-blue rounded flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">AH</span>
-                  </div>
+                  <img
+                    src="/logo192.png"
+                    alt="Anela Heblo"
+                    className="w-8 h-8 rounded"
+                  />
                   <span className="ml-3 text-lg font-semibold text-gray-900">
                     Anela Heblo
                   </span>
@@ -378,9 +392,11 @@ const Sidebar: React.FC<SidebarProps> = ({
               </div>
             ) : (
               <div className="flex items-center justify-center w-full">
-                <div className="w-8 h-8 bg-primary-blue rounded flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">A</span>
-                </div>
+                <img
+                  src="/logo192.png"
+                  alt="Anela Heblo"
+                  className="w-8 h-8 rounded"
+                />
               </div>
             )}
           </div>

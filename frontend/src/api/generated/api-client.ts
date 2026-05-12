@@ -520,6 +520,101 @@ export class ApiClient {
         return Promise.resolve<ListArticlesResponse>(null as any);
     }
 
+    articles_SubmitFeedback(id: string, request: SubmitArticleFeedbackRequest): Promise<SubmitArticleFeedbackResponse> {
+        let url_ = this.baseUrl + "/api/Articles/{id}/feedback";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processArticles_SubmitFeedback(_response);
+        });
+    }
+
+    protected processArticles_SubmitFeedback(response: Response): Promise<SubmitArticleFeedbackResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SubmitArticleFeedbackResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SubmitArticleFeedbackResponse>(null as any);
+    }
+
+    articles_FeedbackList(hasFeedback: boolean | null | undefined, requestedBy: string | null | undefined, sortBy: string | undefined, sortDescending: boolean | undefined, page: number | undefined, pageSize: number | undefined): Promise<GetArticleFeedbackListResponse> {
+        let url_ = this.baseUrl + "/api/Articles/feedback/list?";
+        if (hasFeedback !== undefined && hasFeedback !== null)
+            url_ += "hasFeedback=" + encodeURIComponent("" + hasFeedback) + "&";
+        if (requestedBy !== undefined && requestedBy !== null)
+            url_ += "requestedBy=" + encodeURIComponent("" + requestedBy) + "&";
+        if (sortBy === null)
+            throw new Error("The parameter 'sortBy' cannot be null.");
+        else if (sortBy !== undefined)
+            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "sortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processArticles_FeedbackList(_response);
+        });
+    }
+
+    protected processArticles_FeedbackList(response: Response): Promise<GetArticleFeedbackListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetArticleFeedbackListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetArticleFeedbackListResponse>(null as any);
+    }
+
     backgroundRefresh_GetRegisteredTasks(): Promise<RefreshTaskDto[]> {
         let url_ = this.baseUrl + "/api/BackgroundRefresh/tasks";
         url_ = url_.replace(/[?&]$/, "");
@@ -4245,6 +4340,352 @@ export class ApiClient {
         return Promise.resolve<GenerateLeafletResponse>(null as any);
     }
 
+    leaflet_GetDocuments(pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined, filenameFilter: string | null | undefined, statusFilter: string | null | undefined, contentTypeFilter: string | null | undefined): Promise<GetLeafletDocumentsResponse> {
+        let url_ = this.baseUrl + "/api/leaflet/documents?";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy === null)
+            throw new Error("The parameter 'sortBy' cannot be null.");
+        else if (sortBy !== undefined)
+            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "sortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        if (filenameFilter !== undefined && filenameFilter !== null)
+            url_ += "filenameFilter=" + encodeURIComponent("" + filenameFilter) + "&";
+        if (statusFilter !== undefined && statusFilter !== null)
+            url_ += "statusFilter=" + encodeURIComponent("" + statusFilter) + "&";
+        if (contentTypeFilter !== undefined && contentTypeFilter !== null)
+            url_ += "contentTypeFilter=" + encodeURIComponent("" + contentTypeFilter) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLeaflet_GetDocuments(_response);
+        });
+    }
+
+    protected processLeaflet_GetDocuments(response: Response): Promise<GetLeafletDocumentsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetLeafletDocumentsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetLeafletDocumentsResponse>(null as any);
+    }
+
+    leaflet_GetDocumentContentTypes(): Promise<GetLeafletDocumentContentTypesResponse> {
+        let url_ = this.baseUrl + "/api/leaflet/documents/content-types";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLeaflet_GetDocumentContentTypes(_response);
+        });
+    }
+
+    protected processLeaflet_GetDocumentContentTypes(response: Response): Promise<GetLeafletDocumentContentTypesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetLeafletDocumentContentTypesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetLeafletDocumentContentTypesResponse>(null as any);
+    }
+
+    leaflet_GetChunkDetail(id: string): Promise<GetLeafletChunkDetailResponse> {
+        let url_ = this.baseUrl + "/api/leaflet/chunks/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLeaflet_GetChunkDetail(_response);
+        });
+    }
+
+    protected processLeaflet_GetChunkDetail(response: Response): Promise<GetLeafletChunkDetailResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetLeafletChunkDetailResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetLeafletChunkDetailResponse>(null as any);
+    }
+
+    leaflet_DeleteDocument(id: string): Promise<DeleteLeafletDocumentResponse> {
+        let url_ = this.baseUrl + "/api/leaflet/documents/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLeaflet_DeleteDocument(_response);
+        });
+    }
+
+    protected processLeaflet_DeleteDocument(response: Response): Promise<DeleteLeafletDocumentResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteLeafletDocumentResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteLeafletDocumentResponse>(null as any);
+    }
+
+    leaflet_UploadDocument(file: FileParameter | null | undefined): Promise<UploadLeafletResponse> {
+        let url_ = this.baseUrl + "/api/leaflet/documents/upload";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file !== null && file !== undefined)
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLeaflet_UploadDocument(_response);
+        });
+    }
+
+    protected processLeaflet_UploadDocument(response: Response): Promise<UploadLeafletResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UploadLeafletResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UploadLeafletResponse>(null as any);
+    }
+
+    leaflet_SubmitFeedback(request: SubmitLeafletFeedbackRequest): Promise<SubmitLeafletFeedbackResponse> {
+        let url_ = this.baseUrl + "/api/leaflet/feedback";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLeaflet_SubmitFeedback(_response);
+        });
+    }
+
+    protected processLeaflet_SubmitFeedback(response: Response): Promise<SubmitLeafletFeedbackResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SubmitLeafletFeedbackResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 409) {
+            return response.text().then((_responseText) => {
+            let result409: any = null;
+            let resultData409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result409 = ProblemDetails.fromJS(resultData409);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result409);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SubmitLeafletFeedbackResponse>(null as any);
+    }
+
+    leaflet_GetFeedbackList(hasFeedback: boolean | null | undefined, userId: string | null | undefined, sortBy: string | undefined, sortDescending: boolean | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetLeafletFeedbackListResponse> {
+        let url_ = this.baseUrl + "/api/leaflet/feedback/list?";
+        if (hasFeedback !== undefined && hasFeedback !== null)
+            url_ += "hasFeedback=" + encodeURIComponent("" + hasFeedback) + "&";
+        if (userId !== undefined && userId !== null)
+            url_ += "userId=" + encodeURIComponent("" + userId) + "&";
+        if (sortBy === null)
+            throw new Error("The parameter 'sortBy' cannot be null.");
+        else if (sortBy !== undefined)
+            url_ += "sortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "sortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "pageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLeaflet_GetFeedbackList(_response);
+        });
+    }
+
+    protected processLeaflet_GetFeedbackList(response: Response): Promise<GetLeafletFeedbackListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetLeafletFeedbackListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetLeafletFeedbackListResponse>(null as any);
+    }
+
+    leaflet_GetGeneration(id: string): Promise<GetLeafletGenerationResponse> {
+        let url_ = this.baseUrl + "/api/leaflet/generations/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLeaflet_GetGeneration(_response);
+        });
+    }
+
+    protected processLeaflet_GetGeneration(response: Response): Promise<GetLeafletGenerationResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetLeafletGenerationResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetLeafletGenerationResponse>(null as any);
+    }
+
     logistics_GetAvailableGiftPackages(salesCoefficient: number | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined): Promise<GetAvailableGiftPackagesResponse> {
         let url_ = this.baseUrl + "/api/logistics/gift-packages/available?";
         if (salesCoefficient === null)
@@ -6009,6 +6450,53 @@ export class ApiClient {
         return Promise.resolve<ProcessDailyConsumptionResponse>(null as any);
     }
 
+    packingMaterials_GetDailyConsumptionBreakdown(date: string | null | undefined, groupBy: string | undefined): Promise<GetDailyConsumptionBreakdownResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/consumption?";
+        if (date !== undefined && date !== null)
+            url_ += "date=" + encodeURIComponent("" + date) + "&";
+        if (groupBy === null)
+            throw new Error("The parameter 'groupBy' cannot be null.");
+        else if (groupBy !== undefined)
+            url_ += "groupBy=" + encodeURIComponent("" + groupBy) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_GetDailyConsumptionBreakdown(_response);
+        });
+    }
+
+    protected processPackingMaterials_GetDailyConsumptionBreakdown(response: Response): Promise<GetDailyConsumptionBreakdownResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetDailyConsumptionBreakdownResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetDailyConsumptionBreakdownResponse>(null as any);
+    }
+
     packingMaterials_GetPackingMaterialLogs(id: number, days: number | undefined): Promise<GetPackingMaterialLogsResponse> {
         let url_ = this.baseUrl + "/api/packing-materials/{id}/logs?";
         if (id === undefined || id === null)
@@ -6048,6 +6536,818 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetPackingMaterialLogsResponse>(null as any);
+    }
+
+    packingMaterials_GetAllocations(id: number): Promise<GetAllocationsResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/{id}/allocations";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_GetAllocations(_response);
+        });
+    }
+
+    protected processPackingMaterials_GetAllocations(response: Response): Promise<GetAllocationsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetAllocationsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetAllocationsResponse>(null as any);
+    }
+
+    packingMaterials_CreateAllocation(id: number, body: CreateAllocationRequestBody): Promise<CreateAllocationResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/{id}/allocations";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_CreateAllocation(_response);
+        });
+    }
+
+    protected processPackingMaterials_CreateAllocation(response: Response): Promise<CreateAllocationResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = CreateAllocationResponse.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateAllocationResponse>(null as any);
+    }
+
+    packingMaterials_UpdateAllocation(id: number, allocationId: number, body: UpdateAllocationRequestBody): Promise<UpdateAllocationResponse> {
+        let url_ = this.baseUrl + "/api/packing-materials/{id}/allocations/{allocationId}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (allocationId === undefined || allocationId === null)
+            throw new Error("The parameter 'allocationId' must be defined.");
+        url_ = url_.replace("{allocationId}", encodeURIComponent("" + allocationId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_UpdateAllocation(_response);
+        });
+    }
+
+    protected processPackingMaterials_UpdateAllocation(response: Response): Promise<UpdateAllocationResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateAllocationResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateAllocationResponse>(null as any);
+    }
+
+    packingMaterials_DeleteAllocation(id: number, allocationId: number): Promise<void> {
+        let url_ = this.baseUrl + "/api/packing-materials/{id}/allocations/{allocationId}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (allocationId === undefined || allocationId === null)
+            throw new Error("The parameter 'allocationId' must be defined.");
+        url_ = url_.replace("{allocationId}", encodeURIComponent("" + allocationId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackingMaterials_DeleteAllocation(_response);
+        });
+    }
+
+    protected processPackingMaterials_DeleteAllocation(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    photobank_GetPhotos(tags: string[] | null | undefined, search: string | null | undefined, folderPath: string | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<GetPhotosResponse> {
+        let url_ = this.baseUrl + "/api/photobank/photos?";
+        if (tags !== undefined && tags !== null)
+            tags && tags.forEach(item => { url_ += "tags=" + encodeURIComponent("" + item) + "&"; });
+        if (search !== undefined && search !== null)
+            url_ += "search=" + encodeURIComponent("" + search) + "&";
+        if (folderPath !== undefined && folderPath !== null)
+            url_ += "folderPath=" + encodeURIComponent("" + folderPath) + "&";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_GetPhotos(_response);
+        });
+    }
+
+    protected processPhotobank_GetPhotos(response: Response): Promise<GetPhotosResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPhotosResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPhotosResponse>(null as any);
+    }
+
+    photobank_GetTags(): Promise<GetTagsResponse> {
+        let url_ = this.baseUrl + "/api/photobank/tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_GetTags(_response);
+        });
+    }
+
+    protected processPhotobank_GetTags(response: Response): Promise<GetTagsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetTagsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetTagsResponse>(null as any);
+    }
+
+    photobank_AddPhotoTag(id: number, body: AddPhotoTagBody): Promise<AddPhotoTagResponse> {
+        let url_ = this.baseUrl + "/api/photobank/photos/{id}/tags";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_AddPhotoTag(_response);
+        });
+    }
+
+    protected processPhotobank_AddPhotoTag(response: Response): Promise<AddPhotoTagResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AddPhotoTagResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AddPhotoTagResponse>(null as any);
+    }
+
+    photobank_RemovePhotoTag(id: number, tagId: number): Promise<RemovePhotoTagResponse> {
+        let url_ = this.baseUrl + "/api/photobank/photos/{id}/tags/{tagId}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (tagId === undefined || tagId === null)
+            throw new Error("The parameter 'tagId' must be defined.");
+        url_ = url_.replace("{tagId}", encodeURIComponent("" + tagId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_RemovePhotoTag(_response);
+        });
+    }
+
+    protected processPhotobank_RemovePhotoTag(response: Response): Promise<RemovePhotoTagResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RemovePhotoTagResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RemovePhotoTagResponse>(null as any);
+    }
+
+    photobank_GetRoots(): Promise<GetRootsResponse> {
+        let url_ = this.baseUrl + "/api/photobank/settings/roots";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_GetRoots(_response);
+        });
+    }
+
+    protected processPhotobank_GetRoots(response: Response): Promise<GetRootsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetRootsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetRootsResponse>(null as any);
+    }
+
+    photobank_AddRoot(request: AddRootRequest): Promise<AddRootResponse> {
+        let url_ = this.baseUrl + "/api/photobank/settings/roots";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_AddRoot(_response);
+        });
+    }
+
+    protected processPhotobank_AddRoot(response: Response): Promise<AddRootResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = AddRootResponse.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AddRootResponse>(null as any);
+    }
+
+    photobank_DeleteRoot(id: number): Promise<DeleteRootResponse> {
+        let url_ = this.baseUrl + "/api/photobank/settings/roots/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_DeleteRoot(_response);
+        });
+    }
+
+    protected processPhotobank_DeleteRoot(response: Response): Promise<DeleteRootResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteRootResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteRootResponse>(null as any);
+    }
+
+    photobank_GetRules(): Promise<GetRulesResponse> {
+        let url_ = this.baseUrl + "/api/photobank/settings/rules";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_GetRules(_response);
+        });
+    }
+
+    protected processPhotobank_GetRules(response: Response): Promise<GetRulesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetRulesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetRulesResponse>(null as any);
+    }
+
+    photobank_AddRule(request: AddRuleRequest): Promise<AddRuleResponse> {
+        let url_ = this.baseUrl + "/api/photobank/settings/rules";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_AddRule(_response);
+        });
+    }
+
+    protected processPhotobank_AddRule(response: Response): Promise<AddRuleResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 201) {
+            return response.text().then((_responseText) => {
+            let result201: any = null;
+            let resultData201 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result201 = AddRuleResponse.fromJS(resultData201);
+            return result201;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AddRuleResponse>(null as any);
+    }
+
+    photobank_UpdateRule(id: number, request: UpdateRuleRequest): Promise<UpdateRuleResponse> {
+        let url_ = this.baseUrl + "/api/photobank/settings/rules/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_UpdateRule(_response);
+        });
+    }
+
+    protected processPhotobank_UpdateRule(response: Response): Promise<UpdateRuleResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateRuleResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateRuleResponse>(null as any);
+    }
+
+    photobank_DeleteRule(id: number): Promise<DeleteRuleResponse> {
+        let url_ = this.baseUrl + "/api/photobank/settings/rules/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_DeleteRule(_response);
+        });
+    }
+
+    protected processPhotobank_DeleteRule(response: Response): Promise<DeleteRuleResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteRuleResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteRuleResponse>(null as any);
+    }
+
+    photobank_ReapplyRules(): Promise<ReapplyRulesResponse> {
+        let url_ = this.baseUrl + "/api/photobank/settings/rules/reapply";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_ReapplyRules(_response);
+        });
+    }
+
+    protected processPhotobank_ReapplyRules(response: Response): Promise<ReapplyRulesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ReapplyRulesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReapplyRulesResponse>(null as any);
+    }
+
+    photobank_GetThumbnail(id: number, size: ThumbnailSize): Promise<void> {
+        let url_ = this.baseUrl + "/api/photobank/photos/{id}/thumbnail/{size}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (size === undefined || size === null)
+            throw new Error("The parameter 'size' must be defined.");
+        url_ = url_.replace("{size}", encodeURIComponent("" + size));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_GetThumbnail(_response);
+        });
+    }
+
+    protected processPhotobank_GetThumbnail(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 503) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status === 502) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
     }
 
     productMargins_GetProductMargins(productCode: string | null | undefined, productName: string | null | undefined, productType: ProductType | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined): Promise<GetProductMarginsResponse> {
@@ -7930,10 +9230,20 @@ export enum ErrorCodes {
     WebSearchUnavailable = "WebSearchUnavailable",
     StyleGuideFetchFailed = "StyleGuideFetchFailed",
     ArticleAlreadyGenerated = "ArticleAlreadyGenerated",
+    ArticleNotGenerated = "ArticleNotGenerated",
+    ArticleFeedbackAlreadySubmitted = "ArticleFeedbackAlreadySubmitted",
+    LeafletChunkNotFound = "LeafletChunkNotFound",
+    LeafletFeedbackNotFound = "LeafletFeedbackNotFound",
+    LeafletFeedbackAlreadySubmitted = "LeafletFeedbackAlreadySubmitted",
+    PhotoNotFound = "PhotoNotFound",
+    PhotobankRootNotFound = "PhotobankRootNotFound",
+    PhotobankRuleNotFound = "PhotobankRuleNotFound",
+    PhotoTagCreationFailed = "PhotoTagCreationFailed",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
     PaymentGatewayError = "PaymentGatewayError",
+    ErpGatewayError = "ErpGatewayError",
 }
 
 export class ProblemDetails implements IProblemDetails {
@@ -8671,6 +9981,9 @@ export class GetArticleResponse extends BaseResponse implements IGetArticleRespo
     useKnowledgeBase?: boolean;
     useWebSearch?: boolean;
     sources?: ArticleSourceDto[];
+    precisionScore?: number | undefined;
+    styleScore?: number | undefined;
+    feedbackComment?: string | undefined;
 
     constructor(data?: IGetArticleResponse) {
         super(data);
@@ -8698,6 +10011,9 @@ export class GetArticleResponse extends BaseResponse implements IGetArticleRespo
                 for (let item of _data["sources"])
                     this.sources!.push(ArticleSourceDto.fromJS(item));
             }
+            this.precisionScore = _data["precisionScore"];
+            this.styleScore = _data["styleScore"];
+            this.feedbackComment = _data["feedbackComment"];
         }
     }
 
@@ -8729,6 +10045,9 @@ export class GetArticleResponse extends BaseResponse implements IGetArticleRespo
             for (let item of this.sources)
                 data["sources"].push(item.toJSON());
         }
+        data["precisionScore"] = this.precisionScore;
+        data["styleScore"] = this.styleScore;
+        data["feedbackComment"] = this.feedbackComment;
         super.toJSON(data);
         return data;
     }
@@ -8750,12 +10069,19 @@ export interface IGetArticleResponse extends IBaseResponse {
     useKnowledgeBase?: boolean;
     useWebSearch?: boolean;
     sources?: ArticleSourceDto[];
+    precisionScore?: number | undefined;
+    styleScore?: number | undefined;
+    feedbackComment?: string | undefined;
 }
 
 export class ArticleSourceDto implements IArticleSourceDto {
     title?: string;
     url?: string | undefined;
     type?: string;
+    knowledgeBaseChunkId?: string | undefined;
+    confidence?: number | undefined;
+    excerpt?: string | undefined;
+    validationNote?: string | undefined;
 
     constructor(data?: IArticleSourceDto) {
         if (data) {
@@ -8771,6 +10097,10 @@ export class ArticleSourceDto implements IArticleSourceDto {
             this.title = _data["title"];
             this.url = _data["url"];
             this.type = _data["type"];
+            this.knowledgeBaseChunkId = _data["knowledgeBaseChunkId"];
+            this.confidence = _data["confidence"];
+            this.excerpt = _data["excerpt"];
+            this.validationNote = _data["validationNote"];
         }
     }
 
@@ -8786,6 +10116,10 @@ export class ArticleSourceDto implements IArticleSourceDto {
         data["title"] = this.title;
         data["url"] = this.url;
         data["type"] = this.type;
+        data["knowledgeBaseChunkId"] = this.knowledgeBaseChunkId;
+        data["confidence"] = this.confidence;
+        data["excerpt"] = this.excerpt;
+        data["validationNote"] = this.validationNote;
         return data;
     }
 }
@@ -8794,6 +10128,10 @@ export interface IArticleSourceDto {
     title?: string;
     url?: string | undefined;
     type?: string;
+    knowledgeBaseChunkId?: string | undefined;
+    confidence?: number | undefined;
+    excerpt?: string | undefined;
+    validationNote?: string | undefined;
 }
 
 export class ListArticlesResponse extends BaseResponse implements IListArticlesResponse {
@@ -8911,6 +10249,268 @@ export enum ArticleStatus {
     Writing = "Writing",
     Generated = "Generated",
     Failed = "Failed",
+}
+
+export class SubmitArticleFeedbackResponse extends BaseResponse implements ISubmitArticleFeedbackResponse {
+    precisionScore?: number | undefined;
+    styleScore?: number | undefined;
+    feedbackComment?: string | undefined;
+
+    constructor(data?: ISubmitArticleFeedbackResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.precisionScore = _data["precisionScore"];
+            this.styleScore = _data["styleScore"];
+            this.feedbackComment = _data["feedbackComment"];
+        }
+    }
+
+    static override fromJS(data: any): SubmitArticleFeedbackResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitArticleFeedbackResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["precisionScore"] = this.precisionScore;
+        data["styleScore"] = this.styleScore;
+        data["feedbackComment"] = this.feedbackComment;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISubmitArticleFeedbackResponse extends IBaseResponse {
+    precisionScore?: number | undefined;
+    styleScore?: number | undefined;
+    feedbackComment?: string | undefined;
+}
+
+export class SubmitArticleFeedbackRequest implements ISubmitArticleFeedbackRequest {
+    articleId?: string;
+    precisionScore?: number;
+    styleScore?: number;
+    comment?: string | undefined;
+
+    constructor(data?: ISubmitArticleFeedbackRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.articleId = _data["articleId"];
+            this.precisionScore = _data["precisionScore"];
+            this.styleScore = _data["styleScore"];
+            this.comment = _data["comment"];
+        }
+    }
+
+    static fromJS(data: any): SubmitArticleFeedbackRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitArticleFeedbackRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["articleId"] = this.articleId;
+        data["precisionScore"] = this.precisionScore;
+        data["styleScore"] = this.styleScore;
+        data["comment"] = this.comment;
+        return data;
+    }
+}
+
+export interface ISubmitArticleFeedbackRequest {
+    articleId?: string;
+    precisionScore?: number;
+    styleScore?: number;
+    comment?: string | undefined;
+}
+
+export class GetArticleFeedbackListResponse extends BaseResponse implements IGetArticleFeedbackListResponse {
+    items?: ArticleFeedbackSummary[];
+    stats?: ArticleFeedbackStatsDto;
+    totalCount?: number;
+    page?: number;
+    pageSize?: number;
+    totalPages?: number;
+
+    constructor(data?: IGetArticleFeedbackListResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ArticleFeedbackSummary.fromJS(item));
+            }
+            this.stats = _data["stats"] ? ArticleFeedbackStatsDto.fromJS(_data["stats"]) : <any>undefined;
+            this.totalCount = _data["totalCount"];
+            this.page = _data["page"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+        }
+    }
+
+    static override fromJS(data: any): GetArticleFeedbackListResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetArticleFeedbackListResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["stats"] = this.stats ? this.stats.toJSON() : <any>undefined;
+        data["totalCount"] = this.totalCount;
+        data["page"] = this.page;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetArticleFeedbackListResponse extends IBaseResponse {
+    items?: ArticleFeedbackSummary[];
+    stats?: ArticleFeedbackStatsDto;
+    totalCount?: number;
+    page?: number;
+    pageSize?: number;
+    totalPages?: number;
+}
+
+export class ArticleFeedbackSummary implements IArticleFeedbackSummary {
+    id?: string;
+    title?: string | undefined;
+    topic?: string;
+    requestedBy?: string | undefined;
+    createdAt?: Date;
+    precisionScore?: number | undefined;
+    styleScore?: number | undefined;
+    hasComment?: boolean;
+
+    constructor(data?: IArticleFeedbackSummary) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.title = _data["title"];
+            this.topic = _data["topic"];
+            this.requestedBy = _data["requestedBy"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.precisionScore = _data["precisionScore"];
+            this.styleScore = _data["styleScore"];
+            this.hasComment = _data["hasComment"];
+        }
+    }
+
+    static fromJS(data: any): ArticleFeedbackSummary {
+        data = typeof data === 'object' ? data : {};
+        let result = new ArticleFeedbackSummary();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["title"] = this.title;
+        data["topic"] = this.topic;
+        data["requestedBy"] = this.requestedBy;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["precisionScore"] = this.precisionScore;
+        data["styleScore"] = this.styleScore;
+        data["hasComment"] = this.hasComment;
+        return data;
+    }
+}
+
+export interface IArticleFeedbackSummary {
+    id?: string;
+    title?: string | undefined;
+    topic?: string;
+    requestedBy?: string | undefined;
+    createdAt?: Date;
+    precisionScore?: number | undefined;
+    styleScore?: number | undefined;
+    hasComment?: boolean;
+}
+
+export class ArticleFeedbackStatsDto implements IArticleFeedbackStatsDto {
+    totalArticles?: number;
+    totalWithFeedback?: number;
+    avgPrecisionScore?: number | undefined;
+    avgStyleScore?: number | undefined;
+
+    constructor(data?: IArticleFeedbackStatsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalArticles = _data["totalArticles"];
+            this.totalWithFeedback = _data["totalWithFeedback"];
+            this.avgPrecisionScore = _data["avgPrecisionScore"];
+            this.avgStyleScore = _data["avgStyleScore"];
+        }
+    }
+
+    static fromJS(data: any): ArticleFeedbackStatsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ArticleFeedbackStatsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalArticles"] = this.totalArticles;
+        data["totalWithFeedback"] = this.totalWithFeedback;
+        data["avgPrecisionScore"] = this.avgPrecisionScore;
+        data["avgStyleScore"] = this.avgStyleScore;
+        return data;
+    }
+}
+
+export interface IArticleFeedbackStatsDto {
+    totalArticles?: number;
+    totalWithFeedback?: number;
+    avgPrecisionScore?: number | undefined;
+    avgStyleScore?: number | undefined;
 }
 
 export class RefreshTaskDto implements IRefreshTaskDto {
@@ -15179,6 +16779,7 @@ export class GetChunkDetailResponse extends BaseResponse implements IGetChunkDet
     chunkIndex?: number;
     summary?: string;
     content?: string;
+    sourcePath?: string | undefined;
 
     constructor(data?: IGetChunkDetailResponse) {
         super(data);
@@ -15195,6 +16796,7 @@ export class GetChunkDetailResponse extends BaseResponse implements IGetChunkDet
             this.chunkIndex = _data["chunkIndex"];
             this.summary = _data["summary"];
             this.content = _data["content"];
+            this.sourcePath = _data["sourcePath"];
         }
     }
 
@@ -15215,6 +16817,7 @@ export class GetChunkDetailResponse extends BaseResponse implements IGetChunkDet
         data["chunkIndex"] = this.chunkIndex;
         data["summary"] = this.summary;
         data["content"] = this.content;
+        data["sourcePath"] = this.sourcePath;
         super.toJSON(data);
         return data;
     }
@@ -15229,6 +16832,7 @@ export interface IGetChunkDetailResponse extends IBaseResponse {
     chunkIndex?: number;
     summary?: string;
     content?: string;
+    sourcePath?: string | undefined;
 }
 
 export enum DocumentType {
@@ -15705,6 +17309,9 @@ export interface IUploadDocumentResponse extends IBaseResponse {
 
 export class GenerateLeafletResponse extends BaseResponse implements IGenerateLeafletResponse {
     content?: string;
+    id?: string | undefined;
+    kbSourceCount?: number;
+    leafletSourceCount?: number;
 
     constructor(data?: IGenerateLeafletResponse) {
         super(data);
@@ -15714,6 +17321,9 @@ export class GenerateLeafletResponse extends BaseResponse implements IGenerateLe
         super.init(_data);
         if (_data) {
             this.content = _data["content"];
+            this.id = _data["id"];
+            this.kbSourceCount = _data["kbSourceCount"];
+            this.leafletSourceCount = _data["leafletSourceCount"];
         }
     }
 
@@ -15727,6 +17337,9 @@ export class GenerateLeafletResponse extends BaseResponse implements IGenerateLe
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["content"] = this.content;
+        data["id"] = this.id;
+        data["kbSourceCount"] = this.kbSourceCount;
+        data["leafletSourceCount"] = this.leafletSourceCount;
         super.toJSON(data);
         return data;
     }
@@ -15734,6 +17347,9 @@ export class GenerateLeafletResponse extends BaseResponse implements IGenerateLe
 
 export interface IGenerateLeafletResponse extends IBaseResponse {
     content?: string;
+    id?: string | undefined;
+    kbSourceCount?: number;
+    leafletSourceCount?: number;
 }
 
 export class GenerateLeafletRequest implements IGenerateLeafletRequest {
@@ -15789,6 +17405,638 @@ export enum LeafletLength {
     Short = "Short",
     Medium = "Medium",
     Long = "Long",
+}
+
+export class GetLeafletDocumentsResponse extends BaseResponse implements IGetLeafletDocumentsResponse {
+    documents?: LeafletDocumentSummary[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+
+    constructor(data?: IGetLeafletDocumentsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["documents"])) {
+                this.documents = [] as any;
+                for (let item of _data["documents"])
+                    this.documents!.push(LeafletDocumentSummary.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+        }
+    }
+
+    static override fromJS(data: any): GetLeafletDocumentsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetLeafletDocumentsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.documents)) {
+            data["documents"] = [];
+            for (let item of this.documents)
+                data["documents"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetLeafletDocumentsResponse extends IBaseResponse {
+    documents?: LeafletDocumentSummary[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+}
+
+export class LeafletDocumentSummary implements ILeafletDocumentSummary {
+    id?: string;
+    filename?: string;
+    status?: string;
+    contentType?: string;
+    ingestedAt?: Date;
+    indexedAt?: Date | undefined;
+    firstChunkId?: string | undefined;
+
+    constructor(data?: ILeafletDocumentSummary) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.filename = _data["filename"];
+            this.status = _data["status"];
+            this.contentType = _data["contentType"];
+            this.ingestedAt = _data["ingestedAt"] ? new Date(_data["ingestedAt"].toString()) : <any>undefined;
+            this.indexedAt = _data["indexedAt"] ? new Date(_data["indexedAt"].toString()) : <any>undefined;
+            this.firstChunkId = _data["firstChunkId"];
+        }
+    }
+
+    static fromJS(data: any): LeafletDocumentSummary {
+        data = typeof data === 'object' ? data : {};
+        let result = new LeafletDocumentSummary();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["filename"] = this.filename;
+        data["status"] = this.status;
+        data["contentType"] = this.contentType;
+        data["ingestedAt"] = this.ingestedAt ? this.ingestedAt.toISOString() : <any>undefined;
+        data["indexedAt"] = this.indexedAt ? this.indexedAt.toISOString() : <any>undefined;
+        data["firstChunkId"] = this.firstChunkId;
+        return data;
+    }
+}
+
+export interface ILeafletDocumentSummary {
+    id?: string;
+    filename?: string;
+    status?: string;
+    contentType?: string;
+    ingestedAt?: Date;
+    indexedAt?: Date | undefined;
+    firstChunkId?: string | undefined;
+}
+
+export class GetLeafletDocumentContentTypesResponse extends BaseResponse implements IGetLeafletDocumentContentTypesResponse {
+    contentTypes?: string[];
+
+    constructor(data?: IGetLeafletDocumentContentTypesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["contentTypes"])) {
+                this.contentTypes = [] as any;
+                for (let item of _data["contentTypes"])
+                    this.contentTypes!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetLeafletDocumentContentTypesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetLeafletDocumentContentTypesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.contentTypes)) {
+            data["contentTypes"] = [];
+            for (let item of this.contentTypes)
+                data["contentTypes"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetLeafletDocumentContentTypesResponse extends IBaseResponse {
+    contentTypes?: string[];
+}
+
+export class GetLeafletChunkDetailResponse extends BaseResponse implements IGetLeafletChunkDetailResponse {
+    chunkId?: string;
+    documentId?: string;
+    filename?: string;
+    indexedAt?: Date | undefined;
+    chunkIndex?: number;
+    content?: string;
+    summary?: string;
+    sourcePath?: string | undefined;
+
+    constructor(data?: IGetLeafletChunkDetailResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.chunkId = _data["chunkId"];
+            this.documentId = _data["documentId"];
+            this.filename = _data["filename"];
+            this.indexedAt = _data["indexedAt"] ? new Date(_data["indexedAt"].toString()) : <any>undefined;
+            this.chunkIndex = _data["chunkIndex"];
+            this.content = _data["content"];
+            this.summary = _data["summary"];
+            this.sourcePath = _data["sourcePath"];
+        }
+    }
+
+    static override fromJS(data: any): GetLeafletChunkDetailResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetLeafletChunkDetailResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["chunkId"] = this.chunkId;
+        data["documentId"] = this.documentId;
+        data["filename"] = this.filename;
+        data["indexedAt"] = this.indexedAt ? this.indexedAt.toISOString() : <any>undefined;
+        data["chunkIndex"] = this.chunkIndex;
+        data["content"] = this.content;
+        data["summary"] = this.summary;
+        data["sourcePath"] = this.sourcePath;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetLeafletChunkDetailResponse extends IBaseResponse {
+    chunkId?: string;
+    documentId?: string;
+    filename?: string;
+    indexedAt?: Date | undefined;
+    chunkIndex?: number;
+    content?: string;
+    summary?: string;
+    sourcePath?: string | undefined;
+}
+
+export class DeleteLeafletDocumentResponse extends BaseResponse implements IDeleteLeafletDocumentResponse {
+
+    constructor(data?: IDeleteLeafletDocumentResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteLeafletDocumentResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteLeafletDocumentResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteLeafletDocumentResponse extends IBaseResponse {
+}
+
+export class UploadLeafletResponse extends BaseResponse implements IUploadLeafletResponse {
+    document?: LeafletDocumentSummary | undefined;
+
+    constructor(data?: IUploadLeafletResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.document = _data["document"] ? LeafletDocumentSummary.fromJS(_data["document"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): UploadLeafletResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UploadLeafletResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["document"] = this.document ? this.document.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUploadLeafletResponse extends IBaseResponse {
+    document?: LeafletDocumentSummary | undefined;
+}
+
+export class SubmitLeafletFeedbackResponse extends BaseResponse implements ISubmitLeafletFeedbackResponse {
+
+    constructor(data?: ISubmitLeafletFeedbackResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): SubmitLeafletFeedbackResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitLeafletFeedbackResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISubmitLeafletFeedbackResponse extends IBaseResponse {
+}
+
+export class SubmitLeafletFeedbackRequest implements ISubmitLeafletFeedbackRequest {
+    generationId?: string;
+    precisionScore?: number;
+    styleScore?: number;
+    comment?: string | undefined;
+
+    constructor(data?: ISubmitLeafletFeedbackRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.generationId = _data["generationId"];
+            this.precisionScore = _data["precisionScore"];
+            this.styleScore = _data["styleScore"];
+            this.comment = _data["comment"];
+        }
+    }
+
+    static fromJS(data: any): SubmitLeafletFeedbackRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitLeafletFeedbackRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["generationId"] = this.generationId;
+        data["precisionScore"] = this.precisionScore;
+        data["styleScore"] = this.styleScore;
+        data["comment"] = this.comment;
+        return data;
+    }
+}
+
+export interface ISubmitLeafletFeedbackRequest {
+    generationId?: string;
+    precisionScore?: number;
+    styleScore?: number;
+    comment?: string | undefined;
+}
+
+export class GetLeafletFeedbackListResponse extends BaseResponse implements IGetLeafletFeedbackListResponse {
+    items?: LeafletFeedbackSummary[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+    stats?: LeafletFeedbackStatsDto;
+
+    constructor(data?: IGetLeafletFeedbackListResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(LeafletFeedbackSummary.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+            this.stats = _data["stats"] ? LeafletFeedbackStatsDto.fromJS(_data["stats"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetLeafletFeedbackListResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetLeafletFeedbackListResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        data["stats"] = this.stats ? this.stats.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetLeafletFeedbackListResponse extends IBaseResponse {
+    items?: LeafletFeedbackSummary[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+    stats?: LeafletFeedbackStatsDto;
+}
+
+export class LeafletFeedbackSummary implements ILeafletFeedbackSummary {
+    id?: string;
+    topic?: string;
+    audience?: string;
+    length?: string;
+    finalMarkdown?: string;
+    kbSourceCount?: number;
+    leafletSourceCount?: number;
+    durationMs?: number;
+    createdAt?: Date;
+    userId?: string | undefined;
+    precisionScore?: number | undefined;
+    styleScore?: number | undefined;
+    feedbackComment?: string | undefined;
+    hasFeedback?: boolean;
+
+    constructor(data?: ILeafletFeedbackSummary) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.topic = _data["topic"];
+            this.audience = _data["audience"];
+            this.length = _data["length"];
+            this.finalMarkdown = _data["finalMarkdown"];
+            this.kbSourceCount = _data["kbSourceCount"];
+            this.leafletSourceCount = _data["leafletSourceCount"];
+            this.durationMs = _data["durationMs"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.userId = _data["userId"];
+            this.precisionScore = _data["precisionScore"];
+            this.styleScore = _data["styleScore"];
+            this.feedbackComment = _data["feedbackComment"];
+            this.hasFeedback = _data["hasFeedback"];
+        }
+    }
+
+    static fromJS(data: any): LeafletFeedbackSummary {
+        data = typeof data === 'object' ? data : {};
+        let result = new LeafletFeedbackSummary();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["topic"] = this.topic;
+        data["audience"] = this.audience;
+        data["length"] = this.length;
+        data["finalMarkdown"] = this.finalMarkdown;
+        data["kbSourceCount"] = this.kbSourceCount;
+        data["leafletSourceCount"] = this.leafletSourceCount;
+        data["durationMs"] = this.durationMs;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["userId"] = this.userId;
+        data["precisionScore"] = this.precisionScore;
+        data["styleScore"] = this.styleScore;
+        data["feedbackComment"] = this.feedbackComment;
+        data["hasFeedback"] = this.hasFeedback;
+        return data;
+    }
+}
+
+export interface ILeafletFeedbackSummary {
+    id?: string;
+    topic?: string;
+    audience?: string;
+    length?: string;
+    finalMarkdown?: string;
+    kbSourceCount?: number;
+    leafletSourceCount?: number;
+    durationMs?: number;
+    createdAt?: Date;
+    userId?: string | undefined;
+    precisionScore?: number | undefined;
+    styleScore?: number | undefined;
+    feedbackComment?: string | undefined;
+    hasFeedback?: boolean;
+}
+
+export class LeafletFeedbackStatsDto implements ILeafletFeedbackStatsDto {
+    totalGenerations?: number;
+    totalWithFeedback?: number;
+    avgPrecisionScore?: number | undefined;
+    avgStyleScore?: number | undefined;
+
+    constructor(data?: ILeafletFeedbackStatsDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.totalGenerations = _data["totalGenerations"];
+            this.totalWithFeedback = _data["totalWithFeedback"];
+            this.avgPrecisionScore = _data["avgPrecisionScore"];
+            this.avgStyleScore = _data["avgStyleScore"];
+        }
+    }
+
+    static fromJS(data: any): LeafletFeedbackStatsDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new LeafletFeedbackStatsDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalGenerations"] = this.totalGenerations;
+        data["totalWithFeedback"] = this.totalWithFeedback;
+        data["avgPrecisionScore"] = this.avgPrecisionScore;
+        data["avgStyleScore"] = this.avgStyleScore;
+        return data;
+    }
+}
+
+export interface ILeafletFeedbackStatsDto {
+    totalGenerations?: number;
+    totalWithFeedback?: number;
+    avgPrecisionScore?: number | undefined;
+    avgStyleScore?: number | undefined;
+}
+
+export class GetLeafletGenerationResponse extends BaseResponse implements IGetLeafletGenerationResponse {
+    id?: string;
+    topic?: string;
+    audience?: string;
+    length?: string;
+    finalMarkdown?: string;
+    kbSourceCount?: number;
+    leafletSourceCount?: number;
+    durationMs?: number;
+    createdAt?: Date;
+    userId?: string | undefined;
+    precisionScore?: number | undefined;
+    styleScore?: number | undefined;
+    feedbackComment?: string | undefined;
+
+    constructor(data?: IGetLeafletGenerationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+            this.topic = _data["topic"];
+            this.audience = _data["audience"];
+            this.length = _data["length"];
+            this.finalMarkdown = _data["finalMarkdown"];
+            this.kbSourceCount = _data["kbSourceCount"];
+            this.leafletSourceCount = _data["leafletSourceCount"];
+            this.durationMs = _data["durationMs"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.userId = _data["userId"];
+            this.precisionScore = _data["precisionScore"];
+            this.styleScore = _data["styleScore"];
+            this.feedbackComment = _data["feedbackComment"];
+        }
+    }
+
+    static override fromJS(data: any): GetLeafletGenerationResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetLeafletGenerationResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["topic"] = this.topic;
+        data["audience"] = this.audience;
+        data["length"] = this.length;
+        data["finalMarkdown"] = this.finalMarkdown;
+        data["kbSourceCount"] = this.kbSourceCount;
+        data["leafletSourceCount"] = this.leafletSourceCount;
+        data["durationMs"] = this.durationMs;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["userId"] = this.userId;
+        data["precisionScore"] = this.precisionScore;
+        data["styleScore"] = this.styleScore;
+        data["feedbackComment"] = this.feedbackComment;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetLeafletGenerationResponse extends IBaseResponse {
+    id?: string;
+    topic?: string;
+    audience?: string;
+    length?: string;
+    finalMarkdown?: string;
+    kbSourceCount?: number;
+    leafletSourceCount?: number;
+    durationMs?: number;
+    createdAt?: Date;
+    userId?: string | undefined;
+    precisionScore?: number | undefined;
+    styleScore?: number | undefined;
+    feedbackComment?: string | undefined;
 }
 
 export class GetAvailableGiftPackagesResponse extends BaseResponse implements IGetAvailableGiftPackagesResponse {
@@ -17289,6 +19537,7 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
     semiProduct?: ManufactureOrderSemiProductDto | undefined;
     products?: ManufactureOrderProductDto[];
     notes?: ManufactureOrderNoteDto[];
+    conditionsReadings?: ManufactureOrderConditionsReadingDto[];
 
     constructor(data?: IManufactureOrderDto) {
         if (data) {
@@ -17340,6 +19589,11 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
                 this.notes = [] as any;
                 for (let item of _data["notes"])
                     this.notes!.push(ManufactureOrderNoteDto.fromJS(item));
+            }
+            if (Array.isArray(_data["conditionsReadings"])) {
+                this.conditionsReadings = [] as any;
+                for (let item of _data["conditionsReadings"])
+                    this.conditionsReadings!.push(ManufactureOrderConditionsReadingDto.fromJS(item));
             }
         }
     }
@@ -17393,6 +19647,11 @@ export class ManufactureOrderDto implements IManufactureOrderDto {
             for (let item of this.notes)
                 data["notes"].push(item.toJSON());
         }
+        if (Array.isArray(this.conditionsReadings)) {
+            data["conditionsReadings"] = [];
+            for (let item of this.conditionsReadings)
+                data["conditionsReadings"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -17430,6 +19689,7 @@ export interface IManufactureOrderDto {
     semiProduct?: ManufactureOrderSemiProductDto | undefined;
     products?: ManufactureOrderProductDto[];
     notes?: ManufactureOrderNoteDto[];
+    conditionsReadings?: ManufactureOrderConditionsReadingDto[];
 }
 
 export enum ManufactureOrderState {
@@ -17610,6 +19870,70 @@ export interface IManufactureOrderNoteDto {
     text?: string;
     createdAt?: Date;
     createdByUser?: string;
+}
+
+export class ManufactureOrderConditionsReadingDto implements IManufactureOrderConditionsReadingDto {
+    id?: number;
+    stage?: ManufactureOrderState;
+    innerTemperature?: number | undefined;
+    innerHumidity?: number | undefined;
+    outerTemperature?: number | undefined;
+    outerHumidity?: number | undefined;
+    recordedAt?: Date;
+    source?: number;
+
+    constructor(data?: IManufactureOrderConditionsReadingDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.stage = _data["stage"];
+            this.innerTemperature = _data["innerTemperature"];
+            this.innerHumidity = _data["innerHumidity"];
+            this.outerTemperature = _data["outerTemperature"];
+            this.outerHumidity = _data["outerHumidity"];
+            this.recordedAt = _data["recordedAt"] ? new Date(_data["recordedAt"].toString()) : <any>undefined;
+            this.source = _data["source"];
+        }
+    }
+
+    static fromJS(data: any): ManufactureOrderConditionsReadingDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManufactureOrderConditionsReadingDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["stage"] = this.stage;
+        data["innerTemperature"] = this.innerTemperature;
+        data["innerHumidity"] = this.innerHumidity;
+        data["outerTemperature"] = this.outerTemperature;
+        data["outerHumidity"] = this.outerHumidity;
+        data["recordedAt"] = this.recordedAt ? this.recordedAt.toISOString() : <any>undefined;
+        data["source"] = this.source;
+        return data;
+    }
+}
+
+export interface IManufactureOrderConditionsReadingDto {
+    id?: number;
+    stage?: ManufactureOrderState;
+    innerTemperature?: number | undefined;
+    innerHumidity?: number | undefined;
+    outerTemperature?: number | undefined;
+    outerHumidity?: number | undefined;
+    recordedAt?: Date;
+    source?: number;
 }
 
 export class GetManufactureOrderResponse extends BaseResponse implements IGetManufactureOrderResponse {
@@ -21585,6 +23909,163 @@ export interface IProcessDailyConsumptionRequest {
     processingDate?: Date;
 }
 
+export class GetDailyConsumptionBreakdownResponse extends BaseResponse implements IGetDailyConsumptionBreakdownResponse {
+    error?: string | undefined;
+    date?: Date;
+    groupBy?: string;
+    groups?: ConsumptionGroupDto[];
+
+    constructor(data?: IGetDailyConsumptionBreakdownResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.error = _data["error"];
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.groupBy = _data["groupBy"];
+            if (Array.isArray(_data["groups"])) {
+                this.groups = [] as any;
+                for (let item of _data["groups"])
+                    this.groups!.push(ConsumptionGroupDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetDailyConsumptionBreakdownResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetDailyConsumptionBreakdownResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["error"] = this.error;
+        data["date"] = this.date ? formatDate(this.date) : <any>undefined;
+        data["groupBy"] = this.groupBy;
+        if (Array.isArray(this.groups)) {
+            data["groups"] = [];
+            for (let item of this.groups)
+                data["groups"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetDailyConsumptionBreakdownResponse extends IBaseResponse {
+    error?: string | undefined;
+    date?: Date;
+    groupBy?: string;
+    groups?: ConsumptionGroupDto[];
+}
+
+export class ConsumptionGroupDto implements IConsumptionGroupDto {
+    key?: string;
+    label?: string;
+    totalAmount?: number;
+    rowCount?: number;
+    details?: ConsumptionDetailDto[];
+
+    constructor(data?: IConsumptionGroupDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.key = _data["key"];
+            this.label = _data["label"];
+            this.totalAmount = _data["totalAmount"];
+            this.rowCount = _data["rowCount"];
+            if (Array.isArray(_data["details"])) {
+                this.details = [] as any;
+                for (let item of _data["details"])
+                    this.details!.push(ConsumptionDetailDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): ConsumptionGroupDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConsumptionGroupDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["key"] = this.key;
+        data["label"] = this.label;
+        data["totalAmount"] = this.totalAmount;
+        data["rowCount"] = this.rowCount;
+        if (Array.isArray(this.details)) {
+            data["details"] = [];
+            for (let item of this.details)
+                data["details"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IConsumptionGroupDto {
+    key?: string;
+    label?: string;
+    totalAmount?: number;
+    rowCount?: number;
+    details?: ConsumptionDetailDto[];
+}
+
+export class ConsumptionDetailDto implements IConsumptionDetailDto {
+    key?: string;
+    label?: string;
+    amount?: number;
+
+    constructor(data?: IConsumptionDetailDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.key = _data["key"];
+            this.label = _data["label"];
+            this.amount = _data["amount"];
+        }
+    }
+
+    static fromJS(data: any): ConsumptionDetailDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConsumptionDetailDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["key"] = this.key;
+        data["label"] = this.label;
+        data["amount"] = this.amount;
+        return data;
+    }
+}
+
+export interface IConsumptionDetailDto {
+    key?: string;
+    label?: string;
+    amount?: number;
+}
+
 export class GetPackingMaterialLogsResponse extends BaseResponse implements IGetPackingMaterialLogsResponse {
     material?: PackingMaterialDto;
     logs?: PackingMaterialLogDto[];
@@ -21705,6 +24186,1134 @@ export interface IPackingMaterialLogDto {
 export enum LogEntryType {
     Manual = "Manual",
     AutomaticConsumption = "AutomaticConsumption",
+}
+
+export class GetAllocationsResponse extends BaseResponse implements IGetAllocationsResponse {
+    error?: string | undefined;
+    allocations?: PackingMaterialAllocationDto[];
+
+    constructor(data?: IGetAllocationsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.error = _data["error"];
+            if (Array.isArray(_data["allocations"])) {
+                this.allocations = [] as any;
+                for (let item of _data["allocations"])
+                    this.allocations!.push(PackingMaterialAllocationDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetAllocationsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetAllocationsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["error"] = this.error;
+        if (Array.isArray(this.allocations)) {
+            data["allocations"] = [];
+            for (let item of this.allocations)
+                data["allocations"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetAllocationsResponse extends IBaseResponse {
+    error?: string | undefined;
+    allocations?: PackingMaterialAllocationDto[];
+}
+
+export class PackingMaterialAllocationDto implements IPackingMaterialAllocationDto {
+    id?: number;
+    packingMaterialId?: number;
+    productCode?: string;
+    amountPerUnit?: number;
+    createdAt?: Date;
+
+    constructor(data?: IPackingMaterialAllocationDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.packingMaterialId = _data["packingMaterialId"];
+            this.productCode = _data["productCode"];
+            this.amountPerUnit = _data["amountPerUnit"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): PackingMaterialAllocationDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackingMaterialAllocationDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["packingMaterialId"] = this.packingMaterialId;
+        data["productCode"] = this.productCode;
+        data["amountPerUnit"] = this.amountPerUnit;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IPackingMaterialAllocationDto {
+    id?: number;
+    packingMaterialId?: number;
+    productCode?: string;
+    amountPerUnit?: number;
+    createdAt?: Date;
+}
+
+export class CreateAllocationResponse extends BaseResponse implements ICreateAllocationResponse {
+    error?: string | undefined;
+    allocation?: PackingMaterialAllocationDto | undefined;
+
+    constructor(data?: ICreateAllocationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.error = _data["error"];
+            this.allocation = _data["allocation"] ? PackingMaterialAllocationDto.fromJS(_data["allocation"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): CreateAllocationResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateAllocationResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["error"] = this.error;
+        data["allocation"] = this.allocation ? this.allocation.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateAllocationResponse extends IBaseResponse {
+    error?: string | undefined;
+    allocation?: PackingMaterialAllocationDto | undefined;
+}
+
+export class CreateAllocationRequestBody implements ICreateAllocationRequestBody {
+    productCode?: string;
+    amountPerUnit?: number;
+
+    constructor(data?: ICreateAllocationRequestBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.amountPerUnit = _data["amountPerUnit"];
+        }
+    }
+
+    static fromJS(data: any): CreateAllocationRequestBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateAllocationRequestBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["amountPerUnit"] = this.amountPerUnit;
+        return data;
+    }
+}
+
+export interface ICreateAllocationRequestBody {
+    productCode?: string;
+    amountPerUnit?: number;
+}
+
+export class UpdateAllocationResponse extends BaseResponse implements IUpdateAllocationResponse {
+    error?: string | undefined;
+
+    constructor(data?: IUpdateAllocationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.error = _data["error"];
+        }
+    }
+
+    static override fromJS(data: any): UpdateAllocationResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateAllocationResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["error"] = this.error;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateAllocationResponse extends IBaseResponse {
+    error?: string | undefined;
+}
+
+export class UpdateAllocationRequestBody implements IUpdateAllocationRequestBody {
+    productCode?: string;
+    amountPerUnit?: number;
+
+    constructor(data?: IUpdateAllocationRequestBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.amountPerUnit = _data["amountPerUnit"];
+        }
+    }
+
+    static fromJS(data: any): UpdateAllocationRequestBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateAllocationRequestBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["amountPerUnit"] = this.amountPerUnit;
+        return data;
+    }
+}
+
+export interface IUpdateAllocationRequestBody {
+    productCode?: string;
+    amountPerUnit?: number;
+}
+
+export class GetPhotosResponse extends BaseResponse implements IGetPhotosResponse {
+    items?: PhotoDto[];
+    total?: number;
+    page?: number;
+    pageSize?: number;
+
+    constructor(data?: IGetPhotosResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(PhotoDto.fromJS(item));
+            }
+            this.total = _data["total"];
+            this.page = _data["page"];
+            this.pageSize = _data["pageSize"];
+        }
+    }
+
+    static override fromJS(data: any): GetPhotosResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPhotosResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["total"] = this.total;
+        data["page"] = this.page;
+        data["pageSize"] = this.pageSize;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPhotosResponse extends IBaseResponse {
+    items?: PhotoDto[];
+    total?: number;
+    page?: number;
+    pageSize?: number;
+}
+
+export class PhotoDto implements IPhotoDto {
+    id?: number;
+    sharePointFileId?: string;
+    driveId?: string | undefined;
+    name?: string;
+    folderPath?: string;
+    sharePointWebUrl?: string | undefined;
+    fileSizeBytes?: number | undefined;
+    lastModifiedAt?: Date;
+    tags?: TagDto[];
+
+    constructor(data?: IPhotoDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.sharePointFileId = _data["sharePointFileId"];
+            this.driveId = _data["driveId"];
+            this.name = _data["name"];
+            this.folderPath = _data["folderPath"];
+            this.sharePointWebUrl = _data["sharePointWebUrl"];
+            this.fileSizeBytes = _data["fileSizeBytes"];
+            this.lastModifiedAt = _data["lastModifiedAt"] ? new Date(_data["lastModifiedAt"].toString()) : <any>undefined;
+            if (Array.isArray(_data["tags"])) {
+                this.tags = [] as any;
+                for (let item of _data["tags"])
+                    this.tags!.push(TagDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): PhotoDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PhotoDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["sharePointFileId"] = this.sharePointFileId;
+        data["driveId"] = this.driveId;
+        data["name"] = this.name;
+        data["folderPath"] = this.folderPath;
+        data["sharePointWebUrl"] = this.sharePointWebUrl;
+        data["fileSizeBytes"] = this.fileSizeBytes;
+        data["lastModifiedAt"] = this.lastModifiedAt ? this.lastModifiedAt.toISOString() : <any>undefined;
+        if (Array.isArray(this.tags)) {
+            data["tags"] = [];
+            for (let item of this.tags)
+                data["tags"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IPhotoDto {
+    id?: number;
+    sharePointFileId?: string;
+    driveId?: string | undefined;
+    name?: string;
+    folderPath?: string;
+    sharePointWebUrl?: string | undefined;
+    fileSizeBytes?: number | undefined;
+    lastModifiedAt?: Date;
+    tags?: TagDto[];
+}
+
+export class TagDto implements ITagDto {
+    id?: number;
+    name?: string;
+    source?: string | undefined;
+
+    constructor(data?: ITagDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.source = _data["source"];
+        }
+    }
+
+    static fromJS(data: any): TagDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TagDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["source"] = this.source;
+        return data;
+    }
+}
+
+export interface ITagDto {
+    id?: number;
+    name?: string;
+    source?: string | undefined;
+}
+
+export class GetTagsResponse extends BaseResponse implements IGetTagsResponse {
+    tags?: TagWithCountDto[];
+
+    constructor(data?: IGetTagsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["tags"])) {
+                this.tags = [] as any;
+                for (let item of _data["tags"])
+                    this.tags!.push(TagWithCountDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetTagsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetTagsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.tags)) {
+            data["tags"] = [];
+            for (let item of this.tags)
+                data["tags"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetTagsResponse extends IBaseResponse {
+    tags?: TagWithCountDto[];
+}
+
+export class TagWithCountDto implements ITagWithCountDto {
+    id?: number;
+    name?: string;
+    count?: number;
+
+    constructor(data?: ITagWithCountDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.count = _data["count"];
+        }
+    }
+
+    static fromJS(data: any): TagWithCountDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TagWithCountDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["count"] = this.count;
+        return data;
+    }
+}
+
+export interface ITagWithCountDto {
+    id?: number;
+    name?: string;
+    count?: number;
+}
+
+export class AddPhotoTagResponse extends BaseResponse implements IAddPhotoTagResponse {
+    tagId?: number;
+    tagName?: string;
+
+    constructor(data?: IAddPhotoTagResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.tagId = _data["tagId"];
+            this.tagName = _data["tagName"];
+        }
+    }
+
+    static override fromJS(data: any): AddPhotoTagResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddPhotoTagResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["tagId"] = this.tagId;
+        data["tagName"] = this.tagName;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IAddPhotoTagResponse extends IBaseResponse {
+    tagId?: number;
+    tagName?: string;
+}
+
+export class AddPhotoTagBody implements IAddPhotoTagBody {
+    tagName?: string;
+
+    constructor(data?: IAddPhotoTagBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.tagName = _data["tagName"];
+        }
+    }
+
+    static fromJS(data: any): AddPhotoTagBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddPhotoTagBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["tagName"] = this.tagName;
+        return data;
+    }
+}
+
+export interface IAddPhotoTagBody {
+    tagName?: string;
+}
+
+export class RemovePhotoTagResponse extends BaseResponse implements IRemovePhotoTagResponse {
+
+    constructor(data?: IRemovePhotoTagResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): RemovePhotoTagResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RemovePhotoTagResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRemovePhotoTagResponse extends IBaseResponse {
+}
+
+export class GetRootsResponse extends BaseResponse implements IGetRootsResponse {
+    roots?: IndexRootDto[];
+
+    constructor(data?: IGetRootsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["roots"])) {
+                this.roots = [] as any;
+                for (let item of _data["roots"])
+                    this.roots!.push(IndexRootDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetRootsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetRootsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.roots)) {
+            data["roots"] = [];
+            for (let item of this.roots)
+                data["roots"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetRootsResponse extends IBaseResponse {
+    roots?: IndexRootDto[];
+}
+
+export class IndexRootDto implements IIndexRootDto {
+    id?: number;
+    sharePointPath?: string;
+    displayName?: string | undefined;
+    driveId?: string | undefined;
+    rootItemId?: string | undefined;
+    isActive?: boolean;
+    createdAt?: Date;
+    lastIndexedAt?: Date | undefined;
+
+    constructor(data?: IIndexRootDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.sharePointPath = _data["sharePointPath"];
+            this.displayName = _data["displayName"];
+            this.driveId = _data["driveId"];
+            this.rootItemId = _data["rootItemId"];
+            this.isActive = _data["isActive"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.lastIndexedAt = _data["lastIndexedAt"] ? new Date(_data["lastIndexedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): IndexRootDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new IndexRootDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["sharePointPath"] = this.sharePointPath;
+        data["displayName"] = this.displayName;
+        data["driveId"] = this.driveId;
+        data["rootItemId"] = this.rootItemId;
+        data["isActive"] = this.isActive;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["lastIndexedAt"] = this.lastIndexedAt ? this.lastIndexedAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IIndexRootDto {
+    id?: number;
+    sharePointPath?: string;
+    displayName?: string | undefined;
+    driveId?: string | undefined;
+    rootItemId?: string | undefined;
+    isActive?: boolean;
+    createdAt?: Date;
+    lastIndexedAt?: Date | undefined;
+}
+
+export class AddRootResponse extends BaseResponse implements IAddRootResponse {
+    id?: number;
+
+    constructor(data?: IAddRootResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+        }
+    }
+
+    static override fromJS(data: any): AddRootResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddRootResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IAddRootResponse extends IBaseResponse {
+    id?: number;
+}
+
+export class AddRootRequest implements IAddRootRequest {
+    sharePointPath?: string;
+    displayName?: string | undefined;
+    driveId?: string;
+
+    constructor(data?: IAddRootRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.sharePointPath = _data["sharePointPath"];
+            this.displayName = _data["displayName"];
+            this.driveId = _data["driveId"];
+        }
+    }
+
+    static fromJS(data: any): AddRootRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddRootRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["sharePointPath"] = this.sharePointPath;
+        data["displayName"] = this.displayName;
+        data["driveId"] = this.driveId;
+        return data;
+    }
+}
+
+export interface IAddRootRequest {
+    sharePointPath?: string;
+    displayName?: string | undefined;
+    driveId?: string;
+}
+
+export class DeleteRootResponse extends BaseResponse implements IDeleteRootResponse {
+
+    constructor(data?: IDeleteRootResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteRootResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteRootResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteRootResponse extends IBaseResponse {
+}
+
+export class GetRulesResponse extends BaseResponse implements IGetRulesResponse {
+    rules?: TagRuleDto[];
+
+    constructor(data?: IGetRulesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["rules"])) {
+                this.rules = [] as any;
+                for (let item of _data["rules"])
+                    this.rules!.push(TagRuleDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetRulesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetRulesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.rules)) {
+            data["rules"] = [];
+            for (let item of this.rules)
+                data["rules"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetRulesResponse extends IBaseResponse {
+    rules?: TagRuleDto[];
+}
+
+export class TagRuleDto implements ITagRuleDto {
+    id?: number;
+    pathPattern?: string;
+    tagName?: string;
+    isActive?: boolean;
+    sortOrder?: number;
+
+    constructor(data?: ITagRuleDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.pathPattern = _data["pathPattern"];
+            this.tagName = _data["tagName"];
+            this.isActive = _data["isActive"];
+            this.sortOrder = _data["sortOrder"];
+        }
+    }
+
+    static fromJS(data: any): TagRuleDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new TagRuleDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["pathPattern"] = this.pathPattern;
+        data["tagName"] = this.tagName;
+        data["isActive"] = this.isActive;
+        data["sortOrder"] = this.sortOrder;
+        return data;
+    }
+}
+
+export interface ITagRuleDto {
+    id?: number;
+    pathPattern?: string;
+    tagName?: string;
+    isActive?: boolean;
+    sortOrder?: number;
+}
+
+export class AddRuleResponse extends BaseResponse implements IAddRuleResponse {
+    id?: number;
+
+    constructor(data?: IAddRuleResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+        }
+    }
+
+    static override fromJS(data: any): AddRuleResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddRuleResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IAddRuleResponse extends IBaseResponse {
+    id?: number;
+}
+
+export class AddRuleRequest implements IAddRuleRequest {
+    pathPattern?: string;
+    tagName?: string;
+    sortOrder?: number;
+
+    constructor(data?: IAddRuleRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.pathPattern = _data["pathPattern"];
+            this.tagName = _data["tagName"];
+            this.sortOrder = _data["sortOrder"];
+        }
+    }
+
+    static fromJS(data: any): AddRuleRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddRuleRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["pathPattern"] = this.pathPattern;
+        data["tagName"] = this.tagName;
+        data["sortOrder"] = this.sortOrder;
+        return data;
+    }
+}
+
+export interface IAddRuleRequest {
+    pathPattern?: string;
+    tagName?: string;
+    sortOrder?: number;
+}
+
+export class UpdateRuleResponse extends BaseResponse implements IUpdateRuleResponse {
+
+    constructor(data?: IUpdateRuleResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): UpdateRuleResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateRuleResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateRuleResponse extends IBaseResponse {
+}
+
+export class UpdateRuleRequest implements IUpdateRuleRequest {
+    id?: number;
+    pathPattern?: string;
+    tagName?: string;
+    isActive?: boolean;
+    sortOrder?: number;
+
+    constructor(data?: IUpdateRuleRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.pathPattern = _data["pathPattern"];
+            this.tagName = _data["tagName"];
+            this.isActive = _data["isActive"];
+            this.sortOrder = _data["sortOrder"];
+        }
+    }
+
+    static fromJS(data: any): UpdateRuleRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateRuleRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["pathPattern"] = this.pathPattern;
+        data["tagName"] = this.tagName;
+        data["isActive"] = this.isActive;
+        data["sortOrder"] = this.sortOrder;
+        return data;
+    }
+}
+
+export interface IUpdateRuleRequest {
+    id?: number;
+    pathPattern?: string;
+    tagName?: string;
+    isActive?: boolean;
+    sortOrder?: number;
+}
+
+export class DeleteRuleResponse extends BaseResponse implements IDeleteRuleResponse {
+
+    constructor(data?: IDeleteRuleResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteRuleResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteRuleResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteRuleResponse extends IBaseResponse {
+}
+
+export class ReapplyRulesResponse extends BaseResponse implements IReapplyRulesResponse {
+    photosUpdated?: number;
+
+    constructor(data?: IReapplyRulesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.photosUpdated = _data["photosUpdated"];
+        }
+    }
+
+    static override fromJS(data: any): ReapplyRulesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReapplyRulesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["photosUpdated"] = this.photosUpdated;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IReapplyRulesResponse extends IBaseResponse {
+    photosUpdated?: number;
+}
+
+export enum ThumbnailSize {
+    Medium = "Medium",
+    Large = "Large",
 }
 
 export class GetProductMarginsResponse extends BaseResponse implements IGetProductMarginsResponse {

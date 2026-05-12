@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
@@ -88,10 +89,12 @@ public class ApplicationDbContext : DbContext
     // Leaflet module
     public DbSet<LeafletDocument> LeafletDocuments { get; set; } = null!;
     public DbSet<LeafletChunk> LeafletChunks { get; set; } = null!;
+    public DbSet<LeafletGeneration> LeafletGenerations { get; set; } = null!;
 
     // Article module
     public DbSet<Article> Articles { get; set; } = null!;
     public DbSet<ArticleSource> ArticleSources { get; set; } = null!;
+    public DbSet<ArticleGenerationStep> ArticleGenerationSteps { get; set; } = null!;
 
     // Grid Layouts module
     public DbSet<GridLayout> GridLayouts { get; set; } = null!;
@@ -109,6 +112,13 @@ public class ApplicationDbContext : DbContext
     // Data Quality module
     public DbSet<DqtRun> DqtRuns { get; set; } = null!;
     public DbSet<InvoiceDqtResult> InvoiceDqtResults { get; set; } = null!;
+
+    // Photobank
+    public DbSet<PhotobankIndexRoot> PhotobankIndexRoots { get; set; } = null!;
+    public DbSet<Photo> Photos { get; set; } = null!;
+    public DbSet<Tag> PhotobankTags { get; set; } = null!;
+    public DbSet<PhotoTag> PhotoTags { get; set; } = null!;
+    public DbSet<TagRule> PhotobankTagRules { get; set; } = null!;
 
     // Marketing Calendar module
     public DbSet<MarketingAction> MarketingActions { get; set; } = null!;

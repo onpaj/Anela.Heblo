@@ -37,7 +37,7 @@ public sealed class GenerateArticleJob
 
     public async Task RunAsync(Guid articleId, CancellationToken ct = default)
     {
-        var article = await _repository.GetByIdAsync(articleId, ct);
+        var article = await _repository.GetForUpdateAsync(articleId, ct);
         if (article == null)
         {
             _logger.LogWarning("GenerateArticleJob: article {Id} not found, skipping", articleId);
@@ -62,15 +62,19 @@ public sealed class GenerateArticleJob
 
             article.MarkAsGenerated(context.GeneratedTitle, context.GeneratedHtml);
 
-            foreach (var (title, url, sourceType) in context.SourceRefs)
+            foreach (var sourceRef in context.SourceRefs)
             {
                 article.Sources.Add(new ArticleSource
                 {
                     Id = Guid.NewGuid(),
                     ArticleId = articleId,
-                    Title = title,
-                    Url = url,
-                    Type = sourceType
+                    Title = sourceRef.Title,
+                    Url = sourceRef.Url,
+                    Type = sourceRef.Type,
+                    KnowledgeBaseChunkId = sourceRef.ChunkId,
+                    Confidence = sourceRef.Confidence,
+                    Excerpt = sourceRef.Excerpt,
+                    ValidationNote = sourceRef.ValidationNote,
                 });
             }
 
