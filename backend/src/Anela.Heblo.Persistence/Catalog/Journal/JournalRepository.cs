@@ -197,7 +197,6 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 result[da.ProductCode].LastEntryDate = da.LastEntryDate;
             }
 
-
             // Calculate recent entries (within last 30 days)
             var thirtyDaysAgo = DateTime.Today.AddDays(-30);
             foreach (var indicator in result.Values)

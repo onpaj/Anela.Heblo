@@ -476,6 +476,43 @@ export class ApiClient {
         return Promise.resolve<GetArticleResponse>(null as any);
     }
 
+    articles_GetTrace(id: string): Promise<GetArticleTraceResponse> {
+        let url_ = this.baseUrl + "/api/Articles/{id}/trace";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processArticles_GetTrace(_response);
+        });
+    }
+
+    protected processArticles_GetTrace(response: Response): Promise<GetArticleTraceResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetArticleTraceResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetArticleTraceResponse>(null as any);
+    }
+
     articles_List(status: ArticleStatus | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListArticlesResponse> {
         let url_ = this.baseUrl + "/api/Articles?";
         if (status !== undefined && status !== null)
@@ -6738,14 +6775,20 @@ export class ApiClient {
         return Promise.resolve<void>(null as any);
     }
 
-    photobank_GetPhotos(tags: string[] | null | undefined, search: string | null | undefined, folderPath: string | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<GetPhotosResponse> {
+    photobank_GetPhotos(tags: string[] | null | undefined, search: string | null | undefined, useRegex: boolean | undefined, withoutTags: boolean | undefined, page: number | undefined, pageSize: number | undefined): Promise<GetPhotosResponse> {
         let url_ = this.baseUrl + "/api/photobank/photos?";
         if (tags !== undefined && tags !== null)
             tags && tags.forEach(item => { url_ += "tags=" + encodeURIComponent("" + item) + "&"; });
         if (search !== undefined && search !== null)
             url_ += "search=" + encodeURIComponent("" + search) + "&";
-        if (folderPath !== undefined && folderPath !== null)
-            url_ += "folderPath=" + encodeURIComponent("" + folderPath) + "&";
+        if (useRegex === null)
+            throw new Error("The parameter 'useRegex' cannot be null.");
+        else if (useRegex !== undefined)
+            url_ += "useRegex=" + encodeURIComponent("" + useRegex) + "&";
+        if (withoutTags === null)
+            throw new Error("The parameter 'withoutTags' cannot be null.");
+        else if (withoutTags !== undefined)
+            url_ += "withoutTags=" + encodeURIComponent("" + withoutTags) + "&";
         if (page === null)
             throw new Error("The parameter 'page' cannot be null.");
         else if (page !== undefined)
@@ -6818,6 +6861,109 @@ export class ApiClient {
             });
         }
         return Promise.resolve<GetTagsResponse>(null as any);
+    }
+
+    photobank_CreateTag(body: CreateTagBody): Promise<CreateTagResponse> {
+        let url_ = this.baseUrl + "/api/photobank/tags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_CreateTag(_response);
+        });
+    }
+
+    protected processPhotobank_CreateTag(response: Response): Promise<CreateTagResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateTagResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateTagResponse>(null as any);
+    }
+
+    photobank_DeleteTag(id: number): Promise<DeleteTagResponse> {
+        let url_ = this.baseUrl + "/api/photobank/tags/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_DeleteTag(_response);
+        });
+    }
+
+    protected processPhotobank_DeleteTag(response: Response): Promise<DeleteTagResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteTagResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteTagResponse>(null as any);
     }
 
     photobank_AddPhotoTag(id: number, body: AddPhotoTagBody): Promise<AddPhotoTagResponse> {
@@ -6927,6 +7073,162 @@ export class ApiClient {
             });
         }
         return Promise.resolve<RemovePhotoTagResponse>(null as any);
+    }
+
+    photobank_BulkAddPhotoTag(body: BulkAddPhotoTagBody): Promise<BulkAddPhotoTagResponse> {
+        let url_ = this.baseUrl + "/api/photobank/photos/bulk-tag";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_BulkAddPhotoTag(_response);
+        });
+    }
+
+    protected processPhotobank_BulkAddPhotoTag(response: Response): Promise<BulkAddPhotoTagResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = BulkAddPhotoTagResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<BulkAddPhotoTagResponse>(null as any);
+    }
+
+    photobank_BulkAddPhotoTagByIds(body: BulkAddPhotoTagByIdsBody): Promise<BulkAddPhotoTagByIdsResponse> {
+        let url_ = this.baseUrl + "/api/photobank/photos/tag-by-ids";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_BulkAddPhotoTagByIds(_response);
+        });
+    }
+
+    protected processPhotobank_BulkAddPhotoTagByIds(response: Response): Promise<BulkAddPhotoTagByIdsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = BulkAddPhotoTagByIdsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<BulkAddPhotoTagByIdsResponse>(null as any);
+    }
+
+    photobank_RetagPhotos(request: RetagPhotosRequest): Promise<RetagPhotosResponse> {
+        let url_ = this.baseUrl + "/api/photobank/photos/auto-tag";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_RetagPhotos(_response);
+        });
+    }
+
+    protected processPhotobank_RetagPhotos(response: Response): Promise<RetagPhotosResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 202) {
+            return response.text().then((_responseText) => {
+            let result202: any = null;
+            let resultData202 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result202 = RetagPhotosResponse.fromJS(resultData202);
+            return result202;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RetagPhotosResponse>(null as any);
     }
 
     photobank_GetRoots(): Promise<GetRootsResponse> {
@@ -7290,6 +7592,57 @@ export class ApiClient {
             let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result403 = ProblemDetails.fromJS(resultData403);
             return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReapplyRulesResponse>(null as any);
+    }
+
+    photobank_ReapplyRule(id: number): Promise<ReapplyRulesResponse> {
+        let url_ = this.baseUrl + "/api/photobank/settings/rules/{id}/reapply";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPhotobank_ReapplyRule(_response);
+        });
+    }
+
+    protected processPhotobank_ReapplyRule(response: Response): Promise<ReapplyRulesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ReapplyRulesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -9239,6 +9592,11 @@ export enum ErrorCodes {
     PhotobankRootNotFound = "PhotobankRootNotFound",
     PhotobankRuleNotFound = "PhotobankRuleNotFound",
     PhotoTagCreationFailed = "PhotoTagCreationFailed",
+    BulkTagFiltersRequired = "BulkTagFiltersRequired",
+    BulkTagLimitExceeded = "BulkTagLimitExceeded",
+    BulkTagInvalidRequest = "BulkTagInvalidRequest",
+    PhotobankTagNotFound = "PhotobankTagNotFound",
+    PhotobankInvalidRegexPattern = "PhotobankInvalidRegexPattern",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -10132,6 +10490,127 @@ export interface IArticleSourceDto {
     confidence?: number | undefined;
     excerpt?: string | undefined;
     validationNote?: string | undefined;
+}
+
+export class GetArticleTraceResponse extends BaseResponse implements IGetArticleTraceResponse {
+    articleId?: string;
+    steps?: ArticleGenerationStepDto[];
+
+    constructor(data?: IGetArticleTraceResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.articleId = _data["articleId"];
+            if (Array.isArray(_data["steps"])) {
+                this.steps = [] as any;
+                for (let item of _data["steps"])
+                    this.steps!.push(ArticleGenerationStepDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetArticleTraceResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetArticleTraceResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["articleId"] = this.articleId;
+        if (Array.isArray(this.steps)) {
+            data["steps"] = [];
+            for (let item of this.steps)
+                data["steps"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetArticleTraceResponse extends IBaseResponse {
+    articleId?: string;
+    steps?: ArticleGenerationStepDto[];
+}
+
+export class ArticleGenerationStepDto implements IArticleGenerationStepDto {
+    id?: string;
+    stepName?: string;
+    sequence?: number;
+    status?: string;
+    startedAt?: Date;
+    finishedAt?: Date | undefined;
+    durationMs?: number | undefined;
+    model?: string | undefined;
+    inputJson?: string | undefined;
+    outputJson?: string | undefined;
+    errorMessage?: string | undefined;
+
+    constructor(data?: IArticleGenerationStepDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.stepName = _data["stepName"];
+            this.sequence = _data["sequence"];
+            this.status = _data["status"];
+            this.startedAt = _data["startedAt"] ? new Date(_data["startedAt"].toString()) : <any>undefined;
+            this.finishedAt = _data["finishedAt"] ? new Date(_data["finishedAt"].toString()) : <any>undefined;
+            this.durationMs = _data["durationMs"];
+            this.model = _data["model"];
+            this.inputJson = _data["inputJson"];
+            this.outputJson = _data["outputJson"];
+            this.errorMessage = _data["errorMessage"];
+        }
+    }
+
+    static fromJS(data: any): ArticleGenerationStepDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ArticleGenerationStepDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["stepName"] = this.stepName;
+        data["sequence"] = this.sequence;
+        data["status"] = this.status;
+        data["startedAt"] = this.startedAt ? this.startedAt.toISOString() : <any>undefined;
+        data["finishedAt"] = this.finishedAt ? this.finishedAt.toISOString() : <any>undefined;
+        data["durationMs"] = this.durationMs;
+        data["model"] = this.model;
+        data["inputJson"] = this.inputJson;
+        data["outputJson"] = this.outputJson;
+        data["errorMessage"] = this.errorMessage;
+        return data;
+    }
+}
+
+export interface IArticleGenerationStepDto {
+    id?: string;
+    stepName?: string;
+    sequence?: number;
+    status?: string;
+    startedAt?: Date;
+    finishedAt?: Date | undefined;
+    durationMs?: number | undefined;
+    model?: string | undefined;
+    inputJson?: string | undefined;
+    outputJson?: string | undefined;
+    errorMessage?: string | undefined;
 }
 
 export class ListArticlesResponse extends BaseResponse implements IListArticlesResponse {
@@ -24693,6 +25172,116 @@ export interface ITagWithCountDto {
     count?: number;
 }
 
+export class CreateTagResponse extends BaseResponse implements ICreateTagResponse {
+    id?: number;
+    name?: string;
+    alreadyExisted?: boolean;
+
+    constructor(data?: ICreateTagResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.id = _data["id"];
+            this.name = _data["name"];
+            this.alreadyExisted = _data["alreadyExisted"];
+        }
+    }
+
+    static override fromJS(data: any): CreateTagResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateTagResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["name"] = this.name;
+        data["alreadyExisted"] = this.alreadyExisted;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateTagResponse extends IBaseResponse {
+    id?: number;
+    name?: string;
+    alreadyExisted?: boolean;
+}
+
+export class CreateTagBody implements ICreateTagBody {
+    name?: string;
+
+    constructor(data?: ICreateTagBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+        }
+    }
+
+    static fromJS(data: any): CreateTagBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateTagBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        return data;
+    }
+}
+
+export interface ICreateTagBody {
+    name?: string;
+}
+
+export class DeleteTagResponse extends BaseResponse implements IDeleteTagResponse {
+    removedAssignmentCount?: number;
+
+    constructor(data?: IDeleteTagResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.removedAssignmentCount = _data["removedAssignmentCount"];
+        }
+    }
+
+    static override fromJS(data: any): DeleteTagResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteTagResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["removedAssignmentCount"] = this.removedAssignmentCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteTagResponse extends IBaseResponse {
+    removedAssignmentCount?: number;
+}
+
 export class AddPhotoTagResponse extends BaseResponse implements IAddPhotoTagResponse {
     tagId?: number;
     tagName?: string;
@@ -24791,6 +25380,277 @@ export class RemovePhotoTagResponse extends BaseResponse implements IRemovePhoto
 }
 
 export interface IRemovePhotoTagResponse extends IBaseResponse {
+}
+
+export class BulkAddPhotoTagResponse extends BaseResponse implements IBulkAddPhotoTagResponse {
+    tagId?: number;
+    tagName?: string;
+    addedCount?: number;
+    alreadyTaggedCount?: number;
+
+    constructor(data?: IBulkAddPhotoTagResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.tagId = _data["tagId"];
+            this.tagName = _data["tagName"];
+            this.addedCount = _data["addedCount"];
+            this.alreadyTaggedCount = _data["alreadyTaggedCount"];
+        }
+    }
+
+    static override fromJS(data: any): BulkAddPhotoTagResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new BulkAddPhotoTagResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["tagId"] = this.tagId;
+        data["tagName"] = this.tagName;
+        data["addedCount"] = this.addedCount;
+        data["alreadyTaggedCount"] = this.alreadyTaggedCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IBulkAddPhotoTagResponse extends IBaseResponse {
+    tagId?: number;
+    tagName?: string;
+    addedCount?: number;
+    alreadyTaggedCount?: number;
+}
+
+export class BulkAddPhotoTagBody implements IBulkAddPhotoTagBody {
+    tags?: string[] | undefined;
+    search?: string | undefined;
+    tagName?: string;
+
+    constructor(data?: IBulkAddPhotoTagBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["tags"])) {
+                this.tags = [] as any;
+                for (let item of _data["tags"])
+                    this.tags!.push(item);
+            }
+            this.search = _data["search"];
+            this.tagName = _data["tagName"];
+        }
+    }
+
+    static fromJS(data: any): BulkAddPhotoTagBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new BulkAddPhotoTagBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.tags)) {
+            data["tags"] = [];
+            for (let item of this.tags)
+                data["tags"].push(item);
+        }
+        data["search"] = this.search;
+        data["tagName"] = this.tagName;
+        return data;
+    }
+}
+
+export interface IBulkAddPhotoTagBody {
+    tags?: string[] | undefined;
+    search?: string | undefined;
+    tagName?: string;
+}
+
+export class BulkAddPhotoTagByIdsResponse extends BaseResponse implements IBulkAddPhotoTagByIdsResponse {
+    tagId?: number;
+    tagName?: string;
+    addedCount?: number;
+    alreadyTaggedCount?: number;
+
+    constructor(data?: IBulkAddPhotoTagByIdsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.tagId = _data["tagId"];
+            this.tagName = _data["tagName"];
+            this.addedCount = _data["addedCount"];
+            this.alreadyTaggedCount = _data["alreadyTaggedCount"];
+        }
+    }
+
+    static override fromJS(data: any): BulkAddPhotoTagByIdsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new BulkAddPhotoTagByIdsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["tagId"] = this.tagId;
+        data["tagName"] = this.tagName;
+        data["addedCount"] = this.addedCount;
+        data["alreadyTaggedCount"] = this.alreadyTaggedCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IBulkAddPhotoTagByIdsResponse extends IBaseResponse {
+    tagId?: number;
+    tagName?: string;
+    addedCount?: number;
+    alreadyTaggedCount?: number;
+}
+
+export class BulkAddPhotoTagByIdsBody implements IBulkAddPhotoTagByIdsBody {
+    photoIds?: number[];
+    tagName?: string;
+
+    constructor(data?: IBulkAddPhotoTagByIdsBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["photoIds"])) {
+                this.photoIds = [] as any;
+                for (let item of _data["photoIds"])
+                    this.photoIds!.push(item);
+            }
+            this.tagName = _data["tagName"];
+        }
+    }
+
+    static fromJS(data: any): BulkAddPhotoTagByIdsBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new BulkAddPhotoTagByIdsBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.photoIds)) {
+            data["photoIds"] = [];
+            for (let item of this.photoIds)
+                data["photoIds"].push(item);
+        }
+        data["tagName"] = this.tagName;
+        return data;
+    }
+}
+
+export interface IBulkAddPhotoTagByIdsBody {
+    photoIds?: number[];
+    tagName?: string;
+}
+
+export class RetagPhotosResponse extends BaseResponse implements IRetagPhotosResponse {
+    jobId?: string | undefined;
+
+    constructor(data?: IRetagPhotosResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.jobId = _data["jobId"];
+        }
+    }
+
+    static override fromJS(data: any): RetagPhotosResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RetagPhotosResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["jobId"] = this.jobId;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRetagPhotosResponse extends IBaseResponse {
+    jobId?: string | undefined;
+}
+
+export class RetagPhotosRequest implements IRetagPhotosRequest {
+    photoIds?: number[];
+    clearExistingAiTags?: boolean;
+
+    constructor(data?: IRetagPhotosRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            if (Array.isArray(_data["photoIds"])) {
+                this.photoIds = [] as any;
+                for (let item of _data["photoIds"])
+                    this.photoIds!.push(item);
+            }
+            this.clearExistingAiTags = _data["clearExistingAiTags"];
+        }
+    }
+
+    static fromJS(data: any): RetagPhotosRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RetagPhotosRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.photoIds)) {
+            data["photoIds"] = [];
+            for (let item of this.photoIds)
+                data["photoIds"].push(item);
+        }
+        data["clearExistingAiTags"] = this.clearExistingAiTags;
+        return data;
+    }
+}
+
+export interface IRetagPhotosRequest {
+    photoIds?: number[];
+    clearExistingAiTags?: boolean;
 }
 
 export class GetRootsResponse extends BaseResponse implements IGetRootsResponse {
