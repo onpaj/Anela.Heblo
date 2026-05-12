@@ -94,10 +94,11 @@ Identify backend and frontend source files with low test coverage that contain m
 
 Run:
 ```bash
-gh run list --workflow=ci-main-branch.yml --branch=main --status=success --limit 1 --json databaseId,headSha,createdAt --repo onpaj/Anela.Heblo
+RUN_INFO=$(gh run list --workflow=ci-main-branch.yml --branch=main --status=success --limit 1 --json databaseId,headSha,createdAt --repo onpaj/Anela.Heblo)
+RUN_ID=$(echo "$RUN_INFO" | jq -r '.[0].databaseId')
+HEAD_SHA=$(echo "$RUN_INFO" | jq -r '.[0].headSha')
+RUN_DATE=$(echo "$RUN_INFO" | jq -r '.[0].createdAt')
 ```
-
-Record RUN_ID (databaseId), HEAD_SHA (headSha), and RUN_DATE (createdAt).
 
 If no run is found, OR the run's createdAt is more than 7 days ago, print:
 "No successful main-branch CI run within the last 7 days. Filing nothing."
@@ -129,7 +130,7 @@ Extract `<class>` nodes. For each class node:
 3. Read `lines-valid` attribute. Skip if lines-valid == 0 (no executable lines).
 4. Extract module: find the path segment immediately after `Features/` in the filename (e.g. `backend/src/Anela.Heblo.Application/Features/Catalog/GetProductHandler.cs` → module `Catalog`). If no `Features/` in path, module = `Other`.
 
-**Aggregation rule:** Multiple `<class>` nodes may share the same `filename` (one per type in the file). Group by `filename` and aggregate `lines-valid` and `lines-covered` across all nodes before computing file-level coverage. Apply the threshold to the aggregated file-level percentage.
+**Aggregation rule:** Multiple `<class>` nodes may share the same `filename` (one per type in the file). Group by `filename`. For each class node, compute `lines-covered = round(lines-valid × line-rate)`. Sum `lines-valid` and `lines-covered` across all nodes for the file to get file-level totals. File-level coverage = sum(lines-covered) / sum(lines-valid) × 100. Apply threshold to this file-level percentage.
 
 **Cross-layer deduplication:** If the same logical `Features/<Module>/<File>` basename appears in multiple project directories (e.g. Application and Persistence), treat them as one candidate using the first path seen.
 
@@ -207,6 +208,9 @@ If a matching open issue exists (title contains the search token), record as `de
 **Dry run check:** If DRY_RUN=1, print the issue title and body that would be filed. Skip `gh issue create`. Continue to next candidate.
 
 **File issue:**
+
+(All shell variables must be expanded: use the values of `RUN_ID`, `HEAD_SHA`, and `$(date +%Y-%m-%d)` already captured in previous steps.)
+
 ```bash
 gh issue create \
   --repo onpaj/Anela.Heblo \
