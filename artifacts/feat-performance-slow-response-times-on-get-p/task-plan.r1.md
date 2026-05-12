@@ -1,500 +1,244 @@
-# Photobank GetTags Performance Fix Implementation Plan
+# Photobank GetTags Performance Fix — Final Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Reduce `GET /api/photobank/tags` latency from ~11s to sub-second by rewriting the EF query into a single GROUP BY statement, projecting straight to a DTO, and gating the result behind a 60s in-memory cache invalidated on every tag/photo-tag mutation.
+**Goal:** Eliminate the per-tag correlated `SELECT COUNT(*)` subquery in `PhotobankRepository.GetTagsWithCountsAsync` by rewriting it as a `GroupJoin` + `LEFT JOIN`/`GROUP BY`, add `.AsNoTracking()`, and lock the new SQL shape down with an integration test against a real PostgreSQL container.
 
-**Architecture:** Vertical Slice + MediatR (matches existing project layout). A scoped passive cache wrapper (`IPhotobankTagsCache`) over `IMemoryCache` mirrors the `SalesCostCache` convention. Repository returns a domain record (`TagCount`) so EF Core entities never leak; handler maps to `TagWithCountDto` and stores that in the cache. Nine mutating handlers + one background job call `Invalidate()` after a successful write.
+**Architecture:** Single repository-method rewrite inside the existing Photobank vertical slice. The cache wrapper, DI registration, handler cache-aside logic, mutating-handler invalidation, options binding, `IX_PhotoTags_TagId` index, model snapshot entry, and `appsettings.json` section are already in place at HEAD (`9dfba28f`). The only behavior delta is the SQL the query emits.
 
-**Tech Stack:** .NET 8, EF Core 8 + Npgsql, MediatR, `Microsoft.Extensions.Caching.Memory`, xUnit + FluentAssertions + Moq.
+**Tech Stack:** .NET 8, EF Core 8 + Npgsql, xUnit + FluentAssertions, Testcontainers.PostgreSql 3.6.0 (already a test dependency).
 
 ---
 
-## ⚠️ Critical Pre-Flight Finding
+## State at HEAD — Read This Before Starting
 
-The spec and architecture review both claim `IX_PhotoTags_TagId` is missing. **It already exists.** It was created by `20260424122851_AddPhotobankTables.cs` (line 141-145) because EF Core auto-creates an index on a foreign-key column. Verify this in Task 1 before writing the migration; if the index exists in production, the migration becomes a no-op and the EF model snapshot already records `b.HasIndex("TagId")` (line 2292 of `ApplicationDbContextModelSnapshot.cs`).
+The architecture review's "what's missing" list is **partly wrong**. I verified each claim against the worktree at commit `9dfba28f`:
 
-Net effect on the plan: the performance win comes from the **query rewrite + DTO projection + cache** (FR-1, FR-3, FR-4, FR-5). The index task (FR-2) is conditional.
+| Arch review claim | Actual state |
+|---|---|
+| ❌ `t.PhotoTags.Count` still in repository | ✅ **Confirmed broken.** `PhotobankRepository.cs:141-148` uses `Select(t => new TagCount(t.Id, t.Name, t.PhotoTags.Count))`. EF Core 8 emits this as a correlated subquery per tag row. **This is the only real perf bug remaining.** |
+| ❌ No migration `IX_PhotoTags_TagId` | ❌ **FALSE.** The index is created by `20260424122851_AddPhotobankTables.cs:141-145` — EF auto-generated it as the FK shadow index for `PhotoTag.TagId`. Do **not** create a duplicate migration. |
+| ❌ `PhotoTagConfiguration.HasIndex(x => x.TagId)` missing | ❌ **FALSE.** `PhotoTagConfiguration.cs:16-19` configures `.HasForeignKey(x => x.TagId)`, which is what causes EF to emit the index. Snapshot at `ApplicationDbContextModelSnapshot.cs:2292` already has `b.HasIndex("TagId")`. No change needed. |
+| ❌ No `AsNoTracking()` | ✅ **Confirmed missing.** Adding it is defensive — current `Select` projects to a non-entity record so `ChangeTracker.Entries<Tag>()` is already empty, but the spec's FR-4 says "no tracking", so include it. |
+| ❌ `appsettings.json` lacks `Photobank:TagsCache:TtlSeconds` | ❌ **FALSE.** Already present at `backend/src/Anela.Heblo.API/appsettings.json:173-175`. |
+
+Everything else from the spec (cache wrapper, options, DI, handler logic, mutating-handler invalidation, `TagWithCountDto` with `init` setters, `TagCount` domain record, repository signature, logging) is implemented and tested at HEAD.
+
+**Net remaining work:** rewrite one method body, lock down the SQL shape with one new integration test, optionally tighten the existing in-memory test to assert no-tracking, build, format, commit.
 
 ---
 
 ## File Structure
 
-**New files:**
+**Modified files (1):**
 
-- `backend/src/Anela.Heblo.Domain/Features/Photobank/TagCount.cs` — domain record returned by the repository.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/Configuration/PhotobankTagsCacheOptions.cs` — TTL options.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/Services/IPhotobankTagsCache.cs` — cache interface.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/Services/PhotobankTagsCache.cs` — `IMemoryCache` wrapper.
-- `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankTagsCacheTests.cs` — unit tests for the wrapper.
-- `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankRepositoryGetTagsTests.cs` — repository query rewrite tests.
-- `backend/test/Anela.Heblo.Tests/Features/Photobank/GetTagsHandlerTests.cs` — handler cache hit/miss + logging tests.
-- `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankTagsCacheInvalidationTests.cs` — one test per mutating handler/job verifying `Invalidate()` is called after successful write.
+- `backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankRepository.cs` — rewrite `GetTagsWithCountsAsync` to `GroupJoin` + `AsNoTracking`.
 
-**Modified files:**
+**New files (1):**
 
-- `backend/src/Anela.Heblo.Application/Features/Photobank/Contracts/TagDto.cs` — `TagWithCountDto` properties tightened to `init` setters.
-- `backend/src/Anela.Heblo.Domain/Features/Photobank/IPhotobankRepository.cs` — `GetTagsWithCountsAsync` signature changes to return `IReadOnlyList<TagCount>`.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankRepository.cs` — rewrite `GetTagsWithCountsAsync` to a single GROUP BY with DTO projection.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/GetTags/GetTagsHandler.cs` — gain `IPhotobankTagsCache` + `ILogger<GetTagsHandler>`, cache-aside read path, structured log on miss.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/CreateTag/CreateTagHandler.cs` — inject cache, invalidate after successful create.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/DeleteTag/DeleteTagHandler.cs` — invalidate after `SaveChangesAsync`.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/AddPhotoTag/AddPhotoTagHandler.cs` — invalidate after `SaveChangesAsync`.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/RemovePhotoTag/RemovePhotoTagHandler.cs` — invalidate after `SaveChangesAsync`.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/BulkAddPhotoTag/BulkAddPhotoTagHandler.cs` — invalidate when `photoIds.Count > 0`.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/BulkAddPhotoTagByIds/BulkAddPhotoTagByIdsHandler.cs` — invalidate when `toAdd.Count > 0`.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/ReapplyRules/ReapplyRulesHandler.cs` — invalidate after `SaveChangesAsync`.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/RetagPhotos/RetagPhotosHandler.cs` — invalidate after `ResetAutoTaggedAtAsync` / `RemovePhotoTagsBySourceAsync` (no `SaveChangesAsync` here).
-- `backend/src/Anela.Heblo.Application/Features/Photobank/Infrastructure/Jobs/PhotobankAutoTagJob.cs` — adapt to new repository return type, invalidate after each `ProcessBatchAsync`'s `SaveChangesAsync`.
-- `backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankModule.cs` — `AddMemoryCache`, register options, register scoped cache.
-- `backend/src/Anela.Heblo.API/appsettings.json` — add `Photobank:TagsCache:TtlSeconds = 60`.
-- `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankAutoTagJobTests.cs` — update mocks to the new return type (`IReadOnlyList<TagCount>`).
-- `backend/src/Anela.Heblo.Persistence/Photobank/PhotoTagConfiguration.cs` — only if Task 1 shows the index is missing in code; otherwise no edit.
+- `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankRepositoryGetTagsSqlShapeTests.cs` — Testcontainers.PostgreSql integration test that captures emitted SQL via `IDbCommandInterceptor` and asserts the query is a single `LEFT JOIN`/`GROUP BY` statement (not a correlated subquery).
+
+**Existing test files that will be touched (additions, not rewrites):**
+
+- `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankRepositoryGetTagsTests.cs` — add one `ChangeTracker.Entries<Tag>()` assertion test (FR-4 lock-down).
+
+No other files change. No migration, no configuration, no DI, no handler, no contract change.
 
 ---
 
-## Task 1: Verify index state and decide migration scope
+## Tasks
+
+### Task 1: Add the SQL shape integration test (RED)
+
+**Goal:** Lock down the SQL shape: exactly one command, no correlated `SELECT COUNT(*)` subquery, `LEFT JOIN` + `GROUP BY` present. The test must fail against the current correlated-subquery implementation.
 
 **Files:**
-- Read: `backend/src/Anela.Heblo.Persistence/Migrations/20260424122851_AddPhotobankTables.cs:141-145`
-- Read: `backend/src/Anela.Heblo.Persistence/Migrations/ApplicationDbContextModelSnapshot.cs:2274-2295`
-- Run: psql against staging if available
+- Create: `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankRepositoryGetTagsSqlShapeTests.cs`
 
-- [ ] **Step 1: Confirm `IX_PhotoTags_TagId` exists in the EF migration history**
+- [ ] **Step 1: Write the new integration test file**
 
-Run:
-```bash
-grep -n 'IX_PhotoTags_TagId' backend/src/Anela.Heblo.Persistence/Migrations/20260424122851_AddPhotobankTables.cs
-```
-Expected output: a `CreateIndex` block with `name: "IX_PhotoTags_TagId"` and `column: "TagId"`.
-
-- [ ] **Step 2: Confirm the snapshot already records the index**
-
-Run:
-```bash
-grep -n 'HasIndex("TagId")' backend/src/Anela.Heblo.Persistence/Migrations/ApplicationDbContextModelSnapshot.cs
-```
-Expected: one match near line 2292 (inside the `PhotoTag` entity block).
-
-- [ ] **Step 3: Verify against the deployed database**
-
-If a staging connection is available, run:
-```sql
-SELECT indexname
-FROM pg_indexes
-WHERE schemaname = 'public' AND tablename = 'PhotoTags';
-```
-Expected: includes `IX_PhotoTags_TagId`. If not, the production index is genuinely missing and Task 13 (Optional: ship the migration) must run. If yes, skip Task 13.
-
-- [ ] **Step 4: Record the decision in the plan checklist**
-
-Edit the heading of Task 13 to either `Task 13: SKIPPED — index exists` or leave it as-is. No commit needed yet — this is a planning artifact only.
-
----
-
-## Task 2: Add `TagCount` domain record
-
-**Files:**
-- Create: `backend/src/Anela.Heblo.Domain/Features/Photobank/TagCount.cs`
-
-- [ ] **Step 1: Create the record**
-
-```csharp
-namespace Anela.Heblo.Domain.Features.Photobank;
-
-public sealed record TagCount(int Id, string Name, int Count);
-```
-
-- [ ] **Step 2: Verify the build**
-
-Run:
-```bash
-dotnet build backend/src/Anela.Heblo.Domain/Anela.Heblo.Domain.csproj
-```
-Expected: `Build succeeded. 0 Warning(s). 0 Error(s).`
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add backend/src/Anela.Heblo.Domain/Features/Photobank/TagCount.cs
-git commit -m "feat: add TagCount domain record for photobank tag projection"
-```
-
----
-
-## Task 3: Add `PhotobankTagsCacheOptions`
-
-**Files:**
-- Create: `backend/src/Anela.Heblo.Application/Features/Photobank/Configuration/PhotobankTagsCacheOptions.cs`
-
-- [ ] **Step 1: Create the options class**
-
-```csharp
-namespace Anela.Heblo.Application.Features.Photobank.Configuration;
-
-public sealed class PhotobankTagsCacheOptions
-{
-    public const string SectionName = "Photobank:TagsCache";
-    public int TtlSeconds { get; init; } = 60;
-}
-```
-
-- [ ] **Step 2: Verify the build**
-
-Run:
-```bash
-dotnet build backend/src/Anela.Heblo.Application/Anela.Heblo.Application.csproj
-```
-Expected: `Build succeeded.`
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add backend/src/Anela.Heblo.Application/Features/Photobank/Configuration/PhotobankTagsCacheOptions.cs
-git commit -m "feat: add PhotobankTagsCacheOptions for tag cache TTL configuration"
-```
-
----
-
-## Task 4: Tighten `TagWithCountDto` to immutable `init` setters
-
-**Files:**
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/Contracts/TagDto.cs`
-
-Project rule: DTOs are classes (OpenAPI client generators mishandle `record` parameter order). `init` setters preserve the class shape while preventing post-cache mutation.
-
-- [ ] **Step 1: Replace setters with `init`**
-
-Change the file from:
-```csharp
-public class TagWithCountDto
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = null!;
-    public int Count { get; set; }
-}
-```
-to:
-```csharp
-public class TagWithCountDto
-{
-    public int Id { get; init; }
-    public string Name { get; init; } = null!;
-    public int Count { get; init; }
-}
-```
-Leave `TagDto` (above it) unchanged.
-
-- [ ] **Step 2: Build the full backend to confirm no caller mutates these properties**
-
-Run:
-```bash
-dotnet build backend/Anela.Heblo.sln
-```
-Expected: `Build succeeded.` If any consumer assigns to `Id`/`Name`/`Count` after construction the compiler will fail — fix by switching to object-initializer syntax at the call site.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add backend/src/Anela.Heblo.Application/Features/Photobank/Contracts/TagDto.cs
-git commit -m "refactor: tighten TagWithCountDto to init setters for cache safety"
-```
-
----
-
-## Task 5: Add `IPhotobankTagsCache` interface and `PhotobankTagsCache` implementation
-
-**Files:**
-- Create: `backend/src/Anela.Heblo.Application/Features/Photobank/Services/IPhotobankTagsCache.cs`
-- Create: `backend/src/Anela.Heblo.Application/Features/Photobank/Services/PhotobankTagsCache.cs`
-- Test:   `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankTagsCacheTests.cs`
-
-- [ ] **Step 1: Write the failing tests**
-
-Create `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankTagsCacheTests.cs`:
-```csharp
-using Anela.Heblo.Application.Features.Photobank.Configuration;
-using Anela.Heblo.Application.Features.Photobank.Contracts;
-using Anela.Heblo.Application.Features.Photobank.Services;
-using FluentAssertions;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
-using Xunit;
-
-namespace Anela.Heblo.Tests.Features.Photobank;
-
-public class PhotobankTagsCacheTests
-{
-    private static PhotobankTagsCache CreateCache(int ttlSeconds = 60)
-    {
-        var memory = new MemoryCache(new MemoryCacheOptions());
-        var options = Options.Create(new PhotobankTagsCacheOptions { TtlSeconds = ttlSeconds });
-        return new PhotobankTagsCache(memory, options);
-    }
-
-    [Fact]
-    public void TryGet_ReturnsFalse_WhenCacheIsEmpty()
-    {
-        var cache = CreateCache();
-
-        var hit = cache.TryGet(out var tags);
-
-        hit.Should().BeFalse();
-        tags.Should().BeNull();
-    }
-
-    [Fact]
-    public void TryGet_ReturnsCachedPayload_AfterSet()
-    {
-        var cache = CreateCache();
-        var payload = new List<TagWithCountDto>
-        {
-            new() { Id = 1, Name = "summer", Count = 10 },
-        };
-
-        cache.Set(payload);
-        var hit = cache.TryGet(out var tags);
-
-        hit.Should().BeTrue();
-        tags.Should().BeEquivalentTo(payload);
-    }
-
-    [Fact]
-    public void Invalidate_RemovesCachedPayload()
-    {
-        var cache = CreateCache();
-        cache.Set(new List<TagWithCountDto> { new() { Id = 1, Name = "x", Count = 1 } });
-
-        cache.Invalidate();
-        var hit = cache.TryGet(out var tags);
-
-        hit.Should().BeFalse();
-        tags.Should().BeNull();
-    }
-}
-```
-
-- [ ] **Step 2: Run tests, confirm they fail**
-
-Run:
-```bash
-dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~PhotobankTagsCacheTests"
-```
-Expected: fails to compile — `IPhotobankTagsCache` and `PhotobankTagsCache` do not exist yet.
-
-- [ ] **Step 3: Create the interface**
-
-Create `backend/src/Anela.Heblo.Application/Features/Photobank/Services/IPhotobankTagsCache.cs`:
-```csharp
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using Anela.Heblo.Application.Features.Photobank.Contracts;
-
-namespace Anela.Heblo.Application.Features.Photobank.Services;
-
-public interface IPhotobankTagsCache
-{
-    bool TryGet([NotNullWhen(true)] out IReadOnlyList<TagWithCountDto>? tags);
-    void Set(IReadOnlyList<TagWithCountDto> tags);
-    void Invalidate();
-}
-```
-
-- [ ] **Step 4: Create the implementation**
-
-Create `backend/src/Anela.Heblo.Application/Features/Photobank/Services/PhotobankTagsCache.cs`:
 ```csharp
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using Anela.Heblo.Application.Features.Photobank.Configuration;
-using Anela.Heblo.Application.Features.Photobank.Contracts;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
-
-namespace Anela.Heblo.Application.Features.Photobank.Services;
-
-public sealed class PhotobankTagsCache : IPhotobankTagsCache
-{
-    private const string CacheKey = "Photobank:Tags:WithCounts";
-
-    private readonly IMemoryCache _memoryCache;
-    private readonly PhotobankTagsCacheOptions _options;
-
-    public PhotobankTagsCache(IMemoryCache memoryCache, IOptions<PhotobankTagsCacheOptions> options)
-    {
-        _memoryCache = memoryCache;
-        _options = options.Value;
-    }
-
-    public bool TryGet([NotNullWhen(true)] out IReadOnlyList<TagWithCountDto>? tags)
-    {
-        if (_memoryCache.TryGetValue(CacheKey, out IReadOnlyList<TagWithCountDto>? cached) && cached is not null)
-        {
-            tags = cached;
-            return true;
-        }
-
-        tags = null;
-        return false;
-    }
-
-    public void Set(IReadOnlyList<TagWithCountDto> tags)
-    {
-        var entryOptions = new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(_options.TtlSeconds),
-        };
-        _memoryCache.Set(CacheKey, tags, entryOptions);
-    }
-
-    public void Invalidate() => _memoryCache.Remove(CacheKey);
-}
-```
-
-- [ ] **Step 5: Run tests, confirm pass**
-
-Run:
-```bash
-dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~PhotobankTagsCacheTests"
-```
-Expected: 3 tests pass.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add backend/src/Anela.Heblo.Application/Features/Photobank/Services/IPhotobankTagsCache.cs \
-        backend/src/Anela.Heblo.Application/Features/Photobank/Services/PhotobankTagsCache.cs \
-        backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankTagsCacheTests.cs
-git commit -m "feat: add IPhotobankTagsCache wrapper around IMemoryCache"
-```
-
----
-
-## Task 6: Rewrite `GetTagsWithCountsAsync` to a single GROUP BY query
-
-**Files:**
-- Modify: `backend/src/Anela.Heblo.Domain/Features/Photobank/IPhotobankRepository.cs:29`
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankRepository.cs:141-153`
-- Test:   `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankRepositoryGetTagsTests.cs`
-
-- [ ] **Step 1: Write the failing tests**
-
-Create `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankRepositoryGetTagsTests.cs`:
-```csharp
+using System.Data.Common;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Persistence;
+using DotNet.Testcontainers.Configurations;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Npgsql;
+using Testcontainers.PostgreSql;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Photobank;
 
-public class PhotobankRepositoryGetTagsTests : IDisposable
+[Trait("Category", "Integration")]
+public class PhotobankRepositoryGetTagsSqlShapeTests : IAsyncLifetime
 {
-    private readonly ApplicationDbContext _context;
-    private readonly PhotobankRepository _repository;
-
-    public PhotobankRepositoryGetTagsTests()
+    static PhotobankRepositoryGetTagsSqlShapeTests()
     {
+        // Required on macOS with Podman: the Ryuk ResourceReaper container
+        // cannot bind to the Docker socket and throws a NullReferenceException.
+        TestcontainersSettings.ResourceReaperEnabled = false;
+    }
+
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
+        .WithImage("postgres:16")
+        .Build();
+
+    private readonly CapturingCommandInterceptor _interceptor = new();
+    private ApplicationDbContext _context = null!;
+    private PhotobankRepository _repository = null!;
+
+    public async Task InitializeAsync()
+    {
+        await _container.StartAsync();
+
+        // Minimal schema — only the two tables the query touches, no FKs to keep seeding simple.
+        await using (var conn = new NpgsqlConnection(_container.GetConnectionString()))
+        {
+            await conn.OpenAsync();
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                CREATE TABLE public."PhotobankTags" (
+                    "Id"   serial NOT NULL PRIMARY KEY,
+                    "Name" varchar(100) NOT NULL
+                );
+                CREATE UNIQUE INDEX "IX_PhotobankTags_Name" ON public."PhotobankTags" ("Name");
+
+                CREATE TABLE public."PhotoTags" (
+                    "PhotoId"   integer NOT NULL,
+                    "TagId"     integer NOT NULL,
+                    "Source"    varchar(20) NOT NULL,
+                    "CreatedAt" timestamp NOT NULL,
+                    CONSTRAINT "PK_PhotoTags" PRIMARY KEY ("PhotoId", "TagId")
+                );
+                CREATE INDEX "IX_PhotoTags_TagId" ON public."PhotoTags" ("TagId");
+
+                INSERT INTO public."PhotobankTags" ("Name") VALUES ('summer'), ('winter'), ('orphan');
+                INSERT INTO public."PhotoTags" ("PhotoId","TagId","Source","CreatedAt") VALUES
+                    (1, 1, 'Manual', now()),
+                    (2, 1, 'Manual', now()),
+                    (1, 2, 'Manual', now());
+                """;
+            await cmd.ExecuteNonQueryAsync();
+        }
+
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .UseNpgsql(_container.GetConnectionString())
+            .AddInterceptors(_interceptor)
             .Options;
+
         _context = new ApplicationDbContext(options);
         _repository = new PhotobankRepository(_context);
-        SeedTagsAndPhotoTags();
     }
 
-    public void Dispose() => _context.Dispose();
-
-    private void SeedTagsAndPhotoTags()
+    public async Task DisposeAsync()
     {
-        var summer  = new Tag { Id = 1, Name = "summer" };
-        var winter  = new Tag { Id = 2, Name = "winter" };
-        var product = new Tag { Id = 3, Name = "products" };
-        var orphan  = new Tag { Id = 4, Name = "orphan" }; // zero PhotoTags
-
-        _context.Photos.AddRange(
-            new Photo { Id = 100, SharePointFileId = "sp-100", FileName = "a.jpg", FolderPath = "p", ModifiedAt = DateTime.UtcNow },
-            new Photo { Id = 101, SharePointFileId = "sp-101", FileName = "b.jpg", FolderPath = "p", ModifiedAt = DateTime.UtcNow },
-            new Photo { Id = 102, SharePointFileId = "sp-102", FileName = "c.jpg", FolderPath = "p", ModifiedAt = DateTime.UtcNow });
-
-        _context.PhotobankTags.AddRange(summer, winter, product, orphan);
-
-        // summer: 3, products: 2, winter: 1, orphan: 0
-        _context.PhotoTags.AddRange(
-            new PhotoTag { PhotoId = 100, TagId = 1, Source = PhotoTagSource.Manual, CreatedAt = DateTime.UtcNow },
-            new PhotoTag { PhotoId = 101, TagId = 1, Source = PhotoTagSource.Manual, CreatedAt = DateTime.UtcNow },
-            new PhotoTag { PhotoId = 102, TagId = 1, Source = PhotoTagSource.Manual, CreatedAt = DateTime.UtcNow },
-            new PhotoTag { PhotoId = 100, TagId = 3, Source = PhotoTagSource.Manual, CreatedAt = DateTime.UtcNow },
-            new PhotoTag { PhotoId = 101, TagId = 3, Source = PhotoTagSource.Manual, CreatedAt = DateTime.UtcNow },
-            new PhotoTag { PhotoId = 100, TagId = 2, Source = PhotoTagSource.Manual, CreatedAt = DateTime.UtcNow });
-        _context.SaveChanges();
+        await _context.DisposeAsync();
+        await _container.DisposeAsync();
     }
 
     [Fact]
-    public async Task GetTagsWithCountsAsync_ReturnsAllTagsIncludingOrphansWithZeroCount()
+    public async Task GetTagsWithCountsAsync_EmitsExactlyOneSqlCommand()
     {
-        var result = await _repository.GetTagsWithCountsAsync(CancellationToken.None);
+        _interceptor.Reset();
 
-        result.Should().HaveCount(4);
-        result.Single(t => t.Name == "orphan").Count.Should().Be(0);
+        await _repository.GetTagsWithCountsAsync(CancellationToken.None);
+
+        _interceptor.Commands.Should().HaveCount(1);
     }
 
     [Fact]
-    public async Task GetTagsWithCountsAsync_OrdersByCountDescThenNameAsc()
+    public async Task GetTagsWithCountsAsync_UsesLeftJoinAndGroupBy_NotCorrelatedSubquery()
     {
-        var result = await _repository.GetTagsWithCountsAsync(CancellationToken.None);
+        _interceptor.Reset();
 
-        result.Select(t => t.Name).Should().ContainInOrder("summer", "products", "winter", "orphan");
+        await _repository.GetTagsWithCountsAsync(CancellationToken.None);
+
+        var sql = _interceptor.Commands.Single();
+        sql.Should().Contain("LEFT JOIN", "the rewrite should join PhotoTags rather than scan it per tag");
+        sql.Should().Contain("GROUP BY", "counts should be produced by a single GROUP BY aggregation");
+        sql.Should().NotMatchRegex(
+            @"\(\s*SELECT\s+COUNT\s*\(",
+            "a correlated COUNT subquery is the perf bug we just removed");
     }
 
-    [Fact]
-    public async Task GetTagsWithCountsAsync_DoesNotTrackTagEntities()
+    private sealed class CapturingCommandInterceptor : DbCommandInterceptor
     {
-        _ = await _repository.GetTagsWithCountsAsync(CancellationToken.None);
+        public List<string> Commands { get; } = new();
 
-        _context.ChangeTracker.Entries<Tag>().Should().BeEmpty();
-    }
+        public void Reset() => Commands.Clear();
 
-    [Fact]
-    public async Task GetTagsWithCountsAsync_ReturnsTagCountRecord()
-    {
-        var result = await _repository.GetTagsWithCountsAsync(CancellationToken.None);
+        public override InterceptionResult<DbDataReader> ReaderExecuting(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result)
+        {
+            Commands.Add(command.CommandText);
+            return base.ReaderExecuting(command, eventData, result);
+        }
 
-        result.Should().AllBeOfType<TagCount>();
-        result.First().Should().BeOfType<TagCount>();
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            Commands.Add(command.CommandText);
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
     }
 }
 ```
 
-- [ ] **Step 2: Run tests, confirm they fail**
+- [ ] **Step 2: Run the new test to verify it FAILS on the current implementation**
 
-Run:
+Run from the worktree root:
+
 ```bash
-dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~PhotobankRepositoryGetTagsTests"
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~PhotobankRepositoryGetTagsSqlShapeTests" \
+  --logger "console;verbosity=normal"
 ```
-Expected: fails to compile — return type is still `List<(Tag Tag, int Count)>`, not `TagCount`.
 
-- [ ] **Step 3: Update the interface signature**
+Expected: `GetTagsWithCountsAsync_UsesLeftJoinAndGroupBy_NotCorrelatedSubquery` **FAILS** because the current query emits a correlated `(SELECT COUNT(*) FROM "PhotoTags" AS "p" WHERE "p"."TagId" = "t"."Id")` subquery, which matches the regex we explicitly forbid and contains no `LEFT JOIN`/`GROUP BY`.
 
-Edit `backend/src/Anela.Heblo.Domain/Features/Photobank/IPhotobankRepository.cs` line 29:
+The single-command test (`GetTagsWithCountsAsync_EmitsExactlyOneSqlCommand`) is expected to PASS already — correlated subqueries are still one SQL statement. Keep it; it pins down the contract.
 
-Replace:
+If Docker / Podman isn't available locally, the test will be skipped at the container start step. The CI / staging-validation path will exercise it. Note skipping in your status update if applicable.
+
+- [ ] **Step 3: Do not commit yet — proceed to Task 2.**
+
+---
+
+### Task 2: Rewrite `GetTagsWithCountsAsync` (GREEN)
+
+**Files:**
+- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankRepository.cs:141-148`
+
+- [ ] **Step 1: Replace the method body**
+
+Old body (already in file, lines 141-148):
+
 ```csharp
-Task<List<(Tag Tag, int Count)>> GetTagsWithCountsAsync(CancellationToken cancellationToken);
+public async Task<IReadOnlyList<TagCount>> GetTagsWithCountsAsync(CancellationToken cancellationToken)
+{
+    return await _context.PhotobankTags
+        .Select(t => new TagCount(t.Id, t.Name, t.PhotoTags.Count))
+        .OrderByDescending(x => x.Count)
+        .ThenBy(x => x.Name)
+        .ToListAsync(cancellationToken);
+}
 ```
-with:
-```csharp
-Task<IReadOnlyList<TagCount>> GetTagsWithCountsAsync(CancellationToken cancellationToken);
-```
 
-- [ ] **Step 4: Rewrite the repository implementation**
+New body:
 
-Edit `backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankRepository.cs` lines 141-153:
-
-Replace the existing body of `GetTagsWithCountsAsync` with:
 ```csharp
 public async Task<IReadOnlyList<TagCount>> GetTagsWithCountsAsync(CancellationToken cancellationToken)
 {
@@ -511,1260 +255,190 @@ public async Task<IReadOnlyList<TagCount>> GetTagsWithCountsAsync(CancellationTo
 }
 ```
 
-- [ ] **Step 5: Run repository tests, confirm pass**
+Use Edit with `old_string` matching the full old body (including signature line) so the change is unambiguous.
 
-Run:
-```bash
-dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~PhotobankRepositoryGetTagsTests"
-```
-Expected: 4 tests pass.
-
-- [ ] **Step 6: Build the solution to surface other callers**
-
-Run:
-```bash
-dotnet build backend/Anela.Heblo.sln
-```
-Expected: two compilation errors — `GetTagsHandler` (Task 7 fixes) and `PhotobankAutoTagJob` (Task 8 fixes). Note the failing files; do **not** commit yet.
-
-- [ ] **Step 7: Commit when callers are fixed**
-
-Deferred to the end of Task 8 once compilation succeeds end-to-end.
-
----
-
-## Task 7: Update `GetTagsHandler` for cache + logging + direct DTO map
-
-**Files:**
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/GetTags/GetTagsHandler.cs`
-- Test:   `backend/test/Anela.Heblo.Tests/Features/Photobank/GetTagsHandlerTests.cs`
-
-- [ ] **Step 1: Write the failing tests**
-
-Create `backend/test/Anela.Heblo.Tests/Features/Photobank/GetTagsHandlerTests.cs`:
-```csharp
-using Anela.Heblo.Application.Features.Photobank.Contracts;
-using Anela.Heblo.Application.Features.Photobank.Services;
-using Anela.Heblo.Application.Features.Photobank.UseCases.GetTags;
-using Anela.Heblo.Domain.Features.Photobank;
-using FluentAssertions;
-using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
-using Xunit;
-
-namespace Anela.Heblo.Tests.Features.Photobank;
-
-public class GetTagsHandlerTests
-{
-    private readonly Mock<IPhotobankRepository> _repo = new();
-    private readonly Mock<IPhotobankTagsCache> _cache = new();
-
-    private GetTagsHandler CreateHandler() =>
-        new(_repo.Object, _cache.Object, NullLogger<GetTagsHandler>.Instance);
-
-    [Fact]
-    public async Task Handle_OnCacheHit_DoesNotCallRepository()
-    {
-        IReadOnlyList<TagWithCountDto>? cached = new List<TagWithCountDto>
-        {
-            new() { Id = 1, Name = "summer", Count = 10 },
-        };
-        _cache.Setup(c => c.TryGet(out cached)).Returns(true);
-
-        var response = await CreateHandler().Handle(new GetTagsRequest(), CancellationToken.None);
-
-        response.Tags.Should().HaveCount(1);
-        response.Tags[0].Name.Should().Be("summer");
-        _repo.Verify(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_OnCacheMiss_CallsRepositoryAndStoresInCache()
-    {
-        IReadOnlyList<TagWithCountDto>? cached = null;
-        _cache.Setup(c => c.TryGet(out cached)).Returns(false);
-
-        var fromDb = new List<TagCount>
-        {
-            new(1, "summer", 10),
-            new(2, "winter", 3),
-        };
-        _repo.Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
-             .ReturnsAsync(fromDb);
-
-        var response = await CreateHandler().Handle(new GetTagsRequest(), CancellationToken.None);
-
-        response.Tags.Should().HaveCount(2);
-        response.Tags[0].Should().BeEquivalentTo(new { Id = 1, Name = "summer", Count = 10 });
-        _cache.Verify(c => c.Set(It.Is<IReadOnlyList<TagWithCountDto>>(list =>
-            list.Count == 2 && list[0].Name == "summer")), Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_OnCacheMiss_ProducesResponseTagsAsTagWithCountDto()
-    {
-        IReadOnlyList<TagWithCountDto>? cached = null;
-        _cache.Setup(c => c.TryGet(out cached)).Returns(false);
-        _repo.Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new List<TagCount> { new(7, "products", 1201) });
-
-        var response = await CreateHandler().Handle(new GetTagsRequest(), CancellationToken.None);
-
-        response.Tags.Should().AllBeOfType<TagWithCountDto>();
-        response.Tags.Should().ContainSingle(t => t.Id == 7 && t.Name == "products" && t.Count == 1201);
-    }
-}
-```
-
-- [ ] **Step 2: Run tests, confirm they fail**
-
-Run:
-```bash
-dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GetTagsHandlerTests"
-```
-Expected: fails to compile — handler still has the old constructor and uses `t.Tag.Id`.
-
-- [ ] **Step 3: Rewrite the handler**
-
-Replace the full contents of `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/GetTags/GetTagsHandler.cs` with:
-
-```csharp
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Anela.Heblo.Application.Features.Photobank.Contracts;
-using Anela.Heblo.Application.Features.Photobank.Services;
-using Anela.Heblo.Domain.Features.Photobank;
-using MediatR;
-using Microsoft.Extensions.Logging;
-
-namespace Anela.Heblo.Application.Features.Photobank.UseCases.GetTags
-{
-    public class GetTagsHandler : IRequestHandler<GetTagsRequest, GetTagsResponse>
-    {
-        private readonly IPhotobankRepository _repository;
-        private readonly IPhotobankTagsCache _cache;
-        private readonly ILogger<GetTagsHandler> _logger;
-
-        public GetTagsHandler(
-            IPhotobankRepository repository,
-            IPhotobankTagsCache cache,
-            ILogger<GetTagsHandler> logger)
-        {
-            _repository = repository;
-            _cache = cache;
-            _logger = logger;
-        }
-
-        public async Task<GetTagsResponse> Handle(GetTagsRequest request, CancellationToken cancellationToken)
-        {
-            if (_cache.TryGet(out var cached))
-            {
-                _logger.LogDebug("Photobank tags cache hit ({TagCount} tags)", cached.Count);
-                return new GetTagsResponse { Tags = cached.ToList() };
-            }
-
-            var stopwatch = Stopwatch.StartNew();
-            var rows = await _repository.GetTagsWithCountsAsync(cancellationToken);
-            stopwatch.Stop();
-
-            IReadOnlyList<TagWithCountDto> dtos = rows
-                .Select(r => new TagWithCountDto { Id = r.Id, Name = r.Name, Count = r.Count })
-                .ToList();
-
-            _cache.Set(dtos);
-
-            _logger.LogInformation(
-                "Fetched {TagCount} photobank tags in {ElapsedMs} ms",
-                dtos.Count,
-                stopwatch.ElapsedMilliseconds);
-
-            return new GetTagsResponse { Tags = dtos.ToList() };
-        }
-    }
-}
-```
-
-- [ ] **Step 4: Run handler tests, confirm pass**
-
-Run:
-```bash
-dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~GetTagsHandlerTests"
-```
-Expected: 3 tests pass.
-
----
-
-## Task 8: Adapt `PhotobankAutoTagJob` and its tests to the new return type
-
-**Files:**
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/Infrastructure/Jobs/PhotobankAutoTagJob.cs:47-48, 74-75`
-- Modify: `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankAutoTagJobTests.cs:31-34, 100-107, 141-150`
-
-The job consumes only `Tag.Name` and `Tag.Id`. The dictionary is `Dictionary<string, Tag>` — switch the value type to `int` (the tag id) since downstream code only reads `tag.Id` to build `PhotoTag` rows.
-
-- [ ] **Step 1: Rewrite the dictionary build sites in the job**
-
-Edit `backend/src/Anela.Heblo.Application/Features/Photobank/Infrastructure/Jobs/PhotobankAutoTagJob.cs`.
-
-At line 47 (inside `ExecuteAsync`), replace:
-```csharp
-var tagsByName = (await _repo.GetTagsWithCountsAsync(cancellationToken))
-    .ToDictionary(t => t.Tag.Name, t => t.Tag, StringComparer.Ordinal);
-```
-with:
-```csharp
-var tagsByName = (await _repo.GetTagsWithCountsAsync(cancellationToken))
-    .ToDictionary(t => t.Name, t => t.Id, StringComparer.Ordinal);
-```
-
-At line 74 (inside `ExecuteForPhotosAsync`), apply the same replacement.
-
-- [ ] **Step 2: Update the method signatures and call sites that consume the dictionary**
-
-The current code calls `ProcessBatchAsync(batch, tagsByName, ...)` and `ApplyTagsForPhotoAsync(result, tagsByName, ...)` with `Dictionary<string, Tag>`. Update both to `Dictionary<string, int>` and adjust the `ApplyTagsForPhotoAsync` body.
-
-Replace the `ProcessBatchAsync` signature at line 85:
-```csharp
-private async Task ProcessBatchAsync(
-    IReadOnlyList<PhotoAutoTagCandidate> batch,
-    Dictionary<string, Tag> tagsByName,
-    CancellationToken ct)
-```
-with:
-```csharp
-private async Task ProcessBatchAsync(
-    IReadOnlyList<PhotoAutoTagCandidate> batch,
-    Dictionary<string, int> tagsByName,
-    CancellationToken ct)
-```
-
-Replace the `ApplyTagsForPhotoAsync` signature (line 124) with:
-```csharp
-private async Task ApplyTagsForPhotoAsync(
-    AutoTagResult result,
-    Dictionary<string, int> tagsByName,
-    CancellationToken ct)
-```
-
-Replace the body's tag lookup (lines 135-149):
-```csharp
-foreach (var tagName in validTags)
-{
-    var tag = tagsByName[tagName];
-
-    if (await _repo.PhotoTagExistsAsync(result.Id, tag.Id, ct)) continue;
-
-    await _repo.AddPhotoTagAsync(
-        new PhotoTag
-        {
-            PhotoId = result.Id,
-            TagId = tag.Id,
-            Source = PhotoTagSource.AI,
-            CreatedAt = DateTime.UtcNow,
-        },
-        ct);
-}
-```
-with:
-```csharp
-foreach (var tagName in validTags)
-{
-    var tagId = tagsByName[tagName];
-
-    if (await _repo.PhotoTagExistsAsync(result.Id, tagId, ct)) continue;
-
-    await _repo.AddPhotoTagAsync(
-        new PhotoTag
-        {
-            PhotoId = result.Id,
-            TagId = tagId,
-            Source = PhotoTagSource.AI,
-            CreatedAt = DateTime.UtcNow,
-        },
-        ct);
-}
-```
-
-- [ ] **Step 3: Update `PhotobankAutoTagJobTests` mocks to return `IReadOnlyList<TagCount>`**
-
-Edit `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankAutoTagJobTests.cs`.
-
-Replace the helper at lines 31-34:
-```csharp
-private void SetupEmptyTags() =>
-    _repo
-        .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
-        .ReturnsAsync(new List<(Tag, int)>());
-```
-with:
-```csharp
-private void SetupEmptyTags() =>
-    _repo
-        .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
-        .ReturnsAsync(new List<TagCount>());
-```
-
-Replace the seeded list around line 100-107:
-```csharp
-var tags = new List<(Tag, int)>
-{
-    (new Tag { Id = 10, Name = "kosmetika" }, 5),
-};
-
-_repo
-    .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
-    .ReturnsAsync(tags);
-```
-with:
-```csharp
-var tags = new List<TagCount>
-{
-    new(10, "kosmetika", 5),
-};
-
-_repo
-    .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
-    .ReturnsAsync(tags);
-```
-
-Replace the tuple list around lines 141-150:
-```csharp
-var tags = new List<(Tag Tag, int Count)>
-{
-    (new Tag { Id = 1, Name = "andy" }, 1),
-    (new Tag { Id = 2, Name = "ela" }, 1),
-    (new Tag { Id = 3, Name = "peťa" }, 1),
-};
-
-_repo
-    .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
-    .ReturnsAsync(tags);
-```
-with:
-```csharp
-var tags = new List<TagCount>
-{
-    new(1, "andy", 1),
-    new(2, "ela", 1),
-    new(3, "peťa", 1),
-};
-
-_repo
-    .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
-    .ReturnsAsync(tags);
-```
-
-If there are additional occurrences after line 197, repeat the same `(Tag, int)` → `TagCount` shape conversion. After editing, grep to confirm none remain:
+- [ ] **Step 2: Run the SQL shape integration test to verify it PASSES now**
 
 ```bash
-grep -n 'List<(Tag' backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankAutoTagJobTests.cs
-```
-Expected: no output.
-
-- [ ] **Step 4: Verify the full solution builds**
-
-Run:
-```bash
-dotnet build backend/Anela.Heblo.sln
-```
-Expected: `Build succeeded.` — no compile errors.
-
-- [ ] **Step 5: Run the photobank test suite**
-
-Run:
-```bash
-dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~Photobank"
-```
-Expected: all photobank tests pass (including `PhotobankAutoTagJobTests`, `PhotobankRepositoryGetTagsTests`, `PhotobankTagsCacheTests`, `GetTagsHandlerTests`, plus pre-existing tests).
-
-- [ ] **Step 6: Commit the query rewrite, handler, job, and tests together**
-
-```bash
-git add backend/src/Anela.Heblo.Domain/Features/Photobank/IPhotobankRepository.cs \
-        backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankRepository.cs \
-        backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/GetTags/GetTagsHandler.cs \
-        backend/src/Anela.Heblo.Application/Features/Photobank/Infrastructure/Jobs/PhotobankAutoTagJob.cs \
-        backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankRepositoryGetTagsTests.cs \
-        backend/test/Anela.Heblo.Tests/Features/Photobank/GetTagsHandlerTests.cs \
-        backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankAutoTagJobTests.cs
-git commit -m "perf: rewrite photobank GetTags as single GROUP BY with cache-aside read path"
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~PhotobankRepositoryGetTagsSqlShapeTests" \
+  --logger "console;verbosity=normal"
 ```
 
----
-
-## Task 9: Wire invalidation into mutating handlers (one test per handler)
-
-**Files:**
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/CreateTag/CreateTagHandler.cs`
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/DeleteTag/DeleteTagHandler.cs`
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/AddPhotoTag/AddPhotoTagHandler.cs`
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/RemovePhotoTag/RemovePhotoTagHandler.cs`
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/BulkAddPhotoTag/BulkAddPhotoTagHandler.cs`
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/BulkAddPhotoTagByIds/BulkAddPhotoTagByIdsHandler.cs`
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/ReapplyRules/ReapplyRulesHandler.cs`
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/RetagPhotos/RetagPhotosHandler.cs`
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/Infrastructure/Jobs/PhotobankAutoTagJob.cs` (already touched in Task 8)
-- Test:   `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankTagsCacheInvalidationTests.cs`
-
-This task is one bundled invalidation test file + a series of small handler edits. Steps below are individual edits; commit at the end of the task once all tests pass.
-
-- [ ] **Step 1: Write the failing invalidation test matrix**
-
-Create `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankTagsCacheInvalidationTests.cs`:
-
-```csharp
-using Anela.Heblo.Application.Features.Photobank.Services;
-using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
-using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag;
-using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTagByIds;
-using Anela.Heblo.Application.Features.Photobank.UseCases.CreateTag;
-using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag;
-using Anela.Heblo.Application.Features.Photobank.UseCases.ReapplyRules;
-using Anela.Heblo.Application.Features.Photobank.UseCases.RemovePhotoTag;
-using Anela.Heblo.Application.Features.Photobank.UseCases.RetagPhotos;
-using Anela.Heblo.Domain.Features.Photobank;
-using Anela.Heblo.Xcc.Services;
-using Moq;
-using Xunit;
-
-namespace Anela.Heblo.Tests.Features.Photobank;
-
-public class PhotobankTagsCacheInvalidationTests
-{
-    private readonly Mock<IPhotobankRepository> _repo = new();
-    private readonly Mock<IPhotobankTagsCache> _cache = new();
-
-    [Fact]
-    public async Task CreateTag_InvalidatesCache_OnNewTag()
-    {
-        _repo.Setup(r => r.GetTagByNameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-             .ReturnsAsync((Tag?)null);
-        _repo.Setup(r => r.GetOrCreateTagAsync("summer", It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new Tag { Id = 1, Name = "summer" });
-
-        var handler = new CreateTagHandler(_repo.Object, _cache.Object);
-        await handler.Handle(new CreateTagRequest { Name = "summer" }, CancellationToken.None);
-
-        _cache.Verify(c => c.Invalidate(), Times.Once);
-    }
-
-    [Fact]
-    public async Task CreateTag_DoesNotInvalidate_WhenTagAlreadyExisted()
-    {
-        _repo.Setup(r => r.GetTagByNameAsync("summer", It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new Tag { Id = 1, Name = "summer" });
-
-        var handler = new CreateTagHandler(_repo.Object, _cache.Object);
-        await handler.Handle(new CreateTagRequest { Name = "summer" }, CancellationToken.None);
-
-        _cache.Verify(c => c.Invalidate(), Times.Never);
-    }
-
-    [Fact]
-    public async Task DeleteTag_InvalidatesCache_AfterSaveChanges()
-    {
-        var tag = new Tag { Id = 1, Name = "summer" };
-        _repo.Setup(r => r.GetTagByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(tag);
-
-        var handler = new DeleteTagHandler(_repo.Object, _cache.Object);
-        await handler.Handle(new DeleteTagRequest { Id = 1 }, CancellationToken.None);
-
-        _cache.Verify(c => c.Invalidate(), Times.Once);
-    }
-
-    [Fact]
-    public async Task DeleteTag_DoesNotInvalidate_WhenTagNotFound()
-    {
-        _repo.Setup(r => r.GetTagByIdAsync(99, It.IsAny<CancellationToken>())).ReturnsAsync((Tag?)null);
-
-        var handler = new DeleteTagHandler(_repo.Object, _cache.Object);
-        await handler.Handle(new DeleteTagRequest { Id = 99 }, CancellationToken.None);
-
-        _cache.Verify(c => c.Invalidate(), Times.Never);
-    }
-
-    [Fact]
-    public async Task AddPhotoTag_InvalidatesCache_WhenNewPhotoTagAdded()
-    {
-        _repo.Setup(r => r.GetPhotoByIdAsync(1, It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new Photo { Id = 1, SharePointFileId = "sp", FileName = "f", FolderPath = "p", ModifiedAt = DateTime.UtcNow });
-        _repo.Setup(r => r.GetOrCreateTagAsync("x", It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new Tag { Id = 5, Name = "x" });
-        _repo.Setup(r => r.PhotoTagExistsAsync(1, 5, It.IsAny<CancellationToken>()))
-             .ReturnsAsync(false);
-
-        var handler = new AddPhotoTagHandler(_repo.Object, _cache.Object);
-        await handler.Handle(new AddPhotoTagRequest { PhotoId = 1, TagName = "x" }, CancellationToken.None);
-
-        _cache.Verify(c => c.Invalidate(), Times.Once);
-    }
-
-    [Fact]
-    public async Task AddPhotoTag_DoesNotInvalidate_WhenTagAlreadyAttached()
-    {
-        _repo.Setup(r => r.GetPhotoByIdAsync(1, It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new Photo { Id = 1, SharePointFileId = "sp", FileName = "f", FolderPath = "p", ModifiedAt = DateTime.UtcNow });
-        _repo.Setup(r => r.GetOrCreateTagAsync("x", It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new Tag { Id = 5, Name = "x" });
-        _repo.Setup(r => r.PhotoTagExistsAsync(1, 5, It.IsAny<CancellationToken>()))
-             .ReturnsAsync(true);
-
-        var handler = new AddPhotoTagHandler(_repo.Object, _cache.Object);
-        await handler.Handle(new AddPhotoTagRequest { PhotoId = 1, TagName = "x" }, CancellationToken.None);
-
-        _cache.Verify(c => c.Invalidate(), Times.Never);
-    }
-
-    [Fact]
-    public async Task RemovePhotoTag_InvalidatesCache_AfterSaveChanges()
-    {
-        _repo.Setup(r => r.GetPhotoByIdAsync(1, It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new Photo { Id = 1, SharePointFileId = "sp", FileName = "f", FolderPath = "p", ModifiedAt = DateTime.UtcNow });
-
-        var handler = new RemovePhotoTagHandler(_repo.Object, _cache.Object);
-        await handler.Handle(new RemovePhotoTagRequest { PhotoId = 1, TagId = 5 }, CancellationToken.None);
-
-        _cache.Verify(c => c.Invalidate(), Times.Once);
-    }
-
-    [Fact]
-    public async Task BulkAddPhotoTag_InvalidatesCache_WhenSomePhotosTagged()
-    {
-        _repo.Setup(r => r.CountFilteredPhotosAsync(It.IsAny<List<string>?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-             .ReturnsAsync(10);
-        _repo.Setup(r => r.GetOrCreateTagAsync("x", It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new Tag { Id = 5, Name = "x" });
-        _repo.Setup(r => r.GetFilteredPhotoIdsMissingTagAsync(It.IsAny<List<string>?>(), It.IsAny<string?>(), 5, It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new List<int> { 1, 2 });
-
-        var handler = new BulkAddPhotoTagHandler(_repo.Object, _cache.Object);
-        await handler.Handle(new BulkAddPhotoTagRequest { TagName = "x" }, CancellationToken.None);
-
-        _cache.Verify(c => c.Invalidate(), Times.Once);
-    }
-
-    [Fact]
-    public async Task BulkAddPhotoTag_DoesNotInvalidate_WhenNoPhotosNeedTagging()
-    {
-        _repo.Setup(r => r.CountFilteredPhotosAsync(It.IsAny<List<string>?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-             .ReturnsAsync(10);
-        _repo.Setup(r => r.GetOrCreateTagAsync("x", It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new Tag { Id = 5, Name = "x" });
-        _repo.Setup(r => r.GetFilteredPhotoIdsMissingTagAsync(It.IsAny<List<string>?>(), It.IsAny<string?>(), 5, It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new List<int>());
-
-        var handler = new BulkAddPhotoTagHandler(_repo.Object, _cache.Object);
-        await handler.Handle(new BulkAddPhotoTagRequest { TagName = "x" }, CancellationToken.None);
-
-        _cache.Verify(c => c.Invalidate(), Times.Never);
-    }
-
-    [Fact]
-    public async Task BulkAddPhotoTagByIds_InvalidatesCache_WhenSomePhotosTagged()
-    {
-        _repo.Setup(r => r.GetOrCreateTagAsync("x", It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new Tag { Id = 5, Name = "x" });
-        _repo.Setup(r => r.GetExistingPhotoIdsMissingTagAsync(It.IsAny<IReadOnlyList<int>>(), 5, It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new List<int> { 1, 2 });
-        _repo.Setup(r => r.CountExistingPhotosAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
-             .ReturnsAsync(2);
-
-        var handler = new BulkAddPhotoTagByIdsHandler(_repo.Object, _cache.Object);
-        await handler.Handle(new BulkAddPhotoTagByIdsRequest { TagName = "x", PhotoIds = new List<int> { 1, 2 } }, CancellationToken.None);
-
-        _cache.Verify(c => c.Invalidate(), Times.Once);
-    }
-
-    [Fact]
-    public async Task ReapplyRules_InvalidatesCache_AfterSaveChanges()
-    {
-        _repo.Setup(r => r.GetRulesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<TagRule>());
-        _repo.Setup(r => r.ReapplyRulesAsync(It.IsAny<List<TagRule>>(), null, It.IsAny<CancellationToken>()))
-             .ReturnsAsync(3);
-
-        var handler = new ReapplyRulesHandler(_repo.Object, _cache.Object);
-        await handler.Handle(new ReapplyRulesRequest(), CancellationToken.None);
-
-        _cache.Verify(c => c.Invalidate(), Times.Once);
-    }
-
-    [Fact]
-    public async Task RetagPhotos_InvalidatesCache_WhenPhotosFound()
-    {
-        _repo.Setup(r => r.GetPhotosByIdsAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new List<Photo>
-             {
-                 new() { Id = 1, SharePointFileId = "sp-1", FileName = "f", FolderPath = "p", ModifiedAt = DateTime.UtcNow },
-             });
-        var bgWorker = new Mock<IBackgroundWorker>();
-        bgWorker.Setup(w => w.Enqueue<Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs.PhotobankAutoTagJob>(It.IsAny<System.Linq.Expressions.Expression<Func<Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs.PhotobankAutoTagJob, Task>>>()))
-             .Returns("job-1");
-
-        var handler = new RetagPhotosHandler(_repo.Object, bgWorker.Object, _cache.Object);
-        await handler.Handle(new RetagPhotosRequest { PhotoIds = new List<int> { 1 } }, CancellationToken.None);
-
-        _cache.Verify(c => c.Invalidate(), Times.Once);
-    }
-
-    [Fact]
-    public async Task RetagPhotos_DoesNotInvalidate_WhenNoPhotosFound()
-    {
-        _repo.Setup(r => r.GetPhotosByIdsAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
-             .ReturnsAsync(new List<Photo>());
-        var bgWorker = new Mock<IBackgroundWorker>();
-
-        var handler = new RetagPhotosHandler(_repo.Object, bgWorker.Object, _cache.Object);
-        await handler.Handle(new RetagPhotosRequest { PhotoIds = new List<int> { 1 } }, CancellationToken.None);
-
-        _cache.Verify(c => c.Invalidate(), Times.Never);
-    }
-}
-```
-
-- [ ] **Step 2: Run tests, confirm they fail**
-
-Run:
-```bash
-dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~PhotobankTagsCacheInvalidationTests"
-```
-Expected: fails to compile — handlers do not yet accept `IPhotobankTagsCache`.
-
-- [ ] **Step 3: Edit `CreateTagHandler`**
-
-Replace `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/CreateTag/CreateTagHandler.cs` body of the class with:
-
-```csharp
-public class CreateTagHandler : IRequestHandler<CreateTagRequest, CreateTagResponse>
-{
-    private readonly IPhotobankRepository _repository;
-    private readonly IPhotobankTagsCache _cache;
-
-    public CreateTagHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
-    {
-        _repository = repository;
-        _cache = cache;
-    }
-
-    public async Task<CreateTagResponse> Handle(CreateTagRequest request, CancellationToken cancellationToken)
-    {
-        var normalizedName = request.Name.Trim().ToLowerInvariant();
-
-        var existing = await _repository.GetTagByNameAsync(normalizedName, cancellationToken);
-        if (existing != null)
-            return new CreateTagResponse { Id = existing.Id, Name = existing.Name, AlreadyExisted = true };
-
-        var tag = await _repository.GetOrCreateTagAsync(normalizedName, cancellationToken);
-        if (tag is null)
-            throw new InvalidOperationException($"GetOrCreateTagAsync returned null for '{normalizedName}'.");
-
-        _cache.Invalidate();
-        return new CreateTagResponse { Id = tag.Id, Name = tag.Name, AlreadyExisted = false };
-    }
-}
-```
-
-Add the `using Anela.Heblo.Application.Features.Photobank.Services;` directive at the top of the file.
-
-- [ ] **Step 4: Edit `DeleteTagHandler`**
-
-In `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/DeleteTag/DeleteTagHandler.cs`, add the `IPhotobankTagsCache` dependency and call `_cache.Invalidate()` immediately after `await _repository.SaveChangesAsync(cancellationToken);`. The early-return when the tag is not found must **not** invalidate.
-
-Add `using Anela.Heblo.Application.Features.Photobank.Services;`. Final body:
-
-```csharp
-public class DeleteTagHandler : IRequestHandler<DeleteTagRequest, DeleteTagResponse>
-{
-    private readonly IPhotobankRepository _repository;
-    private readonly IPhotobankTagsCache _cache;
-
-    public DeleteTagHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
-    {
-        _repository = repository;
-        _cache = cache;
-    }
-
-    public async Task<DeleteTagResponse> Handle(DeleteTagRequest request, CancellationToken cancellationToken)
-    {
-        var tag = await _repository.GetTagByIdAsync(request.Id, cancellationToken);
-        if (tag is null)
-            return new DeleteTagResponse(ErrorCodes.PhotobankTagNotFound);
-
-        var assignmentCount = tag.PhotoTags.Count;
-        await _repository.DeleteTagAsync(tag, cancellationToken);
-        await _repository.SaveChangesAsync(cancellationToken);
-        _cache.Invalidate();
-
-        return new DeleteTagResponse { RemovedAssignmentCount = assignmentCount };
-    }
-}
-```
-
-- [ ] **Step 5: Edit `AddPhotoTagHandler`**
-
-In `backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/AddPhotoTag/AddPhotoTagHandler.cs`, add cache dependency. Invalidate **only** when a new `PhotoTag` was inserted (i.e. after `SaveChangesAsync`, not on the early-return path where the tag was already attached).
-
-```csharp
-public class AddPhotoTagHandler : IRequestHandler<AddPhotoTagRequest, AddPhotoTagResponse>
-{
-    private readonly IPhotobankRepository _repository;
-    private readonly IPhotobankTagsCache _cache;
-
-    public AddPhotoTagHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
-    {
-        _repository = repository;
-        _cache = cache;
-    }
-
-    public async Task<AddPhotoTagResponse> Handle(AddPhotoTagRequest request, CancellationToken cancellationToken)
-    {
-        var photo = await _repository.GetPhotoByIdAsync(request.PhotoId, cancellationToken);
-        if (photo == null)
-            return new AddPhotoTagResponse(ErrorCodes.PhotoNotFound);
-
-        var normalizedName = request.TagName.Trim().ToLowerInvariant();
-        var tag = await _repository.GetOrCreateTagAsync(normalizedName, cancellationToken);
-        if (tag == null)
-            return new AddPhotoTagResponse(ErrorCodes.PhotoTagCreationFailed);
-
-        if (await _repository.PhotoTagExistsAsync(photo.Id, tag.Id, cancellationToken))
-            return new AddPhotoTagResponse { TagId = tag.Id, TagName = tag.Name };
-
-        var photoTag = new PhotoTag
-        {
-            PhotoId = photo.Id,
-            TagId = tag.Id,
-            Source = PhotoTagSource.Manual,
-            CreatedAt = DateTime.UtcNow,
-        };
-
-        await _repository.AddPhotoTagAsync(photoTag, cancellationToken);
-        await _repository.SaveChangesAsync(cancellationToken);
-        _cache.Invalidate();
-
-        return new AddPhotoTagResponse { TagId = tag.Id, TagName = tag.Name };
-    }
-}
-```
-
-- [ ] **Step 6: Edit `RemovePhotoTagHandler`**
-
-```csharp
-public class RemovePhotoTagHandler : IRequestHandler<RemovePhotoTagRequest, RemovePhotoTagResponse>
-{
-    private readonly IPhotobankRepository _repository;
-    private readonly IPhotobankTagsCache _cache;
-
-    public RemovePhotoTagHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
-    {
-        _repository = repository;
-        _cache = cache;
-    }
-
-    public async Task<RemovePhotoTagResponse> Handle(RemovePhotoTagRequest request, CancellationToken cancellationToken)
-    {
-        var photo = await _repository.GetPhotoByIdAsync(request.PhotoId, cancellationToken);
-        if (photo == null)
-            return new RemovePhotoTagResponse(ErrorCodes.PhotoNotFound);
-
-        await _repository.RemovePhotoTagAsync(request.PhotoId, request.TagId, cancellationToken);
-        await _repository.SaveChangesAsync(cancellationToken);
-        _cache.Invalidate();
-
-        return new RemovePhotoTagResponse();
-    }
-}
-```
-
-- [ ] **Step 7: Edit `BulkAddPhotoTagHandler`**
-
-Invalidate only when `photoIds.Count > 0` (same gate as `SaveChangesAsync`). Add cache dependency, then change the bottom of `Handle` from:
-
-```csharp
-if (photoIds.Count > 0)
-    await _repository.SaveChangesAsync(cancellationToken);
-```
-to:
-```csharp
-if (photoIds.Count > 0)
-{
-    await _repository.SaveChangesAsync(cancellationToken);
-    _cache.Invalidate();
-}
-```
-And add `IPhotobankTagsCache` to the constructor + field.
-
-- [ ] **Step 8: Edit `BulkAddPhotoTagByIdsHandler`**
-
-Mirror the previous step:
-
-```csharp
-if (toAdd.Count > 0)
-{
-    await _repository.SaveChangesAsync(cancellationToken);
-    _cache.Invalidate();
-}
-```
-
-- [ ] **Step 9: Edit `ReapplyRulesHandler`**
-
-```csharp
-public class ReapplyRulesHandler : IRequestHandler<ReapplyRulesRequest, ReapplyRulesResponse>
-{
-    private readonly IPhotobankRepository _repository;
-    private readonly IPhotobankTagsCache _cache;
-
-    public ReapplyRulesHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
-    {
-        _repository = repository;
-        _cache = cache;
-    }
-
-    public async Task<ReapplyRulesResponse> Handle(ReapplyRulesRequest request, CancellationToken cancellationToken)
-    {
-        var allRules = await _repository.GetRulesAsync(cancellationToken);
-
-        string? scopeToTagName = null;
-        if (request.RuleId.HasValue)
-        {
-            var rule = allRules.FirstOrDefault(r => r.Id == request.RuleId.Value);
-            if (rule == null)
-                return new ReapplyRulesResponse(ErrorCodes.PhotobankRuleNotFound);
-
-            scopeToTagName = rule.TagName.ToLowerInvariant();
-        }
-
-        var photosUpdated = await _repository.ReapplyRulesAsync(allRules, scopeToTagName, cancellationToken);
-        await _repository.SaveChangesAsync(cancellationToken);
-        _cache.Invalidate();
-
-        return new ReapplyRulesResponse { PhotosUpdated = photosUpdated };
-    }
-}
-```
-
-- [ ] **Step 10: Edit `RetagPhotosHandler`**
-
-Add cache dependency; invalidate only when `photos.Count > 0` (the `ExecuteUpdate` / `ExecuteDelete` calls commit immediately, no `SaveChangesAsync`).
-
-```csharp
-public class RetagPhotosHandler : IRequestHandler<RetagPhotosRequest, RetagPhotosResponse>
-{
-    private readonly IPhotobankRepository _repository;
-    private readonly IBackgroundWorker _backgroundWorker;
-    private readonly IPhotobankTagsCache _cache;
-
-    public RetagPhotosHandler(
-        IPhotobankRepository repository,
-        IBackgroundWorker backgroundWorker,
-        IPhotobankTagsCache cache)
-    {
-        _repository = repository;
-        _backgroundWorker = backgroundWorker;
-        _cache = cache;
-    }
-
-    public async Task<RetagPhotosResponse> Handle(RetagPhotosRequest request, CancellationToken cancellationToken)
-    {
-        var photos = await _repository.GetPhotosByIdsAsync(request.PhotoIds, cancellationToken);
-
-        if (photos.Count == 0)
-            return new RetagPhotosResponse { JobId = null };
-
-        var foundIds = photos.Select(p => p.Id).ToList();
-
-        await _repository.ResetAutoTaggedAtAsync(foundIds, cancellationToken);
-
-        if (request.ClearExistingAiTags)
-            await _repository.RemovePhotoTagsBySourceAsync(foundIds, PhotoTagSource.AI, cancellationToken);
-
-        _cache.Invalidate();
-
-        var candidates = photos
-            .Select(p => new PhotoAutoTagCandidate(p.Id, p.FolderPath, p.FileName))
-            .ToList();
-
-        var jobId = _backgroundWorker.Enqueue<PhotobankAutoTagJob>(
-            j => j.ExecuteForPhotosAsync(candidates, CancellationToken.None));
-
-        return new RetagPhotosResponse { JobId = jobId };
-    }
-}
-```
-
-Add `using Anela.Heblo.Application.Features.Photobank.Services;` at the top.
-
-- [ ] **Step 11: Edit `PhotobankAutoTagJob` to invalidate after each batch**
-
-In `backend/src/Anela.Heblo.Application/Features/Photobank/Infrastructure/Jobs/PhotobankAutoTagJob.cs`, add a constructor parameter `IPhotobankTagsCache cache` (stored as `_cache`) and call `_cache.Invalidate()` at the end of `ProcessBatchAsync`, after `StampAutoTaggedAtAsync`.
-
-```csharp
-public PhotobankAutoTagJob(
-    IPhotobankRepository repo,
-    IChatClient chat,
-    IOptions<AutoTagOptions> options,
-    ILogger<PhotobankAutoTagJob> logger,
-    IPhotobankTagsCache cache)
-{
-    _repo = repo;
-    _chat = chat;
-    _options = options.Value;
-    _logger = logger;
-    _cache = cache;
-}
-```
-
-Add the field declaration `private readonly IPhotobankTagsCache _cache;` next to the other fields. Add `using Anela.Heblo.Application.Features.Photobank.Services;`.
-
-At the bottom of `ProcessBatchAsync`, after:
-```csharp
-await _repo.SaveChangesAsync(ct);
-await _repo.StampAutoTaggedAtAsync(batchIds, DateTime.UtcNow, ct);
-```
-add:
-```csharp
-_cache.Invalidate();
-```
-
-Update `PhotobankAutoTagJobTests.cs`: the `CreateJob` helper needs the new constructor argument. Replace lines 21-29:
-
-```csharp
-private PhotobankAutoTagJob CreateJob(AutoTagOptions? options = null)
-{
-    var opts = options ?? new AutoTagOptions { Enabled = true, BatchSize = 50, MaxPhotosPerRun = 5_000 };
-    return new PhotobankAutoTagJob(
-        _repo.Object,
-        _chat.Object,
-        Options.Create(opts),
-        NullLogger<PhotobankAutoTagJob>.Instance);
-}
-```
-with:
-```csharp
-private readonly Mock<IPhotobankTagsCache> _cache = new();
-
-private PhotobankAutoTagJob CreateJob(AutoTagOptions? options = null)
-{
-    var opts = options ?? new AutoTagOptions { Enabled = true, BatchSize = 50, MaxPhotosPerRun = 5_000 };
-    return new PhotobankAutoTagJob(
-        _repo.Object,
-        _chat.Object,
-        Options.Create(opts),
-        NullLogger<PhotobankAutoTagJob>.Instance,
-        _cache.Object);
-}
-```
-Add `using Anela.Heblo.Application.Features.Photobank.Services;` at the top of the test file.
-
-Also update the standalone `new PhotobankAutoTagJob(...)` call inside the `RespectsMaxTagsPerPhoto_Cap` test (around line 182) to pass `_cache.Object` as the fifth argument.
-
-- [ ] **Step 12: Run the full invalidation matrix**
-
-Run:
-```bash
-dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~PhotobankTagsCacheInvalidationTests"
-```
-Expected: all 14 tests pass.
-
-- [ ] **Step 13: Run the full photobank suite to confirm nothing else regressed**
-
-Run:
-```bash
-dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~Photobank"
-```
-Expected: all photobank tests pass.
-
-- [ ] **Step 14: Commit**
-
-```bash
-git add backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/CreateTag/CreateTagHandler.cs \
-        backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/DeleteTag/DeleteTagHandler.cs \
-        backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/AddPhotoTag/AddPhotoTagHandler.cs \
-        backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/RemovePhotoTag/RemovePhotoTagHandler.cs \
-        backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/BulkAddPhotoTag/BulkAddPhotoTagHandler.cs \
-        backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/BulkAddPhotoTagByIds/BulkAddPhotoTagByIdsHandler.cs \
-        backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/ReapplyRules/ReapplyRulesHandler.cs \
-        backend/src/Anela.Heblo.Application/Features/Photobank/UseCases/RetagPhotos/RetagPhotosHandler.cs \
-        backend/src/Anela.Heblo.Application/Features/Photobank/Infrastructure/Jobs/PhotobankAutoTagJob.cs \
-        backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankTagsCacheInvalidationTests.cs \
-        backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankAutoTagJobTests.cs
-git commit -m "feat: invalidate photobank tags cache on every tag/photo-tag mutation"
-```
-
----
-
-## Task 10: Wire DI registrations into `PhotobankModule`
-
-**Files:**
-- Modify: `backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankModule.cs`
-
-- [ ] **Step 1: Add `using` directives**
-
-At the top of the file, add:
-```csharp
-using Anela.Heblo.Application.Features.Photobank.Configuration;
-using Microsoft.Extensions.Caching.Memory;
-```
-
-- [ ] **Step 2: Register cache options + memory cache + scoped wrapper**
-
-Inside `AddPhotobankModule`, immediately after the `services.Configure<AutoTagOptions>(...)` line, append:
-
-```csharp
-services.AddMemoryCache();
-services.Configure<PhotobankTagsCacheOptions>(
-    configuration.GetSection(PhotobankTagsCacheOptions.SectionName));
-services.AddScoped<IPhotobankTagsCache, PhotobankTagsCache>();
-```
-
-- [ ] **Step 3: Verify the build**
-
-Run:
-```bash
-dotnet build backend/Anela.Heblo.sln
-```
-Expected: `Build succeeded.`
-
-- [ ] **Step 4: Smoke test — boot the API to confirm DI graph resolves**
-
-Run:
-```bash
-dotnet run --project backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj --launch-profile https
-```
-In another terminal, hit:
-```bash
-curl -sk https://localhost:5001/health
-```
-Expected: HTTP 200 (or whatever health endpoint exists). Then `Ctrl+C` to stop. If the host fails to start with `InvalidOperationException: Unable to resolve service ...`, fix the DI registration; do not skip.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankModule.cs
-git commit -m "feat: register PhotobankTagsCache and options in PhotobankModule"
-```
-
----
-
-## Task 11: Add cache TTL to `appsettings.json`
-
-**Files:**
-- Modify: `backend/src/Anela.Heblo.API/appsettings.json`
-
-- [ ] **Step 1: Edit the `Photobank` section**
-
-In `backend/src/Anela.Heblo.API/appsettings.json`, change the `"Photobank"` block from:
-```json
-"Photobank": {
-  "AutoTag": {
-    "Enabled": false,
-    "BatchSize": 50,
-    "MaxPhotosPerRun": 5000,
-    "Model": "claude-haiku-4-5-20251001",
-    "MaxTagsPerPhoto": 5
-  }
-}
-```
-to:
-```json
-"Photobank": {
-  "AutoTag": {
-    "Enabled": false,
-    "BatchSize": 50,
-    "MaxPhotosPerRun": 5000,
-    "Model": "claude-haiku-4-5-20251001",
-    "MaxTagsPerPhoto": 5
-  },
-  "TagsCache": {
-    "TtlSeconds": 60
-  }
-}
-```
-
-- [ ] **Step 2: Confirm JSON parses**
-
-Run:
-```bash
-python3 -c "import json; json.load(open('backend/src/Anela.Heblo.API/appsettings.json'))"
-```
-Expected: no output (i.e. valid JSON).
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add backend/src/Anela.Heblo.API/appsettings.json
-git commit -m "chore: add Photobank:TagsCache:TtlSeconds config (60s default)"
-```
-
----
-
-## Task 12: End-to-end validation against the API
-
-**Files:** none (validation only).
-
-- [ ] **Step 1: Build the solution**
-
-Run:
-```bash
-dotnet build backend/Anela.Heblo.sln
-```
-Expected: `Build succeeded. 0 Warning(s). 0 Error(s).`
-
-- [ ] **Step 2: Apply formatting**
-
-Run:
-```bash
-dotnet format backend/Anela.Heblo.sln
-```
-Expected: completes with no required changes (or applies minor changes).
-
-- [ ] **Step 3: Run all backend tests**
-
-Run:
-```bash
-dotnet test backend/Anela.Heblo.sln
-```
-Expected: all tests pass.
-
-- [ ] **Step 4: Manual API smoke test**
-
-Boot the API (`dotnet run --project backend/src/Anela.Heblo.API/Anela.Heblo.API.csproj`) and hit the endpoint twice:
-
-```bash
-# First call — cache miss, should hit DB
-time curl -sk -H "Authorization: Bearer <token>" https://localhost:5001/api/photobank/tags > /tmp/tags-1.json
-
-# Second call within 60s — cache hit, should be much faster
-time curl -sk -H "Authorization: Bearer <token>" https://localhost:5001/api/photobank/tags > /tmp/tags-2.json
-
-diff /tmp/tags-1.json /tmp/tags-2.json
-```
-Expected: payloads identical; second call's wall-clock time noticeably lower than first. Log output for the first call must contain `Fetched {N} photobank tags in {ElapsedMs} ms` at Information level.
-
-- [ ] **Step 5: Manual invalidation check**
-
-While the API is still running:
-```bash
-# 1. Read tags (warms cache)
-curl -sk -H "Authorization: Bearer <token>" https://localhost:5001/api/photobank/tags > /dev/null
-
-# 2. Create a new tag
-curl -sk -X POST -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
-  -d '{"name":"smoke-test-tag"}' https://localhost:5001/api/photobank/tags
-
-# 3. Read again — must hit DB (cache invalidated). New tag must appear with count 0.
-curl -sk -H "Authorization: Bearer <token>" https://localhost:5001/api/photobank/tags \
-  | jq '.tags[] | select(.name=="smoke-test-tag")'
-```
-Expected: third call's log line shows `Fetched {N+1} photobank tags in {ElapsedMs} ms` at Information level, and the new tag is present in the response with `count: 0`.
-
-- [ ] **Step 6: Clean up the smoke-test tag**
-
-```bash
-# Identify the tag id then call DELETE /api/photobank/tags/{id}
-curl -sk -X DELETE -H "Authorization: Bearer <token>" https://localhost:5001/api/photobank/tags/<id>
-```
-
----
-
-## Task 13: (Conditional) Add `IX_PhotoTags_TagId` migration
-
-**Run this task only if Task 1, Step 3 showed the index is missing from the deployed database.** Otherwise this task is `SKIPPED — index already exists`.
-
-**Files:**
-- Create: `backend/src/Anela.Heblo.Persistence/Migrations/{timestamp}_AddPhotoTagsTagIdIndex.cs` (generated)
-- Create: `backend/src/Anela.Heblo.Persistence/Migrations/{timestamp}_AddPhotoTagsTagIdIndex.Designer.cs` (generated)
-- Modify: `backend/src/Anela.Heblo.Persistence/Migrations/ApplicationDbContextModelSnapshot.cs` (generated)
-- Modify: `backend/src/Anela.Heblo.Persistence/Photobank/PhotoTagConfiguration.cs` (only if the snapshot diff says `HasIndex("TagId")` would otherwise disappear)
-
-- [ ] **Step 1: Generate the migration**
-
-Run:
-```bash
-dotnet ef migrations add AddPhotoTagsTagIdIndex \
-  --project backend/src/Anela.Heblo.Persistence \
-  --startup-project backend/src/Anela.Heblo.API
-```
-Expected: three new/modified files listed above. Open the generated `Up`/`Down` to confirm:
-
-```csharp
-migrationBuilder.CreateIndex(
-    name: "IX_PhotoTags_TagId",
-    schema: "public",
-    table: "PhotoTags",
-    column: "TagId");
-```
-
-If EF generated nothing (the model snapshot already matches), the index exists in the model and this task is genuinely a no-op. Delete the empty migration with:
-```bash
-dotnet ef migrations remove --project backend/src/Anela.Heblo.Persistence --startup-project backend/src/Anela.Heblo.API
-```
-and mark this task as SKIPPED.
-
-- [ ] **Step 2: Mirror the index in `PhotoTagConfiguration` (only if the snapshot diff requires it)**
-
-If the snapshot diff *removed* `b.HasIndex("TagId")`, restore it via the configuration to keep the implicit FK index. Add to `backend/src/Anela.Heblo.Persistence/Photobank/PhotoTagConfiguration.cs`:
-
-```csharp
-builder.HasIndex(x => x.TagId).HasDatabaseName("IX_PhotoTags_TagId");
-```
-
-- [ ] **Step 3: Script the migration for production (CONCURRENTLY)**
-
-Generate the SQL script:
-```bash
-dotnet ef migrations script {PreviousMigrationName} AddPhotoTagsTagIdIndex \
-  --project backend/src/Anela.Heblo.Persistence \
-  --startup-project backend/src/Anela.Heblo.API \
-  --output ./migration-AddPhotoTagsTagIdIndex.sql
-```
-
-Open `migration-AddPhotoTagsTagIdIndex.sql` and replace the generated `CREATE INDEX "IX_PhotoTags_TagId" ON public."PhotoTags" ("TagId");` with:
+Expected: both tests PASS. The generated PostgreSQL statement should look like:
 
 ```sql
-CREATE INDEX CONCURRENTLY "IX_PhotoTags_TagId" ON public."PhotoTags" ("TagId");
+SELECT t."Id", t."Name", COUNT(pt0."TagId")::int AS "Count"
+FROM "PhotobankTags" AS t
+LEFT JOIN "PhotoTags" AS pt0 ON t."Id" = pt0."TagId"
+GROUP BY t."Id", t."Name"
+ORDER BY COUNT(pt0."TagId")::int DESC, t."Name"
 ```
 
-Document the apply window (outside the 04:00 UTC `photobank-auto-tag` job) per the manual-migration workflow in `CLAUDE.md`.
+(Exact column ordering / casts may vary slightly across Npgsql versions; only the substring assertions above are contractual.)
 
-- [ ] **Step 4: Build the solution**
+- [ ] **Step 3: Run the existing in-memory repository tests to verify no behavioral regression**
 
-Run:
+```bash
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~PhotobankRepositoryGetTagsTests" \
+  --logger "console;verbosity=normal"
+```
+
+Expected: all four existing tests pass (`ReturnsAllTagsIncludingOrphansWithZeroCount`, `OrdersByCountDescThenNameAsc`, `ReturnsProjectionsNotEntities`, `ReturnsTagCountRecord`).
+
+**Note on the in-memory provider:** `GroupJoin` is supported by EF Core's InMemory provider and produces the same logical results as PostgreSQL for this query, so these tests remain a valid regression check.
+
+- [ ] **Step 4: Do not commit yet — proceed to Task 3.**
+
+---
+
+### Task 3: Lock down FR-4 (no tracking) with an explicit assertion
+
+**Goal:** The spec's FR-4 says `ChangeTracker.Entries<Tag>()` must be empty after the handler executes. The current code already satisfies this (projection to a record), but the lack of an explicit test makes a future regression easy. Add one assertion to the existing in-memory test file.
+
+**Files:**
+- Modify: `backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankRepositoryGetTagsTests.cs`
+
+- [ ] **Step 1: Add a new test method to the existing class**
+
+Append the following test method inside the `PhotobankRepositoryGetTagsTests` class (immediately before the closing `}` of the class, after `GetTagsWithCountsAsync_ReturnsTagCountRecord`):
+
+```csharp
+    [Fact]
+    public async Task GetTagsWithCountsAsync_DoesNotTrackTagEntities()
+    {
+        _ = await _repository.GetTagsWithCountsAsync(CancellationToken.None);
+
+        _context.ChangeTracker.Entries<Tag>().Should().BeEmpty(
+            "FR-4 requires the read path to project without entity tracking");
+    }
+```
+
+- [ ] **Step 2: Run the test**
+
+```bash
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~PhotobankRepositoryGetTagsTests.GetTagsWithCountsAsync_DoesNotTrackTagEntities" \
+  --logger "console;verbosity=normal"
+```
+
+Expected: PASS. Projection to `TagCount` already keeps `ChangeTracker` empty; `AsNoTracking()` cements it.
+
+- [ ] **Step 3: Do not commit yet — proceed to Task 4.**
+
+---
+
+### Task 4: Validate the full Photobank test suite + build
+
+**Goal:** Confirm no other Photobank tests regressed, the solution builds clean, and formatting is consistent.
+
+- [ ] **Step 1: Run the full Photobank test slice**
+
+```bash
+dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj \
+  --filter "FullyQualifiedName~Features.Photobank" \
+  --logger "console;verbosity=normal"
+```
+
+Expected: every test passes. The cache-hit/miss tests (`PhotobankTagsCacheTests`), invalidation tests (`PhotobankTagsCacheInvalidationTests`), handler tests (`GetTagsHandlerTests`), and the two repository tests files above must all be green.
+
+- [ ] **Step 2: Build the backend solution**
+
 ```bash
 dotnet build backend/Anela.Heblo.sln
 ```
-Expected: `Build succeeded.`
 
-- [ ] **Step 5: Commit**
+Expected: build succeeds with zero errors. Warnings are acceptable only if they existed before this change.
+
+- [ ] **Step 3: Run `dotnet format` and confirm the diff is empty (or trivial whitespace)**
 
 ```bash
-git add backend/src/Anela.Heblo.Persistence/Migrations/*AddPhotoTagsTagIdIndex* \
-        backend/src/Anela.Heblo.Persistence/Migrations/ApplicationDbContextModelSnapshot.cs \
-        backend/src/Anela.Heblo.Persistence/Photobank/PhotoTagConfiguration.cs \
-        migration-AddPhotoTagsTagIdIndex.sql
-git commit -m "feat: add IX_PhotoTags_TagId index migration (apply manually with CONCURRENTLY)"
+dotnet format backend/Anela.Heblo.sln --verify-no-changes
 ```
 
----
+If it reports changes, run without `--verify-no-changes` and inspect the resulting diff before committing.
 
-## Self-Review Notes
-
-- **Spec coverage:**
-  - FR-1 (single statement) — Task 6.
-  - FR-2 (index) — Task 1 verifies; Task 13 ships only if needed.
-  - FR-3 (cache + invalidation) — Tasks 3, 5, 9 (invalidation matrix covers all 9 mutators).
-  - FR-4 (DTO projection, no tracked entities) — Tasks 2 + 6.
-  - FR-5 (logging) — Task 7.
-  - NFR-1 (performance) — Task 12 manual validation.
-  - NFR-3 (backward compatibility) — response shape preserved (verified in Task 7 tests + Task 12 smoke test).
-  - NFR-4 (testability) — full integration matrix in Tasks 5, 6, 7, 9.
-- **Placeholders:** none — every code step has a full snippet.
-- **Type consistency:** `IPhotobankTagsCache` uses `TryGet(out IReadOnlyList<TagWithCountDto>?)` across interface, implementation, and tests; repository returns `IReadOnlyList<TagCount>` end-to-end; cache payload type is `IReadOnlyList<TagWithCountDto>` everywhere.
+- [ ] **Step 4: Do not commit yet — proceed to Task 5.**
 
 ---
 
-## Pipeline Note
+### Task 5: Commit and prepare the manual-migration note
 
-This plan was produced by the automated pipeline. The plan file itself is the deliverable; no human handoff step is required. Downstream agents pick this up via `superpowers:subagent-driven-development` or `superpowers:executing-plans`.
+**Goal:** Single conventional commit. Update release notes / docs to make the manual-migration story explicit, even though the index already exists in production — the deployment runbook should mention that the index was already provisioned by `20260424122851_AddPhotobankTables.cs` so the on-call engineer doesn't go looking for one.
+
+- [ ] **Step 1: Confirm `IX_PhotoTags_TagId` is already on production**
+
+This is a verification step, not a code change. Connect to staging (or check the latest production migration applied via the manual migration log noted in `CLAUDE.md`) and verify `IX_PhotoTags_TagId` exists on `public."PhotoTags"`. Expected query:
+
+```sql
+SELECT indexname FROM pg_indexes
+WHERE schemaname = 'public' AND tablename = 'PhotoTags';
+```
+
+Expected output includes `IX_PhotoTags_TagId`. If it is missing on staging or production (because `20260424122851_AddPhotobankTables` was never applied there), stop and flag this — it is a deployment gap, not a code gap.
+
+- [ ] **Step 2: Append a release-notes line**
+
+Look for `docs/release-notes.md` or the latest unreleased section under `docs/`. If a release-notes file exists, append:
+
+```markdown
+- perf(photobank): rewrite `GET /api/photobank/tags` query as `LEFT JOIN`/`GROUP BY` (was a per-tag correlated `SELECT COUNT(*)` subquery). No migration required — `IX_PhotoTags_TagId` was already created by the initial Photobank migration `20260424122851_AddPhotobankTables.cs`.
+```
+
+If no release-notes file is present, skip this step. Do not create one for a single line.
+
+- [ ] **Step 3: Stage and commit**
+
+```bash
+git add backend/src/Anela.Heblo.Application/Features/Photobank/PhotobankRepository.cs \
+        backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankRepositoryGetTagsTests.cs \
+        backend/test/Anela.Heblo.Tests/Features/Photobank/PhotobankRepositoryGetTagsSqlShapeTests.cs
+
+# Add release notes only if Step 2 modified them:
+# git add docs/release-notes.md
+
+git commit -m "$(cat <<'EOF'
+perf(photobank): replace correlated tag-count subquery with GROUP BY
+
+GetTagsWithCountsAsync was emitting a correlated SELECT COUNT(*) per tag
+row. Rewrite as GroupJoin + AsNoTracking so PostgreSQL produces a single
+LEFT JOIN/GROUP BY backed by the existing IX_PhotoTags_TagId index.
+
+Lock the SQL shape down with a Testcontainers.PostgreSql integration
+test (CapturingCommandInterceptor) and add a ChangeTracker assertion to
+the in-memory repository tests for FR-4.
+EOF
+)"
+```
+
+- [ ] **Step 4: Verify the commit landed cleanly**
+
+```bash
+git status
+git log -1 --stat
+```
+
+Expected: working tree clean, single commit with three (or four, if release-notes touched) files changed.
+
+---
+
+## Self-Review
+
+**Spec coverage:**
+
+- FR-1 (single SQL statement, ordering, response shape, zero-count tags): covered by Task 1's `EmitsExactlyOneSqlCommand` + `UsesLeftJoinAndGroupBy_NotCorrelatedSubquery`, plus existing in-memory tests in `PhotobankRepositoryGetTagsTests` (`ReturnsAllTagsIncludingOrphansWithZeroCount`, `OrdersByCountDescThenNameAsc`).
+- FR-2 (index): already satisfied in production by `20260424122851_AddPhotobankTables.cs:141-145`. No code change required. Task 5 includes a verification step against staging/production.
+- FR-3 (cache with explicit invalidation): already implemented at HEAD; covered by `PhotobankTagsCacheInvalidationTests.cs`. No new work.
+- FR-4 (projection, no tracking): rewrite includes `.AsNoTracking()` (Task 2); explicit `ChangeTracker.Entries<Tag>()` assertion added in Task 3.
+- FR-5 (logging on cache miss): already in `GetTagsHandler` at HEAD. No new work.
+- NFR-1 (perf budgets): can only be measured end-to-end on staging; the SQL shape lock-down is the proxy in code. Manual confirmation step belongs to the staging rollout, not this plan.
+- NFR-2 (security / parameterization): EF Core parameterizes by default; no change to that property.
+- NFR-3 (backward compat): response contract untouched. No OpenAPI regeneration needed.
+- NFR-4 (testability, 80% coverage): all four touched test files exist; new test adds coverage rather than reducing it.
+
+**Placeholder scan:** No `TBD`, no `implement later`, every code block contains real code, every command has expected output.
+
+**Type consistency:** `TagCount(int Id, string Name, int Count)` is used identically in old and new repository bodies and in tests. `IPhotobankRepository.GetTagsWithCountsAsync` signature unchanged.
+
+**Risk if Docker is unavailable in dev:** the new integration test in Task 1 will fail to start the container. Mitigation: the existing in-memory tests still exercise the projection's correctness (Task 2 Step 3, Task 4 Step 1). The SQL-shape regression test exists to catch future EF behavior changes; CI / staging will run it with Docker available.
