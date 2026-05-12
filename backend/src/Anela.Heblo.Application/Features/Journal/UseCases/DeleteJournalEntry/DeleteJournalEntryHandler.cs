@@ -48,7 +48,9 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.DeleteJournalEntry
             // Check if user owns the entry (for now, allow all authenticated users to delete)
             // In production, you might want to restrict this to the original author
 
-            await _journalRepository.DeleteSoftAsync(request.Id, currentUser.Id, currentUser.Name, cancellationToken);
+            entry.SoftDelete(currentUser.Id, currentUser.Name);
+            await _journalRepository.UpdateAsync(entry, cancellationToken);
+            await _journalRepository.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
                 "Journal entry {EntryId} deleted by user {UserId}",
