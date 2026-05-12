@@ -52,6 +52,13 @@ const ProductStockInfo: React.FC<ProductStockInfoProps> = ({ item }) => {
               {Math.round((item.stock?.reserve || 0) * 100) / 100}
             </span>
           </div>
+
+          <div className="flex justify-between col-start-2">
+            <span className="text-gray-600">Karanténa:</span>
+            <span className="font-medium">
+              {Math.round((item.stock?.quarantine || 0) * 100) / 100}
+            </span>
+          </div>
         </div>
       </div>
     </div>
