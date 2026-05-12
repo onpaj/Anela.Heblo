@@ -292,6 +292,7 @@ public class JournalRepositoryIntegrationTests : IDisposable
         result.Should().ContainKey("CREAM001");
         var indicator = result["CREAM001"];
         indicator.DirectEntries.Should().Be(1);
+        indicator.TotalEntries.Should().Be(indicator.DirectEntries);
         indicator.HasRecentEntries.Should().BeTrue();
         indicator.LastEntryDate.Should().Be(recent);
     }
