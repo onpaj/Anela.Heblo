@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
 using Anela.Heblo.Application.Features.Manufacture.Validators;
@@ -125,7 +126,7 @@ public class GetManufacturingStockAnalysisRequestValidatorTests
         // Arrange
         var request = new GetManufacturingStockAnalysisRequest
         {
-            TimePeriod = TimePeriodFilter.PreviousQuarter,
+            TimePeriod = TimePeriod.PreviousQuarter,
             CustomFromDate = null,
             CustomToDate = null
         };
@@ -144,7 +145,7 @@ public class GetManufacturingStockAnalysisRequestValidatorTests
         var toDate = new DateTime(2023, 12, 31);
         var request = new GetManufacturingStockAnalysisRequest
         {
-            TimePeriod = TimePeriodFilter.CustomPeriod,
+            TimePeriod = TimePeriod.CustomPeriod,
             CustomFromDate = fromDate,
             CustomToDate = toDate
         };
@@ -162,7 +163,7 @@ public class GetManufacturingStockAnalysisRequestValidatorTests
         // Arrange
         var request = new GetManufacturingStockAnalysisRequest
         {
-            TimePeriod = TimePeriodFilter.CustomPeriod,
+            TimePeriod = TimePeriod.CustomPeriod,
             CustomFromDate = null,
             CustomToDate = new DateTime(2023, 12, 31)
         };
@@ -179,7 +180,7 @@ public class GetManufacturingStockAnalysisRequestValidatorTests
         // Arrange
         var request = new GetManufacturingStockAnalysisRequest
         {
-            TimePeriod = TimePeriodFilter.CustomPeriod,
+            TimePeriod = TimePeriod.CustomPeriod,
             CustomFromDate = new DateTime(2023, 1, 1),
             CustomToDate = null
         };
@@ -196,7 +197,7 @@ public class GetManufacturingStockAnalysisRequestValidatorTests
         // Arrange
         var request = new GetManufacturingStockAnalysisRequest
         {
-            TimePeriod = TimePeriodFilter.CustomPeriod,
+            TimePeriod = TimePeriod.CustomPeriod,
             CustomFromDate = new DateTime(2023, 12, 31),
             CustomToDate = new DateTime(2023, 1, 1)
         };
@@ -214,7 +215,7 @@ public class GetManufacturingStockAnalysisRequestValidatorTests
         var sameDate = new DateTime(2023, 6, 15);
         var request = new GetManufacturingStockAnalysisRequest
         {
-            TimePeriod = TimePeriodFilter.CustomPeriod,
+            TimePeriod = TimePeriod.CustomPeriod,
             CustomFromDate = sameDate,
             CustomToDate = sameDate
         };

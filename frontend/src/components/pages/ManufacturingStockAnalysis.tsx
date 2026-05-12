@@ -157,8 +157,8 @@ const ManufacturingStockAnalysis: React.FC = () => {
       const range = calculateTimePeriodRange(TimePeriodFilter.Q9M);
       handleFilterChange({
         timePeriod,
-        customFromDate: range.fromDate || undefined,
-        customToDate: range.toDate || undefined,
+        customFromDate: range?.fromDate || undefined,
+        customToDate: range?.toDate || undefined,
       });
     } else {
       handleFilterChange({
@@ -888,14 +888,14 @@ const ManufacturingStockAnalysis: React.FC = () => {
     }
 
     const range = calculateTimePeriodRange(timePeriod);
-    if (!range.fromDate || !range.toDate) {
+    if (!range?.fromDate || !range?.toDate) {
       return getTimePeriodDisplayText(timePeriod);
     }
     if (range.ranges && range.ranges.length > 1) {
       return range.ranges
         .map(
           (r, i) =>
-            `Období ${String.fromCharCode(65 + i)}: ${r.fromDate.toLocaleDateString("cs-CZ")} – ${r.toDate.toLocaleDateString("cs-CZ")}`,
+            `Období ${String.fromCharCode(65 + i)}: ${r.from.toLocaleDateString("cs-CZ")} – ${r.to.toLocaleDateString("cs-CZ")}`,
         )
         .join("\n");
     }
