@@ -31,7 +31,7 @@ public class PhotobankAutoTagJobTests
     private void SetupEmptyTags() =>
         _repo
             .Setup(r => r.GetTagsWithCountsAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<(Tag, int)>());
+            .ReturnsAsync(new List<TagCount>());
 
     private void SetupNoPendingPhotos() =>
         _repo
@@ -97,9 +97,9 @@ public class PhotobankAutoTagJobTests
             new(Id: 2, FolderPath: "/photos", FileName: "b.jpg"),
         };
 
-        var tags = new List<(Tag, int)>
+        var tags = new List<TagCount>
         {
-            (new Tag { Id = 10, Name = "kosmetika" }, 5),
+            new(10, "kosmetika", 5),
         };
 
         _repo
@@ -138,11 +138,11 @@ public class PhotobankAutoTagJobTests
             new(20, "marketing", "photo.jpg"),
         };
 
-        var tags = new List<(Tag Tag, int Count)>
+        var tags = new List<TagCount>
         {
-            (new Tag { Id = 1, Name = "andy" }, 1),
-            (new Tag { Id = 2, Name = "ela" }, 1),
-            (new Tag { Id = 3, Name = "peťa" }, 1),
+            new(1, "andy", 1),
+            new(2, "ela", 1),
+            new(3, "peťa", 1),
         };
 
         _repo
@@ -200,10 +200,10 @@ public class PhotobankAutoTagJobTests
         // Arrange
         var kandidat = new PhotoAutoTagCandidate(Id: 42, FolderPath: "/photos", FileName: "product.jpg");
 
-        var tags = new List<(Tag, int)>
+        var tags = new List<TagCount>
         {
-            (new Tag { Id = 1, Name = "kosmetika" }, 3),
-            (new Tag { Id = 2, Name = "pleťová péče" }, 2),
+            new(1, "kosmetika", 3),
+            new(2, "pleťová péče", 2),
         };
 
         _repo
