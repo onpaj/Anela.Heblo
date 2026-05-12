@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.Photobank.UseCases.CreateTag;
 using Anela.Heblo.Domain.Features.Photobank;
 using FluentAssertions;
@@ -11,12 +12,13 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 public class CreateTagHandlerTests
 {
     private readonly Mock<IPhotobankRepository> _repositoryMock;
+    private readonly Mock<IPhotobankTagsCache> _cacheMock = new();
     private readonly CreateTagHandler _handler;
 
     public CreateTagHandlerTests()
     {
         _repositoryMock = new Mock<IPhotobankRepository>();
-        _handler = new CreateTagHandler(_repositoryMock.Object);
+        _handler = new CreateTagHandler(_repositoryMock.Object, _cacheMock.Object);
     }
 
     private static Tag BuildTag(int id, string name) => new() { Id = id, Name = name };

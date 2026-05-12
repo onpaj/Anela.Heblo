@@ -1,6 +1,6 @@
-using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Persistence.Repositories;
+using Anela.Heblo.Xcc.Persistance;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 

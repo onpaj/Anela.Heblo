@@ -172,4 +172,52 @@ public class WriteArticleStepTests
 
         context.SourceRefs.Single().Excerpt!.Length.Should().Be(200);
     }
+
+    [Fact]
+    public async Task ExecuteAsync_FencedJsonNoClosingFence_ValidBody_ParsesSuccessfully()
+    {
+        // Opening fence, no closing fence, but the JSON body is complete
+        SetupChatResponse("```json\n{\"article_title\":\"Fenced Title\",\"article_html\":\"<p>content</p>\",\"sources_used\":[]}");
+
+        var context = CreateContext("Fenced Topic");
+        await CreateStep().ExecuteAsync(context, default);
+
+        context.GeneratedTitle.Should().Be("Fenced Title");
+        context.GeneratedHtml.Should().Be("<p>content</p>");
+        context.SourceRefs.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_FencedTruncatedJson_RescuesPartialArticleHtml()
+    {
+        // Simulates max-token truncation: response starts with fence + JSON but
+        // is cut off in the middle of article_html, before any closing quote/brace/fence
+        const string truncated = "```json\n{\"article_title\":\"Bisabolol\",\"article_html\":\"<article><p>Partial";
+
+        SetupChatResponse(truncated);
+
+        var context = CreateContext("Bisabolol");
+        await CreateStep().ExecuteAsync(context, default);
+
+        context.GeneratedTitle.Should().Be("Bisabolol");
+        context.GeneratedHtml.Should().NotStartWith("```json");
+        context.GeneratedHtml.Should().Contain("<article><p>Partial");
+        // The rescue must extract just the HTML — the JSON field names must NOT appear in the output
+        context.GeneratedHtml.Should().NotContain("\"article_html\"");
+        context.SourceRefs.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_GarbageResponse_FallbackIsHtmlEncoded()
+    {
+        // Raw garbage that contains < and > must not be injected as HTML
+        SetupChatResponse("<script>alert('xss')</script>");
+
+        var context = CreateContext("Topic");
+        await CreateStep().ExecuteAsync(context, default);
+
+        context.GeneratedTitle.Should().Be("Topic");
+        context.GeneratedHtml.Should().NotContain("<script>");
+        context.GeneratedHtml.Should().Contain("&lt;script&gt;");
+    }
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, fireEvent } from "@testing-library/react";
 import PhotobankPage from "../PhotobankPage";
 import type { PhotoDto } from "../../../../../api/hooks/usePhotobank";
 
@@ -88,22 +88,23 @@ test("initial state: bulk action bar not shown when nothing selected", () => {
 // the useMsal mock per describe block. The role gate is exercised implicitly by unit tests
 // on PhotoGrid and PhotoList (canSelect=false hides checkboxes).
 
-test("checkboxes are rendered in grid view when canBulkTag=true", () => {
+test("photo tiles are rendered in grid view and no checkboxes shown", () => {
   // Arrange & Act
   render(<PhotobankPage />);
 
-  // Assert: checkboxes should be present for each photo
-  expect(screen.getByTestId("photo-select-checkbox-1")).toBeInTheDocument();
-  expect(screen.getByTestId("photo-select-checkbox-2")).toBeInTheDocument();
+  // Assert: tiles present, checkboxes gone (selection is frame-only now)
+  expect(screen.getByTestId("photo-tile-1")).toBeInTheDocument();
+  expect(screen.getByTestId("photo-tile-2")).toBeInTheDocument();
+  expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
 });
 
 test("selecting a photo shows the bulk action bar", () => {
   // Arrange
   render(<PhotobankPage />);
 
-  // Act — click photo-1 checkbox
+  // Act — Cmd+click photo-1 tile to toggle selection
   act(() => {
-    screen.getByTestId("photo-select-checkbox-1").click();
+    fireEvent.click(screen.getByTestId("photo-tile-1"), { metaKey: true });
   });
 
   // Assert
@@ -115,7 +116,7 @@ test("clicking clear in bulk action bar hides the bar", () => {
   // Arrange
   render(<PhotobankPage />);
   act(() => {
-    screen.getByTestId("photo-select-checkbox-1").click();
+    fireEvent.click(screen.getByTestId("photo-tile-1"), { metaKey: true });
   });
   expect(screen.getByTestId("bulk-action-bar")).toBeInTheDocument();
 

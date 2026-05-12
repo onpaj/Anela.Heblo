@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Photobank.Configuration;
 using Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
@@ -30,6 +31,11 @@ public static class PhotobankModule
         services.AddScoped<IPhotobankRepository, PhotobankRepository>();
         services.AddScoped<PhotobankAutoTagJob>();
         services.Configure<AutoTagOptions>(configuration.GetSection(AutoTagOptions.SectionName));
+
+        services.AddMemoryCache();
+        services.Configure<PhotobankTagsCacheOptions>(
+            configuration.GetSection(PhotobankTagsCacheOptions.SectionName));
+        services.AddScoped<IPhotobankTagsCache, PhotobankTagsCache>();
 
         var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
         var bypassJwtValidation = configuration.GetValue<bool>("BypassJwtValidation", false);
