@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -109,7 +110,7 @@ public class GetManufacturingStockAnalysisHandler : IRequestHandler<GetManufactu
         double salesMultiplier = 1.0)
     {
         // Calculate daily sales rate across all ranges using domain service
-        var dailySalesRate = _consumptionCalculator.CalculateDailySalesRate(item.SalesHistory, ranges);
+        var dailySalesRate = _consumptionCalculator.CalculateDailySalesRate(item.SalesHistory, ranges.Select(r => new DateRange(r.fromDate, r.toDate)).ToList());
         dailySalesRate *= salesMultiplier;
 
         // Calculate total sales across all ranges for display

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
 using Anela.Heblo.Application.Shared;
@@ -93,7 +94,7 @@ public class GetManufacturingStockAnalysisHandlerTests
             .ReturnsAsync(catalogItems);
 
         // Mock all the services needed for the actual analysis
-        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<(DateTime, DateTime)>>()))
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<DateRange>>()))
             .Returns(5.0);
 
         _consumptionCalculatorMock.Setup(x => x.CalculateStockDaysAvailable(It.IsAny<decimal>(), It.IsAny<double>()))
@@ -215,7 +216,7 @@ public class GetManufacturingStockAnalysisHandlerTests
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogItems);
 
-        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<(DateTime, DateTime)>>()))
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<DateRange>>()))
             .Returns(1.0);
         _consumptionCalculatorMock.Setup(x => x.CalculateStockDaysAvailable(It.IsAny<decimal>(), It.IsAny<double>()))
             .Returns(20.0);
@@ -312,7 +313,7 @@ public class GetManufacturingStockAnalysisHandlerTests
             .Callback<decimal, double>((stock, rate) => capturedStockAmount = stock)
             .Returns(20.0);
 
-        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<(DateTime, DateTime)>>()))
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<DateRange>>()))
             .Returns(5.0);
 
         _severityCalculatorMock.Setup(x => x.CalculateOverstockPercentage(It.IsAny<double>(), It.IsAny<int>()))
@@ -370,7 +371,7 @@ public class GetManufacturingStockAnalysisHandlerTests
 
         double capturedDailyRate = 0;
 
-        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<(DateTime, DateTime)>>()))
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<DateRange>>()))
             .Returns(5.0);
 
         _consumptionCalculatorMock.Setup(x => x.CalculateStockDaysAvailable(It.IsAny<decimal>(), It.IsAny<double>()))
@@ -427,7 +428,7 @@ public class GetManufacturingStockAnalysisHandlerTests
 
         double capturedDailyRate = 0;
 
-        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<(DateTime, DateTime)>>()))
+        _consumptionCalculatorMock.Setup(x => x.CalculateDailySalesRate(It.IsAny<IEnumerable<CatalogSaleRecord>>(), It.IsAny<IReadOnlyList<DateRange>>()))
             .Returns(5.0);
 
         _consumptionCalculatorMock.Setup(x => x.CalculateStockDaysAvailable(It.IsAny<decimal>(), It.IsAny<double>()))
