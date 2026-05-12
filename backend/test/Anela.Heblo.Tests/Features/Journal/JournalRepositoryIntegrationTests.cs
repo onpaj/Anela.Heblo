@@ -194,6 +194,108 @@ public class JournalRepositoryIntegrationTests : IDisposable
         result3.First().Title.Should().Be("CREAM family note");
     }
 
+    [Fact]
+    public async Task GetJournalIndicatorsAsync_WithMultipleDirectEntries_ReturnsCorrectCount()
+    {
+        // Arrange
+        var latest = DateTime.Today;
+        var middle = DateTime.Today.AddDays(-1);
+        var earliest = DateTime.Today.AddDays(-2);
+
+        var e1 = new JournalEntry
+        {
+            Title = "TON002 entry 1",
+            Content = "Content",
+            EntryDate = latest,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user"
+        };
+        e1.AssociateWithProduct("TON002");
+
+        var e2 = new JournalEntry
+        {
+            Title = "TON002 entry 2",
+            Content = "Content",
+            EntryDate = middle,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user"
+        };
+        e2.AssociateWithProduct("TON002");
+
+        var e3 = new JournalEntry
+        {
+            Title = "TON002 entry 3",
+            Content = "Content",
+            EntryDate = earliest,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user"
+        };
+        e3.AssociateWithProduct("TON002");
+
+        await _context.Set<JournalEntry>().AddRangeAsync(e1, e2, e3);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetJournalIndicatorsAsync(new[] { "TON002" });
+
+        // Assert
+        result.Should().ContainKey("TON002");
+        var indicator = result["TON002"];
+        indicator.DirectEntries.Should().Be(3);
+        indicator.TotalEntries.Should().Be(indicator.DirectEntries);
+        indicator.LastEntryDate.Should().Be(latest);
+        indicator.HasRecentEntries.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetJournalIndicatorsAsync_WithNoEntries_ReturnsZeroIndicator()
+    {
+        // Arrange — intentionally no entries inserted
+
+        // Act
+        var result = await _repository.GetJournalIndicatorsAsync(new[] { "UNUSED999" });
+
+        // Assert
+        result.Should().ContainKey("UNUSED999");
+        var indicator = result["UNUSED999"];
+        indicator.DirectEntries.Should().Be(0);
+        indicator.TotalEntries.Should().Be(0);
+        indicator.LastEntryDate.Should().BeNull();
+        indicator.HasRecentEntries.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetJournalIndicatorsAsync_WithRecentEntry_FlagsHasRecentEntries()
+    {
+        // Arrange
+        var recent = DateTime.Today.AddDays(-5);
+        var entry = new JournalEntry
+        {
+            Title = "Recent CREAM001 entry",
+            Content = "Content",
+            EntryDate = recent,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "test-user"
+        };
+        entry.AssociateWithProduct("CREAM001");
+        await _context.Set<JournalEntry>().AddAsync(entry);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _repository.GetJournalIndicatorsAsync(new[] { "CREAM001" });
+
+        // Assert
+        result.Should().ContainKey("CREAM001");
+        var indicator = result["CREAM001"];
+        indicator.DirectEntries.Should().Be(1);
+        indicator.HasRecentEntries.Should().BeTrue();
+        indicator.LastEntryDate.Should().Be(recent);
+    }
+
     private JournalEntry CreateEntryWithFamily(string prefix, string title)
     {
         var entry = new JournalEntry
