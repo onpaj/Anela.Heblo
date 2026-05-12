@@ -83,7 +83,7 @@ public class PhotobankRepositoryFilterTests : IAsyncLifetime
 
             CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
-            CREATE INDEX IF NOT EXISTS "IX_Photos_ModifiedAt" ON public."Photos" ("ModifiedAt" DESC, "Id" DESC);
+            CREATE INDEX IF NOT EXISTS "IX_Photos_ModifiedAt_Id" ON public."Photos" ("ModifiedAt" DESC, "Id" DESC);
 
             CREATE INDEX IF NOT EXISTS "IX_Photos_PathTrgm" ON public."Photos" USING GIN ((LOWER("FolderPath" || '/' || "FileName")) gin_trgm_ops);
             """;
@@ -333,7 +333,7 @@ public class PhotobankRepositoryRegexFilterTests : IAsyncLifetime
 
             CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
-            CREATE INDEX IF NOT EXISTS "IX_Photos_ModifiedAt" ON public."Photos" ("ModifiedAt" DESC, "Id" DESC);
+            CREATE INDEX IF NOT EXISTS "IX_Photos_ModifiedAt_Id" ON public."Photos" ("ModifiedAt" DESC, "Id" DESC);
 
             CREATE INDEX IF NOT EXISTS "IX_Photos_PathTrgm" ON public."Photos" USING GIN ((LOWER("FolderPath" || '/' || "FileName")) gin_trgm_ops);
             """;
@@ -447,7 +447,7 @@ public class PhotobankRepositoryPathRegexFilterTests : IAsyncLifetime
 
             CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
-            CREATE INDEX IF NOT EXISTS "IX_Photos_ModifiedAt" ON public."Photos" ("ModifiedAt" DESC, "Id" DESC);
+            CREATE INDEX IF NOT EXISTS "IX_Photos_ModifiedAt_Id" ON public."Photos" ("ModifiedAt" DESC, "Id" DESC);
 
             CREATE INDEX IF NOT EXISTS "IX_Photos_PathTrgm" ON public."Photos" USING GIN ((LOWER("FolderPath" || '/' || "FileName")) gin_trgm_ops);
             """;
