@@ -6,6 +6,7 @@ internal static class ManufactureTemplateCloner
 {
     public static ManufactureTemplate Clone(ManufactureTemplate source)
     {
+        ArgumentNullException.ThrowIfNull(source);
         return new ManufactureTemplate
         {
             TemplateId = source.TemplateId,
