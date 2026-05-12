@@ -80,6 +80,12 @@ public class PhotobankRepositoryFilterTests : IAsyncLifetime
                 "CreatedAt" TIMESTAMP NOT NULL,
                 PRIMARY KEY ("PhotoId", "TagId")
             );
+
+            CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+            CREATE INDEX IF NOT EXISTS "IX_Photos_ModifiedAt" ON public."Photos" ("ModifiedAt" DESC, "Id" DESC);
+
+            CREATE INDEX IF NOT EXISTS "IX_Photos_PathTrgm" ON public."Photos" USING GIN ((LOWER("FolderPath" || '/' || "FileName")) gin_trgm_ops);
             """;
         await cmd.ExecuteNonQueryAsync();
     }
@@ -244,6 +250,12 @@ public class PhotobankRepositoryRegexFilterTests : IAsyncLifetime
                 "CreatedAt" TIMESTAMP NOT NULL,
                 PRIMARY KEY ("PhotoId", "TagId")
             );
+
+            CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+            CREATE INDEX IF NOT EXISTS "IX_Photos_ModifiedAt" ON public."Photos" ("ModifiedAt" DESC, "Id" DESC);
+
+            CREATE INDEX IF NOT EXISTS "IX_Photos_PathTrgm" ON public."Photos" USING GIN ((LOWER("FolderPath" || '/' || "FileName")) gin_trgm_ops);
             """;
         await cmd.ExecuteNonQueryAsync();
     }
@@ -352,6 +364,12 @@ public class PhotobankRepositoryPathRegexFilterTests : IAsyncLifetime
                 "CreatedAt" TIMESTAMP NOT NULL,
                 PRIMARY KEY ("PhotoId", "TagId")
             );
+
+            CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+            CREATE INDEX IF NOT EXISTS "IX_Photos_ModifiedAt" ON public."Photos" ("ModifiedAt" DESC, "Id" DESC);
+
+            CREATE INDEX IF NOT EXISTS "IX_Photos_PathTrgm" ON public."Photos" USING GIN ((LOWER("FolderPath" || '/' || "FileName")) gin_trgm_ops);
             """;
         await cmd.ExecuteNonQueryAsync();
     }
