@@ -15,6 +15,7 @@ public class TimePeriodResolver : ITimePeriodResolver
             TimePeriod.Q9M => ResolveForQ9M(now),
             TimePeriod.CustomPeriod when customFrom.HasValue && customTo.HasValue =>
                 [new DateRange(customFrom.Value, customTo.Value)],
+            TimePeriod.CustomPeriod => [],
             _ => ResolveForPreviousQuarter(now),
         };
     }
