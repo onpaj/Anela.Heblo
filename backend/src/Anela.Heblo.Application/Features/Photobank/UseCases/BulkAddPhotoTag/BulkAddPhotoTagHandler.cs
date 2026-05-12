@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Photobank;
 using MediatR;
@@ -14,10 +15,12 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag
         private const int BulkTagLimit = 5_000;
 
         private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankTagsCache _cache;
 
-        public BulkAddPhotoTagHandler(IPhotobankRepository repository)
+        public BulkAddPhotoTagHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
         {
             _repository = repository;
+            _cache = cache;
         }
 
         public async Task<BulkAddPhotoTagResponse> Handle(BulkAddPhotoTagRequest request, CancellationToken cancellationToken)
@@ -56,7 +59,10 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag
             }
 
             if (photoIds.Count > 0)
+            {
                 await _repository.SaveChangesAsync(cancellationToken);
+                _cache.Invalidate();
+            }
 
             return new BulkAddPhotoTagResponse
             {
