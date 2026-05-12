@@ -1,4 +1,3 @@
-using Anela.Heblo.Application.Features.Journal.Contracts;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Catalog.Journal;
