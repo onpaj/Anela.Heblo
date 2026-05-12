@@ -1,6 +1,8 @@
 using System.Net;
 using Anela.Heblo.Adapters.Flexi.Manufacture.Internal;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Xcc.Telemetry;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -11,37 +13,34 @@ namespace Anela.Heblo.Adapters.Flexi.Tests.Manufacture.Internal;
 
 public class FlexiManufactureTemplateServiceTests
 {
-    private readonly Mock<IBoMClient> _mockBomClient;
-    private readonly Mock<IErpStockClient> _mockStockClient;
-    private readonly Mock<ILogger<FlexiManufactureTemplateService>> _mockLogger;
+    private readonly Mock<IBoMClient> _mockBomClient = new();
+    private readonly Mock<IErpStockClient> _mockStockClient = new();
+    private readonly Mock<ILogger<FlexiManufactureTemplateService>> _mockLogger = new();
+    private readonly Mock<ITelemetryService> _mockTelemetry = new();
+    private readonly PassthroughTemplateCache _passthroughCache = new();
     private readonly FlexiManufactureTemplateService _service;
 
     public FlexiManufactureTemplateServiceTests()
     {
-        _mockBomClient = new Mock<IBoMClient>();
-        _mockStockClient = new Mock<IErpStockClient>();
-        _mockLogger = new Mock<ILogger<FlexiManufactureTemplateService>>();
-
         _service = new FlexiManufactureTemplateService(
             _mockBomClient.Object,
             _mockStockClient.Object,
             TimeProvider.System,
+            _passthroughCache,
+            _mockTelemetry.Object,
             _mockLogger.Object);
     }
 
     [Fact]
     public async Task GetManufactureTemplateAsync_When501Returned_LogsErrorAndRethrows()
     {
-        // Arrange
         var exception = new HttpRequestException("NotImplemented", null, HttpStatusCode.NotImplemented);
         _mockBomClient
             .Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(exception);
 
-        // Act
         var act = async () => await _service.GetManufactureTemplateAsync("PROD-001", CancellationToken.None);
 
-        // Assert
         await act.Should().ThrowAsync<HttpRequestException>();
         _mockLogger.Verify(
             x => x.Log(
@@ -51,5 +50,23 @@ public class FlexiManufactureTemplateServiceTests
                 exception,
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    /// <summary>
+    /// Test cache that always invokes the fetcher (acts as pass-through so we test
+    /// the inner fetch logic directly).
+    /// </summary>
+    private sealed class PassthroughTemplateCache : IManufactureTemplateCache
+    {
+        public int Calls { get; private set; }
+
+        public async Task<ManufactureTemplate?> GetOrFetchAsync(
+            string productCode,
+            Func<CancellationToken, Task<ManufactureTemplate?>> fetch,
+            CancellationToken cancellationToken)
+        {
+            Calls++;
+            return await fetch(cancellationToken);
+        }
     }
 }

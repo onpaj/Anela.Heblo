@@ -2,6 +2,7 @@ using Anela.Heblo.Adapters.Flexi.Stock;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
 using Rem.FlexiBeeSDK.Model;
@@ -14,21 +15,32 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
     private readonly IBoMClient _bomClient;
     private readonly IErpStockClient _stockClient;
     private readonly TimeProvider _timeProvider;
+    private readonly IManufactureTemplateCache _cache;
+    private readonly ITelemetryService _telemetry;
     private readonly ILogger<FlexiManufactureTemplateService> _logger;
 
     public FlexiManufactureTemplateService(
         IBoMClient bomClient,
         IErpStockClient stockClient,
         TimeProvider timeProvider,
+        IManufactureTemplateCache cache,
+        ITelemetryService telemetry,
         ILogger<FlexiManufactureTemplateService> logger)
     {
         _bomClient = bomClient ?? throw new ArgumentNullException(nameof(bomClient));
         _stockClient = stockClient ?? throw new ArgumentNullException(nameof(stockClient));
         _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
+        _telemetry = telemetry ?? throw new ArgumentNullException(nameof(telemetry));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<ManufactureTemplate?> GetManufactureTemplateAsync(string productCode, CancellationToken cancellationToken = default)
+    public Task<ManufactureTemplate?> GetManufactureTemplateAsync(string productCode, CancellationToken cancellationToken = default)
+    {
+        return _cache.GetOrFetchAsync(productCode, ct => FetchAsync(productCode, ct), cancellationToken);
+    }
+
+    private async Task<ManufactureTemplate?> FetchAsync(string productCode, CancellationToken cancellationToken)
     {
         IEnumerable<BoMItemFlexiDto> bom;
         try
@@ -50,11 +62,10 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
 
         var ingredients = bom.Where(w => w.Level != 1);
 
-        // Get stock data to determine HasLots for each ingredient
+        // Get stock data to determine HasLots for each ingredient (sequential — will be parallelised in Task 10)
         var stockDate = _timeProvider.GetLocalNow().DateTime;
         var allStockData = new List<ErpStock>();
 
-        // Load stock from all warehouses to get HasLots information
         var warehouseIds = new[]
         {
             FlexiStockClient.MaterialWarehouseId,
@@ -88,7 +99,7 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
                     Amount = s.Amount,
                     ProductType = ResolveProductType(s),
                     HasLots = stockItem?.HasLots ?? false,
-                    HasExpiration = false // This information is not available from BoM, set to false as default
+                    HasExpiration = false
                 };
             }).ToList(),
         };
@@ -106,25 +117,18 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
         try
         {
             var productTypeId = boMItemFlexiDto.Ingredient?.FirstOrDefault()?.ProductTypeId;
-
-            // Return UNDEFINED if no ProductTypeId is available
             if (!productTypeId.HasValue)
             {
                 return ProductType.UNDEFINED;
             }
-
-            // Check if the value is a valid ProductType enum value
             if (Enum.IsDefined(typeof(ProductType), productTypeId.Value))
             {
                 return (ProductType)productTypeId.Value;
             }
-
-            // Return UNDEFINED for unknown enum values
             return ProductType.UNDEFINED;
         }
         catch
         {
-            // Return UNDEFINED for any exceptions
             return ProductType.UNDEFINED;
         }
     }
