@@ -1,4 +1,6 @@
+using System;
 using System.Text.Json.Serialization;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Shared.Json;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Photobank;
@@ -14,6 +16,7 @@ public class PhotobankAutoTagJob : IRecurringJob
     private readonly IChatClient _chat;
     private readonly AutoTagOptions _options;
     private readonly ILogger<PhotobankAutoTagJob> _logger;
+    private readonly IPhotobankTagsCache _cache;
 
     public RecurringJobMetadata Metadata { get; } = new()
     {
@@ -28,12 +31,14 @@ public class PhotobankAutoTagJob : IRecurringJob
         IPhotobankRepository repo,
         IChatClient chat,
         IOptions<AutoTagOptions> options,
-        ILogger<PhotobankAutoTagJob> logger)
+        ILogger<PhotobankAutoTagJob> logger,
+        IPhotobankTagsCache cache)
     {
         _repo = repo;
         _chat = chat;
         _options = options.Value;
         _logger = logger;
+        _cache = cache;
     }
 
     public async Task ExecuteAsync(CancellationToken cancellationToken = default)
@@ -119,6 +124,7 @@ public class PhotobankAutoTagJob : IRecurringJob
 
         await _repo.SaveChangesAsync(ct);
         await _repo.StampAutoTaggedAtAsync(batchIds, DateTime.UtcNow, ct);
+        _cache.Invalidate();
     }
 
     private async Task ApplyTagsForPhotoAsync(

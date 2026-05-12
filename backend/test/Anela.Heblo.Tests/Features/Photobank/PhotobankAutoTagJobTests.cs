@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Domain.Features.Photobank;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
@@ -17,6 +18,7 @@ public class PhotobankAutoTagJobTests
 {
     private readonly Mock<IPhotobankRepository> _repo = new();
     private readonly Mock<IChatClient> _chat = new();
+    private readonly Mock<IPhotobankTagsCache> _cache = new();
 
     private PhotobankAutoTagJob CreateJob(AutoTagOptions? options = null)
     {
@@ -25,7 +27,8 @@ public class PhotobankAutoTagJobTests
             _repo.Object,
             _chat.Object,
             Options.Create(opts),
-            NullLogger<PhotobankAutoTagJob>.Instance);
+            NullLogger<PhotobankAutoTagJob>.Instance,
+            _cache.Object);
     }
 
     private void SetupEmptyTags() =>
@@ -183,7 +186,8 @@ public class PhotobankAutoTagJobTests
             _repo.Object,
             _chat.Object,
             Options.Create(new AutoTagOptions { Enabled = true, BatchSize = 50, MaxPhotosPerRun = 100, Model = "test-model", MaxTagsPerPhoto = 2 }),
-            NullLogger<PhotobankAutoTagJob>.Instance);
+            NullLogger<PhotobankAutoTagJob>.Instance,
+            _cache.Object);
 
         // Act
         await jobWithCap.ExecuteAsync(CancellationToken.None);
