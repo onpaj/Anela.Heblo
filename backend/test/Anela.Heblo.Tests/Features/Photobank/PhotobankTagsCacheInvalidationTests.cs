@@ -120,6 +120,18 @@ public class PhotobankTagsCacheInvalidationTests
     }
 
     [Fact]
+    public async Task RemovePhotoTag_DoesNotInvalidate_WhenPhotoNotFound()
+    {
+        _repo.Setup(r => r.GetPhotoByIdAsync(999, It.IsAny<CancellationToken>()))
+             .ReturnsAsync((Photo?)null);
+
+        var handler = new RemovePhotoTagHandler(_repo.Object, _cache.Object);
+        await handler.Handle(new RemovePhotoTagRequest { PhotoId = 999, TagId = 5 }, CancellationToken.None);
+
+        _cache.Verify(c => c.Invalidate(), Times.Never);
+    }
+
+    [Fact]
     public async Task BulkAddPhotoTag_InvalidatesCache_WhenPhotosTagged()
     {
         _repo.Setup(r => r.CountFilteredPhotosAsync(It.IsAny<List<string>?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
@@ -167,6 +179,24 @@ public class PhotobankTagsCacheInvalidationTests
             CancellationToken.None);
 
         _cache.Verify(c => c.Invalidate(), Times.Once);
+    }
+
+    [Fact]
+    public async Task BulkAddPhotoTagByIds_DoesNotInvalidate_WhenNoPhotosToTag()
+    {
+        _repo.Setup(r => r.GetOrCreateTagAsync("summer", It.IsAny<CancellationToken>()))
+             .ReturnsAsync(new Tag { Id = 5, Name = "summer" });
+        _repo.Setup(r => r.GetExistingPhotoIdsMissingTagAsync(It.IsAny<IReadOnlyList<int>>(), 5, It.IsAny<CancellationToken>()))
+             .ReturnsAsync(new List<int>());
+        _repo.Setup(r => r.CountExistingPhotosAsync(It.IsAny<IReadOnlyList<int>>(), It.IsAny<CancellationToken>()))
+             .ReturnsAsync(2);
+
+        var handler = new BulkAddPhotoTagByIdsHandler(_repo.Object, _cache.Object);
+        await handler.Handle(
+            new BulkAddPhotoTagByIdsRequest { TagName = "summer", PhotoIds = new List<int> { 1, 2 } },
+            CancellationToken.None);
+
+        _cache.Verify(c => c.Invalidate(), Times.Never);
     }
 
     [Fact]
