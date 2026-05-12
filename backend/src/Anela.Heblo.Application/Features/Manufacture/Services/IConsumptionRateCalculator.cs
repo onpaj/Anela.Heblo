@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
@@ -20,7 +21,7 @@ public interface IConsumptionRateCalculator
     /// <param name="salesHistory">Collection of sales records to analyze</param>
     /// <param name="ranges">List of date ranges to include in the analysis</param>
     /// <returns>Daily sales rate (pieces per day)</returns>
-    double CalculateDailySalesRate(IEnumerable<CatalogSaleRecord> salesHistory, IReadOnlyList<(DateTime fromDate, DateTime toDate)> ranges);
+    double CalculateDailySalesRate(IEnumerable<CatalogSaleRecord> salesHistory, IReadOnlyList<DateRange> ranges);
 
     /// <summary>
     /// Calculates consumption rate from consumed materials history.

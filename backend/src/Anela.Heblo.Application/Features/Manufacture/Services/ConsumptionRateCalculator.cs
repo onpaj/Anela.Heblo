@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Microsoft.Extensions.Logging;
@@ -36,7 +37,7 @@ public class ConsumptionRateCalculator : IConsumptionRateCalculator
         return dailyRate;
     }
 
-    public double CalculateDailySalesRate(IEnumerable<CatalogSaleRecord> salesHistory, IReadOnlyList<(DateTime fromDate, DateTime toDate)> ranges)
+    public double CalculateDailySalesRate(IEnumerable<CatalogSaleRecord> salesHistory, IReadOnlyList<DateRange> ranges)
     {
         if (ranges == null || ranges.Count == 0)
         {
@@ -48,10 +49,10 @@ public class ConsumptionRateCalculator : IConsumptionRateCalculator
         double totalSales = 0;
         int totalDays = 0;
 
-        foreach (var (from, to) in ranges)
+        foreach (var range in ranges)
         {
-            var lo = from <= to ? from : to;
-            var hi = from <= to ? to : from;
+            var lo = range.From <= range.To ? range.From : range.To;
+            var hi = range.From <= range.To ? range.To : range.From;
             var days = (hi - lo).Days;
             if (days <= 0) days = 1;
             totalDays += days;

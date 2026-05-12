@@ -1,11 +1,12 @@
 using System.ComponentModel.DataAnnotations;
+using Anela.Heblo.Application.Common.TimePeriods;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
 
 public class GetManufacturingStockAnalysisRequest : IRequest<GetManufacturingStockAnalysisResponse>
 {
-    public TimePeriodFilter TimePeriod { get; set; } = TimePeriodFilter.Q9M;
+    public TimePeriod TimePeriod { get; set; } = TimePeriod.Q9M;
 
     public DateTime? CustomFromDate { get; set; }
 
@@ -49,16 +50,6 @@ public class GetManufacturingStockAnalysisRequest : IRequest<GetManufacturingSto
     public double SalesMultiplier { get; set; } = 1.0;
 
     public bool IsExport { get; set; } = false;
-}
-
-public enum TimePeriodFilter
-{
-    PreviousQuarter,
-    FutureQuarter,
-    Y2Y,
-    PreviousSeason,
-    Q9M,
-    CustomPeriod
 }
 
 public enum ManufacturingStockSortBy

@@ -270,68 +270,65 @@ describe("calculateTimePeriodRange", () => {
   });
 
   it("calculates previous quarter correctly", () => {
-    const { fromDate, toDate } = calculateTimePeriodRange(
-      TimePeriodFilter.PreviousQuarter,
-    );
+    const result = calculateTimePeriodRange(TimePeriodFilter.PreviousQuarter);
 
-    expect(fromDate.getMonth()).toBe(0); // January (0-indexed)
-    expect(fromDate.getFullYear()).toBe(2023);
-    expect(toDate.getMonth()).toBe(2); // March (0-indexed)
-    expect(toDate.getFullYear()).toBe(2023);
+    expect(result).not.toBeNull();
+    expect(result!.fromDate.getMonth()).toBe(0); // January (0-indexed)
+    expect(result!.fromDate.getFullYear()).toBe(2023);
+    expect(result!.toDate.getMonth()).toBe(2); // March (0-indexed)
+    expect(result!.toDate.getFullYear()).toBe(2023);
   });
 
   it("calculates future quarter correctly", () => {
-    const { fromDate, toDate } = calculateTimePeriodRange(
-      TimePeriodFilter.FutureQuarter,
-    );
+    const result = calculateTimePeriodRange(TimePeriodFilter.FutureQuarter);
 
-    expect(fromDate.getMonth()).toBe(3); // April (0-indexed)
-    expect(fromDate.getFullYear()).toBe(2022); // Previous year
-    expect(toDate.getMonth()).toBe(5); // June (0-indexed)
-    expect(toDate.getFullYear()).toBe(2022); // Previous year
+    expect(result).not.toBeNull();
+    expect(result!.fromDate.getMonth()).toBe(3); // April (0-indexed)
+    expect(result!.fromDate.getFullYear()).toBe(2022); // Previous year
+    expect(result!.toDate.getMonth()).toBe(5); // June (0-indexed)
+    expect(result!.toDate.getFullYear()).toBe(2022); // Previous year
   });
 
   it("calculates previous season correctly", () => {
-    const { fromDate, toDate } = calculateTimePeriodRange(
-      TimePeriodFilter.PreviousSeason,
-    );
+    const result = calculateTimePeriodRange(TimePeriodFilter.PreviousSeason);
 
-    expect(fromDate.getMonth()).toBe(9); // October (0-indexed)
-    expect(fromDate.getFullYear()).toBe(2022); // Previous year for season
-    expect(toDate.getMonth()).toBe(0); // January (0-indexed)
-    expect(toDate.getFullYear()).toBe(2023); // Next year from season start
+    expect(result).not.toBeNull();
+    expect(result!.fromDate.getMonth()).toBe(9); // October (0-indexed)
+    expect(result!.fromDate.getFullYear()).toBe(2022); // Previous year for season
+    expect(result!.toDate.getMonth()).toBe(0); // January (0-indexed)
+    expect(result!.toDate.getFullYear()).toBe(2023); // Next year from season start
   });
 
   it("returns null for custom period", () => {
     const result = calculateTimePeriodRange(TimePeriodFilter.CustomPeriod);
 
-    expect(result.fromDate).toBeNull();
-    expect(result.toDate).toBeNull();
+    expect(result).toBeNull();
   });
 
   it("calculates Q9M with two ranges", () => {
     const result = calculateTimePeriodRange(TimePeriodFilter.Q9M);
 
-    expect(result.ranges).toHaveLength(2);
+    expect(result).not.toBeNull();
+    expect(result!.ranges).toHaveLength(2);
 
     // Range A: last 6 months → now
-    const rangeA = result.ranges![0];
-    expect(rangeA.fromDate.getFullYear()).toBe(2022);
-    expect(rangeA.fromDate.getMonth()).toBe(9); // October (0-indexed)
-    expect(rangeA.fromDate.getDate()).toBe(15);
-    expect(rangeA.toDate).toEqual(now);
+    const rangeA = result!.ranges![0];
+    expect(rangeA.from.getFullYear()).toBe(2022);
+    expect(rangeA.from.getMonth()).toBe(9); // October (0-indexed)
+    expect(rangeA.from.getDate()).toBe(15);
+    expect(rangeA.to).toEqual(now);
 
     // Range B: 1 year ago → 1 year ago + 3 months
-    const rangeB = result.ranges![1];
-    expect(rangeB.fromDate.getFullYear()).toBe(2022);
-    expect(rangeB.fromDate.getMonth()).toBe(3); // April (0-indexed)
-    expect(rangeB.fromDate.getDate()).toBe(15);
-    expect(rangeB.toDate.getFullYear()).toBe(2022);
-    expect(rangeB.toDate.getMonth()).toBe(6); // July (0-indexed)
-    expect(rangeB.toDate.getDate()).toBe(15);
+    const rangeB = result!.ranges![1];
+    expect(rangeB.from.getFullYear()).toBe(2022);
+    expect(rangeB.from.getMonth()).toBe(3); // April (0-indexed)
+    expect(rangeB.from.getDate()).toBe(15);
+    expect(rangeB.to.getFullYear()).toBe(2022);
+    expect(rangeB.to.getMonth()).toBe(6); // July (0-indexed)
+    expect(rangeB.to.getDate()).toBe(15);
 
-    // Outer bounds
-    expect(result.fromDate).toEqual(rangeB.fromDate); // min of ranges
-    expect(result.toDate).toEqual(now); // max of ranges
+    // Outer bounds via primary (range A: sixMonthsAgo → now)
+    expect(result!.fromDate).toEqual(rangeA.from);
+    expect(result!.toDate).toEqual(now);
   });
 });
