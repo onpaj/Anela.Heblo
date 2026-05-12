@@ -1,65 +1,40 @@
-## Summary
+## Telemetry
 
-Add a new dashboard tile that shows the result of the previous day's DQT (Data Quality Test) run — specifically the failure count and mismatch summary. This gives a quick at-a-glance view every morning of whether yesterday's invoice data quality check found any problems.
+`GET Invoices/GetRunningInvoiceImportJobs` appeared in slow-request telemetry: **2 hits in the last 24h** at an average duration of **3 734 ms** (threshold: 3 000 ms). This endpoint is not tracked before, making it a new finding.
 
-The existing **Kvalita dat** tile (`dataqualitystatus`) shows the *most recent* DQT run regardless of when it ran. The new tile is scoped to *yesterday's date* so it always reflects a fixed, predictable period.
+## Root Cause
 
-## Motivation
+The handler delegates to `HangfireBackgroundWorker` (`backend/src/Anela.Heblo.API/Infrastructure/Hangfire/HangfireBackgroundWorker.cs`).
 
-Users open the dashboard each morning. They need to know immediately whether yesterday's automated DQT run detected mismatches or failed to complete, without navigating to `/automation/data-quality` and searching for the correct run.
+### 1. N+1 database connections in `GetRunningJobs()`
 
-## Scope
+For every processing job a **new `IStorageConnection` is opened inside the loop**, and `GetJobDisplayName` opens *another* connection per job:
 
-### Backend — new tile class
+```csharp
+foreach (var job in processingJobs)
+{
+    using var connection = JobStorage.Current.GetConnection(); // new connection per job
+    var jobDetails = connection.GetJobData(job.Key);
+    ...
+    // GetJobDisplayName also opens a connection:
+    using var connection2 = JobStorage.Current.GetConnection();
+    var customDisplayName = connection2.GetJobParameter(jobId, "DisplayName");
+}
+```
 
-- New file: `backend/src/.../Features/DataQuality/DashboardTiles/DqtYesterdayStatusTile.cs`
-- Implements `ITile` (same pattern as `DataQualityStatusTile`)
-- `GetTileId()` → `"dqtyesterdaystatus"`
-- `Title` → `"DQT včera"` (or similar)
-- Data loading: fetch DQT runs where the covered date range includes yesterday
-  - Use `IDqtRunRepository.GetPaginatedAsync` filtered by date, or add a new `GetByDateAsync(DateOnly date)` method to `IDqtRunRepository` if date filtering is not already supported
-  - If multiple runs exist for yesterday, surface the most recently completed one
-- Returned payload shape (mirrors existing tile):
-  ```json
-  {
-    "status": "success" | "warning" | "error" | "no_data",
-    "data": {
-      "runId": "...",
-      "runStatus": "Completed" | "Failed" | "Running",
-      "dateFrom": "YYYY-MM-DD",
-      "dateTo": "YYYY-MM-DD",
-      "totalChecked": 123,
-      "totalMismatches": 4
-    },
-    "drillDown": { "href": "/automation/data-quality", "enabled": true }
-  }
-  ```
-- Register in `DashboardModule.AddDashboardModule()` via `services.RegisterTile<DqtYesterdayStatusTile>()`
+With N processing jobs this creates 2N round-trips to the Hangfire storage (PostgreSQL), each with connection overhead.
 
-### Frontend — new tile component
+### 2. Unbounded page size in `GetPendingJobs()`
 
-- New file: `frontend/src/components/dashboard/tiles/DqtYesterdayStatusTile.tsx`
-- Mirrors `DataQualityTile.tsx` but with visual emphasis on "yesterday" in the subtitle
-- Shows: icon (AlertTriangle / ShieldCheck), mismatch count, date label
-- Clickable → navigates to `/automation/data-quality`
-- Register in `TileContent.tsx` under case `'dqtyesterdaystatus'`
+```csharp
+var enqueuedJobs = monitoring.EnqueuedJobs("default", 0, int.MaxValue);
+var scheduledJobs = monitoring.ScheduledJobs(0, int.MaxValue);
+```
 
-### No new API endpoints required
+Using `int.MaxValue` as the page size fetches **every queued and scheduled job** in a single query. If the Hangfire queue accumulates a backlog this will become progressively slower.
 
-The tile data is loaded through the existing `GET /api/dashboard/data` pipeline.
+## Suggested Fix
 
-## Acceptance Criteria
-
-- [ ] New tile appears in the dashboard settings panel and can be enabled/disabled
-- [ ] Tile shows `no_data` state when no DQT run exists for yesterday
-- [ ] Tile shows mismatch count and run status for yesterday's completed run
-- [ ] Tile shows error state when the DQT run for yesterday has `status = Failed`
-- [ ] Clicking the tile navigates to `/automation/data-quality`
-- [ ] Unit tests cover `DqtYesterdayStatusTile.LoadDataAsync` (no data, success, warning, error)
-- [ ] Frontend Jest tests cover the new tile component render states
-
-## Related
-
-- Existing tile: `DataQualityStatusTile` / `dataqualitystatus`
-- Repository: `IDqtRunRepository.GetPaginatedAsync` (may need date-range overload)
-- Frontend: `DataQualityTile.tsx`, `TileContent.tsx`
+1. **Open a single connection before the loop** in `GetRunningJobs()` and reuse it for all `GetJobData` and `GetJobParameter` calls.
+2. **Apply a reasonable cap** (e.g. 200) for the `EnqueuedJobs`/`ScheduledJobs` page size — the UI only shows a handful of active jobs at a time.
+3. Consider caching the result for a few seconds (e.g. via `IMemoryCache`) since this endpoint is likely polled repeatedly by the frontend while an import is running.
