@@ -1,4 +1,8 @@
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Xcc.Services;
 using MediatR;
@@ -9,11 +13,13 @@ public class RetagPhotosHandler : IRequestHandler<RetagPhotosRequest, RetagPhoto
 {
     private readonly IPhotobankRepository _repository;
     private readonly IBackgroundWorker _backgroundWorker;
+    private readonly IPhotobankTagsCache _cache;
 
-    public RetagPhotosHandler(IPhotobankRepository repository, IBackgroundWorker backgroundWorker)
+    public RetagPhotosHandler(IPhotobankRepository repository, IBackgroundWorker backgroundWorker, IPhotobankTagsCache cache)
     {
         _repository = repository;
         _backgroundWorker = backgroundWorker;
+        _cache = cache;
     }
 
     public async Task<RetagPhotosResponse> Handle(RetagPhotosRequest request, CancellationToken cancellationToken)
@@ -29,6 +35,8 @@ public class RetagPhotosHandler : IRequestHandler<RetagPhotosRequest, RetagPhoto
 
         if (request.ClearExistingAiTags)
             await _repository.RemovePhotoTagsBySourceAsync(foundIds, PhotoTagSource.AI, cancellationToken);
+
+        _cache.Invalidate();
 
         var candidates = photos
             .Select(p => new PhotoAutoTagCandidate(p.Id, p.FolderPath, p.FileName))
