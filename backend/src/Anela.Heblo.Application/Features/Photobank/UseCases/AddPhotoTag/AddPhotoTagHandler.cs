@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Photobank;
 using MediatR;
@@ -10,10 +11,12 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag
     public class AddPhotoTagHandler : IRequestHandler<AddPhotoTagRequest, AddPhotoTagResponse>
     {
         private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankTagsCache _cache;
 
-        public AddPhotoTagHandler(IPhotobankRepository repository)
+        public AddPhotoTagHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
         {
             _repository = repository;
+            _cache = cache;
         }
 
         public async Task<AddPhotoTagResponse> Handle(AddPhotoTagRequest request, CancellationToken cancellationToken)
@@ -40,6 +43,7 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag
 
             await _repository.AddPhotoTagAsync(photoTag, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
+            _cache.Invalidate();
 
             return new AddPhotoTagResponse { TagId = tag.Id, TagName = tag.Name };
         }
