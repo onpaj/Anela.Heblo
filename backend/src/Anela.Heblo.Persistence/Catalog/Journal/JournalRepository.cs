@@ -25,17 +25,6 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
         }
 
-        public async Task DeleteSoftAsync(int id, string userId, string username, CancellationToken cancellationToken = default)
-        {
-            var entry = await GetByIdAsync(id, cancellationToken);
-            if (entry != null)
-            {
-                entry.SoftDelete(userId, username);
-                await UpdateAsync(entry, cancellationToken);
-                await SaveChangesAsync(cancellationToken);
-            }
-        }
-
         public async Task<PagedResult<JournalEntry>> GetEntriesAsync(
             JournalQueryCriteria criteria,
             CancellationToken cancellationToken = default)
@@ -207,7 +196,6 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 result[da.ProductCode].DirectEntries = da.Count;
                 result[da.ProductCode].LastEntryDate = da.LastEntryDate;
             }
-
 
             // Calculate recent entries (within last 30 days)
             var thirtyDaysAgo = DateTime.Today.AddDays(-30);

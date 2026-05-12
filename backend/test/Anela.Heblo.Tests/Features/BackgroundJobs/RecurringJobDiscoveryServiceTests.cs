@@ -1,7 +1,7 @@
-using Anela.Heblo.API.Extensions;
 using Anela.Heblo.API.Infrastructure.Hangfire;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Tests.Features.BackgroundJobs.Infrastructure;
+using Anela.Heblo.Xcc;
 using Hangfire;
 using Hangfire.Storage;
 using Microsoft.AspNetCore.Hosting;
