@@ -1,9 +1,32 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
+import {
+  TimePeriod,
+  resolveTimePeriod,
+  getTimePeriodDisplayText,
+  type DateRange,
+} from "../../utils/timePeriod";
+
+export { TimePeriod as TimePeriodFilter };
+export { getTimePeriodDisplayText };
+
+export function calculateTimePeriodRange(
+  period: TimePeriod,
+  customFrom?: Date,
+  customTo?: Date,
+): { fromDate: Date; toDate: Date; ranges?: DateRange[] } | null {
+  const result = resolveTimePeriod(period, customFrom, customTo);
+  if (!result.primary) return null;
+  return {
+    fromDate: result.primary.from,
+    toDate: result.primary.to,
+    ranges: result.ranges.length > 1 ? result.ranges : undefined,
+  };
+}
 
 // Define types for the manufacturing stock analysis API
 export interface GetManufacturingStockAnalysisRequest {
-  timePeriod?: TimePeriodFilter;
+  timePeriod?: TimePeriod;
   customFromDate?: Date;
   customToDate?: Date;
   productFamily?: string;
@@ -17,15 +40,6 @@ export interface GetManufacturingStockAnalysisRequest {
   sortBy?: ManufacturingStockSortBy;
   sortDescending?: boolean;
   salesMultiplier?: number;
-}
-
-export enum TimePeriodFilter {
-  PreviousQuarter = "PreviousQuarter",
-  FutureQuarter = "FutureQuarter",
-  Y2Y = "Y2Y",
-  PreviousSeason = "PreviousSeason",
-  Q9M = "Q9M",
-  CustomPeriod = "CustomPeriod",
 }
 
 export enum ManufacturingStockSortBy {
@@ -121,7 +135,7 @@ export const useManufacturingStockAnalysisQuery = (
 
       if (
         request.timePeriod &&
-        request.timePeriod !== TimePeriodFilter.Q9M
+        request.timePeriod !== TimePeriod.Q9M
       ) {
         params.append("timePeriod", request.timePeriod);
       }
@@ -241,116 +255,3 @@ export const formatWarehouseStock = (item: ManufacturingStockItemDto): string =>
   return `${totalStock} (${primaryStock}+${transportStock})`;
 };
 
-// Helper function to format time period display text
-export const getTimePeriodDisplayText = (
-  timePeriod: TimePeriodFilter,
-): string => {
-  switch (timePeriod) {
-    case TimePeriodFilter.PreviousQuarter:
-      return "Minulý kvartal";
-    case TimePeriodFilter.FutureQuarter:
-      return "Budoucí kvartal";
-    case TimePeriodFilter.Y2Y:
-      return "Y2Y (12 měsíců)";
-    case TimePeriodFilter.PreviousSeason:
-      return "Předchozí sezona";
-    case TimePeriodFilter.Q9M:
-      return "9M (6 měsíců + prognóza 3 měsíce)";
-    case TimePeriodFilter.CustomPeriod:
-      return "Vlastní období";
-    default:
-      return "9M (6 měsíců + prognóza 3 měsíce)";
-  }
-};
-
-// Helper function to calculate date range for time period
-export const calculateTimePeriodRange = (
-  timePeriod: TimePeriodFilter,
-): {
-  fromDate: Date | null;
-  toDate: Date | null;
-  ranges?: Array<{ fromDate: Date; toDate: Date }>;
-} => {
-  const now = new Date();
-
-  switch (timePeriod) {
-    case TimePeriodFilter.PreviousQuarter:
-      // Last 3 completed months
-      const startOfCurrentMonth = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        1,
-      );
-      const endOfPreviousMonth = new Date(startOfCurrentMonth.getTime() - 1);
-      const startOfPreviousQuarter = new Date(
-        startOfCurrentMonth.getFullYear(),
-        startOfCurrentMonth.getMonth() - 3,
-        1,
-      );
-      return { fromDate: startOfPreviousQuarter, toDate: endOfPreviousMonth };
-
-    case TimePeriodFilter.FutureQuarter:
-      // Next 3 months from previous year (for demand forecasting)
-      const startOfFutureQuarterLastYear = new Date(
-        now.getFullYear() - 1,
-        now.getMonth(),
-        1,
-      );
-      const endOfFutureQuarterLastYear = new Date(
-        now.getFullYear() - 1,
-        now.getMonth() + 3,
-        0,
-      );
-      return {
-        fromDate: startOfFutureQuarterLastYear,
-        toDate: endOfFutureQuarterLastYear,
-      };
-
-    case TimePeriodFilter.Y2Y:
-      // Last 12 months
-      const startOfY2Y = new Date(now.getFullYear(), now.getMonth() - 12, 1);
-      const endOfY2Y = new Date(now.getFullYear(), now.getMonth(), 0);
-      return { fromDate: startOfY2Y, toDate: endOfY2Y };
-
-    case TimePeriodFilter.PreviousSeason:
-      // October-January of previous year
-      const seasonStart = new Date(now.getFullYear() - 1, 9, 1); // October (0-indexed)
-      const seasonEnd = new Date(now.getFullYear(), 0, 31); // January 31
-      return { fromDate: seasonStart, toDate: seasonEnd };
-
-    case TimePeriodFilter.Q9M: {
-      const sixMonthsAgo = new Date(
-        now.getFullYear(),
-        now.getMonth() - 6,
-        now.getDate(),
-      );
-      const oneYearAgo = new Date(
-        now.getFullYear() - 1,
-        now.getMonth(),
-        now.getDate(),
-      );
-      const oneYearAgoPlus3 = new Date(
-        now.getFullYear() - 1,
-        now.getMonth() + 3,
-        now.getDate(),
-      );
-      return {
-        fromDate: oneYearAgo,
-        toDate: now,
-        ranges: [
-          { fromDate: sixMonthsAgo, toDate: now },
-          { fromDate: oneYearAgo, toDate: oneYearAgoPlus3 },
-        ],
-      };
-    }
-
-    case TimePeriodFilter.CustomPeriod:
-      return { fromDate: null, toDate: null };
-
-    default:
-      // Default to previous quarter
-      const defaultStart = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-      const defaultEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-      return { fromDate: defaultStart, toDate: defaultEnd };
-  }
-};

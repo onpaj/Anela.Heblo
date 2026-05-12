@@ -1,6 +1,7 @@
 import React from "react";
 import { Search } from "lucide-react";
 import { GiftPackageFilters } from "./GiftPackageManufacturingList";
+import { TimePeriod, resolveTimePeriod } from "../../../utils/timePeriod";
 
 interface GiftPackageManufacturingFiltersProps {
   filters: GiftPackageFilters;
@@ -12,75 +13,32 @@ const GiftPackageManufacturingFilters: React.FC<GiftPackageManufacturingFiltersP
   onFilterChange,
 }) => {
   // Quick date range selectors
+  const QUICK_DATE_RANGE_PERIODS: Record<
+    "last12months" | "previousQuarter" | "nextQuarter",
+    TimePeriod
+  > = {
+    last12months: TimePeriod.Y2Y,
+    previousQuarter: TimePeriod.PreviousQuarter,
+    nextQuarter: TimePeriod.FutureQuarter,
+  };
+
   const handleQuickDateRange = (
     type: "last12months" | "previousQuarter" | "nextQuarter",
   ) => {
-    const now = new Date();
-    let fromDate: Date;
-    let toDate: Date;
-
-    switch (type) {
-      case "last12months":
-        fromDate = new Date(
-          now.getFullYear() - 1,
-          now.getMonth(),
-          now.getDate(),
-        );
-        toDate = new Date();
-        break;
-
-      case "previousQuarter":
-        fromDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-        toDate = new Date(now.getFullYear(), now.getMonth(), 0);
-        break;
-
-      case "nextQuarter":
-        const lastYear = now.getFullYear() - 1;
-        fromDate = new Date(lastYear, now.getMonth(), 1);
-        toDate = new Date(lastYear, now.getMonth() + 3, 0);
-        break;
-
-      default:
-        return;
-    }
-
-    onFilterChange({ fromDate, toDate });
+    const period = QUICK_DATE_RANGE_PERIODS[type];
+    const { primary } = resolveTimePeriod(period);
+    if (primary === null) return;
+    onFilterChange({ fromDate: primary.from, toDate: primary.to });
   };
 
   // Get tooltip text for date range buttons
   const getDateRangeTooltip = (
     type: "last12months" | "previousQuarter" | "nextQuarter",
   ) => {
-    const now = new Date();
-    let fromDate: Date;
-    let toDate: Date;
-
-    switch (type) {
-      case "last12months":
-        fromDate = new Date(
-          now.getFullYear() - 1,
-          now.getMonth(),
-          now.getDate(),
-        );
-        toDate = new Date();
-        break;
-
-      case "previousQuarter":
-        fromDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-        toDate = new Date(now.getFullYear(), now.getMonth(), 0);
-        break;
-
-      case "nextQuarter":
-        const lastYear = now.getFullYear() - 1;
-        fromDate = new Date(lastYear, now.getMonth(), 1);
-        toDate = new Date(lastYear, now.getMonth() + 3, 0);
-        break;
-
-      default:
-        return "";
-    }
-
-    return `${fromDate.toLocaleDateString("cs-CZ")} - ${toDate.toLocaleDateString("cs-CZ")}`;
+    const period = QUICK_DATE_RANGE_PERIODS[type];
+    const { primary } = resolveTimePeriod(period);
+    if (primary === null) return "";
+    return `${primary.from.toLocaleDateString("cs-CZ")} - ${primary.to.toLocaleDateString("cs-CZ")}`;
   };
 
   return (

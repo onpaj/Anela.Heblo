@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Persistence.Repositories;
+using Anela.Heblo.Xcc.Persistance;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -22,17 +23,6 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .Include(x => x.TagAssignments)
                     .ThenInclude(x => x.Tag)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, cancellationToken);
-        }
-
-        public async Task DeleteSoftAsync(int id, string userId, string username, CancellationToken cancellationToken = default)
-        {
-            var entry = await GetByIdAsync(id, cancellationToken);
-            if (entry != null)
-            {
-                entry.SoftDelete(userId, username);
-                await UpdateAsync(entry, cancellationToken);
-                await SaveChangesAsync(cancellationToken);
-            }
         }
 
         public async Task<PagedResult<JournalEntry>> GetEntriesAsync(

@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.Photobank.UseCases.DeleteTag;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Photobank;
@@ -12,8 +13,9 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 public class DeleteTagHandlerTests
 {
     private readonly Mock<IPhotobankRepository> _repositoryMock = new();
+    private readonly Mock<IPhotobankTagsCache> _cacheMock = new();
 
-    private DeleteTagHandler CreateHandler() => new(_repositoryMock.Object);
+    private DeleteTagHandler CreateHandler() => new(_repositoryMock.Object, _cacheMock.Object);
 
     private static Tag BuildTag(int id, string name, int photoTagCount = 0)
     {
