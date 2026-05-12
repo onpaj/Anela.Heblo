@@ -13,6 +13,8 @@ namespace Anela.Heblo.Persistence.Photobank
             builder.HasKey(x => new { x.PhotoId, x.TagId });
             builder.Property(x => x.Source).HasConversion<string>().HasMaxLength(20).IsRequired();
             builder.Property(x => x.CreatedAt).IsRequired().AsUtcTimestamp();
+            builder.HasIndex(x => new { x.TagId, x.PhotoId })
+                .HasDatabaseName("IX_PhotoTags_TagId_PhotoId");
             builder.HasOne(x => x.Tag)
                 .WithMany(x => x.PhotoTags)
                 .HasForeignKey(x => x.TagId)

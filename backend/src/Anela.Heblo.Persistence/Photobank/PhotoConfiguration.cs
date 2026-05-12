@@ -21,6 +21,9 @@ namespace Anela.Heblo.Persistence.Photobank
             builder.Property(x => x.IndexedAt).IsRequired().AsUtcTimestamp();
             builder.Property(x => x.ModifiedAt).IsRequired().AsUtcTimestamp();
             builder.HasIndex(x => x.FolderPath).HasDatabaseName("IX_Photos_FolderPath");
+            builder.HasIndex(x => new { x.ModifiedAt, x.Id })
+                .IsDescending(true, true)
+                .HasDatabaseName("IX_Photos_ModifiedAt_Id");
             builder.HasMany(x => x.Tags)
                 .WithOne(x => x.Photo)
                 .HasForeignKey(x => x.PhotoId)
