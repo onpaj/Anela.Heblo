@@ -2,7 +2,7 @@ namespace Anela.Heblo.Xcc;
 
 public class HangfireOptions
 {
-    public static string ConfigurationKey => "Hangfire";
+    public const string ConfigurationKey = "Hangfire";
     public string SchemaName { get; set; } = "hangfire_heblo";
     public bool SchedulerEnabled { get; set; } = false;
     public int WorkerCount { get; set; } = 1;

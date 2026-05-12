@@ -126,7 +126,7 @@ public class GetRunningInvoiceImportJobsHandlerTests
         await handler.Handle(new GetRunningInvoiceImportJobsRequest(), CancellationToken.None);
 
         // Assert
-        cache.TryGetValue("invoices:running-import-jobs", out _).Should().BeFalse();
+        cache.TryGetValue(GetRunningInvoiceImportJobsHandler.CacheKey, out _).Should().BeFalse();
     }
 
     [Fact]
@@ -144,6 +144,6 @@ public class GetRunningInvoiceImportJobsHandlerTests
 
         // Assert
         result.Should().BeEmpty();
-        cache.TryGetValue("invoices:running-import-jobs", out _).Should().BeFalse();
+        cache.TryGetValue(GetRunningInvoiceImportJobsHandler.CacheKey, out _).Should().BeFalse();
     }
 }

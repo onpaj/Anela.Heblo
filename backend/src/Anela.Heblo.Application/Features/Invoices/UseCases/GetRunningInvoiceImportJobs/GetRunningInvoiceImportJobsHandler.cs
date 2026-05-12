@@ -10,7 +10,7 @@ namespace Anela.Heblo.Application.Features.Invoices.UseCases.GetRunningInvoiceIm
 public class GetRunningInvoiceImportJobsHandler
     : IRequestHandler<GetRunningInvoiceImportJobsRequest, IList<BackgroundJobInfo>>
 {
-    private const string CacheKey = "invoices:running-import-jobs";
+    internal const string CacheKey = "invoices:running-import-jobs";
 
     private readonly IBackgroundWorker _backgroundWorker;
     private readonly IMemoryCache _memoryCache;
@@ -56,7 +56,7 @@ public class GetRunningInvoiceImportJobsHandler
 
             _logger.LogDebug("Found {Count} running/pending invoice import jobs", invoiceImportJobs.Count);
 
-            IList<BackgroundJobInfo> result = invoiceImportJobs;
+            IList<BackgroundJobInfo> result = invoiceImportJobs.AsReadOnly();
 
             if (cacheTtlSeconds > 0)
             {
