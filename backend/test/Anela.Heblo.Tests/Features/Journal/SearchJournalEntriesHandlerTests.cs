@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Journal.Contracts;
 using Anela.Heblo.Application.Features.Journal.UseCases.SearchJournalEntries;
 using Anela.Heblo.Domain.Features.Journal;
+using Anela.Heblo.Xcc.Persistance;
 using FluentAssertions;
 using Moq;
 using Xunit;
