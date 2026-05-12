@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.Photobank.UseCases.BulkAddPhotoTag;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Photobank;
@@ -13,12 +14,13 @@ namespace Anela.Heblo.Tests.Features.Photobank;
 public class BulkAddPhotoTagHandlerTests
 {
     private readonly Mock<IPhotobankRepository> _repositoryMock;
+    private readonly Mock<IPhotobankTagsCache> _cacheMock = new();
     private readonly BulkAddPhotoTagHandler _handler;
 
     public BulkAddPhotoTagHandlerTests()
     {
         _repositoryMock = new Mock<IPhotobankRepository>();
-        _handler = new BulkAddPhotoTagHandler(_repositoryMock.Object);
+        _handler = new BulkAddPhotoTagHandler(_repositoryMock.Object, _cacheMock.Object);
     }
 
     private static Tag BuildTag(int id, string name) => new() { Id = id, Name = name };

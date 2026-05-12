@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Xcc.Persistance;
 
 namespace Anela.Heblo.Domain.Features.Marketing
