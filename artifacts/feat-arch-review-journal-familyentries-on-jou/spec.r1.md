@@ -1,22 +1,42 @@
 # Specification: Resolve unimplemented `FamilyEntries` on Journal indicators
 
 ## Summary
-`JournalIndicator` (domain) and `JournalIndicatorDto` (contract) expose `FamilyEntries` and a derived `TotalEntries`, but `JournalRepository.GetJournalIndicatorsAsync` never assigns `FamilyEntries`. Consumers therefore receive misleading data: `FamilyEntries` is always `0` and `TotalEntries` always equals `DirectEntries`. This spec removes the speculative fields from the domain type and the public API surface (YAGNI), keeping only what is actually computed.
+`JournalIndicator` (domain) and `JournalIndicatorDto` (contract) expose `FamilyEntries` and a derived `TotalEntries`, but `JournalRepository.GetJournalIndicatorsAsync` never assigns `FamilyEntries`, so the value is always `0` and `TotalEntries` is identical to `DirectEntries`. A repository-wide search also shows that the entire indicator surface (`GetJournalIndicatorsAsync`, `JournalIndicator`, `JournalIndicatorDto`) has zero consumers in either the .NET backend or the React frontend. Applying YAGNI, this spec deletes the speculative `FamilyEntries`/`TotalEntries` members and additionally removes the unreferenced indicator surface; an Open Question captures the alternative of implementing the prefix-based count instead.
 
 ## Background
-The Journal module associates a journal entry to a product via a `ProductCodePrefix` stored on `JournalEntryProduct`. Lookups elsewhere in the repository (`GetEntriesByProductAsync` at `JournalRepository.cs:161–173`, the product filter in `GetEntriesAsync`) use prefix matching: a journal entry is "linked" to product code `X` when an associated prefix `pa.ProductCodePrefix` satisfies `X.StartsWith(pa.ProductCodePrefix)`. This creates a conceptual distinction:
 
-- **Direct entry**: associated prefix equals the product code exactly.
-- **Family entry**: associated prefix is a strict prefix of the product code (the entry was logged for a broader family such as `TON` while the indicator is being computed for `TON001A`).
+### How journal entries link to products
+Journal entries associate to a product via a `ProductCodePrefix` stored on `JournalEntryProduct`. Other repository methods use prefix matching: a journal entry is "linked" to product code `X` when an associated prefix `pa.ProductCodePrefix` satisfies `X.StartsWith(pa.ProductCodePrefix)` (see `JournalRepository.GetEntriesByProductAsync` at `backend/src/Anela.Heblo.Persistence/Catalog/Journal/JournalRepository.cs:161–173`, and the product filter inside `GetEntriesAsync`).
 
-`GetJournalIndicatorsAsync` (`backend/src/Anela.Heblo.Persistence/Catalog/Journal/JournalRepository.cs:175–220`) only computes direct counts (`jep => productCodeList.Contains(jep.ProductCodePrefix)`) and never assigns `FamilyEntries`. The property has been part of the public DTO since introduction but is unused: no code under `frontend/`, no documentation under `docs/`, and no in-repo consumer outside the Journal module itself references `familyEntries` or `totalEntries` (verified via repo-wide grep — only matches outside the defining C# files are the brief itself and test method names like `ShouldFindFamilyEntries` that exercise prefix matching on a different code path and do not assert on indicator fields).
+This creates a conceptual distinction the brief refers to:
+- **Direct entry** — associated prefix equals the product code exactly.
+- **Family entry** — associated prefix is a strictly shorter prefix of the product code (e.g. an entry logged against `TON` when the indicator is computed for `TON001A`).
 
-Per CLAUDE.md ("surgical changes", YAGNI) and the global coding-style rule ("Do not build features or abstractions before they are needed"), we remove the dead fields rather than implement a feature for which no consumer or product requirement exists. If a future need arises, the field can be reintroduced together with its query.
+### The current implementation gap
+`GetJournalIndicatorsAsync` (`backend/src/Anela.Heblo.Persistence/Catalog/Journal/JournalRepository.cs:175–220`) only computes direct counts (`jep => productCodeList.Contains(jep.ProductCodePrefix)`) and never assigns `FamilyEntries`. The DTO mirrors the same speculative shape (`backend/src/Anela.Heblo.Application/Features/Journal/Contracts/JournalIndicatorDto.cs:9–10`).
+
+### The wider finding: the indicator surface is dead code
+Repo-wide search (`grep -rn "GetJournalIndicators\|JournalIndicator"`) finds matches only in the four files that define the surface:
+
+- `backend/src/Anela.Heblo.Domain/Features/Journal/IJournalRepository.cs` — declares `GetJournalIndicatorsAsync`.
+- `backend/src/Anela.Heblo.Domain/Features/Journal/JournalIndicator.cs` — domain type.
+- `backend/src/Anela.Heblo.Persistence/Catalog/Journal/JournalRepository.cs` — implementation.
+- `backend/src/Anela.Heblo.Application/Features/Journal/Contracts/JournalIndicatorDto.cs` — contract type.
+
+There are **no** call sites: no MediatR handler, no controller, no test, no mapper, and no frontend reference to either type. Likewise, `frontend/` contains zero hits for `journalIndicator`, `familyEntries`, or `totalEntries`. The only test hits for "FamilyEntries" are method names in `JournalRepositoryIntegrationTests.cs` (`ShouldFindFamilyEntries`, `ShouldFindCorrectFamilyEntries`) which exercise `GetEntriesByProductAsync`'s prefix matching and do **not** assert on indicator fields.
+
+### Direction
+Per CLAUDE.md ("surgical changes", YAGNI) and the global coding-style rule ("Do not build features or abstractions before they are needed"), this spec removes the dead code rather than implementing a feature for which no consumer or product requirement exists. Two layers of cleanup are defined:
+
+1. **Property-level (FR-1/FR-2)** — remove `FamilyEntries` and `TotalEntries` from the indicator type and its DTO. This is the literal scope of the brief.
+2. **Surface-level (FR-3/FR-4)** — remove the unreferenced `GetJournalIndicatorsAsync` method, the `JournalIndicator` domain type, and the `JournalIndicatorDto` contract. This handles the broader dead-code observation surfaced during verification.
+
+FR-5/FR-6 cover code-hygiene cleanup after the deletions. NFR-1 captures the breaking-change posture. The Open Questions confirm the chosen direction before implementation begins.
 
 ## Functional Requirements
 
 ### FR-1: Remove `FamilyEntries` from the domain indicator
-Delete the `FamilyEntries` property from `Anela.Heblo.Domain.Features.Journal.JournalIndicator`. Remove the derived `TotalEntries` property (it equals `DirectEntries` after the change, so it adds no information).
+Delete the `FamilyEntries` property and the derived `TotalEntries` property from `Anela.Heblo.Domain.Features.Journal.JournalIndicator`. (Skipped if FR-3 is executed, since the whole type is deleted.)
 
 **Acceptance criteria:**
 - `JournalIndicator.cs` no longer declares `FamilyEntries`.
@@ -25,51 +45,81 @@ Delete the `FamilyEntries` property from `Anela.Heblo.Domain.Features.Journal.Jo
 - `dotnet build` for the full solution succeeds.
 
 ### FR-2: Remove `FamilyEntries` from the public DTO
-Delete `FamilyEntries` and `TotalEntries` from `Anela.Heblo.Application.Features.Journal.Contracts.JournalIndicatorDto` to mirror FR-1.
+Delete `FamilyEntries` and `TotalEntries` from `Anela.Heblo.Application.Features.Journal.Contracts.JournalIndicatorDto` to mirror FR-1. (Skipped if FR-3 is executed, since the whole type is deleted.)
 
 **Acceptance criteria:**
 - `JournalIndicatorDto.cs` no longer declares `FamilyEntries` or `TotalEntries`.
-- After a clean build, the regenerated TypeScript OpenAPI client (`frontend/src/api/generated/`) no longer contains `familyEntries` or `totalEntries` on the Journal indicator type.
-- A repository-wide grep for `familyEntries` and `totalEntries` outside `frontend/src/api/generated/` and the deleted C# members returns zero matches.
+- After a clean build, the regenerated TypeScript OpenAPI client under `frontend/src/api/generated/` does not contain `familyEntries` or `totalEntries` on any Journal indicator type (and, after FR-3, does not contain a Journal indicator type at all).
+- A repository-wide grep for `familyEntries` and `totalEntries` outside `frontend/src/api/generated/` returns zero matches.
 
-### FR-3: Simplify the repository implementation
-Clean up `GetJournalIndicatorsAsync` so it no longer pretends to compute a "direct vs. family" split. The query that populates `DirectEntries` and `LastEntryDate` keeps its existing semantics — only the framing is updated. Rename the local variable `directAssociations` to a neutral name (e.g., `associationCounts`) and remove or rewrite the stale `// Get direct associations` comment.
+### FR-3: Remove the unused indicator surface (recommended, see Open Question)
+The entire indicator surface has no consumers in this repository. Delete:
 
-**Acceptance criteria:**
-- `GetJournalIndicatorsAsync` still returns the exact same per-product entry count and `LastEntryDate` as before.
-- No code path assigns `FamilyEntries` (the property is gone).
-- The comment on the association query is either removed or reflects the new framing ("Count entries linked to each product code via exact prefix match").
-- The double blank line between the association loop and the recent-entries loop is removed.
+- `Task<Dictionary<string, JournalIndicator>> GetJournalIndicatorsAsync(...)` from `IJournalRepository` (`backend/src/Anela.Heblo.Domain/Features/Journal/IJournalRepository.cs:21–23`).
+- The corresponding implementation in `JournalRepository.cs:175–220`.
+- The `JournalIndicator` domain type file (`backend/src/Anela.Heblo.Domain/Features/Journal/JournalIndicator.cs`).
+- The `JournalIndicatorDto` contract file (`backend/src/Anela.Heblo.Application/Features/Journal/Contracts/JournalIndicatorDto.cs`).
 
-### FR-4: Update or add tests
-No existing test asserts on `FamilyEntries` or `TotalEntries` (confirmed via grep). Add at least one unit/integration test for `GetJournalIndicatorsAsync` covering:
-- (a) product with multiple direct associations — verify `DirectEntries` count is correct,
-- (b) product with no associations — verify `DirectEntries == 0`, `LastEntryDate == null`, `HasRecentEntries == false`,
-- (c) product with at least one recent entry — verify `LastEntryDate` is the max entry date and `HasRecentEntries == true`,
-- (d) a product whose only associations are via a strictly-shorter prefix (a "family" case) — verify `DirectEntries == 0` (proves the removal does not silently fold family matches into direct counts).
+This subsumes FR-1 and FR-2. The choice between FR-1/FR-2-only and full FR-3 is the first Open Question; the recommended direction is the full removal.
 
 **Acceptance criteria:**
-- No test in the solution references `FamilyEntries` or `TotalEntries`.
-- A new test class (or new `[Fact]` methods on the existing `JournalRepositoryIntegrationTests`) exercises `GetJournalIndicatorsAsync` for the four scenarios above using xUnit + FluentAssertions, consistent with the existing test style.
+- The four bullet points above are executed. No file in `backend/` references `JournalIndicator` or `JournalIndicatorDto`.
+- `IJournalRepository` no longer declares `GetJournalIndicatorsAsync`.
+- `dotnet build` for the full solution succeeds.
+- A regenerated TypeScript OpenAPI client builds cleanly and contains no Journal indicator type.
+
+### FR-4: Confirm zero consumers before deletion
+Before deleting members or files in FR-1 through FR-3, perform and record a final verification grep. This guards against missed consumers (e.g., reflection-based callers, source-generated mappers, or out-of-tree code).
+
+**Acceptance criteria:**
+- Running `grep -rn "JournalIndicator\|GetJournalIndicators\|familyEntries\|totalEntries" --include="*.cs" --include="*.ts" --include="*.tsx" --include="*.json"` from repo root returns matches only inside the files being deleted/edited (and inside `brief.md`/`spec.md` under `artifacts/`).
+- The verification result is referenced in the implementation PR description.
+
+### FR-5: Clean up adjacent code touched by the removal
+- Remove the stale `// Get direct associations` comment block from `JournalRepository.cs` (only relevant if FR-1/FR-2 are taken without FR-3 — under FR-3 the whole method is deleted).
+- Remove any now-unused `using` directives in edited files.
+- Remove the double blank line that currently sits between the association loop and the recent-entries loop (`JournalRepository.cs:209–210`) if the method is retained.
+
+**Acceptance criteria:**
+- `dotnet format` reports no diff on edited files.
+- No unused `using` directives remain in edited files.
+
+### FR-6: Update tests
+No existing test asserts on `FamilyEntries`, `TotalEntries`, `JournalIndicator`, `JournalIndicatorDto`, or `GetJournalIndicatorsAsync` (confirmed via grep).
+
+- If FR-3 is taken: no new tests are required for the deletion. Existing tests in `backend/test/Anela.Heblo.Tests/Features/Journal/` must continue to pass without modification.
+- If FR-3 is **not** taken (FR-1/FR-2 only path): add unit/integration tests for the retained `GetJournalIndicatorsAsync` covering:
+  - (a) product with multiple direct associations — verify `DirectEntries` count is correct.
+  - (b) product with no associations — verify `DirectEntries == 0`, `LastEntryDate == null`, `HasRecentEntries == false`.
+  - (c) product with at least one recent entry — verify `LastEntryDate` is the max entry date and `HasRecentEntries == true`.
+  - (d) product whose only association is via a strictly-shorter prefix (a "family" case) — verify `DirectEntries == 0` (proves the property removal does not silently fold family matches into direct counts).
+
+**Acceptance criteria:**
+- No test in the solution references `FamilyEntries`, `TotalEntries`, `JournalIndicator`, or `JournalIndicatorDto`.
+- If FR-3 is **not** taken: a new test class (or new `[Fact]` methods on `JournalRepositoryIntegrationTests`) exercises `GetJournalIndicatorsAsync` for the four scenarios above using xUnit + FluentAssertions, consistent with existing test style.
 - `dotnet test` for the affected test projects passes.
 
 ## Non-Functional Requirements
 
 ### NFR-1: Backwards compatibility
-This is a breaking change to the API contract (`JournalIndicatorDto`). It is acceptable because:
+This is a breaking change to the API contract (`JournalIndicatorDto`) and, under FR-3, also to the repository contract (`IJournalRepository`). It is acceptable because:
 - Anela.Heblo is a solo-developer project (per CLAUDE.md project facts).
-- No frontend, MCP-server, documentation, or in-repo consumer references the removed fields.
+- No frontend, MCP-server, handler, controller, documentation, or in-repo consumer references the removed members.
 - The fields produce misleading values today, so removing them strictly improves API correctness.
 
 **Acceptance criteria:**
-- A final grep confirms no consumer references `familyEntries` or `totalEntries` (outside the generated TypeScript client, which is regenerated on build).
+- A final grep (per FR-4) confirms no consumer references the removed members outside the files being deleted.
+- The PR description explicitly notes the breaking change for changelog/release-notes purposes.
 
 ### NFR-2: Behavior preservation
-`DirectEntries`, `LastEntryDate`, and `HasRecentEntries` must be produced with identical semantics for every input product code.
+Existing journal flows that do not use the indicator surface must keep their semantics:
+- `GetEntriesByProductAsync` continues to use prefix-based product matching.
+- `GetEntriesAsync` / `SearchEntriesAsync` keep their current filter behavior.
+- The `JournalEntryProduct` table and the `ProductCodePrefix` column are untouched.
 
 **Acceptance criteria:**
-- Existing tests in `JournalRepositoryIntegrationTests.cs` that exercise prefix matching via `GetEntriesByProductAsync` continue to pass without modification.
-- The new indicator tests (FR-4) verify count parity with the pre-change behavior for at least one fixture.
+- All existing tests in `backend/test/Anela.Heblo.Tests/Features/Journal/` pass without modification.
+- No EF Core migration is generated by the change (this is a code-only deletion).
 
 ### NFR-3: Build / format / lint gates
 The change must pass the project's standard completion gates from CLAUDE.md.
@@ -80,35 +130,51 @@ The change must pass the project's standard completion gates from CLAUDE.md.
 - `npm run build` and `npm run lint` clean (regenerated TypeScript client compiles).
 
 ### NFR-4: Performance
-No regression in `GetJournalIndicatorsAsync` query time; the change is removal-only and should be neutral-or-better.
+No regression. Removal of dead code is neutral-or-better. `GetJournalIndicatorsAsync` was never executed in production paths (no callers), so its deletion has zero runtime impact.
 
 ### NFR-5: Security
-No security surface is touched. Inputs to `GetJournalIndicatorsAsync` remain server-internal (product codes drawn from the catalog), no SQL is hand-built, and EF Core continues to parameterize the query. No auth/authorization rules change.
+No security surface is touched. No SQL is hand-built, no auth boundary is altered, no input validation is bypassed. EF Core continues to parameterize all retained queries.
 
 ## Data Model
-No persistence-layer changes. The `JournalEntryProduct` table and the `ProductCodePrefix` column are untouched. The prefix-matching semantics used by `GetEntriesByProductAsync` and the search-criteria product filter remain in place.
+No persistence-layer changes. The `JournalEntryProduct` table, the `ProductCodePrefix` column, EF configurations, and indexes are untouched. No migration is generated.
 
-Removed in-memory members on `JournalIndicator` and `JournalIndicatorDto`:
-- `int FamilyEntries` — never populated, removed.
-- `int TotalEntries` — derived from `FamilyEntries`, removed.
+Removed in-memory members:
+- `int JournalIndicator.FamilyEntries` — never populated.
+- `int JournalIndicator.TotalEntries` — derived from `FamilyEntries`.
+- `int JournalIndicatorDto.FamilyEntries` — mirrors the above.
+- `int JournalIndicatorDto.TotalEntries` — mirrors the above.
+
+Removed types (under FR-3, recommended):
+- `Anela.Heblo.Domain.Features.Journal.JournalIndicator` (class).
+- `Anela.Heblo.Application.Features.Journal.Contracts.JournalIndicatorDto` (class).
+
+Removed interface member (under FR-3):
+- `IJournalRepository.GetJournalIndicatorsAsync(IEnumerable<string>, CancellationToken)`.
 
 ## API / Interface Design
-- `IJournalRepository.GetJournalIndicatorsAsync` signature is unchanged. Only the shape of the returned `JournalIndicator` changes.
-- The DTO change propagates through the OpenAPI definition to the regenerated TypeScript client on next build. Wire payloads emitted by any handler that serializes `JournalIndicatorDto` lose two integer fields. No new endpoint, route, or handler is added.
+- No new endpoints, routes, or handlers are added.
+- `IJournalRepository` shrinks by one method (under FR-3) or retains it with a narrower return shape (under FR-1/FR-2 only).
+- The OpenAPI definition shrinks by the deleted DTO (or by two fields, depending on chosen path). The regenerated TypeScript client (`frontend/src/api/generated/`, per `docs/development/api-client-generation.md`) reflects the change automatically on next build.
+- No wire-format consumer exists today, so no client migration is required.
 
 ## Dependencies
-- EF Core (`Microsoft.EntityFrameworkCore`) — unchanged usage.
-- OpenAPI → TypeScript client generation pipeline (per `docs/development/api-client-generation.md`) regenerates the frontend client on build; verify the generated file no longer contains the removed members.
+- EF Core (`Microsoft.EntityFrameworkCore`) — unchanged usage; if FR-3 is taken, one query is deleted.
+- OpenAPI → TypeScript client generation pipeline (per `docs/development/api-client-generation.md`) regenerates the frontend client on build; verify the generated output no longer contains the removed members or type.
 
 ## Out of Scope
-- Implementing a real prefix-based family-entry count. If this is later desired, it is a separate feature: define product requirements, decide on the query strategy (e.g., `EF.Functions.Like(productCode, jep.ProductCodePrefix + "%")` excluding exact matches), choose whether overlapping prefixes are double-counted, and budget for the extra DB cost on the catalog listing endpoint that consumes indicators.
+- Implementing a real prefix-based family-entry count. If later desired, it becomes a separate feature: define product requirements, decide on the query strategy (e.g., `EF.Functions.Like(productCode, jep.ProductCodePrefix + "%")` excluding exact matches), decide whether overlapping prefixes are double-counted, and budget for the extra DB cost on whichever catalog listing endpoint consumes indicators.
 - Changing prefix-matching semantics in `GetEntriesByProductAsync`, `GetEntriesAsync`, or `SearchEntriesAsync`.
 - Renaming `ProductCodePrefix` or revisiting the prefix-as-association data model.
 - Touching the `JournalEntryProduct` schema, EF configuration, or indexing.
-- Frontend UI changes (none required since no consumer references the removed fields).
+- Frontend UI changes (none required — no consumer references the removed surface).
+- Generalised dead-code sweep across other modules (this spec covers only the Journal indicator surface).
 
 ## Open Questions
-- **Confirm the chosen direction is removal, not implementation.** The brief presents removal vs. implementation as alternatives. This spec assumes removal (YAGNI, no consumer found in this repo). If there is a product reason to surface family-entry counts in any current or imminent UI/feature, flip the direction and write a follow-up spec for the implementation path (count entries linked via strictly-shorter prefixes, decide whether overlapping prefixes are double-counted, and re-baseline performance for the catalog listing query).
-- **Confirm no out-of-repo consumer relies on the fields.** Grep verifies that nothing inside this repository references `familyEntries` or `totalEntries`. Are there any out-of-repo consumers (scripts, dashboards, the MCP server's downstream clients, Postman collections, manual API users) that read these fields? If yes, prefer keeping `TotalEntries` as a straight `=> DirectEntries` shim during a deprecation window; otherwise remove both fields as specified.
+
+- **Confirm the scope of removal: property-only (FR-1/FR-2) vs. full-surface (FR-3).** Verification shows that `GetJournalIndicatorsAsync`, `JournalIndicator`, and `JournalIndicatorDto` are referenced **only** by their own declarations — no handler, controller, test, frontend, or doc consumes them. The recommended path is the full-surface removal under FR-3, on YAGNI grounds. The alternative is the conservative property-only path (FR-1/FR-2 plus FR-6 tests) which keeps the method alive in case a planned consumer (e.g., a catalog-listing endpoint that will surface "products with recent journal activity") is imminent. Which path?
+
+- **Confirm the chosen direction is removal, not implementation.** The brief presents removal vs. implementation as alternatives. This spec assumes removal. If a product requirement exists or is imminent to surface family-entry counts in any UI/feature, flip the direction and write a follow-up spec for the implementation path: count entries linked via strictly-shorter prefixes, decide whether overlapping prefixes are double-counted, decide the exact-match-exclusion semantics (the brief proposes `productCode.StartsWith(jep.ProductCodePrefix) && jep.ProductCodePrefix != productCode`), and re-baseline performance for the catalog listing query.
+
+- **Confirm no out-of-repo consumer relies on the fields.** In-repo grep is clean. Are there any out-of-repo consumers (deployment scripts, Power BI dashboards, the MCP server's downstream clients, Postman collections, manual API users) that read `journalIndicator` / `familyEntries` / `totalEntries`? If yes, prefer keeping `JournalIndicatorDto` (without the speculative fields) as a deprecation shim for one release; otherwise remove the whole surface as specified.
 
 ## Status: HAS_QUESTIONS
