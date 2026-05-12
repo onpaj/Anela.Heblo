@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
@@ -179,10 +180,10 @@ public class ConsumptionRateCalculatorTests
     {
         // Arrange
         // Range A: 10 days (Jan 1-11), 20 units sold
-        var rangeA = (new DateTime(2025, 1, 1), new DateTime(2025, 1, 11));
+        var rangeA = new DateRange(new DateTime(2025, 1, 1), new DateTime(2025, 1, 11));
         // Range B: 5 days (Feb 1-6), 10 units sold
-        var rangeB = (new DateTime(2025, 2, 1), new DateTime(2025, 2, 6));
-        IReadOnlyList<(DateTime, DateTime)> ranges = [rangeA, rangeB];
+        var rangeB = new DateRange(new DateTime(2025, 2, 1), new DateTime(2025, 2, 6));
+        IReadOnlyList<DateRange> ranges = [rangeA, rangeB];
 
         var salesHistory = new List<CatalogSaleRecord>
         {
@@ -203,7 +204,7 @@ public class ConsumptionRateCalculatorTests
     public void CalculateDailySalesRate_WithEmptyRangeList_ReturnsZero()
     {
         // Arrange
-        IReadOnlyList<(DateTime, DateTime)> ranges = [];
+        IReadOnlyList<DateRange> ranges = [];
         var salesHistory = new List<CatalogSaleRecord>();
 
         // Act
@@ -219,7 +220,7 @@ public class ConsumptionRateCalculatorTests
         // Arrange
         var fromDate = new DateTime(2025, 1, 1);
         var toDate = new DateTime(2025, 1, 11);
-        IReadOnlyList<(DateTime, DateTime)> ranges = [(fromDate, toDate)];
+        IReadOnlyList<DateRange> ranges = [new DateRange(fromDate, toDate)];
 
         var salesHistory = new List<CatalogSaleRecord>
         {

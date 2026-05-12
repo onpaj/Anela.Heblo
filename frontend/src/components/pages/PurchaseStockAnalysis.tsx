@@ -32,6 +32,7 @@ import { exportToXlsx } from "../../utils/exportToXlsx";
 import { useToast } from "../../contexts/ToastContext";
 import CatalogDetail from "./CatalogDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { TimePeriod, resolveTimePeriod } from "../../utils/timePeriod";
 import { usePurchasePlanningList } from "../../contexts/PurchasePlanningListContext";
 import PurchasePlanningListPanel from "../common/PurchasePlanningListPanel";
 
@@ -176,77 +177,31 @@ const PurchaseStockAnalysis: React.FC = () => {
   }, [filters, showError]);
 
   // Quick date range selectors
+  const QUICK_RANGE_PERIODS: Record<string, TimePeriod> = {
+    last12months: TimePeriod.Y2Y,
+    previousQuarter: TimePeriod.PreviousQuarter,
+    nextQuarter: TimePeriod.FutureQuarter,
+  };
+
   const handleQuickDateRange = (
     type: "last12months" | "previousQuarter" | "nextQuarter",
   ) => {
-    const now = new Date();
-    let fromDate: Date;
-    let toDate: Date;
-
-    switch (type) {
-      case "last12months":
-        fromDate = new Date(
-          now.getFullYear() - 1,
-          now.getMonth(),
-          now.getDate(),
-        );
-        toDate = new Date();
-        break;
-
-      case "previousQuarter":
-        // Previous quarter (3 months back)
-        fromDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-        toDate = new Date(now.getFullYear(), now.getMonth(), 0); // Last day of previous month
-        break;
-
-      case "nextQuarter":
-        // Next quarter from previous year (3 months forward from same period last year)
-        const lastYear = now.getFullYear() - 1;
-        fromDate = new Date(lastYear, now.getMonth(), 1);
-        toDate = new Date(lastYear, now.getMonth() + 3, 0); // Last day of the quarter
-        break;
-
-      default:
-        return;
-    }
-
-    handleFilterChange({ fromDate, toDate });
+    const period = QUICK_RANGE_PERIODS[type];
+    if (!period) return;
+    const result = resolveTimePeriod(period);
+    if (!result.primary) return;
+    handleFilterChange({ fromDate: result.primary.from, toDate: result.primary.to });
   };
 
   // Get tooltip text for date range buttons
   const getDateRangeTooltip = (
     type: "last12months" | "previousQuarter" | "nextQuarter",
   ) => {
-    const now = new Date();
-    let fromDate: Date;
-    let toDate: Date;
-
-    switch (type) {
-      case "last12months":
-        fromDate = new Date(
-          now.getFullYear() - 1,
-          now.getMonth(),
-          now.getDate(),
-        );
-        toDate = new Date();
-        break;
-
-      case "previousQuarter":
-        fromDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-        toDate = new Date(now.getFullYear(), now.getMonth(), 0);
-        break;
-
-      case "nextQuarter":
-        const lastYear = now.getFullYear() - 1;
-        fromDate = new Date(lastYear, now.getMonth(), 1);
-        toDate = new Date(lastYear, now.getMonth() + 3, 0);
-        break;
-
-      default:
-        return "";
-    }
-
-    return `${fromDate.toLocaleDateString("cs-CZ")} - ${toDate.toLocaleDateString("cs-CZ")}`;
+    const period = QUICK_RANGE_PERIODS[type];
+    if (!period) return "";
+    const result = resolveTimePeriod(period);
+    if (!result.primary) return "";
+    return `${result.primary.from.toLocaleDateString("cs-CZ")} - ${result.primary.to.toLocaleDateString("cs-CZ")}`;
   };
 
   // Purchase planning list functionality
