@@ -1,5 +1,9 @@
 using System.Net;
+using Anela.Heblo.Adapters.Flexi.Manufacture;
 using Anela.Heblo.Adapters.Flexi.Manufacture.Internal;
+using Anela.Heblo.Adapters.Flexi.Stock;
+using Anela.Heblo.Adapters.Flexi.Tests.Manufacture;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Xcc.Telemetry;
@@ -7,6 +11,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Rem.FlexiBeeSDK.Client.Clients.Products.BoM;
+using Rem.FlexiBeeSDK.Model;
 using Xunit;
 
 namespace Anela.Heblo.Adapters.Flexi.Tests.Manufacture.Internal;
@@ -50,6 +55,94 @@ public class FlexiManufactureTemplateServiceTests
                 exception,
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task GetManufactureTemplateAsync_DispatchesThreeStockCallsConcurrently()
+    {
+        var header = ManufactureTestData.CreateBoMItem(1, 1, 10, ManufactureTestData.SemiProducts.SilkBar);
+        var ingredient = ManufactureTestData.CreateBoMItem(2, 2, 1, ManufactureTestData.Materials.Bisabolol);
+
+        _mockBomClient
+            .Setup(x => x.GetAsync(ManufactureTestData.SemiProducts.SilkBar.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<BoMItemFlexiDto> { header, ingredient });
+
+        // Each call to StockToDateAsync returns a task that delays 200ms.
+        // If executed sequentially, total time would be ~600ms (3 × 200ms).
+        // If executed in parallel via Task.WhenAll, total time should be ~200ms.
+        _mockStockClient
+            .Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), FlexiStockClient.MaterialWarehouseId, It.IsAny<CancellationToken>()))
+            .Returns(async (DateTime _, int _, CancellationToken ct) =>
+            {
+                await Task.Delay(200, ct);
+                return (IReadOnlyList<ErpStock>)new List<ErpStock>
+                {
+                    new() { ProductCode = "AKL001", HasLots = true }
+                };
+            });
+
+        _mockStockClient
+            .Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), FlexiStockClient.SemiProductsWarehouseId, It.IsAny<CancellationToken>()))
+            .Returns(async (DateTime _, int _, CancellationToken ct) =>
+            {
+                await Task.Delay(200, ct);
+                return (IReadOnlyList<ErpStock>)new List<ErpStock>();
+            });
+
+        _mockStockClient
+            .Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), FlexiStockClient.ProductsWarehouseId, It.IsAny<CancellationToken>()))
+            .Returns(async (DateTime _, int _, CancellationToken ct) =>
+            {
+                await Task.Delay(200, ct);
+                return (IReadOnlyList<ErpStock>)new List<ErpStock>();
+            });
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var template = await _service.GetManufactureTemplateAsync(ManufactureTestData.SemiProducts.SilkBar.Code, CancellationToken.None);
+        stopwatch.Stop();
+
+        template.Should().NotBeNull();
+        stopwatch.ElapsedMilliseconds.Should().BeLessThan(400,
+            "three 200 ms stock calls must run in parallel, not sequentially");
+
+        _mockStockClient.Verify(
+            x => x.StockToDateAsync(It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(3));
+    }
+
+    [Fact]
+    public async Task GetManufactureTemplateAsync_MergesHasLotsAcrossWarehouses()
+    {
+        var header = ManufactureTestData.CreateBoMItem(1, 1, 10, ManufactureTestData.SemiProducts.SilkBar);
+        var ingredient1 = ManufactureTestData.CreateBoMItem(2, 2, 1, ManufactureTestData.Materials.Bisabolol);
+        var ingredient2 = ManufactureTestData.CreateBoMItem(3, 2, 1, ManufactureTestData.Materials.DermosoftEco);
+
+        _mockBomClient
+            .Setup(x => x.GetAsync(ManufactureTestData.SemiProducts.SilkBar.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<BoMItemFlexiDto> { header, ingredient1, ingredient2 });
+
+        _mockStockClient
+            .Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), FlexiStockClient.MaterialWarehouseId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<ErpStock>)new List<ErpStock>
+            {
+                new() { ProductCode = "AKL001", HasLots = true }
+            });
+        _mockStockClient
+            .Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), FlexiStockClient.SemiProductsWarehouseId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<ErpStock>)new List<ErpStock>());
+        _mockStockClient
+            .Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), FlexiStockClient.ProductsWarehouseId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<ErpStock>)new List<ErpStock>
+            {
+                new() { ProductCode = "AKL003", HasLots = false }
+            });
+
+        var template = await _service.GetManufactureTemplateAsync(ManufactureTestData.SemiProducts.SilkBar.Code, CancellationToken.None);
+
+        template.Should().NotBeNull();
+        template!.Ingredients.Should().HaveCount(2);
+        template.Ingredients.Single(i => i.ProductCode == "AKL001").HasLots.Should().BeTrue();
+        template.Ingredients.Single(i => i.ProductCode == "AKL003").HasLots.Should().BeFalse();
     }
 
     /// <summary>

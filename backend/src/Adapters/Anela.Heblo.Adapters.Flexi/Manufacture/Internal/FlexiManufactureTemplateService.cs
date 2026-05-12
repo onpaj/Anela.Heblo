@@ -62,21 +62,23 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
 
         var ingredients = bom.Where(w => w.Level != 1);
 
-        // Get stock data to determine HasLots for each ingredient (sequential — will be parallelised in Task 10)
         var stockDate = _timeProvider.GetLocalNow().DateTime;
-        var allStockData = new List<ErpStock>();
 
-        var warehouseIds = new[]
-        {
-            FlexiStockClient.MaterialWarehouseId,
-            FlexiStockClient.SemiProductsWarehouseId,
-            FlexiStockClient.ProductsWarehouseId
-        };
+        var materialStockTask = _stockClient.StockToDateAsync(stockDate, FlexiStockClient.MaterialWarehouseId, cancellationToken);
+        var semiProductsStockTask = _stockClient.StockToDateAsync(stockDate, FlexiStockClient.SemiProductsWarehouseId, cancellationToken);
+        var productsStockTask = _stockClient.StockToDateAsync(stockDate, FlexiStockClient.ProductsWarehouseId, cancellationToken);
 
-        foreach (var warehouseId in warehouseIds)
+        await Task.WhenAll(materialStockTask, semiProductsStockTask, productsStockTask);
+
+        // Narrow the three full snapshots to a single HasLots dictionary (FR-4).
+        // Larger DTOs go out of scope immediately after this block.
+        var hasLotsByProductCode = new Dictionary<string, bool>(StringComparer.Ordinal);
+        foreach (var snapshot in new[] { materialStockTask.Result, semiProductsStockTask.Result, productsStockTask.Result })
         {
-            var stockItems = await _stockClient.StockToDateAsync(stockDate, warehouseId, cancellationToken);
-            allStockData.AddRange(stockItems);
+            foreach (var stockItem in snapshot)
+            {
+                hasLotsByProductCode[stockItem.ProductCode] = stockItem.HasLots;
+            }
         }
 
         var template = new ManufactureTemplate()
@@ -89,7 +91,6 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
             Ingredients = ingredients.Select(s =>
             {
                 var code = s.IngredientCode.RemoveCodePrefix();
-                var stockItem = allStockData.FirstOrDefault(stock => stock.ProductCode == code);
 
                 return new Ingredient()
                 {
@@ -98,7 +99,7 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
                     ProductName = s.IngredientFullName,
                     Amount = s.Amount,
                     ProductType = ResolveProductType(s),
-                    HasLots = stockItem?.HasLots ?? false,
+                    HasLots = hasLotsByProductCode.TryGetValue(code, out var hasLots) && hasLots,
                     HasExpiration = false
                 };
             }).ToList(),
