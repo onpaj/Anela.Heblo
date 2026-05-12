@@ -16,7 +16,7 @@ public class TimePeriodResolver : ITimePeriodResolver
             TimePeriod.CustomPeriod when customFrom.HasValue && customTo.HasValue =>
                 [new DateRange(customFrom.Value, customTo.Value)],
             TimePeriod.CustomPeriod => [],
-            _ => ResolveForPreviousQuarter(now),
+            _ => throw new ArgumentOutOfRangeException(nameof(period), period, "Unknown time period"),
         };
     }
 

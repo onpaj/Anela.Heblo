@@ -88,11 +88,7 @@ export function resolveTimePeriod(
       return { ranges: [], primary: null };
     }
 
-    default: {
-      const defaultStart = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-      const defaultEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-      const range: DateRange = { from: defaultStart, to: defaultEnd };
-      return { ranges: [range], primary: range };
-    }
+    default:
+      throw new Error(`Unknown time period: ${period}`)
   }
 }

@@ -15,6 +15,6 @@ export function getTimePeriodDisplayText(period: TimePeriod): string {
     case TimePeriod.CustomPeriod:
       return "Vlastní období";
     default:
-      return "9M (6 měsíců + prognóza 3 měsíce)";
+      return period;
   }
 }
