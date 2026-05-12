@@ -1,292 +1,243 @@
-# Design: Dashboard Tile — Yesterday's DQT Status
-
-## UX/UI Design
-
-### States and Visual Layout
-
-The tile shares the same container shape as `DataQualityTile` (flex column, centered, `min-h-44`, `cursor-pointer`, hover/active transition). The `error` state is non-interactive (no pointer, no hover), matching the sibling tile.
-
-#### State: `no_data`
-```
-┌──────────────────────────┐
-│                          │
-│         🕐               │
-│      Žádná data          │
-│  Včerejší test neproběhl │
-│                          │
-└──────────────────────────┘
-```
-- `Clock` icon — `text-gray-400`
-- `"Žádná data"` — `text-gray-500 text-sm`
-- `"Včerejší test neproběhl"` — `text-gray-400 text-xs mt-1`
-
-#### State: `error`
-```
-┌──────────────────────────┐
-│                          │
-│         ✕                │
-│  Chyba při načítání dat  │
-│                          │
-└──────────────────────────┘
-```
-- `XCircle` icon — `text-red-500`
-- `"Chyba při načítání dat"` — `text-red-600 text-sm`
-- Not clickable (no `cursor-pointer`, no hover/active)
-
-#### State: `warning` — `runStatus === 'Running'`
-```
-┌──────────────────────────┐
-│                          │
-│         🕐               │
-│        probíhá           │
-│      DD.MM.YYYY          │
-│                          │
-└──────────────────────────┘
-```
-- `Clock` icon — `text-amber-500`
-- `"probíhá"` — `text-amber-600 text-sm`
-- Yesterday's date formatted as `DD.MM.YYYY` (derived from `data.data.dateTo`) — `text-gray-400 text-xs mt-1`
-
-#### State: `warning` — `runStatus === 'Completed'` with mismatches
-```
-┌──────────────────────────┐
-│                          │
-│         ⚠                │
-│           4              │
-│        neshod            │
-│    z 123 faktur          │
-│      DD.MM.YYYY          │
-│                          │
-└──────────────────────────┘
-```
-- `AlertTriangle` icon — `text-red-500`
-- Mismatch count — `text-red-700 text-3xl font-bold mb-1`
-- `"neshod"` — `text-gray-500 text-sm`
-- `"z X faktur"` (when `totalChecked > 0`) — `text-gray-400 text-xs mt-1`
-- Yesterday's date as `DD.MM.YYYY` — `text-gray-400 text-xs mt-1`
-
-#### State: `success`
-```
-┌──────────────────────────┐
-│                          │
-│         🛡                │
-│           0              │
-│        vše OK            │
-│    z 123 faktur          │
-│      DD.MM.YYYY          │
-│                          │
-└──────────────────────────┘
-```
-- `ShieldCheck` icon — `text-green-500`
-- `"0"` — `text-green-700 text-3xl font-bold mb-1`
-- `"vše OK"` — `text-gray-500 text-sm`
-- `"z X faktur"` (when `totalChecked > 0`) — `text-gray-400 text-xs mt-1`
-- Yesterday's date as `DD.MM.YYYY` — `text-gray-400 text-xs mt-1`
-
-### Component Hierarchy
-
-```
-DqtYesterdayStatusTile
-└── div (container, click handler — all states except error)
-    ├── [icon]           — varies by state
-    ├── [count / label]  — varies by state
-    └── [sub-labels]     — "z X faktur", date, "probíhá", etc.
-```
-
-### Key Interactions
-
-- Click anywhere on the tile (all states except `error`) → `navigate('/automation/data-quality')`.
-- The `error` state renders without hover styling and without a click handler, matching `DataQualityTile`.
-- Date label for `warning`/`success` states: format `data.data.dateTo` (ISO string `YYYY-MM-DD`) as `DD.MM.YYYY`. If `dateTo` is absent, fall back to the static string `"včera"`.
-
----
+# Design: Photobank GetTags Performance Fix
 
 ## Component Design
 
-### Backend
+### `IPhotobankTagsCache` / `PhotobankTagsCache`
 
-#### `DqtYesterdayStatusTile` (new)
+A scoped, passive cache wrapper around `IMemoryCache`. Passive means it stores and retrieves a pre-computed result; it never loads data itself. Mirrors the `SalesCostCache` convention already used in this codebase.
 
-**Location:** `backend/src/Anela.Heblo.Application/Features/DataQuality/DashboardTiles/DqtYesterdayStatusTile.cs`
-
-**Implements:** `ITile`
-
-**Constructor dependencies:**
-| Parameter | Type |
-|---|---|
-| `repository` | `IDqtRunRepository` |
-| `timeProvider` | `TimeProvider` |
-| `logger` | `ILogger<DqtYesterdayStatusTile>` |
-
-**Metadata properties:**
-| Property | Value |
-|---|---|
-| `Title` | `"DQT včera"` |
-| `Description` | `"Stav včerejšího DQT testu faktur"` |
-| `Size` | `TileSize.Medium` |
-| `Category` | `TileCategory.DataQuality` |
-| `DefaultEnabled` | `true` |
-| `AutoShow` | `false` |
-| `ComponentType` | `typeof(object)` |
-| `RequiredPermissions` | `Array.Empty<string>()` |
-
-**Framework-derived tile id:** `"dqtyesterdaystatus"` — produced by `TileExtensions.GetTileId` (`Type.Name.ToLowerInvariant().Replace("tile", "")`). No override needed; the class name alone is sufficient. There is no `GetTileId()` method on `ITile`.
-
-**`LoadDataAsync` responsibilities:**
-1. Compute `yesterday = DateOnly.FromDateTime(_timeProvider.GetLocalNow().LocalDateTime).AddDays(-1)`
-2. Call `_repository.GetLatestByTestTypeAndCoveredDateAsync(DqtTestType.IssuedInvoiceComparison, yesterday, ct)`
-3. Map result to status payload per the truth table in Data Schemas
-4. Wrap entire body in try/catch: on exception log with `_logger.LogError` (include exception, test type, target date) and return the error payload — never rethrow
-
-#### `IDqtRunRepository` (modified)
-
-**Location:** `backend/src/Anela.Heblo.Domain/Features/DataQuality/IDqtRunRepository.cs`
-
-**New method appended to interface:**
+**Interface** — `Application/Features/Photobank/Services/IPhotobankTagsCache.cs`:
 ```csharp
-Task<DqtRun?> GetLatestByTestTypeAndCoveredDateAsync(
-    DqtTestType testType,
-    DateOnly coveredDate,
-    CancellationToken cancellationToken = default);
-```
-
-**Semantics:** Returns the most recent run (by `StartedAt DESC`) of the given `testType` satisfying `DateFrom <= coveredDate && DateTo >= coveredDate`. Returns `null` when no such run exists. Does not load navigation properties (`Results` excluded).
-
-#### `DqtRunRepository` (modified)
-
-**Location:** `backend/src/Anela.Heblo.Persistence/DataQuality/DqtRunRepository.cs`
-
-**Implementation:**
-```csharp
-public async Task<DqtRun?> GetLatestByTestTypeAndCoveredDateAsync(
-    DqtTestType testType,
-    DateOnly coveredDate,
-    CancellationToken cancellationToken = default)
+public interface IPhotobankTagsCache
 {
-    return await DbSet
-        .Where(r => r.TestType == testType
-                    && r.DateFrom <= coveredDate
-                    && r.DateTo >= coveredDate)
-        .OrderByDescending(r => r.StartedAt)
-        .FirstOrDefaultAsync(cancellationToken);
+    bool TryGet(out IReadOnlyList<TagWithCountDto> tags);
+    void Set(IReadOnlyList<TagWithCountDto> tags);
+    void Invalidate();
 }
 ```
 
-Ordering uses `StartedAt DESC` only, matching `GetLatestByTestTypeAsync`. No `.Include` — the tile reads only scalar fields on `DqtRun`. No index migration required (see Data Schemas).
+**Implementation** — `Application/Features/Photobank/Services/PhotobankTagsCache.cs`:
 
-#### `DashboardModule` (modified)
+- Constructor-injects `IMemoryCache` and `IOptions<PhotobankTagsCacheOptions>`.
+- `Set` stores with `MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(TtlSeconds) }`.
+- `Invalidate` calls `_cache.Remove(CacheKey)`.
+- `CacheKey` is a `private const string` = `"Photobank:Tags:WithCounts"`.
+- Registered as `services.AddScoped<IPhotobankTagsCache, PhotobankTagsCache>()`.
 
-**Location:** `backend/src/Anela.Heblo.Application/Features/Dashboard/DashboardModule.cs`
+---
 
-Append after the `DataQualityStatusTile` registration:
+### `PhotobankTagsCacheOptions`
+
+**File** — `Application/Features/Photobank/Configuration/PhotobankTagsCacheOptions.cs`:
 ```csharp
-services.RegisterTile<DqtYesterdayStatusTile>();
+public sealed class PhotobankTagsCacheOptions
+{
+    public const string SectionName = "Photobank:TagsCache";
+    public int TtlSeconds { get; init; } = 60;
+}
 ```
 
-### Frontend
+Registered via `services.Configure<PhotobankTagsCacheOptions>(configuration.GetSection(PhotobankTagsCacheOptions.SectionName))`.
 
-#### `DqtYesterdayStatusTile.tsx` (new)
+---
 
-**Location:** `frontend/src/components/dashboard/tiles/DqtYesterdayStatusTile.tsx`
+### `GetTagsHandler` (modified)
 
-**Responsibilities:**
-- Accept `DqtYesterdayStatusTileProps` (see Data Schemas)
-- Branch on `data.status` to render one of four visual states
-- Within `warning`: further branch on `data.data?.runStatus === 'Running'` → Clock + `"probíhá"` vs. AlertTriangle + mismatch count
-- Format `data.data?.dateTo` (`YYYY-MM-DD`) as `DD.MM.YYYY` for the date sub-label; fall back to `"včera"` when absent
-- Attach `onClick → navigate('/automation/data-quality')` to the container for all states except `error`
-- Source icons from `lucide-react`: `ShieldCheck`, `AlertTriangle`, `XCircle`, `Clock` (all already imported by `DataQualityTile.tsx`)
+Gains two new constructor dependencies: `IPhotobankTagsCache` and `ILogger<GetTagsHandler>`.
 
-#### `TileContent.tsx` (modified)
+**Read path logic:**
+1. `_cache.TryGet(out var cached)` → if true, log at `Debug`, return cached response.
+2. On miss: start `Stopwatch`, call `_repository.GetTagsWithCountsAsync(ct)`.
+3. Map `IReadOnlyList<TagCount>` → `List<TagWithCountDto>`.
+4. Call `_cache.Set(dtos)`.
+5. Log at `Information` with structured fields `{TagCount}` and `{ElapsedMs}`. No tag names or other PII.
+6. Return `GetTagsResponse { Tags = dtos }`.
 
-**Location:** `frontend/src/components/dashboard/tiles/TileContent.tsx`
+---
 
-Add one import:
-```typescript
-import { DqtYesterdayStatusTile } from './DqtYesterdayStatusTile';
+### `IPhotobankRepository` / `PhotobankRepository` (modified)
+
+**Signature change:**
+```csharp
+// Domain/Features/Photobank/IPhotobankRepository.cs
+Task<IReadOnlyList<TagCount>> GetTagsWithCountsAsync(CancellationToken cancellationToken);
 ```
 
-Add one switch case after `case 'dataqualitystatus'`:
-```typescript
-case 'dqtyesterdaystatus':
-  return <DqtYesterdayStatusTile data={tile.data} />;
+`TagCount` is a new domain record (see Data Schemas). The handler maps it to `TagWithCountDto`; the cache stores `TagWithCountDto` so the domain record never crosses the cache boundary.
+
+**Rewritten query** — single SQL statement using `GroupJoin`:
+```csharp
+return await _context.PhotobankTags
+    .GroupJoin(
+        _context.PhotoTags,
+        t  => t.Id,
+        pt => pt.TagId,
+        (t, pts) => new TagCount(t.Id, t.Name, pts.Count()))
+    .OrderByDescending(x => x.Count)
+    .ThenBy(x => x.Name)
+    .AsNoTracking()
+    .ToListAsync(cancellationToken);
 ```
+
+`AsNoTracking()` is required. The generated SQL must be a single `LEFT JOIN … GROUP BY` statement. `IX_PhotoTags_TagId` (new index) supports the `COUNT`/`GROUP BY` on `TagId`.
+
+---
+
+### Mutating handlers (9 handlers + job, all modified)
+
+Each gains `IPhotobankTagsCache` as a constructor dependency and calls `_cache.Invalidate()` immediately after a successful write:
+
+| Handler / Job | When to invalidate |
+|---|---|
+| `CreateTagHandler` | After `SaveChangesAsync` succeeds |
+| `DeleteTagHandler` | After `SaveChangesAsync` succeeds |
+| `AddPhotoTagHandler` | After `SaveChangesAsync` succeeds |
+| `RemovePhotoTagHandler` | After `SaveChangesAsync` succeeds |
+| `BulkAddPhotoTagHandler` | After `SaveChangesAsync` succeeds |
+| `BulkAddPhotoTagByIdsHandler` | After `SaveChangesAsync` succeeds |
+| `ReapplyRulesHandler` | After `SaveChangesAsync` succeeds |
+| `RetagPhotosHandler` | After `ResetAutoTaggedAtAsync` / `RemovePhotoTagsBySourceAsync` return (these use `ExecuteUpdateAsync` / `ExecuteDeleteAsync` and commit immediately — no `SaveChangesAsync`) |
+| `PhotobankAutoTagJob` | After each `ProcessBatchAsync`'s `SaveChangesAsync` succeeds (job reads vocabulary directly from repository, bypassing cache) |
+
+Invalidation must not fire if the write fails — the exception propagates before the `Invalidate()` call.
+
+---
+
+### `PhotobankModule` (modified)
+
+Additions:
+```csharp
+services.AddMemoryCache(); // idempotent
+services.Configure<PhotobankTagsCacheOptions>(
+    configuration.GetSection(PhotobankTagsCacheOptions.SectionName));
+services.AddScoped<IPhotobankTagsCache, PhotobankTagsCache>();
+```
+
+---
+
+### EF Core migration
+
+**File** — `Persistence/Migrations/{timestamp}_AddPhotoTagsTagIdIndex.cs`:
+```csharp
+protected override void Up(MigrationBuilder migrationBuilder)
+{
+    migrationBuilder.CreateIndex(
+        name: "IX_PhotoTags_TagId",
+        schema: "public",
+        table: "PhotoTags",
+        column: "TagId");
+}
+
+protected override void Down(MigrationBuilder migrationBuilder)
+{
+    migrationBuilder.DropIndex(
+        name: "IX_PhotoTags_TagId",
+        schema: "public",
+        table: "PhotoTags");
+}
+```
+
+**Model snapshot sync** — add to `PhotoTagConfiguration.cs`:
+```csharp
+builder.HasIndex(x => x.TagId).HasDatabaseName("IX_PhotoTags_TagId");
+```
+
+**Production application:** generate the migration script with `dotnet ef migrations script`, then replace the DDL with `CREATE INDEX CONCURRENTLY "IX_PhotoTags_TagId" ON public."PhotoTags" ("TagId");`. Apply outside the 04:00 UTC auto-tag job window via the manual-migration workflow.
 
 ---
 
 ## Data Schemas
 
-### Backend payload (`LoadDataAsync` return)
+### Domain record `TagCount`
 
-**Success / Warning:**
+**File** — `Domain/Features/Photobank/TagCount.cs`:
+```csharp
+public record TagCount(int Id, string Name, int Count);
+```
+
+Used only inside the repository and handler mapping step. Never stored in the cache (cache uses `TagWithCountDto`).
+
+---
+
+### `TagWithCountDto` (updated)
+
+**File** — `Application/Features/Photobank/Contracts/TagDto.cs` (existing class, properties tightened to `init`):
+```csharp
+public class TagWithCountDto
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = null!;
+    public int Count { get; init; }
+}
+```
+
+`init` setters prevent callers from mutating a cached payload through a shared reference. `TagDto` is unchanged.
+
+---
+
+### API response (unchanged)
+
+```
+GET /api/photobank/tags
+Authorization: Bearer <token>
+```
+
 ```json
 {
-  "status": "success" | "warning",
-  "data": {
-    "runId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "runStatus": "Completed" | "Running",
-    "dateFrom": "2026-05-05",
-    "dateTo": "2026-05-05",
-    "totalChecked": 123,
-    "totalMismatches": 4
-  },
-  "drillDown": { "href": "/automation/data-quality", "enabled": true }
+  "tags": [
+    { "id": 12, "name": "summer",   "count": 1843 },
+    { "id": 7,  "name": "products", "count": 1201 }
+  ],
+  "success": true,
+  "error": null
 }
 ```
 
-**No data / Error:**
+`GetTagsResponse` and `TagWithCountDto` shapes are backward-compatible. No OpenAPI client regeneration required.
+
+---
+
+### Configuration schema
+
+`appsettings.json`:
 ```json
 {
-  "status": "no_data" | "error",
-  "data": null,
-  "drillDown": { "href": "/automation/data-quality", "enabled": true }
+  "Photobank": {
+    "TagsCache": {
+      "TtlSeconds": 60
+    }
+  }
 }
 ```
 
-### Status mapping truth table
+---
 
-| Run | `run.Status` | `run.TotalMismatches` | Response `status` |
-|---|---|---|---|
-| `null` | — | — | `"no_data"` |
-| present | `Failed` | — | `"error"` |
-| present | `Running` | — | `"warning"` |
-| present | `Completed` | `> 0` | `"warning"` |
-| present | `Completed` | `0` | `"success"` |
-| (exception) | — | — | `"error"` (caught + logged) |
-
-### Frontend props contract
-
-```typescript
-interface DqtYesterdayStatusTileProps {
-  data: {
-    status?: 'success' | 'warning' | 'error' | 'no_data';
-    data?: {
-      runId?: string;
-      runStatus?: 'Completed' | 'Failed' | 'Running';
-      dateFrom?: string;        // ISO date "YYYY-MM-DD"
-      dateTo?: string;          // ISO date "YYYY-MM-DD"
-      totalChecked?: number;
-      totalMismatches?: number;
-    } | null;
-    drillDown?: {
-      href: string;
-      enabled: boolean;
-    };
-  };
-}
-```
-
-> Note: the sibling `DataQualityTile.tsx` reads `data.data?.mismatchCount` — a pre-existing field name mismatch with its own backend. This tile uses `totalMismatches` consistently end-to-end and does not inherit that discrepancy.
-
-### Repository EF Core query
+### Database index
 
 ```sql
-SELECT TOP 1 *
-FROM   DqtRuns
-WHERE  TestType = @testType
-  AND  DateFrom <= @coveredDate
-  AND  DateTo   >= @coveredDate
-ORDER BY StartedAt DESC
+-- Applied manually with CONCURRENTLY in production
+CREATE INDEX CONCURRENTLY "IX_PhotoTags_TagId"
+  ON public."PhotoTags" ("TagId");
 ```
 
-No new index or migration. The existing `IX_DqtRuns_TestType_StartedAt` narrows rows by test type; the date-range predicate operates over small cardinality (≈1–few rows per test type per day). Revisit only if `DqtRuns` exceeds ~10 000 rows.
+No other schema changes. `PhotobankTags` and `PhotoTags` table structures are unmodified.
+
+---
+
+### Cache payload
+
+The value stored under key `"Photobank:Tags:WithCounts"` is `IReadOnlyList<TagWithCountDto>` — the final API response shape — so `GetTagsHandler` returns it directly on a cache hit without remapping.
+
+---
+
+### Structured log entry (cache miss only)
+
+```
+level:   Information
+message: "Fetched {TagCount} photobank tags in {ElapsedMs} ms"
+fields:
+  TagCount  int  — number of tags returned
+  ElapsedMs int  — wall-clock time of the repository call
+```
+
+No tag names, IDs, or other PII are emitted.
