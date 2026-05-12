@@ -6,6 +6,7 @@
   },
   "queues": {
     "analyst-queue":   { "agent": ".agents/analyst.md" },
+    "product-queue":   { "agent": ".agents/product.md" },
     "architect-queue": { "agent": ".agents/architect.md" },
     "designer-queue":  { "agent": ".agents/designer.md" },
     "planner-queue":   { "agent": ".agents/planner.md" },

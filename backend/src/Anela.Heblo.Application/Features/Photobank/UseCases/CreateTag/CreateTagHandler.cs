@@ -1,5 +1,7 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Domain.Features.Photobank;
 using MediatR;
 
@@ -8,10 +10,12 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.CreateTag
     public class CreateTagHandler : IRequestHandler<CreateTagRequest, CreateTagResponse>
     {
         private readonly IPhotobankRepository _repository;
+        private readonly IPhotobankTagsCache _cache;
 
-        public CreateTagHandler(IPhotobankRepository repository)
+        public CreateTagHandler(IPhotobankRepository repository, IPhotobankTagsCache cache)
         {
             _repository = repository;
+            _cache = cache;
         }
 
         public async Task<CreateTagResponse> Handle(CreateTagRequest request, CancellationToken cancellationToken)
@@ -27,6 +31,8 @@ namespace Anela.Heblo.Application.Features.Photobank.UseCases.CreateTag
             var tag = await _repository.GetOrCreateTagAsync(normalizedName, cancellationToken);
             if (tag is null)
                 throw new InvalidOperationException($"GetOrCreateTagAsync returned null for '{normalizedName}'.");
+
+            _cache.Invalidate();
             return new CreateTagResponse { Id = tag.Id, Name = tag.Name, AlreadyExisted = false };
         }
     }
