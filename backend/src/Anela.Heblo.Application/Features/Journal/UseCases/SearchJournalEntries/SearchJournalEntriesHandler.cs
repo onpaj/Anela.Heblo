@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Journal.Contracts;
+using Anela.Heblo.Application.Features.Journal.Mapping;
 using Anela.Heblo.Domain.Features.Journal;
 using MediatR;
 
@@ -33,31 +34,7 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.SearchJournalEntries
 
             var result = await _journalRepository.SearchEntriesAsync(criteria, cancellationToken);
 
-            var entryDtos = result.Items.Select(entry => new JournalEntryDto
-            {
-                Id = entry.Id,
-                Title = entry.Title,
-                Content = entry.Content,
-                EntryDate = entry.EntryDate,
-                CreatedAt = entry.CreatedAt,
-                ModifiedAt = entry.ModifiedAt,
-                CreatedByUserId = entry.CreatedByUserId,
-                CreatedByUsername = entry.CreatedByUsername,
-                ModifiedByUserId = entry.ModifiedByUserId,
-                ModifiedByUsername = entry.ModifiedByUsername,
-                AssociatedProducts = entry.ProductAssociations
-                    .Select(pa => pa.ProductCodePrefix)
-                    .Distinct()
-                    .ToList(),
-                Tags = entry.TagAssignments
-                    .Select(ta => new JournalEntryTagDto
-                    {
-                        Id = ta.Tag.Id,
-                        Name = ta.Tag.Name,
-                        Color = ta.Tag.Color
-                    })
-                    .ToList()
-            }).ToList();
+            var entryDtos = result.Items.Select(JournalEntryMapper.ToDto).ToList();
 
             // Add content previews for search results
             if (!string.IsNullOrEmpty(request.SearchText))
