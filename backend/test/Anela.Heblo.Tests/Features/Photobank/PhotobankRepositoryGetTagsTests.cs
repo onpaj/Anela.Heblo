@@ -85,4 +85,15 @@ public class PhotobankRepositoryGetTagsTests : IDisposable
 
         result.Should().AllSatisfy(r => r.Should().BeOfType<TagCount>());
     }
+
+    [Fact]
+    public async Task GetTagsWithCountsAsync_DoesNotTrackTagEntities()
+    {
+        _context.ChangeTracker.Clear();
+        var result = await _repository.GetTagsWithCountsAsync(CancellationToken.None);
+
+        result.Should().HaveCount(4);
+        _context.ChangeTracker.Entries<Tag>().Should().BeEmpty(
+            "FR-4 requires the read path to project without entity tracking");
+    }
 }
