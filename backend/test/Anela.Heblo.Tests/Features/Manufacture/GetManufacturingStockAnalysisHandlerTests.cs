@@ -16,7 +16,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class GetManufacturingStockAnalysisHandlerTests
 {
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
-    private readonly Mock<ITimePeriodCalculator> _timePeriodCalculatorMock;
+    private readonly Mock<ITimePeriodResolver> _timePeriodResolverMock;
     private readonly Mock<IConsumptionRateCalculator> _consumptionCalculatorMock;
     private readonly Mock<IProductionActivityAnalyzer> _productionAnalyzerMock;
     private readonly Mock<IManufactureSeverityCalculator> _severityCalculatorMock;
@@ -28,7 +28,7 @@ public class GetManufacturingStockAnalysisHandlerTests
     public GetManufacturingStockAnalysisHandlerTests()
     {
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
-        _timePeriodCalculatorMock = new Mock<ITimePeriodCalculator>();
+        _timePeriodResolverMock = new Mock<ITimePeriodResolver>();
         _consumptionCalculatorMock = new Mock<IConsumptionRateCalculator>();
         _productionAnalyzerMock = new Mock<IProductionActivityAnalyzer>();
         _severityCalculatorMock = new Mock<IManufactureSeverityCalculator>();
@@ -38,7 +38,7 @@ public class GetManufacturingStockAnalysisHandlerTests
 
         _handler = new GetManufacturingStockAnalysisHandler(
             _catalogRepositoryMock.Object,
-            _timePeriodCalculatorMock.Object,
+            _timePeriodResolverMock.Object,
             _consumptionCalculatorMock.Object,
             _productionAnalyzerMock.Object,
             _severityCalculatorMock.Object,
@@ -55,8 +55,8 @@ public class GetManufacturingStockAnalysisHandlerTests
         var request = new GetManufacturingStockAnalysisRequest();
         var emptyCatalogItems = new List<CatalogAggregate>();
 
-        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-            .Returns(new List<(DateTime, DateTime)> { (DateTime.Today.AddDays(-30), DateTime.Today) });
+        _timePeriodResolverMock.Setup(x => x.Resolve(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            .Returns(new List<DateRange> { new DateRange(DateTime.Today.AddDays(-30), DateTime.Today) });
 
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(emptyCatalogItems);
@@ -87,8 +87,8 @@ public class GetManufacturingStockAnalysisHandlerTests
         var analysisItems = CreateTestAnalysisItems();
         var summary = CreateTestSummary();
 
-        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-            .Returns(new List<(DateTime, DateTime)> { (DateTime.Today.AddDays(-90), DateTime.Today) });
+        _timePeriodResolverMock.Setup(x => x.Resolve(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            .Returns(new List<DateRange> { new DateRange(DateTime.Today.AddDays(-90), DateTime.Today) });
 
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogItems);
@@ -210,8 +210,8 @@ public class GetManufacturingStockAnalysisHandlerTests
             })
             .ToList();
 
-        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-            .Returns(new List<(DateTime, DateTime)> { (DateTime.Today.AddDays(-30), DateTime.Today) });
+        _timePeriodResolverMock.Setup(x => x.Resolve(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            .Returns(new List<DateRange> { new DateRange(DateTime.Today.AddDays(-30), DateTime.Today) });
 
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogItems);
@@ -300,8 +300,8 @@ public class GetManufacturingStockAnalysisHandlerTests
         };
 
         // Set up mocks
-        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-            .Returns(new List<(DateTime, DateTime)> { (DateTime.Today.AddDays(-30), DateTime.Today) });
+        _timePeriodResolverMock.Setup(x => x.Resolve(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            .Returns(new List<DateRange> { new DateRange(DateTime.Today.AddDays(-30), DateTime.Today) });
 
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogItems);
@@ -363,8 +363,8 @@ public class GetManufacturingStockAnalysisHandlerTests
 
         var catalogItems = CreateTestCatalogItems();
 
-        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-            .Returns(new List<(DateTime, DateTime)> { (DateTime.Today.AddDays(-30), DateTime.Today) });
+        _timePeriodResolverMock.Setup(x => x.Resolve(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            .Returns(new List<DateRange> { new DateRange(DateTime.Today.AddDays(-30), DateTime.Today) });
 
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogItems);
@@ -420,8 +420,8 @@ public class GetManufacturingStockAnalysisHandlerTests
             }
         };
 
-        _timePeriodCalculatorMock.Setup(x => x.CalculateTimePeriodRanges(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
-            .Returns(new List<(DateTime, DateTime)> { (DateTime.Today.AddDays(-30), DateTime.Today) });
+        _timePeriodResolverMock.Setup(x => x.Resolve(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            .Returns(new List<DateRange> { new DateRange(DateTime.Today.AddDays(-30), DateTime.Today) });
 
         _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogItems);
