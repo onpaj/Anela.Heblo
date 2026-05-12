@@ -3,6 +3,7 @@ using Npgsql;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Anela.Heblo.API.HealthChecks.DataQuality;
 using Microsoft.ApplicationInsights.Extensibility;
+using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Telemetry;
 using Anela.Heblo.API.Infrastructure.Telemetry;
 using Anela.Heblo.Application.Features.Users;
