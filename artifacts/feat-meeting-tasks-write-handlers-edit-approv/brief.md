@@ -338,4 +338,3 @@ git commit -m "feat(meeting-tasks): add UpdateProposedTask, UpdateProposedTaskSt
 ---
 
 > **Integration:** Create your feature branch from `feat/meeting-task-validation-epic`. When done, open a PR targeting `feat/meeting-task-validation-epic` (not `main`).
-
