@@ -21,21 +21,21 @@ public class ManufacturedProductInventoryController : BaseApiController
     }
 
     [HttpGet]
-    public async Task<ActionResult<GetManufacturedInventoryResponse>> GetInventory([FromQuery] GetManufacturedInventoryRequest request)
+    public async Task<ActionResult<GetManufacturedInventoryResponse>> GetInventory([FromQuery] GetManufacturedInventoryRequest request, CancellationToken cancellationToken = default)
     {
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }
 
     [HttpPost]
-    public async Task<ActionResult<CreateManufacturedInventoryItemResponse>> CreateItem([FromBody] CreateManufacturedInventoryItemRequest request)
+    public async Task<ActionResult<CreateManufacturedInventoryItemResponse>> CreateItem([FromBody] CreateManufacturedInventoryItemRequest request, CancellationToken cancellationToken = default)
     {
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }
 
     [HttpPut("{id}")]
-    public async Task<ActionResult<UpdateManufacturedInventoryItemResponse>> UpdateItem(int id, [FromBody] UpdateManufacturedInventoryItemBody body)
+    public async Task<ActionResult<UpdateManufacturedInventoryItemResponse>> UpdateItem(int id, [FromBody] UpdateManufacturedInventoryItemBody body, CancellationToken cancellationToken = default)
     {
         var request = new UpdateManufacturedInventoryItemRequest
         {
@@ -43,21 +43,15 @@ public class ManufacturedProductInventoryController : BaseApiController
             NewAmount = body.NewAmount,
             Note = body.Note
         };
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult<DeleteManufacturedInventoryItemResponse>> DeleteItem(int id, [FromQuery] string? note)
+    public async Task<ActionResult<DeleteManufacturedInventoryItemResponse>> DeleteItem(int id, [FromQuery] string? note, CancellationToken cancellationToken = default)
     {
         var request = new DeleteManufacturedInventoryItemRequest { Id = id, Note = note };
-        var response = await _mediator.Send(request);
+        var response = await _mediator.Send(request, cancellationToken);
         return HandleResponse(response);
-    }
-
-    public class UpdateManufacturedInventoryItemBody
-    {
-        public decimal NewAmount { get; set; }
-        public string? Note { get; set; }
     }
 }
