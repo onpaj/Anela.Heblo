@@ -29,5 +29,12 @@ public class SmartsuppConversation
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime SyncedAt { get; set; }
+    public int? Rating { get; set; }
+    public string? RatingText { get; set; }
+    public string? CloseType { get; set; }
+    public string? ClosedByAgentId { get; set; }
+    public string? AssignedAgentIdsJson { get; set; }
+    public string? Channel { get; set; }
+    public DateTime? LastClosedAt { get; set; }
     public List<SmartsuppMessage> Messages { get; set; } = new();
 }
