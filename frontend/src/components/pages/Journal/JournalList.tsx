@@ -17,7 +17,10 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 // Import removed - using default date format for now to fix Jest test issues
-import type { JournalEntryDto } from "../../../api/generated/api-client";
+import type {
+  JournalEntryDto,
+  SearchJournalEntryDto,
+} from "../../../api/generated/api-client";
 import JournalEntryModal from "../../JournalEntryModal";
 
 const JournalList: React.FC = () => {
@@ -310,78 +313,147 @@ const JournalList: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {entries.map((entry: JournalEntryDto) => (
-                  <tr
-                    key={entry.id}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
-                    data-testid="journal-entry"
-                    onClick={() => handleOpenEditModal(entry.id!)}
-                    title="Klikněte pro editaci záznamu"
-                  >
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      <div className="max-w-48 truncate">
-                        {entry.title || "Bez názvu"}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {format(new Date(entry.entryDate!), "dd.MM.yyyy")}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="max-w-32 truncate">
-                        {entry.createdByUsername || entry.createdByUserId}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-sm text-gray-700">
-                      <div className="max-w-96 line-clamp-2">
-                        {isSearchMode && entry.contentPreview
-                          ? entry.contentPreview
-                          : truncateContent(entry.content!, 150)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-sm">
-                      <div className="flex flex-wrap gap-1 max-w-48">
-                        {entry.tags &&
-                          entry.tags.slice(0, 2).map((tag) => (
-                            <span
-                              key={tag.id}
-                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border"
-                              style={{
-                                borderColor: tag.color,
-                                color: tag.color,
-                              }}
-                            >
-                              {tag.name}
-                            </span>
-                          ))}
-                        {entry.tags && entry.tags.length > 2 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                            +{entry.tags.length - 2}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-sm">
-                      <div className="flex flex-wrap gap-1 max-w-32">
-                        {entry.associatedProducts
-                          ?.slice(0, 2)
-                          .map((product) => (
-                            <span
-                              key={product}
-                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800"
-                            >
-                              {product}
-                            </span>
-                          ))}
-                        {entry.associatedProducts &&
-                          entry.associatedProducts.length > 2 && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                              +{entry.associatedProducts.length - 2}
-                            </span>
-                          )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {isSearchMode
+                  ? (entries as SearchJournalEntryDto[]).map((entry) => (
+                      <tr
+                        key={entry.id}
+                        className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                        data-testid="journal-entry"
+                        onClick={() => handleOpenEditModal(entry.id!)}
+                        title="Klikněte pro editaci záznamu"
+                      >
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <div className="max-w-48 truncate">
+                            {entry.title || "Bez názvu"}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {format(new Date(entry.entryDate!), "dd.MM.yyyy")}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="max-w-32 truncate">
+                            {entry.createdByUsername || entry.createdByUserId}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-sm text-gray-700">
+                          <div className="max-w-96 line-clamp-2">
+                            {entry.contentPreview}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-sm">
+                          <div className="flex flex-wrap gap-1 max-w-48">
+                            {entry.tags &&
+                              entry.tags.slice(0, 2).map((tag) => (
+                                <span
+                                  key={tag.id}
+                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border"
+                                  style={{
+                                    borderColor: tag.color,
+                                    color: tag.color,
+                                  }}
+                                >
+                                  {tag.name}
+                                </span>
+                              ))}
+                            {entry.tags && entry.tags.length > 2 && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                +{entry.tags.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-sm">
+                          <div className="flex flex-wrap gap-1 max-w-32">
+                            {entry.associatedProducts
+                              ?.slice(0, 2)
+                              .map((product) => (
+                                <span
+                                  key={product}
+                                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800"
+                                >
+                                  {product}
+                                </span>
+                              ))}
+                            {entry.associatedProducts &&
+                              entry.associatedProducts.length > 2 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                                  +{entry.associatedProducts.length - 2}
+                                </span>
+                              )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  : (entries as JournalEntryDto[]).map((entry) => (
+                      <tr
+                        key={entry.id}
+                        className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+                        data-testid="journal-entry"
+                        onClick={() => handleOpenEditModal(entry.id!)}
+                        title="Klikněte pro editaci záznamu"
+                      >
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <div className="max-w-48 truncate">
+                            {entry.title || "Bez názvu"}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {format(new Date(entry.entryDate!), "dd.MM.yyyy")}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="max-w-32 truncate">
+                            {entry.createdByUsername || entry.createdByUserId}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-sm text-gray-700">
+                          <div className="max-w-96 line-clamp-2">
+                            {truncateContent(entry.content!, 150)}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-sm">
+                          <div className="flex flex-wrap gap-1 max-w-48">
+                            {entry.tags &&
+                              entry.tags.slice(0, 2).map((tag) => (
+                                <span
+                                  key={tag.id}
+                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border"
+                                  style={{
+                                    borderColor: tag.color,
+                                    color: tag.color,
+                                  }}
+                                >
+                                  {tag.name}
+                                </span>
+                              ))}
+                            {entry.tags && entry.tags.length > 2 && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                +{entry.tags.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-sm">
+                          <div className="flex flex-wrap gap-1 max-w-32">
+                            {entry.associatedProducts
+                              ?.slice(0, 2)
+                              .map((product) => (
+                                <span
+                                  key={product}
+                                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800"
+                                >
+                                  {product}
+                                </span>
+                              ))}
+                            {entry.associatedProducts &&
+                              entry.associatedProducts.length > 2 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                                  +{entry.associatedProducts.length - 2}
+                                </span>
+                              )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
               </tbody>
             </table>
           )}
