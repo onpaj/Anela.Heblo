@@ -76,4 +76,29 @@ public sealed class ClaudeMeetingTaskExtractorTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task ExtractAsync_WithMarkdownWrappedJson_StripsFenceAndParses()
+    {
+        // Arrange
+        const string wrappedJson = "```json\n[{\"title\":\"Action\",\"description\":\"Do it\",\"assignee\":\"Bob\",\"dueDate\":\"2026-06-01\"}]\n```";
+        var chatResponse = new ChatResponse([new ChatMessage(ChatRole.Assistant, wrappedJson)]);
+
+        _mockChatClient
+            .Setup(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(chatResponse);
+
+        // Act
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        // Assert
+        result.Should().HaveCount(1);
+        result[0].Title.Should().Be("Action");
+        result[0].Description.Should().Be("Do it");
+        result[0].Assignee.Should().Be("Bob");
+        result[0].DueDate.Should().Be(new DateTime(2026, 6, 1));
+    }
 }

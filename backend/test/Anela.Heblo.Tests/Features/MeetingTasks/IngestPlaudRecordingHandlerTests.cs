@@ -90,7 +90,7 @@ public sealed class IngestPlaudRecordingHandlerTests
                     t.PlaudRecordingId == recordingId &&
                     t.Status == MeetingTranscriptStatus.PendingReview &&
                     t.Tasks.Count == 2 &&
-                    t.Tasks.All(task => task.Status == ProposedTaskStatus.Pending && !task.IsManuallyAdded)),
+                    t.Tasks.All(task => task.MeetingTranscriptId == t.Id && task.Status == ProposedTaskStatus.Pending && !task.IsManuallyAdded)),
                 It.IsAny<CancellationToken>()),
             Times.Once);
 
