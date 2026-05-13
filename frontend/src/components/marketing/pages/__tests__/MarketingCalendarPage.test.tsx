@@ -201,18 +201,130 @@ function daysBetween(start: Date, end: Date): number {
   return Math.round((end.getTime() - start.getTime()) / MS_PER_DAY);
 }
 
+function startOfWeekMondayForTest(date: Date): Date {
+  const clone = new Date(date);
+  const dow = clone.getDay();
+  const daysToMonday = dow === 0 ? 6 : dow - 1;
+  clone.setHours(0, 0, 0, 0);
+  clone.setDate(clone.getDate() - daysToMonday);
+  clone.setHours(0, 0, 0, 0);
+  return clone;
+}
+
+function expectSameInstant(actual: Date, expected: Date) {
+  expect(actual.getTime()).toBe(expected.getTime());
+}
+
 describe("MarketingCalendarPage — fallback fetch range", () => {
-  it("requests a 35-day window for the default fiveWeeks view", () => {
+  it("requests a 35-day window for the default fiveWeeks view, anchored one week before current Monday", () => {
     render(<MarketingCalendarPage />);
     expect(calendarHookCalls.length).toBeGreaterThan(0);
     const last = calendarHookCalls[calendarHookCalls.length - 1];
     expect(daysBetween(last.startDate, last.endDate)).toBe(35);
+
+    const currentMonday = startOfWeekMondayForTest(new Date());
+    const expected = new Date(currentMonday);
+    expected.setDate(expected.getDate() - 7);
+    expectSameInstant(last.startDate, expected);
+    expect(last.startDate.getHours()).toBe(0);
+    expect(last.startDate.getMinutes()).toBe(0);
+    expect(last.startDate.getSeconds()).toBe(0);
+    expect(last.startDate.getMilliseconds()).toBe(0);
   });
 
-  it("requests a 14-day window after switching to twoWeeks", () => {
+  it("requests a 14-day window anchored on the current Monday after switching to twoWeeks", () => {
     render(<MarketingCalendarPage />);
     fireEvent.click(screen.getByRole("button", { name: /14 dní/ }));
     const last = calendarHookCalls[calendarHookCalls.length - 1];
     expect(daysBetween(last.startDate, last.endDate)).toBe(14);
+
+    const expected = startOfWeekMondayForTest(new Date());
+    expectSameInstant(last.startDate, expected);
+    expect(last.startDate.getHours()).toBe(0);
+    expect(last.startDate.getMinutes()).toBe(0);
+    expect(last.startDate.getSeconds()).toBe(0);
+    expect(last.startDate.getMilliseconds()).toBe(0);
+  });
+});
+
+describe("MarketingCalendarPage — view-mode toggle resets the anchor", () => {
+  it("toggling fiveWeeks → twoWeeks updates initialDate to current Monday", () => {
+    render(<MarketingCalendarPage />);
+    fireEvent.click(screen.getByRole("button", { name: /14 dní/ }));
+
+    const lastRender = calendarRenderLog[calendarRenderLog.length - 1];
+    expect(lastRender.viewName).toBe("twoWeeks");
+
+    const expected = startOfWeekMondayForTest(new Date());
+    expectSameInstant(lastRender.initialDate, expected);
+  });
+
+  it("toggling twoWeeks → fiveWeeks updates initialDate to Monday minus 7 days", () => {
+    render(<MarketingCalendarPage />);
+    fireEvent.click(screen.getByRole("button", { name: /14 dní/ }));
+    fireEvent.click(screen.getByRole("button", { name: /5 týdnů/ }));
+
+    const lastRender = calendarRenderLog[calendarRenderLog.length - 1];
+    expect(lastRender.viewName).toBe("fiveWeeks");
+
+    const expected = startOfWeekMondayForTest(new Date());
+    expected.setDate(expected.getDate() - 7);
+    expectSameInstant(lastRender.initialDate, expected);
+  });
+
+  it("repeated toggling 5w → 14d → 5w → 14d consistently lands on the correct anchor each time", () => {
+    render(<MarketingCalendarPage />);
+    const currentMonday = startOfWeekMondayForTest(new Date());
+    const fiveWeekAnchor = new Date(currentMonday);
+    fiveWeekAnchor.setDate(fiveWeekAnchor.getDate() - 7);
+
+    fireEvent.click(screen.getByRole("button", { name: /14 dní/ }));
+    expectSameInstant(
+      calendarRenderLog[calendarRenderLog.length - 1].initialDate,
+      currentMonday,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /5 týdnů/ }));
+    expectSameInstant(
+      calendarRenderLog[calendarRenderLog.length - 1].initialDate,
+      fiveWeekAnchor,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /14 dní/ }));
+    expectSameInstant(
+      calendarRenderLog[calendarRenderLog.length - 1].initialDate,
+      currentMonday,
+    );
+  });
+
+  it("toggling to Seznam does not change initialDate (calendar unmounts, no new render)", () => {
+    render(<MarketingCalendarPage />);
+    const beforeLen = calendarRenderLog.length;
+    fireEvent.click(screen.getByRole("button", { name: /Seznam/ }));
+    // After switching to list, no further calendar renders should occur.
+    expect(calendarRenderLog.length).toBe(beforeLen);
+  });
+});
+
+describe("MarketingCalendarPage — 'Dnes' button respects active view", () => {
+  it("in 14-day mode, clicking 'Dnes' calls gotoDate with current Monday", () => {
+    render(<MarketingCalendarPage />);
+    fireEvent.click(screen.getByRole("button", { name: /14 dní/ }));
+    fireEvent.click(screen.getByTestId("nav-today"));
+
+    expect(mockGotoDate).toHaveBeenCalled();
+    const arg = mockGotoDate.mock.calls[mockGotoDate.mock.calls.length - 1][0];
+    expectSameInstant(arg, startOfWeekMondayForTest(new Date()));
+  });
+
+  it("in 5-week mode, clicking 'Dnes' calls gotoDate with Monday minus 7 days", () => {
+    render(<MarketingCalendarPage />);
+    fireEvent.click(screen.getByTestId("nav-today"));
+
+    expect(mockGotoDate).toHaveBeenCalled();
+    const arg = mockGotoDate.mock.calls[mockGotoDate.mock.calls.length - 1][0];
+    const expected = startOfWeekMondayForTest(new Date());
+    expected.setDate(expected.getDate() - 7);
+    expectSameInstant(arg, expected);
   });
 });
