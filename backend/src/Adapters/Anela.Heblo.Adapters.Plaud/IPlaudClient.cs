@@ -1,8 +1,3 @@
-namespace Anela.Heblo.Adapters.Plaud;
-
-public interface IPlaudClient
-{
-    Task<List<PlaudRecordingSummary>> ListRecentAsync(int days, CancellationToken ct = default);
-    Task<string> GetTranscriptAsync(string recordingId, CancellationToken ct = default);
-    Task<string> GetSummaryAsync(string recordingId, CancellationToken ct = default);
-}
+// This interface has been moved to Application layer:
+// Anela.Heblo.Application.Features.MeetingTasks.Services.IPlaudClient
+// The adapter implements the interface from the Application project to maintain clean architecture.
