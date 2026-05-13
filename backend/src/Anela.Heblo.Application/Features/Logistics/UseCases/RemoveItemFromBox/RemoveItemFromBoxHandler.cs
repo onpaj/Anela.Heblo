@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
 using MediatR;
@@ -12,20 +13,26 @@ namespace Anela.Heblo.Application.Features.Logistics.UseCases.RemoveItemFromBox;
 public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest, RemoveItemFromBoxResponse>
 {
     private readonly ITransportBoxRepository _repository;
+    private readonly IManufacturedProductInventoryRepository _inventoryRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<RemoveItemFromBoxHandler> _logger;
     private readonly IMapper _mapper;
+    private readonly TimeProvider _timeProvider;
 
     public RemoveItemFromBoxHandler(
         ITransportBoxRepository repository,
+        IManufacturedProductInventoryRepository inventoryRepository,
         ICurrentUserService currentUserService,
         ILogger<RemoveItemFromBoxHandler> logger,
-        IMapper mapper)
+        IMapper mapper,
+        TimeProvider timeProvider)
     {
         _repository = repository;
+        _inventoryRepository = inventoryRepository;
         _currentUserService = currentUserService;
         _logger = logger;
         _mapper = mapper;
+        _timeProvider = timeProvider;
     }
 
     public async Task<RemoveItemFromBoxResponse> Handle(RemoveItemFromBoxRequest request, CancellationToken cancellationToken)
@@ -34,6 +41,7 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
         {
             var currentUser = _currentUserService.GetCurrentUser();
             var userName = currentUser.Name;
+            var timestamp = _timeProvider.GetUtcNow().UtcDateTime;
 
             var transportBox = await _repository.GetByIdWithDetailsAsync(request.BoxId);
             if (transportBox == null)
@@ -55,6 +63,16 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
                     ErrorCode = ErrorCodes.ResourceNotFound,
                     Params = new Dictionary<string, string> { { "itemId", request.ItemId.ToString() } }
                 };
+            }
+
+            if (removedItem.SourceInventoryId != null)
+            {
+                var inventoryItem = await _inventoryRepository.GetByIdAsync(removedItem.SourceInventoryId.Value, cancellationToken);
+                if (inventoryItem != null)
+                {
+                    inventoryItem.Restore((decimal)removedItem.Amount, userName, timestamp, transportBox.Id);
+                    await _inventoryRepository.UpdateAsync(inventoryItem, cancellationToken);
+                }
             }
 
             await _repository.SaveChangesAsync(cancellationToken);

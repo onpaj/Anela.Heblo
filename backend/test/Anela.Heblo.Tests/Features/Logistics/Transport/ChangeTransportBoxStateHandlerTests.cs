@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using MediatR;
@@ -18,6 +19,7 @@ namespace Anela.Heblo.Tests.Features.Logistics.Transport;
 public class ChangeTransportBoxStateHandlerTests
 {
     private readonly Mock<ITransportBoxRepository> _repositoryMock;
+    private readonly Mock<IManufacturedProductInventoryRepository> _inventoryRepositoryMock;
     private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<ILogger<ChangeTransportBoxStateHandler>> _loggerMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
@@ -28,6 +30,7 @@ public class ChangeTransportBoxStateHandlerTests
     public ChangeTransportBoxStateHandlerTests()
     {
         _repositoryMock = new Mock<ITransportBoxRepository>();
+        _inventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
         _mediatorMock = new Mock<IMediator>();
         _loggerMock = new Mock<ILogger<ChangeTransportBoxStateHandler>>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
@@ -55,6 +58,7 @@ public class ChangeTransportBoxStateHandlerTests
 
         _handler = new ChangeTransportBoxStateHandler(
             _repositoryMock.Object,
+            _inventoryRepositoryMock.Object,
             _mediatorMock.Object,
             _loggerMock.Object,
             _currentUserServiceMock.Object,

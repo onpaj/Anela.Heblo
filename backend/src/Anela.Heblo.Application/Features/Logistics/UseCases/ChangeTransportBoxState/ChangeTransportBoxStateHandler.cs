@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ namespace Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBox
 public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBoxStateRequest, ChangeTransportBoxStateResponse>
 {
     private readonly ITransportBoxRepository _repository;
+    private readonly IManufacturedProductInventoryRepository _inventoryRepository;
     private readonly IMediator _mediator;
     private readonly ILogger<ChangeTransportBoxStateHandler> _logger;
     private readonly ICurrentUserService _currentUserService;
@@ -37,6 +39,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
 
     public ChangeTransportBoxStateHandler(
         ITransportBoxRepository repository,
+        IManufacturedProductInventoryRepository inventoryRepository,
         IMediator mediator,
         ILogger<ChangeTransportBoxStateHandler> logger,
         ICurrentUserService currentUserService,
@@ -44,13 +47,12 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
         TimeProvider timeProvider)
     {
         _repository = repository;
+        _inventoryRepository = inventoryRepository;
         _mediator = mediator;
         _logger = logger;
         _currentUserService = currentUserService;
         _stockUpProcessingService = stockUpProcessingService;
         _timeProvider = timeProvider;
-
-
     }
 
     public async Task<ChangeTransportBoxStateResponse> Handle(ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
@@ -118,7 +120,17 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
             var currentTime = DateTime.SpecifyKind(_timeProvider.GetUtcNow().UtcDateTime, DateTimeKind.Utc);
             var userName = currentUser.IsAuthenticated ? currentUser.Name ?? "Unknown User" : "Anonymous";
 
+            // Capture items before Reset so we can restore inventory
+            var itemsToRestore = box.State == TransportBoxState.Opened && request.NewState == TransportBoxState.New
+                ? box.Items.Where(i => i.SourceInventoryId != null).ToList()
+                : null;
+
             await transition.ChangeStateAsync(box, currentTime, userName);
+
+            if (itemsToRestore != null)
+            {
+                await RestoreInventoryForItemsAsync(itemsToRestore, userName, currentTime, box.Id, cancellationToken);
+            }
 
             // Save changes
             await _repository.UpdateAsync(box, cancellationToken);
@@ -239,5 +251,24 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
             box.Items.Count, box.Id, box.Code);
 
         return null;
+    }
+
+    private async Task RestoreInventoryForItemsAsync(
+        IReadOnlyList<TransportBoxItem> items,
+        string userName,
+        DateTime timestamp,
+        int boxId,
+        CancellationToken cancellationToken)
+    {
+        foreach (var item in items)
+        {
+            if (item.SourceInventoryId == null) continue;
+
+            var inventoryItem = await _inventoryRepository.GetByIdAsync(item.SourceInventoryId.Value, cancellationToken);
+            if (inventoryItem == null) continue;
+
+            inventoryItem.Restore((decimal)item.Amount, userName, timestamp, boxId);
+            await _inventoryRepository.UpdateAsync(inventoryItem, cancellationToken);
+        }
     }
 }
