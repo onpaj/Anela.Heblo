@@ -165,6 +165,42 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         }, cancellationToken);
     }
 
+    public async Task<SmartsuppConversationData?> GetConversationAsync(
+        string conversationId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(_options.ApiToken))
+            throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
+
+        return await _pipeline.ExecuteAsync(async ct =>
+        {
+            var client = _httpClientFactory.CreateClient("Smartsupp");
+            using var request = new HttpRequestMessage(HttpMethod.Get,
+                $"{_options.BaseUrl}conversations/{conversationId}");
+            request.Headers.Add("Authorization", $"Bearer {_options.ApiToken}");
+
+            var response = await client.SendAsync(request, ct);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return null;
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Smartsupp get conversation failed {Status}: {Body}", response.StatusCode, errorBody);
+                var ex = new HttpRequestException($"Smartsupp API {(int)response.StatusCode}", null, response.StatusCode);
+                if (response.Headers.RetryAfter?.Delta is { } delta)
+                    ex.Data["RetryAfter"] = delta;
+                throw ex;
+            }
+
+            var raw = await response.Content.ReadAsStringAsync(ct);
+            var result = JsonSerializer.Deserialize<SmartsuppConversationApiItem>(raw, JsonOptions);
+
+            return result is null ? null : MapConversation(result);
+        }, cancellationToken);
+    }
+
     private static SmartsuppSearchResult MapSearchResult(SmartsuppSearchApiResponse r) =>
         new()
         {
