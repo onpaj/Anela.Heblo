@@ -151,25 +151,17 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             if (!response.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync(ct);
-                _logger.LogError("Smartsupp GetContact failed {Status}: {Body}", response.StatusCode, errorBody);
-                throw new HttpRequestException($"Smartsupp API {(int)response.StatusCode}", null, response.StatusCode);
+                _logger.LogError("Smartsupp contact failed {Status}: {Body}", response.StatusCode, errorBody);
+                var ex = new HttpRequestException($"Smartsupp API {(int)response.StatusCode}", null, response.StatusCode);
+                if (response.Headers.RetryAfter?.Delta is { } delta)
+                    ex.Data["RetryAfter"] = delta;
+                throw ex;
             }
 
             var raw = await response.Content.ReadAsStringAsync(ct);
-            var item = JsonSerializer.Deserialize<SmartsuppContactApiItem>(raw, JsonOptions);
-            if (item is null)
-                return null;
+            var result = JsonSerializer.Deserialize<SmartsuppContactApiResponse>(raw, JsonOptions);
 
-            return new SmartsuppContactData
-            {
-                Id = item.Id ?? contactId,
-                CreatedAt = Unspecified(item.CreatedAt),
-                UpdatedAt = Unspecified(item.UpdatedAt),
-                Email = item.Email,
-                Name = item.Name,
-                Phone = item.Phone,
-                Note = item.Note,
-            };
+            return result is null ? null : MapContact(result);
         }, cancellationToken);
     }
 
@@ -185,13 +177,31 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         new()
         {
             Id = item.Id ?? "",
+            ExtId = item.ExtId,
             Status = item.Status ?? "open",
             Unread = item.Unread,
             CreatedAt = Unspecified(item.CreatedAt),
             UpdatedAt = Unspecified(item.UpdatedAt),
-            ContactName = item.Contact?.Name,
-            ContactEmail = item.Contact?.Email,
-            ContactAvatarUrl = item.Contact?.AvatarUrl,
+            FinishedAt = item.FinishedAt is { } fa ? Unspecified(fa) : null,
+            ContactId = item.ContactId,
+            VisitorId = item.VisitorId,
+            AgentIds = item.AgentIds ?? new List<string>(),
+            AssignedIds = item.AssignedIds ?? new List<string>(),
+            GroupId = item.GroupId,
+            RatingValue = item.RatingValue,
+            RatingText = item.RatingText,
+            Domain = item.Domain,
+            Referer = item.Referer,
+            IsOffline = item.IsOffline,
+            IsServed = item.IsServed,
+            ChannelType = item.Channel?.Type,
+            ChannelId = item.Channel?.Id,
+            LocationCountry = item.Location?.Country,
+            LocationCity = item.Location?.City,
+            LocationIp = item.Location?.Ip,
+            LocationCode = item.Location?.Code,
+            VariablesJson = item.Variables is { } v ? JsonSerializer.Serialize(v) : null,
+            TagsJson = item.Tags is { } t ? JsonSerializer.Serialize(t) : null,
             LastMessageText = item.LastMessage?.Text,
             LastMessageAt = item.LastMessage?.CreatedAt is { } lm ? Unspecified(lm) : null,
         };
@@ -200,16 +210,53 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         new()
         {
             Id = item.Id ?? "",
-            AuthorType = item.Author?.Type ?? "visitor",
-            AuthorName = item.Author?.Name,
+            ExtId = item.ExtId,
+            Type = item.Type,
+            SubType = item.SubType,
             Content = item.Content?.Text,
+            ContentType = item.Content?.Type,
             CreatedAt = Unspecified(item.CreatedAt),
+            UpdatedAt = item.UpdatedAt is { } ua ? Unspecified(ua) : default,
+            ConversationId = item.ConversationId,
+            VisitorId = item.VisitorId,
+            AgentId = item.AgentId,
+            TriggerId = item.TriggerId,
+            TriggerName = item.TriggerName,
+            DeliveryTo = item.DeliveryTo,
+            DeliveryStatus = item.DeliveryStatus,
+            DeliveredAt = item.DeliveredAt is { } da ? Unspecified(da) : null,
+            IsReply = item.IsReply,
+            IsFirstReply = item.IsFirstReply,
+            IsOffline = item.IsOffline,
+            IsOfflineReply = item.IsOfflineReply,
+            ResponseTime = item.ResponseTime,
+            PageUrl = item.PageUrl,
+            AttachmentsJson = item.Attachments is { } a ? JsonSerializer.Serialize(a) : null,
+            ChannelType = item.Channel?.Type,
+            ChannelId = item.Channel?.Id,
+        };
+
+    private static SmartsuppContactData MapContact(SmartsuppContactApiResponse item) =>
+        new()
+        {
+            Id = item.Id ?? "",
+            CreatedAt = Unspecified(item.CreatedAt),
+            UpdatedAt = Unspecified(item.UpdatedAt),
+            Email = item.Email,
+            Name = item.Name,
+            Phone = item.Phone,
+            Note = item.Note,
+            BannedAt = item.BannedAt is { } ba ? Unspecified(ba) : null,
+            BannedBy = item.BannedBy,
+            GdprApproved = item.GdprApproved,
+            TagsJson = item.Tags is { } tg ? JsonSerializer.Serialize(tg) : null,
+            PropertiesJson = item.Properties is { } p ? JsonSerializer.Serialize(p) : null,
         };
 
     private static DateTime Unspecified(DateTime dt) =>
         DateTime.SpecifyKind(dt, DateTimeKind.Unspecified);
 
-    // ---- API request shapes (private, internal to adapter) ----
+    // ---- API request shapes ----
 
     private sealed class ConversationSearchRequest
     {
@@ -230,7 +277,7 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         public string CreatedAt { get; init; } = "desc";
     }
 
-    // ---- API response shapes (private, internal to adapter) ----
+    // ---- API response shapes ----
 
     private sealed class SmartsuppSearchApiResponse
     {
@@ -242,24 +289,42 @@ public class SmartsuppApiClient : ISmartsuppApiClient
     private sealed class SmartsuppConversationApiItem
     {
         public string? Id { get; set; }
+        public string? ExtId { get; set; }
         public string? Status { get; set; }
         public bool Unread { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
-        public SmartsuppContactApiItem? Contact { get; set; }
+        public DateTime? FinishedAt { get; set; }
+        public SmartsuppChannelApiItem? Channel { get; set; }
+        public string? ContactId { get; set; }
+        public string? VisitorId { get; set; }
+        public List<string>? AgentIds { get; set; }
+        public List<string>? AssignedIds { get; set; }
+        public string? GroupId { get; set; }
+        public int? RatingValue { get; set; }
+        public string? RatingText { get; set; }
+        public string? Domain { get; set; }
+        public string? Referer { get; set; }
+        public bool IsOffline { get; set; }
+        public bool IsServed { get; set; }
+        public JsonElement? Variables { get; set; }
+        public JsonElement? Tags { get; set; }
+        public SmartsuppLocationApiItem? Location { get; set; }
         public SmartsuppLastMessageApiItem? LastMessage { get; set; }
     }
 
-    private sealed class SmartsuppContactApiItem
+    private sealed class SmartsuppChannelApiItem
     {
+        public string? Type { get; set; }
         public string? Id { get; set; }
-        public string? Name { get; set; }
-        public string? Email { get; set; }
-        public string? AvatarUrl { get; set; }
-        public string? Phone { get; set; }
-        public string? Note { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
+    }
+
+    private sealed class SmartsuppLocationApiItem
+    {
+        public string? Ip { get; set; }
+        public string? Code { get; set; }
+        public string? Country { get; set; }
+        public string? City { get; set; }
     }
 
     private sealed class SmartsuppLastMessageApiItem
@@ -270,25 +335,58 @@ public class SmartsuppApiClient : ISmartsuppApiClient
 
     private sealed class SmartsuppMessagesApiResponse
     {
+        public int Total { get; set; }
+        public string? After { get; set; }
         public List<SmartsuppMessageApiItem>? Items { get; set; }
     }
 
     private sealed class SmartsuppMessageApiItem
     {
         public string? Id { get; set; }
+        public string? ExtId { get; set; }
         public DateTime CreatedAt { get; set; }
-        public SmartsuppMessageAuthorApiItem? Author { get; set; }
-        public SmartsuppMessageContentApiItem? Content { get; set; }
-    }
-
-    private sealed class SmartsuppMessageAuthorApiItem
-    {
+        public DateTime? UpdatedAt { get; set; }
         public string? Type { get; set; }
-        public string? Name { get; set; }
+        public string? SubType { get; set; }
+        public SmartsuppChannelApiItem? Channel { get; set; }
+        public string? ConversationId { get; set; }
+        public string? VisitorId { get; set; }
+        public string? AgentId { get; set; }
+        public string? TriggerId { get; set; }
+        public string? TriggerName { get; set; }
+        public string? DeliveryTo { get; set; }
+        public string? DeliveryStatus { get; set; }
+        public DateTime? DeliveredAt { get; set; }
+        public bool IsReply { get; set; }
+        public bool IsFirstReply { get; set; }
+        public bool IsOffline { get; set; }
+        public bool IsOfflineReply { get; set; }
+        public int? ResponseTime { get; set; }
+        public JsonElement? Attachments { get; set; }
+        public string? PageUrl { get; set; }
+        public SmartsuppMessageContentApiItem? Content { get; set; }
     }
 
     private sealed class SmartsuppMessageContentApiItem
     {
+        public string? Type { get; set; }
         public string? Text { get; set; }
+        public JsonElement? Data { get; set; }
+    }
+
+    private sealed class SmartsuppContactApiResponse
+    {
+        public string? Id { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public string? Email { get; set; }
+        public string? Name { get; set; }
+        public string? Phone { get; set; }
+        public JsonElement? Properties { get; set; }
+        public string? Note { get; set; }
+        public DateTime? BannedAt { get; set; }
+        public string? BannedBy { get; set; }
+        public JsonElement? Tags { get; set; }
+        public bool GdprApproved { get; set; }
     }
 }
