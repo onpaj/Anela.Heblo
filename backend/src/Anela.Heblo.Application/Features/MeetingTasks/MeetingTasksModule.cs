@@ -10,10 +10,21 @@ public static class MeetingTasksModule
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddOptions<MeetingTasksOptions>()
+            .Bind(configuration.GetSection(MeetingTasksOptions.SectionName))
+            .ValidateOnStart();
+
+        // KnowledgeBaseModule only registers "MicrosoftGraph" when SharePoint is configured.
+        // Re-register defensively here so GraphTodoService always finds a client at runtime.
+        // AddHttpClient with the same name is idempotent.
+        services.AddHttpClient("MicrosoftGraph");
+
+        services.AddScoped<IGraphTodoService, GraphTodoService>();
         services.AddScoped<IMeetingTaskExtractor, ClaudeMeetingTaskExtractor>();
+
         // PlaudPollingJob is auto-discovered via IRecurringJob assembly scan in AddRecurringJobs().
         // IMeetingTranscriptRepository is registered in PersistenceModule (subtask 1).
-        // IngestPlaudRecordingHandler is auto-registered by MediatR assembly scan.
+        // MediatR handlers are auto-registered by the MediatR assembly scan in ApplicationModule.
         return services;
     }
 }
