@@ -57,7 +57,8 @@ public class DeleteJournalEntryHandlerTests
 
         // Verify no repository calls were made
         _repositoryMock.Verify(x => x.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
-        _repositoryMock.Verify(x => x.DeleteSoftAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<JournalEntry>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -120,7 +121,8 @@ public class DeleteJournalEntryHandlerTests
 
         // Verify repository calls
         _repositoryMock.Verify(x => x.GetByIdAsync(entryId, It.IsAny<CancellationToken>()), Times.Once);
-        _repositoryMock.Verify(x => x.DeleteSoftAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<JournalEntry>(), It.IsAny<CancellationToken>()), Times.Never);
+        _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -155,8 +157,12 @@ public class DeleteJournalEntryHandlerTests
             .ReturnsAsync(existingEntry);
 
         _repositoryMock
-            .Setup(x => x.DeleteSoftAsync(entryId, userId, "Test User", It.IsAny<CancellationToken>()))
+            .Setup(x => x.UpdateAsync(It.IsAny<JournalEntry>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -170,7 +176,16 @@ public class DeleteJournalEntryHandlerTests
 
         // Verify repository calls
         _repositoryMock.Verify(x => x.GetByIdAsync(entryId, It.IsAny<CancellationToken>()), Times.Once);
-        _repositoryMock.Verify(x => x.DeleteSoftAsync(entryId, userId, "Test User", It.IsAny<CancellationToken>()), Times.Once);
+        _repositoryMock.Verify(
+            x => x.UpdateAsync(
+                It.Is<JournalEntry>(e =>
+                    e.Id == entryId &&
+                    e.IsDeleted &&
+                    e.DeletedByUserId == userId &&
+                    e.DeletedByUsername == "Test User"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _repositoryMock.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -205,8 +220,12 @@ public class DeleteJournalEntryHandlerTests
             .ReturnsAsync(existingEntry);
 
         _repositoryMock
-            .Setup(x => x.DeleteSoftAsync(entryId, userId, "Test User", It.IsAny<CancellationToken>()))
+            .Setup(x => x.UpdateAsync(It.IsAny<JournalEntry>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
