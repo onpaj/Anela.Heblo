@@ -40,6 +40,33 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
             .Include(c => c.Messages.OrderBy(m => m.CreatedAt))
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
+    public async Task UpsertContactAsync(
+        SmartsuppContact contact,
+        CancellationToken cancellationToken)
+    {
+        var existing = await _db.SmartsuppContacts
+            .FirstOrDefaultAsync(c => c.Id == contact.Id, cancellationToken);
+
+        if (existing is null)
+        {
+            _db.SmartsuppContacts.Add(contact);
+        }
+        else
+        {
+            existing.Email = contact.Email;
+            existing.Name = contact.Name;
+            existing.Phone = contact.Phone;
+            existing.Note = contact.Note;
+            existing.BannedAt = contact.BannedAt;
+            existing.BannedBy = contact.BannedBy;
+            existing.GdprApproved = contact.GdprApproved;
+            existing.TagsJson = contact.TagsJson;
+            existing.PropertiesJson = contact.PropertiesJson;
+            existing.UpdatedAt = contact.UpdatedAt;
+            existing.SyncedAt = contact.SyncedAt;
+        }
+    }
+
     public async Task UpsertConversationAsync(
         SmartsuppConversation conversation,
         CancellationToken cancellationToken)
@@ -55,9 +82,23 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         {
             existing.Status = conversation.Status;
             existing.IsUnread = conversation.IsUnread;
+            existing.IsOffline = conversation.IsOffline;
+            existing.IsServed = conversation.IsServed;
+            existing.ContactId = conversation.ContactId;
             existing.ContactName = conversation.ContactName;
             existing.ContactEmail = conversation.ContactEmail;
             existing.ContactAvatarUrl = conversation.ContactAvatarUrl;
+            existing.VisitorId = conversation.VisitorId;
+            existing.ExtId = conversation.ExtId;
+            existing.FinishedAt = conversation.FinishedAt;
+            existing.Domain = conversation.Domain;
+            existing.Referer = conversation.Referer;
+            existing.LocationCountry = conversation.LocationCountry;
+            existing.LocationCity = conversation.LocationCity;
+            existing.LocationIp = conversation.LocationIp;
+            existing.LocationCode = conversation.LocationCode;
+            existing.VariablesJson = conversation.VariablesJson;
+            existing.TagsJson = conversation.TagsJson;
             existing.LastMessageAt = conversation.LastMessageAt;
             existing.LastMessagePreview = conversation.LastMessagePreview;
             existing.UpdatedAt = conversation.UpdatedAt;
@@ -80,6 +121,19 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
             {
                 tracked.Content = message.Content;
                 tracked.AuthorName = message.AuthorName;
+                tracked.SubType = message.SubType;
+                tracked.TriggerName = message.TriggerName;
+                tracked.TriggerId = message.TriggerId;
+                tracked.PageUrl = message.PageUrl;
+                tracked.AgentId = message.AgentId;
+                tracked.VisitorId = message.VisitorId;
+                tracked.DeliveryStatus = message.DeliveryStatus;
+                tracked.DeliveredAt = message.DeliveredAt;
+                tracked.IsOffline = message.IsOffline;
+                tracked.IsReply = message.IsReply;
+                tracked.IsFirstReply = message.IsFirstReply;
+                tracked.ResponseTime = message.ResponseTime;
+                tracked.UpdatedAt = message.UpdatedAt;
                 tracked.AttachmentsJson = message.AttachmentsJson;
             }
             else

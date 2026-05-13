@@ -12,6 +12,10 @@ public interface ISmartsuppRepository
         string id,
         CancellationToken cancellationToken);
 
+    Task UpsertContactAsync(
+        SmartsuppContact contact,
+        CancellationToken cancellationToken);
+
     Task UpsertConversationAsync(
         SmartsuppConversation conversation,
         CancellationToken cancellationToken);
