@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
 
 export interface ConversationDto {
@@ -35,6 +35,14 @@ export interface GetConversationResponse {
   success: boolean;
   conversation?: ConversationDto | null;
   messages: MessageDto[];
+}
+
+export interface RunManualSyncResponse {
+  success: boolean;
+  conversationsProcessed: number;
+  messagesProcessed: number;
+  startedAt: string;
+  completedAt: string;
 }
 
 function getClientAndBaseUrl(): { apiClient: ReturnType<typeof getAuthenticatedApiClient>; baseUrl: string } {
@@ -80,5 +88,27 @@ export function useSmartsuppConversation(id: string | null) {
     enabled: !!id,
     refetchInterval: 30_000,
     staleTime: 15_000,
+  });
+}
+
+export function useTriggerSmartsuppSync() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await (apiClient as any).http.fetch(`${baseUrl}/api/smartsupp/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      if (!response.ok) {
+        throw new Error(`Smartsupp sync failed: ${response.status} ${response.statusText}`);
+      }
+      return (await response.json()) as RunManualSyncResponse;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["smartsupp", "conversations"] });
+    },
   });
 }
