@@ -66,6 +66,9 @@ public class ManufacturedProductInventoryItem : Entity<int>
 
     public void Restore(decimal amount, string user, DateTime timestamp, int? transportBoxId = null)
     {
+        if (amount <= 0)
+            throw new ArgumentException("Restore amount must be positive.", nameof(amount));
+
         Amount += amount;
         LastModifiedAt = timestamp;
         LastModifiedBy = user;
