@@ -42,13 +42,28 @@ public class SmartsuppApiClientTests
             {
                 new
                 {
-                    id = "conv-1",
+                    id = "coXU9u5VscuzW",
+                    ext_id = (string?)null,
                     status = "open",
                     unread = true,
-                    createdAt = "2026-05-01T10:00:00Z",
-                    updatedAt = "2026-05-01T11:00:00Z",
-                    contact = new { name = "Jan Novák", email = "jan@test.cz", avatarUrl = (string?)null },
-                    lastMessage = new { text = "Dobrý den", createdAt = "2026-05-01T11:00:00Z" }
+                    created_at = "2026-05-12T18:29:21.336Z",
+                    updated_at = "2026-05-12T18:38:15.826Z",
+                    finished_at = (string?)null,
+                    channel = new { type = "default", id = (string?)null },
+                    contact_id = "ctW5HHbqaRKv",
+                    visitor_id = "vitCESEI6Lu-SL",
+                    agent_ids = Array.Empty<string>(),
+                    assigned_ids = Array.Empty<string>(),
+                    group_id = (string?)null,
+                    rating_value = (int?)null,
+                    rating_text = (string?)null,
+                    domain = "www.anela.cz",
+                    referer = "https://l.facebook.com/",
+                    is_offline = true,
+                    is_served = false,
+                    variables = new { shoptet_shop = "269953", authenticated = true },
+                    location = new { ip = "78.102.94.30", code = "CZ", country = "Czechia", city = "Prague" },
+                    last_message = new { text = "Dobrý den", created_at = "2026-05-12T18:30:58Z" }
                 }
             }
         });
@@ -66,14 +81,27 @@ public class SmartsuppApiClientTests
         var client = CreateClient(handler.Object);
 
         // Act
-        var result = await client.SearchConversationsAsync(null, null, 50, CancellationToken.None);
+        var result = await client.SearchConversationsAsync(null, 50, CancellationToken.None);
 
         // Assert
         result.Total.Should().Be(2);
         result.Items.Should().HaveCount(1);
-        result.Items[0].Id.Should().Be("conv-1");
-        result.Items[0].ContactName.Should().Be("Jan Novák");
-        result.Items[0].Unread.Should().BeTrue();
+        var item = result.Items[0];
+        item.Id.Should().Be("coXU9u5VscuzW");
+        item.ContactId.Should().Be("ctW5HHbqaRKv");
+        item.VisitorId.Should().Be("vitCESEI6Lu-SL");
+        item.Domain.Should().Be("www.anela.cz");
+        item.Referer.Should().Be("https://l.facebook.com/");
+        item.IsOffline.Should().BeTrue();
+        item.IsServed.Should().BeFalse();
+        item.LocationCountry.Should().Be("Czechia");
+        item.LocationCity.Should().Be("Prague");
+        item.LocationIp.Should().Be("78.102.94.30");
+        item.LocationCode.Should().Be("CZ");
+        item.ChannelType.Should().Be("default");
+        item.Unread.Should().BeTrue();
+        item.VariablesJson.Should().NotBeNullOrEmpty();
+        item.LastMessageText.Should().Be("Dobrý den");
     }
 
     [Fact]
@@ -87,11 +115,10 @@ public class SmartsuppApiClientTests
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.TooManyRequests));
 
-        // Pass ResiliencePipeline.Empty so no retries — test doesn't sleep
         var client = CreateClient(handler.Object, ResiliencePipeline.Empty);
 
         // Act
-        var act = () => client.SearchConversationsAsync(null, null, 50, CancellationToken.None);
+        var act = () => client.SearchConversationsAsync(null, 50, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<HttpRequestException>()
@@ -104,21 +131,52 @@ public class SmartsuppApiClientTests
         // Arrange
         var responseJson = JsonSerializer.Serialize(new
         {
+            total = 2,
             items = new[]
             {
                 new
                 {
-                    id = "msg-1",
-                    createdAt = "2026-05-01T10:05:00Z",
-                    author = new { type = "visitor", name = "Jan Novák" },
-                    content = new { text = "Dobrý den, potřebuji pomoc." }
+                    id = "msCfnmmaEDXAs",
+                    ext_id = (string?)null,
+                    created_at = "2026-05-12T18:30:58.499Z",
+                    updated_at = "2026-05-12T18:30:59.320Z",
+                    type = "message",
+                    sub_type = "contact",
+                    conversation_id = "coXU9u5VscuzW",
+                    visitor_id = (string?)null,
+                    agent_id = (string?)null,
+                    content = new { type = "text", text = "Dobry den, jaky krem doporucite?" },
+                    trigger_id = (string?)null,
+                    trigger_name = (string?)null,
+                    is_reply = false,
+                    is_first_reply = false,
+                    is_offline = false,
+                    is_offline_reply = false,
+                    response_time = (int?)null,
+                    attachments = Array.Empty<object>(),
+                    page_url = "https://www.anela.cz/"
                 },
                 new
                 {
-                    id = "msg-2",
-                    createdAt = "2026-05-01T10:06:00Z",
-                    author = new { type = "agent", name = "Anela podpora" },
-                    content = new { text = "Jak vám mohu pomoct?" }
+                    id = "msJZcgRsWzE4n",
+                    ext_id = (string?)null,
+                    created_at = "2026-05-12T18:29:28.055Z",
+                    updated_at = "2026-05-12T18:30:59.283Z",
+                    type = "message",
+                    sub_type = "bot",
+                    conversation_id = "coXU9u5VscuzW",
+                    visitor_id = (string?)null,
+                    agent_id = (string?)null,
+                    content = new { type = "text", text = "Momentálně nejsme on-line." },
+                    trigger_id = "bolCGGiw7mLz",
+                    trigger_name = "2_Jsme offline_druhá zpráva",
+                    is_reply = false,
+                    is_first_reply = false,
+                    is_offline = false,
+                    is_offline_reply = false,
+                    response_time = (int?)null,
+                    attachments = Array.Empty<object>(),
+                    page_url = "https://www.anela.cz/"
                 }
             }
         });
@@ -136,14 +194,22 @@ public class SmartsuppApiClientTests
         var client = CreateClient(handler.Object);
 
         // Act
-        var result = await client.GetConversationMessagesAsync("conv-1", CancellationToken.None);
+        var result = await client.GetConversationMessagesAsync("coXU9u5VscuzW", CancellationToken.None);
 
         // Assert
         result.Should().HaveCount(2);
-        result[0].Id.Should().Be("msg-1");
-        result[0].AuthorType.Should().Be("visitor");
-        result[0].Content.Should().Be("Dobrý den, potřebuji pomoc.");
-        result[1].AuthorType.Should().Be("agent");
+        var contactMsg = result[0];
+        contactMsg.Id.Should().Be("msCfnmmaEDXAs");
+        contactMsg.SubType.Should().Be("contact");
+        contactMsg.Content.Should().Be("Dobry den, jaky krem doporucite?");
+        contactMsg.PageUrl.Should().Be("https://www.anela.cz/");
+        contactMsg.ConversationId.Should().Be("coXU9u5VscuzW");
+
+        var botMsg = result[1];
+        botMsg.Id.Should().Be("msJZcgRsWzE4n");
+        botMsg.SubType.Should().Be("bot");
+        botMsg.TriggerName.Should().Be("2_Jsme offline_druhá zpráva");
+        botMsg.TriggerId.Should().Be("bolCGGiw7mLz");
     }
 
     [Fact]
@@ -165,5 +231,92 @@ public class SmartsuppApiClientTests
         // Assert
         await act.Should().ThrowAsync<HttpRequestException>()
             .Where(ex => ex.StatusCode == HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task GetContactAsync_ReturnsContact_WhenApiResponds()
+    {
+        // Arrange
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            id = "ct297LB_vFeHN",
+            created_at = "2026-05-09T14:40:49.044Z",
+            updated_at = "2026-05-12T17:12:36.745Z",
+            email = "vexy@post.cz",
+            name = "Monča",
+            phone = (string?)null,
+            properties = new { },
+            note = (string?)null,
+            banned_at = (string?)null,
+            banned_by = (string?)null,
+            tags = new { type = "list", data = Array.Empty<object>(), total = 0 },
+            gdpr_approved = false
+        });
+
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handler.Object);
+
+        // Act
+        var result = await client.GetContactAsync("ct297LB_vFeHN", CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Id.Should().Be("ct297LB_vFeHN");
+        result.Email.Should().Be("vexy@post.cz");
+        result.Name.Should().Be("Monča");
+        result.Phone.Should().BeNull();
+        result.GdprApproved.Should().BeFalse();
+        result.TagsJson.Should().NotBeNullOrEmpty();
+        result.PropertiesJson.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task GetContactAsync_ReturnsNull_On404()
+    {
+        // Arrange
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+        var client = CreateClient(handler.Object);
+
+        // Act
+        var result = await client.GetContactAsync("ct-missing", CancellationToken.None);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetContactAsync_ThrowsHttpRequestException_On500()
+    {
+        // Arrange
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+
+        var client = CreateClient(handler.Object, ResiliencePipeline.Empty);
+
+        // Act
+        var act = () => client.GetContactAsync("ct-error", CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>()
+            .Where(ex => ex.StatusCode == HttpStatusCode.InternalServerError);
     }
 }
