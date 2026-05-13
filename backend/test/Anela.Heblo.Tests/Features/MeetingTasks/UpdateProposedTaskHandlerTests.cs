@@ -80,4 +80,64 @@ public class UpdateProposedTaskHandlerTests
         task.DueDate.Should().Be(new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc));
         _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task UpdateTask_ReturnsNotFound_WhenTranscriptMissing()
+    {
+        // Arrange
+        var transcriptId = Guid.NewGuid();
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(transcriptId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MeetingTranscript?)null);
+        var handler = new UpdateProposedTaskHandler(
+            _repositoryMock.Object,
+            NullLogger<UpdateProposedTaskHandler>.Instance);
+        var request = new UpdateProposedTaskRequest
+        {
+            TranscriptId = transcriptId,
+            TaskId = Guid.NewGuid(),
+            Title = "Some title",
+            Description = "Some description",
+            Assignee = "alice",
+            DueDate = null
+        };
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ResourceNotFound);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateTask_ReturnsNotFound_WhenTaskMissing()
+    {
+        // Arrange
+        var transcript = CreateTranscriptWithTask(out var transcriptId, out _);
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(transcriptId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transcript);
+        var handler = new UpdateProposedTaskHandler(
+            _repositoryMock.Object,
+            NullLogger<UpdateProposedTaskHandler>.Instance);
+        var request = new UpdateProposedTaskRequest
+        {
+            TranscriptId = transcriptId,
+            TaskId = Guid.NewGuid(), // non-existent task ID
+            Title = "Some title",
+            Description = "Some description",
+            Assignee = "alice",
+            DueDate = null
+        };
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ResourceNotFound);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
 }
