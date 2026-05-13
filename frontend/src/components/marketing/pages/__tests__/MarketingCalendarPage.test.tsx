@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import MarketingCalendarPage from "../MarketingCalendarPage";
 
 // Track every render of the calendar mock so tests can verify mount/unmount and the props it receives.
-const calendarRenderLog = [];
+const calendarRenderLog: { viewName: string; initialDate: Date; mountId: number }[] = [];
 
 jest.mock("../../calendar/MarketingMonthCalendar", () => {
   const React = require("react");
@@ -98,7 +98,7 @@ jest.mock("../../../manufacture/calendar/CalendarNavigation", () => {
 });
 
 // Capture every call to useMarketingCalendar so we can assert the fetch range.
-const calendarHookCalls = [];
+const calendarHookCalls: { startDate: Date; endDate: Date }[] = [];
 
 jest.mock("../../../../api/hooks/useMarketingCalendar", () => ({
   useMarketingCalendar: (args) => {
