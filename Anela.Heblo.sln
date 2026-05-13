@@ -66,6 +66,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.HomeAssistant.Tests", "backend\test\Anela.Heblo.Adapters.HomeAssistant.Tests\Anela.Heblo.Adapters.HomeAssistant.Tests.csproj", "{AA318B15-9568-43D8-82F8-76F47E7B7E4A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.Plaud.Tests", "backend\test\Anela.Heblo.Adapters.Plaud.Tests\Anela.Heblo.Adapters.Plaud.Tests.csproj", "{E8F936A2-D7C5-4B3F-A6E9-F1C8B5A3E2D7}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.Smartsupp", "backend\src\Adapters\Anela.Heblo.Adapters.Smartsupp\Anela.Heblo.Adapters.Smartsupp.csproj", "{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}"
 EndProject
 Global
