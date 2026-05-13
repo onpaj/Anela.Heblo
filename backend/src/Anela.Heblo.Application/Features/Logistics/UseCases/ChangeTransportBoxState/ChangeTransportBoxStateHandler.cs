@@ -265,7 +265,11 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
             if (item.SourceInventoryId == null) continue;
 
             var inventoryItem = await _inventoryRepository.GetByIdAsync(item.SourceInventoryId.Value, cancellationToken);
-            if (inventoryItem == null) continue;
+            if (inventoryItem == null)
+            {
+                _logger.LogWarning("InventoryItem {InventoryId} not found during restore for BoxItem {BoxItemId} — skipping restore", item.SourceInventoryId, item.Id);
+                continue;
+            }
 
             inventoryItem.Restore((decimal)item.Amount, userName, timestamp, boxId);
             await _inventoryRepository.UpdateAsync(inventoryItem, cancellationToken);

@@ -129,7 +129,7 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
             return new AddItemToBoxResponse
             {
                 Success = false,
-                ErrorCode = ErrorCodes.ValidationError,
+                ErrorCode = ErrorCodes.Exception,
                 Params = new Dictionary<string, string> { { "details", ex.Message } }
             };
         }

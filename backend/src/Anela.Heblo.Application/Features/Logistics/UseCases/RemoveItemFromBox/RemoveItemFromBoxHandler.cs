@@ -108,7 +108,7 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
             return new RemoveItemFromBoxResponse
             {
                 Success = false,
-                ErrorCode = ErrorCodes.ValidationError,
+                ErrorCode = ErrorCodes.Exception,
                 Params = new Dictionary<string, string> { { "details", ex.Message } }
             };
         }
