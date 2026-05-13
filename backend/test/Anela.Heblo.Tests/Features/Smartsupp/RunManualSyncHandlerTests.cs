@@ -284,7 +284,8 @@ public class RunManualSyncHandlerTests
         _apiClient.Setup(c => c.SearchConversationsAsync(null, 50, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SmartsuppSearchResult
             {
-                Total = 1, After = null,
+                Total = 1,
+                After = null,
                 Items = [MakeConv("c-search", DateTime.UtcNow.AddMinutes(-5))]
             });
         _apiClient.Setup(c => c.GetConversationMessagesAsync("c-search", It.IsAny<CancellationToken>()))
