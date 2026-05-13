@@ -96,6 +96,7 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         existing.IsOffline = conversation.IsOffline;
         existing.IsServed = conversation.IsServed;
         existing.ContactId = conversation.ContactId;
+        existing.Subject = conversation.Subject;
         existing.ContactName = conversation.ContactName;
         existing.ContactEmail = conversation.ContactEmail;
         existing.ContactAvatarUrl = conversation.ContactAvatarUrl;
