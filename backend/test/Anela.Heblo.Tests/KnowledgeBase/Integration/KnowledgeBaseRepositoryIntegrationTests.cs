@@ -86,6 +86,20 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
                 ON public."KnowledgeBaseChunks"
                 USING hnsw ("Embedding" vector_cosine_ops)
                 WITH (m = 16, ef_construction = 64);
+
+            CREATE TABLE IF NOT EXISTS public."KnowledgeBaseQuestionLogs" (
+                "Id"              uuid NOT NULL PRIMARY KEY,
+                "Question"        text NOT NULL,
+                "Answer"          text NOT NULL,
+                "TopK"            integer NOT NULL,
+                "SourceCount"     integer NOT NULL,
+                "DurationMs"      bigint NOT NULL,
+                "CreatedAt"       timestamp with time zone NOT NULL,
+                "UserId"          text NULL,
+                "PrecisionScore"  integer NULL,
+                "StyleScore"      integer NULL,
+                "FeedbackComment" text NULL
+            );
             """;
         await cmd.ExecuteNonQueryAsync();
     }
@@ -327,5 +341,23 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
 
         Assert.Empty(afterDelete);
         Assert.Empty(chunksAfterDelete);
+    }
+
+    [Fact]
+    public async Task SetupSchema_CreatesKnowledgeBaseQuestionLogsTable()
+    {
+        await using var conn = new NpgsqlConnection(_container.GetConnectionString());
+        await conn.OpenAsync();
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'KnowledgeBaseQuestionLogs'
+            );
+            """;
+
+        var exists = (bool)(await cmd.ExecuteScalarAsync())!;
+        Assert.True(exists, "KnowledgeBaseQuestionLogs table must be created by SetupSchemaAsync");
     }
 }
