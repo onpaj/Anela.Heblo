@@ -383,7 +383,10 @@ public class ChangeTransportBoxStateHandlerTests
                 "Test Product",
                 1.0,
                 DateTime.Now,
-                "TestUser");
+                "TestUser",
+                null,
+                null,
+                null);
 
             if (item != null)
             {

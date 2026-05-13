@@ -454,7 +454,7 @@ public class CatalogRepositoryTests
         var itemsField = typeof(TransportBox).GetField("_items",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         var item = (TransportBoxItem)Activator.CreateInstance(
-            typeof(TransportBoxItem), "TEST001", "Test Product", 15.0, DateTime.UtcNow, "user")!;
+            typeof(TransportBoxItem), "TEST001", "Test Product", 15.0, DateTime.UtcNow, "user", null, null, null)!;
         ((List<TransportBoxItem>)itemsField.GetValue(quarantineBox)!).Add(item);
 
         // Use SetupSequence: 1st call (reserve) returns empty, 2nd call (quarantine) returns the box
