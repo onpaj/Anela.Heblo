@@ -148,6 +148,31 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         }
     }
 
+    public async Task<List<OpenConversationRef>> ListOpenConversationRefsAsync(
+        CancellationToken cancellationToken) =>
+        await _db.SmartsuppConversations
+            .AsNoTracking()
+            .Where(c => c.Status == SmartsuppConversationStatus.Open)
+            .Select(c => new OpenConversationRef(c.Id, c.LastMessageAt))
+            .ToListAsync(cancellationToken);
+
+    public async Task MarkConversationResolvedAsync(
+        string conversationId,
+        DateTime finishedAt,
+        DateTime syncedAt,
+        CancellationToken cancellationToken)
+    {
+        var existing = await _db.SmartsuppConversations
+            .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken);
+
+        if (existing is null)
+            return;
+
+        existing.Status = SmartsuppConversationStatus.Resolved;
+        existing.FinishedAt = finishedAt;
+        existing.SyncedAt = syncedAt;
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
         await _db.SaveChangesAsync(cancellationToken);
 }

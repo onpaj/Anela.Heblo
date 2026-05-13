@@ -35,6 +35,7 @@ public class RunManualSyncHandler : IRequestHandler<RunManualSyncRequest, RunMan
         _logger.LogInformation("smartsupp manual sync starting since={Since}", since);
 
         var contactCache = new Dictionary<string, SmartsuppContactData?>(StringComparer.Ordinal);
+        var seenIds = new HashSet<string>(StringComparer.Ordinal);
         var conversationsProcessed = 0;
         var messagesProcessed = 0;
         string? cursor = null;
@@ -56,6 +57,8 @@ public class RunManualSyncHandler : IRequestHandler<RunManualSyncRequest, RunMan
 
             foreach (var item in page.Items)
             {
+                seenIds.Add(item.Id);
+
                 if (item.UpdatedAt <= since)
                     continue;
 
@@ -69,15 +72,23 @@ public class RunManualSyncHandler : IRequestHandler<RunManualSyncRequest, RunMan
 
         } while (cursor is not null);
 
+        var (reconciled, closedRemotely, reconcileMessages) =
+            await ReconcileOpenConversationsAsync(seenIds, startedAt, contactCache, cancellationToken);
+
+        conversationsProcessed += reconciled;
+        messagesProcessed += reconcileMessages;
+
         var completedAt = DateTime.UtcNow;
         _logger.LogInformation(
-            "smartsupp manual sync completed conversations={Conversations} messages={Messages}",
-            conversationsProcessed, messagesProcessed);
+            "smartsupp manual sync completed conversations={Conversations} messages={Messages} reconciled={Reconciled} closedRemotely={ClosedRemotely}",
+            conversationsProcessed, messagesProcessed, reconciled, closedRemotely);
 
         return new RunManualSyncResponse
         {
             ConversationsProcessed = conversationsProcessed,
             MessagesProcessed = messagesProcessed,
+            ConversationsReconciled = reconciled,
+            ConversationsClosedRemotely = closedRemotely,
             StartedAt = startedAt,
             CompletedAt = completedAt,
         };
@@ -89,6 +100,155 @@ public class RunManualSyncHandler : IRequestHandler<RunManualSyncRequest, RunMan
         var defaultSince = now.AddDays(-DefaultLookbackDays);
         var requestedOrDefault = requested ?? defaultSince;
         return requestedOrDefault < floor ? floor : requestedOrDefault;
+    }
+
+    private async Task<(int reconciled, int closedRemotely, int messages)> ReconcileOpenConversationsAsync(
+        HashSet<string> seenIds,
+        DateTime startedAt,
+        Dictionary<string, SmartsuppContactData?> contactCache,
+        CancellationToken cancellationToken)
+    {
+        List<OpenConversationRef> openRefs;
+        try
+        {
+            openRefs = await _repository.ListOpenConversationRefsAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "smartsupp reconcile: failed to load open conversation refs");
+            return (0, 0, 0);
+        }
+
+        var candidates = openRefs.Where(r => !seenIds.Contains(r.Id)).ToList();
+        _logger.LogDebug("smartsupp reconcile: {Count} locally-open conversations to check", candidates.Count);
+
+        var reconciled = 0;
+        var closedRemotely = 0;
+        var messages = 0;
+
+        foreach (var localRef in candidates)
+        {
+            try
+            {
+                SmartsuppConversationData? data;
+                try
+                {
+                    data = await _apiClient.GetConversationAsync(localRef.Id, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "smartsupp reconcile: failed to fetch conversation {Id}", localRef.Id);
+                    continue;
+                }
+
+                if (data is null)
+                {
+                    _logger.LogWarning(
+                        "smartsupp reconcile: conversation {Id} not found on remote, marking resolved",
+                        localRef.Id);
+                    await _repository.MarkConversationResolvedAsync(
+                        localRef.Id,
+                        Unspecified(startedAt),
+                        Unspecified(startedAt),
+                        cancellationToken);
+                    closedRemotely++;
+                    reconciled++;
+                    continue;
+                }
+
+                var remoteStatus = data.Status?.ToLowerInvariant() == "resolved"
+                    ? SmartsuppConversationStatus.Resolved
+                    : SmartsuppConversationStatus.Open;
+
+                var statusChanged = remoteStatus == SmartsuppConversationStatus.Resolved;
+                var lastMessageAdvanced = data.LastMessageAt.HasValue
+                    && (localRef.LastMessageAt is null || data.LastMessageAt > localRef.LastMessageAt);
+                var shouldFetchMessages = statusChanged || lastMessageAdvanced;
+
+                SmartsuppContactData? contact = null;
+                if (!string.IsNullOrEmpty(data.ContactId))
+                {
+                    contact = await FetchContactCachedAsync(data.ContactId, contactCache, cancellationToken);
+
+                    if (contact is not null)
+                    {
+                        var contactEntity = new SmartsuppContact
+                        {
+                            Id = contact.Id,
+                            Email = contact.Email,
+                            Name = contact.Name,
+                            Phone = contact.Phone,
+                            Note = contact.Note,
+                            BannedAt = contact.BannedAt is { } ba ? Unspecified(ba) : null,
+                            BannedBy = contact.BannedBy,
+                            GdprApproved = contact.GdprApproved,
+                            TagsJson = contact.TagsJson,
+                            PropertiesJson = contact.PropertiesJson,
+                            CreatedAt = Unspecified(contact.CreatedAt),
+                            UpdatedAt = Unspecified(contact.UpdatedAt),
+                            SyncedAt = Unspecified(startedAt),
+                        };
+                        await _repository.UpsertContactAsync(contactEntity, cancellationToken);
+                    }
+                }
+
+                var conversation = MapConversationEntity(data, contact, startedAt);
+                await _repository.UpsertConversationAsync(conversation, cancellationToken);
+
+                if (shouldFetchMessages)
+                {
+                    List<SmartsuppMessageData> messageData;
+                    try
+                    {
+                        messageData = await _apiClient.GetConversationMessagesAsync(data.Id, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "smartsupp reconcile: failed to fetch messages for {ConversationId}", data.Id);
+                        messageData = [];
+                    }
+
+                    if (messageData.Count > 0)
+                    {
+                        var msgs = messageData.Select(m => new SmartsuppMessage
+                        {
+                            Id = m.Id,
+                            ConversationId = data.Id,
+                            AuthorType = ParseAuthorType(m.SubType),
+                            SubType = m.SubType,
+                            AuthorName = ComposeAuthorName(m, contact),
+                            Content = m.Content,
+                            TriggerName = m.TriggerName,
+                            TriggerId = m.TriggerId,
+                            PageUrl = m.PageUrl,
+                            AgentId = m.AgentId,
+                            VisitorId = m.VisitorId,
+                            DeliveryStatus = m.DeliveryStatus,
+                            DeliveredAt = m.DeliveredAt is { } da ? Unspecified(da) : null,
+                            IsOffline = m.IsOffline,
+                            IsReply = m.IsReply,
+                            IsFirstReply = m.IsFirstReply,
+                            ResponseTime = m.ResponseTime,
+                            CreatedAt = m.CreatedAt,
+                            UpdatedAt = m.UpdatedAt,
+                            AttachmentsJson = m.AttachmentsJson,
+                        }).ToList();
+
+                        await _repository.UpsertMessagesAsync(data.Id, msgs, cancellationToken);
+                        messages += msgs.Count;
+                    }
+                }
+
+                reconciled++;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "smartsupp reconcile: unexpected error for conversation {Id}", localRef.Id);
+            }
+        }
+
+        await _repository.SaveChangesAsync(cancellationToken);
+        return (reconciled, closedRemotely, messages);
     }
 
     private async Task<int> ProcessConversationAsync(
@@ -135,41 +295,7 @@ public class RunManualSyncHandler : IRequestHandler<RunManualSyncRequest, RunMan
             }
         }
 
-        var status = data.Status?.ToLowerInvariant() == "resolved"
-            ? SmartsuppConversationStatus.Resolved
-            : SmartsuppConversationStatus.Open;
-
-        var conversation = new SmartsuppConversation
-        {
-            Id = data.Id,
-            ExtId = data.ExtId,
-            Status = status,
-            IsUnread = data.Unread,
-            IsOffline = data.IsOffline,
-            IsServed = data.IsServed,
-            ContactId = data.ContactId,
-            ContactName = contact?.Name,
-            ContactEmail = contact?.Email,
-            ContactAvatarUrl = null,
-            VisitorId = data.VisitorId,
-            FinishedAt = data.FinishedAt is { } fa ? Unspecified(fa) : null,
-            Domain = data.Domain,
-            Referer = data.Referer,
-            LocationCountry = data.LocationCountry,
-            LocationCity = data.LocationCity,
-            LocationIp = data.LocationIp,
-            LocationCode = data.LocationCode,
-            VariablesJson = data.VariablesJson,
-            TagsJson = data.TagsJson,
-            LastMessagePreview = data.LastMessageText?.Length > LastMessagePreviewMaxLength
-                ? data.LastMessageText[..LastMessagePreviewMaxLength]
-                : data.LastMessageText,
-            LastMessageAt = data.LastMessageAt,
-            CreatedAt = data.CreatedAt,
-            UpdatedAt = data.UpdatedAt,
-            SyncedAt = syncedAt,
-        };
-
+        var conversation = MapConversationEntity(data, contact, syncedAt);
         await _repository.UpsertConversationAsync(conversation, cancellationToken);
 
         if (messageData.Count == 0)
@@ -201,6 +327,47 @@ public class RunManualSyncHandler : IRequestHandler<RunManualSyncRequest, RunMan
 
         await _repository.UpsertMessagesAsync(data.Id, messages, cancellationToken);
         return messages.Count;
+    }
+
+    private SmartsuppConversation MapConversationEntity(
+        SmartsuppConversationData data,
+        SmartsuppContactData? contact,
+        DateTime syncedAt)
+    {
+        var status = data.Status?.ToLowerInvariant() == "resolved"
+            ? SmartsuppConversationStatus.Resolved
+            : SmartsuppConversationStatus.Open;
+
+        return new SmartsuppConversation
+        {
+            Id = data.Id,
+            ExtId = data.ExtId,
+            Status = status,
+            IsUnread = data.Unread,
+            IsOffline = data.IsOffline,
+            IsServed = data.IsServed,
+            ContactId = data.ContactId,
+            ContactName = contact?.Name,
+            ContactEmail = contact?.Email,
+            ContactAvatarUrl = null,
+            VisitorId = data.VisitorId,
+            FinishedAt = data.FinishedAt is { } fa ? Unspecified(fa) : null,
+            Domain = data.Domain,
+            Referer = data.Referer,
+            LocationCountry = data.LocationCountry,
+            LocationCity = data.LocationCity,
+            LocationIp = data.LocationIp,
+            LocationCode = data.LocationCode,
+            VariablesJson = data.VariablesJson,
+            TagsJson = data.TagsJson,
+            LastMessagePreview = data.LastMessageText?.Length > LastMessagePreviewMaxLength
+                ? data.LastMessageText[..LastMessagePreviewMaxLength]
+                : data.LastMessageText,
+            LastMessageAt = data.LastMessageAt,
+            CreatedAt = data.CreatedAt,
+            UpdatedAt = data.UpdatedAt,
+            SyncedAt = syncedAt,
+        };
     }
 
     private async Task<SmartsuppContactData?> FetchContactCachedAsync(

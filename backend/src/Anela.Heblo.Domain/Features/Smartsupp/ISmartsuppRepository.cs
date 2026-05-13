@@ -1,5 +1,7 @@
 namespace Anela.Heblo.Domain.Features.Smartsupp;
 
+public sealed record OpenConversationRef(string Id, DateTime? LastMessageAt);
+
 public interface ISmartsuppRepository
 {
     Task<(List<SmartsuppConversation> Items, int Total)> ListConversationsAsync(
@@ -23,6 +25,15 @@ public interface ISmartsuppRepository
     Task UpsertMessagesAsync(
         string conversationId,
         List<SmartsuppMessage> messages,
+        CancellationToken cancellationToken);
+
+    Task<List<OpenConversationRef>> ListOpenConversationRefsAsync(
+        CancellationToken cancellationToken);
+
+    Task MarkConversationResolvedAsync(
+        string conversationId,
+        DateTime finishedAt,
+        DateTime syncedAt,
         CancellationToken cancellationToken);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
