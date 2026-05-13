@@ -97,7 +97,11 @@ const MeetingTaskDetailPage: React.FC = () => {
 
   const approveAll = async () => {
     for (const t of pendingTasks) {
-      await updateStatus.mutateAsync({ transcriptId: id, taskId: t.id, status: "Approved" });
+      try {
+        await updateStatus.mutateAsync({ transcriptId: id, taskId: t.id, status: "Approved" });
+      } catch {
+        // Individual task approval failure is handled via React Query's isError state
+      }
     }
   };
 
@@ -334,7 +338,7 @@ const MeetingTaskDetailPage: React.FC = () => {
             </p>
             {submitToTodo.isError && (
               <p className="text-sm text-red-600 mt-2">
-                Odeslani selhalo: {(submitToTodo.error as Error).message}
+                Odeslani selhalo: {submitToTodo.error instanceof Error ? submitToTodo.error.message : String(submitToTodo.error)}
               </p>
             )}
             <div className="flex justify-end gap-2 mt-4">
