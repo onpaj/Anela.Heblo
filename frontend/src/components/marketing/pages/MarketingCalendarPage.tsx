@@ -29,22 +29,29 @@ const CZECH_MONTHS = [
   'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec',
 ];
 
-// Returns the Monday that starts the 5-week window with today in week 2.
-function getCalendarStartForToday(): Date {
-  const today = new Date();
-  const dow = today.getDay(); // 0 = Sunday
+function startOfWeekMonday(date: Date): Date {
+  const clone = new Date(date);
+  const dow = clone.getDay(); // 0 = Sunday
   const daysToMonday = dow === 0 ? 6 : dow - 1;
-  const start = new Date(today);
-  start.setHours(0, 0, 0, 0);
-  start.setDate(today.getDate() - daysToMonday - 7); // one week before today's week
-  return start;
+  clone.setHours(0, 0, 0, 0);
+  clone.setDate(clone.getDate() - daysToMonday);
+  clone.setHours(0, 0, 0, 0);
+  return clone;
+}
+
+function getCalendarStartForToday(viewMode: 'fiveWeeks' | 'twoWeeks'): Date {
+  const monday = startOfWeekMonday(new Date());
+  if (viewMode === 'fiveWeeks') {
+    monday.setDate(monday.getDate() - 7);
+  }
+  return monday;
 }
 
 type ViewMode = 'fiveWeeks' | 'twoWeeks' | 'list';
 
 const MarketingCalendarPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('fiveWeeks');
-  const [currentDate, setCurrentDate] = useState(getCalendarStartForToday);
+  const [currentDate, setCurrentDate] = useState(() => getCalendarStartForToday('fiveWeeks'));
   const [visibleRange, setVisibleRange] = useState<{ start: Date; end: Date } | null>(null);
   const [filters, setFilters] = useState<MarketingFilters>(EMPTY_FILTERS);
   const [pageNumber, setPageNumber] = useState(1);
@@ -58,7 +65,10 @@ const MarketingCalendarPage: React.FC = () => {
 
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
-    if (mode !== 'list') setVisibleRange(null);
+    if (mode !== 'list') {
+      setVisibleRange(null);
+      setCurrentDate(getCalendarStartForToday(mode));
+    }
   };
 
   const { getUserInfo } = useAuth();
@@ -68,9 +78,10 @@ const MarketingCalendarPage: React.FC = () => {
     if (visibleRange) {
       return { startDate: visibleRange.start, endDate: visibleRange.end };
     }
-    const start = getCalendarStartForToday();
+    const mode = viewMode === 'list' ? 'fiveWeeks' : viewMode;
+    const start = getCalendarStartForToday(mode);
     const end = new Date(start);
-    end.setDate(start.getDate() + (viewMode === 'twoWeeks' ? 14 : 35));
+    end.setDate(start.getDate() + (mode === 'twoWeeks' ? 14 : 35));
     return { startDate: start, endDate: end };
   }, [visibleRange, viewMode]);
 
@@ -138,7 +149,10 @@ const MarketingCalendarPage: React.FC = () => {
 
   const goToPrev = () => calendarRef.current?.getApi().prev();
   const goToNext = () => calendarRef.current?.getApi().next();
-  const goToToday = () => calendarRef.current?.getApi().gotoDate(getCalendarStartForToday());
+  const goToToday = () => {
+    if (viewMode === 'list') return;
+    calendarRef.current?.getApi().gotoDate(getCalendarStartForToday(viewMode));
+  };
 
   const handleDatesSet = useCallback(
     (_visibleStart: Date, _visibleEnd: Date, currentStart: Date) => {
