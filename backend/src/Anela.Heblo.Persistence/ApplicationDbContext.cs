@@ -17,6 +17,7 @@ using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Xcc.Domain;
@@ -65,6 +66,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<ManufactureOrderSemiProduct> ManufactureOrderSemiProducts { get; set; } = null!;
     public DbSet<ManufactureOrderProduct> ManufactureOrderProducts { get; set; } = null!;
     public DbSet<ManufactureOrderNote> ManufactureOrderNotes { get; set; } = null!;
+
+    // Manufactured Product Inventory module
+    public DbSet<ManufacturedProductInventoryItem> ManufacturedProductInventoryItems { get; set; } = null!;
+    public DbSet<ManufacturedProductInventoryLog> ManufacturedProductInventoryLogs { get; set; } = null!;
 
     // Dashboard module
     public DbSet<UserDashboardSettings> UserDashboardSettings { get; set; } = null!;
