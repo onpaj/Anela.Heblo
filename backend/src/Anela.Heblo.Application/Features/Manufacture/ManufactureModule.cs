@@ -5,7 +5,9 @@ using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.Services.Workflows;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Persistence.Manufacture;
+using Anela.Heblo.Persistence.Manufacture.Inventory;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,6 +45,7 @@ public static class ManufactureModule
 
         // Register repositories
         services.AddScoped<IManufactureOrderRepository, ManufactureOrderRepository>();
+        services.AddScoped<IManufacturedProductInventoryRepository, ManufacturedProductInventoryRepository>();
 
         // Register application services
         services.AddScoped<IManufactureOrderApplicationService, ManufactureOrderApplicationService>();
