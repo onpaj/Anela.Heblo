@@ -1,281 +1,301 @@
-Now I have enough context. Let me produce the architecture review.
-
 # Architecture Review: Plaud CLI Adapter, Polling Job & Ingest Handler
 
 ## Skip Design: true
 
+Backend-only feature — new adapter project, MediatR handler, Hangfire job, and AI extractor service. No UI, no new screens, no visual components.
+
 ## Architectural Fit Assessment
 
-The feature fits the existing Clean Architecture monorepo well: adapters live under `backend/src/Adapters/`, vertical slices live under `backend/src/Anela.Heblo.Application/Features/<Feature>`, and Hangfire jobs are auto-discovered through `IRecurringJob`. The Anthropic adapter is a usable template for project layout, options binding, and DI extension method.
+The proposal aligns with three well-established patterns in this codebase:
 
-However, two structural conflicts in the spec must be resolved before implementation:
+1. **Adapter project layout** — `Anela.Heblo.Adapters.Plaud` mirrors `Anela.Heblo.Adapters.Anthropic`: options class, options-bound service collection extension, single client class. ✓
+2. **Recurring job pattern** — `IRecurringJob` is the de-facto interface; `RecurringJobDiscoveryService` already scans `Anela.Heblo.Application` and seeds DB-backed configuration, with `IRecurringJobStatusChecker` as the runtime on/off gate. ✓
+3. **MediatR + Vertical Slice** — `Features/<Domain>/UseCases/<UseCase>/<Request>+<Handler>` plus a `<Domain>Module.cs` static class added to `ApplicationModule.AddApplicationServices()`. ✓
 
-1. **Dependency inversion is missing.** The spec places `IPlaudClient` in `Anela.Heblo.Adapters.Plaud` and has `IngestPlaudRecordingHandler` (in `Application`) consume it. But `Anela.Heblo.Application.csproj` references no adapters — adapters reference Application (verified against `Anela.Heblo.Adapters.Anthropic.csproj` and `Anela.Heblo.Adapters.ShoptetApi.csproj`). The spec's directive that "Application references Anela.Heblo.Adapters.Plaud" inverts the established layering. The port (`IPlaudClient`) must live in Application; the adapter project supplies the implementation.
+However, the spec/brief contain **several concrete contract mismatches** with the existing infrastructure that will fail to compile or behave wrong if implemented literally:
 
-2. **`RecurringJobMetadata` API mismatch.** Spec code uses positional construction `new(JobName: ..., DisplayName: ..., Cron: "*/5 * * * *", DefaultIsEnabled: false)`. The actual type at `backend/src/Anela.Heblo.Domain/Features/BackgroundJobs/RecurringJobMetadata.cs:6` is a plain class with `required` `init` properties: `JobName`, `DisplayName`, `Description` (required), **`CronExpression`** (not `Cron`), `DefaultIsEnabled`, and optional `TimeZoneId`. The reference job `DailyConsumptionJob` at `backend/src/Anela.Heblo.Application/Features/PackingMaterials/Infrastructure/Jobs/DailyConsumptionJob.cs:14` uses object-initializer syntax with all four required props. The spec code will not compile.
+- `RecurringJobMetadata` uses `CronExpression` (required init), `Description` is **required**, and `JobName` convention is **kebab-case** — not `Cron`, not optional, and not dotted PascalCase as in the brief code.
+- `services.AddTransient<PlaudPollingJob>()` in `MeetingTasksModule` would **double-register** the job (auto-discovery in `AddRecurringJobs()` already adds it as `Scoped`), and the lifetime mismatch (Scoped dependencies inside a Transient job) is wrong.
+- The current branch is **not based on the epic branch**, so `MeetingTranscript`, `ProposedTask`, and `IMeetingTranscriptRepository` are missing locally — code won't compile until the upstream is merged in.
 
-A few other smaller deviations from existing conventions are flagged in the Specification Amendments section.
+Integration points: Anthropic adapter (`IChatClient`), Hangfire infra (`AddRecurringJobs`, `IRecurringJobStatusChecker`, `RecurringJobDiscoveryService`), `IMeetingTranscriptRepository` (from epic), MediatR pipeline, configuration secrets.
 
 ## Proposed Architecture
 
 ### Component Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│ Anela.Heblo.API                                                     │
-│  Program.cs  ──► AddPlaudAdapter()                                  │
-│              ──► AddRecurringJobs()  (reflection discovers job)     │
-│  RecurringJobDiscoveryService (HostedService) → Hangfire schedule   │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │
-┌──────────────────────────────┴──────────────────────────────────────┐
-│ Anela.Heblo.Application                                             │
-│  Features/MeetingTasks/                                             │
-│   ├─ MeetingTasksModule                                             │
-│   ├─ Ports/IPlaudClient + PlaudRecordingSummary  ◄── PORT (new home)│
-│   ├─ Services/IMeetingTaskExtractor + ClaudeMeetingTaskExtractor    │
-│   │       └── uses IChatClient (Anthropic adapter)                  │
-│   ├─ UseCases/IngestPlaudRecording/Request+Handler                  │
-│   │       └── IPlaudClient, IMeetingTaskExtractor,                  │
-│   │           IMeetingTranscriptRepository (from Subtask 1)         │
-│   └─ Infrastructure/Jobs/PlaudPollingJob (IRecurringJob)            │
-│       └── IMediator → IngestPlaudRecordingRequest                   │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │ (implements port)
-┌──────────────────────────────┴──────────────────────────────────────┐
-│ Anela.Heblo.Adapters.Plaud (ADAPTER)                                │
-│  ├─ PlaudOptions (bound to "Plaud" section)                         │
-│  ├─ PlaudCliClient : IPlaudClient  (uses System.Diagnostics.Process)│
-│  ├─ PlaudTokenBootstrapper : IHostedService                         │
-│  └─ PlaudAdapterServiceCollectionExtensions.AddPlaudAdapter()       │
-│        References: Anela.Heblo.Application (for IPlaudClient port)  │
-└─────────────────────────────────────────────────────────────────────┘
-                               │ runs
-                               ▼
-                         plaud CLI binary (installed in Docker image)
+                ┌─────────────────────────────────────────────────┐
+                │  Hangfire Server (every 5 min via cron)          │
+                └────────────────────────┬─────────────────────────┘
+                                         │  ExecuteAsync
+                                         ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ Application/Features/MeetingTasks                                │
+│                                                                  │
+│  ┌─────────────────────┐   gate    ┌────────────────────────┐    │
+│  │ PlaudPollingJob     │──────────▶│ IRecurringJobStatus    │    │
+│  │ (IRecurringJob)     │           │ Checker (DB-backed)    │    │
+│  └──────────┬──────────┘           └────────────────────────┘    │
+│             │ list + per-recording dispatch                      │
+│             ▼                                                    │
+│  ┌─────────────────────┐                                         │
+│  │ IngestPlaudRecordin │                                         │
+│  │ gHandler (MediatR)  │                                         │
+│  └─────┬─────┬─────┬───┘                                         │
+│        │     │     │                                             │
+│  dedup │     │     │ extract                                     │
+│        │     │     ▼                                             │
+│        │     │  ┌──────────────────────────┐                     │
+│        │     │  │ IMeetingTaskExtractor    │                     │
+│        │     │  │  → ClaudeMeetingTask...  │─┐                   │
+│        │     │  └──────────────────────────┘ │                   │
+│        │     │                               │                   │
+└────────┼─────┼───────────────────────────────┼───────────────────┘
+         │     │ transcript/summary            │ IChatClient
+         │     ▼                               ▼
+         │   ┌────────────────────┐    ┌────────────────────┐
+         │   │ IPlaudClient       │    │ Anthropic adapter  │
+         │   │  PlaudCliClient    │    │ (existing)         │
+         │   │  (Adapters.Plaud)  │    └────────────────────┘
+         │   └─────────┬──────────┘
+         │             │ Process.Start: plaud {cmd} {args}
+         │             ▼
+         │       [plaud CLI binary, ~/.plaud/tokens.json]
+         │             ▲
+         │             │ writes tokens.json on host start
+         │       ┌─────┴───────────────┐
+         │       │ PlaudTokenBootstrap │  IHostedService
+         │       └─────────────────────┘
+         ▼
+   ┌─────────────────────────────┐
+   │ IMeetingTranscriptRepository│ (epic-branch subtask 1)
+   │   ExistsByPlaudIdAsync      │
+   │   AddAsync / SaveChangesAsync│
+   └─────────────────────────────┘
 ```
 
 ### Key Design Decisions
 
-#### Decision 1: Port location (`IPlaudClient`)
+#### Decision 1: Do NOT manually register `PlaudPollingJob` in `MeetingTasksModule`
 **Options considered:**
-- A. Keep interface inside the adapter project (spec's wording).
-- B. Move interface to `Anela.Heblo.Application/Features/MeetingTasks/Ports/`.
-- C. Move interface to `Anela.Heblo.Domain/Features/MeetingTasks/`.
+- (A) `services.AddTransient<PlaudPollingJob>()` in `MeetingTasksModule` (as spec/brief say).
+- (B) Rely on `AddRecurringJobs()` assembly scan (which already does `AddScoped(typeof(IRecurringJob), jobType)` + `AddScoped(jobType)` for every Application-assembly `IRecurringJob`).
+**Chosen approach:** (B).
+**Rationale:** Pattern matches `LeafletIngestionJob`, `DailyConsumptionJob`, and every other Application-side job. Adding a Transient registration on top of the Scoped one creates lifetime ambiguity (Hangfire resolves via `GetService<PlaudPollingJob>()`, which would pick the last registration — likely Transient — and break Scoped dependencies like `IMediator`, `IRecurringJobStatusChecker`, EF repositories). Match the existing comment in `LeafletModule.cs:28`.
 
-**Chosen approach:** B — port lives in Application under `Features/MeetingTasks/Ports/IPlaudClient.cs` (and `PlaudRecordingSummary.cs` next to it).
-
-**Rationale:** Application cannot reference Adapters (verified — no existing adapter is referenced from Application). The Anthropic adapter follows this same direction (it references Application for `PostAnswerEnrichmentMiddleware`). Putting the port in Domain is overkill — `PlaudRecordingSummary` is an integration DTO, not a domain concept. Application-level Ports is consistent with how the codebase places integration abstractions (e.g., adapter implementations of repositories defined in Application/Domain).
-
-#### Decision 2: Job registration & lifetime
+#### Decision 2: Build the process command line via `ProcessStartInfo.ArgumentList`, not interpolated `Arguments`
 **Options considered:**
-- A. Register `PlaudPollingJob` manually in `MeetingTasksModule` as transient (spec).
-- B. Rely on `AddRecurringJobs()` reflection in `backend/src/Anela.Heblo.API/Extensions/ServiceCollectionExtensions.cs:346`, which scans the Application assembly and registers all `IRecurringJob` types as **scoped**.
+- (A) `Arguments = $"transcript {recordingId}"` (brief).
+- (B) `ArgumentList.Add("transcript"); ArgumentList.Add(recordingId);`.
+**Chosen approach:** (B).
+**Rationale:** `ArgumentList` performs per-platform escaping. While `UseShellExecute=false` eliminates shell metacharacter risk on POSIX, on Windows .NET still concatenates the list into a single command-line string with quoting rules. Plaud recording IDs are externally sourced (CLI output) — we control format but should not assume it. Cost of switching is zero; benefit is removing a quoting class of bug entirely.
 
-**Chosen approach:** B — do not add an explicit registration in `MeetingTasksModule`. The reflection-based registrar handles it. Match the existing scoped lifetime used for `DailyConsumptionJob` (referenced in `PackingMaterialsModule.cs:22` plus auto-discovery).
-
-**Rationale:** Spec's transient lifetime conflicts with the established pattern. The auto-discovery in `AddRecurringJobs()` already covers registration; an explicit DI registration here is redundant and inconsistent with `DailyConsumptionJob`.
-
-#### Decision 3: `IPlaudClient` DI lifetime
+#### Decision 3: Kill the process explicitly when the timeout fires
 **Options considered:**
-- A. Singleton (spec).
-- B. Scoped (consistent with the rest of the slice and with `IChatClient`).
+- (A) Linked CTS only (brief — relies on cancellation to break the wait, but the OS process keeps running).
+- (B) Linked CTS + `try { await WaitForExitAsync(linked.Token); } catch (OperationCanceledException) { process.Kill(entireProcessTree: true); throw new TimeoutException(...); }`.
+**Chosen approach:** (B).
+**Rationale:** Hangfire will mark the job as failed if cancellation throws, but the orphan `plaud` process keeps holding stdout/stderr pipes and consumes resources. Explicit `Kill(true)` reclaims them. Also have read tasks observe the linked token so `ReadToEndAsync` unblocks.
 
-**Chosen approach:** A is acceptable — the `PlaudCliClient` is effectively stateless (reads options, spawns a process per call, owns no scoped/EF dependencies). Singleton avoids per-handler resolution overhead.
-
-**Rationale:** No mutable shared state. `ILogger<PlaudCliClient>` and `IOptions<PlaudOptions>` are safe singletons. Keep the spec's choice.
-
-#### Decision 4: Process lifecycle / timeout handling
+#### Decision 4: Use the Czech-prompt + plain-text + manual JSON parsing path, NOT `GetResponseAsync<T>`
 **Options considered:**
-- A. Use linked CTS with `CancelAfter` and rely on `WaitForExitAsync` to observe the token (spec).
-- B. As A, but on cancellation/timeout call `process.Kill(entireProcessTree: true)` before throwing.
+- (A) `await _chatClient.GetResponseAsync<List<ExtractedTask>>(messages, cancellationToken: ct)` (brief/spec).
+- (B) Plain-text `GetResponseAsync(messages, ...)` + `JsonSerializer.Deserialize<List<ExtractedTask>>(text)`.
+**Chosen approach:** (B).
+**Rationale:** The current `AnthropicChatClient` (the only registered `IChatClient`) ignores `ChatOptions.ResponseFormat` and only forwards `model`, `max_tokens`, `system`, `messages` to the API. `GetResponseAsync<T>` from `Microsoft.Extensions.AI` falls back to prompt augmentation + JSON parsing; that augmentation may inject a separate system message that fights the existing Czech prompt's "Vrať POUZE JSON pole" instruction, and the inner `AnthropicChatClient` would drop or ignore it. Plain-text + `Deserialize` is deterministic, testable (mocking `IChatClient.GetResponseAsync` with a fixed text response is trivial), and matches the spec's "must never fail ingestion" guarantee already wrapped in try/catch. Strip Markdown code-fence prefix/suffix before deserializing.
 
-**Chosen approach:** B.
+#### Decision 5: Wrap each per-recording dispatch in `PlaudPollingJob.ExecuteAsync` with try/catch
+**Chosen approach:** `foreach (var rec in ready) { try { … _mediator.Send … } catch (Exception ex) { _logger.LogError(ex, "Ingest failed {Id}", rec.Id); } }`.
+**Rationale:** FR-8 requires per-recording error isolation, but the brief's reference code throws on the first failing recording (no per-iteration catch), which contradicts the spec. Without this, a single bad transcript fails the entire cycle and Hangfire retries the whole batch — duplicating successful work and amplifying the failure.
 
-**Rationale:** When `cts.Token` fires, `WaitForExitAsync` throws `OperationCanceledException` but the spawned `plaud` keeps running, leaking processes and tokens. The implementation must guarantee process termination via a `try/finally` that kills the process tree if it has not exited. This is a correctness fix to the spec snippet.
-
-#### Decision 5: Hangfire concurrency on overlapping ticks
-**Options considered:**
-- A. Rely on `ExistsByPlaudIdAsync` + unique index in DB to dedupe.
-- B. Add `[DisableConcurrentExecution(timeoutInSeconds: 270)]` on `PlaudPollingJob.ExecuteAsync`.
-
-**Chosen approach:** B.
-
-**Rationale:** With per-CLI timeout 60s and N recordings sequential, a tick could in theory exceed 5 min and overlap the next tick. Dedup will still hold via the unique index, but `DisableConcurrentExecution` keeps logs / dashboard state clean and avoids parallel CLI invocations sharing the same `~/.plaud/tokens.json` file.
-
-#### Decision 6: Structured-output reliability against `AnthropicChatClient`
-**Observation:** `AnthropicChatClient.GetResponseAsync` at `backend/src/Adapters/Anela.Heblo.Adapters.Anthropic/AnthropicChatClient.cs:58` ignores `options.ResponseFormat` and constructs its own request body. `IChatClient.GetResponseAsync<T>()` from `Microsoft.Extensions.AI` works by appending a JSON-schema instruction to the prompt and then parsing the model's text — so it should function, but reliability depends on Claude actually returning valid JSON.
-
-**Chosen approach:** Use `GetResponseAsync<List<ExtractedTask>>(...)` as the spec proposes, **but** the extractor's catch block must also treat null `response.Result` and JSON-parse failures as "no tasks extracted" (already covered by the warn-and-return-empty pattern). No change to `AnthropicChatClient` is required for this subtask.
+#### Decision 6: Use kebab-case `JobName`, include required `Description`
+**Chosen approach:** `JobName = "plaud-polling"`, `DisplayName = "Plaud — pull meeting transcripts"`, `Description = "Polls Plaud CLI every 5 minutes for completed recordings, extracts action items via Claude, and stores them as proposed tasks awaiting human review."`, `CronExpression = "*/5 * * * *"`, `DefaultIsEnabled = false`.
+**Rationale:** Matches every other job (`leaflet-ingestion`, `daily-consumption-calculation`, `knowledge-base-ingestion`, …). The brief's `"MeetingTasks.PlaudPolling"` would parse but visually clash with the rest of the Hangfire dashboard.
 
 ## Implementation Guidance
 
 ### Directory / Module Structure
 
 ```
-backend/src/Adapters/Anela.Heblo.Adapters.Plaud/
-  Anela.Heblo.Adapters.Plaud.csproj           # refs: Anela.Heblo.Application
-  PlaudOptions.cs
-  PlaudCliClient.cs                           # implements Application's IPlaudClient
-  PlaudTokenBootstrapper.cs                   # IHostedService
-  PlaudAdapterServiceCollectionExtensions.cs
-
-backend/src/Anela.Heblo.Application/Features/MeetingTasks/
-  MeetingTasksModule.cs                       # AddMeetingTasksModule()
-  Ports/
-    IPlaudClient.cs                           # <-- PORT here, not in adapter
-    PlaudRecordingSummary.cs
-  Services/
-    IMeetingTaskExtractor.cs
-    ExtractedTask.cs                          # record (immutable)
-    ClaudeMeetingTaskExtractor.cs
-  UseCases/IngestPlaudRecording/
-    IngestPlaudRecordingRequest.cs
-    IngestPlaudRecordingResponse.cs
-    IngestPlaudRecordingHandler.cs
-  Infrastructure/Jobs/
-    PlaudPollingJob.cs
-
-backend/test/Anela.Heblo.Adapters.Plaud.Tests/
-  Anela.Heblo.Adapters.Plaud.Tests.csproj
-  PlaudCliClientParserTests.cs                # offline fixture-based
-
-backend/test/Anela.Heblo.Tests/Features/MeetingTasks/
-  ClaudeMeetingTaskExtractorTests.cs
-  IngestPlaudRecordingHandlerTests.cs
-  PlaudPollingJobTests.cs                     # (new — see amendments)
+backend/
+├── src/
+│   ├── Adapters/
+│   │   └── Anela.Heblo.Adapters.Plaud/                            ← NEW project
+│   │       ├── Anela.Heblo.Adapters.Plaud.csproj
+│   │       ├── PlaudOptions.cs
+│   │       ├── PlaudRecordingSummary.cs                           (class, public)
+│   │       ├── IPlaudClient.cs
+│   │       ├── PlaudCliClient.cs                                  (sealed class)
+│   │       ├── PlaudTokenBootstrapper.cs                          (IHostedService)
+│   │       └── PlaudAdapterServiceCollectionExtensions.cs
+│   ├── Anela.Heblo.API/
+│   │   └── Program.cs                                             ← add AddPlaudAdapter
+│   └── Anela.Heblo.Application/
+│       └── Features/MeetingTasks/                                 ← NEW feature folder
+│           ├── MeetingTasksModule.cs                              (AddScoped<IMeetingTaskExtractor,…>)
+│           ├── Services/
+│           │   ├── IMeetingTaskExtractor.cs
+│           │   └── ClaudeMeetingTaskExtractor.cs
+│           ├── UseCases/IngestPlaudRecording/
+│           │   ├── IngestPlaudRecordingRequest.cs                 (class — DTO rule)
+│           │   ├── IngestPlaudRecordingResponse.cs                (class — DTO rule)
+│           │   └── IngestPlaudRecordingHandler.cs
+│           └── Infrastructure/Jobs/
+│               └── PlaudPollingJob.cs
+├── test/
+│   ├── Anela.Heblo.Adapters.Plaud.Tests/                          ← NEW test project
+│   │   ├── Anela.Heblo.Adapters.Plaud.Tests.csproj
+│   │   └── PlaudCliClientParserTests.cs
+│   └── Anela.Heblo.Tests/Features/MeetingTasks/
+│       ├── ClaudeMeetingTaskExtractorTests.cs
+│       └── IngestPlaudRecordingHandlerTests.cs
+└── Dockerfile                                                     ← install plaud binary
 ```
 
-Wire `AddMeetingTasksModule()` into `backend/src/Anela.Heblo.Application/ApplicationModule.cs` next to the existing `AddPackingMaterialsModule()` call. Wire `AddPlaudAdapter(builder.Configuration)` into `backend/src/Anela.Heblo.API/Program.cs` right after `AddAnthropicAdapter(...)` at line 74.
-
-Add `<ProjectReference Include="..\..\Adapters\Anela.Heblo.Adapters.Plaud\Anela.Heblo.Adapters.Plaud.csproj" />` to `Anela.Heblo.API.csproj` only — **do not** add it to `Anela.Heblo.Application.csproj`.
+Also touch:
+- `backend/Anela.Heblo.sln` — add the two new projects to the solution.
+- `backend/src/Anela.Heblo.Application/ApplicationModule.cs` — call `services.AddMeetingTasksModule(configuration)` inside `AddApplicationServices`.
+- `backend/src/Anela.Heblo.API/Program.cs` — `builder.Services.AddPlaudAdapter(builder.Configuration)` after `AddAnthropicAdapter` (line 74).
+- `backend/appsettings.json` — `"Plaud"` section (non-secret defaults only).
 
 ### Interfaces and Contracts
 
 ```csharp
-// Application/Features/MeetingTasks/Ports/IPlaudClient.cs
+// Anela.Heblo.Adapters.Plaud
+public class PlaudOptions
+{
+    public const string SectionKey = "Plaud";
+    public string CliExecutablePath { get; set; } = "plaud";
+    public string TokensJson { get; set; } = string.Empty;
+    public int ProcessTimeoutSeconds { get; set; } = 60;
+    public int MaxRecordingAgeDays { get; set; } = 7;
+}
+
 public interface IPlaudClient
 {
-    Task<IReadOnlyList<PlaudRecordingSummary>> ListRecentAsync(int days, CancellationToken ct = default);
+    Task<List<PlaudRecordingSummary>> ListRecentAsync(int days, CancellationToken ct = default);
     Task<string> GetTranscriptAsync(string recordingId, CancellationToken ct = default);
     Task<string> GetSummaryAsync(string recordingId, CancellationToken ct = default);
 }
 
-// Application/Features/MeetingTasks/Ports/PlaudRecordingSummary.cs
-public sealed record PlaudRecordingSummary(
-    string Id,
-    string Name,
-    DateTime CreatedAt,
-    bool HasTranscript,
-    bool HasSummary);
-
-// Application/Features/MeetingTasks/Services/ExtractedTask.cs
-public sealed record ExtractedTask(string Title, string Description, string Assignee, DateTime? DueDate);
-
-// MeetingTasksModule.cs
-public static IServiceCollection AddMeetingTasksModule(this IServiceCollection services)
+// Anela.Heblo.Application.Features.MeetingTasks.Services
+public record ExtractedTask(string Title, string Description, string Assignee, DateTime? DueDate);
+public interface IMeetingTaskExtractor
 {
-    services.AddScoped<IMeetingTaskExtractor, ClaudeMeetingTaskExtractor>();
-    // No explicit PlaudPollingJob registration — AddRecurringJobs() reflection covers it.
-    return services;
+    Task<List<ExtractedTask>> ExtractAsync(string summary, string transcript, CancellationToken ct = default);
+}
+
+// Anela.Heblo.Application.Features.MeetingTasks.UseCases.IngestPlaudRecording
+public class IngestPlaudRecordingRequest : IRequest<IngestPlaudRecordingResponse>
+{
+    public string PlaudRecordingId { get; set; } = null!;
+    public string Name { get; set; } = null!;
+    public DateTime PlaudCreatedAt { get; set; }
+}
+public class IngestPlaudRecordingResponse
+{
+    public bool Success { get; set; } = true;
+    public bool Skipped { get; set; }
+    public Guid? TranscriptId { get; set; }
 }
 ```
 
-`PlaudCliClient` lives in the adapter project but its `: IPlaudClient` references the port in Application via the existing project reference (`Adapters.Plaud → Application`).
-
-Use object-initializer syntax with `CronExpression` (not `Cron`) for the metadata:
-
+**RecurringJobMetadata (use the existing required-init shape):**
 ```csharp
 public RecurringJobMetadata Metadata { get; } = new()
 {
-    JobName = "MeetingTasks.PlaudPolling",
+    JobName = "plaud-polling",
     DisplayName = "Plaud — pull meeting transcripts",
-    Description = "Polls Plaud CLI every 5 minutes for completed recordings and ingests them as pending-review transcripts.",
+    Description = "Polls Plaud CLI every 5 minutes for completed recordings, extracts action items via Claude, and stores them as proposed tasks awaiting human review.",
     CronExpression = "*/5 * * * *",
     DefaultIsEnabled = false
 };
 ```
 
+**`MeetingTasksModule.AddMeetingTasksModule`:**
+```csharp
+public static IServiceCollection AddMeetingTasksModule(this IServiceCollection services, IConfiguration configuration)
+{
+    services.AddScoped<IMeetingTaskExtractor, ClaudeMeetingTaskExtractor>();
+    // PlaudPollingJob is auto-discovered via IRecurringJob assembly scan in AddRecurringJobs().
+    // IMeetingTranscriptRepository is registered in PersistenceModule (subtask 1).
+    // IngestPlaudRecordingHandler is auto-registered by MediatR assembly scan.
+    return services;
+}
+```
+
 ### Data Flow
 
-**Polling tick (every 5 min, when enabled):**
+**Happy path (single new recording in a poll cycle):**
+1. Hangfire fires `plaud-polling` cron → invokes `PlaudPollingJob.ExecuteAsync(ct)`.
+2. Job calls `IRecurringJobStatusChecker.IsJobEnabledAsync("plaud-polling", ct)` → returns true only when operator has enabled it.
+3. Job calls `IPlaudClient.ListRecentAsync(7, ct)` → `Process.Start("plaud", ["recent","--days","7"])` → stdout parsed by `PlaudCliClient.ParseFilesOutput` → list of `PlaudRecordingSummary`.
+4. Filter `HasTranscript && HasSummary`. Log `{Total} found, {Ready} ready`.
+5. For each ready recording (inside per-recording try/catch):
+   a. `_mediator.Send(new IngestPlaudRecordingRequest { … }, ct)`.
+   b. Handler: `repository.ExistsByPlaudIdAsync(id, ct)` → false.
+   c. Handler: `_plaudClient.GetTranscriptAsync(id, ct)` + `_plaudClient.GetSummaryAsync(id, ct)` (sequential, two process invocations).
+   d. Handler: `_extractor.ExtractAsync(summary, transcript, ct)` → list of `ExtractedTask` (empty list on Claude failure — already swallowed).
+   e. Handler: construct `MeetingTranscript` (Status=`PendingReview`, ReceivedAt=`DateTime.UtcNow`, Tasks mapped to `ProposedTask` with Status=`Pending`, IsManuallyAdded=`false`).
+   f. Handler: `repository.AddAsync(entity, ct)` + `repository.SaveChangesAsync(ct)`.
+   g. Handler returns `{ Success=true, Skipped=false, TranscriptId=entity.Id }`.
+6. Job increments `ingested`/`skipped` counters; logs `{Ingested} new, {Skipped} already known`.
 
-```
-Hangfire ─► PlaudPollingJob.ExecuteAsync(ct)
-            ├─ IRecurringJobStatusChecker.IsJobEnabledAsync → exit if false
-            ├─ IPlaudClient.ListRecentAsync(7, ct)
-            │     └─ Process.Start("plaud", "recent --days 7") → stdout
-            │        └─ PlaudCliClient.ParseFilesOutput(stdout) → List<PlaudRecordingSummary>
-            ├─ filter: HasTranscript && HasSummary
-            └─ for each ready recording:
-                IMediator.Send(IngestPlaudRecordingRequest { Id, Name, CreatedAt })
-                  └─ IngestPlaudRecordingHandler
-                       ├─ IMeetingTranscriptRepository.ExistsByPlaudIdAsync → skip if true
-                       ├─ IPlaudClient.GetTranscriptAsync(id)
-                       ├─ IPlaudClient.GetSummaryAsync(id)
-                       ├─ IMeetingTaskExtractor.ExtractAsync(summary, transcript)
-                       │     └─ IChatClient.GetResponseAsync<List<ExtractedTask>>(...)
-                       │        (catch-all → empty list on failure)
-                       ├─ build MeetingTranscript (Status = PendingReview)
-                       ├─ AddAsync + SaveChangesAsync
-                       └─ return { TranscriptId, Skipped = false }
-```
+**Idempotency path (recording already ingested):** Step 5b returns true → handler returns `{ Skipped=true }` immediately, no CLI calls, no extractor call, no DB writes.
 
-**Host startup (one-time):**
-
-```
-PlaudTokenBootstrapper.StartAsync
-  ├─ if TokensJson empty → log warn, no-op
-  └─ else → mkdir ~/.plaud; write tokens.json
-```
+**Failure isolation:** Step 5c/5e/5f exceptions are caught at the job level, logged with `PlaudRecordingId`, loop continues. Hangfire retry is not triggered for per-recording failures (only for the whole-job exception path, which is now reserved for truly catastrophic failures e.g. DB unreachable from the dedup check itself — but that's not currently scoped; document as accepted behavior).
 
 ## Risks and Mitigations
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| `plaud` CLI binary install method is unknown / not publicly documented; Dockerfile changes are not specified | **High** | **Prerequisite**: capture the actual install procedure (apt-get? curl + binary? language runtime?) and verify `plaud --version` inside the runtime image before implementation. Pin a specific CLI version. If install requires extra packages, add them to the existing `apt-get install` block at `Dockerfile:58`. |
-| CLI subcommands assumed (`recent --days`, `transcript`, `summary`, `files`); the brief uses `plaud files`, spec uses `plaud recent --days` — possibly inconsistent | **High** | Run the CLI locally first, capture real `--help` output, and commit a verified fixture string + final argv into `PlaudCliClient`. Update spec wording to match real CLI surface. |
-| Parser format drift — output format may differ from the assumed `ID NAME DATE TIME TRANSCRIPT SUMMARY` layout, especially with whitespace in names or alternative columns | High | Commit a canonical fixture captured from the real CLI to the parser tests. Add a test for a row where `Name` contains multiple spaces. Skip rather than throw on malformed rows. |
-| Process leak on timeout — spec snippet does not kill the child process when the linked CTS fires | High | Wrap `WaitForExitAsync` in `try/finally`; in the finally, if `!process.HasExited`, call `process.Kill(entireProcessTree: true)`. Log a warning with arguments and elapsed time. |
-| Overlapping ticks share the same `~/.plaud/tokens.json` and CLI process state | Medium | Add `[DisableConcurrentExecution(270)]` to `PlaudPollingJob.ExecuteAsync`. DB unique index on `PlaudRecordingId` provides a secondary safety net. |
-| `Environment.SpecialFolder.UserProfile` resolves to empty string when `$HOME` is unset for the container user (uid 1001 created via `adduser`) | Medium | `adduser --disabled-password` creates `/home/appuser` and sets HOME. Verify at startup: log the resolved path. Optionally fall back to `Path.Combine("/home", Environment.UserName, ".plaud")` if `UserProfile` is empty, and fail-fast with a clear error message rather than writing to `/`. |
-| Hangfire's default retry on a thrown `InvalidOperationException` will re-run the failed recording immediately on transient CLI failures, possibly amplifying load | Medium | Add `[AutomaticRetry(Attempts = 0)]` on `PlaudPollingJob.ExecuteAsync` — the next 5-minute tick is the retry. Spec implies this but does not enforce it. |
-| `AnthropicChatClient` ignores `options.ResponseFormat`; structured-output relies on Claude obeying inline JSON instructions | Medium | Keep extractor's try/catch + return-empty behavior; rely on schema-in-prompt from `Microsoft.Extensions.AI`. Optionally extend `AnthropicChatClient` later to forward `response_format` — out of scope for this subtask. |
-| Transcript and summary text are large; loading them into the `MeetingTranscript.RawTranscript`/`Summary` columns may hit EF tracker memory or DB column type limits | Low | Confirm Subtask 1 uses `text` (Postgres) or `nvarchar(max)` for both columns. If not, raise a prerequisite issue against Subtask 1. |
-| Logs accidentally leak secret/transcript content via structured logging or unhandled exception | Medium | Code-review checklist: no `_logger.LogX(..., transcript)`, `..., summary)`, or `..., TokensJson)` anywhere. Use deterministic redaction (`{Length}` instead of body) when needed for debugging. |
-| `IRecurringJob` assemblies are auto-scanned at startup — registering `PlaudPollingJob` manually as transient (per spec) would create a duplicate registration and may register the job twice with conflicting lifetimes | Low | Do not add an explicit DI registration for `PlaudPollingJob` in `MeetingTasksModule`. The reflection in `AddRecurringJobs()` is sufficient. |
+| **Plaud CLI binary install mechanism is unspecified.** Spec says "install `plaud` CLI" in Dockerfile but doesn't name a distribution channel (npm? pip? curl release tarball? Go binary?). Without this, the container build will fail. | **HIGH (blocker)** | Resolve before merge: pick a channel, document in `docs/integrations/` (new file `plaud-cli.md`), pin the version, and add a smoke test stage in the Dockerfile that runs `plaud --version`. Treat as a prerequisite (see below). |
+| **CLI output format is unverified.** Parser is a guess based on assumed column structure; brief explicitly says "adjust column format in tests to match actual output." A wrong parser silently returns zero or malformed records — symptom is "polling runs, no transcripts ingested, no errors." | **HIGH** | Capture real `plaud recent --days 7` (or `plaud files`) stdout from a logged-in CLI before merging implementation. Save the verbatim string as a test fixture file in `Anela.Heblo.Adapters.Plaud.Tests/Fixtures/plaud_recent_sample.txt`. Tests must load from that file, not inline-define a hypothetical. CI fails until fixture is committed. |
+| **`GetResponseAsync<T>` may produce empty/wrong results against the current `AnthropicChatClient`** (no `ResponseFormat` support). | **MEDIUM** | Decision 4 — use plain-text response + `JsonSerializer.Deserialize<List<ExtractedTask>>`. Strip Markdown code-fence wrappers before deserializing. Spec amendment in next section. |
+| **Process orphan on timeout.** Linked CTS cancels reads but does not kill the OS process. | **MEDIUM** | Decision 3 — explicit `process.Kill(entireProcessTree: true)` in catch + linked token passed to `ReadToEndAsync`. |
+| **Sequential 60-s CLI timeouts × N recordings can exceed Hangfire's job slot.** Three ready recordings = up to 360 s of pure CLI wall-clock (list + transcript×3 + summary×3 = 7 invocations × 60 s worst case). | **LOW–MEDIUM** | Document the worst case in NFR-1. Optionally cap recordings per poll (e.g. process at most 5 per cycle) to stay deterministic. The next 5-min cycle picks up leftovers. |
+| **Per-recording exception not isolated.** Brief job code throws on first failure; this contradicts FR-8. | **MEDIUM** | Decision 5 — wrap dispatch in per-iteration try/catch with structured log. Spec amendment below. |
+| **Token file overwritten on every host start** with default file permissions (world-readable on Linux). | **LOW** | Inside a single-tenant container this is acceptable. Add a defensive `chmod 600` (`File.SetUnixFileMode` on .NET 7+) when writing on Unix. Document in NFR-2. |
+| **CLI argument injection via recording IDs.** `Arguments = $"transcript {id}"` is shell-safe on POSIX (`UseShellExecute=false`) but quoted/parsed by .NET on Windows. | **LOW** | Decision 2 — switch to `ArgumentList`. |
+| **MeetingTasksModule double-registration of PlaudPollingJob.** Brief instruction `AddTransient<PlaudPollingJob>()` conflicts with auto-discovery's Scoped registration. | **HIGH (correctness)** | Decision 1 — omit the manual registration. Add a code comment explaining auto-discovery (mirror `LeafletModule.cs:28`). |
+| **Current branch is not based on epic.** `MeetingTranscript`, `ProposedTask`, `IMeetingTranscriptRepository` are missing locally — nothing compiles. | **HIGH (blocker)** | Prerequisite — rebase the feature branch onto `origin/feat/meeting-task-validation-epic` before any implementation work. PR target is `feat/meeting-task-validation-epic`, not `main`. |
+| **Hangfire `DisableConcurrentExecution` is not applied anywhere in the existing infra.** A long-running poll could overlap with the next 5-min trigger. | **LOW** | Add `[DisableConcurrentExecution(timeoutInSeconds: 60)]` attribute on `PlaudPollingJob.ExecuteAsync` (already used implicitly via single Hangfire worker process in most deployments, but explicit is safer for the 5-min cadence). |
 
 ## Specification Amendments
 
-The spec is otherwise solid. The following amendments are required for implementation to compile and align with the codebase:
+1. **FR-2 / parser fixture provenance.** Amend FR-2 to require: "Parser tests load fixture from `Fixtures/plaud_recent_sample.txt`, captured verbatim from a real `plaud recent --days 7` run and committed to the repo. CI fails if the fixture file is missing or empty." Inline-string fixtures are disallowed.
 
-1. **Move `IPlaudClient` and `PlaudRecordingSummary` to `Anela.Heblo.Application/Features/MeetingTasks/Ports/`.** The adapter project still defines `PlaudCliClient : IPlaudClient`. Update FR-1's file list accordingly. Update FR-7 to **remove** the directive that "`Anela.Heblo.Application` references `Anela.Heblo.Adapters.Plaud`" — that reference must not exist. Only `Anela.Heblo.API` references the adapter.
+2. **FR-4 / Claude call uses plain text.** Replace `GetResponseAsync<List<ExtractedTask>>` with `GetResponseAsync(messages, …)` returning text, followed by Markdown-fence stripping (````json … ````) and `JsonSerializer.Deserialize<List<ExtractedTask>>(text, options)` where `options` has `PropertyNameCaseInsensitive = true`. Tests stub `IChatClient.GetResponseAsync(...)` returning `ChatResponse` with a single assistant `ChatMessage` containing the JSON string.
 
-2. **Fix `RecurringJobMetadata` construction in FR-6.** Replace the positional-record snippet with object-initializer syntax matching `DailyConsumptionJob.cs:14`. Add the missing required `Description` field. Rename `Cron` to `CronExpression`. Default `TimeZoneId` is already `Europe/Prague`.
+3. **FR-6 / job registration.** Strike "Registered in `MeetingTasksModule` as `services.AddTransient<PlaudPollingJob>()`". Replace with: "`PlaudPollingJob` lives in `Anela.Heblo.Application` and is auto-discovered by `AddRecurringJobs()` as Scoped — do not add a manual registration."
 
-3. **Drop the "register `PlaudPollingJob` as transient" requirement in FR-6/FR-7.** The reflection-based `AddRecurringJobs()` in `ServiceCollectionExtensions.cs:346` discovers and registers it as scoped (matching `DailyConsumptionJob`). The `MeetingTasksModule` only needs to register `IMeetingTaskExtractor → ClaudeMeetingTaskExtractor` (scoped) and call into `ApplicationModule.AddApplicationServices()`.
+4. **FR-6 / metadata shape.** Replace metadata snippet with the existing required-init pattern: `new RecurringJobMetadata { JobName = "plaud-polling", DisplayName = "...", Description = "...", CronExpression = "*/5 * * * *", DefaultIsEnabled = false }`. `JobName` is **kebab-case**, `Description` is **required**.
 
-4. **Add `[DisableConcurrentExecution(timeoutInSeconds: 270)]` and `[AutomaticRetry(Attempts = 0)]` on `PlaudPollingJob.ExecuteAsync`.** Update FR-6 acceptance criteria.
+5. **FR-6 / per-recording try-catch.** Add to acceptance criteria: "Per-recording dispatch is wrapped in `try { … } catch (Exception ex) { _logger.LogError(ex, …); }`; the loop continues. Repository-write exceptions are caught here as well — they no longer propagate to Hangfire."
 
-5. **Fix process termination in `PlaudCliClient.RunCommandAsync`.** Wrap `WaitForExitAsync` in `try/finally`; in finally, kill the process tree if it hasn't exited. Update FR-1's process-timeout acceptance criterion accordingly.
+6. **FR-6 / concurrency guard.** Decorate `PlaudPollingJob.ExecuteAsync` with `[DisableConcurrentExecution(60)]`.
 
-6. **Reconcile CLI argv between brief and spec.** Brief example uses `plaud files`; spec uses `plaud recent --days <n>`. Pick one based on the real CLI; record both the chosen argv and the verified `--version` output as committed artifacts before implementation.
+7. **FR-1 / Process invocation.** Use `ProcessStartInfo.ArgumentList.Add(...)` (one entry per token); on timeout, `process.Kill(entireProcessTree: true)` and translate `OperationCanceledException` into `TimeoutException` distinct from caller-driven cancellation.
 
-7. **Make `ExtractedTask`, `PlaudRecordingSummary`, and `IngestPlaudRecordingResponse` immutable records** (per project coding-style rule on immutability and per existing convention — DTOs in HTTP-facing contracts must remain `class` per CLAUDE.md, but these are internal types, not OpenAPI-exposed, so records are fine). `IngestPlaudRecordingRequest` is a MediatR request — keep as a class with init-only setters to stay consistent with other handlers' request shapes (verify against existing requests under `Features/PackingMaterials/UseCases/`).
+8. **FR-9 / module wiring.** Add: "Create `MeetingTasksModule.AddMeetingTasksModule(IConfiguration)` and call it from `ApplicationModule.AddApplicationServices()` after `AddLeafletModule`. Add new projects (`Anela.Heblo.Adapters.Plaud`, `Anela.Heblo.Adapters.Plaud.Tests`) to `backend/Anela.Heblo.sln`."
 
-8. **Add `PlaudPollingJobTests` to NFR-4 coverage** (currently lists only parser, extractor, handler). Covering: status-checker-disabled exits early; recordings without both flags are filtered; dispatch counts correctly accumulate `Skipped`/`Ingested`.
+9. **NFR-2 / token file permissions.** "On Unix-family runtimes, `PlaudTokenBootstrapper` sets `tokens.json` mode to `0600` via `File.SetUnixFileMode`."
 
-9. **Logging redaction note in NFR-5:** explicitly forbid `_logger.LogX` calls that take `transcript`, `summary`, or `TokensJson` as a templated argument. Logged sizes / lengths are acceptable.
-
-10. **Wire `AddMeetingTasksModule()` into `ApplicationModule.cs`** alongside the other `services.AddXxxModule()` calls. This is implied but not explicit in FR-7.
+10. **Open Questions** (was "None"). Now lists: Plaud CLI distribution channel and version pin (blocker for Dockerfile).
 
 ## Prerequisites
 
-Before implementation can start:
+Must exist or be resolved **before** implementation starts:
 
-1. **Subtask 1 delivered**, with verified shapes for `MeetingTranscript`, `ProposedTask`, `MeetingTranscriptStatus.PendingReview`, `ProposedTaskStatus.Pending`, and `IMeetingTranscriptRepository` exposing at minimum `ExistsByPlaudIdAsync`, `AddAsync`, `SaveChangesAsync`. Confirm EF Core configuration applies a **unique index** on `PlaudRecordingId` and uses unbounded text types for `Summary` and `RawTranscript`.
-2. **`plaud` CLI install procedure verified locally** on Linux (the runtime image base is `mcr.microsoft.com/dotnet/aspnet:8.0`, Debian-based). Capture: install command(s), version string, full `plaud --help` output, real output of `plaud recent --days 7` (or whichever is the listing command) including header layout and column delimiter behavior with multi-word names, and real outputs of `plaud transcript <id>` / `plaud summary <id>`. Commit these as fixtures.
-3. **`Plaud:TokensJson` secret available** in local user-secrets and a staging Azure App Service App Setting before enabling the job in any non-dev environment. Job remains `DefaultIsEnabled = false` until that is set.
-4. **Anthropic adapter operational** (`AnthropicOptions.ApiKey` set in the same environment). No new secret introduced.
-5. **Dockerfile change reviewed** for image size impact and for HOME being set for `appuser` (uid 1001). If `adduser` did not create `/home/appuser` for the existing image, add `RUN mkdir -p /home/appuser && chown appuser:appuser /home/appuser` and set `ENV HOME=/home/appuser` before the `USER appuser` directive at `Dockerfile:83`.
-6. **Hangfire scheduler enabled in the target environment** (`HangfireOptions.SchedulerEnabled = true`) — otherwise `RecurringJobDiscoveryService` will skip registration and the job will never run regardless of the DB enable flag.
+1. **Branch base.** Rebase or recreate the working branch from `origin/feat/meeting-task-validation-epic`. The MeetingTasks domain types from Subtask 1 (`MeetingTranscript`, `ProposedTask`, `MeetingTranscriptStatus`, `ProposedTaskStatus`, `IMeetingTranscriptRepository`, EF Core configs, migration) live only on the epic branch and are not in the current worktree.
+
+2. **Plaud CLI distribution channel.** Pick and document one of: official release binary (`curl … && install`), npm package, pip package, Go install. Pin a version. Required to write the Dockerfile change; otherwise the container build is undefined. Add a short note to `docs/integrations/plaud-cli.md` covering install command, version, and `plaud login` flow.
+
+3. **Real CLI output fixture.** A verbatim `plaud recent --days 7` (or whatever the actual subcommand is) stdout captured against a logged-in CLI, committed as `backend/test/Anela.Heblo.Adapters.Plaud.Tests/Fixtures/plaud_recent_sample.txt`. The parser implementation and FR-2 tests must use this file as the source of truth.
+
+4. **Subtask 1 PR merged (or at least its commits accessible).** The persistence migration `20260512191541_AddMeetingTasksTables` is referenced indirectly — handler writes through `IMeetingTranscriptRepository` which expects the EF Core model to be in sync. Manual `dotnet ef database update` is required on each environment (per project facts: "Database migrations are manual").
+
+5. **Secret provisioning plan.** `Plaud__TokensJson` in dotnet user-secrets for local dev; corresponding Azure App Service configuration entry for production (`Plaud__TokensJson`). Token rotation procedure documented (out of scope to implement, but the runbook entry should exist before the job is enabled).
+
+6. **Hangfire dashboard enable-step is documented.** Add a one-line operator note: after first deployment, open `/hangfire`, navigate to recurring jobs, locate `plaud-polling`, set to Enabled. Required because `DefaultIsEnabled = false`.
