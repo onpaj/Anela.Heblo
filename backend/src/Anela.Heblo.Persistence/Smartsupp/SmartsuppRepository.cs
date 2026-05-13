@@ -53,6 +53,11 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         }
         else
         {
+            if (existing.UpdatedAt > contact.UpdatedAt)
+            {
+                return;
+            }
+
             existing.Email = contact.Email;
             existing.Name = contact.Name;
             existing.Phone = contact.Phone;
@@ -146,6 +151,22 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
                 _db.SmartsuppMessages.Add(message);
             }
         }
+    }
+
+    public async Task UpdateMessageDeliveryStatusAsync(
+        string messageId,
+        string status,
+        DateTime? deliveredAt,
+        CancellationToken cancellationToken)
+    {
+        var existing = await _db.SmartsuppMessages
+            .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
+
+        if (existing is null)
+            return;
+
+        existing.DeliveryStatus = status;
+        existing.DeliveredAt = deliveredAt;
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
