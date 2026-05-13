@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.Anthropic;
+using Anela.Heblo.Adapters.Smartsupp;
 using Anela.Heblo.Adapters.Azure;
 using Anela.Heblo.Adapters.HomeAssistant;
 using Anela.Heblo.Adapters.Plaud;
@@ -73,6 +74,7 @@ public partial class Program
         builder.Services.AddMetaAdsAdapter(builder.Configuration);
         builder.Services.AddGoogleAdsAdapter(builder.Configuration);
         builder.Services.AddAnthropicAdapter(builder.Configuration);
+        builder.Services.AddSmartsuppAdapter(builder.Configuration);
         builder.Services.AddOpenAiAdapter(builder.Configuration);
         builder.Services.AddWebSearchAdapter(builder.Configuration);
         builder.Services.AddSendGridAdapter(builder.Configuration);
