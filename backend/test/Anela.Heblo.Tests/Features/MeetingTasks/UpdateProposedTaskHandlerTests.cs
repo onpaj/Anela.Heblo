@@ -1,4 +1,4 @@
-// using Anela.Heblo.Application.Features.MeetingTasks.UseCases.AddProposedTask;
+using Anela.Heblo.Application.Features.MeetingTasks.UseCases.AddProposedTask;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTaskStatus;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTask;
 using Anela.Heblo.Application.Shared;
@@ -247,6 +247,82 @@ public class UpdateProposedTaskHandlerTests
         // Assert
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.ValidationError);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AddTask_CreatesManualTask()
+    {
+        // Arrange
+        var transcript = CreateTranscriptWithTask(out var transcriptId, out _);
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(transcriptId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transcript);
+        var handler = new AddProposedTaskHandler(
+            _repositoryMock.Object,
+            NullLogger<AddProposedTaskHandler>.Instance);
+        var dueDate = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc);
+        var request = new AddProposedTaskRequest
+        {
+            TranscriptId = transcriptId,
+            Title = "Manually added task",
+            Description = "Added by reviewer",
+            Assignee = "carol",
+            DueDate = dueDate
+        };
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.ErrorCode.Should().BeNull();
+        result.Task.Should().NotBeNull();
+        result.Task.Title.Should().Be("Manually added task");
+        result.Task.Description.Should().Be("Added by reviewer");
+        result.Task.Assignee.Should().Be("carol");
+        result.Task.DueDate.Should().Be(dueDate);
+        result.Task.Status.Should().Be("Pending");
+        result.Task.IsManuallyAdded.Should().BeTrue();
+        result.Task.ExternalTaskId.Should().BeNull();
+
+        transcript.Tasks.Should().HaveCount(2);
+        var addedEntity = transcript.Tasks.Last();
+        addedEntity.Title.Should().Be("Manually added task");
+        addedEntity.IsManuallyAdded.Should().BeTrue();
+        addedEntity.Status.Should().Be(ProposedTaskStatus.Pending);
+        addedEntity.MeetingTranscriptId.Should().Be(transcriptId);
+        result.Task.Id.Should().Be(addedEntity.Id);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddTask_ReturnsNotFound_WhenTranscriptMissing()
+    {
+        // Arrange
+        var transcriptId = Guid.NewGuid();
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(transcriptId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MeetingTranscript?)null);
+        var handler = new AddProposedTaskHandler(
+            _repositoryMock.Object,
+            NullLogger<AddProposedTaskHandler>.Instance);
+        var request = new AddProposedTaskRequest
+        {
+            TranscriptId = transcriptId,
+            Title = "Some task",
+            Description = "Some description",
+            Assignee = "alice",
+            DueDate = null
+        };
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ResourceNotFound);
+        result.Task.Should().BeNull();
         _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }
