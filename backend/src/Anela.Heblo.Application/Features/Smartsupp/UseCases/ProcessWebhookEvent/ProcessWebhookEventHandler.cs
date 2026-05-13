@@ -1,4 +1,5 @@
-using System.Text.Json;
+using System.Diagnostics;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Reactions;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -7,16 +8,20 @@ namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEven
 
 public class ProcessWebhookEventHandler : IRequestHandler<ProcessWebhookEventRequest, ProcessWebhookEventResponse>
 {
-    private const int LastMessagePreviewMaxLength = 200;
-
+    private readonly IReadOnlyDictionary<string, ISmartsuppWebhookReaction> _reactionsByName;
     private readonly ISmartsuppRepository _repository;
+    private readonly ISmartsuppWebhookMetrics _metrics;
     private readonly ILogger<ProcessWebhookEventHandler> _logger;
 
     public ProcessWebhookEventHandler(
+        IEnumerable<ISmartsuppWebhookReaction> reactions,
         ISmartsuppRepository repository,
+        ISmartsuppWebhookMetrics metrics,
         ILogger<ProcessWebhookEventHandler> logger)
     {
+        _reactionsByName = reactions.ToDictionary(r => r.EventName, StringComparer.Ordinal);
         _repository = repository;
+        _metrics = metrics;
         _logger = logger;
     }
 
@@ -24,126 +29,46 @@ public class ProcessWebhookEventHandler : IRequestHandler<ProcessWebhookEventReq
         ProcessWebhookEventRequest request,
         CancellationToken cancellationToken)
     {
-        switch (request.EventName)
+        var ctx = WebhookEventContext.From(request);
+        var sw = Stopwatch.StartNew();
+
+        using var scope = _logger.BeginScope(new Dictionary<string, object?>
         {
-            case "conversation.created":
-            case "conversation.updated":
-            case "conversation.closed":
-                await HandleConversationAsync(request.Data, cancellationToken);
-                await _repository.SaveChangesAsync(cancellationToken);
-                _logger.LogDebug("smartsupp webhook handled conversation event {Event}", request.EventName);
-                return new ProcessWebhookEventResponse { Handled = true };
+            ["smartsupp.event"] = ctx.EventName,
+            ["smartsupp.account_id"] = ctx.AccountId,
+            ["smartsupp.app_id"] = ctx.AppId,
+        });
 
-            case "message.created":
-                await HandleMessageAsync(request.Data, cancellationToken);
-                await _repository.SaveChangesAsync(cancellationToken);
-                _logger.LogDebug("smartsupp webhook handled message event {Event}", request.EventName);
-                return new ProcessWebhookEventResponse { Handled = true };
+        if (!_reactionsByName.TryGetValue(ctx.EventName, out var reaction))
+        {
+            var outcome = ClassifyUnhandled(ctx.EventName);
+            _metrics.RecordReceived(ctx.EventName, outcome, sw.Elapsed.TotalMilliseconds);
+            _logger.LogInformation("smartsupp webhook {Outcome} event {Event}", outcome, ctx.EventName);
+            return new ProcessWebhookEventResponse { Handled = false, Reason = outcome };
+        }
 
-            default:
-                _logger.LogInformation("smartsupp webhook unknown event={Event}", request.EventName);
-                return new ProcessWebhookEventResponse { Handled = false, Reason = "unknown event" };
+        try
+        {
+            await reaction.HandleAsync(ctx, cancellationToken);
+            await _repository.SaveChangesAsync(cancellationToken);
+            _metrics.RecordReceived(ctx.EventName, "handled", sw.Elapsed.TotalMilliseconds);
+            _logger.LogInformation("smartsupp webhook handled {Event} in {ElapsedMs}ms",
+                ctx.EventName, (int)sw.Elapsed.TotalMilliseconds);
+            return new ProcessWebhookEventResponse { Handled = true };
+        }
+        catch (Exception ex)
+        {
+            _metrics.RecordReceived(ctx.EventName, "error", sw.Elapsed.TotalMilliseconds);
+            _logger.LogError(ex, "smartsupp webhook reaction failed for {Event} ({Reaction})",
+                ctx.EventName, reaction.GetType().Name);
+            throw;
         }
     }
 
-    private async Task HandleConversationAsync(JsonElement data, CancellationToken cancellationToken)
+    private static string ClassifyUnhandled(string eventName)
     {
-        var id = data.GetProperty("id").GetString() ?? "";
-        var statusStr = TryGetString(data, "status")?.ToLowerInvariant();
-        var status = statusStr == "resolved"
-            ? SmartsuppConversationStatus.Resolved
-            : SmartsuppConversationStatus.Open;
-
-        var createdAt = ReadUtc(data, "created_at");
-        var updatedAt = ReadUtc(data, "updated_at");
-        var lastMessageText = TryGetString(data, "last_message_text");
-
-        var conversation = new SmartsuppConversation
-        {
-            Id = id,
-            ExtId = TryGetString(data, "ext_id"),
-            Status = status,
-            IsUnread = TryGetBool(data, "unread") ?? false,
-            IsOffline = TryGetBool(data, "is_offline") ?? false,
-            IsServed = TryGetBool(data, "is_served") ?? false,
-            ContactId = TryGetString(data, "contact_id"),
-            VisitorId = TryGetString(data, "visitor_id"),
-            FinishedAt = ReadOptionalUtc(data, "finished_at"),
-            Domain = TryGetString(data, "domain"),
-            Referer = TryGetString(data, "referer"),
-            LastMessageAt = ReadOptionalUtc(data, "last_message_at"),
-            LastMessagePreview = lastMessageText?.Length > LastMessagePreviewMaxLength
-                ? lastMessageText[..LastMessagePreviewMaxLength]
-                : lastMessageText,
-            CreatedAt = createdAt,
-            UpdatedAt = updatedAt,
-            SyncedAt = DateTime.UtcNow,
-        };
-
-        await _repository.UpsertConversationAsync(conversation, cancellationToken);
+        if (eventName.StartsWith("visitor.", StringComparison.Ordinal)) return "observed";
+        if (eventName.StartsWith("app.", StringComparison.Ordinal)) return "ignored";
+        return "unknown";
     }
-
-    private async Task HandleMessageAsync(JsonElement data, CancellationToken cancellationToken)
-    {
-        var conversationId = data.GetProperty("conversation_id").GetString() ?? "";
-        var subType = TryGetString(data, "sub_type");
-        var contentText = data.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.Object
-            ? TryGetString(content, "text")
-            : TryGetString(data, "content");
-
-        var message = new SmartsuppMessage
-        {
-            Id = data.GetProperty("id").GetString() ?? "",
-            ConversationId = conversationId,
-            AuthorType = ParseAuthorType(subType),
-            SubType = subType,
-            AuthorName = TryGetString(data, "author_name"),
-            Content = contentText,
-            TriggerName = TryGetString(data, "trigger_name"),
-            TriggerId = TryGetString(data, "trigger_id"),
-            PageUrl = TryGetString(data, "page_url"),
-            AgentId = TryGetString(data, "agent_id"),
-            VisitorId = TryGetString(data, "visitor_id"),
-            DeliveryStatus = TryGetString(data, "delivery_status"),
-            DeliveredAt = ReadOptionalUtc(data, "delivered_at"),
-            IsOffline = TryGetBool(data, "is_offline") ?? false,
-            IsReply = TryGetBool(data, "is_reply") ?? false,
-            IsFirstReply = TryGetBool(data, "is_first_reply") ?? false,
-            ResponseTime = TryGetInt(data, "response_time"),
-            CreatedAt = ReadUtc(data, "created_at"),
-            UpdatedAt = ReadUtc(data, "updated_at"),
-        };
-
-        await _repository.UpsertMessagesAsync(conversationId, new List<SmartsuppMessage> { message }, cancellationToken);
-    }
-
-    private static SmartsuppMessageAuthorType ParseAuthorType(string? subType) =>
-        subType?.ToLowerInvariant() switch
-        {
-            "agent" => SmartsuppMessageAuthorType.Agent,
-            "bot" => SmartsuppMessageAuthorType.Bot,
-            "contact" => SmartsuppMessageAuthorType.Visitor,
-            _ => SmartsuppMessageAuthorType.Visitor,
-        };
-
-    private static string? TryGetString(JsonElement element, string name) =>
-        element.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
-
-    private static bool? TryGetBool(JsonElement element, string name) =>
-        element.TryGetProperty(name, out var v) && (v.ValueKind == JsonValueKind.True || v.ValueKind == JsonValueKind.False)
-            ? v.GetBoolean()
-            : null;
-
-    private static int? TryGetInt(JsonElement element, string name) =>
-        element.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i) ? i : null;
-
-    private static DateTime ReadUtc(JsonElement element, string name) =>
-        element.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String
-            ? DateTime.SpecifyKind(v.GetDateTime().ToUniversalTime(), DateTimeKind.Utc)
-            : DateTime.UtcNow;
-
-    private static DateTime? ReadOptionalUtc(JsonElement element, string name) =>
-        element.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String
-            ? DateTime.SpecifyKind(v.GetDateTime().ToUniversalTime(), DateTimeKind.Utc)
-            : null;
 }
