@@ -47,6 +47,7 @@ const JournalRow: React.FC<JournalRowProps> = ({
   <tr
     className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
     data-testid="journal-entry"
+    data-entry-id={id}
     onClick={onClick}
     title="Klikněte pro editaci záznamu"
   >
@@ -71,9 +72,9 @@ const JournalRow: React.FC<JournalRowProps> = ({
     <td className="px-4 py-4 text-sm">
       <div className="flex flex-wrap gap-1 max-w-48">
         {tags &&
-          tags.slice(0, 2).map((tag) => (
+          tags.slice(0, 2).map((tag, index) => (
             <span
-              key={tag.id}
+              key={tag.id ?? index}
               className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border"
               style={{
                 borderColor: tag.color,
