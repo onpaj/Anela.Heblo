@@ -4,7 +4,6 @@ using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
-using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Manufacture.UseCases.CreateManufacturedInventoryItem;
 

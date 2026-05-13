@@ -179,26 +179,18 @@ public class UpdateManufacturedInventoryItemHandlerTests
 public class DeleteManufacturedInventoryItemHandlerTests
 {
     private readonly Mock<IManufacturedProductInventoryRepository> _repositoryMock;
-    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly DeleteManufacturedInventoryItemHandler _handler;
 
     public DeleteManufacturedInventoryItemHandlerTests()
     {
         _repositoryMock = new Mock<IManufacturedProductInventoryRepository>();
-        _currentUserServiceMock = new Mock<ICurrentUserService>();
-
-        _currentUserServiceMock
-            .Setup(s => s.GetCurrentUser())
-            .Returns(new CurrentUser("id", "TestUser", "test@example.com", true));
 
         _handler = new DeleteManufacturedInventoryItemHandler(
-            _repositoryMock.Object,
-            _currentUserServiceMock.Object,
-            TimeProvider.System);
+            _repositoryMock.Object);
     }
 
     [Fact]
-    public async Task Handle_ExistingItem_CallsManualRemoveAndDeletes()
+    public async Task Handle_ExistingItem_DeletesItem()
     {
         // Arrange
         var existingItem = new ManufacturedProductInventoryItem(
@@ -215,8 +207,7 @@ public class DeleteManufacturedInventoryItemHandlerTests
 
         // Assert
         result.Success.Should().BeTrue();
-        existingItem.Amount.Should().Be(0m);
-        _repositoryMock.Verify(r => r.UpdateAsync(existingItem, It.IsAny<CancellationToken>()), Times.Once);
+        _repositoryMock.Verify(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>()), Times.Once);
         _repositoryMock.Verify(r => r.DeleteAsync(existingItem, It.IsAny<CancellationToken>()), Times.Once);
     }
 
