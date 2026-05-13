@@ -54,8 +54,8 @@ public class UpdateManufactureOrderStatusHandlerTests
             .ReturnsAsync(new ConditionsSnapshot(null, null, null, null, DateTime.UtcNow, ConditionsReadingSource.Unavailable));
 
         _inventoryRepositoryMock
-            .Setup(r => r.AddAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufacturedProductInventoryItem item, CancellationToken _) => item);
+            .Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<ManufacturedProductInventoryItem>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<ManufacturedProductInventoryItem> items, CancellationToken _) => items);
 
         _handler = new UpdateManufactureOrderStatusHandler(
             _repositoryMock.Object,
@@ -518,26 +518,21 @@ public class UpdateManufactureOrderStatusHandlerTests
         result.Success.Should().BeTrue();
 
         _inventoryRepositoryMock.Verify(
-            r => r.AddAsync(
-                It.Is<ManufacturedProductInventoryItem>(i =>
-                    i.ProductCode == "PROD-001" &&
-                    i.Amount == 10m &&
-                    i.ManufactureOrderId == ValidOrderId),
+            r => r.AddRangeAsync(
+                It.Is<IEnumerable<ManufacturedProductInventoryItem>>(items =>
+                    items.Any(i =>
+                        i.ProductCode == "PROD-001" &&
+                        i.Amount == 10m &&
+                        i.ManufactureOrderId == ValidOrderId &&
+                        i.CreatedBy == TestUserName) &&
+                    items.Any(i =>
+                        i.ProductCode == "PROD-002" &&
+                        i.Amount == 5m &&
+                        i.ManufactureOrderId == ValidOrderId &&
+                        i.CreatedBy == TestUserName) &&
+                    items.Count() == 2),
                 It.IsAny<CancellationToken>()),
             Times.Once);
-
-        _inventoryRepositoryMock.Verify(
-            r => r.AddAsync(
-                It.Is<ManufacturedProductInventoryItem>(i =>
-                    i.ProductCode == "PROD-002" &&
-                    i.Amount == 5m &&
-                    i.ManufactureOrderId == ValidOrderId),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        _inventoryRepositoryMock.Verify(
-            r => r.AddAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()),
-            Times.Exactly(2));
     }
 
     [Fact]
@@ -591,13 +586,10 @@ public class UpdateManufactureOrderStatusHandlerTests
         result.Success.Should().BeTrue();
 
         _inventoryRepositoryMock.Verify(
-            r => r.AddAsync(
-                It.Is<ManufacturedProductInventoryItem>(i => i.ProductCode == "PROD-OK"),
+            r => r.AddRangeAsync(
+                It.Is<IEnumerable<ManufacturedProductInventoryItem>>(items =>
+                    items.Single().ProductCode == "PROD-OK"),
                 It.IsAny<CancellationToken>()),
-            Times.Once);
-
-        _inventoryRepositoryMock.Verify(
-            r => r.AddAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -638,7 +630,7 @@ public class UpdateManufactureOrderStatusHandlerTests
         result.Success.Should().BeTrue();
 
         _inventoryRepositoryMock.Verify(
-            r => r.AddAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()),
+            r => r.AddRangeAsync(It.IsAny<IEnumerable<ManufacturedProductInventoryItem>>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 

@@ -129,12 +129,12 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
                 order.ConditionsReadings.Add(reading);
             }
 
-            await _repository.UpdateOrderAsync(order, cancellationToken);
-
             if (request.NewState == ManufactureOrderState.Completed)
             {
                 await WriteDownInventoryAsync(order, cancellationToken);
             }
+
+            await _repository.UpdateOrderAsync(order, cancellationToken);
 
             return new UpdateManufactureOrderStatusResponse
             {
@@ -176,23 +176,21 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
         var user = GetCurrentUserName();
         var timestamp = _timeProvider.GetUtcNow().DateTime;
 
-        foreach (var product in order.Products)
-        {
-            if (product.ActualQuantity is not > 0)
-                continue;
-
-            var item = new ManufacturedProductInventoryItem(
-                productCode: product.ProductCode,
-                productName: product.ProductName,
-                amount: product.ActualQuantity!.Value,
+        var items = order.Products
+            .Where(p => p.ActualQuantity is > 0)
+            .Select(p => new ManufacturedProductInventoryItem(
+                productCode: p.ProductCode,
+                productName: p.ProductName,
+                amount: p.ActualQuantity!.Value,
                 createdBy: user,
                 createdAt: timestamp,
-                lotNumber: product.LotNumber,
-                expirationDate: product.ExpirationDate,
-                manufactureOrderId: order.Id);
+                lotNumber: p.LotNumber,
+                expirationDate: p.ExpirationDate,
+                manufactureOrderId: order.Id))
+            .ToList();
 
-            await _inventoryRepository.AddAsync(item, cancellationToken);
-        }
+        if (items.Count > 0)
+            await _inventoryRepository.AddRangeAsync(items, cancellationToken);
     }
 
     private async Task<ManufactureOrderConditionsReading> CaptureConditionsReadingAsync(
