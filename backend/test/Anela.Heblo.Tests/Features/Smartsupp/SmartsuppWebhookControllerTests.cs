@@ -1,10 +1,13 @@
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using Anela.Heblo.API.Webhooks.Smartsupp;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 using Anela.Heblo.Tests.Common;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Smartsupp;
@@ -49,7 +52,7 @@ public class SmartsuppWebhookControllerTests : IClassFixture<SmartsuppWebhookFac
     public async Task Receive_ReturnsUnauthorized_WhenSignatureMissing()
     {
         var client = _factory.CreateClient();
-        var body = "{\"event\":\"conversation.created\",\"data\":{}}";
+        var body = "{\"event\":\"conversation.opened\",\"data\":{}}";
 
         var response = await client.SendAsync(BuildRequest(body, signature: null));
 
@@ -60,7 +63,7 @@ public class SmartsuppWebhookControllerTests : IClassFixture<SmartsuppWebhookFac
     public async Task Receive_ReturnsUnauthorized_WhenSignatureWrong()
     {
         var client = _factory.CreateClient();
-        var body = "{\"event\":\"conversation.created\",\"data\":{}}";
+        var body = "{\"event\":\"conversation.opened\",\"data\":{}}";
 
         var response = await client.SendAsync(BuildRequest(body, signature: "deadbeef"));
 
@@ -73,15 +76,17 @@ public class SmartsuppWebhookControllerTests : IClassFixture<SmartsuppWebhookFac
         var client = _factory.CreateClient();
         var body = """
             {
-              "event": "conversation.created",
+              "event": "conversation.opened",
               "timestamp": "2026-05-13T10:00:00Z",
               "account_id": "acc-1",
               "app_id": "app-1",
               "data": {
-                "id": "c-int-1",
-                "status": "open",
-                "created_at": "2026-05-13T09:59:00Z",
-                "updated_at": "2026-05-13T10:00:00Z"
+                "conversation": {
+                  "id": "c-int-1",
+                  "status": "open",
+                  "created_at": "2026-05-13T09:59:00Z",
+                  "updated_at": "2026-05-13T10:00:00Z"
+                }
               }
             }
             """;
@@ -127,7 +132,7 @@ public class SmartsuppWebhookControllerTests : IClassFixture<SmartsuppWebhookFac
         var client = factory.CreateClient();
         var body = """
             {
-              "event": "conversation.created",
+              "event": "conversation.opened",
               "timestamp": "2026-05-13T10:00:00Z",
               "account_id": "acc-1",
               "app_id": "wrong-app",
@@ -154,6 +159,11 @@ public class SmartsuppWebhookFactory : HebloWebApplicationFactory
         _webhookAppId = appId;
     }
 
+    protected override void ConfigureTestServices(IServiceCollection services)
+    {
+        services.AddSingleton<ISmartsuppWebhookMetrics, NoOpSmartsuppWebhookMetrics>();
+    }
+
     protected override void ConfigureTestWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureAppConfiguration((_, config) =>
@@ -165,4 +175,11 @@ public class SmartsuppWebhookFactory : HebloWebApplicationFactory
             });
         });
     }
+}
+
+internal sealed class NoOpSmartsuppWebhookMetrics : ISmartsuppWebhookMetrics
+{
+    public void RecordReceived(string eventName, string outcome, double durationMs) { }
+    public void RecordSignatureFailure(string reason) { }
+    public void RecordPayloadBytes(int bytes) { }
 }

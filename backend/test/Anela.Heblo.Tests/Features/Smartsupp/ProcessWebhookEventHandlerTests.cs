@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Reactions;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -11,14 +12,12 @@ namespace Anela.Heblo.Tests.Features.Smartsupp;
 public class ProcessWebhookEventHandlerTests
 {
     private readonly Mock<ISmartsuppRepository> _repo = new();
-
-    private ProcessWebhookEventHandler CreateHandler() =>
-        new(_repo.Object, NullLogger<ProcessWebhookEventHandler>.Instance);
+    private readonly Mock<ISmartsuppWebhookMetrics> _metrics = new();
 
     private static JsonElement Parse(string json) =>
         JsonDocument.Parse(json).RootElement.Clone();
 
-    private static ProcessWebhookEventRequest MakeRequest(string eventName, string dataJson) =>
+    private static ProcessWebhookEventRequest MakeRequest(string eventName, string dataJson = "{}") =>
         new()
         {
             EventName = eventName,
@@ -28,114 +27,95 @@ public class ProcessWebhookEventHandlerTests
             Data = Parse(dataJson),
         };
 
-    [Fact]
-    public async Task Handle_ConversationCreated_UpsertsConversationAndSaves()
+    private ProcessWebhookEventHandler CreateHandler(
+        IEnumerable<ISmartsuppWebhookReaction>? reactions = null)
     {
-        var data = """
-            {
-              "id": "c1",
-              "status": "open",
-              "unread": false,
-              "is_offline": false,
-              "is_served": false,
-              "contact_id": null,
-              "visitor_id": null,
-              "created_at": "2026-05-13T10:00:00Z",
-              "updated_at": "2026-05-13T10:00:00Z"
-            }
-            """;
-        var request = MakeRequest("conversation.created", data);
+        reactions ??= Array.Empty<ISmartsuppWebhookReaction>();
+        return new ProcessWebhookEventHandler(
+            reactions,
+            _repo.Object,
+            _metrics.Object,
+            NullLogger<ProcessWebhookEventHandler>.Instance);
+    }
 
-        var response = await CreateHandler().Handle(request, CancellationToken.None);
+    [Fact]
+    public async Task Handle_KnownEvent_InvokesMatchingReaction_AndSavesChanges()
+    {
+        var reaction = new Mock<ISmartsuppWebhookReaction>();
+        reaction.Setup(r => r.EventName).Returns("conversation.opened");
+
+        var handler = CreateHandler(new[] { reaction.Object });
+        var request = MakeRequest("conversation.opened");
+
+        var response = await handler.Handle(request, CancellationToken.None);
 
         response.Handled.Should().BeTrue();
-        _repo.Verify(r => r.UpsertConversationAsync(
-            It.Is<SmartsuppConversation>(c => c.Id == "c1" && c.Status == SmartsuppConversationStatus.Open),
-            It.IsAny<CancellationToken>()), Times.Once);
+        reaction.Verify(r => r.HandleAsync(It.IsAny<WebhookEventContext>(), It.IsAny<CancellationToken>()), Times.Once);
         _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        _metrics.Verify(m => m.RecordReceived("conversation.opened", "handled", It.IsAny<double>()), Times.Once);
     }
 
     [Fact]
-    public async Task Handle_ConversationUpdated_UpsertsConversation()
+    public async Task Handle_UnknownEvent_ReturnsHandledFalse_WithReasonUnknown()
     {
-        var data = """
-            {
-              "id": "c1",
-              "status": "open",
-              "created_at": "2026-05-13T10:00:00Z",
-              "updated_at": "2026-05-13T10:05:00Z"
-            }
-            """;
-        var request = MakeRequest("conversation.updated", data);
-
-        var response = await CreateHandler().Handle(request, CancellationToken.None);
-
-        response.Handled.Should().BeTrue();
-        _repo.Verify(r => r.UpsertConversationAsync(
-            It.Is<SmartsuppConversation>(c => c.Id == "c1"),
-            It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_ConversationClosed_MapsResolvedStatus()
-    {
-        var data = """
-            {
-              "id": "c1",
-              "status": "resolved",
-              "created_at": "2026-05-13T10:00:00Z",
-              "updated_at": "2026-05-13T11:00:00Z"
-            }
-            """;
-        var request = MakeRequest("conversation.closed", data);
-
-        var response = await CreateHandler().Handle(request, CancellationToken.None);
-
-        response.Handled.Should().BeTrue();
-        _repo.Verify(r => r.UpsertConversationAsync(
-            It.Is<SmartsuppConversation>(c => c.Id == "c1" && c.Status == SmartsuppConversationStatus.Resolved),
-            It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_MessageCreated_UpsertsMessageOnly()
-    {
-        var data = """
-            {
-              "id": "m1",
-              "conversation_id": "c1",
-              "sub_type": "contact",
-              "content": { "text": "Hello", "type": "text" },
-              "created_at": "2026-05-13T10:00:00Z",
-              "updated_at": "2026-05-13T10:00:00Z"
-            }
-            """;
-        var request = MakeRequest("message.created", data);
-
-        var response = await CreateHandler().Handle(request, CancellationToken.None);
-
-        response.Handled.Should().BeTrue();
-        _repo.Verify(r => r.UpsertMessagesAsync(
-            "c1",
-            It.Is<List<SmartsuppMessage>>(msgs =>
-                msgs.Count == 1
-                && msgs[0].Id == "m1"
-                && msgs[0].AuthorType == SmartsuppMessageAuthorType.Visitor),
-            It.IsAny<CancellationToken>()), Times.Once);
-        _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
-        _repo.Verify(r => r.UpsertConversationAsync(It.IsAny<SmartsuppConversation>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_UnknownEvent_ReturnsHandledFalse_WithReason()
-    {
-        var request = MakeRequest("conversation.exploded", "{}");
-
-        var response = await CreateHandler().Handle(request, CancellationToken.None);
+        var handler = CreateHandler();
+        var response = await handler.Handle(MakeRequest("conversation.something_new"), CancellationToken.None);
 
         response.Handled.Should().BeFalse();
-        response.Reason.Should().Be("unknown event");
-        _repo.Verify(r => r.UpsertConversationAsync(It.IsAny<SmartsuppConversation>(), It.IsAny<CancellationToken>()), Times.Never);
-        _repo.Verify(r => r.UpsertMessagesAsync(It.IsAny<string>(), It.IsAny<List<SmartsuppMessage>>(), It.IsAny<CancellationToken>()), Times.Never);
+        response.Reason.Should().Be("unknown");
+        _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _metrics.Verify(m => m.RecordReceived("conversation.something_new", "unknown", It.IsAny<double>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_VisitorEvent_ReturnsHandledFalse_WithReasonObserved()
+    {
+        var handler = CreateHandler();
+        var response = await handler.Handle(MakeRequest("visitor.connected"), CancellationToken.None);
+
+        response.Handled.Should().BeFalse();
+        response.Reason.Should().Be("observed");
+        _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _metrics.Verify(m => m.RecordReceived("visitor.connected", "observed", It.IsAny<double>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_AppEvent_ReturnsHandledFalse_WithReasonIgnored()
+    {
+        var handler = CreateHandler();
+        var response = await handler.Handle(MakeRequest("app.installed"), CancellationToken.None);
+
+        response.Handled.Should().BeFalse();
+        response.Reason.Should().Be("ignored");
+        _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _metrics.Verify(m => m.RecordReceived("app.installed", "ignored", It.IsAny<double>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ReactionThrows_RecordsErrorMetric_AndRethrows()
+    {
+        var reaction = new Mock<ISmartsuppWebhookReaction>();
+        reaction.Setup(r => r.EventName).Returns("conversation.opened");
+        reaction.Setup(r => r.HandleAsync(It.IsAny<WebhookEventContext>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("test error"));
+
+        var handler = CreateHandler(new[] { reaction.Object });
+
+        var act = async () => await handler.Handle(MakeRequest("conversation.opened"), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        _metrics.Verify(m => m.RecordReceived("conversation.opened", "error", It.IsAny<double>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_SaveChangesCalledOnce_AfterReactionSucceeds()
+    {
+        var reaction = new Mock<ISmartsuppWebhookReaction>();
+        reaction.Setup(r => r.EventName).Returns("contact.created");
+
+        var handler = CreateHandler(new[] { reaction.Object });
+        await handler.Handle(MakeRequest("contact.created"), CancellationToken.None);
+
+        _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }

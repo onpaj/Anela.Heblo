@@ -53,6 +53,11 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         }
         else
         {
+            if (existing.UpdatedAt > contact.UpdatedAt)
+            {
+                return;
+            }
+
             existing.Email = contact.Email;
             existing.Name = contact.Name;
             existing.Phone = contact.Phone;
@@ -91,6 +96,7 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         existing.IsOffline = conversation.IsOffline;
         existing.IsServed = conversation.IsServed;
         existing.ContactId = conversation.ContactId;
+        existing.Subject = conversation.Subject;
         existing.ContactName = conversation.ContactName;
         existing.ContactEmail = conversation.ContactEmail;
         existing.ContactAvatarUrl = conversation.ContactAvatarUrl;
@@ -109,6 +115,13 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         existing.LastMessagePreview = conversation.LastMessagePreview;
         existing.UpdatedAt = conversation.UpdatedAt;
         existing.SyncedAt = conversation.SyncedAt;
+        existing.Rating = conversation.Rating;
+        existing.RatingText = conversation.RatingText;
+        existing.CloseType = conversation.CloseType;
+        existing.ClosedByAgentId = conversation.ClosedByAgentId;
+        existing.AssignedAgentIdsJson = conversation.AssignedAgentIdsJson;
+        existing.Channel = conversation.Channel;
+        existing.LastClosedAt = conversation.LastClosedAt;
     }
 
     public async Task UpsertMessagesAsync(
@@ -171,6 +184,22 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         existing.Status = SmartsuppConversationStatus.Resolved;
         existing.FinishedAt = finishedAt;
         existing.SyncedAt = syncedAt;
+    }
+
+    public async Task UpdateMessageDeliveryStatusAsync(
+        string messageId,
+        string status,
+        DateTime? deliveredAt,
+        CancellationToken cancellationToken)
+    {
+        var existing = await _db.SmartsuppMessages
+            .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
+
+        if (existing is null)
+            return;
+
+        existing.DeliveryStatus = status;
+        existing.DeliveredAt = deliveredAt;
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>

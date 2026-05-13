@@ -19,15 +19,18 @@ public class SmartsuppWebhookController : ControllerBase
 
     private readonly IMediator _mediator;
     private readonly SmartsuppOptions _options;
+    private readonly ISmartsuppWebhookMetrics _metrics;
     private readonly ILogger<SmartsuppWebhookController> _logger;
 
     public SmartsuppWebhookController(
         IMediator mediator,
         IOptions<SmartsuppOptions> options,
+        ISmartsuppWebhookMetrics metrics,
         ILogger<SmartsuppWebhookController> logger)
     {
         _mediator = mediator;
         _options = options.Value;
+        _metrics = metrics;
         _logger = logger;
     }
 
@@ -48,10 +51,13 @@ public class SmartsuppWebhookController : ControllerBase
         }
         Request.Body.Position = 0;
 
+        _metrics.RecordPayloadBytes(rawBody.Length);
+
         var headerValue = Request.Headers.TryGetValue(SignatureHeader, out var sig) ? sig.ToString() : null;
 
         if (!SmartsuppHmacVerifier.Verify(rawBody, headerValue, _options.WebhookSecret))
         {
+            _metrics.RecordSignatureFailure(headerValue is null ? "missing" : "mismatch");
             _logger.LogWarning("smartsupp webhook signature mismatch from {RemoteIp}", remoteIp);
             return Unauthorized();
         }
@@ -76,12 +82,13 @@ public class SmartsuppWebhookController : ControllerBase
         if (!string.IsNullOrEmpty(_options.WebhookAppId) &&
             !string.Equals(_options.WebhookAppId, appId, StringComparison.Ordinal))
         {
+            _metrics.RecordSignatureFailure("app_id_mismatch");
             _logger.LogWarning("smartsupp webhook app_id mismatch from {RemoteIp}", remoteIp);
             return Unauthorized();
         }
 
-        _logger.LogInformation("smartsupp webhook event={Event} account={AccountId} app={AppId}",
-            eventName, accountId, appId);
+        _logger.LogInformation("smartsupp webhook event={Event} account={AccountId} app={AppId} bodySize={BodySize}",
+            eventName, accountId, appId, rawBody.Length);
 
         try
         {
@@ -97,8 +104,8 @@ public class SmartsuppWebhookController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex,
-                "smartsupp webhook downstream processing failed event={Event} app={AppId} bodySize={Size}",
-                eventName, appId, rawBody.Length);
+                "smartsupp webhook downstream processing failed event={Event} app={AppId}",
+                eventName, appId);
         }
 
         return Ok();
