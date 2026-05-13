@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class UpdateManufactureOrderStatusHandlerConditionsTests
 {
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
+    private readonly Mock<IManufacturedProductInventoryRepository> _inventoryRepositoryMock;
     private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
     private readonly Mock<IConditionsReadingProvider> _conditionsProviderMock;
     private readonly Mock<ILogger<UpdateManufactureOrderStatusHandler>> _loggerMock;
@@ -19,6 +21,7 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
     public UpdateManufactureOrderStatusHandlerConditionsTests()
     {
         _repositoryMock = new Mock<IManufactureOrderRepository>();
+        _inventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
         _loggerMock = new Mock<ILogger<UpdateManufactureOrderStatusHandler>>();
         _conditionsProviderMock = new Mock<IConditionsReadingProvider>();
         _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
@@ -28,6 +31,10 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
         var httpContext = new Mock<HttpContext>();
         httpContext.Setup(x => x.User).Returns(principal);
         _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext.Object);
+
+        _inventoryRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufacturedProductInventoryItem item, CancellationToken _) => item);
     }
 
     private UpdateManufactureOrderStatusHandler CreateHandler() =>
@@ -36,7 +43,8 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
             TimeProvider.System,
             _loggerMock.Object,
             _httpContextAccessorMock.Object,
-            _conditionsProviderMock.Object);
+            _conditionsProviderMock.Object,
+            _inventoryRepositoryMock.Object);
 
     private ManufactureOrder CreateOrderInState(ManufactureOrderState state) =>
         new ManufactureOrder
