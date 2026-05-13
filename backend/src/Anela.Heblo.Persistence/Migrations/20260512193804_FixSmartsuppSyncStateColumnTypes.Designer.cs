@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260512193804_FixSmartsuppSyncStateColumnTypes")]
+    partial class FixSmartsuppSyncStateColumnTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2542,59 +2545,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("PurchaseOrderLines", "public");
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Smartsupp.SmartsuppContact", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("BannedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("BannedBy")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<bool>("GdprApproved")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Note")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Phone")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("PropertiesJson")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("SyncedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("TagsJson")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Email");
-
-                    b.ToTable("SmartsuppContacts", "public");
-                });
-
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Smartsupp.SmartsuppConversation", b =>
                 {
                     b.Property<string>("Id")
@@ -2609,33 +2559,12 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<string>("ContactId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<string>("ContactName")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Domain")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ExtId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("FinishedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<bool>("IsOffline")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsServed")
-                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsUnread")
                         .HasColumnType("boolean");
@@ -2644,26 +2573,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("LastMessagePreview")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("LocationCity")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("LocationCode")
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
-
-                    b.Property<string>("LocationCountry")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("LocationIp")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Referer")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
@@ -2679,22 +2588,10 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<DateTime>("SyncedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<string>("TagsJson")
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<string>("VariablesJson")
-                        .HasColumnType("text");
-
-                    b.Property<string>("VisitorId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("ContactId");
 
                     b.HasIndex("Status", "LastMessageAt");
 
@@ -2704,10 +2601,6 @@ namespace Anela.Heblo.Persistence.Migrations
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Smartsupp.SmartsuppMessage", b =>
                 {
                     b.Property<string>("Id")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("AgentId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
@@ -2734,52 +2627,9 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<DateTime?>("DeliveredAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("DeliveryStatus")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<bool>("IsFirstReply")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsOffline")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsReply")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("PageUrl")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("ResponseTime")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("SubType")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("TriggerId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("TriggerName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("VisitorId")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ConversationId", "CreatedAt");
-
-                    b.HasIndex("ConversationId", "SubType");
 
                     b.ToTable("SmartsuppMessages", "public");
                 });
@@ -3159,16 +3009,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasForeignKey("PurchaseOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Smartsupp.SmartsuppConversation", b =>
-                {
-                    b.HasOne("Anela.Heblo.Domain.Features.Smartsupp.SmartsuppContact", "Contact")
-                        .WithMany()
-                        .HasForeignKey("ContactId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Contact");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Smartsupp.SmartsuppMessage", b =>

@@ -5776,7 +5776,7 @@ export class ApiClient {
         return Promise.resolve<GetStockTakingHistoryResponse>(null as any);
     }
 
-    manufacturingStockAnalysis_GetStockAnalysis(timePeriod: TimePeriodFilter | undefined, customFromDate: Date | null | undefined, customToDate: Date | null | undefined, productFamily: string | null | undefined, criticalItemsOnly: boolean | undefined, majorItemsOnly: boolean | undefined, adequateItemsOnly: boolean | undefined, unconfiguredOnly: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: ManufacturingStockSortBy | undefined, sortDescending: boolean | undefined, salesMultiplier: number | undefined, isExport: boolean | undefined): Promise<GetManufacturingStockAnalysisResponse> {
+    manufacturingStockAnalysis_GetStockAnalysis(timePeriod: TimePeriod | undefined, customFromDate: Date | null | undefined, customToDate: Date | null | undefined, productFamily: string | null | undefined, criticalItemsOnly: boolean | undefined, majorItemsOnly: boolean | undefined, adequateItemsOnly: boolean | undefined, unconfiguredOnly: boolean | undefined, searchTerm: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: ManufacturingStockSortBy | undefined, sortDescending: boolean | undefined, salesMultiplier: number | undefined, isExport: boolean | undefined): Promise<GetManufacturingStockAnalysisResponse> {
         let url_ = this.baseUrl + "/api/manufacturing-stock-analysis?";
         if (timePeriod === null)
             throw new Error("The parameter 'timePeriod' cannot be null.");
@@ -8421,6 +8421,103 @@ export class ApiClient {
         return Promise.resolve<BlockOrderProcessingResponse>(null as any);
     }
 
+    smartsupp_GetConversations(status: string | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListConversationsResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations?";
+        if (status === null)
+            throw new Error("The parameter 'status' cannot be null.");
+        else if (status !== undefined)
+            url_ += "status=" + encodeURIComponent("" + status) + "&";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_GetConversations(_response);
+        });
+    }
+
+    protected processSmartsupp_GetConversations(response: Response): Promise<ListConversationsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListConversationsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ListConversationsResponse>(null as any);
+    }
+
+    smartsupp_GetConversation(id: string): Promise<GetConversationResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_GetConversation(_response);
+        });
+    }
+
+    protected processSmartsupp_GetConversation(response: Response): Promise<GetConversationResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetConversationResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetConversationResponse>(null as any);
+    }
+
     stockTaking_SubmitStockTaking(request: SubmitStockTakingRequest): Promise<SubmitStockTakingResponse> {
         let url_ = this.baseUrl + "/api/StockTaking/submit";
         url_ = url_.replace(/[?&]$/, "");
@@ -9597,6 +9694,7 @@ export enum ErrorCodes {
     BulkTagInvalidRequest = "BulkTagInvalidRequest",
     PhotobankTagNotFound = "PhotobankTagNotFound",
     PhotobankInvalidRegexPattern = "PhotobankInvalidRegexPattern",
+    SmartsuppConversationNotFound = "SmartsuppConversationNotFound",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -22864,7 +22962,7 @@ export interface IManufacturingStockSummaryDto {
     productFamilies?: string[];
 }
 
-export enum TimePeriodFilter {
+export enum TimePeriod {
     PreviousQuarter = "PreviousQuarter",
     FutureQuarter = "FutureQuarter",
     Y2Y = "Y2Y",
@@ -28218,6 +28316,232 @@ export class BlockOrderRequest implements IBlockOrderRequest {
 
 export interface IBlockOrderRequest {
     note?: string;
+}
+
+export class ListConversationsResponse extends BaseResponse implements IListConversationsResponse {
+    items?: ConversationDto[];
+    total?: number;
+    page?: number;
+    pageSize?: number;
+
+    constructor(data?: IListConversationsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ConversationDto.fromJS(item));
+            }
+            this.total = _data["total"];
+            this.page = _data["page"];
+            this.pageSize = _data["pageSize"];
+        }
+    }
+
+    static override fromJS(data: any): ListConversationsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListConversationsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["total"] = this.total;
+        data["page"] = this.page;
+        data["pageSize"] = this.pageSize;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListConversationsResponse extends IBaseResponse {
+    items?: ConversationDto[];
+    total?: number;
+    page?: number;
+    pageSize?: number;
+}
+
+export class ConversationDto implements IConversationDto {
+    id?: string;
+    subject?: string | undefined;
+    contactName?: string | undefined;
+    contactEmail?: string | undefined;
+    contactAvatarUrl?: string | undefined;
+    status?: string;
+    isUnread?: boolean;
+    lastMessageAt?: Date | undefined;
+    lastMessagePreview?: string | undefined;
+    createdAt?: Date;
+    updatedAt?: Date;
+
+    constructor(data?: IConversationDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.subject = _data["subject"];
+            this.contactName = _data["contactName"];
+            this.contactEmail = _data["contactEmail"];
+            this.contactAvatarUrl = _data["contactAvatarUrl"];
+            this.status = _data["status"];
+            this.isUnread = _data["isUnread"];
+            this.lastMessageAt = _data["lastMessageAt"] ? new Date(_data["lastMessageAt"].toString()) : <any>undefined;
+            this.lastMessagePreview = _data["lastMessagePreview"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): ConversationDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConversationDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["subject"] = this.subject;
+        data["contactName"] = this.contactName;
+        data["contactEmail"] = this.contactEmail;
+        data["contactAvatarUrl"] = this.contactAvatarUrl;
+        data["status"] = this.status;
+        data["isUnread"] = this.isUnread;
+        data["lastMessageAt"] = this.lastMessageAt ? this.lastMessageAt.toISOString() : <any>undefined;
+        data["lastMessagePreview"] = this.lastMessagePreview;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IConversationDto {
+    id?: string;
+    subject?: string | undefined;
+    contactName?: string | undefined;
+    contactEmail?: string | undefined;
+    contactAvatarUrl?: string | undefined;
+    status?: string;
+    isUnread?: boolean;
+    lastMessageAt?: Date | undefined;
+    lastMessagePreview?: string | undefined;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export class GetConversationResponse extends BaseResponse implements IGetConversationResponse {
+    conversation?: ConversationDto | undefined;
+    messages?: MessageDto[];
+
+    constructor(data?: IGetConversationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.conversation = _data["conversation"] ? ConversationDto.fromJS(_data["conversation"]) : <any>undefined;
+            if (Array.isArray(_data["messages"])) {
+                this.messages = [] as any;
+                for (let item of _data["messages"])
+                    this.messages!.push(MessageDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetConversationResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetConversationResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["conversation"] = this.conversation ? this.conversation.toJSON() : <any>undefined;
+        if (Array.isArray(this.messages)) {
+            data["messages"] = [];
+            for (let item of this.messages)
+                data["messages"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetConversationResponse extends IBaseResponse {
+    conversation?: ConversationDto | undefined;
+    messages?: MessageDto[];
+}
+
+export class MessageDto implements IMessageDto {
+    id?: string;
+    authorType?: string;
+    authorName?: string | undefined;
+    content?: string | undefined;
+    createdAt?: Date;
+
+    constructor(data?: IMessageDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.authorType = _data["authorType"];
+            this.authorName = _data["authorName"];
+            this.content = _data["content"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): MessageDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MessageDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["authorType"] = this.authorType;
+        data["authorName"] = this.authorName;
+        data["content"] = this.content;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IMessageDto {
+    id?: string;
+    authorType?: string;
+    authorName?: string | undefined;
+    content?: string | undefined;
+    createdAt?: Date;
 }
 
 export class SubmitStockTakingResponse extends BaseResponse implements ISubmitStockTakingResponse {
