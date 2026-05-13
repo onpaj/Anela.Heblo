@@ -69,7 +69,7 @@ namespace Anela.Heblo.Domain.Features.Journal
         public void ReplaceProductAssociations(IEnumerable<string>? productCodes)
         {
             // Validate entire input set before any mutation (state preserved on invalid input).
-            var targetCodes = new HashSet<string>(StringComparer.Ordinal);
+            var targetCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (productCodes != null)
             {
                 foreach (var raw in productCodes)
@@ -88,7 +88,7 @@ namespace Anela.Heblo.Domain.Features.Journal
 
             var existingCodes = new HashSet<string>(
                 ProductAssociations.Select(pa => pa.ProductCodePrefix),
-                StringComparer.Ordinal);
+                StringComparer.OrdinalIgnoreCase);
             foreach (var code in targetCodes)
             {
                 if (existingCodes.Contains(code))
