@@ -1,178 +1,239 @@
 # Specification: Smartsupp Webhook Receiver
 
 ## Summary
-Replace the broken Hangfire-based `SmartsuppSyncJob` (currently failing due to the dropped `SmartsuppSyncState` watermark table) with an HMAC-authenticated webhook endpoint that ingests conversation and message events from Smartsupp in real time. The existing API-client sync logic is retained behind a manual "Sync now" UI button for backfill and disaster recovery, and the recurring poll is removed.
+Replace the broken Hangfire-based polling sync (`SmartsuppSyncJob`, whose watermark table was dropped in migration `20260512190557_DropSmartsuppSyncState`) with an authenticated webhook receiver that ingests Smartsupp conversation and message events in real time. Retire the recurring poll entirely while preserving the underlying API client behind a manual "Sync now" UI button for backfill and disaster recovery.
 
 ## Background
-The Smartsupp integration historically polled the Smartsupp REST API every 2 minutes using a Hangfire recurring job, persisting a watermark in `SmartsuppSyncState`. Migration `20260512190557_DropSmartsuppSyncState` dropped that table while the job code still references it via `SmartsuppRepository`, so the job throws at runtime. Smartsupp supports an HMAC-signed webhook delivery model (documented at https://docs.smartsupp.com/rest-api/webhooks/) which is a better fit: real-time delivery, no polling overhead, and signature-based authenticity. Smartsupp has no self-service webhook UI — registration is an email request to `support@smartsupp.com` that returns an `app_id` and shared secret per registered URL. Staging and production URLs will be registered together in the initial request.
+Anela Heblo currently mirrors Smartsupp customer-support conversations through a Hangfire recurring job that polls Smartsupp's REST API every two minutes (disabled by default). The watermark/state table backing this job (`SmartsuppSyncState`) was dropped in today's EF migration, which leaves the job throwing at runtime because `SmartsuppRepository` still references it. Smartsupp supports webhook subscriptions (HMAC-SHA256 signed, no UI registration — they activate via email to `support@smartsupp.com`), so the strategic move is event-driven ingestion with a manual fallback rather than fixing the broken poller.
+
+This work delivers (1) a webhook endpoint, (2) MediatR-based event processing with idempotent upserts, (3) deletion of the dead recurring job and its state model, and (4) a "Sync now" manual button that reuses the existing `SmartsuppApiClient` for backfill.
 
 ## Functional Requirements
 
-### FR-1: Authenticated webhook endpoint
-A new `POST /api/webhooks/smartsupp` endpoint accepts Smartsupp event callbacks. The endpoint is anonymous (no Heblo auth) — authenticity is established via HMAC-SHA256 over the raw request body using the shared secret, supplied in the `X-Smartsupp-Hmac` header as lowercase hex.
+### FR-1: Webhook receiver endpoint
+Expose a single, anonymous HTTP endpoint that Smartsupp can POST event envelopes to. The endpoint must capture the raw request body before any JSON deserialization (HMAC must be computed on the exact bytes received), verify the signature, parse the envelope, dispatch to MediatR, and respond `200 OK` (empty body) on success.
 
 **Acceptance criteria:**
-- A request with a valid HMAC for one of the subscribed events returns `200 OK` with an empty body and the corresponding entity is upserted.
-- A request whose computed HMAC does not match the header returns `401 Unauthorized` with no body and writes a warning log (no secret/header/body content in the log).
-- A request with a valid HMAC but malformed JSON returns `200 OK` (re-delivery would not help) and writes an error log.
-- A request with a valid HMAC for an unsubscribed/unknown event name returns `200 OK` and writes an info log; no upsert occurs.
-- HMAC comparison is constant-time (`CryptographicOperations.FixedTimeEquals`).
-- The raw body bytes used for HMAC are exactly the bytes received (request buffering enabled before any model binding).
-- If `Smartsupp:WebhookAppId` is configured, payloads whose envelope `app_id` does not match are rejected (`401`, warning log).
+- `POST /api/webhooks/smartsupp` exists on `SmartsuppWebhookController` decorated with `[ApiController]`, `[Route("api/webhooks/smartsupp")]`, `[AllowAnonymous]`.
+- The controller calls `HttpContext.Request.EnableBuffering()` and reads the body into a `byte[]` before any JSON binding.
+- Successful flow (valid HMAC + known event) returns `200 OK` with empty body.
+- Valid HMAC + malformed JSON body returns `200 OK` (retrying would not help Smartsupp) and logs an error.
+- Valid HMAC + unknown event name returns `200 OK` and logs at Info (future-proof against new event types).
+- Invalid HMAC returns `401 Unauthorized` with empty body and logs a warning containing remote IP only (never the signature header, secret, or body).
+- Response is sent before any heavy downstream work whenever possible (target sub-second latency to satisfy Smartsupp's retry policy).
 
-### FR-2: Supported events
-The endpoint handles the following Smartsupp events:
+### FR-2: HMAC-SHA256 signature verification
+Verify `X-Smartsupp-Hmac` against `HMACSHA256(rawBody, WebhookSecret)` using a constant-time comparison.
+
+**Acceptance criteria:**
+- Computed signature is hex-encoded, lowercased; the header value is trimmed and lowercased before comparison.
+- Comparison uses `CryptographicOperations.FixedTimeEquals` over ASCII bytes of both hex strings.
+- Missing/empty header → reject as invalid signature.
+- Signature mismatch → reject with `401`.
+- Implementation is an inline static helper in the controller (single consumer; no filter/middleware abstraction).
+
+### FR-3: Optional app_id verification (defence in depth)
+When `Smartsupp:WebhookAppId` is configured, the controller rejects payloads whose envelope `app_id` does not match.
+
+**Acceptance criteria:**
+- If `WebhookAppId` is null/empty, no app_id check is performed.
+- If `WebhookAppId` is set and the envelope's `app_id` differs, the request is rejected with `401 Unauthorized` and a warning logged.
+- HMAC verification still runs first; app_id check only runs on HMAC pass.
+
+### FR-4: Event dispatch via MediatR
+The controller deserializes the envelope to a `ProcessWebhookEventRequest` (containing `EventName`, `Timestamp`, `AccountId`, `AppId`, and raw `Data` as `JsonElement`) and dispatches via MediatR. The handler maps event types to repository operations.
+
+**Acceptance criteria:**
+- `ProcessWebhookEventRequest` is a **class** (not record) implementing `IRequest<ProcessWebhookEventResponse>`.
+- `ProcessWebhookEventResponse` is a class with `bool Handled` and `string? Reason`.
+- Handler dispatch table:
+  - `conversation.created`, `conversation.updated`, `conversation.closed` → map `Data` to `SmartsuppConversation`, call `ISmartsuppRepository.UpsertConversationAsync` then `SaveChangesAsync`.
+  - `message.created` → extract `conversationId` from `Data`, map to `SmartsuppMessage`, call `ISmartsuppRepository.UpsertMessagesAsync(conversationId, [message], ct)`.
+  - Any other event name → log at Info, return `Handled=false, Reason="unknown event"`, no throw.
+- Files live in `backend/src/Anela.Heblo.Application/Features/Smartsupp/UseCases/ProcessWebhookEvent/`.
+- MediatR registration is automatic via existing scan in `SmartsuppModule.cs`.
+
+### FR-5: Idempotent processing and out-of-order safety
+Retries and out-of-order delivery from Smartsupp must not corrupt state.
+
+**Acceptance criteria:**
+- Existing `SmartsuppRepository.UpsertConversationAsync` upsert-by-Id behaviour is preserved.
+- A timestamp guard is added inside `UpsertConversationAsync`: if `existing.UpdatedAt > incoming.UpdatedAt`, skip the update (still treat operation as successful — do not throw).
+- `UpsertMessagesAsync` continues to key on message Id (already idempotent).
+- No separate dedupe/event-log table is introduced; upsert + timestamp guard are sufficient.
+
+### FR-6: Configuration and secret management
+Extend `SmartsuppOptions` with the webhook secret + optional app_id, and remove the polling interval that no longer has a consumer.
+
+**Acceptance criteria:**
+- `SmartsuppOptions.WebhookSecret` added as `string` with `""` default.
+- `SmartsuppOptions.WebhookAppId` added as nullable `string?` with `null` default.
+- `SmartsuppOptions.PollIntervalMinutes` removed.
+- `appsettings.json` Smartsupp section gains `"WebhookSecret": ""` (placeholder) and `"WebhookAppId": ""`, and drops `PollIntervalMinutes`.
+- Real secret is stored in the API project's `secrets.json` under `Smartsupp:WebhookSecret` per project convention.
+- No secret material is ever logged.
+
+### FR-7: Retire recurring sync job and state model
+Delete the broken Hangfire job and the `SmartsuppSyncState` domain entity along with all related plumbing.
+
+**Acceptance criteria:**
+- Deleted files: `SmartsuppSyncJob.cs`, `SmartsuppSyncState.cs`, `SmartsuppSyncJobTests.cs`.
+- `SmartsuppRepository.GetOrCreateSyncStateAsync` and `SetSyncWatermarkAsync` removed.
+- `ISmartsuppRepository` interface entries for those two methods removed.
+- `ApplicationDbContext.SmartsuppSyncState` DbSet removed.
+- `SmartsuppModule.cs` no longer registers `SmartsuppSyncJob`.
+- Solution still compiles with `dotnet build` and there are no remaining references to `SmartsuppSyncState` anywhere in the codebase.
+
+### FR-8: Manual "Sync now" use case (backfill / disaster recovery)
+Reuse the polling logic as an on-demand MediatR use case that the UI can trigger.
+
+**Acceptance criteria:**
+- New folder `backend/src/Anela.Heblo.Application/Features/Smartsupp/UseCases/RunManualSync/` contains `RunManualSyncRequest.cs`, `RunManualSyncResponse.cs`, `RunManualSyncHandler.cs`.
+- `RunManualSyncRequest` is a class implementing `IRequest<RunManualSyncResponse>` with optional `DateTime? Since` (handler defaults to `DateTime.UtcNow - 7 days` when null).
+- `RunManualSyncResponse` is a class with `int ConversationsProcessed`, `int MessagesProcessed`, `DateTime StartedAt`, `DateTime CompletedAt`.
+- Handler ports the existing `SmartsuppSyncJob.ExecuteAsync` logic: paged `ISmartsuppApiClient.SearchConversationsAsync` filtered by `updatedAt > Since`, upsert each conversation, then `GetConversationMessagesAsync` per conversation, upsert messages.
+- No watermark persistence — counts are returned in the response only.
+- The handler is cancellable via `CancellationToken`.
+
+### FR-9: Manual sync HTTP endpoint
+Surface the manual sync use case behind an authenticated controller action on the existing `SmartsuppController`.
+
+**Acceptance criteria:**
+- `POST /api/smartsupp/sync` action exists on `SmartsuppController` with `[Authorize]`.
+- Action accepts an optional body containing `Since` and dispatches `RunManualSyncRequest` via MediatR.
+- Returns `200 OK` with `RunManualSyncResponse` body on success.
+- Errors propagate via the project's standard error envelope.
+
+### FR-10: "Sync now" UI button
+Add a manual sync trigger to the Smartsupp chats page.
+
+**Acceptance criteria:**
+- `frontend/src/components/customer-support/smartsupp/pages/SmartsuppChatsPage.tsx` gains a "Sync now" button in its page header.
+- Button calls the regenerated typed client method for `POST /api/smartsupp/sync` (no `Since` argument; defaults applied on the server).
+- Button disables itself while the call is in flight and shows a spinner/loading indicator.
+- On success, a toast displays `ConversationsProcessed` and `MessagesProcessed` counts and the chat list refreshes.
+- On failure, a toast surfaces the error message.
+- OpenAPI TypeScript client is regenerated as part of the standard build (no manual edits to `api-client.ts`).
+
+### FR-11: Observability
+Operationally useful logs without leaking visitor PII or secrets.
+
+**Acceptance criteria:**
+- Info-level log on successful signature verification: `smartsupp webhook event={Event} account={AccountId} app={AppId}`.
+- Warning-level log on signature mismatch: `smartsupp webhook signature mismatch from {RemoteIp}` (no header, secret, or body content).
+- Info-level log for unknown event: `smartsupp webhook unknown event={Event}`.
+- Handler logs at Debug per event, including only entity Id — no message body, no visitor name/email.
+- Manual sync logs start, page progress (Debug), and final counts (Info).
+
+## Non-Functional Requirements
+
+### NFR-1: Performance
+- Webhook endpoint p95 latency: ≤ 500 ms end-to-end (parse + verify + upsert + 200 response) under normal load.
+- Smartsupp documents non-2xx triggering retries; the endpoint must avoid synchronous long-running work that risks exceeding Smartsupp's read timeout.
+- Manual sync handler must stream / page through API results rather than loading entire dataset into memory.
+
+### NFR-2: Security
+- HMAC-SHA256 verification of every webhook call using `CryptographicOperations.FixedTimeEquals` (timing-attack resistant).
+- Secret is stored in `secrets.json` locally and configuration provider (Key Vault / Azure App Configuration / appsettings overrides) in deployed environments — never committed to source.
+- Manual sync endpoint requires standard application authentication (`[Authorize]`).
+- Webhook endpoint is anonymous by necessity (Smartsupp does not send a bearer token) — HMAC + optional `app_id` check are the only authentication mechanisms.
+- No PII (visitor names, emails, message text) in any log line at Info or above.
+
+### NFR-3: Reliability
+- All processing paths must be idempotent (Smartsupp retries on non-2xx).
+- Out-of-order events are tolerated via the `UpdatedAt` timestamp guard.
+- Webhook handler must never throw an unhandled exception that would bubble out as a 5xx (which would induce retries). Map parse failures and downstream errors to a 200 response with logged context, except for HMAC failures which legitimately deserve `401`.
+
+### NFR-4: Maintainability
+- Vertical-slice layout under `Features/Smartsupp/UseCases/` matches existing project conventions.
+- DTOs (request/response classes that cross the API boundary, including `ProcessWebhookEventRequest` and `RunManualSync*`) are classes, not records, per the project rule for OpenAPI compatibility.
+- New code targets ≥ 80% unit test coverage; HMAC verifier and dispatch handler are 100% covered for branch coverage.
+
+### NFR-5: Operational
+- Both staging and production webhook URLs are registered in the same Smartsupp support email to minimize back-and-forth.
+- A documented runbook step exists for capturing the returned `app_id` and shared secret into each environment's configuration.
+
+## Data Model
+No schema additions. Removed entity and persistence touchpoints:
+
+- **Removed:** `SmartsuppSyncState` (domain entity), corresponding EF configuration if any, `ApplicationDbContext.SmartsuppSyncState` DbSet. Migration `20260512190557_DropSmartsuppSyncState` has already dropped the physical table.
+- **Unchanged:** `SmartsuppConversation` (keyed by `Id`, has `UpdatedAt` used for guard), `SmartsuppMessage` (keyed by `Id`, scoped to `ConversationId`).
+
+In-memory transport types:
+
+- `ProcessWebhookEventRequest { string EventName; DateTime Timestamp; string AccountId; string AppId; JsonElement Data; }` — class, MediatR request.
+- `ProcessWebhookEventResponse { bool Handled; string? Reason; }` — class.
+- `RunManualSyncRequest { DateTime? Since; }` — class, MediatR request.
+- `RunManualSyncResponse { int ConversationsProcessed; int MessagesProcessed; DateTime StartedAt; DateTime CompletedAt; }` — class.
+
+## API / Interface Design
+
+### Webhook ingress
+```
+POST /api/webhooks/smartsupp
+Headers:
+  Content-Type: application/json
+  X-Smartsupp-Hmac: <lowercase hex HMAC-SHA256(raw_body, WebhookSecret)>
+Body (envelope):
+  {
+    "type": "event_callback",
+    "event": "conversation.created" | "conversation.updated" | "conversation.closed" | "message.created" | <other>,
+    "timestamp": "<ISO 8601 UTC>",
+    "account_id": "<string>",
+    "app_id": "<string>",
+    "data": { ... event-specific payload ... }
+  }
+Responses:
+  200 OK   — empty body. Valid signature; event handled or known-but-unhandled.
+  401      — empty body. HMAC mismatch, missing header, or app_id mismatch (when configured).
+```
+
+### Manual sync
+```
+POST /api/smartsupp/sync
+Authorization: <bearer or cookie session per project standard>
+Body (optional):
+  { "since": "2026-05-06T00:00:00Z" }   // defaults to now - 7 days when omitted
+Response 200:
+  {
+    "conversationsProcessed": 42,
+    "messagesProcessed": 137,
+    "startedAt": "2026-05-13T12:00:00Z",
+    "completedAt": "2026-05-13T12:00:18Z"
+  }
+```
+
+### Event subscriptions (Smartsupp side)
 - `conversation.created`
 - `conversation.updated`
 - `conversation.closed`
 - `message.created`
 
-**Acceptance criteria:**
-- For each conversation event, the `data` payload is mapped to `SmartsuppConversation` and persisted via `ISmartsuppRepository.UpsertConversationAsync` + `SaveChangesAsync`.
-- For `message.created`, the `conversationId` is extracted from `data`, the message is mapped to `SmartsuppMessage`, and `ISmartsuppRepository.UpsertMessagesAsync(conversationId, [msg], ct)` is called.
-- Any other event name returns `Handled=false` from the handler and does not throw.
-
-### FR-3: Idempotency and ordering
-Repeated delivery of the same event must not cause duplicate rows or stale overwrites.
-
-**Acceptance criteria:**
-- Conversation upsert is keyed on `Id`; redelivery of the same payload is a no-op beyond the existing upsert semantics.
-- `UpsertConversationAsync` skips the write when `existing.UpdatedAt > incoming.UpdatedAt` (handles out-of-order delivery).
-- Message upsert is keyed on message `Id`; redelivery does not produce duplicates.
-- No separate dedupe/seen-event table is introduced.
-
-### FR-4: Removal of the recurring poll
-The Hangfire-based recurring sync is removed entirely.
-
-**Acceptance criteria:**
-- `SmartsuppSyncJob`, `SmartsuppSyncState`, `SmartsuppSyncJobTests`, the `GetOrCreateSyncStateAsync` / `SetSyncWatermarkAsync` methods on `ISmartsuppRepository` and its EF implementation, the `SmartsuppSyncState` DbSet, and the job's DI registration in `SmartsuppModule` are all deleted.
-- `SmartsuppOptions.PollIntervalMinutes` is removed; the corresponding `appsettings.json` key is removed.
-- A solution-wide search for `SmartsuppSyncState` and `SmartsuppSyncJob` returns no production-code references after the change.
-
-### FR-5: Manual "Sync now" backfill
-The existing polling logic (paged conversation fetch + per-conversation message fetch) is exposed as a manual, on-demand operation triggered from the UI for backfill or recovery during outages.
-
-**Acceptance criteria:**
-- A new MediatR use case `RunManualSync` accepts an optional `Since` (default: `now - 7 days`) and returns `{ ConversationsProcessed, MessagesProcessed, StartedAt, CompletedAt }`.
-- The handler calls `ISmartsuppApiClient.SearchConversationsAsync` paged by `updatedAt > since`, upserts each conversation, then calls `GetConversationMessagesAsync` and upserts messages — porting the existing `SmartsuppSyncJob.ExecuteAsync` behaviour without watermark persistence.
-- A new `POST /api/smartsupp/sync` action on `SmartsuppController` (authorized) dispatches the request and returns the response.
-- A "Sync now" button appears in the header of `SmartsuppChatsPage`. While the request is in flight the button is disabled. On success a toast displays the counts and the chat list refreshes; on failure a toast surfaces the error.
-
-### FR-6: Configuration
-`SmartsuppOptions` exposes the webhook secret and optional app-id guard; `PollIntervalMinutes` is removed.
-
-**Acceptance criteria:**
-- `SmartsuppOptions` has `string WebhookSecret { get; set; } = ""` and `string? WebhookAppId { get; set; }`; `PollIntervalMinutes` is removed.
-- `appsettings.json` `Smartsupp` section adds `"WebhookSecret"` (placeholder pointing to user secrets) and `"WebhookAppId": ""`, and drops `PollIntervalMinutes`.
-- The real secret is stored in the API project's `secrets.json` under `Smartsupp:WebhookSecret` for local development; in staging/production it is supplied via the environment's secret store.
-
-## Non-Functional Requirements
-
-### NFR-1: Performance
-- The webhook endpoint must respond `2xx` quickly to avoid Smartsupp retries. Target: p95 ≤ 500 ms end-to-end under normal load; the controller path itself (HMAC + parse + single upsert + commit) should not exceed ~200 ms in steady state.
-- Manual sync is bounded by external API paging; it runs synchronously inside the request and is acceptable up to ~30 s for a 7-day window. If consistently slower in production, revisit by moving to a background job — out of scope here.
-
-### NFR-2: Security
-- HMAC verification is mandatory and constant-time.
-- Optional `WebhookAppId` check provides defence in depth against secret reuse across tenants.
-- Secrets are never logged. Warning logs on signature mismatch include only the remote IP, never the header value, body, or secret.
-- Handler-level logs use entity IDs only; visitor PII is not logged above `Debug`.
-- The webhook endpoint is `AllowAnonymous` but is the only anonymous endpoint added; the manual-sync endpoint requires the standard Heblo authorization.
-
-### NFR-3: Reliability
-- Smartsupp retries non-2xx responses. The endpoint returns `200 OK` for valid-signature requests with unknown events or malformed bodies to avoid retry storms on irrecoverable conditions.
-- Idempotent upserts + timestamp guard ensure retries and out-of-order delivery cannot corrupt state.
-
-### NFR-4: Observability
-- Info log on every authenticated event: `smartsupp webhook event={Event} account={AccountId} app={AppId}`.
-- Warning log on signature mismatch with `RemoteIp` only.
-- Info log on unknown event names.
-- Debug log per event in the handler, including the entity Id only.
-
-### NFR-5: Testability
-- ≥ 80% coverage on new code (HMAC verifier, `ProcessWebhookEventHandler`, `RunManualSyncHandler`, webhook controller wiring).
-
-## Data Model
-No schema changes are introduced by the webhook itself — Smartsupp payload data flows into the existing `SmartsuppConversation` and `SmartsuppMessage` tables via the existing repository methods.
-
-Schema removal (already partially executed by migration `20260512190557_DropSmartsuppSyncState`):
-- `SmartsuppSyncState` entity, DbSet, and repository helpers are removed from code to match the already-dropped table.
-
-Behavioural change to existing model:
-- `SmartsuppRepository.UpsertConversationAsync` gains a guard: when `existing.UpdatedAt > incoming.UpdatedAt`, the update is skipped. The entity shape is unchanged.
-
-## API / Interface Design
-
-### Webhook endpoint
-```
-POST /api/webhooks/smartsupp
-Headers:
-  Content-Type: application/json
-  X-Smartsupp-Hmac: <lowercase hex HMAC-SHA256 of raw body using shared secret>
-Body (Smartsupp envelope):
-  {
-    "type": "event_callback",
-    "event": "conversation.created" | "conversation.updated" | "conversation.closed" | "message.created" | <other>,
-    "timestamp": "<ISO 8601>",
-    "account_id": "...",
-    "app_id": "...",
-    "data": { ... }
-  }
-Responses:
-  200 OK (empty body) — signature valid (handled, unhandled-event, or malformed JSON)
-  401 Unauthorized (empty body) — signature mismatch or app_id mismatch when configured
-```
-
-### Manual sync endpoint
-```
-POST /api/smartsupp/sync         [Authorize]
-Body (optional): { "since": "<ISO 8601 datetime>" }   // default: now - 7 days
-Response 200:
-  {
-    "conversationsProcessed": <int>,
-    "messagesProcessed": <int>,
-    "startedAt": "<ISO 8601>",
-    "completedAt": "<ISO 8601>"
-  }
-```
-
-### MediatR contracts
-- `ProcessWebhookEventRequest : IRequest<ProcessWebhookEventResponse>` — class (not record), fields: `EventName`, `Timestamp` (`DateTime`), `AccountId`, `AppId`, `Data` (`JsonElement`).
-- `ProcessWebhookEventResponse` — class: `bool Handled`, `string? Reason`.
-- `RunManualSyncRequest : IRequest<RunManualSyncResponse>` — class: `DateTime? Since`.
-- `RunManualSyncResponse` — class: `int ConversationsProcessed`, `int MessagesProcessed`, `DateTime StartedAt`, `DateTime CompletedAt`.
-
-(DTOs are classes per project rule — never records, to keep OpenAPI client generation deterministic.)
-
-### Controller flow (webhook)
-1. `HttpContext.Request.EnableBuffering()`, read body into `byte[]` via `StreamReader`/`MemoryStream` before any model binding.
-2. Compute `HMACSHA256` over raw bytes; compare constant-time against `X-Smartsupp-Hmac` (lowercase hex, trimmed).
-3. On mismatch → `LogWarning` (remote IP only) → `401`.
-4. Parse JSON envelope; on parse failure → `LogError` → `200`.
-5. If `WebhookAppId` configured and envelope `app_id` differs → `LogWarning` → `401`.
-6. `LogInformation` with event/account/app.
-7. Dispatch `ProcessWebhookEventRequest` via MediatR.
-8. Return `200 OK` regardless of `Handled`.
-
-### Frontend changes
-- `frontend/src/components/customer-support/smartsupp/pages/SmartsuppChatsPage.tsx` gains a "Sync now" header button. The handler calls the regenerated typed client for `POST /api/smartsupp/sync`. Uses absolute URL via `${apiClient.baseUrl}…` per project rule. Disabled while the call is in flight. Success toast: `"Synced {C} conversations, {M} messages"`. Failure toast surfaces the error message. After success, the chat list is refetched.
-- The OpenAPI TypeScript client is regenerated by the standard build step.
+### UI flow
+1. Operator opens `SmartsuppChatsPage` and clicks **Sync now** in the header.
+2. Button disables, spinner appears.
+3. Frontend invokes generated client method for `POST /api/smartsupp/sync`.
+4. On 200, toast displays `Synced N conversations / M messages` and chat list refetches.
+5. On error, toast surfaces the message; button re-enables.
 
 ## Dependencies
-- **External:** Smartsupp REST/webhook platform — webhook URL registration is a manual email request to `support@smartsupp.com`; they reply with `app_id` and shared secret.
-- **Internal — retained:** `ISmartsuppApiClient` (used by manual sync), `ISmartsuppRepository` (already supports `UpsertConversationAsync` and `UpsertMessagesAsync`), MediatR auto-registration in `SmartsuppModule`, EF `ApplicationDbContext`, ASP.NET Core authorization for the manual-sync endpoint, the existing toast/notification component used elsewhere on the page.
-- **Internal — removed:** Hangfire recurring registration for `SmartsuppSyncJob`, the `SmartsuppSyncState` entity and its DbSet, repository sync-state helpers, `PollIntervalMinutes` option.
-- **Build:** OpenAPI TypeScript client regeneration on build (existing pipeline).
+- **Smartsupp** webhook delivery — registration is via emailed support request (`support@smartsupp.com`); no self-service UI. Activation gates real-end-to-end verification.
+- **`SmartsuppApiClient`** (existing adapter) and its DI registration — retained, used only by `RunManualSyncHandler`.
+- **MediatR** auto-scan already wired through `SmartsuppModule.cs` — handlers register automatically when placed under `Features/Smartsupp/UseCases/`.
+- **EF Core / `ApplicationDbContext`** for upserts; `SaveChangesAsync` is called by the handlers.
+- **`ISmartsuppRepository`** (existing) — interface trimmed (drop sync-state methods), implementation gains the `UpdatedAt` guard.
+- **`Microsoft.AspNetCore.Authorization` `[Authorize]`** for the manual sync endpoint (existing app-wide auth).
+- **OpenAPI TypeScript client generation** (existing build step per `docs/development/api-client-generation.md`) — must run after backend changes so the FE button has a typed call site.
 
 ## Out of Scope
-- Self-service webhook URL configuration UI — registration remains an out-of-band email request to Smartsupp.
-- Webhook delivery dashboards, replay tooling, or visibility into Smartsupp's own delivery log.
-- Persistence of a seen-event table or any new dedupe schema — upsert + timestamp guard are sufficient.
-- Changes to the underlying `SmartsuppConversation` / `SmartsuppMessage` shape, mapping helpers, or storage layout beyond the timestamp guard.
-- Moving manual sync into a background job (e.g., Hangfire one-off). The handler runs synchronously inside the HTTP request.
-- Rate limiting on `POST /api/webhooks/smartsupp` beyond standard host protections.
-- Migrating other Smartsupp data (e.g., agents, contacts) into the webhook flow — only the four listed events are in scope.
-- Multi-tenant `app_id` routing. `WebhookAppId` is a single optional guard value.
+- Adding/removing Smartsupp event subscriptions beyond the four agreed types (`conversation.created`, `conversation.updated`, `conversation.closed`, `message.created`).
+- A dedicated webhook delivery-log / event-archive table.
+- A UI for replaying or browsing raw webhook payloads.
+- Multi-tenant / multi-`app_id` support — single Smartsupp account assumed.
+- Rate limiting or queue-based async processing of webhook events (synchronous in-process upsert is sufficient at expected volumes).
+- Automatic registration of webhook URLs with Smartsupp — registration remains a manual support email per Smartsupp's API constraints.
+- Backporting / rehydrating historical conversations outside the manual sync window (operator may re-run "Sync now" with a deeper `Since` via direct API call if needed).
+- Removing the `SmartsuppApiClient` adapter or its DI wiring.
 
 ## Open Questions
 None.
