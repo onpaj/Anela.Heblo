@@ -114,6 +114,13 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         existing.LastMessagePreview = conversation.LastMessagePreview;
         existing.UpdatedAt = conversation.UpdatedAt;
         existing.SyncedAt = conversation.SyncedAt;
+        existing.Rating = conversation.Rating;
+        existing.RatingText = conversation.RatingText;
+        existing.CloseType = conversation.CloseType;
+        existing.ClosedByAgentId = conversation.ClosedByAgentId;
+        existing.AssignedAgentIdsJson = conversation.AssignedAgentIdsJson;
+        existing.Channel = conversation.Channel;
+        existing.LastClosedAt = conversation.LastClosedAt;
     }
 
     public async Task UpsertMessagesAsync(
