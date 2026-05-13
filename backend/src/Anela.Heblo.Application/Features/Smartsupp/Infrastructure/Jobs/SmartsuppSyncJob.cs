@@ -38,12 +38,10 @@ public class SmartsuppSyncJob : IRecurringJob
 
         _logger.LogInformation("smartsupp-sync starting");
 
-        var syncState = await _repository.GetOrCreateSyncStateAsync(cancellationToken);
-        var updatedAfter = syncState.LastUpdatedAtSeen;
-
         var totalUpserted = 0;
         string? cursor = null;
         DateTime? latestUpdatedAt = null;
+        var contactCache = new Dictionary<string, SmartsuppContactData?>(StringComparer.Ordinal);
 
         do
         {
@@ -51,7 +49,7 @@ public class SmartsuppSyncJob : IRecurringJob
 
             try
             {
-                page = await _apiClient.SearchConversationsAsync(updatedAfter, cursor, PageSize, cancellationToken);
+                page = await _apiClient.SearchConversationsAsync(cursor, PageSize, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -61,7 +59,7 @@ public class SmartsuppSyncJob : IRecurringJob
 
             foreach (var item in page.Items)
             {
-                await ProcessConversationAsync(item, syncedAt, cancellationToken);
+                await ProcessConversationAsync(item, syncedAt, contactCache, cancellationToken);
                 totalUpserted++;
 
                 if (latestUpdatedAt is null || item.UpdatedAt > latestUpdatedAt)
@@ -79,8 +77,52 @@ public class SmartsuppSyncJob : IRecurringJob
         _logger.LogInformation("smartsupp-sync completed — {Count} conversations upserted", totalUpserted);
     }
 
-    private async Task ProcessConversationAsync(SmartsuppConversationData data, DateTime syncedAt, CancellationToken cancellationToken)
+    private async Task ProcessConversationAsync(
+        SmartsuppConversationData data,
+        DateTime syncedAt,
+        Dictionary<string, SmartsuppContactData?> contactCache,
+        CancellationToken cancellationToken)
     {
+        List<SmartsuppMessageData> messageData;
+        try
+        {
+            messageData = await _apiClient.GetConversationMessagesAsync(data.Id, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Failed to fetch messages for conversation {ConversationId} — conversation upserted without messages",
+                data.Id);
+            messageData = [];
+        }
+
+        SmartsuppContactData? contact = null;
+        if (!string.IsNullOrEmpty(data.ContactId))
+        {
+            contact = await FetchContactCachedAsync(data.ContactId, contactCache, cancellationToken);
+
+            if (contact is not null)
+            {
+                var contactEntity = new SmartsuppContact
+                {
+                    Id = contact.Id,
+                    Email = contact.Email,
+                    Name = contact.Name,
+                    Phone = contact.Phone,
+                    Note = contact.Note,
+                    BannedAt = contact.BannedAt is { } ba ? Unspecified(ba) : null,
+                    BannedBy = contact.BannedBy,
+                    GdprApproved = contact.GdprApproved,
+                    TagsJson = contact.TagsJson,
+                    PropertiesJson = contact.PropertiesJson,
+                    CreatedAt = Unspecified(contact.CreatedAt),
+                    UpdatedAt = Unspecified(contact.UpdatedAt),
+                    SyncedAt = Unspecified(syncedAt),
+                };
+                await _repository.UpsertContactAsync(contactEntity, cancellationToken);
+            }
+        }
+
         var status = data.Status?.ToLowerInvariant() == "resolved"
             ? SmartsuppConversationStatus.Resolved
             : SmartsuppConversationStatus.Open;
@@ -88,11 +130,25 @@ public class SmartsuppSyncJob : IRecurringJob
         var conversation = new SmartsuppConversation
         {
             Id = data.Id,
+            ExtId = data.ExtId,
             Status = status,
             IsUnread = data.Unread,
-            ContactName = data.ContactName,
-            ContactEmail = data.ContactEmail,
-            ContactAvatarUrl = data.ContactAvatarUrl,
+            IsOffline = data.IsOffline,
+            IsServed = data.IsServed,
+            ContactId = data.ContactId,
+            ContactName = contact?.Name,
+            ContactEmail = contact?.Email,
+            ContactAvatarUrl = null,
+            VisitorId = data.VisitorId,
+            FinishedAt = data.FinishedAt is { } fa ? Unspecified(fa) : null,
+            Domain = data.Domain,
+            Referer = data.Referer,
+            LocationCountry = data.LocationCountry,
+            LocationCity = data.LocationCity,
+            LocationIp = data.LocationIp,
+            LocationCode = data.LocationCode,
+            VariablesJson = data.VariablesJson,
+            TagsJson = data.TagsJson,
             LastMessagePreview = data.LastMessageText?.Length > LastMessagePreviewMaxLength
                 ? data.LastMessageText[..LastMessagePreviewMaxLength]
                 : data.LastMessageText,
@@ -104,37 +160,76 @@ public class SmartsuppSyncJob : IRecurringJob
 
         await _repository.UpsertConversationAsync(conversation, cancellationToken);
 
-        List<SmartsuppMessageData> messageData;
-        try
-        {
-            messageData = await _apiClient.GetConversationMessagesAsync(data.Id, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex,
-                "Failed to fetch messages for conversation {ConversationId} — conversation upserted without messages",
-                data.Id);
+        if (messageData.Count == 0)
             return;
-        }
 
         var messages = messageData.Select(m => new SmartsuppMessage
         {
             Id = m.Id,
             ConversationId = data.Id,
-            AuthorType = ParseAuthorType(m.AuthorType),
-            AuthorName = m.AuthorName,
+            AuthorType = ParseAuthorType(m.SubType),
+            SubType = m.SubType,
+            AuthorName = ComposeAuthorName(m, contact),
             Content = m.Content,
+            TriggerName = m.TriggerName,
+            TriggerId = m.TriggerId,
+            PageUrl = m.PageUrl,
+            AgentId = m.AgentId,
+            VisitorId = m.VisitorId,
+            DeliveryStatus = m.DeliveryStatus,
+            DeliveredAt = m.DeliveredAt is { } da ? Unspecified(da) : null,
+            IsOffline = m.IsOffline,
+            IsReply = m.IsReply,
+            IsFirstReply = m.IsFirstReply,
+            ResponseTime = m.ResponseTime,
             CreatedAt = m.CreatedAt,
+            UpdatedAt = m.UpdatedAt,
+            AttachmentsJson = m.AttachmentsJson,
         }).ToList();
 
         await _repository.UpsertMessagesAsync(data.Id, messages, cancellationToken);
     }
 
-    private static SmartsuppMessageAuthorType ParseAuthorType(string? type) =>
-        type?.ToLowerInvariant() switch
+    private async Task<SmartsuppContactData?> FetchContactCachedAsync(
+        string contactId,
+        Dictionary<string, SmartsuppContactData?> cache,
+        CancellationToken cancellationToken)
+    {
+        if (cache.TryGetValue(contactId, out var cached))
+            return cached;
+
+        SmartsuppContactData? contact;
+        try
+        {
+            contact = await _apiClient.GetContactAsync(contactId, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch contact {ContactId} — proceeding without contact data", contactId);
+            contact = null;
+        }
+
+        cache[contactId] = contact;
+        return contact;
+    }
+
+    private static string? ComposeAuthorName(SmartsuppMessageData message, SmartsuppContactData? contact) =>
+        ParseAuthorType(message.SubType) switch
+        {
+            SmartsuppMessageAuthorType.Visitor => contact?.Name,
+            SmartsuppMessageAuthorType.Bot => message.TriggerName,
+            _ => null
+        };
+
+    private static SmartsuppMessageAuthorType ParseAuthorType(string? subType) =>
+        subType?.ToLowerInvariant() switch
         {
             "agent" => SmartsuppMessageAuthorType.Agent,
             "bot" => SmartsuppMessageAuthorType.Bot,
+            "contact" => SmartsuppMessageAuthorType.Visitor,
             _ => SmartsuppMessageAuthorType.Visitor,
         };
+
+    private static DateTime Unspecified(DateTime dt) =>
+        DateTime.SpecifyKind(dt, DateTimeKind.Unspecified);
 }
