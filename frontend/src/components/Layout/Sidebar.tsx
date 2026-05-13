@@ -302,6 +302,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           onClick: openHangfireDashboard,
         },
         {
+          id: "meeting-tasks",
+          name: "Meeting Tasks",
+          href: "/automation/meeting-tasks",
+        },
+        {
           id: "data-quality",
           name: "Kvalita dat",
           href: "/automation/data-quality",
