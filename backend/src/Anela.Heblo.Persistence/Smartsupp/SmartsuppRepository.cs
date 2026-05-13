@@ -77,33 +77,38 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         if (existing is null)
         {
             _db.SmartsuppConversations.Add(conversation);
+            return;
         }
-        else
+
+        if (existing.UpdatedAt > conversation.UpdatedAt)
         {
-            existing.Status = conversation.Status;
-            existing.IsUnread = conversation.IsUnread;
-            existing.IsOffline = conversation.IsOffline;
-            existing.IsServed = conversation.IsServed;
-            existing.ContactId = conversation.ContactId;
-            existing.ContactName = conversation.ContactName;
-            existing.ContactEmail = conversation.ContactEmail;
-            existing.ContactAvatarUrl = conversation.ContactAvatarUrl;
-            existing.VisitorId = conversation.VisitorId;
-            existing.ExtId = conversation.ExtId;
-            existing.FinishedAt = conversation.FinishedAt;
-            existing.Domain = conversation.Domain;
-            existing.Referer = conversation.Referer;
-            existing.LocationCountry = conversation.LocationCountry;
-            existing.LocationCity = conversation.LocationCity;
-            existing.LocationIp = conversation.LocationIp;
-            existing.LocationCode = conversation.LocationCode;
-            existing.VariablesJson = conversation.VariablesJson;
-            existing.TagsJson = conversation.TagsJson;
-            existing.LastMessageAt = conversation.LastMessageAt;
-            existing.LastMessagePreview = conversation.LastMessagePreview;
-            existing.UpdatedAt = conversation.UpdatedAt;
-            existing.SyncedAt = conversation.SyncedAt;
+            // Out-of-order event: stored state is fresher — skip update.
+            return;
         }
+
+        existing.Status = conversation.Status;
+        existing.IsUnread = conversation.IsUnread;
+        existing.IsOffline = conversation.IsOffline;
+        existing.IsServed = conversation.IsServed;
+        existing.ContactId = conversation.ContactId;
+        existing.ContactName = conversation.ContactName;
+        existing.ContactEmail = conversation.ContactEmail;
+        existing.ContactAvatarUrl = conversation.ContactAvatarUrl;
+        existing.VisitorId = conversation.VisitorId;
+        existing.ExtId = conversation.ExtId;
+        existing.FinishedAt = conversation.FinishedAt;
+        existing.Domain = conversation.Domain;
+        existing.Referer = conversation.Referer;
+        existing.LocationCountry = conversation.LocationCountry;
+        existing.LocationCity = conversation.LocationCity;
+        existing.LocationIp = conversation.LocationIp;
+        existing.LocationCode = conversation.LocationCode;
+        existing.VariablesJson = conversation.VariablesJson;
+        existing.TagsJson = conversation.TagsJson;
+        existing.LastMessageAt = conversation.LastMessageAt;
+        existing.LastMessagePreview = conversation.LastMessagePreview;
+        existing.UpdatedAt = conversation.UpdatedAt;
+        existing.SyncedAt = conversation.SyncedAt;
     }
 
     public async Task UpsertMessagesAsync(
