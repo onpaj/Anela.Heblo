@@ -5,6 +5,7 @@ import TransportBoxDetail from "../TransportBoxDetail";
 import {
   useTransportBoxByIdQuery,
   useChangeTransportBoxState,
+  useAddItemToBox,
 } from "../../../api/hooks/useTransportBoxes";
 import { TestRouterWrapper } from "../../../test-utils/router-wrapper";
 import { ToastProvider } from "../../../contexts/ToastContext";
@@ -13,6 +14,7 @@ import { ToastProvider } from "../../../contexts/ToastContext";
 jest.mock("../../../api/hooks/useTransportBoxes", () => ({
   useTransportBoxByIdQuery: jest.fn(),
   useChangeTransportBoxState: jest.fn(),
+  useAddItemToBox: jest.fn(),
 }));
 
 // Mock the router params
@@ -21,8 +23,18 @@ jest.mock("react-router-dom", () => ({
   useParams: () => ({ id: "1" }),
 }));
 
+// Mock manufactured product inventory hook (used by TransportBoxItems)
+jest.mock("../../../api/hooks/useManufacturedProductInventory", () => ({
+  useManufacturedProductInventoryQuery: jest.fn().mockReturnValue({
+    data: { items: [], totalCount: 0 },
+    isLoading: false,
+    error: null,
+  }),
+}));
+
 const mockUseTransportBoxByIdQuery = useTransportBoxByIdQuery as jest.Mock;
 const mockUseChangeTransportBoxState = useChangeTransportBoxState as jest.Mock;
+const mockUseAddItemToBox = useAddItemToBox as jest.Mock;
 
 const createWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = new QueryClient({
@@ -70,6 +82,11 @@ describe("TransportBoxDetail", () => {
       mutateAsync: mockMutateAsync,
       isPending: false,
       error: null,
+    });
+
+    mockUseAddItemToBox.mockReturnValue({
+      mutateAsync: jest.fn().mockResolvedValue({ success: true }),
+      isPending: false,
     });
   });
 

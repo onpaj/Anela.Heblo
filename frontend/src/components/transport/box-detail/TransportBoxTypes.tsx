@@ -3,6 +3,7 @@ import {
   CatalogItemDto,
 } from "../../../api/generated/api-client";
 import { LastAddedItem } from "../../../api/hooks/useLastAddedItem";
+import { ManufacturedProductInventoryItem } from "../../../api/hooks/useManufacturedProductInventory";
 
 export interface TransportBoxDetailProps {
   boxId: number | null;
@@ -25,6 +26,11 @@ export interface TransportBoxInfoProps {
   handleSaveNote: () => void;
 }
 
+export interface AddManufacturedItemInput {
+  item: ManufacturedProductInventoryItem;
+  amount: number;
+}
+
 export interface TransportBoxItemsProps {
   transportBox: TransportBoxDto;
   isFormEditable: (fieldType: "items" | "notes" | "boxNumber") => boolean;
@@ -35,6 +41,7 @@ export interface TransportBoxItemsProps {
   selectedProduct: CatalogItemDto | null;
   setSelectedProduct: (product: CatalogItemDto | null) => void;
   handleAddItem: () => void;
+  handleAddManufacturedItem: (input: AddManufacturedItemInput) => void;
   // Quick add last item functionality
   lastAddedItem: LastAddedItem | null;
   handleQuickAdd: () => void;

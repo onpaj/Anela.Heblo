@@ -1,8 +1,86 @@
-import React from "react";
-import { Package, Tag, Trash2, RotateCcw } from "lucide-react";
+import React, { useState } from "react";
+import { Package, Tag, Trash2, RotateCcw, AlertCircle, Loader, FlaskConical } from "lucide-react";
 import { TransportBoxItemsProps } from "./TransportBoxTypes";
 import { CatalogAutocomplete } from "../../common/CatalogAutocomplete";
 import { ProductType } from "../../../api/generated/api-client";
+import { useManufacturedProductInventoryQuery } from "../../../api/hooks/useManufacturedProductInventory";
+import type { ManufacturedProductInventoryItem } from "../../../api/hooks/useManufacturedProductInventory";
+
+type ActiveAddTab = "catalog" | "manufactured";
+
+interface ManufacturedRowProps {
+  item: ManufacturedProductInventoryItem;
+  onAdd: (item: ManufacturedProductInventoryItem, amount: number) => void;
+}
+
+const ManufacturedRow: React.FC<ManufacturedRowProps> = ({ item, onAdd }) => {
+  const [rowAmount, setRowAmount] = useState("");
+  const [rowError, setRowError] = useState<string | null>(null);
+
+  const handleSubmit = () => {
+    const parsed = parseFloat(rowAmount);
+    if (!rowAmount || isNaN(parsed) || parsed <= 0) {
+      setRowError("Zadejte kladné číslo");
+      return;
+    }
+    if (parsed > item.amount) {
+      setRowError(`Max. dostupné: ${item.amount}`);
+      return;
+    }
+    setRowError(null);
+    onAdd(item, parsed);
+    setRowAmount("");
+  };
+
+  return (
+    <div className="flex items-center gap-3 px-3 py-2 border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-gray-900 truncate">{item.productName}</div>
+        <div className="text-xs text-gray-500 flex flex-wrap gap-x-3 mt-0.5">
+          <span className="font-mono">{item.productCode}</span>
+          {item.lotNumber && <span>Lot: {item.lotNumber}</span>}
+          {item.expirationDate && <span>Exp: {item.expirationDate}</span>}
+          <span className="font-semibold text-green-700">Sklad: {item.amount}</span>
+        </div>
+        {rowError && (
+          <div className="flex items-center gap-1 mt-1 text-xs text-red-600">
+            <AlertCircle className="h-3 w-3 flex-shrink-0" />
+            {rowError}
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <input
+          type="number"
+          value={rowAmount}
+          onChange={(e) => {
+            setRowAmount(e.target.value);
+            setRowError(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSubmit();
+            }
+          }}
+          step="0.01"
+          min="0.01"
+          max={item.amount}
+          placeholder="0"
+          className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+        />
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!rowAmount || parseFloat(rowAmount) <= 0}
+          className="px-2 py-1 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Přidat
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
   transportBox,
@@ -14,117 +92,216 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
   selectedProduct,
   setSelectedProduct,
   handleAddItem,
+  handleAddManufacturedItem,
   lastAddedItem,
   handleQuickAdd,
 }) => {
+  const [activeAddTab, setActiveAddTab] = useState<ActiveAddTab>("catalog");
+  const [manufacturedSearch, setManufacturedSearch] = useState("");
+
+  const { data: inventoryData, isLoading: inventoryLoading, error: inventoryError } =
+    useManufacturedProductInventoryQuery({ onlyWithStock: true });
+
+  const filteredInventory = (inventoryData?.items ?? []).filter((item) => {
+    if (!manufacturedSearch.trim()) return true;
+    const q = manufacturedSearch.toLowerCase();
+    return (
+      item.productName.toLowerCase().includes(q) ||
+      item.productCode.toLowerCase().includes(q) ||
+      (item.lotNumber ?? "").toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div>
       {/* Add Item Section - only for Opened state */}
       {isFormEditable("items") && (
         <div className="bg-gray-50 p-4 mb-6 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-            <div className="md:col-span-8">
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Produkt/Zboží
-              </label>
-              <CatalogAutocomplete
-                value={selectedProduct}
-                onSelect={setSelectedProduct}
-                placeholder="Začněte psát pro vyhledání..."
-                productTypes={[ProductType.Product, ProductType.Goods]}
-                size="sm"
-                clearable
-                renderItem={(item) => (
-                  <div className="flex items-center space-x-3">
-                    <Package className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-gray-900 font-medium truncate">
-                        {item.productName}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        <span className="font-mono">{item.productCode}</span> •
-                        Sklad: {item.stock?.available || 0}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Množství
-              </label>
-              <input
-                type="number"
-                value={quantityInput}
-                onChange={(e) => setQuantityInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (
-                      selectedProduct &&
-                      quantityInput &&
-                      parseFloat(quantityInput) > 0
-                    ) {
-                      handleAddItem();
-                    }
-                  }
-                }}
-                step="0.01"
-                min="0"
-                placeholder="0"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-            </div>
-            <div className="md:col-span-2 flex items-end">
-              <button
-                type="button"
-                onClick={handleAddItem}
-                disabled={
-                  !selectedProduct ||
-                  !quantityInput ||
-                  parseFloat(quantityInput) <= 0
-                }
-                className="w-full px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Přidat
-              </button>
-            </div>
+          {/* Tab Switcher */}
+          <div className="flex gap-1 mb-4 border-b border-gray-200">
+            <button
+              type="button"
+              onClick={() => setActiveAddTab("manufactured")}
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeAddTab === "manufactured"
+                  ? "border-green-500 text-green-700"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <FlaskConical className="h-4 w-4" />
+              Vyrobené produkty
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveAddTab("catalog")}
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeAddTab === "catalog"
+                  ? "border-indigo-500 text-indigo-700"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <Package className="h-4 w-4" />
+              Katalog
+            </button>
           </div>
 
-          {/* Quick Add Last Item - one line under form */}
-          {lastAddedItem && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2 text-emerald-700">
-                  <RotateCcw className="h-4 w-4" />
-                  <span>
-                    <strong>{lastAddedItem.productName}</strong> (
-                    {lastAddedItem.productCode}) • {lastAddedItem.amount}
-                  </span>
+          {/* Manufactured Tab */}
+          {activeAddTab === "manufactured" && (
+            <div>
+              <input
+                type="text"
+                value={manufacturedSearch}
+                onChange={(e) => setManufacturedSearch(e.target.value)}
+                placeholder="Hledat produkt, kód nebo lot..."
+                className="w-full mb-3 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+
+              {inventoryLoading && (
+                <div className="flex items-center justify-center py-6 text-gray-500 text-sm gap-2">
+                  <Loader className="h-4 w-4 animate-spin" />
+                  Načítám zásoby...
                 </div>
-                <button
-                  type="button"
-                  onClick={handleQuickAdd}
-                  className="px-3 py-1 text-sm font-medium text-white bg-emerald-600 rounded hover:bg-emerald-700 flex items-center gap-1"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                  Opakovat
-                </button>
-              </div>
+              )}
+
+              {inventoryError && (
+                <div className="flex items-center gap-2 py-4 text-red-600 text-sm">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  Chyba při načítání zásob
+                </div>
+              )}
+
+              {!inventoryLoading && !inventoryError && filteredInventory.length === 0 && (
+                <div className="text-center py-6 text-sm text-gray-500">
+                  {manufacturedSearch.trim()
+                    ? "Žádné výsledky pro zadaný filtr"
+                    : "Žádné zásoby vyrobených produktů"}
+                </div>
+              )}
+
+              {!inventoryLoading && !inventoryError && filteredInventory.length > 0 && (
+                <div className="border border-gray-200 rounded-md bg-white max-h-64 overflow-y-auto">
+                  {filteredInventory.map((item) => (
+                    <ManufacturedRow
+                      key={item.id}
+                      item={item}
+                      onAdd={(inventoryItem, amount) =>
+                        handleAddManufacturedItem({ item: inventoryItem, amount })
+                      }
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
-          <p className="mt-2 text-xs text-gray-600">
-            Začněte psát název nebo kód produktu/zboží pro vyhledání. Po výběru
-            položky zadejte množství pro přidání do boxu.
-            {selectedProduct && (
-              <span className="text-green-600 ml-1">
-                ✓ Vybrán: {selectedProduct.productName} (
-                {selectedProduct.productCode})
-              </span>
-            )}
-          </p>
+          {/* Catalog Tab */}
+          {activeAddTab === "catalog" && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                <div className="md:col-span-8">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Produkt/Zboží
+                  </label>
+                  <CatalogAutocomplete
+                    value={selectedProduct}
+                    onSelect={setSelectedProduct}
+                    placeholder="Začněte psát pro vyhledání..."
+                    productTypes={[ProductType.Product, ProductType.Goods]}
+                    size="sm"
+                    clearable
+                    renderItem={(item) => (
+                      <div className="flex items-center space-x-3">
+                        <Package className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-gray-900 font-medium truncate">
+                            {item.productName}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            <span className="font-mono">{item.productCode}</span> •
+                            Sklad: {item.stock?.available || 0}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Množství
+                  </label>
+                  <input
+                    type="number"
+                    value={quantityInput}
+                    onChange={(e) => setQuantityInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (
+                          selectedProduct &&
+                          quantityInput &&
+                          parseFloat(quantityInput) > 0
+                        ) {
+                          handleAddItem();
+                        }
+                      }
+                    }}
+                    step="0.01"
+                    min="0"
+                    placeholder="0"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="md:col-span-2 flex items-end">
+                  <button
+                    type="button"
+                    onClick={handleAddItem}
+                    disabled={
+                      !selectedProduct ||
+                      !quantityInput ||
+                      parseFloat(quantityInput) <= 0
+                    }
+                    className="w-full px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Přidat
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Add Last Item - one line under form */}
+              {lastAddedItem && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 text-emerald-700">
+                      <RotateCcw className="h-4 w-4" />
+                      <span>
+                        <strong>{lastAddedItem.productName}</strong> (
+                        {lastAddedItem.productCode}) • {lastAddedItem.amount}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleQuickAdd}
+                      className="px-3 py-1 text-sm font-medium text-white bg-emerald-600 rounded hover:bg-emerald-700 flex items-center gap-1"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Opakovat
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <p className="mt-2 text-xs text-gray-600">
+                Začněte psát název nebo kód produktu/zboží pro vyhledání. Po výběru
+                položky zadejte množství pro přidání do boxu.
+                {selectedProduct && (
+                  <span className="text-green-600 ml-1">
+                    ✓ Vybrán: {selectedProduct.productName} (
+                    {selectedProduct.productCode})
+                  </span>
+                )}
+              </p>
+            </>
+          )}
         </div>
       )}
 
