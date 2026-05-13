@@ -10,7 +10,9 @@ public class UpdateProposedTaskStatusHandler : IRequestHandler<UpdateProposedTas
     private readonly IMeetingTranscriptRepository _repository;
     private readonly ILogger<UpdateProposedTaskStatusHandler> _logger;
 
-    public UpdateProposedTaskStatusHandler(IMeetingTranscriptRepository repository, ILogger<UpdateProposedTaskStatusHandler> logger)
+    public UpdateProposedTaskStatusHandler(
+        IMeetingTranscriptRepository repository,
+        ILogger<UpdateProposedTaskStatusHandler> logger)
     {
         _repository = repository;
         _logger = logger;
@@ -18,21 +20,35 @@ public class UpdateProposedTaskStatusHandler : IRequestHandler<UpdateProposedTas
 
     public async Task<UpdateProposedTaskStatusResponse> Handle(UpdateProposedTaskStatusRequest request, CancellationToken cancellationToken)
     {
+        _logger.LogInformation(
+            "Updating proposed task status — TranscriptId: {TranscriptId}, TaskId: {TaskId}, Status: {Status}",
+            request.TranscriptId, request.TaskId, request.Status);
+
         var transcript = await _repository.GetByIdAsync(request.TranscriptId, cancellationToken);
         if (transcript is null)
+        {
+            _logger.LogWarning("Meeting transcript {TranscriptId} not found", request.TranscriptId);
             return new UpdateProposedTaskStatusResponse(ErrorCodes.ResourceNotFound);
+        }
 
         var task = transcript.Tasks.FirstOrDefault(t => t.Id == request.TaskId);
         if (task is null)
+        {
+            _logger.LogWarning(
+                "Proposed task {TaskId} not found on transcript {TranscriptId}",
+                request.TaskId, request.TranscriptId);
             return new UpdateProposedTaskStatusResponse(ErrorCodes.ResourceNotFound);
+        }
 
         if (!Enum.TryParse<ProposedTaskStatus>(request.Status, ignoreCase: true, out var newStatus))
+        {
+            _logger.LogWarning("Invalid proposed task status value: {Status}", request.Status);
             return new UpdateProposedTaskStatusResponse(ErrorCodes.ValidationError);
+        }
 
         task.Status = newStatus;
-        await _repository.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Updated status of task {TaskId} to {Status} on transcript {TranscriptId}", request.TaskId, newStatus, request.TranscriptId);
+        await _repository.SaveChangesAsync(cancellationToken);
         return new UpdateProposedTaskStatusResponse();
     }
 }

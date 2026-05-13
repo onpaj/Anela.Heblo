@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.MeetingTasks.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using MediatR;
@@ -10,34 +11,60 @@ public class AddProposedTaskHandler : IRequestHandler<AddProposedTaskRequest, Ad
     private readonly IMeetingTranscriptRepository _repository;
     private readonly ILogger<AddProposedTaskHandler> _logger;
 
-    public AddProposedTaskHandler(IMeetingTranscriptRepository repository, ILogger<AddProposedTaskHandler> logger)
+    public AddProposedTaskHandler(
+        IMeetingTranscriptRepository repository,
+        ILogger<AddProposedTaskHandler> logger)
     {
         _repository = repository;
         _logger = logger;
     }
 
-    public async Task<AddProposedTaskResponse> Handle(AddProposedTaskRequest request, CancellationToken cancellationToken)
+    public async Task<AddProposedTaskResponse> Handle(
+        AddProposedTaskRequest request,
+        CancellationToken cancellationToken)
     {
+        _logger.LogInformation(
+            "Adding manual proposed task — TranscriptId: {TranscriptId}, Title: {Title}",
+            request.TranscriptId,
+            request.Title);
+
         var transcript = await _repository.GetByIdAsync(request.TranscriptId, cancellationToken);
         if (transcript is null)
+        {
+            _logger.LogWarning("Meeting transcript {TranscriptId} not found", request.TranscriptId);
             return new AddProposedTaskResponse(ErrorCodes.ResourceNotFound);
+        }
 
-        var newTask = new ProposedTask
+        var task = new ProposedTask
         {
             Id = Guid.NewGuid(),
-            MeetingTranscriptId = request.TranscriptId,
+            MeetingTranscriptId = transcript.Id,
             Title = request.Title,
             Description = request.Description,
             Assignee = request.Assignee,
             DueDate = request.DueDate,
             Status = ProposedTaskStatus.Pending,
+            ExternalTaskId = null,
             IsManuallyAdded = true
         };
 
-        transcript.Tasks.Add(newTask);
+        transcript.Tasks.Add(task);
+
         await _repository.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Added manual task {TaskId} to transcript {TranscriptId}", newTask.Id, request.TranscriptId);
-        return new AddProposedTaskResponse { TaskId = newTask.Id };
+        return new AddProposedTaskResponse
+        {
+            Task = new ProposedTaskDto
+            {
+                Id = task.Id,
+                Title = task.Title,
+                Description = task.Description,
+                Assignee = task.Assignee,
+                DueDate = task.DueDate,
+                Status = task.Status.ToString(),
+                ExternalTaskId = task.ExternalTaskId,
+                IsManuallyAdded = task.IsManuallyAdded
+            }
+        };
     }
 }
