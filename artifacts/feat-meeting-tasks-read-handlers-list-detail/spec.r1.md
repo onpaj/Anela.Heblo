@@ -1,202 +1,174 @@
-# Specification: Meeting Task Read Handlers — List & Detail
+# Specification: Meeting Tasks Read Handlers — List & Detail
 
 ## Summary
-Implement two MediatR read handlers (`GetTranscriptList` and `GetTranscriptDetail`) plus supporting DTOs for the Meeting Task Validation Checkpoint feature. The list handler returns paged, status-filterable transcript summaries; the detail handler returns a single transcript with all proposed tasks. Both handlers are pure read operations against `IMeetingTranscriptRepository`.
+Implement two MediatR read handlers (`GetTranscriptList` and `GetTranscriptDetail`) plus their DTOs for the Meeting Task Validation Checkpoint epic. The list handler returns paginated transcript summaries with task counts; the detail handler returns a single transcript with all proposed tasks. Both are read-only operations backed by `IMeetingTranscriptRepository`.
 
 ## Background
-This is Subtask 3 of the **Meeting Task Validation Checkpoint** epic (`feat/meeting-task-validation-epic`). Earlier subtasks introduced the `MeetingTranscript` aggregate (with `PlaudRecordingId` and `PlaudCreatedAt` replacing the legacy `SourceEmail` field), the `ProposedTask` entity, the `IMeetingTranscriptRepository` interface, and the persistence layer. This subtask exposes that data to the application layer so that follow-up subtasks can wire up MVC controllers and the React review UI. The handlers must follow existing Vertical Slice conventions in `Anela.Heblo.Application/Features/*/UseCases/*` (MediatR `IRequest`/`IRequestHandler`, `BaseResponse` envelope, `ErrorCodes` enum).
+This is **Subtask 3** of the Meeting Task Validation Checkpoint epic (parent branch `feat/meeting-task-validation-epic`). Prior subtasks established the domain entities (`MeetingTranscript`, `ProposedTask`), the persistence layer, and the `IMeetingTranscriptRepository` abstraction. The read handlers feed the UI surfaces where a reviewer browses pending meeting transcripts and inspects the AI-proposed tasks before approving/rejecting them.
+
+A recent epic-level change replaced `SourceEmail` with `PlaudRecordingId` (Plaud is the recording device/service) and added `PlaudCreatedAt` for display in the UI. DTOs and handlers reflect that change.
 
 ## Functional Requirements
 
-### FR-1: MeetingTranscriptDto
-A DTO class exposing transcript metadata and rolled-up task counts to API consumers.
+### FR-1: MeetingTranscriptDto contract
+Add a class DTO `MeetingTranscriptDto` in `Anela.Heblo.Application/Features/MeetingTasks/Contracts/`.
+
+Fields:
+- `Guid Id`
+- `string PlaudRecordingId` (non-null)
+- `DateTime PlaudCreatedAt`
+- `string Subject` (non-null)
+- `string Summary` (non-null)
+- `string Status` (string form of `MeetingTranscriptStatus` enum)
+- `DateTime ReceivedAt`
+- `DateTime? ReviewedAt`
+- `string? ReviewedByUser`
+- `int TaskCount`
+- `int ApprovedTaskCount`
+- `int RejectedTaskCount`
+- `List<ProposedTaskDto> Tasks` (initialized to empty list)
 
 **Acceptance criteria:**
-- Defined as a `class` (not `record`) per project DTO rule.
-- Located at `backend/src/Anela.Heblo.Application/Features/MeetingTasks/Contracts/MeetingTranscriptDto.cs`.
-- Properties: `Id` (Guid), `PlaudRecordingId` (string), `PlaudCreatedAt` (DateTime), `Subject` (string), `Summary` (string), `Status` (string — enum name), `ReceivedAt` (DateTime), `ReviewedAt` (DateTime?), `ReviewedByUser` (string?), `TaskCount` (int), `ApprovedTaskCount` (int), `RejectedTaskCount` (int), `Tasks` (`List<ProposedTaskDto>`).
-- `RawTranscript` is **not** exposed (kept internal to the domain entity).
-- Non-nullable reference-type properties default to `null!` or empty collection initializer to satisfy nullable analysis without surfacing initialization warnings.
+- Class type (not C# record), per project rule on OpenAPI-generated DTOs.
+- `RawTranscript` is NOT exposed in the list DTO (large field; detail endpoint also excludes it for this subtask).
+- All non-nullable reference types use `= null!;` initializers to match codebase convention.
 
-### FR-2: ProposedTaskDto
-A DTO class exposing a proposed task's fields for display.
+### FR-2: ProposedTaskDto contract
+Add a class DTO `ProposedTaskDto` in `Anela.Heblo.Application/Features/MeetingTasks/Contracts/`.
 
-**Acceptance criteria:**
-- Defined as a `class` (not `record`).
-- Located at `backend/src/Anela.Heblo.Application/Features/MeetingTasks/Contracts/ProposedTaskDto.cs`.
-- Properties: `Id` (Guid), `Title` (string), `Description` (string), `Assignee` (string), `DueDate` (DateTime?), `Status` (string — enum name), `ExternalTaskId` (string?), `IsManuallyAdded` (bool).
-
-### FR-3: GetTranscriptList Request
-Query request for a paged, optionally status-filtered list of transcripts.
-
-**Acceptance criteria:**
-- `GetTranscriptListRequest : IRequest<GetTranscriptListResponse>` in `UseCases/GetTranscriptList/`.
-- Properties: `StatusFilter` (string?, optional), `PageNumber` (int, default 1), `PageSize` (int, default 20).
-- `StatusFilter` is matched against `MeetingTranscriptStatus` case-insensitively; unrecognized or empty values yield no filter (all statuses returned).
-
-### FR-4: GetTranscriptList Response
-Envelope carrying the page of transcript summaries.
+Fields:
+- `Guid Id`
+- `string Title` (non-null)
+- `string Description` (non-null)
+- `string Assignee` (non-null)
+- `DateTime? DueDate`
+- `string Status` (string form of `ProposedTaskStatus` enum)
+- `string? ExternalTaskId`
+- `bool IsManuallyAdded`
 
 **Acceptance criteria:**
-- `GetTranscriptListResponse : BaseResponse`.
-- Properties: `Items` (`List<MeetingTranscriptDto>`), `TotalCount` (int), `PageNumber` (int), `PageSize` (int), computed `TotalPages` (`Ceiling(TotalCount / PageSize)`).
-- On success, `Items` is populated and `Success = true` (inherited default from `BaseResponse`).
+- Class type (not C# record).
+- Field set matches the brief exactly.
 
-### FR-5: GetTranscriptListHandler
-Handler that fetches and maps the page.
+### FR-3: GetTranscriptListHandler
+Implement MediatR request/response/handler trio under `UseCases/GetTranscriptList/`.
 
-**Acceptance criteria:**
-- Constructor-injects `IMeetingTranscriptRepository`.
-- Parses `StatusFilter` to nullable `MeetingTranscriptStatus` via `Enum.TryParse` (case-insensitive); on parse failure, passes `null` (no filter).
-- Calls `_repository.GetListAsync(statusFilter, pageNumber, pageSize, cancellationToken)` and expects a `(items, totalCount)` tuple.
-- Maps each `MeetingTranscript` to `MeetingTranscriptDto` with:
-  - `Status` = `t.Status.ToString()`
-  - `TaskCount` = `t.Tasks.Count`
-  - `ApprovedTaskCount` = `t.Tasks.Count(x => x.Status == ProposedTaskStatus.Approved)`
-  - `RejectedTaskCount` = `t.Tasks.Count(x => x.Status == ProposedTaskStatus.Rejected)`
-  - `Tasks` left as an empty list (list view does not include task details — fetched via detail endpoint).
-- Returns populated `GetTranscriptListResponse` with echoed paging parameters.
+Request inputs:
+- `string? StatusFilter` — case-insensitive parse against `MeetingTranscriptStatus`; invalid or empty values mean "no filter".
+- `int PageNumber` (default 1)
+- `int PageSize` (default 20)
 
-### FR-6: GetTranscriptDetail Request
-Query request for a single transcript by Id.
+Response:
+- Inherits from `BaseResponse` (Success/ErrorCode pattern).
+- `List<MeetingTranscriptDto> Items` — list view, with `Tasks` field left empty (counts only).
+- `int TotalCount`, `int PageNumber`, `int PageSize`, computed `int TotalPages`.
 
-**Acceptance criteria:**
-- `GetTranscriptDetailRequest : IRequest<GetTranscriptDetailResponse>` in `UseCases/GetTranscriptDetail/`.
-- Single property: `Id` (Guid).
-
-### FR-7: GetTranscriptDetail Response
-Envelope carrying a single transcript with tasks.
+Handler behavior:
+- Parse the optional `StatusFilter` to `MeetingTranscriptStatus?`.
+- Call `_repository.GetListAsync(statusFilter, pageNumber, pageSize, ct)` which returns `(IEnumerable<MeetingTranscript>, int totalCount)`.
+- Project each transcript into a `MeetingTranscriptDto` with `Tasks = new()` (empty) and populated counts.
+- Status is serialized via `.ToString()` on the enum.
 
 **Acceptance criteria:**
-- `GetTranscriptDetailResponse : BaseResponse`.
-- Single property: `Transcript` (`MeetingTranscriptDto`, nullable in practice when not found, `null!` initializer to align with project pattern).
-- On not-found, `Success = false` and `ErrorCode = ErrorCodes.NotFound`; `Transcript` is not set.
+- Unit test `Handle_ReturnsPagedResults` passes: single transcript returned, status string is `"PendingReview"`, `PlaudRecordingId` echoed, `TaskCount == 1`, `TotalCount == 1`.
+- `result.Success` is `true` (inherited default).
+- Empty/invalid `StatusFilter` is treated as no filter (passed as `null` to the repository).
+- Handler returns even if the page is empty (`Items = []`, `TotalCount = 0`).
 
-### FR-8: GetTranscriptDetailHandler
-Handler that fetches one transcript with its tasks.
+### FR-4: GetTranscriptDetailHandler
+Implement MediatR request/response/handler trio under `UseCases/GetTranscriptDetail/`.
+
+Request:
+- `Guid Id` — transcript identifier.
+
+Response:
+- Inherits from `BaseResponse`.
+- `MeetingTranscriptDto Transcript` (non-null on success path).
+
+Handler behavior:
+- Call `_repository.GetByIdAsync(request.Id, ct)`.
+- If `null`, return a failure response with `Success = false` and `ErrorCode = ErrorCodes.NotFound`. Do not throw.
+- Otherwise, project to `MeetingTranscriptDto` with the full `Tasks` list populated (each as `ProposedTaskDto`).
 
 **Acceptance criteria:**
-- Constructor-injects `IMeetingTranscriptRepository`.
-- Calls `_repository.GetByIdAsync(request.Id, cancellationToken)`.
-- If repository returns `null`, returns `GetTranscriptDetailResponse { Success = false, ErrorCode = ErrorCodes.NotFound }`.
-- Otherwise maps to `MeetingTranscriptDto` populating **all fields including the full `Tasks` list** (each as `ProposedTaskDto`).
-- Aggregate counts (`TaskCount`, `ApprovedTaskCount`, `RejectedTaskCount`) are computed identically to the list handler.
+- Unit test `Handle_ExistingTranscript_ReturnsDetailWithTasks` passes: `Success == true`, `Subject == "Sprint Planning"`, `PlaudRecordingId == "rec-001"`, exactly one task in the returned DTO.
+- Unit test `Handle_NonExistentTranscript_ReturnsNotFound` passes: `Success == false`.
+- `Tasks` is populated in detail (in contrast to the list handler).
 
-### FR-9: Unit Tests — GetTranscriptListHandler
-**Acceptance criteria:**
-- File: `backend/test/Anela.Heblo.Tests/Features/MeetingTasks/GetTranscriptListHandlerTests.cs`.
-- Test: `Handle_ReturnsPagedResults` — given a single seeded transcript with one pending task, asserts `result.Success`, single item, mapped `Status == "PendingReview"`, `PlaudRecordingId == "rec-001"`, `TaskCount == 1`, `TotalCount == 1`.
-- Repository is mocked with Moq; `GetListAsync` is set up to return the seeded tuple.
+### FR-5: Unit tests
+Create two test files under `backend/test/Anela.Heblo.Tests/Features/MeetingTasks/`:
+- `GetTranscriptListHandlerTests.cs` with `Handle_ReturnsPagedResults`.
+- `GetTranscriptDetailHandlerTests.cs` with `Handle_ExistingTranscript_ReturnsDetailWithTasks` and `Handle_NonExistentTranscript_ReturnsNotFound`.
 
-### FR-10: Unit Tests — GetTranscriptDetailHandler
 **Acceptance criteria:**
-- File: `backend/test/Anela.Heblo.Tests/Features/MeetingTasks/GetTranscriptDetailHandlerTests.cs`.
-- Test: `Handle_ExistingTranscript_ReturnsDetailWithTasks` — given a seeded transcript with one task, asserts `Success`, mapped `Subject`, mapped `PlaudRecordingId`, and `Tasks` list contains the task.
-- Test: `Handle_NonExistentTranscript_ReturnsNotFound` — repository returns `null`; assert `Success == false` (and implicitly `ErrorCode == NotFound`).
-- Repository is mocked with Moq.
-
-### FR-11: Build and Test Validation
-**Acceptance criteria:**
-- `dotnet build` of the backend solution succeeds with no new warnings.
-- `dotnet test backend/test/Anela.Heblo.Tests/ --filter "FullyQualifiedName~GetTranscriptListHandlerTests|FullyQualifiedName~GetTranscriptDetailHandlerTests"` passes all tests.
-- `dotnet format` produces no diff for new files.
-
-### FR-12: Source Control
-**Acceptance criteria:**
-- Work is performed on the epic branch `feat/meeting-task-validation-epic` (or a short-lived feature branch off it; PR target = epic branch, **not** `main`).
-- Single commit message: `feat(meeting-tasks): add GetTranscriptList and GetTranscriptDetail handlers with tests`.
-- Staged paths limited to the four new directories/files listed in the brief.
+- Uses Moq for `IMeetingTranscriptRepository`.
+- xUnit `[Fact]` test methods, AAA structure.
+- All three tests pass under `dotnet test --filter "FullyQualifiedName~GetTranscriptListHandlerTests|FullyQualifiedName~GetTranscriptDetailHandlerTests"`.
 
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
-- List queries must be paged at the repository layer (no client-side paging).
-- Default `PageSize = 20`; no enforced upper bound at handler level for this subtask (repository or future validator may add one).
-- Task count rollups in the list view rely on `t.Tasks` already being loaded by the repository (eager include or projection); the handler does **not** issue additional queries per row.
+- Pagination is repository-side (no in-memory paging). Default page size 20, no enforced upper bound in this subtask (validation will arrive with the controller layer).
+- List projection does not load `Tasks` collections beyond counts. The implementation depends on the repository materialising tasks for count operations; if N+1 emerges, the repository — not the handler — owns the fix.
 
 ### NFR-2: Security
-- Handlers themselves perform no authorization — controller-level authorization (added in a later subtask) gates access.
-- DTOs do not expose `RawTranscript` or any field containing PII beyond what the existing UI already shows (`Subject`, `Summary`, `Assignee` name string, `ReviewedByUser`).
-- No user input is concatenated into queries; filter parsing is via strict `Enum.TryParse`.
+- Handlers themselves perform no authorization; the MVC controller layer (out of scope here) enforces authentication and role checks.
+- No PII transformations or redaction in this layer.
 
-### NFR-3: Maintainability / Style
-- Follow existing Vertical Slice file layout (`UseCases/<UseCase>/{Request,Response,Handler}.cs`).
-- DTOs as classes per project rule (OpenAPI generator constraint).
-- Nullable reference types enabled; non-nullable properties initialized with `null!` or empty collections to match the codebase pattern.
-- No comments unless a non-obvious invariant requires explanation.
+### NFR-3: Architectural conformance
+- Vertical-slice layout under `Features/MeetingTasks/UseCases/{UseCase}/`.
+- MediatR `IRequest<TResponse>` + `IRequestHandler<TRequest, TResponse>` pattern.
+- DTOs are classes, not records (OpenAPI generator compatibility — project-wide rule).
+- Responses inherit from `Anela.Heblo.Application.Shared.BaseResponse`.
+- Constructor injection only; no service locator.
+
+### NFR-4: Validation
+- BE validation gate: `dotnet build` + `dotnet format` both clean.
+- All new tests pass; previously passing tests remain green.
 
 ## Data Model
+Read-only consumption of existing entities (established in earlier subtasks):
 
-Consumed entities (already defined by earlier subtasks):
-
-- **MeetingTranscript** (aggregate root)
-  - `Id : Guid`
-  - `PlaudRecordingId : string` (replaces former `SourceEmail`)
-  - `PlaudCreatedAt : DateTime`
-  - `Subject : string`
-  - `Summary : string`
-  - `RawTranscript : string` (not exposed in DTO)
-  - `Status : MeetingTranscriptStatus` (enum)
-  - `ReceivedAt : DateTime`
-  - `ReviewedAt : DateTime?`
-  - `ReviewedByUser : string?`
-  - `Tasks : List<ProposedTask>`
-
-- **ProposedTask**
-  - `Id : Guid`
-  - `Title : string`
-  - `Description : string`
-  - `Assignee : string`
-  - `DueDate : DateTime?`
-  - `Status : ProposedTaskStatus` (enum: `Pending`, `Approved`, `Rejected`, …)
-  - `ExternalTaskId : string?`
-  - `IsManuallyAdded : bool`
-
-- **MeetingTranscriptStatus** (enum) — values include at minimum `PendingReview`; full set defined by earlier subtask.
-
-DTO mappings introduced here:
-- `MeetingTranscript → MeetingTranscriptDto` (status as string; task list optionally populated)
-- `ProposedTask → ProposedTaskDto`
+- **MeetingTranscript** — aggregate root.
+  - `Id: Guid`, `PlaudRecordingId: string`, `PlaudCreatedAt: DateTime`, `Subject: string`, `Summary: string`, `RawTranscript: string`, `Status: MeetingTranscriptStatus`, `ReceivedAt: DateTime`, `ReviewedAt: DateTime?`, `ReviewedByUser: string?`, `Tasks: ICollection<ProposedTask>`.
+- **ProposedTask** — child entity.
+  - `Id: Guid`, `Title: string`, `Description: string`, `Assignee: string`, `DueDate: DateTime?`, `Status: ProposedTaskStatus`, `ExternalTaskId: string?`, `IsManuallyAdded: bool`.
+- **Enums**
+  - `MeetingTranscriptStatus` — includes `PendingReview` (other states defined by earlier subtasks).
+  - `ProposedTaskStatus` — includes `Pending`, `Approved`, `Rejected`.
 
 ## API / Interface Design
 
-MediatR contracts (no HTTP controllers in this subtask):
+MediatR contracts only (HTTP controllers are out of scope here):
 
 **GetTranscriptList**
-- Request: `{ StatusFilter?: string, PageNumber: int = 1, PageSize: int = 20 }`
-- Response: `BaseResponse + { Items: MeetingTranscriptDto[], TotalCount, PageNumber, PageSize, TotalPages }`
-- Items have empty `Tasks` arrays (summary view only).
+- Request: `GetTranscriptListRequest { string? StatusFilter; int PageNumber = 1; int PageSize = 20; }`
+- Response: `GetTranscriptListResponse : BaseResponse { List<MeetingTranscriptDto> Items; int TotalCount; int PageNumber; int PageSize; int TotalPages; }`
 
 **GetTranscriptDetail**
-- Request: `{ Id: Guid }`
-- Response (found): `BaseResponse(Success=true) + { Transcript: MeetingTranscriptDto with full Tasks }`
-- Response (not found): `BaseResponse(Success=false, ErrorCode=NotFound)`
+- Request: `GetTranscriptDetailRequest { Guid Id; }`
+- Response: `GetTranscriptDetailResponse : BaseResponse { MeetingTranscriptDto Transcript; }`
+- Not-found path: `Success = false`, `ErrorCode = ErrorCodes.NotFound`, `Transcript` left at its default.
 
-Repository contract used (already exists):
-- `Task<(IReadOnlyList<MeetingTranscript> items, int totalCount)> GetListAsync(MeetingTranscriptStatus? status, int pageNumber, int pageSize, CancellationToken ct)`
-- `Task<MeetingTranscript?> GetByIdAsync(Guid id, CancellationToken ct)`
+Status string values returned via `Enum.ToString()` (e.g., `"PendingReview"`, `"Approved"`).
 
 ## Dependencies
-
-- **MediatR** — handler dispatch.
-- **`Anela.Heblo.Application.Shared.BaseResponse` and `ErrorCodes`** — response envelope.
-- **`Anela.Heblo.Domain.Features.MeetingTasks`** — `MeetingTranscript`, `ProposedTask`, `MeetingTranscriptStatus`, `ProposedTaskStatus`, `IMeetingTranscriptRepository` (all from prior epic subtasks; must be merged into the epic branch before this work starts).
-- **Moq + xUnit** — already used in `Anela.Heblo.Tests`.
-- **Epic branch** `feat/meeting-task-validation-epic` — must exist and contain Subtasks 1 & 2.
+- **MediatR** — already referenced by the Application project.
+- **IMeetingTranscriptRepository** with methods `GetListAsync(MeetingTranscriptStatus? statusFilter, int pageNumber, int pageSize, CancellationToken) → (IEnumerable<MeetingTranscript>, int)` and `GetByIdAsync(Guid id, CancellationToken) → MeetingTranscript?`. Created in an earlier subtask of this epic.
+- **`Anela.Heblo.Application.Shared.BaseResponse`** and **`ErrorCodes.NotFound`** — existing shared error contract.
+- **Moq + xUnit** — existing test stack.
 
 ## Out of Scope
-
-- MVC controllers / HTTP endpoints (later subtask).
-- Authorization policies on the endpoints.
-- Approve / Reject / manual-add task mutation handlers (later subtask).
-- Frontend React review UI (later subtask).
-- OpenAPI client regeneration (handled at controller subtask).
-- Additional list filters (date range, assignee search, full-text) beyond `StatusFilter`.
-- Repository implementation changes — repository is consumed as-is.
-- Database migrations.
+- MVC controller endpoints exposing these handlers over HTTP.
+- Authorization and authentication wiring.
+- Frontend / OpenAPI TypeScript client regeneration.
+- Mutation handlers (Approve/Reject/AddManualTask) — separate subtasks.
+- Repository implementation changes — assumed complete from prior subtasks.
+- Integration tests against the database; only unit tests with Moq are required here.
+- Returning `RawTranscript` to clients (deferred to a future subtask that needs it).
+- Pagination boundary validation (e.g., clamping page size) — will be added at the controller layer.
 
 ## Open Questions
-
 None.
 
 ## Status: COMPLETE
