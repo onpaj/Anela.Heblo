@@ -66,6 +66,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.HomeAssistant.Tests", "backend\test\Anela.Heblo.Adapters.HomeAssistant.Tests\Anela.Heblo.Adapters.HomeAssistant.Tests.csproj", "{AA318B15-9568-43D8-82F8-76F47E7B7E4A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.Plaud.Tests", "backend\test\Anela.Heblo.Adapters.Plaud.Tests\Anela.Heblo.Adapters.Plaud.Tests.csproj", "{E8F936A2-D7C5-4B3F-A6E9-F1C8B5A3E2D7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anela.Heblo.Adapters.Smartsupp", "backend\src\Adapters\Anela.Heblo.Adapters.Smartsupp\Anela.Heblo.Adapters.Smartsupp.csproj", "{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -377,6 +378,18 @@ Global
 		{E8F936A2-D7C5-4B3F-A6E9-F1C8B5A3E2D7}.Release|x64.Build.0 = Release|Any CPU
 		{E8F936A2-D7C5-4B3F-A6E9-F1C8B5A3E2D7}.Release|x86.ActiveCfg = Release|Any CPU
 		{E8F936A2-D7C5-4B3F-A6E9-F1C8B5A3E2D7}.Release|x86.Build.0 = Release|Any CPU
+		{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}.Debug|x64.Build.0 = Debug|Any CPU
+		{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}.Debug|x86.Build.0 = Debug|Any CPU
+		{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}.Release|x64.ActiveCfg = Release|Any CPU
+		{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}.Release|x64.Build.0 = Release|Any CPU
+		{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}.Release|x86.ActiveCfg = Release|Any CPU
+		{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -410,5 +423,6 @@ Global
 		{D5E825F1-C6B9-4A1E-9F2C-E7B4A2F8D9C1} = {4B6F17C3-0A57-487A-BE8C-1808B40EC604}
 		{AA318B15-9568-43D8-82F8-76F47E7B7E4A} = {23FE24B3-CD9D-4576-A7C8-85D5B012F43D}
 		{E8F936A2-D7C5-4B3F-A6E9-F1C8B5A3E2D7} = {23FE24B3-CD9D-4576-A7C8-85D5B012F43D}
+		{0DE150ED-3C5E-4822-B675-EAB95AAEFAFC} = {4B6F17C3-0A57-487A-BE8C-1808B40EC604}
 	EndGlobalSection
 EndGlobal
