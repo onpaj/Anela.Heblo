@@ -7,6 +7,7 @@ import {
   useChangeTransportBoxState,
   useAddItemToBox,
 } from "../../../api/hooks/useTransportBoxes";
+import { useManufacturedProductInventoryQuery } from "../../../api/hooks/useManufacturedProductInventory";
 import { TestRouterWrapper } from "../../../test-utils/router-wrapper";
 import { ToastProvider } from "../../../contexts/ToastContext";
 
@@ -25,14 +26,11 @@ jest.mock("react-router-dom", () => ({
 
 // Mock manufactured product inventory hook (used by TransportBoxItems)
 jest.mock("../../../api/hooks/useManufacturedProductInventory", () => ({
-  useManufacturedProductInventoryQuery: jest.fn().mockReturnValue({
-    data: { items: [], totalCount: 0 },
-    isLoading: false,
-    error: null,
-  }),
+  useManufacturedProductInventoryQuery: jest.fn(),
 }));
 
 const mockUseTransportBoxByIdQuery = useTransportBoxByIdQuery as jest.Mock;
+const mockUseManufacturedProductInventoryQuery = useManufacturedProductInventoryQuery as jest.Mock;
 const mockUseChangeTransportBoxState = useChangeTransportBoxState as jest.Mock;
 const mockUseAddItemToBox = useAddItemToBox as jest.Mock;
 
@@ -87,6 +85,12 @@ describe("TransportBoxDetail", () => {
     mockUseAddItemToBox.mockReturnValue({
       mutateAsync: jest.fn().mockResolvedValue({ success: true }),
       isPending: false,
+    });
+
+    mockUseManufacturedProductInventoryQuery.mockReturnValue({
+      data: { items: [], totalCount: 0 },
+      isLoading: false,
+      error: null,
     });
   });
 

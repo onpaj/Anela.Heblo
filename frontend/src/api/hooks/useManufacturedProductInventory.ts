@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAuthenticatedApiClient } from "../client";
+import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 
 export enum InventoryChangeType {
   InitialWriteDown = 1,
@@ -66,7 +66,6 @@ interface ManufacturedInventoryResponse {
   totalCount: number;
 }
 
-const QUERY_KEY = "manufactured-product-inventory";
 
 function getClientAndBaseUrl(): { apiClient: ReturnType<typeof getAuthenticatedApiClient>; baseUrl: string } {
   const apiClient = getAuthenticatedApiClient();
@@ -98,7 +97,7 @@ const buildFilterParams = (filters: ManufacturedInventoryFilters): URLSearchPara
 
 export const useManufacturedProductInventoryQuery = (filters: ManufacturedInventoryFilters = {}) => {
   return useQuery<ManufacturedInventoryResponse>({
-    queryKey: [QUERY_KEY, filters],
+    queryKey: [...QUERY_KEYS.manufacturedProductInventory, filters],
     queryFn: async () => {
       const { apiClient, baseUrl } = getClientAndBaseUrl();
       const inventoryBaseUrl = `${baseUrl}/api/manufactured-inventory`;
@@ -125,7 +124,7 @@ export const useCreateManufacturedProductInventoryItem = () => {
       return response.json() as Promise<ManufacturedProductInventoryItem>;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.manufacturedProductInventory });
     },
   });
 };
@@ -144,7 +143,7 @@ export const useUpdateManufacturedProductInventoryItem = () => {
       return response.json() as Promise<ManufacturedProductInventoryItem>;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.manufacturedProductInventory });
     },
   });
 };
@@ -162,7 +161,7 @@ export const useDeleteManufacturedProductInventoryItem = () => {
       await apiFetch(apiClient, url, { method: "DELETE" });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.manufacturedProductInventory });
     },
   });
 };
