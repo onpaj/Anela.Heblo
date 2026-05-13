@@ -208,6 +208,7 @@ export const useAddItemToBox = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: transportBoxKeys.detail(variables.boxId) });
       queryClient.invalidateQueries({ queryKey: transportBoxKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['manufactured-product-inventory'] });
     },
   });
 };

@@ -36,6 +36,7 @@ public class ManufacturedProductInventoryRepository
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
+            .Include(x => x.Log)
             .OrderBy(x => x.ExpirationDate)
             .ThenBy(x => x.ProductCode)
             .Skip((filter.Page - 1) * filter.PageSize)

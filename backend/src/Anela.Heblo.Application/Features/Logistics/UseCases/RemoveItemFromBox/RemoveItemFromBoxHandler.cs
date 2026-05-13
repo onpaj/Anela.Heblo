@@ -73,6 +73,11 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
                     inventoryItem.Restore((decimal)removedItem.Amount, userName, timestamp, transportBox.Id);
                     await _inventoryRepository.UpdateAsync(inventoryItem, cancellationToken);
                 }
+                else
+                {
+                    _logger.LogWarning("InventoryItem {InventoryId} not found during restore for BoxItem {BoxItemId} — skipping restore",
+                        removedItem.SourceInventoryId, removedItem.Id);
+                }
             }
 
             await _repository.SaveChangesAsync(cancellationToken);
