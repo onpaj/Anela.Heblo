@@ -3,6 +3,7 @@ using Npgsql;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Anela.Heblo.API.HealthChecks.DataQuality;
 using Microsoft.ApplicationInsights.Extensibility;
+using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Telemetry;
 using Anela.Heblo.API.Infrastructure.Telemetry;
 using Anela.Heblo.Application.Features.Users;
@@ -327,6 +328,10 @@ public static class ServiceCollectionExtensions
         services.AddTransient<IBackgroundWorker, HangfireBackgroundWorker>();
 
         // Note: IRecurringJobStatusChecker is now registered in Application layer (BackgroundJobsModule)
+
+        // Defensive: ensure IMemoryCache is available for handlers that cache Hangfire responses.
+        // AddMemoryCache is idempotent — safe to call even if another module already registered it.
+        services.AddMemoryCache();
 
         // Register configuration options
         services.Configure<HangfireOptions>(configuration.GetSection(HangfireOptions.ConfigurationKey));

@@ -43,6 +43,7 @@ import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
 import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
 import MarketingCostsList from "./components/pages/MarketingCostsList";
+import SmartsuppChatsPage from "./components/customer-support/smartsupp/pages/SmartsuppChatsPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
 import { UserStorage } from "./auth/userStorage";
 import { apiRequest } from "./auth/msalConfig";
@@ -390,62 +391,25 @@ function App() {
                           element={<ProductMarginsList />}
                         />
                         <Route path="/journal" element={<JournalList />} />
-                        <Route
-                          path="/journal/new"
-                          element={<JournalEntryNew />}
-                        />
-                        <Route
-                          path="/journal/:id/edit"
-                          element={<JournalEntryEdit />}
-                        />
-                        <Route
-                          path="/logistics/inventory"
-                          element={<InventoryList />}
-                        />
-                        <Route
-                          path="/manufacturing/inventory"
-                          element={<ManufactureInventoryList />}
-                        />
-                        <Route
-                          path="/logistics/transport-boxes"
-                          element={<TransportBoxList />}
-                        />
-                        <Route
-                          path="/logistics/receive-boxes"
-                          element={<TransportBoxReceive />}
-                        />
-                        <Route
-                          path="/logistics/gift-package-manufacturing"
-                          element={<GiftPackageManufacturing />}
-                        />
-                        <Route
-                          path="/logistics/warehouse-statistics"
-                          element={<WarehouseStatistics />}
-                        />
-                        <Route
-                          path="/logistics/packing-materials"
-                          element={<PackingMaterialsPage />}
-                        />
-                        <Route
-                          path="/logistics/expedition-archive"
-                          element={<ExpeditionListArchivePage />}
-                        />
-                        <Route
-                          path="/automation/invoice-import-statistics"
-                          element={<InvoiceImportStatistics />}
-                        />
-                        <Route
-                          path="/automation/background-tasks"
-                          element={<BackgroundTasks />}
-                        />
-                        <Route
-                          path="/customer/issued-invoices"
-                          element={<IssuedInvoicesPage />}
-                        />
-                        <Route
-                          path="/customer/bank-statements-overview"
-                          element={<BankStatementsOverviewPage />}
-                        />
+                        <Route path="/marketing/calendar" element={<MarketingCalendarPage />} />
+                        <Route path="/marketing/photobank" element={<PhotobankPage />} />
+                        <Route path="/marketing/photobank/settings" element={<PhotobankSettingsPage />} />
+                        <Route path="/leaflet-generator" element={<LeafletGeneratorPage />} />
+                        <Route path="/journal/new" element={<JournalEntryNew />} />
+                        <Route path="/journal/:id/edit" element={<JournalEntryEdit />} />
+                        <Route path="/logistics/inventory" element={<InventoryList />} />
+                        <Route path="/manufacturing/inventory" element={<ManufactureInventoryList />} />
+                        <Route path="/logistics/transport-boxes" element={<TransportBoxList />} />
+                        <Route path="/logistics/receive-boxes" element={<TransportBoxReceive />} />
+                        <Route path="/logistics/gift-package-manufacturing" element={<GiftPackageManufacturing />} />
+                        <Route path="/logistics/warehouse-statistics" element={<WarehouseStatistics />} />
+                        <Route path="/logistics/packing-materials" element={<PackingMaterialsPage />} />
+                        <Route path="/logistics/expedition-archive" element={<ExpeditionListArchivePage />} />
+                        <Route path="/automation/invoice-import-statistics" element={<InvoiceImportStatistics />} />
+                        <Route path="/automation/background-tasks" element={<BackgroundTasks />} />
+                        <Route path="/customer/issued-invoices" element={<IssuedInvoicesPage />} />
+                        <Route path="/customer/bank-statements-overview" element={<BankStatementsOverviewPage />} />
+                        <Route path="/customer/smartsupp" element={<SmartsuppChatsPage />} />
                         <Route path="/orgchart" element={<OrgChartPage />} />
                         <Route
                           path="/stock-operations"

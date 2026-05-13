@@ -142,6 +142,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Expedice",
           href: "/logistics/expedition-archive",
         },
+        { id: "knowledge-base", name: "Poradenství (KB)", href: "/knowledge-base" },
+        { id: "smartsupp", name: "Smartsupp", href: "/customer/smartsupp" },
       ],
     },
     {
