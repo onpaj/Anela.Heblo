@@ -87,6 +87,8 @@ public class ProcessWebhookEventHandlerTests
 
         response.Handled.Should().BeFalse();
         response.Reason.Should().Be("ignored");
+        _repo.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _metrics.Verify(m => m.RecordReceived("app.installed", "ignored", It.IsAny<double>()), Times.Once);
     }
 
     [Fact]
