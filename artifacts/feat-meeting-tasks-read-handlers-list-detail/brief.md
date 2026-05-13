@@ -2,7 +2,8 @@
 
 **Parent Epic:** Meeting Task Validation Checkpoint
 
-CRITICAL - This is part of epic, you **MUST** use epic branch - feature/meeting_tasks
+CRITICAL - This is part of epic, you **MUST** use epic branch - feat/meeting-task-validation-epic as a source for this feature branch and create a PR back to this branch instead of main
+
 
 ## Task 5: GetTranscriptList & GetTranscriptDetail Handlers
 
