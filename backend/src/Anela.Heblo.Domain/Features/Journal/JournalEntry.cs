@@ -66,6 +66,42 @@ namespace Anela.Heblo.Domain.Features.Journal
             });
         }
 
+        public void ReplaceProductAssociations(IEnumerable<string>? productCodes)
+        {
+            // Validate entire input set before any mutation (state preserved on invalid input).
+            var targetCodes = new HashSet<string>(StringComparer.Ordinal);
+            if (productCodes != null)
+            {
+                foreach (var raw in productCodes)
+                {
+                    targetCodes.Add(NormalizeProductCode(raw));
+                }
+            }
+
+            var toRemove = ProductAssociations
+                .Where(pa => !targetCodes.Contains(pa.ProductCodePrefix))
+                .ToList();
+            foreach (var association in toRemove)
+            {
+                ProductAssociations.Remove(association);
+            }
+
+            var existingCodes = new HashSet<string>(
+                ProductAssociations.Select(pa => pa.ProductCodePrefix),
+                StringComparer.Ordinal);
+            foreach (var code in targetCodes)
+            {
+                if (existingCodes.Contains(code))
+                    continue;
+
+                ProductAssociations.Add(new JournalEntryProduct
+                {
+                    JournalEntryId = Id,
+                    ProductCodePrefix = code
+                });
+            }
+        }
+
         private static string NormalizeProductCode(string? productCode)
         {
             if (string.IsNullOrWhiteSpace(productCode))
