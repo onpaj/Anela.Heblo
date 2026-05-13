@@ -23,6 +23,96 @@ import type {
 } from "../../../api/generated/api-client";
 import JournalEntryModal from "../../JournalEntryModal";
 
+interface JournalRowProps {
+  id: number;
+  title?: string;
+  entryDate: Date | string;
+  authorLabel: string;
+  contentText: string;
+  tags?: { id?: number; name?: string; color?: string }[];
+  associatedProducts?: string[];
+  onClick: () => void;
+}
+
+const JournalRow: React.FC<JournalRowProps> = ({
+  id,
+  title,
+  entryDate,
+  authorLabel,
+  contentText,
+  tags,
+  associatedProducts,
+  onClick,
+}) => (
+  <tr
+    className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
+    data-testid="journal-entry"
+    onClick={onClick}
+    title="Klikněte pro editaci záznamu"
+  >
+    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+      <div className="max-w-48 truncate">
+        {title || "Bez názvu"}
+      </div>
+    </td>
+    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+      {format(new Date(entryDate), "dd.MM.yyyy")}
+    </td>
+    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+      <div className="max-w-32 truncate">
+        {authorLabel}
+      </div>
+    </td>
+    <td className="px-4 py-4 text-sm text-gray-700">
+      <div className="max-w-96 line-clamp-2">
+        {contentText}
+      </div>
+    </td>
+    <td className="px-4 py-4 text-sm">
+      <div className="flex flex-wrap gap-1 max-w-48">
+        {tags &&
+          tags.slice(0, 2).map((tag) => (
+            <span
+              key={tag.id}
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border"
+              style={{
+                borderColor: tag.color,
+                color: tag.color,
+              }}
+            >
+              {tag.name}
+            </span>
+          ))}
+        {tags && tags.length > 2 && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+            +{tags.length - 2}
+          </span>
+        )}
+      </div>
+    </td>
+    <td className="px-4 py-4 text-sm">
+      <div className="flex flex-wrap gap-1 max-w-32">
+        {associatedProducts
+          ?.slice(0, 2)
+          .map((product) => (
+            <span
+              key={product}
+              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800"
+            >
+              {product}
+            </span>
+          ))}
+        {associatedProducts &&
+          associatedProducts.length > 2 && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+              +{associatedProducts.length - 2}
+            </span>
+          )}
+      </div>
+    </td>
+  </tr>
+);
+
 const JournalList: React.FC = () => {
   // Filter states - separate input values from applied filters
   const [searchTextInput, setSearchTextInput] = useState("");
@@ -315,144 +405,30 @@ const JournalList: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {isSearchMode
                   ? (entries as SearchJournalEntryDto[]).map((entry) => (
-                      <tr
-                        key={entry.id}
-                        className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
-                        data-testid="journal-entry"
+                      <JournalRow
+                        key={entry.id!}
+                        id={entry.id!}
+                        title={entry.title ?? undefined}
+                        entryDate={entry.entryDate!}
+                        authorLabel={entry.createdByUsername || entry.createdByUserId!}
+                        contentText={entry.contentPreview!}
+                        tags={entry.tags}
+                        associatedProducts={entry.associatedProducts}
                         onClick={() => handleOpenEditModal(entry.id!)}
-                        title="Klikněte pro editaci záznamu"
-                      >
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          <div className="max-w-48 truncate">
-                            {entry.title || "Bez názvu"}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {format(new Date(entry.entryDate!), "dd.MM.yyyy")}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="max-w-32 truncate">
-                            {entry.createdByUsername || entry.createdByUserId}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-700">
-                          <div className="max-w-96 line-clamp-2">
-                            {entry.contentPreview}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-sm">
-                          <div className="flex flex-wrap gap-1 max-w-48">
-                            {entry.tags &&
-                              entry.tags.slice(0, 2).map((tag) => (
-                                <span
-                                  key={tag.id}
-                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border"
-                                  style={{
-                                    borderColor: tag.color,
-                                    color: tag.color,
-                                  }}
-                                >
-                                  {tag.name}
-                                </span>
-                              ))}
-                            {entry.tags && entry.tags.length > 2 && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                +{entry.tags.length - 2}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-sm">
-                          <div className="flex flex-wrap gap-1 max-w-32">
-                            {entry.associatedProducts
-                              ?.slice(0, 2)
-                              .map((product) => (
-                                <span
-                                  key={product}
-                                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800"
-                                >
-                                  {product}
-                                </span>
-                              ))}
-                            {entry.associatedProducts &&
-                              entry.associatedProducts.length > 2 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                                  +{entry.associatedProducts.length - 2}
-                                </span>
-                              )}
-                          </div>
-                        </td>
-                      </tr>
+                      />
                     ))
                   : (entries as JournalEntryDto[]).map((entry) => (
-                      <tr
-                        key={entry.id}
-                        className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
-                        data-testid="journal-entry"
+                      <JournalRow
+                        key={entry.id!}
+                        id={entry.id!}
+                        title={entry.title ?? undefined}
+                        entryDate={entry.entryDate!}
+                        authorLabel={entry.createdByUsername || entry.createdByUserId!}
+                        contentText={truncateContent(entry.content!, 150)}
+                        tags={entry.tags}
+                        associatedProducts={entry.associatedProducts}
                         onClick={() => handleOpenEditModal(entry.id!)}
-                        title="Klikněte pro editaci záznamu"
-                      >
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          <div className="max-w-48 truncate">
-                            {entry.title || "Bez názvu"}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {format(new Date(entry.entryDate!), "dd.MM.yyyy")}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="max-w-32 truncate">
-                            {entry.createdByUsername || entry.createdByUserId}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-700">
-                          <div className="max-w-96 line-clamp-2">
-                            {truncateContent(entry.content!, 150)}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-sm">
-                          <div className="flex flex-wrap gap-1 max-w-48">
-                            {entry.tags &&
-                              entry.tags.slice(0, 2).map((tag) => (
-                                <span
-                                  key={tag.id}
-                                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border"
-                                  style={{
-                                    borderColor: tag.color,
-                                    color: tag.color,
-                                  }}
-                                >
-                                  {tag.name}
-                                </span>
-                              ))}
-                            {entry.tags && entry.tags.length > 2 && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                +{entry.tags.length - 2}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-sm">
-                          <div className="flex flex-wrap gap-1 max-w-32">
-                            {entry.associatedProducts
-                              ?.slice(0, 2)
-                              .map((product) => (
-                                <span
-                                  key={product}
-                                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800"
-                                >
-                                  {product}
-                                </span>
-                              ))}
-                            {entry.associatedProducts &&
-                              entry.associatedProducts.length > 2 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                                  +{entry.associatedProducts.length - 2}
-                                </span>
-                              )}
-                          </div>
-                        </td>
-                      </tr>
+                      />
                     ))}
               </tbody>
             </table>
