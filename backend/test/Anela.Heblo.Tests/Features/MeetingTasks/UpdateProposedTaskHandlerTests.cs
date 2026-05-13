@@ -1,0 +1,83 @@
+// using Anela.Heblo.Application.Features.MeetingTasks.UseCases.AddProposedTask;
+// using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTaskStatus;
+using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTask;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.MeetingTasks;
+using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+using Xunit;
+
+namespace Anela.Heblo.Tests.Features.MeetingTasks;
+
+public class UpdateProposedTaskHandlerTests
+{
+    private readonly Mock<IMeetingTranscriptRepository> _repositoryMock = new();
+
+    private MeetingTranscript CreateTranscriptWithTask(out Guid transcriptId, out Guid taskId)
+    {
+        transcriptId = Guid.NewGuid();
+        taskId = Guid.NewGuid();
+        var transcript = new MeetingTranscript
+        {
+            Id = transcriptId,
+            PlaudRecordingId = "rec-test",
+            PlaudCreatedAt = new DateTime(2026, 5, 1, 9, 0, 0, DateTimeKind.Utc),
+            Subject = "Sprint Planning",
+            Summary = "Plan the sprint",
+            RawTranscript = "",
+            Status = MeetingTranscriptStatus.PendingReview,
+            ReceivedAt = new DateTime(2026, 5, 1, 9, 30, 0, DateTimeKind.Utc),
+            Tasks = new List<ProposedTask>
+            {
+                new ProposedTask
+                {
+                    Id = taskId,
+                    MeetingTranscriptId = transcriptId,
+                    Title = "Original title",
+                    Description = "Original description",
+                    Assignee = "alice",
+                    DueDate = null,
+                    Status = ProposedTaskStatus.Pending,
+                    IsManuallyAdded = false
+                }
+            }
+        };
+        return transcript;
+    }
+
+    [Fact]
+    public async Task UpdateTask_ModifiesFields()
+    {
+        // Arrange
+        var transcript = CreateTranscriptWithTask(out var transcriptId, out var taskId);
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(transcriptId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transcript);
+        var handler = new UpdateProposedTaskHandler(
+            _repositoryMock.Object,
+            NullLogger<UpdateProposedTaskHandler>.Instance);
+        var request = new UpdateProposedTaskRequest
+        {
+            TranscriptId = transcriptId,
+            TaskId = taskId,
+            Title = "New title",
+            Description = "New description",
+            Assignee = "bob",
+            DueDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc)
+        };
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.ErrorCode.Should().BeNull();
+        var task = transcript.Tasks.Single();
+        task.Title.Should().Be("New title");
+        task.Description.Should().Be("New description");
+        task.Assignee.Should().Be("bob");
+        task.DueDate.Should().Be(new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc));
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+}
