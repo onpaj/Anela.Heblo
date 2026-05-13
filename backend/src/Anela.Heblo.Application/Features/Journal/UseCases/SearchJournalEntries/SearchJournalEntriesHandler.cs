@@ -64,6 +64,8 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.SearchJournalEntries
 
         private static string CreateContentPreview(string content, string searchText, int maxLength = 200)
         {
+            if (string.IsNullOrEmpty(content)) return string.Empty;
+
             if (string.IsNullOrEmpty(searchText))
                 return content.Length <= maxLength ? content : content[..maxLength] + "...";
 
