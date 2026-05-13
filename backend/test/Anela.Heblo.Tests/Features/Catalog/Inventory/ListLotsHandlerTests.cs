@@ -24,7 +24,9 @@ public class ListLotsHandlerTests
         var pagedResult = new PagedResult<Lot>
         {
             Items = new List<Lot> { new Lot("MAT001", "L1", null, DateOnly.FromDateTime(DateTime.Today), null, "user") },
-            TotalCount = 1, PageNumber = 1, PageSize = 20
+            TotalCount = 1,
+            PageNumber = 1,
+            PageSize = 20
         };
         _lotRepo.Setup(r => r.GetPaginatedAsync("MAT001", null, null, 1, 20, default)).ReturnsAsync(pagedResult);
 

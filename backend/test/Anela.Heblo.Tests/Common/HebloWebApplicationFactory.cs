@@ -11,6 +11,7 @@ using Anela.Heblo.API;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.API.Infrastructure.Authentication;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Domain.Features.Catalog.Inventory;
 using Microsoft.Extensions.Hosting;
 using Hangfire;
 using Hangfire.Common;
@@ -103,6 +104,14 @@ public class HebloWebApplicationFactory : WebApplicationFactory<Program>
             foreach (var d in oneDriveDescriptors)
                 services.Remove(d);
             services.AddScoped<IOneDriveService, MockOneDriveService>();
+
+            // Replace EanCodeGenerator with a no-op mock in tests.
+            // EanCodeGenerator depends on NpgsqlDataSource (raw ADO.NET) which is not registered
+            // when UseInMemoryDatabase=true — the real data source is only created for non-InMemory runs.
+            var eanCodeGeneratorDescriptors = services.Where(s => s.ServiceType == typeof(IEanCodeGenerator)).ToList();
+            foreach (var d in eanCodeGeneratorDescriptors)
+                services.Remove(d);
+            services.AddScoped<IEanCodeGenerator, MockEanCodeGenerator>();
 
             // Apply any additional service configuration from derived classes
             ConfigureTestServices(services);
@@ -200,4 +209,20 @@ public class MockBackgroundJobClient : IBackgroundJobClient
     public string Create(Job job, IState state) => "mock-job-id";
 
     public bool ChangeState(string jobId, IState state, string expectedStateName) => true;
+}
+
+/// <summary>
+/// No-op implementation of IEanCodeGenerator for test environments.
+/// EanCodeGenerator depends on NpgsqlDataSource which is not registered when
+/// UseInMemoryDatabase=true — the real data source is only built for non-InMemory runs.
+/// </summary>
+public class MockEanCodeGenerator : IEanCodeGenerator
+{
+    public Task<IReadOnlyList<string>> GenerateAsync(int count, CancellationToken ct)
+    {
+        var codes = Enumerable.Range(1, count)
+            .Select(i => $"INT-TEST-{i:D8}")
+            .ToList();
+        return Task.FromResult<IReadOnlyList<string>>(codes);
+    }
 }

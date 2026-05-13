@@ -16,7 +16,8 @@ public static class InventoryModule
     {
         services.AddScoped<ILotRepository, LotRepository>();
         services.AddScoped<IEanRepository, EanRepository>();
-        services.AddScoped<IEanCodeGenerator, EanCodeGenerator>();
+        // IEanCodeGenerator is registered in PersistenceModule: EanCodeGenerator when a real
+        // NpgsqlDataSource is available, NullEanCodeGenerator when running in-memory.
 
         services.AddScoped<IValidator<CreateLotRequest>, CreateLotRequestValidator>();
         services.AddScoped<IValidator<UpdateLotRequest>, UpdateLotRequestValidator>();

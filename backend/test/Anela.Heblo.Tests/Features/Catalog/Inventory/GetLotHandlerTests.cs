@@ -33,7 +33,9 @@ public class GetLotHandlerTests
                 new Ean("INT-00000001", 1, 25m, "kg", "user"),
                 new Ean("INT-00000002", 1, 25m, "kg", "user")
             },
-            TotalCount = 2, PageNumber = 1, PageSize = 100
+            TotalCount = 2,
+            PageNumber = 1,
+            PageSize = 100
         };
         _eanRepo.Setup(r => r.GetPaginatedAsync(1, null, 1, 100, default)).ReturnsAsync(eans);
 
