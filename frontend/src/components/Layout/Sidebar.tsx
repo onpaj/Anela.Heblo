@@ -213,6 +213,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Výrobní zakázky",
           href: "/manufacturing/orders",
         },
+        {
+          id: "sklad-vyroby",
+          name: "Sklad výroby",
+          href: "/manufacturing/product-inventory",
+        },
       ],
     },
     {
