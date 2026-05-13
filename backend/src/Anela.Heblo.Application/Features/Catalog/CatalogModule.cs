@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Catalog.Cache;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.CostProviders;
 using Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
@@ -60,6 +61,7 @@ public static class CatalogModule
         services.AddTransient<IProductWeightRecalculationService, ProductWeightRecalculationService>();
         services.AddTransient<IStockUpProcessingService, StockUpProcessingService>();
         services.AddScoped<IEshopStockDomainService, EshopStockDomainService>();
+        services.AddTransient<IProductCatalogQueryService, ProductCatalogQueryService>();
 
         // Configure feature flags from configuration
         services.Configure<CatalogFeatureFlags>(options =>
