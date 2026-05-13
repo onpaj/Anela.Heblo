@@ -26,6 +26,7 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture
 using Anela.Heblo.Application.Features.Manufacture;
 using Anela.Heblo.Application.Features.OrgChart;
 using Anela.Heblo.Application.Features.PackingMaterials;
+using Anela.Heblo.Application.Features.Campaigns;
 using Anela.Heblo.Application.Features.DataQuality;
 using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Application.Features.Smartsupp;
@@ -86,6 +87,7 @@ public static class ApplicationModule
         services.AddExpeditionListArchiveModule();
         services.AddShoptetOrdersModule(configuration);
         services.AddGridLayoutsModule();
+        services.AddCampaignsModule();
         services.AddMarketingInvoicesModule();
         services.AddDataQualityModule();
         services.AddPhotobankModule(configuration);

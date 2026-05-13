@@ -39,6 +39,7 @@ import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
 import MarketingFeedbackPage from "./pages/MarketingFeedbackPage";
 import ArticlesPage from "./pages/ArticlesPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
+import CampaignsPage from "./components/pages/Campaigns/CampaignsPage";
 import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
 import PhotobankPage from "./components/marketing/photobank/pages/PhotobankPage";
 import PhotobankSettingsPage from "./components/marketing/photobank/pages/PhotobankSettingsPage";
@@ -393,6 +394,7 @@ function App() {
                         <Route path="/recurring-jobs" element={<RecurringJobsPage />} />
                         <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
                         <Route path="/knowledge-base/feedback" element={<KnowledgeBaseFeedbackPage />} />
+                        <Route path="/campaigns" element={<CampaignsPage />} />
                         <Route path="/marketing/feedback" element={<MarketingFeedbackPage />} />
                         <Route path="/articles" element={<ArticlesPage />} />
                         <Route path="/automation/data-quality" element={<DataQualityPage />} />
