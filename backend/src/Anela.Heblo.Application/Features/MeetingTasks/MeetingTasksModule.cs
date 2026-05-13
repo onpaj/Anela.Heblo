@@ -14,12 +14,21 @@ public static class MeetingTasksModule
             .Bind(configuration.GetSection(MeetingTasksOptions.SectionName))
             .ValidateOnStart();
 
-        // KnowledgeBaseModule only registers "MicrosoftGraph" when SharePoint is configured.
-        // Re-register defensively here so GraphTodoService always finds a client at runtime.
-        // AddHttpClient with the same name is idempotent.
-        services.AddHttpClient("MicrosoftGraph");
+        var useMockAuth = configuration.GetValue<bool>("UseMockAuth", false);
+        var bypassJwt = configuration.GetValue<bool>("BypassJwtValidation", false);
 
-        services.AddScoped<IGraphTodoService, GraphTodoService>();
+        if (!useMockAuth && !bypassJwt)
+        {
+            // KnowledgeBaseModule only registers "MicrosoftGraph" when SharePoint is configured.
+            // Re-register defensively here so GraphTodoService always finds a client at runtime.
+            // AddHttpClient with the same name is idempotent.
+            services.AddHttpClient("MicrosoftGraph");
+            services.AddScoped<IGraphTodoService, GraphTodoService>();
+        }
+        else
+        {
+            services.AddScoped<IGraphTodoService, NoOpGraphTodoService>();
+        }
         services.AddScoped<IMeetingTaskExtractor, ClaudeMeetingTaskExtractor>();
 
         // PlaudPollingJob is auto-discovered via IRecurringJob assembly scan in AddRecurringJobs().
