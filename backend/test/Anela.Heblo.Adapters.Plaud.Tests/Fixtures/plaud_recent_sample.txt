@@ -1,0 +1,4 @@
+ID          NAME                                DATE        TIME    TRANSCRIPT  SUMMARY
+rec_001     Weekly Team Standup                 2026-05-10  09:00   yes         yes
+rec_002     Product Review Meeting              2026-05-09  14:30   yes         no
+rec_003     Quick Sync                          2026-05-08  11:00   no          no
