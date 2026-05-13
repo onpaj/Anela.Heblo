@@ -28,11 +28,7 @@ public class GetTranscriptDetailHandler : IRequestHandler<GetTranscriptDetailReq
         if (transcript is null)
         {
             _logger.LogWarning("Meeting transcript {Id} not found", request.Id);
-            return new GetTranscriptDetailResponse
-            {
-                Success = false,
-                ErrorCode = ErrorCodes.ResourceNotFound
-            };
+            return new GetTranscriptDetailResponse(ErrorCodes.ResourceNotFound);
         }
 
         var dto = new MeetingTranscriptDto

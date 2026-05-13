@@ -5,5 +5,8 @@ namespace Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptDe
 
 public class GetTranscriptDetailResponse : BaseResponse
 {
+    public GetTranscriptDetailResponse() { }
+    public GetTranscriptDetailResponse(ErrorCodes errorCode) : base(errorCode) { }
+
     public MeetingTranscriptDto Transcript { get; set; } = null!;
 }

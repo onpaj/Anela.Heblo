@@ -81,5 +81,9 @@ public class GetTranscriptListHandlerTests
         item.ApprovedTaskCount.Should().Be(0);
         item.RejectedTaskCount.Should().Be(0);
         item.Tasks.Should().BeEmpty();
+
+        _repositoryMock.Verify(
+            r => r.GetListAsync(null, 1, 20, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }
