@@ -143,28 +143,6 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         }
     }
 
-    public async Task<SmartsuppSyncState> GetOrCreateSyncStateAsync(CancellationToken cancellationToken)
-    {
-        var state = await _db.SmartsuppSyncState.FirstOrDefaultAsync(cancellationToken);
-        if (state is not null) return state;
-
-        state = new SmartsuppSyncState { LastSyncStartedAt = Unspecified(DateTime.UtcNow) };
-        _db.SmartsuppSyncState.Add(state);
-        await _db.SaveChangesAsync(cancellationToken);
-        return state;
-    }
-
-    public async Task SetSyncWatermarkAsync(DateTime lastUpdatedAtSeen, CancellationToken cancellationToken)
-    {
-        var state = await GetOrCreateSyncStateAsync(cancellationToken);
-        state.LastUpdatedAtSeen = Unspecified(lastUpdatedAtSeen);
-        state.LastSyncStartedAt = Unspecified(DateTime.UtcNow);
-        await _db.SaveChangesAsync(cancellationToken);
-    }
-
-    private static DateTime Unspecified(DateTime dt) =>
-        DateTime.SpecifyKind(dt, DateTimeKind.Unspecified);
-
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
         await _db.SaveChangesAsync(cancellationToken);
 }
