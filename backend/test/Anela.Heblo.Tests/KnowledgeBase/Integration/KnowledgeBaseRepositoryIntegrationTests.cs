@@ -3,6 +3,7 @@ using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.KnowledgeBase;
 using DotNet.Testcontainers.Configurations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -426,5 +427,81 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
         Assert.NotNull(stats.AvgStyleScore);
         Assert.Equal(Math.Round((5d + 5d + 4d) / 3d, 1), stats.AvgPrecisionScore!.Value);
         Assert.Equal(Math.Round((1d + 2d) / 2d, 1), stats.AvgStyleScore!.Value);
+    }
+
+    [Fact]
+    public async Task GetFeedbackStatsAsync_ExecutesAggregateSqlWithoutMaterialisingRows()
+    {
+        _context.KnowledgeBaseQuestionLogs.AddRange(
+            MakeQuestionLog(precisionScore: 5, styleScore: 4),
+            MakeQuestionLog());
+        await _context.SaveChangesAsync();
+
+        var loggerProvider = new CapturingLoggerProvider();
+        var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.AddProvider(loggerProvider);
+            builder.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Information);
+        });
+
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(_container.GetConnectionString());
+        dataSourceBuilder.UseVector();
+        await using var dataSource = dataSourceBuilder.Build();
+
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseNpgsql(dataSource)
+            .UseLoggerFactory(loggerFactory)
+            .EnableSensitiveDataLogging()
+            .Options;
+
+        await using var ctx = new ApplicationDbContext(options);
+        var repo = new KnowledgeBaseRepository(ctx);
+
+        var stats = await repo.GetFeedbackStatsAsync();
+
+        Assert.Equal(2, stats.TotalQuestions);
+
+        var sql = string.Join("\n", loggerProvider.Messages);
+        Assert.Contains("COUNT(", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("AVG(", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("\"Question\"", sql);
+        Assert.DoesNotContain("\"Answer\"", sql);
+    }
+}
+
+internal sealed class CapturingLoggerProvider : ILoggerProvider
+{
+    public List<string> Messages { get; } = new();
+
+    public ILogger CreateLogger(string categoryName) =>
+        new CapturingLogger(Messages);
+
+    public void Dispose() { }
+
+    private sealed class CapturingLogger : ILogger
+    {
+        private readonly List<string> _messages;
+
+        public CapturingLogger(List<string> messages) => _messages = messages;
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            _messages.Add(formatter(state, exception));
+        }
+
+        private sealed class NullScope : IDisposable
+        {
+            public static readonly NullScope Instance = new();
+            public void Dispose() { }
+        }
     }
 }
