@@ -55,7 +55,6 @@ public class SmartsuppApiClient : ISmartsuppApiClient
     }
 
     public async Task<SmartsuppSearchResult> SearchConversationsAsync(
-        DateTime? updatedAfter,
         string? cursor,
         int size,
         CancellationToken cancellationToken)
@@ -68,9 +67,6 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             Size = size,
             Query = [new ConversationQueryItem { Field = "status", Value = ["open", "served"] }],
             Sort = [new ConversationSortItem()],
-            Filter = updatedAfter.HasValue
-                ? new ConversationSearchFilter { UpdatedAt = new DateTimeRangeFilter { Gt = updatedAfter.Value.ToString("o") } }
-                : null,
             After = cursor is not null ? JsonSerializer.Deserialize<JsonElement[]>(cursor) : null,
         };
 
@@ -133,6 +129,50 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         }, cancellationToken);
     }
 
+    public async Task<SmartsuppContactData?> GetContactAsync(
+        string contactId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(_options.ApiToken))
+            throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
+
+        return await _pipeline.ExecuteAsync(async ct =>
+        {
+            var client = _httpClientFactory.CreateClient("Smartsupp");
+            using var request = new HttpRequestMessage(HttpMethod.Get,
+                $"{_options.BaseUrl}contacts/{contactId}");
+            request.Headers.Add("Authorization", $"Bearer {_options.ApiToken}");
+
+            var response = await client.SendAsync(request, ct);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return null;
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Smartsupp GetContact failed {Status}: {Body}", response.StatusCode, errorBody);
+                throw new HttpRequestException($"Smartsupp API {(int)response.StatusCode}", null, response.StatusCode);
+            }
+
+            var raw = await response.Content.ReadAsStringAsync(ct);
+            var item = JsonSerializer.Deserialize<SmartsuppContactApiItem>(raw, JsonOptions);
+            if (item is null)
+                return null;
+
+            return new SmartsuppContactData
+            {
+                Id = item.Id ?? contactId,
+                CreatedAt = Unspecified(item.CreatedAt),
+                UpdatedAt = Unspecified(item.UpdatedAt),
+                Email = item.Email,
+                Name = item.Name,
+                Phone = item.Phone,
+                Note = item.Note,
+            };
+        }, cancellationToken);
+    }
+
     private static SmartsuppSearchResult MapSearchResult(SmartsuppSearchApiResponse r) =>
         new()
         {
@@ -176,7 +216,6 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         public int Size { get; init; }
         public List<ConversationQueryItem> Query { get; init; } = [];
         public List<ConversationSortItem> Sort { get; init; } = [];
-        public ConversationSearchFilter? Filter { get; init; }
         public JsonElement[]? After { get; init; }
     }
 
@@ -189,16 +228,6 @@ public class SmartsuppApiClient : ISmartsuppApiClient
     private sealed class ConversationSortItem
     {
         public string CreatedAt { get; init; } = "desc";
-    }
-
-    private sealed class ConversationSearchFilter
-    {
-        public DateTimeRangeFilter? UpdatedAt { get; init; }
-    }
-
-    private sealed class DateTimeRangeFilter
-    {
-        public string? Gt { get; init; }
     }
 
     // ---- API response shapes (private, internal to adapter) ----
@@ -223,9 +252,14 @@ public class SmartsuppApiClient : ISmartsuppApiClient
 
     private sealed class SmartsuppContactApiItem
     {
+        public string? Id { get; set; }
         public string? Name { get; set; }
         public string? Email { get; set; }
         public string? AvatarUrl { get; set; }
+        public string? Phone { get; set; }
+        public string? Note { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
     }
 
     private sealed class SmartsuppLastMessageApiItem

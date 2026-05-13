@@ -53,6 +53,9 @@ public class SmartsuppConversationData
     public string? TagsJson { get; set; }
     public string? LastMessageText { get; set; }
     public DateTime? LastMessageAt { get; set; }
+    public string? ContactName { get; set; }
+    public string? ContactEmail { get; set; }
+    public string? ContactAvatarUrl { get; set; }
 }
 
 public class SmartsuppMessageData
@@ -82,6 +85,8 @@ public class SmartsuppMessageData
     public string? AttachmentsJson { get; set; }
     public string? ChannelType { get; set; }
     public string? ChannelId { get; set; }
+    public string? AuthorType { get; set; }
+    public string? AuthorName { get; set; }
 }
 
 public class SmartsuppContactData
