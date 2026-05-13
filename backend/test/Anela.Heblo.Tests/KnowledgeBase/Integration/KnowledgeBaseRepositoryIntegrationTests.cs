@@ -123,6 +123,24 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
             GraphItemId = graphItemId
         };
 
+    private static KnowledgeBaseQuestionLog MakeQuestionLog(
+        int? precisionScore = null,
+        int? styleScore = null) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            Question = "q",
+            Answer = "a",
+            TopK = 5,
+            SourceCount = 1,
+            DurationMs = 100,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UserId = null,
+            PrecisionScore = precisionScore,
+            StyleScore = styleScore,
+            FeedbackComment = null,
+        };
+
     [Fact]
     public async Task AddChunksAsync_PersistsSummaryAndDocumentType()
     {
@@ -344,20 +362,69 @@ public class KnowledgeBaseRepositoryIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task SetupSchema_CreatesKnowledgeBaseQuestionLogsTable()
+    public async Task GetFeedbackStatsAsync_EmptyTable_ReturnsZeroCountsAndNullAverages()
     {
-        await using var conn = new NpgsqlConnection(_container.GetConnectionString());
-        await conn.OpenAsync();
+        var stats = await _repository.GetFeedbackStatsAsync();
 
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
-            SELECT EXISTS (
-                SELECT 1 FROM information_schema.tables
-                WHERE table_schema = 'public' AND table_name = 'KnowledgeBaseQuestionLogs'
-            );
-            """;
+        Assert.Equal(0, stats.TotalQuestions);
+        Assert.Equal(0, stats.TotalWithFeedback);
+        Assert.Null(stats.AvgPrecisionScore);
+        Assert.Null(stats.AvgStyleScore);
+    }
 
-        var exists = (bool)(await cmd.ExecuteScalarAsync())!;
-        Assert.True(exists, "KnowledgeBaseQuestionLogs table must be created by SetupSchemaAsync");
+    [Fact]
+    public async Task GetFeedbackStatsAsync_RowsWithoutScores_ReturnsTotalsAndNullAverages()
+    {
+        _context.KnowledgeBaseQuestionLogs.AddRange(
+            MakeQuestionLog(),
+            MakeQuestionLog(),
+            MakeQuestionLog());
+        await _context.SaveChangesAsync();
+
+        var stats = await _repository.GetFeedbackStatsAsync();
+
+        Assert.Equal(3, stats.TotalQuestions);
+        Assert.Equal(0, stats.TotalWithFeedback);
+        Assert.Null(stats.AvgPrecisionScore);
+        Assert.Null(stats.AvgStyleScore);
+    }
+
+    [Fact]
+    public async Task GetFeedbackStatsAsync_MixedFeedback_ReturnsCorrectCountsAndAverages()
+    {
+        _context.KnowledgeBaseQuestionLogs.AddRange(
+            MakeQuestionLog(),
+            MakeQuestionLog(precisionScore: 5),
+            MakeQuestionLog(styleScore: 3),
+            MakeQuestionLog(precisionScore: 4, styleScore: 5));
+        await _context.SaveChangesAsync();
+
+        var stats = await _repository.GetFeedbackStatsAsync();
+
+        Assert.Equal(4, stats.TotalQuestions);
+        Assert.Equal(3, stats.TotalWithFeedback);
+        Assert.Equal(4.5, stats.AvgPrecisionScore);
+        Assert.Equal(4.0, stats.AvgStyleScore);
+    }
+
+    [Fact]
+    public async Task GetFeedbackStatsAsync_RoundsAveragesToOneDecimalUsingBankersRounding()
+    {
+        // PrecisionScore raw average = (5 + 5 + 4) / 3 = 4.6666... -> 4.7
+        // StyleScore raw average     = (1 + 2) / 2     = 1.5       -> 1.5
+        _context.KnowledgeBaseQuestionLogs.AddRange(
+            MakeQuestionLog(precisionScore: 5, styleScore: 1),
+            MakeQuestionLog(precisionScore: 5, styleScore: 2),
+            MakeQuestionLog(precisionScore: 4));
+        await _context.SaveChangesAsync();
+
+        var stats = await _repository.GetFeedbackStatsAsync();
+
+        Assert.Equal(3, stats.TotalQuestions);
+        Assert.Equal(3, stats.TotalWithFeedback);
+        Assert.NotNull(stats.AvgPrecisionScore);
+        Assert.NotNull(stats.AvgStyleScore);
+        Assert.Equal(Math.Round((5d + 5d + 4d) / 3d, 1), stats.AvgPrecisionScore!.Value);
+        Assert.Equal(Math.Round((1d + 2d) / 2d, 1), stats.AvgStyleScore!.Value);
     }
 }
