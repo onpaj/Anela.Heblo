@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.RunManualSync;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -41,6 +42,16 @@ public class SmartsuppController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new GetConversationRequest { Id = id }, cancellationToken);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("sync")]
+    [ProducesResponseType(typeof(RunManualSyncResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<RunManualSyncResponse>> RunSync(
+        [FromBody] RunManualSyncRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(request ?? new RunManualSyncRequest(), cancellationToken);
         return HandleResponse(result);
     }
 }
