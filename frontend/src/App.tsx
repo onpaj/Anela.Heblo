@@ -29,6 +29,8 @@ import ManufactureOrderList from "./components/manufacture/pages/ManufactureOrde
 import ManufactureOrderDetail from "./components/manufacture/pages/ManufactureOrderDetail";
 import InvoiceImportStatistics from "./components/pages/automation/InvoiceImportStatistics";
 import BackgroundTasks from "./components/pages/automation/BackgroundTasks";
+import MeetingTasksPage from "./components/pages/automation/MeetingTasksPage";
+import MeetingTaskDetailPage from "./components/pages/automation/MeetingTaskDetailPage";
 import OrgChartPage from "./pages/OrgChartPage";
 import InvoiceClassificationPage from "./pages/InvoiceClassification/InvoiceClassificationPage";
 import PackingMaterialsPage from "./pages/PackingMaterialsPage";
@@ -385,6 +387,8 @@ function App() {
                         <Route path="/logistics/expedition-archive" element={<ExpeditionListArchivePage />} />
                         <Route path="/automation/invoice-import-statistics" element={<InvoiceImportStatistics />} />
                         <Route path="/automation/background-tasks" element={<BackgroundTasks />} />
+                        <Route path="/automation/meeting-tasks" element={<MeetingTasksPage />} />
+                        <Route path="/automation/meeting-tasks/:id" element={<MeetingTaskDetailPage />} />
                         <Route path="/customer/issued-invoices" element={<IssuedInvoicesPage />} />
                         <Route path="/customer/bank-statements-overview" element={<BankStatementsOverviewPage />} />
                         <Route path="/customer/smartsupp" element={<SmartsuppChatsPage />} />
