@@ -68,10 +68,23 @@ interface ManufacturedInventoryResponse {
 
 const QUERY_KEY = "manufactured-product-inventory";
 
-const getBaseUrl = (): string => {
+function getClientAndBaseUrl(): { apiClient: ReturnType<typeof getAuthenticatedApiClient>; baseUrl: string } {
   const apiClient = getAuthenticatedApiClient();
-  return `${(apiClient as unknown as { baseUrl: string }).baseUrl}/api/manufactured-inventory`;
-};
+  const baseUrl = (apiClient as any).baseUrl as string;
+  return { apiClient, baseUrl };
+}
+
+async function apiFetch(
+  apiClient: ReturnType<typeof getAuthenticatedApiClient>,
+  url: string,
+  init?: RequestInit,
+): Promise<Response> {
+  const response = await (apiClient as any).http.fetch(url, init);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return response;
+}
 
 const buildFilterParams = (filters: ManufacturedInventoryFilters): URLSearchParams => {
   const params = new URLSearchParams();
@@ -84,23 +97,14 @@ const buildFilterParams = (filters: ManufacturedInventoryFilters): URLSearchPara
 };
 
 export const useManufacturedProductInventoryQuery = (filters: ManufacturedInventoryFilters = {}) => {
-  const apiClient = getAuthenticatedApiClient();
-
   return useQuery<ManufacturedInventoryResponse>({
     queryKey: [QUERY_KEY, filters],
     queryFn: async () => {
-      const baseUrl = getBaseUrl();
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const inventoryBaseUrl = `${baseUrl}/api/manufactured-inventory`;
       const params = buildFilterParams(filters);
-      const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
-
-      const response = await (apiClient as unknown as { http: { fetch: (url: string, init?: RequestInit) => Promise<Response> } }).http.fetch(url, {
-        method: "GET",
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
+      const url = params.toString() ? `${inventoryBaseUrl}?${params.toString()}` : inventoryBaseUrl;
+      const response = await apiFetch(apiClient, url, { method: "GET" });
       return response.json() as Promise<ManufacturedInventoryResponse>;
     },
     staleTime: 1000 * 60 * 5,
@@ -109,20 +113,15 @@ export const useManufacturedProductInventoryQuery = (filters: ManufacturedInvent
 
 export const useCreateManufacturedProductInventoryItem = () => {
   const queryClient = useQueryClient();
-  const apiClient = getAuthenticatedApiClient();
 
   return useMutation({
     mutationFn: async (input: CreateManufacturedInventoryItemInput): Promise<ManufacturedProductInventoryItem> => {
-      const url = getBaseUrl();
-      const response = await (apiClient as unknown as { http: { fetch: (url: string, init?: RequestInit) => Promise<Response> } }).http.fetch(url, {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const url = `${baseUrl}/api/manufactured-inventory`;
+      const response = await apiFetch(apiClient, url, {
         method: "POST",
         body: JSON.stringify(input),
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       return response.json() as Promise<ManufacturedProductInventoryItem>;
     },
     onSuccess: () => {
@@ -133,20 +132,15 @@ export const useCreateManufacturedProductInventoryItem = () => {
 
 export const useUpdateManufacturedProductInventoryItem = () => {
   const queryClient = useQueryClient();
-  const apiClient = getAuthenticatedApiClient();
 
   return useMutation({
     mutationFn: async (input: UpdateManufacturedInventoryItemInput): Promise<ManufacturedProductInventoryItem> => {
-      const url = `${getBaseUrl()}/${input.id}`;
-      const response = await (apiClient as unknown as { http: { fetch: (url: string, init?: RequestInit) => Promise<Response> } }).http.fetch(url, {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const url = `${baseUrl}/api/manufactured-inventory/${input.id}`;
+      const response = await apiFetch(apiClient, url, {
         method: "PUT",
         body: JSON.stringify({ newAmount: input.newAmount, note: input.note }),
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       return response.json() as Promise<ManufacturedProductInventoryItem>;
     },
     onSuccess: () => {
@@ -157,22 +151,15 @@ export const useUpdateManufacturedProductInventoryItem = () => {
 
 export const useDeleteManufacturedProductInventoryItem = () => {
   const queryClient = useQueryClient();
-  const apiClient = getAuthenticatedApiClient();
 
   return useMutation({
     mutationFn: async ({ id, note }: { id: number; note?: string }): Promise<void> => {
-      const baseUrl = `${getBaseUrl()}/${id}`;
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const itemBaseUrl = `${baseUrl}/api/manufactured-inventory/${id}`;
       const params = new URLSearchParams();
       if (note) params.append("note", note);
-      const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
-
-      const response = await (apiClient as unknown as { http: { fetch: (url: string, init?: RequestInit) => Promise<Response> } }).http.fetch(url, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const url = params.toString() ? `${itemBaseUrl}?${params.toString()}` : itemBaseUrl;
+      await apiFetch(apiClient, url, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });

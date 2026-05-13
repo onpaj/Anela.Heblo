@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search,
   AlertCircle,
@@ -182,6 +182,12 @@ const InlineEditCell: React.FC<InlineEditCellProps> = ({ item, onSave }) => {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(item.amount);
 
+  useEffect(() => {
+    if (!editing) {
+      setValue(item.amount);
+    }
+  }, [item.amount, editing]);
+
   const handleSave = () => {
     onSave(item.id, value);
     setEditing(false);
@@ -271,6 +277,7 @@ const ManufacturedInventoryPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const filters = { search, onlyWithStock, page, pageSize: PAGE_SIZE };
 
@@ -293,21 +300,19 @@ const ManufacturedInventoryPage: React.FC = () => {
   };
 
   const toggleRow = (id: number) => {
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setExpandedRows((prev) =>
+      prev.has(id)
+        ? new Set(Array.from(prev).filter((existingId) => existingId !== id))
+        : new Set([...Array.from(prev), id]),
+    );
   };
 
   const handleUpdate = (id: number, newAmount: number) => {
     updateMutation.mutate({ id, newAmount });
   };
 
-  const handleDelete = (id: number) => {
-    if (!window.confirm("Opravdu chcete smazat tuto položku?")) return;
-    deleteMutation.mutate({ id });
+  const handleDeleteConfirm = (id: number) => {
+    deleteMutation.mutate({ id }, { onSuccess: () => setConfirmDeleteId(null) });
   };
 
   const handleCreate = (input: CreateManufacturedInventoryItemInput) => {
@@ -436,13 +441,31 @@ const ManufacturedInventoryPage: React.FC = () => {
                             Historie
                             {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                           </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="text-red-400 hover:text-red-600"
-                            title="Smazat"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {confirmDeleteId === item.id ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="text-xs text-gray-500 hover:text-gray-700 font-medium"
+                              >
+                                Zrušit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteConfirm(item.id)}
+                                disabled={deleteMutation.isPending}
+                                className="text-xs text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                              >
+                                Potvrdit smazání
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeleteId(item.id)}
+                              className="text-red-400 hover:text-red-600"
+                              title="Smazat"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
