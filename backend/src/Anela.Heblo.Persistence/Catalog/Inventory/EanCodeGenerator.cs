@@ -18,6 +18,7 @@ public class EanCodeGenerator : IEanCodeGenerator
         if (count <= 0) return Array.Empty<string>();
 
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
+        // SequenceName is a private compile-time constant — not user-controlled; no injection risk
         await using var cmd = new NpgsqlCommand(
             $"SELECT nextval('{SequenceName}') FROM generate_series(1, @count)",
             conn);

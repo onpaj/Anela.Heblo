@@ -64,8 +64,14 @@ public class LotsController : BaseApiController
         [FromBody] UpdateLotRequest request,
         CancellationToken cancellationToken)
     {
-        request.Id = id;
-        var response = await _mediator.Send(request, cancellationToken);
+        var command = new UpdateLotRequest
+        {
+            Id = id,
+            Expiration = request.Expiration,
+            ReceivedDate = request.ReceivedDate,
+            Notes = request.Notes
+        };
+        var response = await _mediator.Send(command, cancellationToken);
         return HandleResponse(response);
     }
 
