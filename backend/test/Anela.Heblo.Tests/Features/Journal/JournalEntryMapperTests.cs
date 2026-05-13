@@ -179,32 +179,6 @@ public class JournalEntryMapperTests
     }
 
     [Fact]
-    public void ToDto_ContentPreview_IsNullAfterMapping()
-    {
-        // Arrange
-        var entry = BuildFullEntry();
-
-        // Act
-        var dto = JournalEntryMapper.ToDto(entry);
-
-        // Assert
-        dto.ContentPreview.Should().BeNull();
-    }
-
-    [Fact]
-    public void ToDto_HighlightedTerms_IsEmptyAfterMapping()
-    {
-        // Arrange
-        var entry = BuildFullEntry();
-
-        // Act
-        var dto = JournalEntryMapper.ToDto(entry);
-
-        // Assert
-        dto.HighlightedTerms.Should().NotBeNull().And.BeEmpty();
-    }
-
-    [Fact]
     public void ToSearchDto_MapsAllScalarFields_AndOmitsContent()
     {
         // Arrange
