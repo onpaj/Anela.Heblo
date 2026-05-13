@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAuthenticatedApiClient } from "../client";
+import { QUERY_KEYS, getAuthenticatedApiClient } from "../client";
 
 export interface ConversationDto {
   id: string;
@@ -108,7 +108,7 @@ export function useTriggerSmartsuppSync() {
       return (await response.json()) as RunManualSyncResponse;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["smartsupp", "conversations"] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.smartsupp, "conversations"] });
     },
   });
 }
