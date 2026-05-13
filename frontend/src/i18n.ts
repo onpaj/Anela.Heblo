@@ -219,6 +219,9 @@ const resources = {
         PhotobankTagNotFound: "Tag fotobanka nebyl nalezen.",
         PhotobankInvalidRegexPattern: "Neplatný regulární výraz.",
 
+        // Smartsupp module errors
+        SmartsuppConversationNotFound: "Konverzace Smartsupp nebyla nalezena",
+
         // Article Generation errors
         ArticleNotFound: "Článek nebyl nalezen (ID: {{id}})",
         ArticleGenerationFailed: "Generování článku selhalo. Zkuste to prosím znovu.",
