@@ -58,26 +58,8 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.UpdateJournalEntry
             entry.ModifiedByUserId = currentUser.Id;
             entry.ModifiedByUsername = currentUser.Name ?? "Unknown User";
 
-            // Update product associations (both products and families)
-            entry.ProductAssociations.Clear();
-            if (request.AssociatedProducts?.Any() == true)
-            {
-                foreach (var productIdentifier in request.AssociatedProducts.Distinct())
-                {
-                    // Try as full product code first, then as prefix
-                    entry.AssociateWithProduct(productIdentifier);
-                }
-            }
-
-            // Update tag assignments
-            entry.TagAssignments.Clear();
-            if (request.TagIds?.Any() == true)
-            {
-                foreach (var tagId in request.TagIds.Distinct())
-                {
-                    entry.AssignTag(tagId);
-                }
-            }
+            entry.ReplaceProductAssociations(request.AssociatedProducts);
+            entry.ReplaceTagAssignments(request.TagIds);
 
             await _journalRepository.UpdateAsync(entry, cancellationToken);
             await _journalRepository.SaveChangesAsync(cancellationToken);
