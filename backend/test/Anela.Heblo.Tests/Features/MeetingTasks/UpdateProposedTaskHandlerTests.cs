@@ -1,5 +1,5 @@
 // using Anela.Heblo.Application.Features.MeetingTasks.UseCases.AddProposedTask;
-// using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTaskStatus;
+using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTaskStatus;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTask;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.MeetingTasks;
@@ -138,6 +138,115 @@ public class UpdateProposedTaskHandlerTests
         // Assert
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.ResourceNotFound);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateTaskStatus_ApprovesTask()
+    {
+        // Arrange
+        var transcript = CreateTranscriptWithTask(out var transcriptId, out var taskId);
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(transcriptId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transcript);
+        var handler = new UpdateProposedTaskStatusHandler(
+            _repositoryMock.Object,
+            NullLogger<UpdateProposedTaskStatusHandler>.Instance);
+        var request = new UpdateProposedTaskStatusRequest
+        {
+            TranscriptId = transcriptId,
+            TaskId = taskId,
+            Status = "Approved"
+        };
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.ErrorCode.Should().BeNull();
+        transcript.Tasks.Single().Status.Should().Be(ProposedTaskStatus.Approved);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateTaskStatus_ReturnsNotFound_WhenTranscriptMissing()
+    {
+        // Arrange
+        var transcriptId = Guid.NewGuid();
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(transcriptId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((MeetingTranscript?)null);
+        var handler = new UpdateProposedTaskStatusHandler(
+            _repositoryMock.Object,
+            NullLogger<UpdateProposedTaskStatusHandler>.Instance);
+        var request = new UpdateProposedTaskStatusRequest
+        {
+            TranscriptId = transcriptId,
+            TaskId = Guid.NewGuid(),
+            Status = "Approved"
+        };
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ResourceNotFound);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateTaskStatus_ReturnsNotFound_WhenTaskMissing()
+    {
+        // Arrange
+        var transcript = CreateTranscriptWithTask(out var transcriptId, out _);
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(transcriptId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transcript);
+        var handler = new UpdateProposedTaskStatusHandler(
+            _repositoryMock.Object,
+            NullLogger<UpdateProposedTaskStatusHandler>.Instance);
+        var request = new UpdateProposedTaskStatusRequest
+        {
+            TranscriptId = transcriptId,
+            TaskId = Guid.NewGuid(), // non-existent task ID
+            Status = "Approved"
+        };
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ResourceNotFound);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateTaskStatus_ReturnsValidationError_WhenStatusInvalid()
+    {
+        // Arrange
+        var transcript = CreateTranscriptWithTask(out var transcriptId, out var taskId);
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(transcriptId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transcript);
+        var handler = new UpdateProposedTaskStatusHandler(
+            _repositoryMock.Object,
+            NullLogger<UpdateProposedTaskStatusHandler>.Instance);
+        var request = new UpdateProposedTaskStatusRequest
+        {
+            TranscriptId = transcriptId,
+            TaskId = taskId,
+            Status = "InvalidStatusXYZ"
+        };
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ValidationError);
         _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }
