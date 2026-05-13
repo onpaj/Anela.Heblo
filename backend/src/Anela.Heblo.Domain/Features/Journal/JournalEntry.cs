@@ -122,6 +122,34 @@ namespace Anela.Heblo.Domain.Features.Journal
             });
         }
 
+        public void ReplaceTagAssignments(IEnumerable<int>? tagIds)
+        {
+            var targetIds = tagIds != null
+                ? new HashSet<int>(tagIds)
+                : new HashSet<int>();
+
+            var toRemove = TagAssignments
+                .Where(ta => !targetIds.Contains(ta.TagId))
+                .ToList();
+            foreach (var assignment in toRemove)
+            {
+                TagAssignments.Remove(assignment);
+            }
+
+            var existingIds = new HashSet<int>(TagAssignments.Select(ta => ta.TagId));
+            foreach (var tagId in targetIds)
+            {
+                if (existingIds.Contains(tagId))
+                    continue;
+
+                TagAssignments.Add(new JournalEntryTagAssignment
+                {
+                    JournalEntryId = Id,
+                    TagId = tagId
+                });
+            }
+        }
+
         public void SoftDelete(string userId, string username)
         {
             IsDeleted = true;

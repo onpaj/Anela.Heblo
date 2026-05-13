@@ -140,4 +140,79 @@ public class JournalEntryTests
         act.Should().Throw<ArgumentException>();
         entry.ProductAssociations.Should().BeEquivalentTo(snapshot);
     }
+
+    // ----- ReplaceTagAssignments -----
+
+    [Fact]
+    public void ReplaceTagAssignments_WithNull_ClearsAll()
+    {
+        var entry = NewEntry();
+        entry.AssignTag(1);
+        entry.AssignTag(2);
+
+        entry.ReplaceTagAssignments(null);
+
+        entry.TagAssignments.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ReplaceTagAssignments_WithEmpty_ClearsAll()
+    {
+        var entry = NewEntry();
+        entry.AssignTag(1);
+
+        entry.ReplaceTagAssignments(Array.Empty<int>());
+
+        entry.TagAssignments.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ReplaceTagAssignments_WithSuperset_AddsMissingIds()
+    {
+        var entry = NewEntry();
+        entry.AssignTag(1);
+
+        entry.ReplaceTagAssignments(new[] { 1, 2, 3 });
+
+        entry.TagAssignments.Select(t => t.TagId)
+            .Should().BeEquivalentTo(new[] { 1, 2, 3 });
+    }
+
+    [Fact]
+    public void ReplaceTagAssignments_WithDisjointSet_RemovesOldAndAddsNew()
+    {
+        var entry = NewEntry();
+        entry.AssignTag(1);
+        entry.AssignTag(2);
+
+        entry.ReplaceTagAssignments(new[] { 3, 4 });
+
+        entry.TagAssignments.Select(t => t.TagId)
+            .Should().BeEquivalentTo(new[] { 3, 4 });
+    }
+
+    [Fact]
+    public void ReplaceTagAssignments_WithOverlap_PreservesExistingInstance()
+    {
+        var entry = NewEntry();
+        entry.AssignTag(1);
+        entry.AssignTag(2);
+        var originalOne = entry.TagAssignments.Single(t => t.TagId == 1);
+
+        entry.ReplaceTagAssignments(new[] { 1 });
+
+        entry.TagAssignments.Should().ContainSingle()
+            .Which.Should().BeSameAs(originalOne);
+    }
+
+    [Fact]
+    public void ReplaceTagAssignments_DedupesDuplicateIds()
+    {
+        var entry = NewEntry();
+
+        entry.ReplaceTagAssignments(new[] { 1, 1, 2 });
+
+        entry.TagAssignments.Select(t => t.TagId)
+            .Should().BeEquivalentTo(new[] { 1, 2 });
+    }
 }
