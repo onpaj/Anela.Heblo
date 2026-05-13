@@ -63,8 +63,11 @@ public class JournalEntryMapperTests
         // Arrange
         var entry = new JournalEntry
         {
-            Id = 1, Content = "c", EntryDate = DateTime.Today,
-            CreatedAt = DateTime.UtcNow, ModifiedAt = DateTime.UtcNow,
+            Id = 1,
+            Content = "c",
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
             CreatedByUserId = "u"
         };
         entry.ProductAssociations.Add(new JournalEntryProduct { ProductCodePrefix = "TON001" });
@@ -86,8 +89,11 @@ public class JournalEntryMapperTests
         // Arrange
         var entry = new JournalEntry
         {
-            Id = 1, Content = "c", EntryDate = DateTime.Today,
-            CreatedAt = DateTime.UtcNow, ModifiedAt = DateTime.UtcNow,
+            Id = 1,
+            Content = "c",
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
             CreatedByUserId = "u"
         };
 
@@ -105,8 +111,11 @@ public class JournalEntryMapperTests
         var tag = new JournalEntryTag { Id = 7, Name = "Urgent", Color = "#FFA500" };
         var entry = new JournalEntry
         {
-            Id = 1, Content = "c", EntryDate = DateTime.Today,
-            CreatedAt = DateTime.UtcNow, ModifiedAt = DateTime.UtcNow,
+            Id = 1,
+            Content = "c",
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
             CreatedByUserId = "u"
         };
         entry.TagAssignments.Add(new JournalEntryTagAssignment { TagId = tag.Id, Tag = tag });
@@ -128,8 +137,11 @@ public class JournalEntryMapperTests
         var goodTag = new JournalEntryTag { Id = 5, Name = "Valid", Color = "#123456" };
         var entry = new JournalEntry
         {
-            Id = 1, Content = "c", EntryDate = DateTime.Today,
-            CreatedAt = DateTime.UtcNow, ModifiedAt = DateTime.UtcNow,
+            Id = 1,
+            Content = "c",
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
             CreatedByUserId = "u"
         };
         entry.TagAssignments.Add(new JournalEntryTagAssignment { TagId = 99, Tag = null! }); // orphan
@@ -151,8 +163,11 @@ public class JournalEntryMapperTests
         // Arrange
         var entry = new JournalEntry
         {
-            Id = 1, Content = "c", EntryDate = DateTime.Today,
-            CreatedAt = DateTime.UtcNow, ModifiedAt = DateTime.UtcNow,
+            Id = 1,
+            Content = "c",
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
             CreatedByUserId = "u"
         };
 

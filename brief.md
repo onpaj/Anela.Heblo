@@ -2,45 +2,31 @@
 Journal
 
 ## Finding
-The full `JournalEntry` → `JournalEntryDto` LINQ projection is copy-pasted across three handlers:
-
-- `GetJournalEntriesHandler.cs` lines 30–54
-- `SearchJournalEntriesHandler.cs` lines 37–61
-- `GetJournalEntryHandler.cs` lines 32–58
-
-All three project `ProductAssociations` and `TagAssignments` with nearly identical code (~22 lines each). There is a behavioral divergence on the tag mapping: `GetJournalEntryHandler` (line 49) adds `.Where(ta => ta.Tag != null)` before accessing `ta.Tag.Id/Name/Color`, but the other two handlers do not. If an orphaned `JournalEntryTagAssignment` row exists (e.g. a tag was deleted without cascading), `GetJournalEntriesHandler` and `SearchJournalEntriesHandler` will throw a `NullReferenceException` at runtime while `GetJournalEntryHandler` handles it silently.
-
-## Why it matters
-- **Duplication**: any change to the DTO shape (adding a field, changing projection logic) must be made in three places independently — a classic SRP violation.
-- **Latent bug**: the missing null guard in two of the three handlers is a runtime crash waiting for data inconsistency to trigger it. The inconsistency across sibling handlers also makes it hard to trust which behavior is intentional.
-
-## Suggested fix
-Extract a private static (or internal) mapper method, e.g.:
+`JournalIndicator` declares three properties:
 
 ```csharp
-// In a shared JournalEntryMapper static class or on JournalEntryDto itself
-internal static JournalEntryDto FromEntity(JournalEntry entry) => new()
-{
-    Id = entry.Id,
-    Title = entry.Title,
-    Content = entry.Content,
-    EntryDate = entry.EntryDate,
-    CreatedAt = entry.CreatedAt,
-    ModifiedAt = entry.ModifiedAt,
-    CreatedByUserId = entry.CreatedByUserId,
-    CreatedByUsername = entry.CreatedByUsername,
-    ModifiedByUserId = entry.ModifiedByUserId,
-    ModifiedByUsername = entry.ModifiedByUsername,
-    AssociatedProducts = entry.ProductAssociations
-        .Select(pa => pa.ProductCodePrefix).Distinct().ToList(),
-    Tags = entry.TagAssignments
-        .Where(ta => ta.Tag != null)   // consistent null guard
-        .Select(ta => new JournalEntryTagDto { Id = ta.Tag.Id, Name = ta.Tag.Name, Color = ta.Tag.Color })
-        .ToList()
-};
+// backend/src/Anela.Heblo.Domain/Features/Journal/JournalIndicator.cs:9–10
+public int FamilyEntries { get; set; }
+public int TotalEntries => DirectEntries + FamilyEntries;
 ```
 
-All three handlers call `JournalEntryMapper.FromEntity(entry)`.
+`JournalIndicatorDto` mirrors this exactly:
+
+```csharp
+// backend/src/Anela.Heblo.Application/Features/Journal/Contracts/JournalIndicatorDto.cs:9–10
+public int FamilyEntries { get; set; }
+public int TotalEntries => DirectEntries + FamilyEntries;
+```
+
+`GetJournalIndicatorsAsync` in `JournalRepository.cs` (lines 175–220) populates `DirectEntries` from a grouped query on lines 189–208, but `FamilyEntries` is never assigned. It stays at `0` for every indicator. `TotalEntries` therefore always equals `DirectEntries`. The distinction between "direct" and "family" entries exists conceptually (prefix matching vs. exact match) but is not implemented.
+
+## Why it matters
+Any consumer reading `TotalEntries` or `FamilyEntries` from the API gets misleading data — `FamilyEntries` is always 0 and `TotalEntries` adds no information over `DirectEntries`. The YAGNI principle: speculative properties that aren't computed shouldn't exist in the public API surface.
+
+## Suggested fix
+Two options — pick one:
+1. **Implement it**: add a prefix-based query to `GetJournalIndicatorsAsync` that counts entries linked via product code prefixes (e.g. where `productCode.StartsWith(jep.ProductCodePrefix)` but not exact match) and assign to `FamilyEntries`.
+2. **Remove it** (simplest): delete `FamilyEntries` and change `TotalEntries` to a straight property set equal to `DirectEntries`. Remove the mirroring in `JournalIndicatorDto` as well.
 
 ---
 _Filed by daily arch-review routine on 2026-05-12._

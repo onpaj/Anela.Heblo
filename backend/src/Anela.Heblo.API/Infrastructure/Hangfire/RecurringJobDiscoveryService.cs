@@ -1,5 +1,5 @@
-using Anela.Heblo.API.Extensions;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Xcc;
 using Hangfire;
 using Microsoft.Extensions.Options;
 

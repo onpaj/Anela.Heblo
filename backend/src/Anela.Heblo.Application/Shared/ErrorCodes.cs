@@ -276,6 +276,10 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     PhotobankInvalidRegexPattern = 2609,
 
+    // Smartsupp module errors (27XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    SmartsuppConversationNotFound = 2701,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
