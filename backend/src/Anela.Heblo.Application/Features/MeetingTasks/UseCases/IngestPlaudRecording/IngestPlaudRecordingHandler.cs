@@ -44,9 +44,10 @@ public sealed class IngestPlaudRecordingHandler : IRequestHandler<IngestPlaudRec
         var extractedTasks = await _extractor.ExtractAsync(summary, transcript, cancellationToken);
 
         // Create MeetingTranscript entity
+        var transcriptId = Guid.NewGuid();
         var entity = new MeetingTranscript
         {
-            Id = Guid.NewGuid(),
+            Id = transcriptId,
             PlaudRecordingId = request.PlaudRecordingId,
             PlaudCreatedAt = request.PlaudCreatedAt,
             Subject = request.Name,
@@ -58,6 +59,7 @@ public sealed class IngestPlaudRecordingHandler : IRequestHandler<IngestPlaudRec
                 .Select(t => new ProposedTask
                 {
                     Id = Guid.NewGuid(),
+                    MeetingTranscriptId = transcriptId,
                     Title = t.Title,
                     Description = t.Description,
                     Assignee = t.Assignee,
