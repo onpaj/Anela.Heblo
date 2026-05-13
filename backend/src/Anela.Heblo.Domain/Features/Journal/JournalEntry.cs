@@ -54,17 +54,24 @@ namespace Anela.Heblo.Domain.Features.Journal
         // Domain methods
         public void AssociateWithProduct(string productCode)
         {
-            if (string.IsNullOrWhiteSpace(productCode))
-                throw new ArgumentException("Product code cannot be empty", nameof(productCode));
+            var normalized = NormalizeProductCode(productCode);
 
-            if (ProductAssociations.Any(pa => pa.ProductCodePrefix == productCode))
+            if (ProductAssociations.Any(pa => pa.ProductCodePrefix == normalized))
                 return; // Already associated
 
             ProductAssociations.Add(new JournalEntryProduct
             {
                 JournalEntryId = Id,
-                ProductCodePrefix = productCode.Trim().ToUpperInvariant()
+                ProductCodePrefix = normalized
             });
+        }
+
+        private static string NormalizeProductCode(string? productCode)
+        {
+            if (string.IsNullOrWhiteSpace(productCode))
+                throw new ArgumentException("Product code cannot be empty", nameof(productCode));
+
+            return productCode.Trim().ToUpperInvariant();
         }
 
         public void AssignTag(int tagId)
