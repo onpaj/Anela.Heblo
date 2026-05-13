@@ -2,27 +2,46 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import MarketingCalendarPage from "../MarketingCalendarPage";
 
-// Track every render of the calendar mock so tests can verify mount/unmount.
-const calendarRenderLog: { viewName: string; mountId: number }[] = [];
+// Track every render of the calendar mock so tests can verify mount/unmount and the props it receives.
+const calendarRenderLog = [];
 
 jest.mock("../../calendar/MarketingMonthCalendar", () => {
   const React = require("react");
   let calendarMountCounter = 0;
-  function MarketingMonthCalendarMock(props: { viewName: string }) {
+  const mockGotoDate = jest.fn();
+  function MarketingMonthCalendarMock(props) {
     const mountId = React.useMemo(() => ++calendarMountCounter, []);
     React.useEffect(() => {
-      calendarRenderLog.push({ viewName: props.viewName, mountId });
+      calendarRenderLog.push({
+        viewName: props.viewName,
+        initialDate: new Date(props.initialDate),
+        mountId,
+      });
+      if (props.calendarRef) {
+        props.calendarRef.current = {
+          getApi: () => ({
+            prev: jest.fn(),
+            next: jest.fn(),
+            gotoDate: mockGotoDate,
+          }),
+        };
+      }
     });
-    return (
-      <div
-        data-testid="marketing-month-calendar"
-        data-view-name={props.viewName}
-        data-mount-id={String(mountId)}
-      />
-    );
+    return React.createElement("div", {
+      "data-testid": "marketing-month-calendar",
+      "data-view-name": props.viewName,
+      "data-mount-id": String(mountId),
+      "data-initial-date": props.initialDate.toISOString(),
+    });
   }
-  return { __esModule: true, default: MarketingMonthCalendarMock };
+  return {
+    __esModule: true,
+    default: MarketingMonthCalendarMock,
+    __mockGotoDate: mockGotoDate,
+  };
 });
+
+const mockGotoDate = require("../../calendar/MarketingMonthCalendar").__mockGotoDate;
 
 jest.mock("../../detail/MarketingActionModal", () => ({
   __esModule: true,
@@ -34,27 +53,55 @@ jest.mock("../../detail/ImportFromOutlookModal", () => ({
   default: () => null,
 }));
 
-jest.mock("../../list/MarketingActionGrid", () => ({
-  __esModule: true,
-  default: () => <div data-testid="marketing-action-grid" />,
-}));
+jest.mock("../../list/MarketingActionGrid", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: () => React.createElement("div", { "data-testid": "marketing-action-grid" }),
+  };
+});
 
-jest.mock("../../list/MarketingActionFilters", () => ({
-  __esModule: true,
-  default: () => <div data-testid="marketing-action-filters" />,
-  EMPTY_FILTERS: { searchText: "", dateFrom: "", dateTo: "" },
-}));
+jest.mock("../../list/MarketingActionFilters", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: () => React.createElement("div", { "data-testid": "marketing-action-filters" }),
+    EMPTY_FILTERS: { searchText: "", dateFrom: "", dateTo: "" },
+  };
+});
 
-jest.mock("../../../manufacture/calendar/CalendarNavigation", () => ({
-  __esModule: true,
-  default: () => <div data-testid="calendar-navigation" />,
-}));
+jest.mock("../../../manufacture/calendar/CalendarNavigation", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: ({ onPrevious, onNext, onToday }) =>
+      React.createElement(
+        "div",
+        { "data-testid": "calendar-navigation" },
+        React.createElement(
+          "button",
+          { "data-testid": "nav-prev", onClick: onPrevious },
+          "Prev"
+        ),
+        React.createElement(
+          "button",
+          { "data-testid": "nav-today", onClick: onToday },
+          "Dnes"
+        ),
+        React.createElement(
+          "button",
+          { "data-testid": "nav-next", onClick: onNext },
+          "Next"
+        )
+      ),
+  };
+});
 
 // Capture every call to useMarketingCalendar so we can assert the fetch range.
-const calendarHookCalls: { startDate: Date; endDate: Date }[] = [];
+const calendarHookCalls = [];
 
 jest.mock("../../../../api/hooks/useMarketingCalendar", () => ({
-  useMarketingCalendar: (args: { startDate: Date; endDate: Date }) => {
+  useMarketingCalendar: (args) => {
     calendarHookCalls.push({
       startDate: new Date(args.startDate),
       endDate: new Date(args.endDate),
@@ -79,6 +126,7 @@ jest.mock("../../../../auth/useAuth", () => ({
 beforeEach(() => {
   calendarRenderLog.length = 0;
   calendarHookCalls.length = 0;
+  mockGotoDate.mockClear();
 });
 
 describe("MarketingCalendarPage — default render", () => {
