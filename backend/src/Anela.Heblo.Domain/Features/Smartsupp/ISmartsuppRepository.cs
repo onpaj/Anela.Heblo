@@ -25,9 +25,11 @@ public interface ISmartsuppRepository
         List<SmartsuppMessage> messages,
         CancellationToken cancellationToken);
 
-    Task<SmartsuppSyncState> GetOrCreateSyncStateAsync(CancellationToken cancellationToken);
-
-    Task SetSyncWatermarkAsync(DateTime lastUpdatedAtSeen, CancellationToken cancellationToken);
+    Task UpdateMessageDeliveryStatusAsync(
+        string messageId,
+        string status,
+        DateTime? deliveredAt,
+        CancellationToken cancellationToken);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

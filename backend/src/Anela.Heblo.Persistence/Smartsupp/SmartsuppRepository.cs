@@ -53,6 +53,11 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         }
         else
         {
+            if (existing.UpdatedAt > contact.UpdatedAt)
+            {
+                return;
+            }
+
             existing.Email = contact.Email;
             existing.Name = contact.Name;
             existing.Phone = contact.Phone;
@@ -77,33 +82,46 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         if (existing is null)
         {
             _db.SmartsuppConversations.Add(conversation);
+            return;
         }
-        else
+
+        if (existing.UpdatedAt > conversation.UpdatedAt)
         {
-            existing.Status = conversation.Status;
-            existing.IsUnread = conversation.IsUnread;
-            existing.IsOffline = conversation.IsOffline;
-            existing.IsServed = conversation.IsServed;
-            existing.ContactId = conversation.ContactId;
-            existing.ContactName = conversation.ContactName;
-            existing.ContactEmail = conversation.ContactEmail;
-            existing.ContactAvatarUrl = conversation.ContactAvatarUrl;
-            existing.VisitorId = conversation.VisitorId;
-            existing.ExtId = conversation.ExtId;
-            existing.FinishedAt = conversation.FinishedAt;
-            existing.Domain = conversation.Domain;
-            existing.Referer = conversation.Referer;
-            existing.LocationCountry = conversation.LocationCountry;
-            existing.LocationCity = conversation.LocationCity;
-            existing.LocationIp = conversation.LocationIp;
-            existing.LocationCode = conversation.LocationCode;
-            existing.VariablesJson = conversation.VariablesJson;
-            existing.TagsJson = conversation.TagsJson;
-            existing.LastMessageAt = conversation.LastMessageAt;
-            existing.LastMessagePreview = conversation.LastMessagePreview;
-            existing.UpdatedAt = conversation.UpdatedAt;
-            existing.SyncedAt = conversation.SyncedAt;
+            // Out-of-order event: stored state is fresher — skip update.
+            return;
         }
+
+        existing.Status = conversation.Status;
+        existing.IsUnread = conversation.IsUnread;
+        existing.IsOffline = conversation.IsOffline;
+        existing.IsServed = conversation.IsServed;
+        existing.ContactId = conversation.ContactId;
+        existing.Subject = conversation.Subject;
+        existing.ContactName = conversation.ContactName;
+        existing.ContactEmail = conversation.ContactEmail;
+        existing.ContactAvatarUrl = conversation.ContactAvatarUrl;
+        existing.VisitorId = conversation.VisitorId;
+        existing.ExtId = conversation.ExtId;
+        existing.FinishedAt = conversation.FinishedAt;
+        existing.Domain = conversation.Domain;
+        existing.Referer = conversation.Referer;
+        existing.LocationCountry = conversation.LocationCountry;
+        existing.LocationCity = conversation.LocationCity;
+        existing.LocationIp = conversation.LocationIp;
+        existing.LocationCode = conversation.LocationCode;
+        existing.VariablesJson = conversation.VariablesJson;
+        existing.TagsJson = conversation.TagsJson;
+        existing.LastMessageAt = conversation.LastMessageAt;
+        existing.LastMessagePreview = conversation.LastMessagePreview;
+        existing.UpdatedAt = conversation.UpdatedAt;
+        existing.SyncedAt = conversation.SyncedAt;
+        existing.Rating = conversation.Rating;
+        existing.RatingText = conversation.RatingText;
+        existing.CloseType = conversation.CloseType;
+        existing.ClosedByAgentId = conversation.ClosedByAgentId;
+        existing.AssignedAgentIdsJson = conversation.AssignedAgentIdsJson;
+        existing.Channel = conversation.Channel;
+        existing.LastClosedAt = conversation.LastClosedAt;
     }
 
     public async Task UpsertMessagesAsync(
@@ -143,27 +161,21 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         }
     }
 
-    public async Task<SmartsuppSyncState> GetOrCreateSyncStateAsync(CancellationToken cancellationToken)
+    public async Task UpdateMessageDeliveryStatusAsync(
+        string messageId,
+        string status,
+        DateTime? deliveredAt,
+        CancellationToken cancellationToken)
     {
-        var state = await _db.SmartsuppSyncState.FirstOrDefaultAsync(cancellationToken);
-        if (state is not null) return state;
+        var existing = await _db.SmartsuppMessages
+            .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
 
-        state = new SmartsuppSyncState { LastSyncStartedAt = Unspecified(DateTime.UtcNow) };
-        _db.SmartsuppSyncState.Add(state);
-        await _db.SaveChangesAsync(cancellationToken);
-        return state;
+        if (existing is null)
+            return;
+
+        existing.DeliveryStatus = status;
+        existing.DeliveredAt = deliveredAt;
     }
-
-    public async Task SetSyncWatermarkAsync(DateTime lastUpdatedAtSeen, CancellationToken cancellationToken)
-    {
-        var state = await GetOrCreateSyncStateAsync(cancellationToken);
-        state.LastUpdatedAtSeen = Unspecified(lastUpdatedAtSeen);
-        state.LastSyncStartedAt = Unspecified(DateTime.UtcNow);
-        await _db.SaveChangesAsync(cancellationToken);
-    }
-
-    private static DateTime Unspecified(DateTime dt) =>
-        DateTime.SpecifyKind(dt, DateTimeKind.Unspecified);
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
         await _db.SaveChangesAsync(cancellationToken);

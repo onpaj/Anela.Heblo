@@ -121,7 +121,6 @@ public class ApplicationDbContext : DbContext
     // Smartsupp module
     public DbSet<SmartsuppConversation> SmartsuppConversations { get; set; } = null!;
     public DbSet<SmartsuppMessage> SmartsuppMessages { get; set; } = null!;
-    public DbSet<SmartsuppSyncState> SmartsuppSyncState { get; set; } = null!;
     public DbSet<SmartsuppContact> SmartsuppContacts { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

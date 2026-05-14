@@ -433,6 +433,7 @@ export const QUERY_KEYS = {
   dataQuality: ["data-quality"] as const,
   articles: ["articles"] as const,
   articleTrace: ["article-trace"] as const,
+  smartsupp: ["smartsupp"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

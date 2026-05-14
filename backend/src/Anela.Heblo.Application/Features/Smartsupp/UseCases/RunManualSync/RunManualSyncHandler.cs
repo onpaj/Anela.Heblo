@@ -1,69 +1,67 @@
-using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Smartsupp;
+using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.Smartsupp.Infrastructure.Jobs;
+namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.RunManualSync;
 
-public class SmartsuppSyncJob : IRecurringJob
+public class RunManualSyncHandler : IRequestHandler<RunManualSyncRequest, RunManualSyncResponse>
 {
     private const int PageSize = 50;
     private const int LastMessagePreviewMaxLength = 200;
-
-    public RecurringJobMetadata Metadata { get; } = new()
-    {
-        JobName = "smartsupp-sync",
-        DisplayName = "Smartsupp Sync",
-        Description = "Polls Smartsupp API for updated conversations and syncs them to the local database",
-        CronExpression = "*/2 * * * *",
-        DefaultIsEnabled = false,
-    };
+    private const int DefaultLookbackDays = 7;
+    private const int MaxLookbackDays = 30;
 
     private readonly ISmartsuppApiClient _apiClient;
     private readonly ISmartsuppRepository _repository;
-    private readonly ILogger<SmartsuppSyncJob> _logger;
+    private readonly ILogger<RunManualSyncHandler> _logger;
 
-    public SmartsuppSyncJob(
+    public RunManualSyncHandler(
         ISmartsuppApiClient apiClient,
         ISmartsuppRepository repository,
-        ILogger<SmartsuppSyncJob> logger)
+        ILogger<RunManualSyncHandler> logger)
     {
         _apiClient = apiClient;
         _repository = repository;
         _logger = logger;
     }
 
-    public async Task ExecuteAsync(CancellationToken cancellationToken = default)
+    public async Task<RunManualSyncResponse> Handle(
+        RunManualSyncRequest request,
+        CancellationToken cancellationToken)
     {
-        var syncedAt = DateTime.UtcNow;
+        var startedAt = DateTime.UtcNow;
+        var since = ResolveSince(request.Since, startedAt);
 
-        _logger.LogInformation("smartsupp-sync starting");
+        _logger.LogInformation("smartsupp manual sync starting since={Since}", since);
 
-        var totalUpserted = 0;
-        string? cursor = null;
-        DateTime? latestUpdatedAt = null;
         var contactCache = new Dictionary<string, SmartsuppContactData?>(StringComparer.Ordinal);
+        var conversationsProcessed = 0;
+        var messagesProcessed = 0;
+        string? cursor = null;
 
         do
         {
             SmartsuppSearchResult page;
-
             try
             {
                 page = await _apiClient.SearchConversationsAsync(cursor, PageSize, cancellationToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "smartsupp-sync failed to fetch page (cursor={Cursor}), aborting run", cursor);
-                return;
+                _logger.LogError(ex, "smartsupp manual sync failed to fetch page (cursor={Cursor})", cursor);
+                break;
             }
+
+            _logger.LogDebug("smartsupp manual sync page items={Count} after={After}", page.Items.Count, page.After);
 
             foreach (var item in page.Items)
             {
-                await ProcessConversationAsync(item, syncedAt, contactCache, cancellationToken);
-                totalUpserted++;
+                if (item.UpdatedAt <= since)
+                    continue;
 
-                if (latestUpdatedAt is null || item.UpdatedAt > latestUpdatedAt)
-                    latestUpdatedAt = item.UpdatedAt;
+                var msgCount = await ProcessConversationAsync(item, startedAt, contactCache, cancellationToken);
+                conversationsProcessed++;
+                messagesProcessed += msgCount;
             }
 
             await _repository.SaveChangesAsync(cancellationToken);
@@ -71,13 +69,29 @@ public class SmartsuppSyncJob : IRecurringJob
 
         } while (cursor is not null);
 
-        if (latestUpdatedAt.HasValue)
-            await _repository.SetSyncWatermarkAsync(latestUpdatedAt.Value, cancellationToken);
+        var completedAt = DateTime.UtcNow;
+        _logger.LogInformation(
+            "smartsupp manual sync completed conversations={Conversations} messages={Messages}",
+            conversationsProcessed, messagesProcessed);
 
-        _logger.LogInformation("smartsupp-sync completed — {Count} conversations upserted", totalUpserted);
+        return new RunManualSyncResponse
+        {
+            ConversationsProcessed = conversationsProcessed,
+            MessagesProcessed = messagesProcessed,
+            StartedAt = startedAt,
+            CompletedAt = completedAt,
+        };
     }
 
-    private async Task ProcessConversationAsync(
+    private static DateTime ResolveSince(DateTime? requested, DateTime now)
+    {
+        var floor = now.AddDays(-MaxLookbackDays);
+        var defaultSince = now.AddDays(-DefaultLookbackDays);
+        var requestedOrDefault = requested ?? defaultSince;
+        return requestedOrDefault < floor ? floor : requestedOrDefault;
+    }
+
+    private async Task<int> ProcessConversationAsync(
         SmartsuppConversationData data,
         DateTime syncedAt,
         Dictionary<string, SmartsuppContactData?> contactCache,
@@ -90,9 +104,7 @@ public class SmartsuppSyncJob : IRecurringJob
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex,
-                "Failed to fetch messages for conversation {ConversationId} — conversation upserted without messages",
-                data.Id);
+            _logger.LogWarning(ex, "smartsupp manual sync failed to fetch messages for {ConversationId}", data.Id);
             messageData = [];
         }
 
@@ -161,7 +173,7 @@ public class SmartsuppSyncJob : IRecurringJob
         await _repository.UpsertConversationAsync(conversation, cancellationToken);
 
         if (messageData.Count == 0)
-            return;
+            return 0;
 
         var messages = messageData.Select(m => new SmartsuppMessage
         {
@@ -188,6 +200,7 @@ public class SmartsuppSyncJob : IRecurringJob
         }).ToList();
 
         await _repository.UpsertMessagesAsync(data.Id, messages, cancellationToken);
+        return messages.Count;
     }
 
     private async Task<SmartsuppContactData?> FetchContactCachedAsync(
@@ -205,7 +218,7 @@ public class SmartsuppSyncJob : IRecurringJob
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to fetch contact {ContactId} — proceeding without contact data", contactId);
+            _logger.LogWarning(ex, "smartsupp manual sync failed to fetch contact {ContactId}", contactId);
             contact = null;
         }
 

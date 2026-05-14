@@ -2601,6 +2601,21 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("AssignedAgentIdsJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Channel")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CloseType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ClosedByAgentId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("ContactAvatarUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -2640,6 +2655,9 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<bool>("IsUnread")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("LastClosedAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<DateTime?>("LastMessageAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -2662,6 +2680,13 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<string>("LocationIp")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<int?>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RatingText")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<string>("Referer")
                         .HasMaxLength(500)
@@ -2750,6 +2775,10 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<bool>("IsReply")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("MessageType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("PageUrl")
                         .HasColumnType("text");
 
@@ -2782,35 +2811,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.HasIndex("ConversationId", "SubType");
 
                     b.ToTable("SmartsuppMessages", "public");
-                });
-
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Smartsupp.SmartsuppSyncState", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("LastSyncStartedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<DateTime?>("LastUpdatedAtSeen")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SmartsuppSyncState", "public", t =>
-                        {
-                            t.HasCheckConstraint("CK_SmartsuppSyncState_SingleRow", "\"Id\" = 1");
-                        });
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            LastSyncStartedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        });
                 });
 
             modelBuilder.Entity("Anela.Heblo.Xcc.Domain.UserDashboardSettings", b =>
