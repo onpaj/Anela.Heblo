@@ -16426,8 +16426,6 @@ export class JournalEntryDto implements IJournalEntryDto {
     modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     tags?: JournalEntryTagDto[];
-    contentPreview?: string | undefined;
-    highlightedTerms?: string[];
 
     constructor(data?: IJournalEntryDto) {
         if (data) {
@@ -16459,12 +16457,6 @@ export class JournalEntryDto implements IJournalEntryDto {
                 this.tags = [] as any;
                 for (let item of _data["tags"])
                     this.tags!.push(JournalEntryTagDto.fromJS(item));
-            }
-            this.contentPreview = _data["contentPreview"];
-            if (Array.isArray(_data["highlightedTerms"])) {
-                this.highlightedTerms = [] as any;
-                for (let item of _data["highlightedTerms"])
-                    this.highlightedTerms!.push(item);
             }
         }
     }
@@ -16498,12 +16490,6 @@ export class JournalEntryDto implements IJournalEntryDto {
             for (let item of this.tags)
                 data["tags"].push(item.toJSON());
         }
-        data["contentPreview"] = this.contentPreview;
-        if (Array.isArray(this.highlightedTerms)) {
-            data["highlightedTerms"] = [];
-            for (let item of this.highlightedTerms)
-                data["highlightedTerms"].push(item);
-        }
         return data;
     }
 }
@@ -16521,8 +16507,6 @@ export interface IJournalEntryDto {
     modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     tags?: JournalEntryTagDto[];
-    contentPreview?: string | undefined;
-    highlightedTerms?: string[];
 }
 
 export class JournalEntryTagDto implements IJournalEntryTagDto {
@@ -16570,7 +16554,7 @@ export interface IJournalEntryTagDto {
 }
 
 export class SearchJournalEntriesResponse extends BaseResponse implements ISearchJournalEntriesResponse {
-    entries?: JournalEntryDto[];
+    entries?: SearchJournalEntryDto[];
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
@@ -16588,7 +16572,7 @@ export class SearchJournalEntriesResponse extends BaseResponse implements ISearc
             if (Array.isArray(_data["entries"])) {
                 this.entries = [] as any;
                 for (let item of _data["entries"])
-                    this.entries!.push(JournalEntryDto.fromJS(item));
+                    this.entries!.push(SearchJournalEntryDto.fromJS(item));
             }
             this.totalCount = _data["totalCount"];
             this.pageNumber = _data["pageNumber"];
@@ -16625,13 +16609,121 @@ export class SearchJournalEntriesResponse extends BaseResponse implements ISearc
 }
 
 export interface ISearchJournalEntriesResponse extends IBaseResponse {
-    entries?: JournalEntryDto[];
+    entries?: SearchJournalEntryDto[];
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
     totalPages?: number;
     hasNextPage?: boolean;
     hasPreviousPage?: boolean;
+}
+
+export class SearchJournalEntryDto implements ISearchJournalEntryDto {
+    id?: number;
+    title?: string | undefined;
+    entryDate?: Date;
+    createdAt?: Date;
+    modifiedAt?: Date;
+    createdByUserId?: string;
+    createdByUsername?: string | undefined;
+    modifiedByUserId?: string | undefined;
+    modifiedByUsername?: string | undefined;
+    associatedProducts?: string[];
+    tags?: JournalEntryTagDto[];
+    contentPreview?: string;
+    highlightedTerms?: string[];
+
+    constructor(data?: ISearchJournalEntryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.title = _data["title"];
+            this.entryDate = _data["entryDate"] ? new Date(_data["entryDate"].toString()) : <any>undefined;
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
+            this.createdByUserId = _data["createdByUserId"];
+            this.createdByUsername = _data["createdByUsername"];
+            this.modifiedByUserId = _data["modifiedByUserId"];
+            this.modifiedByUsername = _data["modifiedByUsername"];
+            if (Array.isArray(_data["associatedProducts"])) {
+                this.associatedProducts = [] as any;
+                for (let item of _data["associatedProducts"])
+                    this.associatedProducts!.push(item);
+            }
+            if (Array.isArray(_data["tags"])) {
+                this.tags = [] as any;
+                for (let item of _data["tags"])
+                    this.tags!.push(JournalEntryTagDto.fromJS(item));
+            }
+            this.contentPreview = _data["contentPreview"];
+            if (Array.isArray(_data["highlightedTerms"])) {
+                this.highlightedTerms = [] as any;
+                for (let item of _data["highlightedTerms"])
+                    this.highlightedTerms!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): SearchJournalEntryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new SearchJournalEntryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["title"] = this.title;
+        data["entryDate"] = this.entryDate ? this.entryDate.toISOString() : <any>undefined;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
+        data["createdByUserId"] = this.createdByUserId;
+        data["createdByUsername"] = this.createdByUsername;
+        data["modifiedByUserId"] = this.modifiedByUserId;
+        data["modifiedByUsername"] = this.modifiedByUsername;
+        if (Array.isArray(this.associatedProducts)) {
+            data["associatedProducts"] = [];
+            for (let item of this.associatedProducts)
+                data["associatedProducts"].push(item);
+        }
+        if (Array.isArray(this.tags)) {
+            data["tags"] = [];
+            for (let item of this.tags)
+                data["tags"].push(item.toJSON());
+        }
+        data["contentPreview"] = this.contentPreview;
+        if (Array.isArray(this.highlightedTerms)) {
+            data["highlightedTerms"] = [];
+            for (let item of this.highlightedTerms)
+                data["highlightedTerms"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface ISearchJournalEntryDto {
+    id?: number;
+    title?: string | undefined;
+    entryDate?: Date;
+    createdAt?: Date;
+    modifiedAt?: Date;
+    createdByUserId?: string;
+    createdByUsername?: string | undefined;
+    modifiedByUserId?: string | undefined;
+    modifiedByUsername?: string | undefined;
+    associatedProducts?: string[];
+    tags?: JournalEntryTagDto[];
+    contentPreview?: string;
+    highlightedTerms?: string[];
 }
 
 export class GetJournalEntryResponse extends BaseResponse implements IGetJournalEntryResponse {

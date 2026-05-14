@@ -44,5 +44,12 @@ public sealed class SmartsuppConversationConfiguration : IEntityTypeConfiguratio
             .WithOne(e => e.Conversation)
             .HasForeignKey(e => e.ConversationId)
             .OnDelete(DeleteBehavior.Cascade);
+        builder.Property(e => e.Rating);
+        builder.Property(e => e.RatingText).HasMaxLength(1000);
+        builder.Property(e => e.CloseType).HasMaxLength(50);
+        builder.Property(e => e.ClosedByAgentId).HasMaxLength(100);
+        builder.Property(e => e.AssignedAgentIdsJson).HasColumnType("text");
+        builder.Property(e => e.Channel).HasMaxLength(50);
+        builder.Property(e => e.LastClosedAt).HasColumnType("timestamp without time zone");
     }
 }
