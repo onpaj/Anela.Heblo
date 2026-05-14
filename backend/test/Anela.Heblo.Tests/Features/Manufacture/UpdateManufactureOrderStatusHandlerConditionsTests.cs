@@ -190,6 +190,44 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
     }
 
     [Fact]
+    public async Task Handle_DoesNotAddDuplicateConditionsReading_WhenStageAlreadyHasReading()
+    {
+        // Arrange
+        var originalRecordedAt = DateTime.UtcNow.AddHours(-1);
+        var order = CreateOrderInState(ManufactureOrderState.Planned);
+        order.ConditionsReadings.Add(new ManufactureOrderConditionsReading
+        {
+            ManufactureOrderId = 1,
+            Stage = ManufactureOrderState.SemiProductManufactured,
+            InnerTemperature = 22.0m,
+            Source = ConditionsReadingSource.Live,
+            RecordedAt = originalRecordedAt,
+        });
+
+        _repositoryMock.Setup(x => x.GetOrderByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        _repositoryMock.Setup(x => x.UpdateOrderAsync(order, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = 1,
+            NewState = ManufactureOrderState.SemiProductManufactured,
+            ChangeReason = "Re-entering stage after rollback",
+        };
+        var handler = CreateHandler();
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        order.ConditionsReadings.Should().HaveCount(1);
+        order.ConditionsReadings.Single().RecordedAt.Should().Be(originalRecordedAt);
+        _conditionsProviderMock.Verify(x => x.GetCurrentSnapshotAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_TransitionToNonConditionsStage_DoesNotCaptureConditionsReading()
     {
         // Arrange
