@@ -273,7 +273,7 @@ const LogPanel: React.FC<LogPanelProps> = ({ item }) => {
 const ManufacturedInventoryPage: React.FC = () => {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [onlyWithStock, setOnlyWithStock] = useState(false);
+  const [onlyWithStock, setOnlyWithStock] = useState(true);
   const [page, setPage] = useState(1);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

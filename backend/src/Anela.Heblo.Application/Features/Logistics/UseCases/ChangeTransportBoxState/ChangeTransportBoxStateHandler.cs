@@ -129,7 +129,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
 
             if (itemsToRestore != null)
             {
-                await RestoreInventoryForItemsAsync(itemsToRestore, userName, currentTime, box.Id, cancellationToken);
+                await RestoreInventoryForItemsAsync(itemsToRestore, userName, currentTime, box.Id, box.Code, cancellationToken);
             }
 
             // Save changes
@@ -231,24 +231,34 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
 
     private async Task<ChangeTransportBoxStateResponse?> HandleReceived(TransportBox box, ChangeTransportBoxStateRequest request, CancellationToken cancellationToken)
     {
-        foreach (var item in box.Items)
+        var aggregated = box.Items
+            .GroupBy(i => i.ProductCode)
+            .Select(g => new
+            {
+                ProductCode = g.Key,
+                Amount = (int)Math.Round(g.Sum(i => i.Amount), MidpointRounding.AwayFromZero),
+                LineCount = g.Count()
+            })
+            .ToList();
+
+        foreach (var group in aggregated)
         {
-            var documentNumber = $"BOX-{box.Id:000000}-{item.ProductCode}";
+            var documentNumber = $"BOX-{box.Id:000000}-{group.ProductCode}";
 
             await _stockUpProcessingService.CreateOperationAsync(
                 documentNumber,
-                item.ProductCode,
-                (int)item.Amount,
+                group.ProductCode,
+                group.Amount,
                 StockUpSourceType.TransportBox,
                 box.Id,
                 cancellationToken);
 
-            _logger.LogDebug("Created StockUpOperation {DocumentNumber} for product {ProductCode}, amount {Amount}",
-                documentNumber, item.ProductCode, item.Amount);
+            _logger.LogDebug("Created StockUpOperation {DocumentNumber} for product {ProductCode}, amount {Amount} (aggregated from {LineCount} item line(s))",
+                documentNumber, group.ProductCode, group.Amount, group.LineCount);
         }
 
-        _logger.LogInformation("Successfully created {Count} StockUpOperations for box {BoxId} ({BoxCode})",
-            box.Items.Count, box.Id, box.Code);
+        _logger.LogInformation("Successfully created {OperationCount} StockUpOperation(s) from {ItemCount} item line(s) for box {BoxId} ({BoxCode})",
+            aggregated.Count, box.Items.Count, box.Id, box.Code);
 
         return null;
     }
@@ -258,6 +268,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
         string userName,
         DateTime timestamp,
         int boxId,
+        string? boxCode,
         CancellationToken cancellationToken)
     {
         foreach (var item in items)
@@ -271,7 +282,7 @@ public class ChangeTransportBoxStateHandler : IRequestHandler<ChangeTransportBox
                 continue;
             }
 
-            inventoryItem.Restore((decimal)item.Amount, userName, timestamp, boxId);
+            inventoryItem.Restore((decimal)item.Amount, userName, timestamp, boxId, boxCode);
             await _inventoryRepository.UpdateAsync(inventoryItem, cancellationToken);
         }
     }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { X, Package, Clock, AlertCircle, FileText } from "lucide-react";
 import {
   useTransportBoxByIdQuery,
@@ -8,10 +9,12 @@ import {
 } from "../../api/hooks/useTransportBoxes";
 import type { AddManufacturedItemInput } from "../transport/box-detail/TransportBoxTypes";
 import { useLastAddedItem } from "../../api/hooks/useLastAddedItem";
+import { useLastManufacturedItems } from "../../api/hooks/useLastManufacturedItems";
 import {
   CatalogItemDto,
   TransportBoxState,
 } from "../../api/generated/api-client";
+import { QUERY_KEYS } from "../../api/client";
 import { useToast } from "../../contexts/ToastContext";
 
 // Import new components
@@ -32,6 +35,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
   onClose,
 }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const {
     data: boxData,
     isLoading,
@@ -45,6 +49,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
 
   // Last added item tracking
   const { lastAddedItem, saveLastAddedItem } = useLastAddedItem();
+  const { lastManufacturedItems, saveLastManufacturedItem } = useLastManufacturedItems();
 
   // Modal states
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
@@ -224,6 +229,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
         const result = await response.json();
         if (result.success) {
           refetch();
+          queryClient.invalidateQueries({ queryKey: QUERY_KEYS.manufacturedProductInventory });
           // Success item removal - no toast needed
         } else {
           const errorMessage = result.errorMessage || "Neočekávaná chyba";
@@ -299,7 +305,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
   };
 
   // Handle add item from manufactured inventory
-  const handleAddManufacturedItem = async ({ item, amount }: AddManufacturedItemInput) => {
+  const handleAddManufacturedItem = async ({ item, amount, allowNegativeStock }: AddManufacturedItemInput): Promise<void> => {
     if (!boxId) return;
 
     try {
@@ -311,9 +317,17 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
         sourceInventoryId: item.id,
         lotNumber: item.lotNumber,
         expirationDate: item.expirationDate,
+        allowNegativeStock,
       });
 
       if (result.success) {
+        saveLastManufacturedItem({
+          productCode: item.productCode,
+          productName: item.productName,
+          lotNumber: item.lotNumber,
+          expirationDate: item.expirationDate,
+          addedAmount: amount,
+        });
         refetch();
       }
       // If result.success is false, the global error handler will show a toast
@@ -610,6 +624,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
                           handleAddManufacturedItem={handleAddManufacturedItem}
                           lastAddedItem={lastAddedItem}
                           handleQuickAdd={() => setIsQuickAddModalOpen(true)}
+                          lastManufacturedItems={lastManufacturedItems}
                         />
                       </div>
                     )}

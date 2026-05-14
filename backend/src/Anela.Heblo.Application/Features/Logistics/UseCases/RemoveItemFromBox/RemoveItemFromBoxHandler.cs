@@ -70,7 +70,7 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
                 var inventoryItem = await _inventoryRepository.GetByIdAsync(removedItem.SourceInventoryId.Value, cancellationToken);
                 if (inventoryItem != null)
                 {
-                    inventoryItem.Restore((decimal)removedItem.Amount, userName, timestamp, transportBox.Id);
+                    inventoryItem.Restore((decimal)removedItem.Amount, userName, timestamp, transportBox.Id, transportBox.Code);
                     await _inventoryRepository.UpdateAsync(inventoryItem, cancellationToken);
                 }
                 else

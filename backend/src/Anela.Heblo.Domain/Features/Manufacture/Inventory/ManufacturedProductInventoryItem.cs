@@ -50,9 +50,9 @@ public class ManufacturedProductInventoryItem : Entity<int>
 
     private ManufacturedProductInventoryItem() { }
 
-    public void Consume(decimal amount, string user, DateTime timestamp, int? transportBoxId = null)
+    public void Consume(decimal amount, string user, DateTime timestamp, int? transportBoxId = null, string? transportBoxCode = null, bool allowNegativeStock = false)
     {
-        if (amount > Amount)
+        if (!allowNegativeStock && amount > Amount)
             throw new InvalidOperationException(
                 $"Insufficient manufactured inventory for {ProductCode}. Available: {Amount}, requested: {amount}.");
 
@@ -61,10 +61,11 @@ public class ManufacturedProductInventoryItem : Entity<int>
         LastModifiedBy = user;
         _log.Add(new ManufacturedProductInventoryLog(
             InventoryChangeType.ConsumedByTransportBox, -amount, Amount, user, timestamp,
-            transportBoxId.HasValue ? "TransportBox" : null, transportBoxId?.ToString()));
+            transportBoxId.HasValue ? "TransportBox" : null, transportBoxId?.ToString(),
+            note: transportBoxCode));
     }
 
-    public void Restore(decimal amount, string user, DateTime timestamp, int? transportBoxId = null)
+    public void Restore(decimal amount, string user, DateTime timestamp, int? transportBoxId = null, string? transportBoxCode = null)
     {
         if (amount <= 0)
             throw new ArgumentException("Restore amount must be positive.", nameof(amount));
@@ -74,7 +75,8 @@ public class ManufacturedProductInventoryItem : Entity<int>
         LastModifiedBy = user;
         _log.Add(new ManufacturedProductInventoryLog(
             InventoryChangeType.RestoredFromTransportBox, amount, Amount, user, timestamp,
-            transportBoxId.HasValue ? "TransportBox" : null, transportBoxId?.ToString()));
+            transportBoxId.HasValue ? "TransportBox" : null, transportBoxId?.ToString(),
+            note: transportBoxCode));
     }
 
     public void ManualAdjust(decimal newAmount, string user, DateTime timestamp, string? note = null)

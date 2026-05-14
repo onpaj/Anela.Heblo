@@ -434,6 +434,7 @@ export const QUERY_KEYS = {
   articles: ["articles"] as const,
   articleTrace: ["article-trace"] as const,
   smartsupp: ["smartsupp"] as const,
+  manufacturedProductInventory: ["manufactured-product-inventory"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

@@ -11,10 +11,14 @@ type ActiveAddTab = "catalog" | "manufactured";
 interface ManufacturedRowProps {
   item: ManufacturedProductInventoryItem;
   onAdd: (item: ManufacturedProductInventoryItem, amount: number) => void;
+  onOverdraft: (item: ManufacturedProductInventoryItem, amount: number) => void;
+  defaultAmount?: number;
 }
 
-const ManufacturedRow: React.FC<ManufacturedRowProps> = ({ item, onAdd }) => {
-  const [rowAmount, setRowAmount] = useState("");
+const ManufacturedRow: React.FC<ManufacturedRowProps> = ({ item, onAdd, onOverdraft, defaultAmount }) => {
+  const initialAmount = defaultAmount ? String(defaultAmount) : "";
+  const [rowAmount, setRowAmount] = useState(initialAmount);
+  const [isDirty, setIsDirty] = useState(false);
   const [rowError, setRowError] = useState<string | null>(null);
 
   const handleSubmit = () => {
@@ -24,16 +28,18 @@ const ManufacturedRow: React.FC<ManufacturedRowProps> = ({ item, onAdd }) => {
       return;
     }
     if (parsed > item.amount) {
-      setRowError(`Max. dostupné: ${item.amount}`);
+      onOverdraft(item, parsed);
       return;
     }
     setRowError(null);
     onAdd(item, parsed);
-    setRowAmount("");
   };
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2 border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
+    <div
+      onClick={handleSubmit}
+      className="flex items-center gap-3 px-3 py-2 border-b border-gray-100 last:border-b-0 hover:bg-green-50 cursor-pointer transition-colors"
+    >
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-gray-900 truncate">{item.productName}</div>
         <div className="text-xs text-gray-500 flex flex-wrap gap-x-3 mt-0.5">
@@ -49,34 +55,30 @@ const ManufacturedRow: React.FC<ManufacturedRowProps> = ({ item, onAdd }) => {
           </div>
         )}
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
         <input
           type="number"
           value={rowAmount}
           onChange={(e) => {
             setRowAmount(e.target.value);
+            setIsDirty(true);
             setRowError(null);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              handleSubmit();
-            }
           }}
           step="0.01"
           min="0.01"
-          max={item.amount}
           placeholder="0"
           className="w-20 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
         />
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={!rowAmount || parseFloat(rowAmount) <= 0}
-          className="px-2 py-1 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Přidat
-        </button>
+        {isDirty && (
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!rowAmount || parseFloat(rowAmount) <= 0}
+            className="px-2 py-1 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Přidat
+          </button>
+        )}
       </div>
     </div>
   );
@@ -95,9 +97,14 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
   handleAddManufacturedItem,
   lastAddedItem,
   handleQuickAdd,
+  lastManufacturedItems,
 }) => {
-  const [activeAddTab, setActiveAddTab] = useState<ActiveAddTab>("catalog");
+  const [activeAddTab, setActiveAddTab] = useState<ActiveAddTab>("manufactured");
   const [manufacturedSearch, setManufacturedSearch] = useState("");
+  const [overdraftPending, setOverdraftPending] = useState<{
+    item: ManufacturedProductInventoryItem;
+    amount: number;
+  } | null>(null);
 
   const { data: inventoryData, isLoading: inventoryLoading, error: inventoryError } =
     useManufacturedProductInventoryQuery({ onlyWithStock: true });
@@ -111,6 +118,7 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
       (item.lotNumber ?? "").toLowerCase().includes(q)
     );
   });
+
 
   return (
     <div>
@@ -180,15 +188,29 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
 
               {!inventoryLoading && !inventoryError && filteredInventory.length > 0 && (
                 <div className="border border-gray-200 rounded-md bg-white max-h-64 overflow-y-auto">
-                  {filteredInventory.map((item) => (
-                    <ManufacturedRow
-                      key={item.id}
-                      item={item}
-                      onAdd={(inventoryItem, amount) =>
-                        handleAddManufacturedItem({ item: inventoryItem, amount })
-                      }
-                    />
-                  ))}
+                  {filteredInventory.map((item) => {
+                    const lastEntry = lastManufacturedItems.find(
+                      (e) =>
+                        e.productCode === item.productCode &&
+                        (e.lotNumber ?? "") === (item.lotNumber ?? ""),
+                    );
+                    const defaultAmount = lastEntry
+                      ? Math.min(lastEntry.addedAmount, item.amount)
+                      : undefined;
+                    return (
+                      <ManufacturedRow
+                        key={item.id}
+                        item={item}
+                        defaultAmount={defaultAmount}
+                        onAdd={(inventoryItem, amount) =>
+                          handleAddManufacturedItem({ item: inventoryItem, amount })
+                        }
+                        onOverdraft={(inventoryItem, amount) =>
+                          setOverdraftPending({ item: inventoryItem, amount })
+                        }
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -386,6 +408,51 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
           <p className="mt-1 text-sm text-gray-500">
             Tento transportní box neobsahuje žádné položky.
           </p>
+        </div>
+      )}
+
+      {overdraftPending !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+            <div className="flex items-start gap-3 mb-5">
+              <AlertCircle className="h-6 w-6 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-gray-900">{overdraftPending.item.productName}</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Na skladě je pouze <strong>{overdraftPending.item.amount}</strong>, požadováno <strong>{overdraftPending.amount}</strong>.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  handleAddManufacturedItem({ item: overdraftPending.item, amount: overdraftPending.amount, allowNegativeStock: true });
+                  setOverdraftPending(null);
+                }}
+                className="w-full py-4 text-base font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 active:bg-amber-800"
+              >
+                Přidat záporný stav ({overdraftPending.amount}ks, {overdraftPending.amount - overdraftPending.item.amount} chybí)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleAddManufacturedItem({ item: overdraftPending.item, amount: overdraftPending.item.amount });
+                  setOverdraftPending(null);
+                }}
+                className="w-full py-4 text-base font-semibold text-gray-800 bg-gray-100 rounded-lg hover:bg-gray-200 active:bg-gray-300"
+              >
+                Přidat pouze zbývající ({overdraftPending.item.amount}ks)
+              </button>
+              <button
+                type="button"
+                onClick={() => setOverdraftPending(null)}
+                className="w-full py-2 text-sm text-gray-500 hover:text-gray-700"
+              >
+                Zrušit
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

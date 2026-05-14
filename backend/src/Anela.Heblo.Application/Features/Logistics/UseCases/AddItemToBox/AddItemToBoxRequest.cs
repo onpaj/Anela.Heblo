@@ -20,4 +20,5 @@ public class AddItemToBoxRequest : IRequest<AddItemToBoxResponse>
     public int? SourceInventoryId { get; set; }
     public string? LotNumber { get; set; }
     public DateOnly? ExpirationDate { get; set; }
+    public bool AllowNegativeStock { get; set; }
 }

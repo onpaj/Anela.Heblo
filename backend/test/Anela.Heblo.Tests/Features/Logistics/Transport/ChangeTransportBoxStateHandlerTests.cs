@@ -335,6 +335,128 @@ public class ChangeTransportBoxStateHandlerTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task Handle_InTransitToReceived_AggregatesDuplicateProductCodes_IntoSingleStockUpOperation()
+    {
+        // Arrange — box with two lines for the same product, different lots
+        var box = CreateTestBoxWithMultipleItems(TransportBoxState.InTransit, new[]
+        {
+            ("P-001", 3.0, "LOT-A"),
+            ("P-001", 5.0, "LOT-B")
+        });
+
+        SetupReceivedTransitionMocks(box);
+
+        var request = new ChangeTransportBoxStateRequest { BoxId = 1, NewState = TransportBoxState.Received };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _stockUpProcessingServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                "BOX-000001-P-001",
+                "P-001",
+                8,
+                StockUpSourceType.TransportBox,
+                1,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _stockUpProcessingServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_InTransitToReceived_DistinctProductCodes_CreatesOneOperationPerProduct()
+    {
+        // Arrange — two distinct products in the box
+        var box = CreateTestBoxWithMultipleItems(TransportBoxState.InTransit, new (string, double, string?)[]
+        {
+            ("P-001", 2.0, null),
+            ("P-002", 4.0, null)
+        });
+
+        SetupReceivedTransitionMocks(box);
+
+        var request = new ChangeTransportBoxStateRequest { BoxId = 1, NewState = TransportBoxState.Received };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _stockUpProcessingServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                "BOX-000001-P-001", "P-001", 2,
+                StockUpSourceType.TransportBox, 1, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _stockUpProcessingServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                "BOX-000001-P-002", "P-002", 4,
+                StockUpSourceType.TransportBox, 1, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _stockUpProcessingServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(),
+                It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task Handle_InTransitToReceived_RoundsFractionalAmounts()
+    {
+        // Arrange — fractional amounts that would truncate to 2 but should round to 3
+        var box = CreateTestBoxWithMultipleItems(TransportBoxState.InTransit, new (string, double, string?)[]
+        {
+            ("P-001", 1.4, null),
+            ("P-001", 1.4, null)
+        });
+
+        SetupReceivedTransitionMocks(box);
+
+        var request = new ChangeTransportBoxStateRequest { BoxId = 1, NewState = TransportBoxState.Received };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _stockUpProcessingServiceMock.Verify(
+            x => x.CreateOperationAsync(
+                It.IsAny<string>(), "P-001", 3,
+                It.IsAny<StockUpSourceType>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    private void SetupReceivedTransitionMocks(TransportBox box)
+    {
+        _repositoryMock.Setup(x => x.GetByIdWithDetailsAsync(1)).ReturnsAsync(box);
+        _repositoryMock.Setup(x => x.UpdateAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        _repositoryMock.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<GetTransportBoxByIdRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GetTransportBoxByIdResponse { TransportBox = new Anela.Heblo.Application.Features.Logistics.Contracts.TransportBoxDto() });
+    }
+
+    private TransportBox CreateTestBoxWithMultipleItems(TransportBoxState state, IEnumerable<(string ProductCode, double Amount, string? LotNumber)> items)
+    {
+        var box = CreateTestBox(state);
+        var itemsField = typeof(TransportBox).GetField("_items", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        if (itemsField != null)
+        {
+            var list = (List<TransportBoxItem>)itemsField.GetValue(box)!;
+            foreach (var (productCode, amount, lotNumber) in items)
+            {
+                list.Add(new TransportBoxItem(productCode, "Product", amount, DateTime.UtcNow, "TestUser", lotNumber));
+            }
+        }
+        return box;
+    }
+
     private TransportBox CreateTestBox(TransportBoxState state)
     {
         var box = new TransportBox();

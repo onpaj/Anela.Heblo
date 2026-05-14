@@ -69,7 +69,7 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
 
                 try
                 {
-                    inventoryItem.Consume((decimal)request.Amount, userName, timestamp, transportBox.Id);
+                    inventoryItem.Consume((decimal)request.Amount, userName, timestamp, transportBox.Id, transportBox.Code, request.AllowNegativeStock);
                 }
                 catch (InvalidOperationException)
                 {

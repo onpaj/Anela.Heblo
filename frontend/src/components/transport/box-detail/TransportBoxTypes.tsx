@@ -3,6 +3,7 @@ import {
   CatalogItemDto,
 } from "../../../api/generated/api-client";
 import { LastAddedItem } from "../../../api/hooks/useLastAddedItem";
+import { LastManufacturedEntry } from "../../../api/hooks/useLastManufacturedItems";
 import { ManufacturedProductInventoryItem } from "../../../api/hooks/useManufacturedProductInventory";
 
 export interface TransportBoxDetailProps {
@@ -29,6 +30,7 @@ export interface TransportBoxInfoProps {
 export interface AddManufacturedItemInput {
   item: ManufacturedProductInventoryItem;
   amount: number;
+  allowNegativeStock?: boolean;
 }
 
 export interface TransportBoxItemsProps {
@@ -41,10 +43,12 @@ export interface TransportBoxItemsProps {
   selectedProduct: CatalogItemDto | null;
   setSelectedProduct: (product: CatalogItemDto | null) => void;
   handleAddItem: () => void;
-  handleAddManufacturedItem: (input: AddManufacturedItemInput) => void;
+  handleAddManufacturedItem: (input: AddManufacturedItemInput) => Promise<void>;
   // Quick add last item functionality
   lastAddedItem: LastAddedItem | null;
   handleQuickAdd: () => void;
+  // Repeat last box (manufactured)
+  lastManufacturedItems: LastManufacturedEntry[];
 }
 
 export interface TransportBoxHistoryProps {

@@ -25,6 +25,7 @@ export interface AddItemToBoxInput {
   sourceInventoryId?: number;
   lotNumber?: string;
   expirationDate?: string;
+  allowNegativeStock?: boolean;
 }
 
 // Define request interface matching the backend contract
@@ -192,6 +193,7 @@ export const useAddItemToBox = () => {
       if (input.sourceInventoryId !== undefined) body["sourceInventoryId"] = input.sourceInventoryId;
       if (input.lotNumber !== undefined) body["lotNumber"] = input.lotNumber;
       if (input.expirationDate !== undefined) body["expirationDate"] = input.expirationDate;
+      if (input.allowNegativeStock) body["allowNegativeStock"] = true;
 
       const response = await apiClient.http.fetch(url, {
         method: "POST",
