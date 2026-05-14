@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -37,11 +37,9 @@ public class ProductEnrichmentCache : IProductEnrichmentCache
                 return _cache;
 
             using var scope = _scopeFactory.CreateScope();
-            var repository = scope.ServiceProvider.GetRequiredService<ICatalogRepository>();
+            var service = scope.ServiceProvider.GetRequiredService<IProductCatalogQueryService>();
 
-            var products = await repository.FindAsync(
-                p => p.Type == ProductType.Product || p.Type == ProductType.Goods,
-                ct);
+            var products = await service.GetActiveProductsAsync(ct);
 
             _cache = products.ToDictionary(
                 p => p.ProductCode,
