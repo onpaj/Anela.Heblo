@@ -10,4 +10,6 @@ public class TransportBoxItemDto
     public DateTime DateAdded { get; set; }
     public string UserAdded { get; set; } = string.Empty;
     public decimal OnStock { get; set; }
+    public string? LotNumber { get; set; }
+    public DateOnly? ExpirationDate { get; set; }
 }
