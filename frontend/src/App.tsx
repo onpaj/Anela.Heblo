@@ -391,7 +391,7 @@ function App() {
                         <Route path="/customer/bank-statements-overview" element={<BankStatementsOverviewPage />} />
                         <Route path="/customer/smartsupp" element={<SmartsuppChatsPage />} />
                         <Route path="/orgchart" element={<OrgChartPage />} />
-                        <Route path="/stock-operations" element={<StockOperationsPage />} />
+                        <Route path="/stock-up-operations" element={<StockOperationsPage />} />
                         <Route path="/recurring-jobs" element={<RecurringJobsPage />} />
                         <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
                         <Route path="/knowledge-base/feedback" element={<KnowledgeBaseFeedbackPage />} />

@@ -30031,6 +30031,8 @@ export class TransportBoxItemDto implements ITransportBoxItemDto {
     dateAdded?: Date;
     userAdded?: string;
     onStock?: number;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
 
     constructor(data?: ITransportBoxItemDto) {
         if (data) {
@@ -30051,6 +30053,8 @@ export class TransportBoxItemDto implements ITransportBoxItemDto {
             this.dateAdded = _data["dateAdded"] ? new Date(_data["dateAdded"].toString()) : <any>undefined;
             this.userAdded = _data["userAdded"];
             this.onStock = _data["onStock"];
+            this.lotNumber = _data["lotNumber"];
+            this.expirationDate = _data["expirationDate"] ? new Date(_data["expirationDate"].toString()) : <any>undefined;
         }
     }
 
@@ -30071,6 +30075,8 @@ export class TransportBoxItemDto implements ITransportBoxItemDto {
         data["dateAdded"] = this.dateAdded ? this.dateAdded.toISOString() : <any>undefined;
         data["userAdded"] = this.userAdded;
         data["onStock"] = this.onStock;
+        data["lotNumber"] = this.lotNumber;
+        data["expirationDate"] = this.expirationDate ? formatDate(this.expirationDate) : <any>undefined;
         return data;
     }
 }
@@ -30084,6 +30090,8 @@ export interface ITransportBoxItemDto {
     dateAdded?: Date;
     userAdded?: string;
     onStock?: number;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
 }
 
 export class TransportBoxStateLogDto implements ITransportBoxStateLogDto {
@@ -30484,6 +30492,7 @@ export class AddItemToBoxRequest implements IAddItemToBoxRequest {
     sourceInventoryId?: number | undefined;
     lotNumber?: string | undefined;
     expirationDate?: Date | undefined;
+    allowNegativeStock?: boolean;
 
     constructor(data?: IAddItemToBoxRequest) {
         if (data) {
@@ -30503,6 +30512,7 @@ export class AddItemToBoxRequest implements IAddItemToBoxRequest {
             this.sourceInventoryId = _data["sourceInventoryId"];
             this.lotNumber = _data["lotNumber"];
             this.expirationDate = _data["expirationDate"] ? new Date(_data["expirationDate"].toString()) : <any>undefined;
+            this.allowNegativeStock = _data["allowNegativeStock"];
         }
     }
 
@@ -30522,6 +30532,7 @@ export class AddItemToBoxRequest implements IAddItemToBoxRequest {
         data["sourceInventoryId"] = this.sourceInventoryId;
         data["lotNumber"] = this.lotNumber;
         data["expirationDate"] = this.expirationDate ? formatDate(this.expirationDate) : <any>undefined;
+        data["allowNegativeStock"] = this.allowNegativeStock;
         return data;
     }
 }
@@ -30534,6 +30545,7 @@ export interface IAddItemToBoxRequest {
     sourceInventoryId?: number | undefined;
     lotNumber?: string | undefined;
     expirationDate?: Date | undefined;
+    allowNegativeStock?: boolean;
 }
 
 export class RemoveItemFromBoxResponse extends BaseResponse implements IRemoveItemFromBoxResponse {

@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -9,13 +10,16 @@ public class GetTransportBoxesHandler : IRequestHandler<GetTransportBoxesRequest
 {
     private readonly ILogger<GetTransportBoxesHandler> _logger;
     private readonly ITransportBoxRepository _repository;
+    private readonly IMapper _mapper;
 
     public GetTransportBoxesHandler(
         ILogger<GetTransportBoxesHandler> logger,
-        ITransportBoxRepository repository)
+        ITransportBoxRepository repository,
+        IMapper mapper)
     {
         _logger = logger;
         _repository = repository;
+        _mapper = mapper;
     }
 
     public async Task<GetTransportBoxesResponse> Handle(GetTransportBoxesRequest request, CancellationToken cancellationToken)
@@ -50,36 +54,7 @@ public class GetTransportBoxesHandler : IRequestHandler<GetTransportBoxesRequest
             request.SortDescending,
             isActiveFilter);
 
-        var transportBoxDtos = items.Select(box => new TransportBoxDto
-        {
-            Id = box.Id,
-            Code = box.Code,
-            State = box.State.ToString(),
-            DefaultReceiveState = box.DefaultReceiveState.ToString(),
-            Description = box.Description,
-            LastStateChanged = box.LastStateChanged,
-            Location = box.Location,
-            IsInTransit = box.IsInTransit,
-            IsInReserve = box.IsInReserve,
-            ItemCount = box.Items.Count,
-            Items = box.Items.Select(item => new TransportBoxItemDto
-            {
-                Id = item.Id,
-                ProductCode = item.ProductCode,
-                ProductName = item.ProductName,
-                Amount = item.Amount,
-                DateAdded = item.DateAdded,
-                UserAdded = item.UserAdded
-            }).ToList(),
-            StateLog = box.StateLog.Select(log => new TransportBoxStateLogDto
-            {
-                Id = log.Id,
-                State = log.State.ToString(),
-                StateDate = log.StateDate,
-                User = log.User,
-                Description = log.Description
-            }).OrderByDescending(log => log.StateDate).ToList()
-        }).ToList();
+        var transportBoxDtos = _mapper.Map<List<TransportBoxDto>>(items);
 
         _logger.LogInformation("Retrieved {Count} transport boxes out of {TotalCount} total",
             transportBoxDtos.Count, totalCount);

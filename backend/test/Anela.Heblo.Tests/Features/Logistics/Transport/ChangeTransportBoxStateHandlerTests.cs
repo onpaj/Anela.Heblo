@@ -445,6 +445,7 @@ public class ChangeTransportBoxStateHandlerTests
     private TransportBox CreateTestBoxWithMultipleItems(TransportBoxState state, IEnumerable<(string ProductCode, double Amount, string? LotNumber)> items)
     {
         var box = CreateTestBox(state);
+        box.Id = 1;
         var itemsField = typeof(TransportBox).GetField("_items", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         if (itemsField != null)
         {
