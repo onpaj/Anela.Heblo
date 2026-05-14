@@ -119,7 +119,8 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
                 });
             }
 
-            if (request.NewState is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Completed)
+            if (request.NewState is ManufactureOrderState.SemiProductManufactured or ManufactureOrderState.Completed
+                && order.ConditionsReadings.All(r => r.Stage != request.NewState))
             {
                 var reading = await CaptureConditionsReadingAsync(order, request.NewState, cancellationToken);
                 order.ConditionsReadings.Add(reading);

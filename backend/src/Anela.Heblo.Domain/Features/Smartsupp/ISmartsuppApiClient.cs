@@ -11,6 +11,10 @@ public interface ISmartsuppApiClient
         string conversationId,
         CancellationToken cancellationToken);
 
+    Task<SmartsuppConversationData?> GetConversationAsync(
+        string conversationId,
+        CancellationToken cancellationToken);
+
     Task<SmartsuppContactData?> GetContactAsync(
         string contactId,
         CancellationToken cancellationToken);

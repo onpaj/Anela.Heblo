@@ -73,6 +73,7 @@ public class RunManualSyncHandler : IRequestHandler<RunManualSyncRequest, RunMan
         } while (cursor is not null);
 
         var (reconciled, closedRemotely, reconcileMessages) =
+
             await ReconcileOpenConversationsAsync(seenIds, startedAt, contactCache, cancellationToken);
 
         conversationsProcessed += reconciled;

@@ -8,7 +8,7 @@ import {
   Beaker,
 } from "lucide-react";
 import { CatalogItemDto, ProductType } from "../../../api/hooks/useCatalog";
-import { JournalEntryDto } from "../../../api/generated/api-client";
+import { SearchJournalEntryDto } from "../../../api/generated/api-client";
 import BasicInfoTab from "./tabs/BasicInfoTab/BasicInfoTab";
 import PurchaseHistoryTab from "./tabs/PurchaseHistoryTab";
 import MarginsTab from "./tabs/MarginsTab/MarginsTab";
@@ -24,10 +24,10 @@ interface CatalogDetailTabsProps {
   ) => void;
   detailData: any;
   isLoading: boolean;
-  journalEntries: JournalEntryDto[];
+  journalEntries: SearchJournalEntryDto[];
   onManufactureDifficultyClick: () => void;
   onAddJournalEntry: () => void;
-  onEditJournalEntry: (entry: JournalEntryDto) => void;
+  onEditJournalEntry: (entry: SearchJournalEntryDto) => void;
   onViewAllEntries: () => void;
 }
 

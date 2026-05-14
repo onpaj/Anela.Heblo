@@ -202,6 +202,7 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         existing.DeliveredAt = deliveredAt;
     }
 
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
         await _db.SaveChangesAsync(cancellationToken);
 }
