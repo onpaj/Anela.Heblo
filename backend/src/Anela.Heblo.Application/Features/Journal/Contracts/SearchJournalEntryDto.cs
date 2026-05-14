@@ -3,11 +3,10 @@ using System.Collections.Generic;
 
 namespace Anela.Heblo.Application.Features.Journal.Contracts
 {
-    public class JournalEntryDto
+    public class SearchJournalEntryDto
     {
         public int Id { get; set; }
         public string? Title { get; set; }
-        public string Content { get; set; } = null!;
         public DateTime EntryDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime ModifiedAt { get; set; }
@@ -18,12 +17,8 @@ namespace Anela.Heblo.Application.Features.Journal.Contracts
 
         public List<string> AssociatedProducts { get; set; } = new();
         public List<JournalEntryTagDto> Tags { get; set; } = new();
-    }
 
-    public class JournalEntryTagDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = null!;
-        public string Color { get; set; } = null!;
+        public string ContentPreview { get; set; } = string.Empty;
+        public List<string> HighlightedTerms { get; set; } = new();
     }
 }
