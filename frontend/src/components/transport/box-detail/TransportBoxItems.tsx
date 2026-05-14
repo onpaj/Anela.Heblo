@@ -370,6 +370,14 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
                     <div className="truncate" title={item.productName || "-"}>
                       {item.productName || "-"}
                     </div>
+                    {(item.lotNumber || item.expirationDate) && (
+                      <div className="text-xs text-gray-500 mt-0.5 flex gap-3">
+                        {item.lotNumber && <span>Lot: {item.lotNumber}</span>}
+                        {item.expirationDate && (
+                          <span>Exp: {item.expirationDate.toISOString().slice(0, 10)}</span>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-900 text-right font-medium">
                     {item.amount}
