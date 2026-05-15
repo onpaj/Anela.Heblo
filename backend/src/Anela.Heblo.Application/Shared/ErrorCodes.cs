@@ -283,6 +283,10 @@ public enum ErrorCodes
     // Smartsupp module errors (27XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
     SmartsuppConversationNotFound = 2701,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    SmartsuppDraftReplyAiUnavailable = 2702,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    SmartsuppConversationEmpty = 2703,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
