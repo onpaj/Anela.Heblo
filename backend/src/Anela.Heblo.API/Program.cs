@@ -43,6 +43,14 @@ public partial class Program
             builder.Configuration.AddUserSecrets<Program>();
         }
 
+        // Conductor parallel-instance overrides (see appsettings.Conductor.json).
+        // Layered on top of the active environment so ephemeral local instances never
+        // hydrate from live external systems. Enabled by scripts/conductor-run.sh.
+        if (builder.Configuration.GetValue<bool>("UseConductorOverrides"))
+        {
+            builder.Configuration.AddJsonFile("appsettings.Conductor.json", optional: false, reloadOnChange: true);
+        }
+
         // Configure application timezone based on configuration
         builder.Configuration.ConfigureApplicationTimeZone();
 

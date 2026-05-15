@@ -93,6 +93,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     return null;
   }
 
+  // Injected by the Conductor run script — names the git branch this instance runs.
+  const branchName = process.env.REACT_APP_BRANCH_NAME;
+
   const getEnvironmentColor = (env: string) => {
     switch (env.toLowerCase()) {
       case "production":
@@ -162,6 +165,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                 ? "Dev"
                 : appInfo.environment}
             </span>
+            {branchName && (
+              <span className="px-2 py-0.5 rounded text-xs bg-indigo-600 text-white">
+                {branchName}
+              </span>
+            )}
             {appInfo.mockAuth && (
               <span className={getAuthTypeColor(appInfo.mockAuth)}>Mock</span>
             )}
@@ -179,6 +187,14 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             >
               {appInfo.environment}
             </span>
+            {branchName && (
+              <>
+                <span>|</span>
+                <span className="px-2 py-0.5 rounded text-xs bg-indigo-600 text-white">
+                  {branchName}
+                </span>
+              </>
+            )}
             {appInfo.mockAuth && (
               <>
                 <span>|</span>
