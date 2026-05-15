@@ -64,12 +64,25 @@ public static class ServiceCollectionExtensions
     {
         var allowedOrigins = configuration.GetSection(ConfigurationConstants.CORS_ALLOWED_ORIGINS).Get<string[]>() ?? Array.Empty<string>();
 
+        // Conductor parallel instances serve the frontend on a dynamically chosen port,
+        // so the exact origin is unknown ahead of time. Under Conductor overrides, allow
+        // any loopback origin instead of a fixed allow-list.
+        var allowAnyLoopbackOrigin = configuration.GetValue<bool>("UseConductorOverrides");
+
         services.AddCors(options =>
         {
             options.AddPolicy(ConfigurationConstants.CORS_POLICY_NAME, policy =>
             {
-                policy.WithOrigins(allowedOrigins)
-                      .AllowAnyHeader()
+                if (allowAnyLoopbackOrigin)
+                {
+                    policy.SetIsOriginAllowed(IsLoopbackOrigin);
+                }
+                else
+                {
+                    policy.WithOrigins(allowedOrigins);
+                }
+
+                policy.AllowAnyHeader()
                       .AllowAnyMethod()
                       .AllowCredentials();
             });
@@ -77,6 +90,9 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    private static bool IsLoopbackOrigin(string origin) =>
+        Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.IsLoopback;
 
     public static IServiceCollection AddHealthCheckServices(this IServiceCollection services, IConfiguration configuration)
     {
