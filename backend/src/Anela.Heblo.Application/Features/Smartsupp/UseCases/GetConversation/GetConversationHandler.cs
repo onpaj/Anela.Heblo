@@ -42,6 +42,20 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
             LastMessagePreview = c.LastMessagePreview,
             CreatedAt = c.CreatedAt,
             UpdatedAt = c.UpdatedAt,
+            Rating = c.Rating,
+            RatingText = c.RatingText,
+            CloseType = c.CloseType,
+            ClosedByAgentId = c.ClosedByAgentId,
+            AssignedAgentIds = ParseStringList(c.AssignedAgentIdsJson),
+            Channel = c.Channel,
+            IsServed = c.IsServed,
+            FinishedAt = c.FinishedAt,
+            Domain = c.Domain,
+            Referer = c.Referer,
+            LocationCountry = c.LocationCountry,
+            LocationCity = c.LocationCity,
+            LocationCode = c.LocationCode,
+            Tags = ParseStringList(c.TagsJson),
         };
 
     private static MessageDto MapMessageDto(SmartsuppMessage m) =>
@@ -52,5 +66,25 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
             AuthorName = m.AuthorName,
             Content = m.Content,
             CreatedAt = m.CreatedAt,
+            AgentId = m.AgentId,
+            SubType = m.SubType,
+            DeliveryStatus = m.DeliveryStatus,
+            DeliveredAt = m.DeliveredAt,
+            ResponseTime = m.ResponseTime,
+            IsFirstReply = m.IsFirstReply,
+            PageUrl = m.PageUrl,
         };
+
+    private static List<string> ParseStringList(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return new List<string>();
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return new List<string>();
+        }
+    }
 }

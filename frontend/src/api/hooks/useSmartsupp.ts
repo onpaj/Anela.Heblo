@@ -13,6 +13,20 @@ export interface ConversationDto {
   lastMessagePreview?: string | null;
   createdAt: string;
   updatedAt: string;
+  rating?: number | null;
+  ratingText?: string | null;
+  closeType?: string | null;
+  closedByAgentId?: string | null;
+  assignedAgentIds: string[];
+  channel?: string | null;
+  isServed: boolean;
+  finishedAt?: string | null;
+  domain?: string | null;
+  referer?: string | null;
+  locationCountry?: string | null;
+  locationCity?: string | null;
+  locationCode?: string | null;
+  tags: string[];
 }
 
 export interface MessageDto {
@@ -21,6 +35,13 @@ export interface MessageDto {
   authorName?: string | null;
   content?: string | null;
   createdAt: string;
+  agentId?: string | null;
+  subType?: string | null;
+  deliveryStatus?: string | null;
+  deliveredAt?: string | null;
+  responseTime?: number | null;
+  isFirstReply: boolean;
+  pageUrl?: string | null;
 }
 
 export interface ListConversationsResponse {
