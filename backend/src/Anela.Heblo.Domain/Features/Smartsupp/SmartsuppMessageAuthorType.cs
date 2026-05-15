@@ -4,5 +4,7 @@ public enum SmartsuppMessageAuthorType
 {
     Visitor,
     Agent,
-    Bot
+    Bot,
+    System,
+    Trigger
 }

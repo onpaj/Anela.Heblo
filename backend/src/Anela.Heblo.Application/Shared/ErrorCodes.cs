@@ -93,6 +93,10 @@ public enum ErrorCodes
     CannotScheduleInPast = 1213,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     InvalidScheduleDateOrder = 1214,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ManufacturedInventoryItemNotFound = 1215,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ManufacturedInventoryInsufficientStock = 1216,
 
     // Catalog module errors (13XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

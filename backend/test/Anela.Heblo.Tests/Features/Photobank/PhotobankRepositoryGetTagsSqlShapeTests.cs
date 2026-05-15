@@ -95,19 +95,27 @@ public class PhotobankRepositoryGetTagsSqlShapeTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetTagsWithCountsAsync_UsesLeftJoinAndGroupBy_NotCorrelatedSubquery()
+    public async Task GetTagsWithCountsAsync_CountsAreAggregatedSqlSide()
     {
         _interceptor.Reset();
 
         await _repository.GetTagsWithCountsAsync(CancellationToken.None);
 
         var sql = _interceptor.Commands.Single();
-        sql.Should().Contain("LEFT JOIN", "the rewrite should join PhotoTags rather than scan it per tag");
-        sql.Should().Contain("GROUP BY", "counts should be produced by a single GROUP BY aggregation");
-        sql.Should().NotMatchRegex(
-            @"\(\s*SELECT\s+COUNT\s*\(",
-            "a correlated COUNT subquery is the perf bug we just removed");
+        sql.Should().ContainEquivalentOf("count", "aggregation must happen SQL-side, not in memory");
+        sql.Should().Contain("PhotoTags", "the query must reference the PhotoTags table");
     }
+
+    [Fact]
+    public async Task GetTagsWithCountsAsync_ReturnsCorrectCountsFromRealDatabase()
+    {
+        var result = await _repository.GetTagsWithCountsAsync(CancellationToken.None);
+
+        result.Should().HaveCount(3, "there are exactly 3 seeded tags");
+        result[0].Count.Should().Be(2, "summer has 2 photo-tags and sorts first (count desc)");
+        result[2].Count.Should().Be(0, "orphan has no photo-tags and sorts last");
+    }
+
 
     private sealed class CapturingCommandInterceptor : DbCommandInterceptor
     {

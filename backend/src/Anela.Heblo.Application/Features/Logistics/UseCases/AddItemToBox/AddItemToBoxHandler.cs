@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
 using MediatR;
@@ -12,6 +13,7 @@ namespace Anela.Heblo.Application.Features.Logistics.UseCases.AddItemToBox;
 public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemToBoxResponse>
 {
     private readonly ITransportBoxRepository _repository;
+    private readonly IManufacturedProductInventoryRepository _inventoryRepository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AddItemToBoxHandler> _logger;
     private readonly IMapper _mapper;
@@ -19,12 +21,14 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
 
     public AddItemToBoxHandler(
         ITransportBoxRepository repository,
+        IManufacturedProductInventoryRepository inventoryRepository,
         ICurrentUserService currentUserService,
         ILogger<AddItemToBoxHandler> logger,
         IMapper mapper,
         TimeProvider timeProvider)
     {
         _repository = repository;
+        _inventoryRepository = inventoryRepository;
         _currentUserService = currentUserService;
         _logger = logger;
         _mapper = mapper;
@@ -37,6 +41,7 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
         {
             var currentUser = _currentUserService.GetCurrentUser();
             var userName = currentUser.Name;
+            var timestamp = _timeProvider.GetUtcNow().UtcDateTime;
 
             var transportBox = await _repository.GetByIdWithDetailsAsync(request.BoxId);
             if (transportBox == null)
@@ -49,13 +54,45 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
                 };
             }
 
+            if (request.SourceInventoryId != null)
+            {
+                var inventoryItem = await _inventoryRepository.GetByIdAsync(request.SourceInventoryId.Value, cancellationToken);
+                if (inventoryItem == null)
+                {
+                    return new AddItemToBoxResponse
+                    {
+                        Success = false,
+                        ErrorCode = ErrorCodes.ManufacturedInventoryItemNotFound,
+                        Params = new Dictionary<string, string> { { "sourceInventoryId", request.SourceInventoryId.Value.ToString() } }
+                    };
+                }
+
+                try
+                {
+                    inventoryItem.Consume((decimal)request.Amount, userName, timestamp, transportBox.Id, transportBox.Code, request.AllowNegativeStock);
+                }
+                catch (InvalidOperationException)
+                {
+                    return new AddItemToBoxResponse
+                    {
+                        Success = false,
+                        ErrorCode = ErrorCodes.ManufacturedInventoryInsufficientStock,
+                        Params = new Dictionary<string, string> { { "sourceInventoryId", request.SourceInventoryId.Value.ToString() } }
+                    };
+                }
+
+                await _inventoryRepository.UpdateAsync(inventoryItem, cancellationToken);
+            }
+
             var addedItem = transportBox.AddItem(
                 request.ProductCode,
                 request.ProductName,
                 request.Amount,
-                _timeProvider.GetUtcNow().UtcDateTime,
-                userName);
-
+                timestamp,
+                userName,
+                lotNumber: request.LotNumber,
+                expirationDate: request.ExpirationDate,
+                sourceInventoryId: request.SourceInventoryId);
 
             await _repository.SaveChangesAsync(cancellationToken);
 
@@ -92,7 +129,7 @@ public class AddItemToBoxHandler : IRequestHandler<AddItemToBoxRequest, AddItemT
             return new AddItemToBoxResponse
             {
                 Success = false,
-                ErrorCode = ErrorCodes.ValidationError,
+                ErrorCode = ErrorCodes.Exception,
                 Params = new Dictionary<string, string> { { "details", ex.Message } }
             };
         }

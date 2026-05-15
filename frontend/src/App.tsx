@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
 import { MsalProvider } from "@azure/msal-react";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -25,6 +25,7 @@ import GiftPackageManufacturing from "./components/pages/GiftPackageManufacturin
 import WarehouseStatistics from "./components/pages/WarehouseStatistics";
 import InventoryList from "./components/pages/InventoryList";
 import ManufactureInventoryList from "./components/pages/ManufactureInventoryList";
+import ManufacturedInventoryPage from "./components/pages/ManufacturedInventoryPage";
 import ManufactureOrderList from "./components/manufacture/pages/ManufactureOrderList";
 import ManufactureOrderDetail from "./components/manufacture/pages/ManufactureOrderDetail";
 import InvoiceImportStatistics from "./components/pages/automation/InvoiceImportStatistics";
@@ -37,6 +38,16 @@ import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
+import MarketingFeedbackPage from "./pages/MarketingFeedbackPage";
+import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
+import PhotobankPage from "./components/marketing/photobank/pages/PhotobankPage";
+import PhotobankSettingsPage from "./components/marketing/photobank/pages/PhotobankSettingsPage";
+import ArticlesPage from "./pages/ArticlesPage";
+import DataQualityPage from "./pages/customer/DataQualityPage";
+import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
+import TerminalLayout from "./components/terminal/TerminalLayout";
+import TerminalHome from "./components/terminal/TerminalHome";
+import ComingSoonPage from "./components/terminal/ComingSoonPage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
@@ -330,8 +341,20 @@ function App() {
                   }}
                 >
                   <AuthGuard>
-                    <Layout statusBar={<StatusBar />}>
-                      <Routes>
+                    <Routes>
+                      {/* Mobile terminal — no sidebar, no topbar */}
+                      <Route path="/terminal" element={<TerminalLayout />}>
+                        <Route index element={<TerminalHome />} />
+                        <Route path="receive" element={<ComingSoonPage title="Příjem boxu" />} />
+                        <Route path="stocktake" element={<ComingSoonPage title="Inventura" />} />
+                        <Route
+                          path="lot-identification"
+                          element={<ComingSoonPage title="Identifikace šarže" />}
+                        />
+                      </Route>
+
+                      {/* Desktop app — full Layout with sidebar (pathless layout route) */}
+                      <Route element={<Layout statusBar={<StatusBar />}><Outlet /></Layout>}>
                         <Route path="/" element={<Dashboard />} />
                         <Route
                           path="/finance/overview"
@@ -399,6 +422,7 @@ function App() {
                         <Route path="/journal/:id/edit" element={<JournalEntryEdit />} />
                         <Route path="/logistics/inventory" element={<InventoryList />} />
                         <Route path="/manufacturing/inventory" element={<ManufactureInventoryList />} />
+                        <Route path="/manufacturing/product-inventory" element={<ManufacturedInventoryPage />} />
                         <Route path="/logistics/transport-boxes" element={<TransportBoxList />} />
                         <Route path="/logistics/receive-boxes" element={<TransportBoxReceive />} />
                         <Route path="/logistics/gift-package-manufacturing" element={<GiftPackageManufacturing />} />
@@ -411,24 +435,15 @@ function App() {
                         <Route path="/customer/bank-statements-overview" element={<BankStatementsOverviewPage />} />
                         <Route path="/customer/smartsupp" element={<SmartsuppChatsPage />} />
                         <Route path="/orgchart" element={<OrgChartPage />} />
-                        <Route
-                          path="/stock-operations"
-                          element={<StockOperationsPage />}
-                        />
-                        <Route
-                          path="/recurring-jobs"
-                          element={<RecurringJobsPage />}
-                        />
-                        <Route
-                          path="/knowledge-base"
-                          element={<KnowledgeBasePage />}
-                        />
-                        <Route
-                          path="/knowledge-base/feedback"
-                          element={<KnowledgeBaseFeedbackPage />}
-                        />
-                      </Routes>
-                    </Layout>
+                        <Route path="/stock-up-operations" element={<StockOperationsPage />} />
+                        <Route path="/recurring-jobs" element={<RecurringJobsPage />} />
+                        <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
+                        <Route path="/knowledge-base/feedback" element={<KnowledgeBaseFeedbackPage />} />
+                        <Route path="/marketing/feedback" element={<MarketingFeedbackPage />} />
+                        <Route path="/articles" element={<ArticlesPage />} />
+                        <Route path="/automation/data-quality" element={<DataQualityPage />} />
+                      </Route>
+                    </Routes>
                   </AuthGuard>
                 </Router>
               </MsalProvider>
