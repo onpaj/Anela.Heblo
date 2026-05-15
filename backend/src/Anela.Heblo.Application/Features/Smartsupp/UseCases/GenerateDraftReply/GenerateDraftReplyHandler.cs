@@ -13,6 +13,9 @@ public class GenerateDraftReplyHandler
 {
     private const int RetrievalTopK = 5;
     private const int MaxExcerptLength = 200;
+
+    // Keep the retrieval query within SearchDocumentsRequest's MaxLength(2000) constraint.
+    private const int MaxRetrievalQueryLength = 2000;
     private const string NoContextPlaceholder = "(žádný relevantní kontext nebyl nalezen)";
     private const string NoTopicPlaceholder = "(neuvedeno)";
 
@@ -49,6 +52,9 @@ public class GenerateDraftReplyHandler
             ?? ConversationTranscriptBuilder.LastContactMessages(conversation.Messages);
         if (string.IsNullOrWhiteSpace(retrievalQuery))
             return new GenerateDraftReplyResponse(ErrorCodes.SmartsuppConversationEmpty);
+
+        if (retrievalQuery.Length > MaxRetrievalQueryLength)
+            retrievalQuery = retrievalQuery[..MaxRetrievalQueryLength];
 
         var transcript = ConversationTranscriptBuilder.Build(conversation.Messages);
 

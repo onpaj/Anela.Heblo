@@ -202,4 +202,19 @@ public class GenerateDraftReplyHandlerTests
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.SmartsuppDraftReplyAiUnavailable);
     }
+
+    [Fact]
+    public async Task Handle_TruncatesRetrievalQuery_ToSearchDocumentsMaxLength()
+    {
+        var longMessage = new string('a', 5000);
+        SetupConversation(ConversationWith(
+            Msg("m1", SmartsuppMessageAuthorType.Visitor, longMessage, 1)));
+        CaptureSearch();
+        SetupChat();
+
+        await CreateHandler().Handle(
+            new GenerateDraftReplyRequest { ConversationId = "c1", Topic = null }, CancellationToken.None);
+
+        _capturedSearch!.Query.Length.Should().Be(2000);
+    }
 }
