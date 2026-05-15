@@ -66,7 +66,7 @@ describe("DraftReplyTriggerBar", () => {
         onGenerate={jest.fn()}
       />,
     );
-    expect(screen.getByText("Reklamace").closest("button")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reklamace" })).toBeDisabled();
     expect(screen.getByRole("button", { name: /generovat odpověď/i })).toBeDisabled();
   });
 

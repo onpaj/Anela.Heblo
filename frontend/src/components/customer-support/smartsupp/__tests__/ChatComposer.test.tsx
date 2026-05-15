@@ -65,7 +65,7 @@ describe("ChatComposer", () => {
       result: { answer: "Vygenerovaná odpověď", sources: [] },
     });
     render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" />);
-    await waitFor(() => expect(screen.getByText("Návrh od AI")).toBeInTheDocument());
+    expect(await screen.findByText("Návrh od AI")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /zahodit/i }));
     const textarea = screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement;
     expect(textarea.value).toBe("");
@@ -77,7 +77,7 @@ describe("ChatComposer", () => {
       result: { answer: "Vygenerovaná odpověď", sources: [] },
     });
     render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" />);
-    await waitFor(() => expect(screen.getByText("Návrh od AI")).toBeInTheDocument());
+    expect(await screen.findByText("Návrh od AI")).toBeInTheDocument();
     const textarea = screen.getByPlaceholderText(/napište odpověď/i);
     fireEvent.change(textarea, { target: { value: "Ručně upravený text" } });
     expect(screen.queryByText("Návrh od AI")).not.toBeInTheDocument();
