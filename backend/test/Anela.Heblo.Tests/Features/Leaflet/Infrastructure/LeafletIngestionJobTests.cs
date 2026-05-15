@@ -19,7 +19,7 @@ public class LeafletIngestionJobTests
     private readonly Mock<IOneDriveService> _oneDrive = new();
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IRecurringJobStatusChecker> _statusChecker = new();
-    private readonly Mock<ILeafletRepository> _leafletRepository = new();
+    private readonly Mock<ILeafletDocumentRepository> _leafletRepository = new();
     private readonly Mock<ILogger<LeafletIngestionJob>> _logger = new();
 
     private static LeafletOptions DefaultLeafletOptions() => new()
