@@ -83,7 +83,8 @@ public class GenerateDraftReplyHandler
             response = await _chatClient.GetResponseAsync(messages, cancellationToken: cancellationToken);
         }
         catch (Exception ex) when (ex is HttpRequestException or TimeoutException
-                                       or TaskCanceledException or ObjectDisposedException)
+                                       or ObjectDisposedException
+                                       || (ex is TaskCanceledException tce && tce.CancellationToken != cancellationToken))
         {
             _logger.LogWarning(ex, "AI service unavailable while generating Smartsupp draft reply");
             return new GenerateDraftReplyResponse(ErrorCodes.SmartsuppDraftReplyAiUnavailable);

@@ -16,6 +16,7 @@ function ChatComposer({ conversationId, lastContactMessage }: ChatComposerProps)
   const [isAiDraft, setIsAiDraft] = useState(false);
   const [sources, setSources] = useState<DraftReplySource[]>([]);
   const [lastTopic, setLastTopic] = useState<string | undefined>(undefined);
+  const [pendingTopic, setPendingTopic] = useState<{ topic: string | undefined } | null>(null);
 
   const { generate, isLoading, error, result, reset } = useGenerateDraftReply(conversationId);
 
@@ -34,16 +35,21 @@ function ChatComposer({ conversationId, lastContactMessage }: ChatComposerProps)
 
   const requestGeneration = (topic?: string) => {
     if (draft.trim() !== "" && !isAiDraft) {
-      const confirmed = window.confirm(
-        "Přepsat rozepsanou odpověď vygenerovaným návrhem?",
-      );
-      if (!confirmed) {
-        return;
-      }
+      setPendingTopic({ topic });
+      return;
     }
     setLastTopic(topic);
     generate(topic);
   };
+
+  const confirmOverwrite = () => {
+    if (pendingTopic === null) return;
+    setLastTopic(pendingTopic.topic);
+    generate(pendingTopic.topic);
+    setPendingTopic(null);
+  };
+
+  const cancelOverwrite = () => setPendingTopic(null);
 
   const handleDraftChange = (value: string) => {
     setDraft(value.slice(0, MAX_CHARS));
@@ -57,6 +63,7 @@ function ChatComposer({ conversationId, lastContactMessage }: ChatComposerProps)
     setSources([]);
     setIsAiDraft(false);
     setLastTopic(undefined);
+    setPendingTopic(null);
   };
 
   return (
@@ -67,10 +74,32 @@ function ChatComposer({ conversationId, lastContactMessage }: ChatComposerProps)
         error={error}
         onGenerate={requestGeneration}
       />
+      {pendingTopic !== null && (
+        <div className="flex items-center justify-between border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs">
+          <span className="text-amber-800">Přepsat rozepsanou odpověď?</span>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={confirmOverwrite}
+              className="font-medium text-amber-800 hover:text-amber-900"
+            >
+              Přepsat
+            </button>
+            <button
+              type="button"
+              onClick={cancelOverwrite}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              Zrušit
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col gap-2 border-t border-gray-200 bg-white p-3">
         {isAiDraft && (
           <DraftReplyToolbar
             sources={sources}
+            disabled={isLoading}
             onRegenerate={() => generate(lastTopic)}
             onDiscard={handleDiscard}
           />

@@ -53,11 +53,10 @@ public class SmartsuppController : BaseApiController
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<ActionResult<GenerateDraftReplyResponse>> GenerateDraftReply(
         string id,
-        [FromBody] GenerateDraftReplyRequest? request,
+        [FromBody] GenerateDraftReplyBody? body,
         CancellationToken cancellationToken = default)
     {
-        request ??= new GenerateDraftReplyRequest();
-        request.ConversationId = id;
+        var request = new GenerateDraftReplyRequest { ConversationId = id, Topic = body?.Topic };
         var result = await _mediator.Send(request, cancellationToken);
         return HandleResponse(result);
     }
@@ -71,4 +70,9 @@ public class SmartsuppController : BaseApiController
         var result = await _mediator.Send(request ?? new RunManualSyncRequest(), cancellationToken);
         return HandleResponse(result);
     }
+}
+
+public sealed class GenerateDraftReplyBody
+{
+    public string? Topic { get; set; }
 }
