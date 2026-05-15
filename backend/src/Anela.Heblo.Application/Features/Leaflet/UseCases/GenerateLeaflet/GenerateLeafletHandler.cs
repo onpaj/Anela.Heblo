@@ -12,7 +12,7 @@ namespace Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
 public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, GenerateLeafletResponse>
 {
     private readonly IKnowledgeBaseRepository _kb;
-    private readonly ILeafletRepository _leaflets;
+    private readonly ILeafletDocumentRepository _leaflets;
     private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddings;
     private readonly IRagQueryExpander _expander;
     private readonly IChatClient _chat;
@@ -21,7 +21,7 @@ public class GenerateLeafletHandler : IRequestHandler<GenerateLeafletRequest, Ge
 
     public GenerateLeafletHandler(
         IKnowledgeBaseRepository kb,
-        ILeafletRepository leaflets,
+        ILeafletDocumentRepository leaflets,
         IEmbeddingGenerator<string, Embedding<float>> embeddings,
         IRagQueryExpander expander,
         IChatClient chat,
