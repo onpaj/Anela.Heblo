@@ -25,6 +25,7 @@ import GiftPackageManufacturing from "./components/pages/GiftPackageManufacturin
 import WarehouseStatistics from "./components/pages/WarehouseStatistics";
 import InventoryList from "./components/pages/InventoryList";
 import ManufactureInventoryList from "./components/pages/ManufactureInventoryList";
+import ManufacturedInventoryPage from "./components/pages/ManufacturedInventoryPage";
 import ManufactureOrderList from "./components/manufacture/pages/ManufactureOrderList";
 import ManufactureOrderDetail from "./components/manufacture/pages/ManufactureOrderDetail";
 import InvoiceImportStatistics from "./components/pages/automation/InvoiceImportStatistics";
@@ -379,6 +380,7 @@ function App() {
                         <Route path="/journal/:id/edit" element={<JournalEntryEdit />} />
                         <Route path="/logistics/inventory" element={<InventoryList />} />
                         <Route path="/manufacturing/inventory" element={<ManufactureInventoryList />} />
+                        <Route path="/manufacturing/product-inventory" element={<ManufacturedInventoryPage />} />
                         <Route path="/logistics/transport-boxes" element={<TransportBoxList />} />
                         <Route path="/logistics/receive-boxes" element={<TransportBoxReceive />} />
                         <Route path="/logistics/gift-package-manufacturing" element={<GiftPackageManufacturing />} />
@@ -393,7 +395,7 @@ function App() {
                         <Route path="/customer/bank-statements-overview" element={<BankStatementsOverviewPage />} />
                         <Route path="/customer/smartsupp" element={<SmartsuppChatsPage />} />
                         <Route path="/orgchart" element={<OrgChartPage />} />
-                        <Route path="/stock-operations" element={<StockOperationsPage />} />
+                        <Route path="/stock-up-operations" element={<StockOperationsPage />} />
                         <Route path="/recurring-jobs" element={<RecurringJobsPage />} />
                         <Route path="/knowledge-base" element={<KnowledgeBasePage />} />
                         <Route path="/knowledge-base/feedback" element={<KnowledgeBaseFeedbackPage />} />

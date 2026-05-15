@@ -15,8 +15,10 @@ using Anela.Heblo.Adapters.ShoptetApi;
 using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
 using Anela.Heblo.API.Extensions;
 using Anela.Heblo.API.MCP;
+using Anela.Heblo.API.Webhooks.Smartsupp;
 using Anela.Heblo.Application;
 using Anela.Heblo.Application.Features.Photobank;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Xcc;
@@ -61,6 +63,7 @@ public partial class Program
         // Add new architecture services
         builder.Services.AddPersistenceServices(builder.Configuration, builder.Environment);
         builder.Services.AddApplicationServices(builder.Configuration, builder.Environment); // Vertical slice modules from Application layer
+        builder.Services.AddScoped<ISmartsuppWebhookMetrics, SmartsuppWebhookMetrics>();
         builder.Services.AddXccServices(builder.Configuration); // Cross-cutting concerns (audit, telemetry, etc.)
         builder.Services.AddCrossCuttingServices(); // Cross-cutting services from API layer
         builder.Services.AddSpaServices();
