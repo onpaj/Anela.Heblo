@@ -143,6 +143,7 @@ Features/{Feature}/
   - Repository contracts: `I{Entity}Repository.cs`
   - Domain services interfaces
   - For complex domains, use subfolders: `{Feature}/{Subdomain}/`
+- **Shared/Rag/**: Canonical home for cross-module RAG **domain** types — entities, value objects, and enums that span multiple feature modules and must live in Domain to satisfy Clean Architecture layering. Example: `DocumentType` (shared between KnowledgeBase, Leaflet, Conversation, and Article modules)
 
 ### Application Layer (`Anela.Heblo.Application`):
 - **Features/{Feature}/UseCases/**: MediatR handlers (business operations)
@@ -154,6 +155,7 @@ Features/{Feature}/
 - **Features/{Feature}/Validators/**: FluentValidation request validators
 - **Features/{Feature}/{Feature}Repository.cs**: Repository implementations
 - **Features/{Feature}/{Feature}Module.cs**: DI container registration
+- **Shared/Rag/**: Cross-module RAG **application/infrastructure** types — options base classes, helpers, shared services (`RagFeatureOptions`, `OneDriveFolderMapping`, `IRagQueryExpander`). Distinct from `Domain/Shared/Rag/`, which holds Domain-layer RAG types
 
 ### Infrastructure Layer (`Anela.Heblo.Persistence`):
 - **ApplicationDbContext.cs**: Single DbContext (initially)

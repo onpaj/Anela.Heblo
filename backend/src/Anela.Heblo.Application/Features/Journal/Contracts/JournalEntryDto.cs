@@ -18,10 +18,6 @@ namespace Anela.Heblo.Application.Features.Journal.Contracts
 
         public List<string> AssociatedProducts { get; set; } = new();
         public List<JournalEntryTagDto> Tags { get; set; } = new();
-
-        // For search results
-        public string? ContentPreview { get; set; }
-        public List<string> HighlightedTerms { get; set; } = new();
     }
 
     public class JournalEntryTagDto

@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Shared.Rag;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Pgvector;
@@ -298,24 +299,24 @@ public class KnowledgeBaseRepository : IKnowledgeBaseRepository
 
     public async Task<FeedbackAggregateStats> GetFeedbackStatsAsync(CancellationToken ct = default)
     {
-        var totalQuestions = await _context.KnowledgeBaseQuestionLogs.CountAsync(ct);
+        var totalQuestions = await _context.KnowledgeBaseQuestionLogs
+            .CountAsync(ct);
 
-        var withFeedback = await _context.KnowledgeBaseQuestionLogs
-            .Where(l => l.PrecisionScore != null || l.StyleScore != null)
-            .ToListAsync(ct);
+        var totalWithFeedback = await _context.KnowledgeBaseQuestionLogs
+            .CountAsync(l => l.PrecisionScore != null || l.StyleScore != null, ct);
 
-        double? avgPrecision = withFeedback.Count > 0
-            ? withFeedback.Where(l => l.PrecisionScore != null).Average(l => (double?)l.PrecisionScore)
-            : null;
+        var avgPrecision = await _context.KnowledgeBaseQuestionLogs
+            .Where(l => l.PrecisionScore != null)
+            .AverageAsync(l => (double?)l.PrecisionScore, ct);
 
-        double? avgStyle = withFeedback.Count > 0
-            ? withFeedback.Where(l => l.StyleScore != null).Average(l => (double?)l.StyleScore)
-            : null;
+        var avgStyle = await _context.KnowledgeBaseQuestionLogs
+            .Where(l => l.StyleScore != null)
+            .AverageAsync(l => (double?)l.StyleScore, ct);
 
         return new FeedbackAggregateStats
         {
             TotalQuestions = totalQuestions,
-            TotalWithFeedback = withFeedback.Count,
+            TotalWithFeedback = totalWithFeedback,
             AvgPrecisionScore = avgPrecision.HasValue ? Math.Round(avgPrecision.Value, 1) : null,
             AvgStyleScore = avgStyle.HasValue ? Math.Round(avgStyle.Value, 1) : null,
         };

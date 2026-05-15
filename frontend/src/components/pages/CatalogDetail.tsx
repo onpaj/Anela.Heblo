@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { X, Package, Loader2, AlertCircle } from "lucide-react";
 import { CatalogItemDto, useCatalogDetail } from "../../api/hooks/useCatalog";
-import { JournalEntryDto } from "../../api/generated/api-client";
+import { SearchJournalEntryDto } from "../../api/generated/api-client";
 import { useJournalEntriesByProduct } from "../../api/hooks/useJournal";
 import { useNavigate } from "react-router-dom";
 import {
@@ -53,7 +53,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({
   );
   const [showJournalModal, setShowJournalModal] = useState(false);
   const [selectedJournalEntry, setSelectedJournalEntry] = useState<
-    JournalEntryDto | undefined
+    SearchJournalEntryDto | undefined
   >(undefined);
   const [showManufactureDifficultyModal, setShowManufactureDifficultyModal] =
     useState(false);

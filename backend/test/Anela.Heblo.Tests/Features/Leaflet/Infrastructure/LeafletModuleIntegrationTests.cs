@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Leaflet.Services;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
+using Anela.Heblo.Domain.Shared.Rag;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

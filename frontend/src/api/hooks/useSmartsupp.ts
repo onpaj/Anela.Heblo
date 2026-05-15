@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { getAuthenticatedApiClient } from "../client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { QUERY_KEYS, getAuthenticatedApiClient } from "../client";
 
 export interface ConversationDto {
   id: string;
@@ -13,6 +13,20 @@ export interface ConversationDto {
   lastMessagePreview?: string | null;
   createdAt: string;
   updatedAt: string;
+  rating?: number | null;
+  ratingText?: string | null;
+  closeType?: string | null;
+  closedByAgentId?: string | null;
+  assignedAgentIds: string[];
+  channel?: string | null;
+  isServed: boolean;
+  finishedAt?: string | null;
+  domain?: string | null;
+  referer?: string | null;
+  locationCountry?: string | null;
+  locationCity?: string | null;
+  locationCode?: string | null;
+  tags: string[];
 }
 
 export interface MessageDto {
@@ -21,6 +35,13 @@ export interface MessageDto {
   authorName?: string | null;
   content?: string | null;
   createdAt: string;
+  agentId?: string | null;
+  subType?: string | null;
+  deliveryStatus?: string | null;
+  deliveredAt?: string | null;
+  responseTime?: number | null;
+  isFirstReply: boolean;
+  pageUrl?: string | null;
 }
 
 export interface ListConversationsResponse {
@@ -35,6 +56,14 @@ export interface GetConversationResponse {
   success: boolean;
   conversation?: ConversationDto | null;
   messages: MessageDto[];
+}
+
+export interface RunManualSyncResponse {
+  success: boolean;
+  conversationsProcessed: number;
+  messagesProcessed: number;
+  startedAt: string;
+  completedAt: string;
 }
 
 function getClientAndBaseUrl(): { apiClient: ReturnType<typeof getAuthenticatedApiClient>; baseUrl: string } {
@@ -80,5 +109,27 @@ export function useSmartsuppConversation(id: string | null) {
     enabled: !!id,
     refetchInterval: 30_000,
     staleTime: 15_000,
+  });
+}
+
+export function useTriggerSmartsuppSync() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await (apiClient as any).http.fetch(`${baseUrl}/api/smartsupp/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      if (!response.ok) {
+        throw new Error(`Smartsupp sync failed: ${response.status} ${response.statusText}`);
+      }
+      return (await response.json()) as RunManualSyncResponse;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.smartsupp, "conversations"] });
+    },
   });
 }

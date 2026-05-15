@@ -9,6 +9,25 @@ import {
   TransportBoxState,
 } from "../generated/api-client";
 
+// Type-safe interface for accessing API client internals
+interface ApiClientWithInternals {
+  baseUrl: string;
+  http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+}
+
+// Extended add-item request — includes optional inventory source fields not yet in the
+// generated client (backend AddItemToBoxRequest already supports them from Task 10).
+export interface AddItemToBoxInput {
+  boxId: number;
+  productCode: string;
+  productName: string;
+  amount: number;
+  sourceInventoryId?: number;
+  lotNumber?: string;
+  expirationDate?: string;
+  allowNegativeStock?: boolean;
+}
+
 // Define request interface matching the backend contract
 export interface GetTransportBoxesRequest {
   skip?: number;
@@ -157,3 +176,41 @@ export const useChangeTransportBoxState = () => {
 };
 
 export { transportBoxKeys };
+
+export const useAddItemToBox = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: AddItemToBoxInput): Promise<{ success: boolean; errorMessage?: string }> => {
+      const apiClient = getAuthenticatedApiClient() as unknown as ApiClientWithInternals;
+      const url = `${apiClient.baseUrl}/api/transport-boxes/${input.boxId}/items`;
+      const body: Record<string, unknown> = {
+        boxId: input.boxId,
+        productCode: input.productCode,
+        productName: input.productName,
+        amount: input.amount,
+      };
+      if (input.sourceInventoryId !== undefined) body["sourceInventoryId"] = input.sourceInventoryId;
+      if (input.lotNumber !== undefined) body["lotNumber"] = input.lotNumber;
+      if (input.expirationDate !== undefined) body["expirationDate"] = input.expirationDate;
+      if (input.allowNegativeStock) body["allowNegativeStock"] = true;
+
+      const response = await apiClient.http.fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+      }
+
+      return response.json() as Promise<{ success: boolean; errorMessage?: string }>;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: transportBoxKeys.detail(variables.boxId) });
+      queryClient.invalidateQueries({ queryKey: transportBoxKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.manufacturedProductInventory });
+    },
+  });
+};

@@ -5113,6 +5113,174 @@ export class ApiClient {
         return Promise.resolve<CalculateBatchPlanResponse>(null as any);
     }
 
+    manufacturedProductInventory_GetInventory(search: string | null | undefined, onlyWithStock: boolean | undefined, manufactureOrderId: number | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<GetManufacturedInventoryResponse> {
+        let url_ = this.baseUrl + "/api/manufactured-inventory?";
+        if (search !== undefined && search !== null)
+            url_ += "Search=" + encodeURIComponent("" + search) + "&";
+        if (onlyWithStock === null)
+            throw new Error("The parameter 'onlyWithStock' cannot be null.");
+        else if (onlyWithStock !== undefined)
+            url_ += "OnlyWithStock=" + encodeURIComponent("" + onlyWithStock) + "&";
+        if (manufactureOrderId !== undefined && manufactureOrderId !== null)
+            url_ += "ManufactureOrderId=" + encodeURIComponent("" + manufactureOrderId) + "&";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "Page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufacturedProductInventory_GetInventory(_response);
+        });
+    }
+
+    protected processManufacturedProductInventory_GetInventory(response: Response): Promise<GetManufacturedInventoryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetManufacturedInventoryResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetManufacturedInventoryResponse>(null as any);
+    }
+
+    manufacturedProductInventory_CreateItem(request: CreateManufacturedInventoryItemRequest): Promise<CreateManufacturedInventoryItemResponse> {
+        let url_ = this.baseUrl + "/api/manufactured-inventory";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufacturedProductInventory_CreateItem(_response);
+        });
+    }
+
+    protected processManufacturedProductInventory_CreateItem(response: Response): Promise<CreateManufacturedInventoryItemResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateManufacturedInventoryItemResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateManufacturedInventoryItemResponse>(null as any);
+    }
+
+    manufacturedProductInventory_UpdateItem(id: number, body: UpdateManufacturedInventoryItemBody): Promise<UpdateManufacturedInventoryItemResponse> {
+        let url_ = this.baseUrl + "/api/manufactured-inventory/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufacturedProductInventory_UpdateItem(_response);
+        });
+    }
+
+    protected processManufacturedProductInventory_UpdateItem(response: Response): Promise<UpdateManufacturedInventoryItemResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateManufacturedInventoryItemResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateManufacturedInventoryItemResponse>(null as any);
+    }
+
+    manufacturedProductInventory_DeleteItem(id: number, note: string | null | undefined): Promise<DeleteManufacturedInventoryItemResponse> {
+        let url_ = this.baseUrl + "/api/manufactured-inventory/{id}?";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (note !== undefined && note !== null)
+            url_ += "note=" + encodeURIComponent("" + note) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufacturedProductInventory_DeleteItem(_response);
+        });
+    }
+
+    protected processManufacturedProductInventory_DeleteItem(response: Response): Promise<DeleteManufacturedInventoryItemResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteManufacturedInventoryItemResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteManufacturedInventoryItemResponse>(null as any);
+    }
+
     manufactureOrder_GetOrders(state: ManufactureOrderState | null | undefined, dateFrom: Date | null | undefined, dateTo: Date | null | undefined, responsiblePerson: string | null | undefined, orderNumber: string | null | undefined, productCode: string | null | undefined, erpDocumentNumber: string | null | undefined, manualActionRequired: boolean | null | undefined, lotNumber: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetManufactureOrdersResponse> {
         let url_ = this.baseUrl + "/api/ManufactureOrder?";
         if (state !== undefined && state !== null)
@@ -8518,6 +8686,82 @@ export class ApiClient {
         return Promise.resolve<GetConversationResponse>(null as any);
     }
 
+    smartsupp_RunSync(request: RunManualSyncRequest | undefined): Promise<RunManualSyncResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/sync";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_RunSync(_response);
+        });
+    }
+
+    protected processSmartsupp_RunSync(response: Response): Promise<RunManualSyncResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RunManualSyncResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RunManualSyncResponse>(null as any);
+    }
+
+    smartsuppWebhook_Receive(): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/webhooks/smartsupp";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsuppWebhook_Receive(_response);
+        });
+    }
+
+    protected processSmartsuppWebhook_Receive(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
     stockTaking_SubmitStockTaking(request: SubmitStockTakingRequest): Promise<SubmitStockTakingResponse> {
         let url_ = this.baseUrl + "/api/StockTaking/submit";
         url_ = url_.replace(/[?&]$/, "");
@@ -9617,6 +9861,8 @@ export enum ErrorCodes {
     CannotUpdateCancelledOrder = "CannotUpdateCancelledOrder",
     CannotScheduleInPast = "CannotScheduleInPast",
     InvalidScheduleDateOrder = "InvalidScheduleDateOrder",
+    ManufacturedInventoryItemNotFound = "ManufacturedInventoryItemNotFound",
+    ManufacturedInventoryInsufficientStock = "ManufacturedInventoryInsufficientStock",
     CatalogItemNotFound = "CatalogItemNotFound",
     ManufactureDifficultyNotFound = "ManufactureDifficultyNotFound",
     ManufactureDifficultyConflict = "ManufactureDifficultyConflict",
@@ -16426,8 +16672,6 @@ export class JournalEntryDto implements IJournalEntryDto {
     modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     tags?: JournalEntryTagDto[];
-    contentPreview?: string | undefined;
-    highlightedTerms?: string[];
 
     constructor(data?: IJournalEntryDto) {
         if (data) {
@@ -16459,12 +16703,6 @@ export class JournalEntryDto implements IJournalEntryDto {
                 this.tags = [] as any;
                 for (let item of _data["tags"])
                     this.tags!.push(JournalEntryTagDto.fromJS(item));
-            }
-            this.contentPreview = _data["contentPreview"];
-            if (Array.isArray(_data["highlightedTerms"])) {
-                this.highlightedTerms = [] as any;
-                for (let item of _data["highlightedTerms"])
-                    this.highlightedTerms!.push(item);
             }
         }
     }
@@ -16498,12 +16736,6 @@ export class JournalEntryDto implements IJournalEntryDto {
             for (let item of this.tags)
                 data["tags"].push(item.toJSON());
         }
-        data["contentPreview"] = this.contentPreview;
-        if (Array.isArray(this.highlightedTerms)) {
-            data["highlightedTerms"] = [];
-            for (let item of this.highlightedTerms)
-                data["highlightedTerms"].push(item);
-        }
         return data;
     }
 }
@@ -16521,8 +16753,6 @@ export interface IJournalEntryDto {
     modifiedByUsername?: string | undefined;
     associatedProducts?: string[];
     tags?: JournalEntryTagDto[];
-    contentPreview?: string | undefined;
-    highlightedTerms?: string[];
 }
 
 export class JournalEntryTagDto implements IJournalEntryTagDto {
@@ -16570,7 +16800,7 @@ export interface IJournalEntryTagDto {
 }
 
 export class SearchJournalEntriesResponse extends BaseResponse implements ISearchJournalEntriesResponse {
-    entries?: JournalEntryDto[];
+    entries?: SearchJournalEntryDto[];
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
@@ -16588,7 +16818,7 @@ export class SearchJournalEntriesResponse extends BaseResponse implements ISearc
             if (Array.isArray(_data["entries"])) {
                 this.entries = [] as any;
                 for (let item of _data["entries"])
-                    this.entries!.push(JournalEntryDto.fromJS(item));
+                    this.entries!.push(SearchJournalEntryDto.fromJS(item));
             }
             this.totalCount = _data["totalCount"];
             this.pageNumber = _data["pageNumber"];
@@ -16625,13 +16855,121 @@ export class SearchJournalEntriesResponse extends BaseResponse implements ISearc
 }
 
 export interface ISearchJournalEntriesResponse extends IBaseResponse {
-    entries?: JournalEntryDto[];
+    entries?: SearchJournalEntryDto[];
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
     totalPages?: number;
     hasNextPage?: boolean;
     hasPreviousPage?: boolean;
+}
+
+export class SearchJournalEntryDto implements ISearchJournalEntryDto {
+    id?: number;
+    title?: string | undefined;
+    entryDate?: Date;
+    createdAt?: Date;
+    modifiedAt?: Date;
+    createdByUserId?: string;
+    createdByUsername?: string | undefined;
+    modifiedByUserId?: string | undefined;
+    modifiedByUsername?: string | undefined;
+    associatedProducts?: string[];
+    tags?: JournalEntryTagDto[];
+    contentPreview?: string;
+    highlightedTerms?: string[];
+
+    constructor(data?: ISearchJournalEntryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.title = _data["title"];
+            this.entryDate = _data["entryDate"] ? new Date(_data["entryDate"].toString()) : <any>undefined;
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.modifiedAt = _data["modifiedAt"] ? new Date(_data["modifiedAt"].toString()) : <any>undefined;
+            this.createdByUserId = _data["createdByUserId"];
+            this.createdByUsername = _data["createdByUsername"];
+            this.modifiedByUserId = _data["modifiedByUserId"];
+            this.modifiedByUsername = _data["modifiedByUsername"];
+            if (Array.isArray(_data["associatedProducts"])) {
+                this.associatedProducts = [] as any;
+                for (let item of _data["associatedProducts"])
+                    this.associatedProducts!.push(item);
+            }
+            if (Array.isArray(_data["tags"])) {
+                this.tags = [] as any;
+                for (let item of _data["tags"])
+                    this.tags!.push(JournalEntryTagDto.fromJS(item));
+            }
+            this.contentPreview = _data["contentPreview"];
+            if (Array.isArray(_data["highlightedTerms"])) {
+                this.highlightedTerms = [] as any;
+                for (let item of _data["highlightedTerms"])
+                    this.highlightedTerms!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): SearchJournalEntryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new SearchJournalEntryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["title"] = this.title;
+        data["entryDate"] = this.entryDate ? this.entryDate.toISOString() : <any>undefined;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["modifiedAt"] = this.modifiedAt ? this.modifiedAt.toISOString() : <any>undefined;
+        data["createdByUserId"] = this.createdByUserId;
+        data["createdByUsername"] = this.createdByUsername;
+        data["modifiedByUserId"] = this.modifiedByUserId;
+        data["modifiedByUsername"] = this.modifiedByUsername;
+        if (Array.isArray(this.associatedProducts)) {
+            data["associatedProducts"] = [];
+            for (let item of this.associatedProducts)
+                data["associatedProducts"].push(item);
+        }
+        if (Array.isArray(this.tags)) {
+            data["tags"] = [];
+            for (let item of this.tags)
+                data["tags"].push(item.toJSON());
+        }
+        data["contentPreview"] = this.contentPreview;
+        if (Array.isArray(this.highlightedTerms)) {
+            data["highlightedTerms"] = [];
+            for (let item of this.highlightedTerms)
+                data["highlightedTerms"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface ISearchJournalEntryDto {
+    id?: number;
+    title?: string | undefined;
+    entryDate?: Date;
+    createdAt?: Date;
+    modifiedAt?: Date;
+    createdByUserId?: string;
+    createdByUsername?: string | undefined;
+    modifiedByUserId?: string | undefined;
+    modifiedByUsername?: string | undefined;
+    associatedProducts?: string[];
+    tags?: JournalEntryTagDto[];
+    contentPreview?: string;
+    highlightedTerms?: string[];
 }
 
 export class GetJournalEntryResponse extends BaseResponse implements IGetJournalEntryResponse {
@@ -20022,6 +20360,409 @@ export interface IProductSizeConstraint {
     productCode?: string;
     isFixed?: boolean;
     fixedQuantity?: number | undefined;
+}
+
+export class GetManufacturedInventoryResponse extends BaseResponse implements IGetManufacturedInventoryResponse {
+    items?: ManufacturedProductInventoryItemDto[];
+    totalCount?: number;
+
+    constructor(data?: IGetManufacturedInventoryResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(ManufacturedProductInventoryItemDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+        }
+    }
+
+    static override fromJS(data: any): GetManufacturedInventoryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetManufacturedInventoryResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetManufacturedInventoryResponse extends IBaseResponse {
+    items?: ManufacturedProductInventoryItemDto[];
+    totalCount?: number;
+}
+
+export class ManufacturedProductInventoryItemDto implements IManufacturedProductInventoryItemDto {
+    id?: number;
+    productCode?: string;
+    productName?: string;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
+    amount?: number;
+    manufactureOrderId?: number | undefined;
+    createdAt?: Date;
+    createdBy?: string;
+    lastModifiedAt?: Date | undefined;
+    lastModifiedBy?: string | undefined;
+    log?: ManufacturedProductInventoryLogDto[];
+
+    constructor(data?: IManufacturedProductInventoryItemDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.lotNumber = _data["lotNumber"];
+            this.expirationDate = _data["expirationDate"] ? new Date(_data["expirationDate"].toString()) : <any>undefined;
+            this.amount = _data["amount"];
+            this.manufactureOrderId = _data["manufactureOrderId"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.createdBy = _data["createdBy"];
+            this.lastModifiedAt = _data["lastModifiedAt"] ? new Date(_data["lastModifiedAt"].toString()) : <any>undefined;
+            this.lastModifiedBy = _data["lastModifiedBy"];
+            if (Array.isArray(_data["log"])) {
+                this.log = [] as any;
+                for (let item of _data["log"])
+                    this.log!.push(ManufacturedProductInventoryLogDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): ManufacturedProductInventoryItemDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManufacturedProductInventoryItemDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["lotNumber"] = this.lotNumber;
+        data["expirationDate"] = this.expirationDate ? formatDate(this.expirationDate) : <any>undefined;
+        data["amount"] = this.amount;
+        data["manufactureOrderId"] = this.manufactureOrderId;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["createdBy"] = this.createdBy;
+        data["lastModifiedAt"] = this.lastModifiedAt ? this.lastModifiedAt.toISOString() : <any>undefined;
+        data["lastModifiedBy"] = this.lastModifiedBy;
+        if (Array.isArray(this.log)) {
+            data["log"] = [];
+            for (let item of this.log)
+                data["log"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IManufacturedProductInventoryItemDto {
+    id?: number;
+    productCode?: string;
+    productName?: string;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
+    amount?: number;
+    manufactureOrderId?: number | undefined;
+    createdAt?: Date;
+    createdBy?: string;
+    lastModifiedAt?: Date | undefined;
+    lastModifiedBy?: string | undefined;
+    log?: ManufacturedProductInventoryLogDto[];
+}
+
+export class ManufacturedProductInventoryLogDto implements IManufacturedProductInventoryLogDto {
+    id?: number;
+    inventoryItemId?: number;
+    changeType?: InventoryChangeType;
+    amountDelta?: number;
+    amountAfter?: number;
+    referenceType?: string | undefined;
+    referenceId?: string | undefined;
+    note?: string | undefined;
+    timestamp?: Date;
+    user?: string;
+
+    constructor(data?: IManufacturedProductInventoryLogDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.inventoryItemId = _data["inventoryItemId"];
+            this.changeType = _data["changeType"];
+            this.amountDelta = _data["amountDelta"];
+            this.amountAfter = _data["amountAfter"];
+            this.referenceType = _data["referenceType"];
+            this.referenceId = _data["referenceId"];
+            this.note = _data["note"];
+            this.timestamp = _data["timestamp"] ? new Date(_data["timestamp"].toString()) : <any>undefined;
+            this.user = _data["user"];
+        }
+    }
+
+    static fromJS(data: any): ManufacturedProductInventoryLogDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ManufacturedProductInventoryLogDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["inventoryItemId"] = this.inventoryItemId;
+        data["changeType"] = this.changeType;
+        data["amountDelta"] = this.amountDelta;
+        data["amountAfter"] = this.amountAfter;
+        data["referenceType"] = this.referenceType;
+        data["referenceId"] = this.referenceId;
+        data["note"] = this.note;
+        data["timestamp"] = this.timestamp ? this.timestamp.toISOString() : <any>undefined;
+        data["user"] = this.user;
+        return data;
+    }
+}
+
+export interface IManufacturedProductInventoryLogDto {
+    id?: number;
+    inventoryItemId?: number;
+    changeType?: InventoryChangeType;
+    amountDelta?: number;
+    amountAfter?: number;
+    referenceType?: string | undefined;
+    referenceId?: string | undefined;
+    note?: string | undefined;
+    timestamp?: Date;
+    user?: string;
+}
+
+export enum InventoryChangeType {
+    InitialWriteDown = "InitialWriteDown",
+    ConsumedByTransportBox = "ConsumedByTransportBox",
+    RestoredFromTransportBox = "RestoredFromTransportBox",
+    ManualAdjustment = "ManualAdjustment",
+    ManualRemoval = "ManualRemoval",
+    ManualAddition = "ManualAddition",
+}
+
+export class CreateManufacturedInventoryItemResponse extends BaseResponse implements ICreateManufacturedInventoryItemResponse {
+    item?: ManufacturedProductInventoryItemDto | undefined;
+
+    constructor(data?: ICreateManufacturedInventoryItemResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.item = _data["item"] ? ManufacturedProductInventoryItemDto.fromJS(_data["item"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): CreateManufacturedInventoryItemResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateManufacturedInventoryItemResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["item"] = this.item ? this.item.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateManufacturedInventoryItemResponse extends IBaseResponse {
+    item?: ManufacturedProductInventoryItemDto | undefined;
+}
+
+export class CreateManufacturedInventoryItemRequest implements ICreateManufacturedInventoryItemRequest {
+    productCode?: string;
+    productName?: string;
+    amount?: number;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
+    manufactureOrderId?: number | undefined;
+
+    constructor(data?: ICreateManufacturedInventoryItemRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.productName = _data["productName"];
+            this.amount = _data["amount"];
+            this.lotNumber = _data["lotNumber"];
+            this.expirationDate = _data["expirationDate"] ? new Date(_data["expirationDate"].toString()) : <any>undefined;
+            this.manufactureOrderId = _data["manufactureOrderId"];
+        }
+    }
+
+    static fromJS(data: any): CreateManufacturedInventoryItemRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateManufacturedInventoryItemRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["productName"] = this.productName;
+        data["amount"] = this.amount;
+        data["lotNumber"] = this.lotNumber;
+        data["expirationDate"] = this.expirationDate ? formatDate(this.expirationDate) : <any>undefined;
+        data["manufactureOrderId"] = this.manufactureOrderId;
+        return data;
+    }
+}
+
+export interface ICreateManufacturedInventoryItemRequest {
+    productCode?: string;
+    productName?: string;
+    amount?: number;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
+    manufactureOrderId?: number | undefined;
+}
+
+export class UpdateManufacturedInventoryItemResponse extends BaseResponse implements IUpdateManufacturedInventoryItemResponse {
+    item?: ManufacturedProductInventoryItemDto | undefined;
+
+    constructor(data?: IUpdateManufacturedInventoryItemResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.item = _data["item"] ? ManufacturedProductInventoryItemDto.fromJS(_data["item"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): UpdateManufacturedInventoryItemResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufacturedInventoryItemResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["item"] = this.item ? this.item.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateManufacturedInventoryItemResponse extends IBaseResponse {
+    item?: ManufacturedProductInventoryItemDto | undefined;
+}
+
+export class UpdateManufacturedInventoryItemBody implements IUpdateManufacturedInventoryItemBody {
+    newAmount?: number;
+    note?: string | undefined;
+
+    constructor(data?: IUpdateManufacturedInventoryItemBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.newAmount = _data["newAmount"];
+            this.note = _data["note"];
+        }
+    }
+
+    static fromJS(data: any): UpdateManufacturedInventoryItemBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateManufacturedInventoryItemBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["newAmount"] = this.newAmount;
+        data["note"] = this.note;
+        return data;
+    }
+}
+
+export interface IUpdateManufacturedInventoryItemBody {
+    newAmount?: number;
+    note?: string | undefined;
+}
+
+export class DeleteManufacturedInventoryItemResponse extends BaseResponse implements IDeleteManufacturedInventoryItemResponse {
+
+    constructor(data?: IDeleteManufacturedInventoryItemResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteManufacturedInventoryItemResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteManufacturedInventoryItemResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteManufacturedInventoryItemResponse extends IBaseResponse {
 }
 
 export class GetManufactureOrdersResponse extends BaseResponse implements IGetManufactureOrdersResponse {
@@ -28544,6 +29285,87 @@ export interface IMessageDto {
     createdAt?: Date;
 }
 
+export class RunManualSyncResponse extends BaseResponse implements IRunManualSyncResponse {
+    conversationsProcessed?: number;
+    messagesProcessed?: number;
+    startedAt?: Date;
+    completedAt?: Date;
+
+    constructor(data?: IRunManualSyncResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.conversationsProcessed = _data["conversationsProcessed"];
+            this.messagesProcessed = _data["messagesProcessed"];
+            this.startedAt = _data["startedAt"] ? new Date(_data["startedAt"].toString()) : <any>undefined;
+            this.completedAt = _data["completedAt"] ? new Date(_data["completedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): RunManualSyncResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RunManualSyncResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["conversationsProcessed"] = this.conversationsProcessed;
+        data["messagesProcessed"] = this.messagesProcessed;
+        data["startedAt"] = this.startedAt ? this.startedAt.toISOString() : <any>undefined;
+        data["completedAt"] = this.completedAt ? this.completedAt.toISOString() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRunManualSyncResponse extends IBaseResponse {
+    conversationsProcessed?: number;
+    messagesProcessed?: number;
+    startedAt?: Date;
+    completedAt?: Date;
+}
+
+export class RunManualSyncRequest implements IRunManualSyncRequest {
+    since?: Date | undefined;
+
+    constructor(data?: IRunManualSyncRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.since = _data["since"] ? new Date(_data["since"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): RunManualSyncRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new RunManualSyncRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["since"] = this.since ? this.since.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IRunManualSyncRequest {
+    since?: Date | undefined;
+}
+
 export class SubmitStockTakingResponse extends BaseResponse implements ISubmitStockTakingResponse {
     id?: number;
     type?: StockTakingType;
@@ -29209,6 +30031,8 @@ export class TransportBoxItemDto implements ITransportBoxItemDto {
     dateAdded?: Date;
     userAdded?: string;
     onStock?: number;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
 
     constructor(data?: ITransportBoxItemDto) {
         if (data) {
@@ -29229,6 +30053,8 @@ export class TransportBoxItemDto implements ITransportBoxItemDto {
             this.dateAdded = _data["dateAdded"] ? new Date(_data["dateAdded"].toString()) : <any>undefined;
             this.userAdded = _data["userAdded"];
             this.onStock = _data["onStock"];
+            this.lotNumber = _data["lotNumber"];
+            this.expirationDate = _data["expirationDate"] ? new Date(_data["expirationDate"].toString()) : <any>undefined;
         }
     }
 
@@ -29249,6 +30075,8 @@ export class TransportBoxItemDto implements ITransportBoxItemDto {
         data["dateAdded"] = this.dateAdded ? this.dateAdded.toISOString() : <any>undefined;
         data["userAdded"] = this.userAdded;
         data["onStock"] = this.onStock;
+        data["lotNumber"] = this.lotNumber;
+        data["expirationDate"] = this.expirationDate ? formatDate(this.expirationDate) : <any>undefined;
         return data;
     }
 }
@@ -29262,6 +30090,8 @@ export interface ITransportBoxItemDto {
     dateAdded?: Date;
     userAdded?: string;
     onStock?: number;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
 }
 
 export class TransportBoxStateLogDto implements ITransportBoxStateLogDto {
@@ -29659,6 +30489,10 @@ export class AddItemToBoxRequest implements IAddItemToBoxRequest {
     productCode!: string;
     productName!: string;
     amount!: number;
+    sourceInventoryId?: number | undefined;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
+    allowNegativeStock?: boolean;
 
     constructor(data?: IAddItemToBoxRequest) {
         if (data) {
@@ -29675,6 +30509,10 @@ export class AddItemToBoxRequest implements IAddItemToBoxRequest {
             this.productCode = _data["productCode"];
             this.productName = _data["productName"];
             this.amount = _data["amount"];
+            this.sourceInventoryId = _data["sourceInventoryId"];
+            this.lotNumber = _data["lotNumber"];
+            this.expirationDate = _data["expirationDate"] ? new Date(_data["expirationDate"].toString()) : <any>undefined;
+            this.allowNegativeStock = _data["allowNegativeStock"];
         }
     }
 
@@ -29691,6 +30529,10 @@ export class AddItemToBoxRequest implements IAddItemToBoxRequest {
         data["productCode"] = this.productCode;
         data["productName"] = this.productName;
         data["amount"] = this.amount;
+        data["sourceInventoryId"] = this.sourceInventoryId;
+        data["lotNumber"] = this.lotNumber;
+        data["expirationDate"] = this.expirationDate ? formatDate(this.expirationDate) : <any>undefined;
+        data["allowNegativeStock"] = this.allowNegativeStock;
         return data;
     }
 }
@@ -29700,6 +30542,10 @@ export interface IAddItemToBoxRequest {
     productCode: string;
     productName: string;
     amount: number;
+    sourceInventoryId?: number | undefined;
+    lotNumber?: string | undefined;
+    expirationDate?: Date | undefined;
+    allowNegativeStock?: boolean;
 }
 
 export class RemoveItemFromBoxResponse extends BaseResponse implements IRemoveItemFromBoxResponse {

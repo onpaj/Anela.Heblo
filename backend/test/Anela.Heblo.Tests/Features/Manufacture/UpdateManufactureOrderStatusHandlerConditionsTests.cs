@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class UpdateManufactureOrderStatusHandlerConditionsTests
 {
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
+    private readonly Mock<IManufacturedProductInventoryRepository> _inventoryRepositoryMock;
     private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
     private readonly Mock<IConditionsReadingProvider> _conditionsProviderMock;
     private readonly Mock<ILogger<UpdateManufactureOrderStatusHandler>> _loggerMock;
@@ -19,6 +21,7 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
     public UpdateManufactureOrderStatusHandlerConditionsTests()
     {
         _repositoryMock = new Mock<IManufactureOrderRepository>();
+        _inventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
         _loggerMock = new Mock<ILogger<UpdateManufactureOrderStatusHandler>>();
         _conditionsProviderMock = new Mock<IConditionsReadingProvider>();
         _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
@@ -28,6 +31,10 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
         var httpContext = new Mock<HttpContext>();
         httpContext.Setup(x => x.User).Returns(principal);
         _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(httpContext.Object);
+
+        _inventoryRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufacturedProductInventoryItem item, CancellationToken _) => item);
     }
 
     private UpdateManufactureOrderStatusHandler CreateHandler() =>
@@ -36,7 +43,8 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
             TimeProvider.System,
             _loggerMock.Object,
             _httpContextAccessorMock.Object,
-            _conditionsProviderMock.Object);
+            _conditionsProviderMock.Object,
+            _inventoryRepositoryMock.Object);
 
     private ManufactureOrder CreateOrderInState(ManufactureOrderState state) =>
         new ManufactureOrder
@@ -187,6 +195,44 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
         var reading = order.ConditionsReadings.Single();
         reading.Source.Should().Be(ConditionsReadingSource.Unavailable);
         reading.InnerTemperature.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_DoesNotAddDuplicateConditionsReading_WhenStageAlreadyHasReading()
+    {
+        // Arrange
+        var originalRecordedAt = DateTime.UtcNow.AddHours(-1);
+        var order = CreateOrderInState(ManufactureOrderState.Planned);
+        order.ConditionsReadings.Add(new ManufactureOrderConditionsReading
+        {
+            ManufactureOrderId = 1,
+            Stage = ManufactureOrderState.SemiProductManufactured,
+            InnerTemperature = 22.0m,
+            Source = ConditionsReadingSource.Live,
+            RecordedAt = originalRecordedAt,
+        });
+
+        _repositoryMock.Setup(x => x.GetOrderByIdAsync(1, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        _repositoryMock.Setup(x => x.UpdateOrderAsync(order, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = 1,
+            NewState = ManufactureOrderState.SemiProductManufactured,
+            ChangeReason = "Re-entering stage after rollback",
+        };
+        var handler = CreateHandler();
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        order.ConditionsReadings.Should().HaveCount(1);
+        order.ConditionsReadings.Single().RecordedAt.Should().Be(originalRecordedAt);
+        _conditionsProviderMock.Verify(x => x.GetCurrentSnapshotAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

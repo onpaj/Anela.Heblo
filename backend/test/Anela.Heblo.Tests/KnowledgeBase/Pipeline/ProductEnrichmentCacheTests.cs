@@ -1,6 +1,6 @@
+using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
-using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -13,15 +13,15 @@ public class ProductEnrichmentCacheTests
     private readonly Mock<IServiceScopeFactory> _scopeFactory = new();
     private readonly Mock<IServiceScope> _scope = new();
     private readonly Mock<IServiceProvider> _serviceProvider = new();
-    private readonly Mock<ICatalogRepository> _repository = new();
+    private readonly Mock<IProductCatalogQueryService> _queryService = new();
 
     public ProductEnrichmentCacheTests()
     {
         _scopeFactory.Setup(f => f.CreateScope()).Returns(_scope.Object);
         _scope.Setup(s => s.ServiceProvider).Returns(_serviceProvider.Object);
         _serviceProvider
-            .Setup(sp => sp.GetService(typeof(ICatalogRepository)))
-            .Returns(_repository.Object);
+            .Setup(sp => sp.GetService(typeof(IProductCatalogQueryService)))
+            .Returns(_queryService.Object);
     }
 
     private ProductEnrichmentCache Create(int ttlMinutes = 60) =>
@@ -30,71 +30,55 @@ public class ProductEnrichmentCacheTests
             ProductEnrichmentCacheTtlMinutes = ttlMinutes
         }));
 
-    private void SetupRepository(params CatalogAggregate[] products)
+    private void SetupQueryService(params ProductCatalogEntry[] entries)
     {
-        _repository
-            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(products);
+        _queryService
+            .Setup(s => s.GetActiveProductsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entries);
     }
 
     [Fact]
-    public async Task GetProductLookupAsync_PredicateFiltersToProductAndGoodsOnly()
+    public async Task GetProductLookupAsync_MapsEntriesIntoLookup()
     {
-        System.Linq.Expressions.Expression<Func<CatalogAggregate, bool>>? capturedPredicate = null;
-        _repository
-            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()))
-            .Callback<System.Linq.Expressions.Expression<Func<CatalogAggregate, bool>>, CancellationToken>(
-                (pred, _) => capturedPredicate = pred)
-            .ReturnsAsync(new[]
-            {
-                new CatalogAggregate { ProductCode = "PRD001", ProductName = "Sérum ABC", Type = ProductType.Product },
-                new CatalogAggregate { ProductCode = "GDS001", ProductName = "Krém XYZ", Type = ProductType.Goods }
-            });
+        SetupQueryService(
+            new ProductCatalogEntry { ProductCode = "PRD001", ProductName = "Sérum ABC", Url = null },
+            new ProductCatalogEntry { ProductCode = "GDS001", ProductName = "Krém XYZ", Url = "https://example.com/gds001" });
 
         var cache = Create();
         var lookup = await cache.GetProductLookupAsync();
 
-        // Verify data mapping
         Assert.Equal(2, lookup.Count);
         Assert.True(lookup.ContainsKey("PRD001"));
         Assert.Equal("Sérum ABC", lookup["PRD001"].ProductName);
         Assert.Null(lookup["PRD001"].Url);
-
-        // Verify the predicate actually filters correctly
-        var compiled = capturedPredicate!.Compile();
-        Assert.True(compiled(new CatalogAggregate { Type = ProductType.Product }));
-        Assert.True(compiled(new CatalogAggregate { Type = ProductType.Goods }));
-        Assert.False(compiled(new CatalogAggregate { Type = ProductType.Material }));
-        Assert.False(compiled(new CatalogAggregate { Type = ProductType.SemiProduct }));
-        Assert.False(compiled(new CatalogAggregate { Type = ProductType.Set }));
-        Assert.False(compiled(new CatalogAggregate { Type = ProductType.UNDEFINED }));
+        Assert.Equal("https://example.com/gds001", lookup["GDS001"].Url);
     }
 
     [Fact]
-    public async Task GetProductLookupAsync_WithinTtl_ReturnsCachedResult_RepositoryCalledOnce()
+    public async Task GetProductLookupAsync_WithinTtl_ReturnsCachedResult_QueryServiceCalledOnce()
     {
-        SetupRepository(new CatalogAggregate { ProductCode = "PRD001", ProductName = "Sérum ABC", Type = ProductType.Product });
+        SetupQueryService(new ProductCatalogEntry { ProductCode = "PRD001", ProductName = "Sérum ABC" });
         var cache = Create(ttlMinutes: 60);
 
         await cache.GetProductLookupAsync();
         await cache.GetProductLookupAsync();
 
-        _repository.Verify(
-            r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()),
+        _queryService.Verify(
+            s => s.GetActiveProductsAsync(It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
     [Fact]
-    public async Task GetProductLookupAsync_AfterTtlExpiry_RefreshesFromRepository()
+    public async Task GetProductLookupAsync_AfterTtlExpiry_RefreshesFromQueryService()
     {
-        SetupRepository(new CatalogAggregate { ProductCode = "PRD001", ProductName = "Sérum ABC", Type = ProductType.Product });
+        SetupQueryService(new ProductCatalogEntry { ProductCode = "PRD001", ProductName = "Sérum ABC" });
         var cache = Create(ttlMinutes: 0); // TTL = 0 → always expired
 
         await cache.GetProductLookupAsync();
         await cache.GetProductLookupAsync();
 
-        _repository.Verify(
-            r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<CatalogAggregate, bool>>>(), It.IsAny<CancellationToken>()),
+        _queryService.Verify(
+            s => s.GetActiveProductsAsync(It.IsAny<CancellationToken>()),
             Times.Exactly(2));
     }
 }
