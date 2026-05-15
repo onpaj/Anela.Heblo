@@ -10,7 +10,7 @@ namespace Anela.Heblo.Tests.Features.Leaflet.Pipeline;
 
 public class LeafletGenerationLoggingBehaviorTests
 {
-    private readonly Mock<ILeafletRepository> _repository = new();
+    private readonly Mock<ILeafletGenerationRepository> _repository = new();
     private readonly Mock<ICurrentUserService> _userService = new();
     private readonly Mock<ILogger<LeafletGenerationLoggingBehavior>> _logger = new();
 
