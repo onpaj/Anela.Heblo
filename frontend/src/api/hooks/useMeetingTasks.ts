@@ -1,7 +1,7 @@
 // TODO: migrate to generated client when /api/meeting-tasks is added to NSwag.
 // Pattern matches useBackgroundRefresh.ts / useAsyncInvoiceImport.ts.
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAuthenticatedApiClient } from "../client";
+import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 
 // --- DTOs ---
 
@@ -71,9 +71,9 @@ export interface TaskFormData {
 // --- Query keys ---
 
 export const MEETING_TASKS_KEYS = {
-  all: ["meetingTasks"] as const,
-  list: ["meetingTasks"] as const,
-  detail: (id: string) => ["meetingTasks", id] as const,
+  all: QUERY_KEYS.meetingTasks,
+  list: QUERY_KEYS.meetingTasks,
+  detail: (id: string) => [...QUERY_KEYS.meetingTasks, id] as const,
 } as const;
 
 // --- Raw-fetch client helper ---
@@ -96,7 +96,7 @@ export function useMeetingTasksList(
   pageSize: number = 20,
 ) {
   return useQuery<TranscriptListResponse>({
-    queryKey: [...MEETING_TASKS_KEYS.list, statusFilter ?? "", page, pageSize],
+    queryKey: [...QUERY_KEYS.meetingTasks, statusFilter ?? "", page, pageSize],
     queryFn: () => {
       const params = new URLSearchParams();
       if (statusFilter) params.append("statusFilter", statusFilter);
