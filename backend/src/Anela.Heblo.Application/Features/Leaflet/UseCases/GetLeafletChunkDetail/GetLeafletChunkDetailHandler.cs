@@ -6,9 +6,9 @@ namespace Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletChunkDetai
 
 public class GetLeafletChunkDetailHandler : IRequestHandler<GetLeafletChunkDetailRequest, GetLeafletChunkDetailResponse>
 {
-    private readonly ILeafletRepository _leafletRepository;
+    private readonly ILeafletDocumentRepository _leafletRepository;
 
-    public GetLeafletChunkDetailHandler(ILeafletRepository leafletRepository)
+    public GetLeafletChunkDetailHandler(ILeafletDocumentRepository leafletRepository)
     {
         _leafletRepository = leafletRepository;
     }
