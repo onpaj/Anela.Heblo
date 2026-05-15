@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.RunManualSync;
@@ -42,6 +43,22 @@ public class SmartsuppController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         var result = await _mediator.Send(new GetConversationRequest { Id = id }, cancellationToken);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("conversations/{id}/draft-reply")]
+    [ProducesResponseType(typeof(GenerateDraftReplyResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<GenerateDraftReplyResponse>> GenerateDraftReply(
+        string id,
+        [FromBody] GenerateDraftReplyRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        request ??= new GenerateDraftReplyRequest();
+        request.ConversationId = id;
+        var result = await _mediator.Send(request, cancellationToken);
         return HandleResponse(result);
     }
 
