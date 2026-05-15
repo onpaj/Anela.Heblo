@@ -126,7 +126,6 @@ public static class PersistenceModule
         services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
 
         // Leaflet repositories
-        services.AddScoped<ILeafletRepository, LeafletRepository>();
         services.AddScoped<ILeafletDocumentRepository, LeafletDocumentRepository>();
         services.AddScoped<ILeafletGenerationRepository, LeafletGenerationRepository>();
 
