@@ -17,7 +17,7 @@ public static class ConversationTranscriptBuilder
 
         foreach (var message in messages.OrderBy(m => m.CreatedAt))
         {
-            if (string.IsNullOrWhiteSpace(message.Content))
+            if (string.IsNullOrWhiteSpace(message.Content) || IsSystemEvent(message))
                 continue;
 
             var label = LabelFor(message.AuthorType);
@@ -34,6 +34,7 @@ public static class ConversationTranscriptBuilder
     {
         var recent = messages
             .Where(m => m.AuthorType == SmartsuppMessageAuthorType.Visitor
+                        && !IsSystemEvent(m)
                         && !string.IsNullOrWhiteSpace(m.Content))
             .OrderBy(m => m.CreatedAt)
             .TakeLast(FallbackContactMessageCount)
@@ -42,6 +43,12 @@ public static class ConversationTranscriptBuilder
 
         return recent.Count == 0 ? null : string.Join("\n", recent);
     }
+
+    // SmartSupp emits page-visit events as AuthorType Visitor / SubType "system";
+    // they are not real customer messages and must not feed the retrieval query.
+    private static bool IsSystemEvent(SmartsuppMessage message) =>
+        message.AuthorType == SmartsuppMessageAuthorType.System
+        || string.Equals(message.SubType, "system", StringComparison.OrdinalIgnoreCase);
 
     private static string? LabelFor(SmartsuppMessageAuthorType type) => type switch
     {

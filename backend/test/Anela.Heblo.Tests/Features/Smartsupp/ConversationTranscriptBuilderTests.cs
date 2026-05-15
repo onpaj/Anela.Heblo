@@ -7,12 +7,18 @@ namespace Anela.Heblo.Tests.Features.Smartsupp;
 
 public class ConversationTranscriptBuilderTests
 {
-    private static SmartsuppMessage Msg(string id, SmartsuppMessageAuthorType type, string? content, int minuteOffset) =>
+    private static SmartsuppMessage Msg(
+        string id,
+        SmartsuppMessageAuthorType type,
+        string? content,
+        int minuteOffset,
+        string? subType = null) =>
         new()
         {
             Id = id,
             ConversationId = "c1",
             AuthorType = type,
+            SubType = subType,
             Content = content,
             CreatedAt = new DateTime(2026, 5, 15, 10, minuteOffset, 0, DateTimeKind.Utc)
         };
@@ -74,5 +80,30 @@ public class ConversationTranscriptBuilderTests
         };
 
         ConversationTranscriptBuilder.LastContactMessages(messages).Should().BeNull();
+    }
+
+    [Fact]
+    public void LastContactMessages_SkipsVisitorSystemEvents()
+    {
+        // SmartSupp emits page-visit events as AuthorType Visitor / SubType "system".
+        var messages = new List<SmartsuppMessage>
+        {
+            Msg("m1", SmartsuppMessageAuthorType.Visitor, "skutečný dotaz", 1),
+            Msg("m2", SmartsuppMessageAuthorType.Visitor, "navštívil stránku", 2, subType: "system"),
+        };
+
+        ConversationTranscriptBuilder.LastContactMessages(messages).Should().Be("skutečný dotaz");
+    }
+
+    [Fact]
+    public void Build_SkipsVisitorSystemEvents()
+    {
+        var messages = new List<SmartsuppMessage>
+        {
+            Msg("m1", SmartsuppMessageAuthorType.Visitor, "dotaz", 1),
+            Msg("m2", SmartsuppMessageAuthorType.Visitor, "navštívil stránku", 2, subType: "system"),
+        };
+
+        ConversationTranscriptBuilder.Build(messages).Should().Be("Zákazník: dotaz");
     }
 }

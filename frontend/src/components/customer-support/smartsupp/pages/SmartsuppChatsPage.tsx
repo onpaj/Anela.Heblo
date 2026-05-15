@@ -4,20 +4,27 @@ import { useToast } from "../../../../contexts/ToastContext";
 import ConversationList from "../ConversationList";
 import ConversationDetail from "../ConversationDetail";
 import ContactDetailsPanel from "../ContactDetailsPanel";
+import CollapsibleRail from "../CollapsibleRail";
 
+const LIST_PANEL_KEY = "smartsupp.listPanel.open";
 const CONTACT_PANEL_KEY = "smartsupp.contactPanel.open";
 
-function readContactPanelOpen(): boolean {
-  if (typeof window === "undefined") return true;
-  const stored = window.localStorage.getItem(CONTACT_PANEL_KEY);
-  if (stored === null) return true;
+function readPanelOpen(key: string, defaultOpen: boolean): boolean {
+  if (typeof window === "undefined") return defaultOpen;
+  const stored = window.localStorage.getItem(key);
+  if (stored === null) return defaultOpen;
   return stored === "true";
 }
 
 const SmartsuppChatsPage: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [status, setStatus] = useState<"Open" | "Resolved">("Open");
-  const [contactPanelOpen, setContactPanelOpen] = useState<boolean>(readContactPanelOpen());
+  const [listPanelOpen, setListPanelOpen] = useState<boolean>(() =>
+    readPanelOpen(LIST_PANEL_KEY, true),
+  );
+  const [contactPanelOpen, setContactPanelOpen] = useState<boolean>(() =>
+    readPanelOpen(CONTACT_PANEL_KEY, false),
+  );
 
   const { data, isLoading } = useSmartsuppConversations(status);
   const { showSuccess, showError } = useToast();
@@ -40,10 +47,13 @@ const SmartsuppChatsPage: React.FC = () => {
     });
   };
 
-  const toggleContactPanel = () => {
-    setContactPanelOpen((open) => {
+  const togglePanel = (
+    key: string,
+    setter: React.Dispatch<React.SetStateAction<boolean>>,
+  ) => {
+    setter((open) => {
       const next = !open;
-      window.localStorage.setItem(CONTACT_PANEL_KEY, String(next));
+      window.localStorage.setItem(key, String(next));
       return next;
     });
   };
@@ -62,26 +72,33 @@ const SmartsuppChatsPage: React.FC = () => {
       </div>
 
       <div className="flex flex-1 overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="w-96 flex-shrink-0 overflow-hidden">
-          <ConversationList
-            conversations={conversations}
-            selectedId={selectedId}
-            status={status}
-            isLoading={isLoading}
-            onSelect={setSelectedId}
-            onStatusChange={(s) => {
-              setStatus(s);
-              setSelectedId(null);
-            }}
-          />
-        </div>
+        {listPanelOpen && (
+          <div className="w-96 flex-shrink-0 overflow-hidden">
+            <ConversationList
+              conversations={conversations}
+              selectedId={selectedId}
+              status={status}
+              isLoading={isLoading}
+              onSelect={setSelectedId}
+              onStatusChange={(s) => {
+                setStatus(s);
+                setSelectedId(null);
+              }}
+            />
+          </div>
+        )}
+        <CollapsibleRail
+          side="left"
+          isOpen={listPanelOpen}
+          label="Seznam konverzací"
+          onToggle={() => togglePanel(LIST_PANEL_KEY, setListPanelOpen)}
+        />
 
         <div className="flex-1 overflow-hidden min-w-0">
           {selectedConversation ? (
             <ConversationDetail
               conversationId={selectedId!}
               conversation={selectedConversation}
-              onToggleContactPanel={toggleContactPanel}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">
@@ -90,9 +107,19 @@ const SmartsuppChatsPage: React.FC = () => {
           )}
         </div>
 
-        {contactPanelOpen && selectedConversation && (
-          <div className="hidden lg:block w-80 flex-shrink-0 overflow-hidden">
-            <ContactDetailsPanel conversation={selectedConversation} />
+        {selectedConversation && (
+          <div className="hidden lg:flex">
+            <CollapsibleRail
+              side="right"
+              isOpen={contactPanelOpen}
+              label="Detail kontaktu"
+              onToggle={() => togglePanel(CONTACT_PANEL_KEY, setContactPanelOpen)}
+            />
+            {contactPanelOpen && (
+              <div className="w-80 flex-shrink-0 overflow-hidden">
+                <ContactDetailsPanel conversation={selectedConversation} />
+              </div>
+            )}
           </div>
         )}
       </div>
