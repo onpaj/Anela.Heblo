@@ -71,9 +71,9 @@ export interface TaskFormData {
 // --- Query keys ---
 
 export const MEETING_TASKS_KEYS = {
-  all: QUERY_KEYS.meetingTasks,
-  list: QUERY_KEYS.meetingTasks,
-  detail: (id: string) => [...QUERY_KEYS.meetingTasks, id] as const,
+  all: ["meetingTasks"] as const,
+  list: ["meetingTasks"] as const,
+  detail: (id: string) => ["meetingTasks", id] as const,
 } as const;
 
 // --- Raw-fetch client helper ---
