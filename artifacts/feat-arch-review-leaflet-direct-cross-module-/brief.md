@@ -2,26 +2,33 @@
 Leaflet
 
 ## Finding
-Two files in the Leaflet module directly import from the KnowledgeBase **domain** layer:
+Three files in the Leaflet module directly import application services from the KnowledgeBase module:
 
-- `backend/src/Anela.Heblo.Application/Features/Leaflet/UseCases/GenerateLeaflet/GenerateLeafletHandler.cs` line 3:
+- `backend/src/Anela.Heblo.Application/Features/Leaflet/UseCases/IndexLeaflet/IndexLeafletHandler.cs` line 1:
   ```csharp
-  using Anela.Heblo.Domain.Features.KnowledgeBase;
+  using Anela.Heblo.Application.Features.KnowledgeBase.Services;
   ```
-  This brings in `IKnowledgeBaseRepository`, which is injected as a constructor parameter (line 14, 23) and used to perform `SearchSimilarAsync` vector lookups.
+  Uses `IDocumentTextExtractor` (injected as `IEnumerable<IDocumentTextExtractor>`, lines 12, 18).
 
-- `backend/src/Anela.Heblo.Application/Features/Leaflet/Infrastructure/Jobs/LeafletIngestionJob.cs` line 4:
+- `backend/src/Anela.Heblo.Application/Features/Leaflet/UseCases/UploadLeaflet/UploadLeafletHandler.cs` line 1:
   ```csharp
-  using Anela.Heblo.Domain.Features.KnowledgeBase;
+  using Anela.Heblo.Application.Features.KnowledgeBase.Services;
   ```
-  This brings in the `DocumentType` enum used to filter `OneDriveFolderMappings` (line 62).
+  Uses `IDocumentTextExtractor` (injected as `IEnumerable<IDocumentTextExtractor>`, lines 11, 15).
+
+- `backend/src/Anela.Heblo.Application/Features/Leaflet/Infrastructure/Jobs/LeafletIngestionJob.cs` lines 1, 2:
+  ```csharp
+  using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+  ```
+  Uses both `IDocumentTextExtractor` and `IOneDriveService`.
+
+`IDocumentTextExtractor` is defined in `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Services/IDocumentTextExtractor.cs` and `IOneDriveService` in `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Services/IOneDriveService.cs` — both owned by KnowledgeBase.
 
 ## Why it matters
-`development_guidelines.md` forbids direct cross-module references: *"No direct references between feature modules — communication only through contracts/interfaces."* The Leaflet module is importing **domain** types from KnowledgeBase, making both modules tightly coupled at the lowest architectural level. Any rename or restructure of `IKnowledgeBaseRepository` or `DocumentType` in the KnowledgeBase domain breaks the Leaflet module. It also prevents independent testing and future extraction of either module.
+`development_guidelines.md` mandates: *"Communication between modules exclusively through contracts/ (e.g. IProductQueryService)"*. Both `IDocumentTextExtractor` and `IOneDriveService` are infrastructure capabilities that are not conceptually owned by KnowledgeBase — they are used by at least two modules. Placing them in `KnowledgeBase.Services` and importing them directly from there makes Leaflet depend on the KnowledgeBase application layer, preventing independent compilation, testing, or deployment of either module.
 
 ## Suggested fix
-- **`IKnowledgeBaseRepository`**: define a narrow read-only contract in a shared or Leaflet-owned contracts location, e.g. `ILeafletKnowledgeSource` with only the `SearchSimilarAsync` signature the handler needs. KnowledgeBase implements it; Leaflet depends on the abstraction.
-- **`DocumentType`**: if this is a configuration concept used across multiple modules, it belongs in a shared configuration type, not in the KnowledgeBase domain. Move it to `Application/Shared/` or to `LeafletOptions` as a plain string/enum owned by Leaflet.
+Move `IDocumentTextExtractor` and `IOneDriveService` (and their implementations) out of the KnowledgeBase module into a shared infrastructure abstraction — e.g. `Application/Shared/Documents/IDocumentTextExtractor.cs` and `Application/Shared/Storage/IOneDriveService.cs`. Both KnowledgeBase and Leaflet then depend on the shared abstraction. No module-to-module import is needed.
 
 ---
 _Filed by daily arch-review routine on 2026-05-14._
