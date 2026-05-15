@@ -66,6 +66,13 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
             AuthorName = m.AuthorName,
             Content = m.Content,
             CreatedAt = m.CreatedAt,
+            AgentId = m.AgentId,
+            SubType = m.SubType,
+            DeliveryStatus = m.DeliveryStatus,
+            DeliveredAt = m.DeliveredAt,
+            ResponseTime = m.ResponseTime,
+            IsFirstReply = m.IsFirstReply,
+            PageUrl = m.PageUrl,
         };
 
     private static List<string> ParseStringList(string? json)
