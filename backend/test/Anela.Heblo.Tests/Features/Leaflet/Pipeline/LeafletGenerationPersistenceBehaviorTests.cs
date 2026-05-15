@@ -8,13 +8,13 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Leaflet.Pipeline;
 
-public class LeafletGenerationLoggingBehaviorTests
+public class LeafletGenerationPersistenceBehaviorTests
 {
     private readonly Mock<ILeafletRepository> _repository = new();
     private readonly Mock<ICurrentUserService> _userService = new();
-    private readonly Mock<ILogger<LeafletGenerationLoggingBehavior>> _logger = new();
+    private readonly Mock<ILogger<LeafletGenerationPersistenceBehavior>> _logger = new();
 
-    private LeafletGenerationLoggingBehavior CreateBehavior() =>
+    private LeafletGenerationPersistenceBehavior CreateBehavior() =>
         new(_repository.Object, _userService.Object, _logger.Object);
 
     private static GenerateLeafletRequest MakeRequest() =>
