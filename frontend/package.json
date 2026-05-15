@@ -48,6 +48,7 @@
   "scripts": {
     "start": "PORT=3000 REACT_APP_API_URL=http://localhost:5000 react-scripts start",
     "start:automation": "PORT=3001 REACT_APP_API_URL=http://localhost:5001 REACT_APP_USE_MOCK_AUTH=true react-scripts start",
+    "start:conductor": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:playwright": "npx playwright test",

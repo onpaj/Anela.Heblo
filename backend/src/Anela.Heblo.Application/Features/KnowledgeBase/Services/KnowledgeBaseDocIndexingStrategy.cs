@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Shared.Rag;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 
