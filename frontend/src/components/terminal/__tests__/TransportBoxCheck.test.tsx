@@ -76,14 +76,14 @@ describe('TransportBoxCheck', () => {
   it('shows TerminalError with the error message for an unknown code', () => {
     mockHook.mockImplementation((code: string | null) =>
       code
-        ? { data: null, isFetching: false, isError: true, error: new Error('Box B999 nenalezen') }
+        ? { data: null, isFetching: false, isError: true, error: new Error('Box nenalezen') }
         : { data: undefined, isFetching: false, isError: false },
     );
     render(<TransportBoxCheck />);
     act(() => scan('B999'));
 
     expect(screen.getByTestId('terminal-error')).toBeInTheDocument();
-    expect(screen.getByText('Box B999 nenalezen')).toBeInTheDocument();
+    expect(screen.getByText('Box nenalezen')).toBeInTheDocument();
     expect(screen.getByText('Zkontrolujte kód a naskenujte znovu')).toBeInTheDocument();
   });
 
