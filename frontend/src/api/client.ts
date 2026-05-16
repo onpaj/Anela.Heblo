@@ -283,7 +283,7 @@ export const getAuthenticatedApiClient = (
           console.warn("⚠️ No auth redirect handler available - user needs to refresh page");
         }
         
-        // Continue with normal error handling to show toast
+        // Continue with normal error handling (toast suppressed on /terminal routes)
       }
 
       // Global error handling with toast notifications
