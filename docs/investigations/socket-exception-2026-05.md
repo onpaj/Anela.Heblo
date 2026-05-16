@@ -106,3 +106,21 @@ Run query 3.3 (7-day baseline) at **24h** and **48h** after deploy. Paste result
 - **48h post-deploy:**
 
 If the rate has not dropped to baseline, reopen with a new hypothesis (e.g., upstream outage, application-recycle storm, deployment churn).
+
+## 4a. Changes shipped in this PR
+
+- New: `Anela.Heblo.Xcc.Http.OutboundCallObservabilityHandler` (DelegatingHandler).
+- New: `WithHebloOutboundDefaults()` / `WithHebloOutboundObservability()` extensions on `IHttpClientBuilder`.
+- New: `OutboundResilienceOptions` (binds `OutboundResilience` section).
+- New: opt-in per-dependency Polly v8 pipelines via `ResiliencePipelineProvider<string>` (`HebloResiliencePipelineExtensions`).
+- Modified: every `AddHttpClient(...)` registration listed in section 2 — observability handler attached uniformly.
+- Modified: `appsettings.json` gained `OutboundResilience` defaults.
+- **PooledConnectionLifetime** is now centrally set to 4 minutes (configurable). Previously, only `FileStorageModule` set it (to 5 minutes — left as-is, intentional).
+
+## 5b. Post-deploy validation checklist
+
+- [ ] Confirm Application Insights queries 3.1–3.4 in section 3 return rows after deploy.
+- [ ] Confirm at least one `Outbound call failed` log appears with the new structured properties (`TargetHost`, `TargetPath`, `HttpMethod`, `ElapsedMs`, `Reason`, `OperationId`, `CancellationRequested`).
+- [ ] If retries are enabled for any dependency post-FR-2, verify the `OutboundResilience:Dependencies:<Name>:RetryEnabled` flag flips behavior without a redeploy.
+- [ ] **24h post-deploy** (FR-6 check): `SocketException` rate per query 3.3.
+- [ ] **48h post-deploy** (FR-6 check): same query — rate should be at or below baseline (≤ ~5/day). If not, open a new hypothesis in this doc.
