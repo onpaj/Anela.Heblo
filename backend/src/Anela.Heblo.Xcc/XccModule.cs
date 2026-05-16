@@ -1,3 +1,4 @@
+using Anela.Heblo.Xcc.Http;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Anela.Heblo.Xcc.Services.Dashboard.Tiles;
@@ -24,6 +25,12 @@ public static class XccModule
 
         // Register system tiles
         services.RegisterTile<BackgroundTaskStatusTile>();
+
+        // Outbound HTTP observability + connection-pool defaults.
+        // Handler is Transient because IHttpClientFactory creates a new handler chain per
+        // CreateClient() call (and recycles the primary handler per HandlerLifetime).
+        services.Configure<OutboundResilienceOptions>(configuration.GetSection(OutboundResilienceOptions.SectionName));
+        services.AddTransient<OutboundCallObservabilityHandler>();
 
         return services;
     }
