@@ -85,6 +85,18 @@ describe('TransportBoxCheck', () => {
     expect(screen.getByText('Box B999 nenalezen')).toBeInTheDocument();
   });
 
+  it('shows a load-error message when the hook reports an error', () => {
+    mockHook.mockImplementation((code: string | null) =>
+      code ? { data: undefined, isFetching: false, isError: true } : { data: undefined, isFetching: false, isError: false },
+    );
+    render(<TransportBoxCheck />);
+    act(() => scan('B986'));
+
+    expect(screen.getByTestId('box-load-error')).toBeInTheDocument();
+    expect(screen.getByText('Chyba při načítání boxu B986')).toBeInTheDocument();
+    expect(screen.queryByTestId('box-not-found')).not.toBeInTheDocument();
+  });
+
   it('keyboard toggle flips the input mode between none and text', () => {
     mockHook.mockReturnValue({ data: undefined, isFetching: false });
     render(<TransportBoxCheck />);

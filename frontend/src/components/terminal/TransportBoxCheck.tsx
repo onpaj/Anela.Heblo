@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Loader2, PackageX } from 'lucide-react';
+import { Loader2, PackageX, AlertCircle } from 'lucide-react';
 import ScanInput from './ScanInput';
 import { useTransportBoxByCodeQuery } from '../../api/hooks/useTransportBoxes';
 import BoxDetail from './TransportBoxDetail';
 
 const TransportBoxCheck: React.FC = () => {
   const [scannedCode, setScannedCode] = useState<string | null>(null);
-  const { data: box, isFetching } = useTransportBoxByCodeQuery(scannedCode);
+  const { data: box, isFetching, isError } = useTransportBoxByCodeQuery(scannedCode);
 
-  const showNotFound = !!scannedCode && !isFetching && !box;
+  const showNotFound = !!scannedCode && !isFetching && !isError && !box;
+  const showError = !!scannedCode && !isFetching && isError;
 
   return (
     <div className="space-y-4">
@@ -38,6 +39,21 @@ const TransportBoxCheck: React.FC = () => {
           </p>
           <p className="text-sm text-neutral-gray">
             Zkontrolujte kód a naskenujte znovu
+          </p>
+        </div>
+      )}
+
+      {showError && (
+        <div
+          data-testid="box-load-error"
+          className="bg-white border border-red-200 rounded-xl p-6 flex flex-col items-center text-center gap-2"
+        >
+          <AlertCircle className="h-10 w-10 text-red-500" />
+          <p className="font-semibold text-neutral-slate">
+            Chyba při načítání boxu {scannedCode}
+          </p>
+          <p className="text-sm text-neutral-gray">
+            Zkuste naskenovat znovu
           </p>
         </div>
       )}

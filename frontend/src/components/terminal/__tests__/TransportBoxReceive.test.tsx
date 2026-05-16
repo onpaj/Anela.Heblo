@@ -131,6 +131,18 @@ describe('TransportBoxReceive', () => {
     expect(screen.getByText('Box B999 nenalezen')).toBeInTheDocument();
   });
 
+  it('shows a load-error message when the hook reports an error', () => {
+    mockByCode.mockImplementation((code: string | null) =>
+      code ? { data: undefined, isFetching: false, isError: true } : { data: undefined, isFetching: false, isError: false },
+    );
+    render(<TransportBoxReceive />);
+    act(() => scan('B986'));
+
+    expect(screen.getByTestId('box-load-error')).toBeInTheDocument();
+    expect(screen.getByText('Chyba při načítání boxu B986')).toBeInTheDocument();
+    expect(screen.queryByTestId('box-not-found')).not.toBeInTheDocument();
+  });
+
   it('hides the success banner after SUCCESS_DISPLAY_MS elapses', async () => {
     mockByCode.mockImplementation(byCodeFor('B001', receivableBox));
     render(<TransportBoxReceive />);
