@@ -198,12 +198,6 @@ public class TransportBoxController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         var response = await _mediator.Send(request, cancellationToken);
-
-        if (!response.Success)
-        {
-            return BadRequest(response);
-        }
-
-        return Ok(response);
+        return HandleResponse(response);
     }
 }

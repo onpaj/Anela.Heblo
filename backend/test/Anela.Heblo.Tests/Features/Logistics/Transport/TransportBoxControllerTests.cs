@@ -147,20 +147,24 @@ public class TransportBoxControllerTests
     [Fact]
     public async Task OpenOrResumeBoxByCode_Success_Returns200()
     {
+        // Arrange
         var response = new OpenOrResumeBoxByCodeResponse { Success = true, Resumed = false };
         _mediatorMock
             .Setup(m => m.Send(It.IsAny<OpenOrResumeBoxByCodeRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(response);
 
+        // Act
         var result = await _controller.OpenOrResumeBoxByCode(
             new OpenOrResumeBoxByCodeRequest { BoxCode = "B001" }, CancellationToken.None);
 
+        // Assert
         Assert.IsType<OkObjectResult>(result.Result);
     }
 
     [Fact]
-    public async Task OpenOrResumeBoxByCode_Failure_Returns400()
+    public async Task OpenOrResumeBoxByCode_DuplicateActiveBox_Returns409()
     {
+        // Arrange
         var response = new OpenOrResumeBoxByCodeResponse
         {
             Success = false,
@@ -170,9 +174,12 @@ public class TransportBoxControllerTests
             .Setup(m => m.Send(It.IsAny<OpenOrResumeBoxByCodeRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(response);
 
+        // Act
         var result = await _controller.OpenOrResumeBoxByCode(
             new OpenOrResumeBoxByCodeRequest { BoxCode = "B001" }, CancellationToken.None);
 
-        Assert.IsType<BadRequestObjectResult>(result.Result);
+        // Assert
+        var statusResult = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(409, statusResult.StatusCode);
     }
 }
