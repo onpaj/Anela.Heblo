@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft, Check, X, Plus, Send, CheckCheck, Clock, CheckCircle, CheckCircle2,
@@ -138,8 +139,8 @@ const MeetingTaskDetailPage: React.FC = () => {
       </div>
 
       <div className="px-4 sm:px-6 lg:px-8 mt-4">
-        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 whitespace-pre-wrap">
-          {transcript.summary}
+        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 prose prose-sm prose-blue max-w-none">
+          <ReactMarkdown>{transcript.summary}</ReactMarkdown>
         </div>
       </div>
 
