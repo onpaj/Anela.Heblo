@@ -17,7 +17,7 @@ import {
 } from "../../../api/hooks/useMeetingTasks";
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
 
-const EMPTY_FORM: TaskFormData = { title: "", description: "", assignee: "", dueDate: null };
+const EMPTY_FORM: TaskFormData = { title: "", description: "", assignee: "", assigneeEmail: null, dueDate: null };
 
 function TranscriptStatusBadge({ status }: { status: string }) {
   const colorMap: Record<string, string> = {
@@ -75,6 +75,7 @@ const MeetingTaskDetailPage: React.FC = () => {
       title: t.title,
       description: t.description,
       assignee: t.assignee,
+      assigneeEmail: t.assigneeEmail,
       dueDate: t.dueDate,
     });
   };

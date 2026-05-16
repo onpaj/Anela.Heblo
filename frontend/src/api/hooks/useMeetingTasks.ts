@@ -13,6 +13,7 @@ export interface ProposedTaskDto {
   title: string;
   description: string;
   assignee: string;
+  assigneeEmail: string | null;
   dueDate: string | null;
   status: ProposedTaskStatus;
   externalTaskId: string | null;
@@ -23,6 +24,7 @@ export interface MeetingTranscriptDto {
   id: string;
   subject: string;
   summary: string;
+  rawTranscript: string;
   plaudRecordingId: string;
   plaudCreatedAt: string;
   status: TranscriptStatus;
@@ -65,7 +67,19 @@ export interface TaskFormData {
   title: string;
   description: string;
   assignee: string;
+  assigneeEmail: string | null;
   dueDate: string | null;
+}
+
+export interface MeetingUserDto {
+  email: string;
+  displayName: string;
+  aliases: string[];
+}
+
+interface MeetingUsersResponse {
+  success: boolean;
+  users: MeetingUserDto[];
 }
 
 // --- Query keys ---
@@ -122,6 +136,20 @@ export function useMeetingTaskDetail(id: string) {
   });
 }
 
+export function useMeetingUsers() {
+  return useQuery<MeetingUserDto[]>({
+    queryKey: ["meetingTasks", "users"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async () => {
+      const response = await fetchJson<MeetingUsersResponse>(
+        `/api/meeting-tasks/users`,
+        { method: "GET", headers: { Accept: "application/json" } },
+      );
+      return response.users;
+    },
+  });
+}
+
 // --- Mutations ---
 
 export interface UpdateProposedTaskInput {
@@ -143,6 +171,7 @@ export function useUpdateProposedTask() {
             title: input.data.title,
             description: input.data.description,
             assignee: input.data.assignee,
+            assigneeEmail: input.data.assigneeEmail || null,
             dueDate: input.data.dueDate || null,
           }),
         },
@@ -196,6 +225,7 @@ export function useAddProposedTask() {
             title: input.data.title,
             description: input.data.description,
             assignee: input.data.assignee,
+            assigneeEmail: input.data.assigneeEmail || null,
             dueDate: input.data.dueDate || null,
           }),
         },
