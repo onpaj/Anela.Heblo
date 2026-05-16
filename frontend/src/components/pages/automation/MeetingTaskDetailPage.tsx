@@ -55,6 +55,7 @@ interface AssigneePickerProps {
 function AssigneePicker({ users, value, onChange }: AssigneePickerProps) {
   return (
     <select
+      aria-label="Řešitel"
       value={value ?? ""}
       onChange={(e) => {
         const email = e.target.value || null;
@@ -180,6 +181,7 @@ const MeetingTaskDetailPage: React.FC = () => {
       <div className="px-4 sm:px-6 lg:px-8 mt-3">
         <button
           type="button"
+          aria-expanded={transcriptOpen}
           onClick={() => setTranscriptOpen((v) => !v)}
           className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900"
         >
@@ -304,7 +306,7 @@ const MeetingTaskDetailPage: React.FC = () => {
                         {t.assignee}{t.dueDate ? ` · ${new Date(t.dueDate).toLocaleDateString("cs-CZ")}` : ""}
                       </span>
                       {!t.assigneeEmail && (
-                        <span className="inline-flex items-center text-amber-700 bg-amber-100 rounded px-1.5 py-0.5">
+                        <span className="inline-flex items-center text-amber-700 bg-amber-100 rounded-full px-1.5 py-0.5">
                           <AlertTriangle className="w-3 h-3 mr-1" /> neznámý uživatel
                         </span>
                       )}
