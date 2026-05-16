@@ -137,6 +137,7 @@ jest.mock("@azure/msal-react", () => ({
 
 // Mock window.location
 Object.defineProperty(window, "location", {
+  configurable: true,
   value: {
     href: "http://localhost:3000",
     origin: "http://localhost:3000",
