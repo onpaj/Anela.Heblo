@@ -54,15 +54,11 @@ public class StockUpOperationConfiguration : IEntityTypeConfiguration<StockUpOpe
             .IsUnique()
             .HasDatabaseName("IX_StockUpOperations_DocumentNumber_Unique");
 
-        // Index for filtering by state
-        builder.HasIndex(x => x.State)
-            .HasDatabaseName("IX_StockUpOperations_State");
-
         // Composite index for source tracking
         builder.HasIndex(x => new { x.SourceType, x.SourceId })
             .HasDatabaseName("IX_StockUpOperations_Source");
 
-        // Index for failed operations queries
+        // Index for failed operations queries (also covers leading-column State equality lookups)
         builder.HasIndex(x => new { x.State, x.CreatedAt })
             .HasDatabaseName("IX_StockUpOperations_State_CreatedAt");
 
