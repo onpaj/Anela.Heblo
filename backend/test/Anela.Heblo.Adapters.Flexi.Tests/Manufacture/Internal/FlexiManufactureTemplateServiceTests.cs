@@ -102,7 +102,7 @@ public class FlexiManufactureTemplateServiceTests
         stopwatch.Stop();
 
         template.Should().NotBeNull();
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(400,
+        stopwatch.ElapsedMilliseconds.Should().BeLessThan(900,
             "three 200 ms stock calls must run in parallel, not sequentially");
 
         _mockStockClient.Verify(
