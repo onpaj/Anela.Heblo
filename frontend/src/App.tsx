@@ -68,6 +68,7 @@ import TerminalLayout from "./components/terminal/TerminalLayout";
 import TerminalHome from "./components/terminal/TerminalHome";
 import TransportBoxCheck from "./components/terminal/TransportBoxCheck";
 import ComingSoonPage from "./components/terminal/ComingSoonPage";
+import BoxFillWorkflow from "./components/terminal/box-fill/BoxFillWorkflow";
 import "./i18n";
 
 let isRedirecting = false;
@@ -346,6 +347,7 @@ function App() {
                       <Route path="/terminal" element={<TerminalLayout />}>
                         <Route index element={<TerminalHome />} />
                         <Route path="box-check" element={<TransportBoxCheck />} />
+                        <Route path="box-fill" element={<BoxFillWorkflow />} />
                         <Route path="receive" element={<ComingSoonPage title="Příjem boxu" />} />
                         <Route path="stocktake" element={<ComingSoonPage title="Inventura" />} />
                         <Route

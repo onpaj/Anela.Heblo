@@ -23,6 +23,13 @@ describe('TerminalHome', () => {
     expect(tile).toHaveAttribute('href', '/terminal/box-check');
   });
 
+  it('renders an active tile for box filling', () => {
+    renderHome();
+    const tile = screen.getByTestId('workflow-tile-box-fill');
+    expect(tile).toBeInTheDocument();
+    expect(tile).toHaveAttribute('href', '/terminal/box-fill');
+  });
+
   it('renders tile for transport-box receiving', () => {
     renderHome();
     const tile = screen.getByTestId('workflow-tile-receive');
