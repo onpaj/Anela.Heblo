@@ -11,7 +11,7 @@ public static class GoogleAdsAdapterServiceCollectionExtensions
         IConfiguration configuration)
     {
         services.Configure<GoogleAdsSettings>(configuration.GetSection(GoogleAdsSettings.ConfigurationKey));
-        services.AddScoped<IAccountBudgetFetcher, SdkAccountBudgetFetcher>();
+        services.AddSingleton<IAccountBudgetFetcher, SdkAccountBudgetFetcher>();
         services.AddScoped<GoogleAdsTransactionSource>(sp =>
             new GoogleAdsTransactionSource(
                 sp.GetRequiredService<IAccountBudgetFetcher>(),
