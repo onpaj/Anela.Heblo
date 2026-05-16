@@ -67,6 +67,16 @@ public class OpenOrResumeBoxByCodeHandlerTests
         return box;
     }
 
+    private static TransportBox StockedBox(string code)
+    {
+        var box = OpenedBox(code);
+        box.AddItem("P-1", "Product 1", 1, FixedTime, "Test User");
+        box.ToTransit(FixedTime, "Test User");
+        box.Receive(FixedTime, "Test User");
+        box.ToPick(FixedTime, "Test User");
+        return box;
+    }
+
     [Fact]
     public async Task Handle_EmptyCode_ReturnsRequiredFieldMissing()
     {
@@ -121,6 +131,18 @@ public class OpenOrResumeBoxByCodeHandlerTests
     public async Task Handle_ExistingClosedBox_CreatesNewBox()
     {
         _repositoryMock.Setup(r => r.GetByCodeAsync("B001")).ReturnsAsync(ClosedBox("B001"));
+
+        var result = await _handler.Handle(new OpenOrResumeBoxByCodeRequest { BoxCode = "B001" }, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        result.Resumed.Should().BeFalse();
+        _repositoryMock.Verify(r => r.AddAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ExistingStockedBox_CreatesNewBox()
+    {
+        _repositoryMock.Setup(r => r.GetByCodeAsync("B001")).ReturnsAsync(StockedBox("B001"));
 
         var result = await _handler.Handle(new OpenOrResumeBoxByCodeRequest { BoxCode = "B001" }, CancellationToken.None);
 
