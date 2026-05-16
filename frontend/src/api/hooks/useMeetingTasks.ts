@@ -111,6 +111,7 @@ export function useMeetingTasksList(
 ) {
   return useQuery<TranscriptListResponse>({
     queryKey: [...QUERY_KEYS.meetingTasks, statusFilter ?? "", page, pageSize],
+    refetchOnMount: "always",
     queryFn: () => {
       const params = new URLSearchParams();
       if (statusFilter) params.append("statusFilter", statusFilter);

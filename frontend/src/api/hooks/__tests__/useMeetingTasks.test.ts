@@ -1,3 +1,4 @@
+import React from 'react';
 import { renderHook, waitFor } from '@testing-library/react';
 import {
   useMeetingTasksList,
@@ -83,6 +84,32 @@ describe('useMeetingTasks', () => {
       const { result } = renderHook(() => useMeetingTasksList(undefined, 1, 20), { wrapper });
       await waitFor(() => expect(result.current.isError).toBe(true));
       expect((result.current.error as Error).message).toBe('API error: 500');
+    });
+
+    it('uses refetchOnMount "always" — refetches even when data is fresh on remount', async () => {
+      const payload: TranscriptListResponse = {
+        success: true, items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0,
+      };
+      mockFetch.mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve(payload) });
+
+      // Use a high staleTime so data stays "fresh" after the first fetch.
+      // With refetchOnMount: "always", a remount still triggers a fetch even on fresh data.
+      // With the default refetchOnMount: true, a remount on fresh data would NOT refetch.
+      const { QueryClient: QC, QueryClientProvider: QCP } = require('@tanstack/react-query');
+      const freshClient = new QC({
+        defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+      });
+      const freshWrapper = ({ children }: { children: React.ReactNode }) =>
+        React.createElement(QCP, { client: freshClient }, children);
+
+      const { result, unmount } = renderHook(() => useMeetingTasksList(undefined, 1, 20), { wrapper: freshWrapper });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      unmount();
+      const { result: result2 } = renderHook(() => useMeetingTasksList(undefined, 1, 20), { wrapper: freshWrapper });
+      await waitFor(() => expect(result2.current.isSuccess).toBe(true));
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
   });
 

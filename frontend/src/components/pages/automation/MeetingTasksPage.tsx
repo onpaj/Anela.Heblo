@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, CheckCircle, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, CheckCircle, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import {
   MeetingTranscriptDto,
   TranscriptStatus,
@@ -42,7 +42,7 @@ const MeetingTasksPage: React.FC = () => {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useMeetingTasksList(statusFilter, page, PAGE_SIZE);
+  const { data, isLoading, refetch, isFetching } = useMeetingTasksList(statusFilter, page, PAGE_SIZE);
 
   const items = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
@@ -74,7 +74,18 @@ const MeetingTasksPage: React.FC = () => {
   return (
     <div className="flex flex-col w-full" style={{ height: PAGE_CONTAINER_HEIGHT }}>
       <div className="flex-shrink-0 mb-3 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-gray-900">Meeting Tasks</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-gray-900">Porady</h1>
+          <button
+            type="button"
+            title="Obnovit"
+            disabled={isFetching}
+            onClick={() => refetch()}
+            className="inline-flex items-center px-2 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-4 h-4${isFetching ? " animate-spin" : ""}`} />
+          </button>
+        </div>
         <p className="mt-2 text-gray-600">Validace AI-extrahovanych ukolu ze schuzek pred odeslanim do Microsoft TODO</p>
       </div>
 
