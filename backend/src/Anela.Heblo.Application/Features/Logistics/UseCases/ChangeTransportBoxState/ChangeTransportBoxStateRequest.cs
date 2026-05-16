@@ -1,7 +1,7 @@
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using MediatR;
 
-namespace Anela.Heblo.Application.Features.Logistics.UseCases;
+namespace Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
 
 public class ChangeTransportBoxStateRequest : IRequest<ChangeTransportBoxStateResponse>
 {
