@@ -79,6 +79,26 @@ const Sidebar: React.FC<SidebarProps> = ({
       icon: LayoutDashboard,
       type: "single" as const,
     },
+    {
+      id: "anela",
+      name: "Anela",
+      icon: Users,
+      type: "section" as const,
+      items: [
+        {
+          id: "meeting-tasks",
+          name: "Porady",
+          href: "/automation/meeting-tasks",
+        },
+        {
+          id: "struktura",
+          name: "Struktura",
+          href: "#",
+          onClick: openOrgChart,
+          isExternal: true,
+        },
+      ],
+    },
     // Finance section - only visible for finance_reader role
     ...(hasRole("finance_reader")
       ? [
@@ -265,21 +285,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     },
 
     {
-      id: "personalni",
-      name: "Personální",
-      icon: Users,
-      type: "section" as const,
-      items: [
-        {
-          id: "struktura",
-          name: "Struktura",
-          href: "#",
-          onClick: openOrgChart,
-          isExternal: true,
-        },
-      ],
-    },
-    {
       id: "automatizace",
       name: "Automatizace",
       icon: Bot,
@@ -305,11 +310,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Hangfire",
           href: "#",
           onClick: openHangfireDashboard,
-        },
-        {
-          id: "meeting-tasks",
-          name: "Meeting Tasks",
-          href: "/automation/meeting-tasks",
         },
         {
           id: "data-quality",
