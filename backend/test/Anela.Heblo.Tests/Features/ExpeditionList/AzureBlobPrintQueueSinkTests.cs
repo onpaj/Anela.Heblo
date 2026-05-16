@@ -109,4 +109,25 @@ public class AzureBlobPrintQueueSinkTests : IDisposable
             It.IsAny<BlobContainerEncryptionScopeOptions>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task SendAsync_CalledTwice_InvokesCreateIfNotExistsOnce()
+    {
+        // Arrange
+        var file = Path.Combine(_tempDir, "order1.pdf");
+        await File.WriteAllTextAsync(file, "pdf");
+
+        var sink = CreateSink();
+
+        // Act
+        await sink.SendAsync([file]);
+        await sink.SendAsync([file]);
+
+        // Assert
+        _containerClient.Verify(x => x.CreateIfNotExistsAsync(
+            It.IsAny<PublicAccessType>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<BlobContainerEncryptionScopeOptions>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
