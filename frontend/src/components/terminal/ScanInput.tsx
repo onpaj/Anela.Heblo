@@ -76,7 +76,11 @@ const ScanInput: React.FC<ScanInputProps> = ({
       <label className="block text-sm font-medium text-neutral-slate">{label}</label>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <div className="relative flex-1">
-          <Scan className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-gray pointer-events-none" />
+          {loading ? (
+            <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-gray animate-spin pointer-events-none" />
+          ) : (
+            <Scan className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-gray pointer-events-none" />
+          )}
           <input
             ref={inputRef}
             type="text"
@@ -106,14 +110,6 @@ const ScanInput: React.FC<ScanInputProps> = ({
             <Keyboard className="h-5 w-5" />
           </button>
         )}
-        <button
-          type="submit"
-          disabled={loading || !value.trim()}
-          className="h-14 px-5 bg-primary-blue text-white font-medium rounded-xl hover:bg-accent-blue-bright disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 whitespace-nowrap"
-        >
-          {loading && <Loader2 className="h-5 w-5 animate-spin" />}
-          Potvrdit
-        </button>
       </form>
     </div>
   );
