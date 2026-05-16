@@ -20,7 +20,7 @@ import JournalList from "./components/pages/Journal/JournalList";
 import JournalEntryNew from "./components/pages/JournalEntryNew";
 import JournalEntryEdit from "./components/pages/JournalEntryEdit";
 import TransportBoxList from "./components/pages/TransportBoxList";
-import TransportBoxReceive from "./components/pages/TransportBoxReceive";
+import TransportBoxReceivePage from "./components/pages/TransportBoxReceive";
 import GiftPackageManufacturing from "./components/pages/GiftPackageManufacturing";
 import WarehouseStatistics from "./components/pages/WarehouseStatistics";
 import InventoryList from "./components/pages/InventoryList";
@@ -67,6 +67,7 @@ import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorP
 import TerminalLayout from "./components/terminal/TerminalLayout";
 import TerminalHome from "./components/terminal/TerminalHome";
 import TransportBoxCheck from "./components/terminal/TransportBoxCheck";
+import TransportBoxReceive from "./components/terminal/TransportBoxReceive";
 import ComingSoonPage from "./components/terminal/ComingSoonPage";
 import "./i18n";
 
@@ -346,7 +347,7 @@ function App() {
                       <Route path="/terminal" element={<TerminalLayout />}>
                         <Route index element={<TerminalHome />} />
                         <Route path="box-check" element={<TransportBoxCheck />} />
-                        <Route path="receive" element={<ComingSoonPage title="Příjem boxu" />} />
+                        <Route path="receive" element={<TransportBoxReceive />} />
                         <Route path="stocktake" element={<ComingSoonPage title="Inventura" />} />
                         <Route
                           path="lot-identification"
@@ -382,7 +383,7 @@ function App() {
                         <Route path="/manufacturing/inventory" element={<ManufactureInventoryList />} />
                         <Route path="/manufacturing/product-inventory" element={<ManufacturedInventoryPage />} />
                         <Route path="/logistics/transport-boxes" element={<TransportBoxList />} />
-                        <Route path="/logistics/receive-boxes" element={<TransportBoxReceive />} />
+                        <Route path="/logistics/receive-boxes" element={<TransportBoxReceivePage />} />
                         <Route path="/logistics/gift-package-manufacturing" element={<GiftPackageManufacturing />} />
                         <Route path="/logistics/warehouse-statistics" element={<WarehouseStatistics />} />
                         <Route path="/logistics/packing-materials" element={<PackingMaterialsPage />} />

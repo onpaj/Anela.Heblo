@@ -26,7 +26,7 @@ const WORKFLOWS: WorkflowTile[] = [
     description: 'Naskenujte kód boxu a potvrďte příjem zásilky do skladu',
     href: '/terminal/receive',
     icon: Package,
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: 'stocktake',
