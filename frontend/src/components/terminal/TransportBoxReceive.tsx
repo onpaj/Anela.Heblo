@@ -1,0 +1,155 @@
+import React, { useEffect, useState } from 'react';
+import { Loader2, PackageX, Check, X, CheckCircle2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import ScanInput from './ScanInput';
+import BoxDetail from './TransportBoxDetail';
+import {
+  useTransportBoxByCodeQuery,
+  useChangeTransportBoxState,
+} from '../../api/hooks/useTransportBoxes';
+import { QUERY_KEYS } from '../../api/client';
+import { TransportBoxState } from '../../api/generated/api-client';
+
+const SUCCESS_DISPLAY_MS = 2500;
+
+const TransportBoxReceive: React.FC = () => {
+  const [scannedCode, setScannedCode] = useState<string | null>(null);
+  const [receivedCode, setReceivedCode] = useState<string | null>(null);
+
+  const queryClient = useQueryClient();
+  const { data: box, isFetching } = useTransportBoxByCodeQuery(scannedCode);
+  const changeState = useChangeTransportBoxState();
+
+  const showNotFound = !!scannedCode && !isFetching && !box;
+  const canReceive = box?.isReceivable === true;
+
+  useEffect(() => {
+    if (!receivedCode) return;
+    const timer = setTimeout(() => setReceivedCode(null), SUCCESS_DISPLAY_MS);
+    return () => clearTimeout(timer);
+  }, [receivedCode]);
+
+  const handleAccept = async () => {
+    if (!box || box.isReceivable !== true || changeState.isPending) return;
+    try {
+      await changeState.mutateAsync({
+        boxId: box.id!,
+        newState: TransportBoxState.Received,
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.transportBox, 'byCode'],
+      });
+      setReceivedCode(box.code ?? null);
+      setScannedCode(null);
+    } catch {
+      // Backend errors surface via the global toast handler; keep the box
+      // on screen so the user can retry.
+    }
+  };
+
+  const handleReject = () => {
+    setScannedCode(null);
+    setReceivedCode(null);
+  };
+
+  const handleScan = (value: string) => {
+    if (box?.isReceivable === true && box.code === value && !changeState.isPending) {
+      void handleAccept();
+      return;
+    }
+    setReceivedCode(null);
+    setScannedCode(value);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="sticky top-0 z-10 bg-background-gray pb-3">
+        <ScanInput
+          label="Kód boxu"
+          onScan={handleScan}
+          loading={changeState.isPending}
+          suppressKeyboard
+          allowKeyboardToggle
+        />
+      </div>
+
+      {isFetching && (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary-blue" />
+        </div>
+      )}
+
+      {receivedCode && !box && (
+        <div
+          data-testid="receive-success"
+          className="bg-green-50 border border-green-200 rounded-xl p-6 flex flex-col items-center text-center gap-2"
+        >
+          <CheckCircle2 className="h-10 w-10 text-green-600" />
+          <p className="font-semibold text-neutral-slate">
+            Box {receivedCode} přijat
+          </p>
+          <p className="text-sm text-neutral-gray">Naskenujte další box</p>
+        </div>
+      )}
+
+      {showNotFound && (
+        <div
+          data-testid="box-not-found"
+          className="bg-white border border-border-light rounded-xl p-6 flex flex-col items-center text-center gap-2"
+        >
+          <PackageX className="h-10 w-10 text-neutral-gray" />
+          <p className="font-semibold text-neutral-slate">
+            Box {scannedCode} nenalezen
+          </p>
+          <p className="text-sm text-neutral-gray">
+            Zkontrolujte kód a naskenujte znovu
+          </p>
+        </div>
+      )}
+
+      {!isFetching && box && (
+        <div className="space-y-3">
+          <BoxDetail box={box} />
+
+          {!canReceive && (
+            <div
+              data-testid="not-receivable"
+              className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700"
+            >
+              Tento box nelze přijmout. Pro příjem musí být ve stavu V přepravě,
+              V rezervě nebo V karanténě.
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              data-testid="reject-box"
+              onClick={handleReject}
+              className="flex-1 h-14 flex items-center justify-center gap-2 rounded-xl border border-border-light text-neutral-slate font-semibold hover:border-primary-blue transition-colors"
+            >
+              <X className="h-5 w-5" />
+              Zamítnout
+            </button>
+            <button
+              type="button"
+              data-testid="accept-box"
+              onClick={handleAccept}
+              disabled={!canReceive || changeState.isPending}
+              className="flex-1 h-14 flex items-center justify-center gap-2 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors disabled:bg-gray-200 disabled:text-neutral-gray disabled:cursor-not-allowed"
+            >
+              {changeState.isPending ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Check className="h-5 w-5" />
+              )}
+              {canReceive ? 'Potvrdit příjem' : 'Nelze přijmout'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TransportBoxReceive;
