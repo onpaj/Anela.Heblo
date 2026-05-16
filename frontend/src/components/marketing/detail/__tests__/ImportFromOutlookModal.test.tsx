@@ -30,7 +30,7 @@ async function triggerImport() {
   fillDates();
   fireEvent.click(screen.getByRole('button', { name: /importovat/i }));
   // Wait for the result summary to appear (means setResult has been called)
-  await waitFor(() => expect(screen.getByText('Vytvořeno:')).toBeInTheDocument());
+  await screen.findByText('Vytvořeno:');
 }
 
 beforeEach(() => {
