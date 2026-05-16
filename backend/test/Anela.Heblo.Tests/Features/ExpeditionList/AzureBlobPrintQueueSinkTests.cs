@@ -130,4 +130,48 @@ public class AzureBlobPrintQueueSinkTests : IDisposable
             It.IsAny<BlobContainerEncryptionScopeOptions>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task SendAsync_FourParallelFirstCalls_InvokesCreateIfNotExistsExactlyOnce()
+    {
+        // Arrange
+        var file = Path.Combine(_tempDir, "order1.pdf");
+        await File.WriteAllTextAsync(file, "pdf");
+
+        // Block CreateIfNotExistsAsync until released, so all 4 callers race to the gate
+        // at the same point in time. Without this, the first caller could complete before
+        // the others even enter the method and the test would not exercise the gate.
+        var release = new TaskCompletionSource();
+        _containerClient
+            .Setup(x => x.CreateIfNotExistsAsync(
+                It.IsAny<PublicAccessType>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<BlobContainerEncryptionScopeOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(async () =>
+            {
+                await release.Task;
+                return Mock.Of<Azure.Response<BlobContainerInfo>>();
+            });
+
+        var sink = CreateSink();
+
+        // Act — fire 4 SendAsync calls in parallel, then release the gate
+        var calls = Enumerable.Range(0, 4)
+            .Select(_ => Task.Run(() => sink.SendAsync([file])))
+            .ToArray();
+
+        // Give the tasks time to converge on the semaphore before releasing
+        await Task.Delay(50);
+        release.SetResult();
+
+        await Task.WhenAll(calls);
+
+        // Assert
+        _containerClient.Verify(x => x.CreateIfNotExistsAsync(
+            It.IsAny<PublicAccessType>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<BlobContainerEncryptionScopeOptions>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
