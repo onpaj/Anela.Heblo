@@ -138,7 +138,7 @@ export function useMeetingTaskDetail(id: string) {
 
 export function useMeetingUsers() {
   return useQuery<MeetingUserDto[]>({
-    queryKey: ["meetingTasks", "users"],
+    queryKey: [...QUERY_KEYS.meetingTasks, "users"],
     staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       const response = await fetchJson<MeetingUsersResponse>(
