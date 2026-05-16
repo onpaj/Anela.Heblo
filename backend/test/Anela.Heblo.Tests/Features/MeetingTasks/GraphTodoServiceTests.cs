@@ -39,7 +39,7 @@ public class GraphTodoServiceTests
     }
 
     [Fact]
-    public async Task ResolveUserIdAsync_SingleMatch_ReturnsUserId()
+    public async Task ResolveUserIdByEmailAsync_SingleMatch_ReturnsUserId()
     {
         var (service, _) = CreateService(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -48,26 +48,26 @@ public class GraphTodoServiceTests
                 Encoding.UTF8, "application/json")
         });
 
-        var result = await service.ResolveUserIdAsync("Ondra Pajgrt");
+        var result = await service.ResolveUserIdByEmailAsync("ondra@anela.cz");
 
         result.Should().Be("user-123");
     }
 
     [Fact]
-    public async Task ResolveUserIdAsync_NoMatch_ReturnsNull()
+    public async Task ResolveUserIdByEmailAsync_NoMatch_ReturnsNull()
     {
         var (service, _) = CreateService(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent("""{"value":[]}""", Encoding.UTF8, "application/json")
         });
 
-        var result = await service.ResolveUserIdAsync("Nobody");
+        var result = await service.ResolveUserIdByEmailAsync("nobody@anela.cz");
 
         result.Should().BeNull();
     }
 
     [Fact]
-    public async Task ResolveUserIdAsync_MultipleMatches_ReturnsFirst()
+    public async Task ResolveUserIdByEmailAsync_MultipleMatches_ReturnsFirst()
     {
         var (service, _) = CreateService(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
@@ -76,34 +76,34 @@ public class GraphTodoServiceTests
                 Encoding.UTF8, "application/json")
         });
 
-        var result = await service.ResolveUserIdAsync("John");
+        var result = await service.ResolveUserIdByEmailAsync("john@anela.cz");
 
         result.Should().Be("a");
     }
 
     [Fact]
-    public async Task ResolveUserIdAsync_HttpFailure_ReturnsNull()
+    public async Task ResolveUserIdByEmailAsync_HttpFailure_ReturnsNull()
     {
         var (service, _) = CreateService(_ =>
             new HttpResponseMessage(HttpStatusCode.InternalServerError));
 
-        var result = await service.ResolveUserIdAsync("Anyone");
+        var result = await service.ResolveUserIdByEmailAsync("anyone@anela.cz");
 
         result.Should().BeNull();
     }
 
     [Fact]
-    public async Task ResolveUserIdAsync_ExceptionInTransport_ReturnsNull()
+    public async Task ResolveUserIdByEmailAsync_ExceptionInTransport_ReturnsNull()
     {
         var (service, _) = CreateService(_ => throw new HttpRequestException("boom"));
 
-        var result = await service.ResolveUserIdAsync("Anyone");
+        var result = await service.ResolveUserIdByEmailAsync("anyone@anela.cz");
 
         result.Should().BeNull();
     }
 
     [Fact]
-    public async Task ResolveUserIdAsync_DisplayNameWithSingleQuote_DoublesQuoteBeforeEscape()
+    public async Task ResolveUserIdByEmailAsync_EmailWithSingleQuote_DoublesQuoteBeforeEscape()
     {
         string? capturedUrl = null;
         var (service, _) = CreateService(req =>
@@ -117,16 +117,15 @@ public class GraphTodoServiceTests
             };
         });
 
-        var result = await service.ResolveUserIdAsync("O'Brien");
+        var result = await service.ResolveUserIdByEmailAsync("o'brien@anela.cz");
 
         result.Should().Be("x");
         // OData v4: single quote doubled then percent-encoded. %27 = single quote.
-        // When read via RequestUri.ToString(), spaces remain unescaped in the display.
-        capturedUrl.Should().Contain("displayName eq %27O%27%27Brien%27");
+        capturedUrl.Should().Contain("mail eq %27o%27%27brien%40anela.cz%27");
     }
 
     [Fact]
-    public async Task ResolveUserIdAsync_UsesAppToken_AndCallsGraphUsersEndpoint()
+    public async Task ResolveUserIdByEmailAsync_UsesAppToken_AndCallsGraphUsersEndpoint()
     {
         HttpRequestMessage? captured = null;
         var (service, _) = CreateService(req =>
@@ -138,7 +137,7 @@ public class GraphTodoServiceTests
             };
         });
 
-        await service.ResolveUserIdAsync("Anyone");
+        await service.ResolveUserIdByEmailAsync("anyone@anela.cz");
 
         captured.Should().NotBeNull();
         captured!.Method.Should().Be(HttpMethod.Get);

@@ -39,11 +39,20 @@ public class SubmitToTodoHandler : IRequestHandler<SubmitToTodoRequest, SubmitTo
 
         foreach (var task in toSubmit)
         {
-            var userId = await _todoService.ResolveUserIdAsync(task.Assignee, cancellationToken);
+            if (string.IsNullOrWhiteSpace(task.AssigneeEmail))
+            {
+                response.FailedCount++;
+                response.Errors.Add(
+                    $"Task '{task.Title}' has no resolved user — assign a known user before submitting.");
+                continue;
+            }
+
+            var userId = await _todoService.ResolveUserIdByEmailAsync(task.AssigneeEmail, cancellationToken);
             if (userId is null)
             {
                 response.FailedCount++;
-                response.Errors.Add($"Could not resolve assignee '{task.Assignee}' for task '{task.Title}'.");
+                response.Errors.Add(
+                    $"Could not resolve user '{task.AssigneeEmail}' for task '{task.Title}'.");
                 continue;
             }
 
@@ -66,7 +75,7 @@ public class SubmitToTodoHandler : IRequestHandler<SubmitToTodoRequest, SubmitTo
             else
             {
                 response.FailedCount++;
-                response.Errors.Add($"Failed to create TODO task '{task.Title}' for '{task.Assignee}': {result.Error}");
+                response.Errors.Add($"Failed to create TODO task '{task.Title}' for '{task.AssigneeEmail}': {result.Error}");
             }
         }
 

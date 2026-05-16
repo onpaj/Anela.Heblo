@@ -26,9 +26,9 @@ public class GraphTodoService : IGraphTodoService
         _todoListName = options.Value.TodoListName;
     }
 
-    public async Task<string?> ResolveUserIdAsync(string assigneeName, CancellationToken ct = default)
+    public async Task<string?> ResolveUserIdByEmailAsync(string email, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(assigneeName))
+        if (string.IsNullOrWhiteSpace(email))
             return null;
 
         try
@@ -38,8 +38,8 @@ public class GraphTodoService : IGraphTodoService
 
             // OData v4 string-literal rule: single quotes inside the literal are doubled,
             // then the whole literal is URL-encoded. "O'Brien" → "O''Brien" → "O%27%27Brien".
-            var doubledQuotes = assigneeName.Replace("'", "''");
-            var filter = Uri.EscapeDataString($"displayName eq '{doubledQuotes}'");
+            var doubledQuotes = email.Replace("'", "''");
+            var filter = Uri.EscapeDataString($"mail eq '{doubledQuotes}'");
             var url = $"{GraphApiHelpers.GraphBaseUrl}/users?$filter={filter}&$select=id,displayName";
 
             var request = GraphApiHelpers.CreateRequest(HttpMethod.Get, url, token);
@@ -47,7 +47,7 @@ public class GraphTodoService : IGraphTodoService
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Graph user lookup for '{Name}' returned {Status}", assigneeName, response.StatusCode);
+                _logger.LogWarning("Graph user lookup for '{Email}' returned {Status}", email, response.StatusCode);
                 return null;
             }
 
@@ -58,14 +58,14 @@ public class GraphTodoService : IGraphTodoService
 
             if (result.Value.Count > 1)
                 _logger.LogInformation(
-                    "Graph user lookup for '{Name}' matched {Count} users; returning first id",
-                    assigneeName, result.Value.Count);
+                    "Graph user lookup for '{Email}' matched {Count} users; returning first id",
+                    email, result.Value.Count);
 
             return result.Value[0].Id;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to resolve Graph user id for '{Name}'", assigneeName);
+            _logger.LogWarning(ex, "Failed to resolve Graph user id for '{Email}'", email);
             return null;
         }
     }

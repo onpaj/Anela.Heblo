@@ -16,9 +16,9 @@ public sealed class NoOpGraphTodoService : IGraphTodoService
         _logger = logger;
     }
 
-    public Task<string?> ResolveUserIdAsync(string assigneeName, CancellationToken ct = default)
+    public Task<string?> ResolveUserIdByEmailAsync(string email, CancellationToken ct = default)
     {
-        _logger.LogWarning("Graph Todo disabled (mock auth active) — skipping ResolveUserId for '{Name}'", assigneeName);
+        _logger.LogWarning("Graph Todo disabled (mock auth active) — skipping ResolveUserIdByEmail for '{Email}'", email);
         return Task.FromResult<string?>(null);
     }
 
