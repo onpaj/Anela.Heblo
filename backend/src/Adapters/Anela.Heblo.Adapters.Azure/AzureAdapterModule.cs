@@ -21,7 +21,7 @@ public static class AzureAdapterModule
             return new BlobContainerClient(options.BlobConnectionString, options.BlobContainerName);
         });
 
-        services.AddScoped<IPrintQueueSink, AzureBlobPrintQueueSink>();
+        services.AddSingleton<IPrintQueueSink, AzureBlobPrintQueueSink>();
 
         return services;
     }
