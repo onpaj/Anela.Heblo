@@ -31,6 +31,7 @@ const ScanInput: React.FC<ScanInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const loadingRef = useRef(loading);
   loadingRef.current = loading;
+  const prevLoadingRef = useRef(loading);
   const refocusOnBlurRef = useRef(refocusOnBlur);
   refocusOnBlurRef.current = refocusOnBlur;
 
@@ -41,6 +42,13 @@ const ScanInput: React.FC<ScanInputProps> = ({
     // intentionally runs once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (prevLoadingRef.current && !loading) {
+      setTimeout(() => inputRef.current?.focus(), REFOCUS_DELAY_MS);
+    }
+    prevLoadingRef.current = loading;
+  }, [loading]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,7 +86,7 @@ const ScanInput: React.FC<ScanInputProps> = ({
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-neutral-slate">{label}</label>
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form onSubmit={handleSubmit} aria-label={label} className="flex gap-2">
         <div className="relative flex-1">
           {loading ? (
             <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-gray animate-spin pointer-events-none" />

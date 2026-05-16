@@ -8,6 +8,7 @@ import {
   ChangeTransportBoxStateResponse,
   TransportBoxState,
   TransportBoxDto,
+  ErrorCodes,
 } from "../generated/api-client";
 
 // Type-safe interface for accessing API client internals
@@ -91,17 +92,22 @@ export const useTransportBoxByIdQuery = (
 };
 
 // Look up a transport box by its scannable code (barcode). Returns the box, or
-// null when the code is not found (backend responds success=false).
+// null when the code is genuinely not found. Throws (sets isError) for any other
+// backend error so callers can show a distinct "load error" vs "not found" message.
+// staleTime: 0 — scan results must always be fresh (the physical box may have just
+// changed state between scans).
 export const useTransportBoxByCodeQuery = (code: string | null) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.transportBox, "byCode", code],
     queryFn: async (): Promise<TransportBoxDto | null> => {
       const client = getTransportBoxClient();
       const response = await client.transportBox_GetTransportBoxByCode(code!);
-      return response.success ? response.transportBox ?? null : null;
+      if (response.success) return response.transportBox ?? null;
+      if (response.errorCode === ErrorCodes.TransportBoxNotFound) return null;
+      throw new Error(response.errorCode ?? "UnknownError");
     },
     enabled: !!code,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0,
   });
 };
 
@@ -181,6 +187,11 @@ export const useChangeTransportBoxState = () => {
       // Also invalidate any transition-related queries
       queryClient.invalidateQueries({
         queryKey: [...QUERY_KEYS.transportBoxTransitions, variables.boxId],
+      });
+
+      // Invalidate byCode cache so the scan lookup reflects the new state
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.transportBox, 'byCode'],
       });
 
       // Force refetch of the specific box detail to ensure fresh data
