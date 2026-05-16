@@ -3,14 +3,17 @@ import ReactMarkdown from "react-markdown";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft, Check, X, Plus, Send, CheckCheck, Clock, CheckCircle, CheckCircle2,
+  ChevronDown, ChevronRight, AlertTriangle,
 } from "lucide-react";
 import {
+  MeetingUserDto,
   ProposedTaskDto,
   ProposedTaskStatus,
   TaskFormData,
   TranscriptStatus,
   useAddProposedTask,
   useMeetingTaskDetail,
+  useMeetingUsers,
   useSubmitToTodo,
   useUpdateProposedTask,
   useUpdateProposedTaskStatus,
@@ -43,6 +46,33 @@ function TranscriptStatusBadge({ status }: { status: string }) {
   );
 }
 
+interface AssigneePickerProps {
+  users: MeetingUserDto[];
+  value: string | null;
+  onChange: (displayName: string, email: string | null) => void;
+}
+
+function AssigneePicker({ users, value, onChange }: AssigneePickerProps) {
+  return (
+    <select
+      value={value ?? ""}
+      onChange={(e) => {
+        const email = e.target.value || null;
+        const user = users.find((u) => u.email === email);
+        onChange(user?.displayName ?? "", email);
+      }}
+      className="flex-1 border border-gray-300 rounded-md px-2 py-1 text-sm"
+    >
+      <option value="">— vyberte řešitele —</option>
+      {users.map((u) => (
+        <option key={u.email} value={u.email}>
+          {u.displayName}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 const MeetingTaskDetailPage: React.FC = () => {
   const { id = "" } = useParams<{ id: string }>();
   const detail = useMeetingTaskDetail(id);
@@ -56,6 +86,8 @@ const MeetingTaskDetailPage: React.FC = () => {
   const [addingTask, setAddingTask] = useState(false);
   const [addForm, setAddForm] = useState<TaskFormData>(EMPTY_FORM);
   const [submitOpen, setSubmitOpen] = useState(false);
+  const users = useMeetingUsers();
+  const [transcriptOpen, setTranscriptOpen] = useState(false);
 
   if (detail.isLoading) {
     return <div className="p-8 text-gray-500">Nacitani...</div>;
@@ -145,6 +177,26 @@ const MeetingTaskDetailPage: React.FC = () => {
         </div>
       </div>
 
+      <div className="px-4 sm:px-6 lg:px-8 mt-3">
+        <button
+          type="button"
+          onClick={() => setTranscriptOpen((v) => !v)}
+          className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900"
+        >
+          {transcriptOpen ? (
+            <ChevronDown className="w-4 h-4 mr-1" />
+          ) : (
+            <ChevronRight className="w-4 h-4 mr-1" />
+          )}
+          Přepis schůzky
+        </button>
+        {transcriptOpen && (
+          <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 whitespace-pre-wrap max-h-96 overflow-auto">
+            {transcript.rawTranscript}
+          </div>
+        )}
+      </div>
+
       <div className="px-4 sm:px-6 lg:px-8 mt-6 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">
           Navrhovane ulohy ({tasks.length})
@@ -186,12 +238,12 @@ const MeetingTaskDetailPage: React.FC = () => {
               className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
             />
             <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Resitel"
-                value={addForm.assignee}
-                onChange={(e) => setAddForm({ ...addForm, assignee: e.target.value })}
-                className="flex-1 border border-gray-300 rounded-md px-2 py-1 text-sm"
+              <AssigneePicker
+                users={users.data ?? []}
+                value={addForm.assigneeEmail}
+                onChange={(displayName, email) =>
+                  setAddForm({ ...addForm, assignee: displayName, assigneeEmail: email })
+                }
               />
               <input
                 type="date"
@@ -211,7 +263,7 @@ const MeetingTaskDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleAddTask}
-                disabled={!addForm.title || !addForm.assignee || addTask.isPending}
+                disabled={!addForm.title || !addForm.assigneeEmail || addTask.isPending}
                 className="px-3 py-1 rounded-md text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Pridat
@@ -247,8 +299,15 @@ const MeetingTaskDetailPage: React.FC = () => {
                       )}
                     </div>
                     {t.description && <div className="text-sm text-gray-700 mt-1">{t.description}</div>}
-                    <div className="text-xs text-gray-500 mt-1">
-                      {t.assignee}{t.dueDate ? ` · ${new Date(t.dueDate).toLocaleDateString("cs-CZ")}` : ""}
+                    <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                      <span>
+                        {t.assignee}{t.dueDate ? ` · ${new Date(t.dueDate).toLocaleDateString("cs-CZ")}` : ""}
+                      </span>
+                      {!t.assigneeEmail && (
+                        <span className="inline-flex items-center text-amber-700 bg-amber-100 rounded px-1.5 py-0.5">
+                          <AlertTriangle className="w-3 h-3 mr-1" /> neznámý uživatel
+                        </span>
+                      )}
                     </div>
                   </div>
                   {t.status === "Pending" && (
@@ -286,12 +345,12 @@ const MeetingTaskDetailPage: React.FC = () => {
                     className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm"
                   />
                   <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Resitel"
-                      value={editForm.assignee}
-                      onChange={(e) => setEditForm({ ...editForm, assignee: e.target.value })}
-                      className="flex-1 border border-gray-300 rounded-md px-2 py-1 text-sm"
+                    <AssigneePicker
+                      users={users.data ?? []}
+                      value={editForm.assigneeEmail}
+                      onChange={(displayName, email) =>
+                        setEditForm({ ...editForm, assignee: displayName, assigneeEmail: email })
+                      }
                     />
                     <input
                       type="date"
