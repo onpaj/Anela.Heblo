@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import ScanBoxStep from "./ScanBoxStep";
 import AddItemsStep from "./AddItemsStep";
 import { useSendBoxToTransit, type TerminalBox } from "../../../api/hooks/useBoxFill";
 
-type Step = "scan" | "add-items" | "done";
+type Step = "scan" | "add-items";
 
 const BoxFillWorkflow: React.FC = () => {
   const [step, setStep] = useState<Step>("scan");
@@ -12,6 +12,7 @@ const BoxFillWorkflow: React.FC = () => {
   const [resumed, setResumed] = useState(false);
   const [amountMemory, setAmountMemory] = useState<Record<string, number>>({});
   const [transitError, setTransitError] = useState<string | null>(null);
+  const [lastSentBoxCode, setLastSentBoxCode] = useState<string | null>(null);
 
   const sendToTransit = useSendBoxToTransit();
 
@@ -35,19 +36,20 @@ const BoxFillWorkflow: React.FC = () => {
       setTransitError("Box se nepodařilo odeslat do přepravy.");
       return;
     }
-    setStep("done");
+    resetToScan(box.code);
   };
 
-  const handleNextBox = () => {
+  const resetToScan = (sentBoxCode: string | null = null) => {
     setStep("scan");
     setBox(null);
     setResumed(false);
     setAmountMemory({});
     setTransitError(null);
+    setLastSentBoxCode(sentBoxCode);
   };
 
   if (step === "scan") {
-    return <ScanBoxStep onBoxReady={handleBoxReady} />;
+    return <ScanBoxStep onBoxReady={handleBoxReady} lastSentBoxCode={lastSentBoxCode} />;
   }
 
   if (step === "add-items" && box) {
@@ -75,29 +77,7 @@ const BoxFillWorkflow: React.FC = () => {
     );
   }
 
-  return (
-    <div className="space-y-6 pt-2 text-center">
-      <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
-      <div>
-        <h1 className="text-xl font-bold text-neutral-slate">Box odeslán</h1>
-        {box && (
-          <p className="text-sm text-neutral-gray mt-1">
-            Box{" "}
-            <span className="font-mono font-semibold">{box.code}</span> byl
-            odeslán do přepravy.
-          </p>
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={handleNextBox}
-        data-testid="next-box-button"
-        className="w-full py-3 text-base font-semibold text-white bg-primary-blue rounded-xl"
-      >
-        Plnit další box
-      </button>
-    </div>
-  );
+  return null;
 };
 
 export default BoxFillWorkflow;
