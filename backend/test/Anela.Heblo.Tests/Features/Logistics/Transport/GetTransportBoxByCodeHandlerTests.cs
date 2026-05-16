@@ -106,6 +106,7 @@ public class GetTransportBoxByCodeHandlerTests
     [Theory]
     [InlineData(TransportBoxState.Reserve)]
     [InlineData(TransportBoxState.InTransit)]
+    [InlineData(TransportBoxState.Quarantine)]
     public async Task Handle_BoxInValidState_ReturnsSuccessResponse(TransportBoxState state)
     {
         // Arrange
