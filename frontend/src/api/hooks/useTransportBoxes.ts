@@ -90,15 +90,19 @@ export const useTransportBoxByIdQuery = (
   });
 };
 
-// Look up a transport box by its scannable code (barcode). Returns the box, or
-// null when the code is not found (backend responds success=false).
+// Look up a transport box by its scannable code (barcode). Returns the box when
+// found. Throws when the backend responds with success=false so React Query
+// exposes isError/error — the terminal error display layer handles rendering.
 export const useTransportBoxByCodeQuery = (code: string | null) => {
   return useQuery({
     queryKey: [...QUERY_KEYS.transportBox, "byCode", code],
     queryFn: async (): Promise<TransportBoxDto | null> => {
       const client = getTransportBoxClient();
       const response = await client.transportBox_GetTransportBoxByCode(code!);
-      return response.success ? response.transportBox ?? null : null;
+      if (!response.success) {
+        throw new Error("Box nenalezen");
+      }
+      return response.transportBox ?? null;
     },
     enabled: !!code,
     staleTime: 1000 * 60 * 5, // 5 minutes

@@ -4,6 +4,7 @@ import React from "react";
 import {
   useTransportBoxesQuery,
   useTransportBoxByIdQuery,
+  useTransportBoxByCodeQuery,
   useChangeTransportBoxState,
 } from "../useTransportBoxes";
 import * as clientModule from "../../client";
@@ -40,6 +41,7 @@ const createWrapper = ({ children }: { children: React.ReactNode }) => {
 const mockApiClient = {
   transportBox_GetTransportBoxes: jest.fn(),
   transportBox_GetTransportBoxById: jest.fn(),
+  transportBox_GetTransportBoxByCode: jest.fn(),
   transportBox_GetTransportBoxSummary: jest.fn(),
   transportBox_ChangeTransportBoxState: jest.fn(),
 };
@@ -283,6 +285,62 @@ describe("useTransportBoxes hooks", () => {
           description: undefined,
         }),
       );
+    });
+  });
+
+  describe("useTransportBoxByCodeQuery", () => {
+    it("should throw with 'Box nenalezen' when response.success is false", async () => {
+      mockApiClient.transportBox_GetTransportBoxByCode.mockResolvedValue({
+        success: false,
+        transportBox: null,
+      });
+
+      const { result } = renderHook(
+        () => useTransportBoxByCodeQuery("SCAN-001"),
+        { wrapper: createWrapper },
+      );
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      expect(result.current.error).toBeInstanceOf(Error);
+      expect((result.current.error as Error).message).toBe("Box nenalezen");
+    });
+
+    it("should return the transport box when response.success is true", async () => {
+      const mockBox = { id: 42, code: "SCAN-001", state: "InTransit", items: [] };
+      mockApiClient.transportBox_GetTransportBoxByCode.mockResolvedValue({
+        success: true,
+        transportBox: mockBox,
+      });
+
+      const { result } = renderHook(
+        () => useTransportBoxByCodeQuery("SCAN-001"),
+        { wrapper: createWrapper },
+      );
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.data).toEqual(mockBox);
+    });
+
+    it("should not fire the query when code is null", async () => {
+      const { result } = renderHook(
+        () => useTransportBoxByCodeQuery(null),
+        { wrapper: createWrapper },
+      );
+
+      // Query is disabled — status stays pending and API is never called
+      await waitFor(() => {
+        expect(result.current.status).toBe("pending");
+      });
+
+      expect(
+        mockApiClient.transportBox_GetTransportBoxByCode,
+      ).not.toHaveBeenCalled();
     });
   });
 });
