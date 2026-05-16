@@ -29,7 +29,8 @@ public class LeafletModuleIntegrationTests
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         services.AddSingleton(Mock.Of<IEmbeddingGenerator<string, Embedding<float>>>());
         services.AddSingleton(Mock.Of<IChatClient>());
-        services.AddSingleton(Mock.Of<ILeafletRepository>());
+        services.AddSingleton(Mock.Of<ILeafletDocumentRepository>());
+        services.AddSingleton(Mock.Of<ILeafletGenerationRepository>());
         services.AddScoped<IWordWindowChunker, WordWindowChunker>();
         services.AddLeafletModule(configuration);
         return services;

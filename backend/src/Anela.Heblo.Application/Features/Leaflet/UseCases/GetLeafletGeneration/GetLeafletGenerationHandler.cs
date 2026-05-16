@@ -7,9 +7,9 @@ namespace Anela.Heblo.Application.Features.Leaflet.UseCases.GetLeafletGeneration
 public class GetLeafletGenerationHandler
     : IRequestHandler<GetLeafletGenerationRequest, GetLeafletGenerationResponse>
 {
-    private readonly ILeafletRepository _repository;
+    private readonly ILeafletGenerationRepository _repository;
 
-    public GetLeafletGenerationHandler(ILeafletRepository repository)
+    public GetLeafletGenerationHandler(ILeafletGenerationRepository repository)
     {
         _repository = repository;
     }

@@ -8,7 +8,7 @@ namespace Anela.Heblo.Tests.Features.Leaflet.UseCases;
 
 public class GetLeafletDocumentContentTypesHandlerTests
 {
-    private readonly Mock<ILeafletRepository> _repoMock = new();
+    private readonly Mock<ILeafletDocumentRepository> _repoMock = new();
 
     private GetLeafletDocumentContentTypesHandler CreateHandler() =>
         new(_repoMock.Object);

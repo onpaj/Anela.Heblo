@@ -9,7 +9,7 @@ namespace Anela.Heblo.Tests.Features.Leaflet.UseCases;
 
 public class GetLeafletChunkDetailHandlerTests
 {
-    private readonly Mock<ILeafletRepository> _repoMock = new();
+    private readonly Mock<ILeafletDocumentRepository> _repoMock = new();
 
     private GetLeafletChunkDetailHandler CreateHandler() =>
         new(_repoMock.Object);

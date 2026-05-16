@@ -1,6 +1,6 @@
 namespace Anela.Heblo.Domain.Features.Leaflet;
 
-public interface ILeafletRepository
+public interface ILeafletDocumentRepository
 {
     Task AddDocumentAsync(LeafletDocument document, CancellationToken ct = default);
     Task AddChunksAsync(IEnumerable<LeafletChunk> chunks, CancellationToken ct = default);
@@ -20,11 +20,4 @@ public interface ILeafletRepository
     Task<IReadOnlyList<string>> GetDistinctContentTypesAsync(CancellationToken ct = default);
     Task<LeafletChunk?> GetChunkByIdAsync(Guid id, CancellationToken ct = default);
     Task<IReadOnlyDictionary<Guid, Guid>> GetFirstChunkIdsByDocumentIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
-    Task SaveChangesAsync(CancellationToken ct = default);
-    Task SaveGenerationAsync(LeafletGeneration generation, CancellationToken cancellationToken);
-    Task<LeafletGeneration?> GetGenerationByIdAsync(Guid id, CancellationToken cancellationToken);
-    Task<(IReadOnlyList<LeafletGeneration> Items, int TotalCount)> GetGenerationsPagedAsync(
-        bool? hasFeedback, string? userId, string sortBy, bool descending,
-        int page, int pageSize, CancellationToken cancellationToken);
-    Task<LeafletFeedbackStats> GetGenerationStatsAsync(CancellationToken cancellationToken);
 }

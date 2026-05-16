@@ -8,11 +8,11 @@ namespace Anela.Heblo.Application.Features.Leaflet.UseCases.SubmitLeafletFeedbac
 public class SubmitLeafletFeedbackHandler
     : IRequestHandler<SubmitLeafletFeedbackRequest, SubmitLeafletFeedbackResponse>
 {
-    private readonly ILeafletRepository _repository;
+    private readonly ILeafletGenerationRepository _repository;
     private readonly ICurrentUserService _currentUserService;
 
     public SubmitLeafletFeedbackHandler(
-        ILeafletRepository repository,
+        ILeafletGenerationRepository repository,
         ICurrentUserService currentUserService)
     {
         _repository = repository;
@@ -37,16 +37,21 @@ public class SubmitLeafletFeedbackHandler
             return new SubmitLeafletFeedbackResponse(ErrorCodes.Forbidden,
                 new() { { "generationId", request.GenerationId.ToString() } });
 
-        if (generation.PrecisionScore is not null || generation.StyleScore is not null)
-            return new SubmitLeafletFeedbackResponse(ErrorCodes.LeafletFeedbackAlreadySubmitted,
-                new() { { "generationId", request.GenerationId.ToString() } });
+        var updateResult = await _repository.UpdateFeedbackAsync(
+            request.GenerationId,
+            request.PrecisionScore,
+            request.StyleScore,
+            request.Comment,
+            cancellationToken);
 
-        // Entity is tracked via FindAsync in GetGenerationByIdAsync; direct mutation is intentional.
-        generation.PrecisionScore = request.PrecisionScore;
-        generation.StyleScore = request.StyleScore;
-        generation.FeedbackComment = request.Comment;
-
-        await _repository.SaveChangesAsync(cancellationToken);
-        return new SubmitLeafletFeedbackResponse();
+        return updateResult switch
+        {
+            UpdateFeedbackResult.Updated => new SubmitLeafletFeedbackResponse(),
+            UpdateFeedbackResult.NotFound => new SubmitLeafletFeedbackResponse(ErrorCodes.LeafletFeedbackNotFound,
+                new() { { "generationId", request.GenerationId.ToString() } }),
+            UpdateFeedbackResult.AlreadySubmitted => new SubmitLeafletFeedbackResponse(ErrorCodes.LeafletFeedbackAlreadySubmitted,
+                new() { { "generationId", request.GenerationId.ToString() } }),
+            _ => throw new InvalidOperationException($"Unexpected UpdateFeedbackResult: {updateResult}"),
+        };
     }
 }

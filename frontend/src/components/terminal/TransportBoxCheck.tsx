@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Loader2, PackageX, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import ScanInput from './ScanInput';
 import { useTransportBoxByCodeQuery } from '../../api/hooks/useTransportBoxes';
+import TerminalError from './TerminalError';
+import { getTerminalErrorMessage } from './terminalErrors';
 import BoxDetail from './TransportBoxDetail';
 
 const TransportBoxCheck: React.FC = () => {
   const [scannedCode, setScannedCode] = useState<string | null>(null);
-  const { data: box, isFetching, isError, refetch } = useTransportBoxByCodeQuery(scannedCode);
+  const { data: box, isFetching, isError, error, refetch } = useTransportBoxByCodeQuery(scannedCode);
 
-  const showNotFound = !!scannedCode && !isFetching && !isError && !box;
   const showError = !!scannedCode && !isFetching && isError;
 
   const handleScan = (value: string) => {
@@ -36,22 +37,14 @@ const TransportBoxCheck: React.FC = () => {
         </div>
       )}
 
-      {showNotFound && (
-        <div
-          data-testid="box-not-found"
-          className="bg-white border border-border-light rounded-xl p-6 flex flex-col items-center text-center gap-2"
-        >
-          <PackageX className="h-10 w-10 text-neutral-gray" />
-          <p className="font-semibold text-neutral-slate">
-            Box {scannedCode} nenalezen
-          </p>
-          <p className="text-sm text-neutral-gray">
-            Zkontrolujte kód a naskenujte znovu
-          </p>
-        </div>
+      {isError && error && (
+        <TerminalError
+          message={getTerminalErrorMessage(error)}
+          hint="Zkontrolujte kód a naskenujte znovu"
+        />
       )}
 
-      {showError && (
+      {showError && !error && (
         <div
           data-testid="box-load-error"
           className="bg-white border border-red-200 rounded-xl p-6 flex flex-col items-center text-center gap-2"
