@@ -212,6 +212,14 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
           aValue = a.stockCoveragePercent;
           bValue = b.stockCoveragePercent;
           break;
+        case GiftPackageSortBy.OverstockOptimal:
+          aValue = a.overstockOptimal;
+          bValue = b.overstockOptimal;
+          break;
+        case GiftPackageSortBy.OverstockMinimal:
+          aValue = a.overstockMinimal;
+          bValue = b.overstockMinimal;
+          break;
         default:
           aValue = a.code;
           bValue = b.code;
@@ -281,9 +289,7 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
   };
 
   // Export functionality (placeholder)
-  const handleExport = () => {
-    console.log("Export to CSV");
-  };
+  const handleExport = () => {};
 
   // Handle severity filter click from summary cards
   const handleSeverityFilterClick = (severity: GiftPackageSeverity | "All") => {
