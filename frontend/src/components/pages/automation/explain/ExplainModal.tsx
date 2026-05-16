@@ -102,7 +102,7 @@ export function ExplainModal({
             <p className="text-sm text-red-600">{error}</p>
           )}
 
-          {!isLoading && !error && relevantTranscript !== null && (
+          {!isLoading && !error && !!relevantTranscript && (
             <>
               <div>
                 <p className="text-xs font-semibold uppercase text-gray-500 mb-2">Záznam konverzace</p>
