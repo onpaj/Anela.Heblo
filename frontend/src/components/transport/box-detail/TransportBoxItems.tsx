@@ -367,17 +367,38 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
                     </div>
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-900">
-                    <div className="truncate" title={item.productName || "-"}>
-                      {item.productName || "-"}
-                    </div>
-                    {(item.lotNumber || item.expirationDate) && (
-                      <div className="text-xs text-gray-500 mt-0.5 flex gap-3">
-                        {item.lotNumber && <span>Lot: {item.lotNumber}</span>}
-                        {item.expirationDate && (
-                          <span>Exp: {item.expirationDate.toISOString().slice(0, 10)}</span>
+                    <div className="flex items-center gap-2">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.productName || item.productCode || ""}
+                          className="w-12 h-12 object-cover rounded flex-shrink-0"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            target.style.display = "none";
+                            const placeholder = target.nextElementSibling as HTMLElement | null;
+                            if (placeholder) placeholder.style.display = "block";
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className="w-12 h-12 bg-gray-200 rounded flex-shrink-0"
+                        style={{ display: item.imageUrl ? "none" : "block" }}
+                      />
+                      <div className="min-w-0">
+                        <div className="truncate" title={item.productName || "-"}>
+                          {item.productName || "-"}
+                        </div>
+                        {(item.lotNumber || item.expirationDate) && (
+                          <div className="text-xs text-gray-500 mt-0.5 flex gap-3">
+                            {item.lotNumber && <span>Lot: {item.lotNumber}</span>}
+                            {item.expirationDate && (
+                              <span>Exp: {item.expirationDate.toISOString().slice(0, 10)}</span>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
+                    </div>
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-900 text-right font-medium">
                     {item.amount}
