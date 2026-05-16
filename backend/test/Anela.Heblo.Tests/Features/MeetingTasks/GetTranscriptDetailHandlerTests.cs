@@ -74,7 +74,7 @@ public class GetTranscriptDetailHandlerTests
     }
 
     [Fact]
-    public async Task Handle_MapsRawTranscriptAndAssigneeEmail()
+    public async Task Handle_MapsRawTranscript()
     {
         // Arrange
         var transcriptId = Guid.NewGuid();
@@ -88,13 +88,43 @@ public class GetTranscriptDetailHandlerTests
             RawTranscript = "raw transcript text",
             Status = MeetingTranscriptStatus.PendingReview,
             ReceivedAt = DateTime.UtcNow,
+            Tasks = new List<ProposedTask>()
+        };
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(transcriptId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transcript);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetTranscriptDetailRequest { Id = transcriptId }, CancellationToken.None);
+
+        // Assert
+        result.Transcript!.RawTranscript.Should().Be("raw transcript text");
+    }
+
+    [Fact]
+    public async Task Handle_MapsAssigneeEmail()
+    {
+        // Arrange
+        var transcriptId = Guid.NewGuid();
+        var transcript = new MeetingTranscript
+        {
+            Id = transcriptId,
+            PlaudRecordingId = "rec_1",
+            PlaudCreatedAt = DateTime.UtcNow,
+            Subject = "Subject",
+            Summary = "Summary",
+            RawTranscript = "",
+            Status = MeetingTranscriptStatus.PendingReview,
+            ReceivedAt = DateTime.UtcNow,
             Tasks = new List<ProposedTask>
             {
-                new()
+                new ProposedTask
                 {
                     Id = Guid.NewGuid(),
                     MeetingTranscriptId = transcriptId,
-                    Title = "T", Description = "D",
+                    Title = "T",
+                    Description = "D",
                     Assignee = "Andrea Nováková",
                     AssigneeEmail = "andrea@anela.cz",
                     Status = ProposedTaskStatus.Pending
@@ -110,8 +140,7 @@ public class GetTranscriptDetailHandlerTests
             new GetTranscriptDetailRequest { Id = transcriptId }, CancellationToken.None);
 
         // Assert
-        result.Transcript.RawTranscript.Should().Be("raw transcript text");
-        result.Transcript.Tasks.Single().AssigneeEmail.Should().Be("andrea@anela.cz");
+        result.Transcript!.Tasks.Single().AssigneeEmail.Should().Be("andrea@anela.cz");
     }
 
     [Fact]

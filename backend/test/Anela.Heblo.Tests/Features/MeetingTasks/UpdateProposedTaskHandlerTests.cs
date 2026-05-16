@@ -308,13 +308,14 @@ public class UpdateProposedTaskHandlerTests
         result.Success.Should().BeTrue();
         result.ErrorCode.Should().BeNull();
         result.Task.Should().NotBeNull();
-        result.Task.Title.Should().Be("Manually added task");
-        result.Task.Description.Should().Be("Added by reviewer");
-        result.Task.Assignee.Should().Be("carol");
-        result.Task.DueDate.Should().Be(dueDate);
-        result.Task.Status.Should().Be("Pending");
-        result.Task.IsManuallyAdded.Should().BeTrue();
-        result.Task.ExternalTaskId.Should().BeNull();
+        var addedDto = result.Task!;
+        addedDto.Title.Should().Be("Manually added task");
+        addedDto.Description.Should().Be("Added by reviewer");
+        addedDto.Assignee.Should().Be("carol");
+        addedDto.DueDate.Should().Be(dueDate);
+        addedDto.Status.Should().Be("Pending");
+        addedDto.IsManuallyAdded.Should().BeTrue();
+        addedDto.ExternalTaskId.Should().BeNull();
 
         transcript.Tasks.Should().HaveCount(2);
         var addedEntity = transcript.Tasks.Last();
@@ -322,7 +323,7 @@ public class UpdateProposedTaskHandlerTests
         addedEntity.IsManuallyAdded.Should().BeTrue();
         addedEntity.Status.Should().Be(ProposedTaskStatus.Pending);
         addedEntity.MeetingTranscriptId.Should().Be(transcriptId);
-        result.Task.Id.Should().Be(addedEntity.Id);
+        addedDto.Id.Should().Be(addedEntity.Id);
         _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
