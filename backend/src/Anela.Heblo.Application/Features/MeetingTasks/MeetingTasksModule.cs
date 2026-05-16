@@ -30,6 +30,7 @@ public static class MeetingTasksModule
             services.AddScoped<IGraphTodoService, NoOpGraphTodoService>();
         }
         services.AddScoped<IMeetingTaskExtractor, ClaudeMeetingTaskExtractor>();
+        services.AddSingleton<IMeetingUserDirectory, MeetingUserDirectory>();
 
         // PlaudPollingJob is auto-discovered via IRecurringJob assembly scan in AddRecurringJobs().
         // IMeetingTranscriptRepository is registered in PersistenceModule (subtask 1).
