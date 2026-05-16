@@ -15,7 +15,7 @@ public class LeafletGenerationPersistenceBehavior
     private readonly ILogger<LeafletGenerationPersistenceBehavior> _logger;
 
     public LeafletGenerationPersistenceBehavior(
-        ILeafletRepository repository,
+        ILeafletGenerationRepository repository,
         ICurrentUserService currentUserService,
         ILogger<LeafletGenerationPersistenceBehavior> logger)
     {
