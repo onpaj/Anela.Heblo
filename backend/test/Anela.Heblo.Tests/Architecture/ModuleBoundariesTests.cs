@@ -56,6 +56,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.KnowledgeBase",
             },
             Allowlist: LeafletAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Logistics -> Manufacture",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Logistics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Manufacture",
+                "Anela.Heblo.Application.Features.Manufacture",
+                "Anela.Heblo.Persistence.Manufacture",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
     };
 
     [Theory]
