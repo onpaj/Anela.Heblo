@@ -226,6 +226,14 @@ const resources = {
         SmartsuppDraftReplyAiUnavailable: "AI služba je momentálně nedostupná. Zkuste to prosím znovu.",
         SmartsuppConversationEmpty: "Konverzace neobsahuje zprávu zákazníka.",
 
+        // Inventory module errors
+        LotNotFound: "Šarže nebyla nalezena.",
+        EanNotFound: "EAN kód nebyl nalezen.",
+        LotAlreadyExists: "Šarže s tímto kódem již existuje.",
+        InventoryMaterialNotFound: "Materiál skladu nebyl nalezen.",
+        InventoryMaterialInvalidType: "Neplatný typ materiálu skladu.",
+        LotHasEans: "Šarži nelze smazat, protože obsahuje EAN kódy.",
+
         // Article Generation errors
         ArticleNotFound: "Článek nebyl nalezen (ID: {{id}})",
         ArticleGenerationFailed: "Generování článku selhalo. Zkuste to prosím znovu.",

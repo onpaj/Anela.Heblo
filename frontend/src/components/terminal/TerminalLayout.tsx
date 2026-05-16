@@ -12,10 +12,9 @@ const TerminalLayout: React.FC = () => {
 
   useEffect(() => {
     const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
-    const prev = link?.getAttribute("href") ?? null;
     link?.setAttribute("href", "/manifest.terminal.json");
     return () => {
-      if (link && prev !== null) link.setAttribute("href", prev);
+      link?.setAttribute("href", "/manifest.json");
     };
   }, []);
 
