@@ -253,7 +253,8 @@ public class GetStockUpOperationsSummaryIntegrationTests : IAsyncLifetime
         await using var conn = new NpgsqlConnection(_container.GetConnectionString());
         await conn.OpenAsync();
 
-        // Defensive: ensure the bare State index does not exist in this test's universe.
+        // Defensive drop: the fixture DDL omits this index (post-migration parity), but guard
+        // against any previous test that might have created it, e.g. via a side-effect.
         await using (var drop = conn.CreateCommand())
         {
             drop.CommandText = "DROP INDEX IF EXISTS public.\"IX_StockUpOperations_State\";";
@@ -279,6 +280,6 @@ public class GetStockUpOperationsSummaryIntegrationTests : IAsyncLifetime
 
         Assert.DoesNotContain("\"Node Type\": \"Seq Scan\"", planJson);
         Assert.Contains("IX_StockUpOperations_State_Active", planJson);
-        Assert.DoesNotContain("IX_StockUpOperations_State\"", planJson);
+        Assert.DoesNotContain("\"IX_StockUpOperations_State\"", planJson);
     }
 }
