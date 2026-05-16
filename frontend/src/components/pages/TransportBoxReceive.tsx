@@ -187,8 +187,8 @@ const TransportBoxReceive: React.FC = () => {
                   </h3>
                   <div className="mt-2 text-sm text-red-700">
                     <p>
-                      Box je ve stavu "{getStateLabel(boxDetails.state || '')}" a nemůže být přijat. 
-                      Pro příjem musí být box ve stavu "V přepravě" nebo "V rezervě".
+                      Box je ve stavu "{getStateLabel(boxDetails.state || '')}" a nemůže být přijat.
+                      Pro příjem musí být box ve stavu "V přepravě", "V rezervě" nebo "V karanténě".
                     </p>
                   </div>
                 </div>

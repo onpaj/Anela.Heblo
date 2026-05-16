@@ -48,8 +48,10 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
                 new Dictionary<string, string> { { "BoxCode", request.BoxCode } });
         }
 
-        // Check if box is in a receivable state (Reserve or InTransit)
-        var isReceivable = transportBox.State == TransportBoxState.Reserve || transportBox.State == TransportBoxState.InTransit;
+        // Check if box is in a receivable state (InTransit, Reserve, or Quarantine)
+        var isReceivable = transportBox.State == TransportBoxState.Reserve
+            || transportBox.State == TransportBoxState.InTransit
+            || transportBox.State == TransportBoxState.Quarantine;
         if (!isReceivable)
         {
             _logger.LogInformation("Transport box {BoxCode} is in state {State}, not receivable but will load details",
