@@ -2315,6 +2315,164 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    eans_GetEans(lotId: number | null | undefined, materialCode: string | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListEansResponse> {
+        let url_ = this.baseUrl + "/api/eans?";
+        if (lotId !== undefined && lotId !== null)
+            url_ += "lotId=" + encodeURIComponent("" + lotId) + "&";
+        if (materialCode !== undefined && materialCode !== null)
+            url_ += "materialCode=" + encodeURIComponent("" + materialCode) + "&";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processEans_GetEans(_response);
+        });
+    }
+
+    protected processEans_GetEans(response: Response): Promise<ListEansResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListEansResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ListEansResponse>(null as any);
+    }
+
+    eans_CreateEans(request: CreateEansRequest): Promise<CreateEansResponse> {
+        let url_ = this.baseUrl + "/api/eans";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processEans_CreateEans(_response);
+        });
+    }
+
+    protected processEans_CreateEans(response: Response): Promise<CreateEansResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateEansResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateEansResponse>(null as any);
+    }
+
+    eans_GetEanByCode(code: string): Promise<GetEanByCodeResponse> {
+        let url_ = this.baseUrl + "/api/eans/by-code/{code}";
+        if (code === undefined || code === null)
+            throw new Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processEans_GetEanByCode(_response);
+        });
+    }
+
+    protected processEans_GetEanByCode(response: Response): Promise<GetEanByCodeResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetEanByCodeResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetEanByCodeResponse>(null as any);
+    }
+
+    eans_DeleteEan(id: number): Promise<DeleteEanResponse> {
+        let url_ = this.baseUrl + "/api/eans/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processEans_DeleteEan(_response);
+        });
+    }
+
+    protected processEans_DeleteEan(response: Response): Promise<DeleteEanResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteEanResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteEanResponse>(null as any);
+    }
+
     expeditionListArchive_GetDates(page: number | undefined, pageSize: number | undefined): Promise<GetExpeditionDatesResponse> {
         let url_ = this.baseUrl + "/api/expedition-list-archive/dates?";
         if (page === null)
@@ -4962,6 +5120,207 @@ export class ApiClient {
         return Promise.resolve<GetManufactureLogResponse>(null as any);
     }
 
+    lots_GetLots(materialCode: string | null | undefined, expirationFrom: Date | null | undefined, expirationTo: Date | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<ListLotsResponse> {
+        let url_ = this.baseUrl + "/api/lots?";
+        if (materialCode !== undefined && materialCode !== null)
+            url_ += "materialCode=" + encodeURIComponent("" + materialCode) + "&";
+        if (expirationFrom !== undefined && expirationFrom !== null)
+            url_ += "expirationFrom=" + encodeURIComponent(expirationFrom ? "" + expirationFrom.toISOString() : "") + "&";
+        if (expirationTo !== undefined && expirationTo !== null)
+            url_ += "expirationTo=" + encodeURIComponent(expirationTo ? "" + expirationTo.toISOString() : "") + "&";
+        if (page === null)
+            throw new Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLots_GetLots(_response);
+        });
+    }
+
+    protected processLots_GetLots(response: Response): Promise<ListLotsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListLotsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ListLotsResponse>(null as any);
+    }
+
+    lots_CreateLot(request: CreateLotRequest): Promise<CreateLotResponse> {
+        let url_ = this.baseUrl + "/api/lots";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLots_CreateLot(_response);
+        });
+    }
+
+    protected processLots_CreateLot(response: Response): Promise<CreateLotResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CreateLotResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CreateLotResponse>(null as any);
+    }
+
+    lots_GetLotById(id: number): Promise<GetLotResponse> {
+        let url_ = this.baseUrl + "/api/lots/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLots_GetLotById(_response);
+        });
+    }
+
+    protected processLots_GetLotById(response: Response): Promise<GetLotResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetLotResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetLotResponse>(null as any);
+    }
+
+    lots_UpdateLot(id: number, request: UpdateLotRequest): Promise<UpdateLotResponse> {
+        let url_ = this.baseUrl + "/api/lots/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLots_UpdateLot(_response);
+        });
+    }
+
+    protected processLots_UpdateLot(response: Response): Promise<UpdateLotResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateLotResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateLotResponse>(null as any);
+    }
+
+    lots_DeleteLot(id: number): Promise<DeleteLotResponse> {
+        let url_ = this.baseUrl + "/api/lots/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processLots_DeleteLot(_response);
+        });
+    }
+
+    protected processLots_DeleteLot(response: Response): Promise<DeleteLotResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeleteLotResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeleteLotResponse>(null as any);
+    }
+
     manufactureBatch_GetBatchTemplate(productCode: string): Promise<CalculatedBatchSizeResponse> {
         let url_ = this.baseUrl + "/api/manufacture-batch/template/{productCode}";
         if (productCode === undefined || productCode === null)
@@ -6382,6 +6741,328 @@ export class ApiClient {
             });
         }
         return Promise.resolve<ImportFromOutlookResponse>(null as any);
+    }
+
+    meetingTasks_List(statusFilter: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetTranscriptListResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks?";
+        if (statusFilter !== undefined && statusFilter !== null)
+            url_ += "StatusFilter=" + encodeURIComponent("" + statusFilter) + "&";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_List(_response);
+        });
+    }
+
+    protected processMeetingTasks_List(response: Response): Promise<GetTranscriptListResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetTranscriptListResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetTranscriptListResponse>(null as any);
+    }
+
+    meetingTasks_Users(): Promise<GetMeetingUsersResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks/users";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_Users(_response);
+        });
+    }
+
+    protected processMeetingTasks_Users(response: Response): Promise<GetMeetingUsersResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetMeetingUsersResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetMeetingUsersResponse>(null as any);
+    }
+
+    meetingTasks_Detail(id: string): Promise<GetTranscriptDetailResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_Detail(_response);
+        });
+    }
+
+    protected processMeetingTasks_Detail(response: Response): Promise<GetTranscriptDetailResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetTranscriptDetailResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetTranscriptDetailResponse>(null as any);
+    }
+
+    meetingTasks_UpdateTask(transcriptId: string, taskId: string, request: UpdateProposedTaskRequest): Promise<UpdateProposedTaskResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks/{transcriptId}/tasks/{taskId}";
+        if (transcriptId === undefined || transcriptId === null)
+            throw new Error("The parameter 'transcriptId' must be defined.");
+        url_ = url_.replace("{transcriptId}", encodeURIComponent("" + transcriptId));
+        if (taskId === undefined || taskId === null)
+            throw new Error("The parameter 'taskId' must be defined.");
+        url_ = url_.replace("{taskId}", encodeURIComponent("" + taskId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_UpdateTask(_response);
+        });
+    }
+
+    protected processMeetingTasks_UpdateTask(response: Response): Promise<UpdateProposedTaskResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateProposedTaskResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateProposedTaskResponse>(null as any);
+    }
+
+    meetingTasks_UpdateTaskStatus(transcriptId: string, taskId: string, request: UpdateProposedTaskStatusRequest): Promise<UpdateProposedTaskStatusResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks/{transcriptId}/tasks/{taskId}/status";
+        if (transcriptId === undefined || transcriptId === null)
+            throw new Error("The parameter 'transcriptId' must be defined.");
+        url_ = url_.replace("{transcriptId}", encodeURIComponent("" + transcriptId));
+        if (taskId === undefined || taskId === null)
+            throw new Error("The parameter 'taskId' must be defined.");
+        url_ = url_.replace("{taskId}", encodeURIComponent("" + taskId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_UpdateTaskStatus(_response);
+        });
+    }
+
+    protected processMeetingTasks_UpdateTaskStatus(response: Response): Promise<UpdateProposedTaskStatusResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateProposedTaskStatusResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateProposedTaskStatusResponse>(null as any);
+    }
+
+    meetingTasks_AddTask(transcriptId: string, request: AddProposedTaskRequest): Promise<AddProposedTaskResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks/{transcriptId}/tasks";
+        if (transcriptId === undefined || transcriptId === null)
+            throw new Error("The parameter 'transcriptId' must be defined.");
+        url_ = url_.replace("{transcriptId}", encodeURIComponent("" + transcriptId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_AddTask(_response);
+        });
+    }
+
+    protected processMeetingTasks_AddTask(response: Response): Promise<AddProposedTaskResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AddProposedTaskResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AddProposedTaskResponse>(null as any);
+    }
+
+    meetingTasks_Submit(transcriptId: string): Promise<SubmitToTodoResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks/{transcriptId}/submit";
+        if (transcriptId === undefined || transcriptId === null)
+            throw new Error("The parameter 'transcriptId' must be defined.");
+        url_ = url_.replace("{transcriptId}", encodeURIComponent("" + transcriptId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_Submit(_response);
+        });
+    }
+
+    protected processMeetingTasks_Submit(response: Response): Promise<SubmitToTodoResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SubmitToTodoResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SubmitToTodoResponse>(null as any);
+    }
+
+    meetingTasks_ExplainSummary(transcriptId: string, request: ExplainSummaryRequest): Promise<ExplainSummaryResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks/{transcriptId}/explain";
+        if (transcriptId === undefined || transcriptId === null)
+            throw new Error("The parameter 'transcriptId' must be defined.");
+        url_ = url_.replace("{transcriptId}", encodeURIComponent("" + transcriptId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_ExplainSummary(_response);
+        });
+    }
+
+    protected processMeetingTasks_ExplainSummary(response: Response): Promise<ExplainSummaryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ExplainSummaryResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ExplainSummaryResponse>(null as any);
     }
 
     orgChart_GetOrganizationStructure(): Promise<OrgChartResponse> {
@@ -8686,6 +9367,65 @@ export class ApiClient {
         return Promise.resolve<GetConversationResponse>(null as any);
     }
 
+    smartsupp_GenerateDraftReply(id: string, body: GenerateDraftReplyBody | undefined): Promise<GenerateDraftReplyResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations/{id}/draft-reply";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_GenerateDraftReply(_response);
+        });
+    }
+
+    protected processSmartsupp_GenerateDraftReply(response: Response): Promise<GenerateDraftReplyResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GenerateDraftReplyResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 503) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GenerateDraftReplyResponse>(null as any);
+    }
+
     smartsupp_RunSync(request: RunManualSyncRequest | undefined): Promise<RunManualSyncResponse> {
         let url_ = this.baseUrl + "/api/smartsupp/sync";
         url_ = url_.replace(/[?&]$/, "");
@@ -9428,6 +10168,44 @@ export class ApiClient {
         }
         return Promise.resolve<GetTransportBoxByCodeResponse>(null as any);
     }
+
+    transportBox_OpenOrResumeBoxByCode(request: OpenOrResumeBoxByCodeRequest): Promise<OpenOrResumeBoxByCodeResponse> {
+        let url_ = this.baseUrl + "/api/transport-boxes/open-by-code";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processTransportBox_OpenOrResumeBoxByCode(_response);
+        });
+    }
+
+    protected processTransportBox_OpenOrResumeBoxByCode(response: Response): Promise<OpenOrResumeBoxByCodeResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = OpenOrResumeBoxByCodeResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<OpenOrResumeBoxByCodeResponse>(null as any);
+    }
 }
 
 export abstract class BaseResponse implements IBaseResponse {
@@ -9941,6 +10719,14 @@ export enum ErrorCodes {
     PhotobankTagNotFound = "PhotobankTagNotFound",
     PhotobankInvalidRegexPattern = "PhotobankInvalidRegexPattern",
     SmartsuppConversationNotFound = "SmartsuppConversationNotFound",
+    SmartsuppDraftReplyAiUnavailable = "SmartsuppDraftReplyAiUnavailable",
+    SmartsuppConversationEmpty = "SmartsuppConversationEmpty",
+    LotNotFound = "LotNotFound",
+    EanNotFound = "EanNotFound",
+    LotAlreadyExists = "LotAlreadyExists",
+    InventoryMaterialNotFound = "InventoryMaterialNotFound",
+    InventoryMaterialInvalidType = "InventoryMaterialInvalidType",
+    LotHasEans = "LotHasEans",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -14247,6 +15033,384 @@ export class Department implements IDepartment {
 export interface IDepartment {
     id?: string;
     name?: string;
+}
+
+export class ListEansResponse extends BaseResponse implements IListEansResponse {
+    eans?: EanDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+
+    constructor(data?: IListEansResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["eans"])) {
+                this.eans = [] as any;
+                for (let item of _data["eans"])
+                    this.eans!.push(EanDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+        }
+    }
+
+    static override fromJS(data: any): ListEansResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListEansResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.eans)) {
+            data["eans"] = [];
+            for (let item of this.eans)
+                data["eans"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListEansResponse extends IBaseResponse {
+    eans?: EanDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+}
+
+export class EanDto implements IEanDto {
+    id?: number;
+    code?: string;
+    lotId?: number;
+    amount?: number;
+    unit?: string;
+    createdAt?: Date;
+    createdBy?: string;
+
+    constructor(data?: IEanDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.code = _data["code"];
+            this.lotId = _data["lotId"];
+            this.amount = _data["amount"];
+            this.unit = _data["unit"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.createdBy = _data["createdBy"];
+        }
+    }
+
+    static fromJS(data: any): EanDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new EanDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["code"] = this.code;
+        data["lotId"] = this.lotId;
+        data["amount"] = this.amount;
+        data["unit"] = this.unit;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["createdBy"] = this.createdBy;
+        return data;
+    }
+}
+
+export interface IEanDto {
+    id?: number;
+    code?: string;
+    lotId?: number;
+    amount?: number;
+    unit?: string;
+    createdAt?: Date;
+    createdBy?: string;
+}
+
+export class GetEanByCodeResponse extends BaseResponse implements IGetEanByCodeResponse {
+    ean?: EanDto;
+    lot?: LotDto2;
+
+    constructor(data?: IGetEanByCodeResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.ean = _data["ean"] ? EanDto.fromJS(_data["ean"]) : <any>undefined;
+            this.lot = _data["lot"] ? LotDto2.fromJS(_data["lot"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetEanByCodeResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetEanByCodeResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["ean"] = this.ean ? this.ean.toJSON() : <any>undefined;
+        data["lot"] = this.lot ? this.lot.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetEanByCodeResponse extends IBaseResponse {
+    ean?: EanDto;
+    lot?: LotDto2;
+}
+
+export class LotDto2 implements ILotDto2 {
+    id?: number;
+    materialCode?: string;
+    lotCode?: string;
+    expiration?: Date | undefined;
+    receivedDate?: Date;
+    notes?: string | undefined;
+    createdAt?: Date;
+    createdBy?: string;
+    updatedAt?: Date | undefined;
+    updatedBy?: string | undefined;
+
+    constructor(data?: ILotDto2) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.materialCode = _data["materialCode"];
+            this.lotCode = _data["lotCode"];
+            this.expiration = _data["expiration"] ? new Date(_data["expiration"].toString()) : <any>undefined;
+            this.receivedDate = _data["receivedDate"] ? new Date(_data["receivedDate"].toString()) : <any>undefined;
+            this.notes = _data["notes"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.createdBy = _data["createdBy"];
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+            this.updatedBy = _data["updatedBy"];
+        }
+    }
+
+    static fromJS(data: any): LotDto2 {
+        data = typeof data === 'object' ? data : {};
+        let result = new LotDto2();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["materialCode"] = this.materialCode;
+        data["lotCode"] = this.lotCode;
+        data["expiration"] = this.expiration ? formatDate(this.expiration) : <any>undefined;
+        data["receivedDate"] = this.receivedDate ? formatDate(this.receivedDate) : <any>undefined;
+        data["notes"] = this.notes;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["createdBy"] = this.createdBy;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        data["updatedBy"] = this.updatedBy;
+        return data;
+    }
+}
+
+export interface ILotDto2 {
+    id?: number;
+    materialCode?: string;
+    lotCode?: string;
+    expiration?: Date | undefined;
+    receivedDate?: Date;
+    notes?: string | undefined;
+    createdAt?: Date;
+    createdBy?: string;
+    updatedAt?: Date | undefined;
+    updatedBy?: string | undefined;
+}
+
+export class CreateEansResponse extends BaseResponse implements ICreateEansResponse {
+    eans?: EanDto[];
+
+    constructor(data?: ICreateEansResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["eans"])) {
+                this.eans = [] as any;
+                for (let item of _data["eans"])
+                    this.eans!.push(EanDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): CreateEansResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateEansResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.eans)) {
+            data["eans"] = [];
+            for (let item of this.eans)
+                data["eans"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateEansResponse extends IBaseResponse {
+    eans?: EanDto[];
+}
+
+export class CreateEansRequest implements ICreateEansRequest {
+    lotId?: number;
+    items?: CreateEanItem[];
+
+    constructor(data?: ICreateEansRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.lotId = _data["lotId"];
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(CreateEanItem.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): CreateEansRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateEansRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["lotId"] = this.lotId;
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface ICreateEansRequest {
+    lotId?: number;
+    items?: CreateEanItem[];
+}
+
+export class CreateEanItem implements ICreateEanItem {
+    amount?: number;
+    unit?: string;
+
+    constructor(data?: ICreateEanItem) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.amount = _data["amount"];
+            this.unit = _data["unit"];
+        }
+    }
+
+    static fromJS(data: any): CreateEanItem {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateEanItem();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["amount"] = this.amount;
+        data["unit"] = this.unit;
+        return data;
+    }
+}
+
+export interface ICreateEanItem {
+    amount?: number;
+    unit?: string;
+}
+
+export class DeleteEanResponse extends BaseResponse implements IDeleteEanResponse {
+
+    constructor(data?: IDeleteEanResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteEanResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteEanResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteEanResponse extends IBaseResponse {
 }
 
 export class GetExpeditionDatesResponse extends BaseResponse implements IGetExpeditionDatesResponse {
@@ -19003,7 +20167,7 @@ export class GiftPackageDto implements IGiftPackageDto {
     overstockOptimal?: number;
     overstockMinimal?: number;
     suggestedQuantity?: number;
-    severity?: StockSeverity;
+    severity?: GiftPackageSeverity;
     stockCoveragePercent?: number;
     ingredients?: GiftPackageIngredientDto[] | undefined;
 
@@ -19070,18 +20234,15 @@ export interface IGiftPackageDto {
     overstockOptimal?: number;
     overstockMinimal?: number;
     suggestedQuantity?: number;
-    severity?: StockSeverity;
+    severity?: GiftPackageSeverity;
     stockCoveragePercent?: number;
     ingredients?: GiftPackageIngredientDto[] | undefined;
 }
 
-export enum StockSeverity {
+export enum GiftPackageSeverity {
     Critical = "Critical",
     Severe = "Severe",
-    Low = "Low",
     Optimal = "Optimal",
-    Overstocked = "Overstocked",
-    NotConfigured = "NotConfigured",
 }
 
 export class GiftPackageIngredientDto implements IGiftPackageIngredientDto {
@@ -19659,6 +20820,297 @@ export class GetManufactureLogResponse extends BaseResponse implements IGetManuf
 
 export interface IGetManufactureLogResponse extends IBaseResponse {
     manufactureLogs?: GiftPackageManufactureDto[];
+}
+
+export class ListLotsResponse extends BaseResponse implements IListLotsResponse {
+    lots?: LotDto2[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+
+    constructor(data?: IListLotsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["lots"])) {
+                this.lots = [] as any;
+                for (let item of _data["lots"])
+                    this.lots!.push(LotDto2.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+        }
+    }
+
+    static override fromJS(data: any): ListLotsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListLotsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.lots)) {
+            data["lots"] = [];
+            for (let item of this.lots)
+                data["lots"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListLotsResponse extends IBaseResponse {
+    lots?: LotDto2[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+}
+
+export class GetLotResponse extends BaseResponse implements IGetLotResponse {
+    lot?: LotDto2;
+    eans?: EanDto[];
+
+    constructor(data?: IGetLotResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.lot = _data["lot"] ? LotDto2.fromJS(_data["lot"]) : <any>undefined;
+            if (Array.isArray(_data["eans"])) {
+                this.eans = [] as any;
+                for (let item of _data["eans"])
+                    this.eans!.push(EanDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetLotResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetLotResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["lot"] = this.lot ? this.lot.toJSON() : <any>undefined;
+        if (Array.isArray(this.eans)) {
+            data["eans"] = [];
+            for (let item of this.eans)
+                data["eans"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetLotResponse extends IBaseResponse {
+    lot?: LotDto2;
+    eans?: EanDto[];
+}
+
+export class CreateLotResponse extends BaseResponse implements ICreateLotResponse {
+    lot?: LotDto2;
+
+    constructor(data?: ICreateLotResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.lot = _data["lot"] ? LotDto2.fromJS(_data["lot"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): CreateLotResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateLotResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["lot"] = this.lot ? this.lot.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICreateLotResponse extends IBaseResponse {
+    lot?: LotDto2;
+}
+
+export class CreateLotRequest implements ICreateLotRequest {
+    materialCode?: string;
+    lotCode?: string;
+    expiration?: Date | undefined;
+    receivedDate?: Date;
+    notes?: string | undefined;
+
+    constructor(data?: ICreateLotRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.materialCode = _data["materialCode"];
+            this.lotCode = _data["lotCode"];
+            this.expiration = _data["expiration"] ? new Date(_data["expiration"].toString()) : <any>undefined;
+            this.receivedDate = _data["receivedDate"] ? new Date(_data["receivedDate"].toString()) : <any>undefined;
+            this.notes = _data["notes"];
+        }
+    }
+
+    static fromJS(data: any): CreateLotRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new CreateLotRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["materialCode"] = this.materialCode;
+        data["lotCode"] = this.lotCode;
+        data["expiration"] = this.expiration ? formatDate(this.expiration) : <any>undefined;
+        data["receivedDate"] = this.receivedDate ? formatDate(this.receivedDate) : <any>undefined;
+        data["notes"] = this.notes;
+        return data;
+    }
+}
+
+export interface ICreateLotRequest {
+    materialCode?: string;
+    lotCode?: string;
+    expiration?: Date | undefined;
+    receivedDate?: Date;
+    notes?: string | undefined;
+}
+
+export class UpdateLotResponse extends BaseResponse implements IUpdateLotResponse {
+    lot?: LotDto2;
+
+    constructor(data?: IUpdateLotResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.lot = _data["lot"] ? LotDto2.fromJS(_data["lot"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): UpdateLotResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateLotResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["lot"] = this.lot ? this.lot.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateLotResponse extends IBaseResponse {
+    lot?: LotDto2;
+}
+
+export class UpdateLotRequest implements IUpdateLotRequest {
+    id?: number;
+    expiration?: Date | undefined;
+    receivedDate?: Date;
+    notes?: string | undefined;
+
+    constructor(data?: IUpdateLotRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.expiration = _data["expiration"] ? new Date(_data["expiration"].toString()) : <any>undefined;
+            this.receivedDate = _data["receivedDate"] ? new Date(_data["receivedDate"].toString()) : <any>undefined;
+            this.notes = _data["notes"];
+        }
+    }
+
+    static fromJS(data: any): UpdateLotRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateLotRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["expiration"] = this.expiration ? formatDate(this.expiration) : <any>undefined;
+        data["receivedDate"] = this.receivedDate ? formatDate(this.receivedDate) : <any>undefined;
+        data["notes"] = this.notes;
+        return data;
+    }
+}
+
+export interface IUpdateLotRequest {
+    id?: number;
+    expiration?: Date | undefined;
+    receivedDate?: Date;
+    notes?: string | undefined;
+}
+
+export class DeleteLotResponse extends BaseResponse implements IDeleteLotResponse {
+
+    constructor(data?: IDeleteLotResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DeleteLotResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeleteLotResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeleteLotResponse extends IBaseResponse {
 }
 
 export class CalculatedBatchSizeResponse extends BaseResponse implements ICalculatedBatchSizeResponse {
@@ -24587,6 +26039,726 @@ export interface IImportFromOutlookRequest {
     dryRun?: boolean;
 }
 
+export class GetTranscriptListResponse extends BaseResponse implements IGetTranscriptListResponse {
+    items?: MeetingTranscriptDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+
+    constructor(data?: IGetTranscriptListResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(MeetingTranscriptDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+            this.totalPages = _data["totalPages"];
+        }
+    }
+
+    static override fromJS(data: any): GetTranscriptListResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetTranscriptListResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        data["totalPages"] = this.totalPages;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetTranscriptListResponse extends IBaseResponse {
+    items?: MeetingTranscriptDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+    totalPages?: number;
+}
+
+export class MeetingTranscriptDto implements IMeetingTranscriptDto {
+    id?: string;
+    plaudRecordingId?: string;
+    plaudCreatedAt?: Date;
+    subject?: string;
+    summary?: string;
+    rawTranscript?: string;
+    status?: string;
+    receivedAt?: Date;
+    reviewedAt?: Date | undefined;
+    reviewedByUser?: string | undefined;
+    taskCount?: number;
+    approvedTaskCount?: number;
+    rejectedTaskCount?: number;
+    tasks?: ProposedTaskDto[];
+
+    constructor(data?: IMeetingTranscriptDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.plaudRecordingId = _data["plaudRecordingId"];
+            this.plaudCreatedAt = _data["plaudCreatedAt"] ? new Date(_data["plaudCreatedAt"].toString()) : <any>undefined;
+            this.subject = _data["subject"];
+            this.summary = _data["summary"];
+            this.rawTranscript = _data["rawTranscript"];
+            this.status = _data["status"];
+            this.receivedAt = _data["receivedAt"] ? new Date(_data["receivedAt"].toString()) : <any>undefined;
+            this.reviewedAt = _data["reviewedAt"] ? new Date(_data["reviewedAt"].toString()) : <any>undefined;
+            this.reviewedByUser = _data["reviewedByUser"];
+            this.taskCount = _data["taskCount"];
+            this.approvedTaskCount = _data["approvedTaskCount"];
+            this.rejectedTaskCount = _data["rejectedTaskCount"];
+            if (Array.isArray(_data["tasks"])) {
+                this.tasks = [] as any;
+                for (let item of _data["tasks"])
+                    this.tasks!.push(ProposedTaskDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): MeetingTranscriptDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MeetingTranscriptDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["plaudRecordingId"] = this.plaudRecordingId;
+        data["plaudCreatedAt"] = this.plaudCreatedAt ? this.plaudCreatedAt.toISOString() : <any>undefined;
+        data["subject"] = this.subject;
+        data["summary"] = this.summary;
+        data["rawTranscript"] = this.rawTranscript;
+        data["status"] = this.status;
+        data["receivedAt"] = this.receivedAt ? this.receivedAt.toISOString() : <any>undefined;
+        data["reviewedAt"] = this.reviewedAt ? this.reviewedAt.toISOString() : <any>undefined;
+        data["reviewedByUser"] = this.reviewedByUser;
+        data["taskCount"] = this.taskCount;
+        data["approvedTaskCount"] = this.approvedTaskCount;
+        data["rejectedTaskCount"] = this.rejectedTaskCount;
+        if (Array.isArray(this.tasks)) {
+            data["tasks"] = [];
+            for (let item of this.tasks)
+                data["tasks"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IMeetingTranscriptDto {
+    id?: string;
+    plaudRecordingId?: string;
+    plaudCreatedAt?: Date;
+    subject?: string;
+    summary?: string;
+    rawTranscript?: string;
+    status?: string;
+    receivedAt?: Date;
+    reviewedAt?: Date | undefined;
+    reviewedByUser?: string | undefined;
+    taskCount?: number;
+    approvedTaskCount?: number;
+    rejectedTaskCount?: number;
+    tasks?: ProposedTaskDto[];
+}
+
+export class ProposedTaskDto implements IProposedTaskDto {
+    id?: string;
+    title?: string;
+    description?: string;
+    assignee?: string;
+    assigneeEmail?: string | undefined;
+    dueDate?: Date | undefined;
+    status?: string;
+    externalTaskId?: string | undefined;
+    isManuallyAdded?: boolean;
+
+    constructor(data?: IProposedTaskDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.title = _data["title"];
+            this.description = _data["description"];
+            this.assignee = _data["assignee"];
+            this.assigneeEmail = _data["assigneeEmail"];
+            this.dueDate = _data["dueDate"] ? new Date(_data["dueDate"].toString()) : <any>undefined;
+            this.status = _data["status"];
+            this.externalTaskId = _data["externalTaskId"];
+            this.isManuallyAdded = _data["isManuallyAdded"];
+        }
+    }
+
+    static fromJS(data: any): ProposedTaskDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ProposedTaskDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["title"] = this.title;
+        data["description"] = this.description;
+        data["assignee"] = this.assignee;
+        data["assigneeEmail"] = this.assigneeEmail;
+        data["dueDate"] = this.dueDate ? this.dueDate.toISOString() : <any>undefined;
+        data["status"] = this.status;
+        data["externalTaskId"] = this.externalTaskId;
+        data["isManuallyAdded"] = this.isManuallyAdded;
+        return data;
+    }
+}
+
+export interface IProposedTaskDto {
+    id?: string;
+    title?: string;
+    description?: string;
+    assignee?: string;
+    assigneeEmail?: string | undefined;
+    dueDate?: Date | undefined;
+    status?: string;
+    externalTaskId?: string | undefined;
+    isManuallyAdded?: boolean;
+}
+
+export class GetMeetingUsersResponse extends BaseResponse implements IGetMeetingUsersResponse {
+    users?: MeetingUserDto[];
+
+    constructor(data?: IGetMeetingUsersResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["users"])) {
+                this.users = [] as any;
+                for (let item of _data["users"])
+                    this.users!.push(MeetingUserDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetMeetingUsersResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetMeetingUsersResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.users)) {
+            data["users"] = [];
+            for (let item of this.users)
+                data["users"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetMeetingUsersResponse extends IBaseResponse {
+    users?: MeetingUserDto[];
+}
+
+export class MeetingUserDto implements IMeetingUserDto {
+    email?: string;
+    displayName?: string;
+    aliases?: string[];
+
+    constructor(data?: IMeetingUserDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.email = _data["email"];
+            this.displayName = _data["displayName"];
+            if (Array.isArray(_data["aliases"])) {
+                this.aliases = [] as any;
+                for (let item of _data["aliases"])
+                    this.aliases!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): MeetingUserDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MeetingUserDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["email"] = this.email;
+        data["displayName"] = this.displayName;
+        if (Array.isArray(this.aliases)) {
+            data["aliases"] = [];
+            for (let item of this.aliases)
+                data["aliases"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IMeetingUserDto {
+    email?: string;
+    displayName?: string;
+    aliases?: string[];
+}
+
+export class GetTranscriptDetailResponse extends BaseResponse implements IGetTranscriptDetailResponse {
+    transcript?: MeetingTranscriptDto;
+
+    constructor(data?: IGetTranscriptDetailResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.transcript = _data["transcript"] ? MeetingTranscriptDto.fromJS(_data["transcript"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetTranscriptDetailResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetTranscriptDetailResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transcript"] = this.transcript ? this.transcript.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetTranscriptDetailResponse extends IBaseResponse {
+    transcript?: MeetingTranscriptDto;
+}
+
+export class UpdateProposedTaskResponse extends BaseResponse implements IUpdateProposedTaskResponse {
+
+    constructor(data?: IUpdateProposedTaskResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): UpdateProposedTaskResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateProposedTaskResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateProposedTaskResponse extends IBaseResponse {
+}
+
+export class UpdateProposedTaskRequest implements IUpdateProposedTaskRequest {
+    transcriptId?: string;
+    taskId?: string;
+    title!: string;
+    description?: string;
+    assignee!: string;
+    assigneeEmail?: string | undefined;
+    dueDate?: Date | undefined;
+
+    constructor(data?: IUpdateProposedTaskRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.transcriptId = _data["transcriptId"];
+            this.taskId = _data["taskId"];
+            this.title = _data["title"];
+            this.description = _data["description"];
+            this.assignee = _data["assignee"];
+            this.assigneeEmail = _data["assigneeEmail"];
+            this.dueDate = _data["dueDate"] ? new Date(_data["dueDate"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): UpdateProposedTaskRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateProposedTaskRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transcriptId"] = this.transcriptId;
+        data["taskId"] = this.taskId;
+        data["title"] = this.title;
+        data["description"] = this.description;
+        data["assignee"] = this.assignee;
+        data["assigneeEmail"] = this.assigneeEmail;
+        data["dueDate"] = this.dueDate ? this.dueDate.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IUpdateProposedTaskRequest {
+    transcriptId?: string;
+    taskId?: string;
+    title: string;
+    description?: string;
+    assignee: string;
+    assigneeEmail?: string | undefined;
+    dueDate?: Date | undefined;
+}
+
+export class UpdateProposedTaskStatusResponse extends BaseResponse implements IUpdateProposedTaskStatusResponse {
+
+    constructor(data?: IUpdateProposedTaskStatusResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): UpdateProposedTaskStatusResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateProposedTaskStatusResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateProposedTaskStatusResponse extends IBaseResponse {
+}
+
+export class UpdateProposedTaskStatusRequest implements IUpdateProposedTaskStatusRequest {
+    transcriptId?: string;
+    taskId?: string;
+    status!: string;
+
+    constructor(data?: IUpdateProposedTaskStatusRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.transcriptId = _data["transcriptId"];
+            this.taskId = _data["taskId"];
+            this.status = _data["status"];
+        }
+    }
+
+    static fromJS(data: any): UpdateProposedTaskStatusRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateProposedTaskStatusRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transcriptId"] = this.transcriptId;
+        data["taskId"] = this.taskId;
+        data["status"] = this.status;
+        return data;
+    }
+}
+
+export interface IUpdateProposedTaskStatusRequest {
+    transcriptId?: string;
+    taskId?: string;
+    status: string;
+}
+
+export class AddProposedTaskResponse extends BaseResponse implements IAddProposedTaskResponse {
+    task?: ProposedTaskDto | undefined;
+
+    constructor(data?: IAddProposedTaskResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.task = _data["task"] ? ProposedTaskDto.fromJS(_data["task"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): AddProposedTaskResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddProposedTaskResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["task"] = this.task ? this.task.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IAddProposedTaskResponse extends IBaseResponse {
+    task?: ProposedTaskDto | undefined;
+}
+
+export class AddProposedTaskRequest implements IAddProposedTaskRequest {
+    transcriptId?: string;
+    title!: string;
+    description?: string;
+    assignee!: string;
+    assigneeEmail?: string | undefined;
+    dueDate?: Date | undefined;
+
+    constructor(data?: IAddProposedTaskRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.transcriptId = _data["transcriptId"];
+            this.title = _data["title"];
+            this.description = _data["description"];
+            this.assignee = _data["assignee"];
+            this.assigneeEmail = _data["assigneeEmail"];
+            this.dueDate = _data["dueDate"] ? new Date(_data["dueDate"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): AddProposedTaskRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AddProposedTaskRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transcriptId"] = this.transcriptId;
+        data["title"] = this.title;
+        data["description"] = this.description;
+        data["assignee"] = this.assignee;
+        data["assigneeEmail"] = this.assigneeEmail;
+        data["dueDate"] = this.dueDate ? this.dueDate.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IAddProposedTaskRequest {
+    transcriptId?: string;
+    title: string;
+    description?: string;
+    assignee: string;
+    assigneeEmail?: string | undefined;
+    dueDate?: Date | undefined;
+}
+
+export class SubmitToTodoResponse extends BaseResponse implements ISubmitToTodoResponse {
+    successCount?: number;
+    failedCount?: number;
+    errors?: string[];
+
+    constructor(data?: ISubmitToTodoResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.successCount = _data["successCount"];
+            this.failedCount = _data["failedCount"];
+            if (Array.isArray(_data["errors"])) {
+                this.errors = [] as any;
+                for (let item of _data["errors"])
+                    this.errors!.push(item);
+            }
+        }
+    }
+
+    static override fromJS(data: any): SubmitToTodoResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SubmitToTodoResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["successCount"] = this.successCount;
+        data["failedCount"] = this.failedCount;
+        if (Array.isArray(this.errors)) {
+            data["errors"] = [];
+            for (let item of this.errors)
+                data["errors"].push(item);
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISubmitToTodoResponse extends IBaseResponse {
+    successCount?: number;
+    failedCount?: number;
+    errors?: string[];
+}
+
+export class ExplainSummaryResponse extends BaseResponse implements IExplainSummaryResponse {
+    relevantTranscript?: string;
+    explanation?: string;
+
+    constructor(data?: IExplainSummaryResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.relevantTranscript = _data["relevantTranscript"];
+            this.explanation = _data["explanation"];
+        }
+    }
+
+    static override fromJS(data: any): ExplainSummaryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ExplainSummaryResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["relevantTranscript"] = this.relevantTranscript;
+        data["explanation"] = this.explanation;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IExplainSummaryResponse extends IBaseResponse {
+    relevantTranscript?: string;
+    explanation?: string;
+}
+
+export class ExplainSummaryRequest implements IExplainSummaryRequest {
+    transcriptId?: string;
+    selectedText!: string;
+
+    constructor(data?: IExplainSummaryRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.transcriptId = _data["transcriptId"];
+            this.selectedText = _data["selectedText"];
+        }
+    }
+
+    static fromJS(data: any): ExplainSummaryRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ExplainSummaryRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transcriptId"] = this.transcriptId;
+        data["selectedText"] = this.selectedText;
+        return data;
+    }
+}
+
+export interface IExplainSummaryRequest {
+    transcriptId?: string;
+    selectedText: string;
+}
+
 export class OrgChartResponse extends BaseResponse implements IOrgChartResponse {
     organization?: OrganizationDto;
 
@@ -28558,6 +30730,15 @@ export interface IStockAnalysisItemDto {
     isConfigured?: boolean;
 }
 
+export enum StockSeverity {
+    Critical = "Critical",
+    Severe = "Severe",
+    Low = "Low",
+    Optimal = "Optimal",
+    Overstocked = "Overstocked",
+    NotConfigured = "NotConfigured",
+}
+
 export class LastPurchaseInfoDto implements ILastPurchaseInfoDto {
     date?: Date;
     supplierName?: string;
@@ -29124,6 +31305,20 @@ export class ConversationDto implements IConversationDto {
     lastMessagePreview?: string | undefined;
     createdAt?: Date;
     updatedAt?: Date;
+    rating?: number | undefined;
+    ratingText?: string | undefined;
+    closeType?: string | undefined;
+    closedByAgentId?: string | undefined;
+    assignedAgentIds?: string[];
+    channel?: string | undefined;
+    isServed?: boolean;
+    finishedAt?: Date | undefined;
+    domain?: string | undefined;
+    referer?: string | undefined;
+    locationCountry?: string | undefined;
+    locationCity?: string | undefined;
+    locationCode?: string | undefined;
+    tags?: string[];
 
     constructor(data?: IConversationDto) {
         if (data) {
@@ -29147,6 +31342,28 @@ export class ConversationDto implements IConversationDto {
             this.lastMessagePreview = _data["lastMessagePreview"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
             this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+            this.rating = _data["rating"];
+            this.ratingText = _data["ratingText"];
+            this.closeType = _data["closeType"];
+            this.closedByAgentId = _data["closedByAgentId"];
+            if (Array.isArray(_data["assignedAgentIds"])) {
+                this.assignedAgentIds = [] as any;
+                for (let item of _data["assignedAgentIds"])
+                    this.assignedAgentIds!.push(item);
+            }
+            this.channel = _data["channel"];
+            this.isServed = _data["isServed"];
+            this.finishedAt = _data["finishedAt"] ? new Date(_data["finishedAt"].toString()) : <any>undefined;
+            this.domain = _data["domain"];
+            this.referer = _data["referer"];
+            this.locationCountry = _data["locationCountry"];
+            this.locationCity = _data["locationCity"];
+            this.locationCode = _data["locationCode"];
+            if (Array.isArray(_data["tags"])) {
+                this.tags = [] as any;
+                for (let item of _data["tags"])
+                    this.tags!.push(item);
+            }
         }
     }
 
@@ -29170,6 +31387,28 @@ export class ConversationDto implements IConversationDto {
         data["lastMessagePreview"] = this.lastMessagePreview;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
         data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        data["rating"] = this.rating;
+        data["ratingText"] = this.ratingText;
+        data["closeType"] = this.closeType;
+        data["closedByAgentId"] = this.closedByAgentId;
+        if (Array.isArray(this.assignedAgentIds)) {
+            data["assignedAgentIds"] = [];
+            for (let item of this.assignedAgentIds)
+                data["assignedAgentIds"].push(item);
+        }
+        data["channel"] = this.channel;
+        data["isServed"] = this.isServed;
+        data["finishedAt"] = this.finishedAt ? this.finishedAt.toISOString() : <any>undefined;
+        data["domain"] = this.domain;
+        data["referer"] = this.referer;
+        data["locationCountry"] = this.locationCountry;
+        data["locationCity"] = this.locationCity;
+        data["locationCode"] = this.locationCode;
+        if (Array.isArray(this.tags)) {
+            data["tags"] = [];
+            for (let item of this.tags)
+                data["tags"].push(item);
+        }
         return data;
     }
 }
@@ -29186,6 +31425,20 @@ export interface IConversationDto {
     lastMessagePreview?: string | undefined;
     createdAt?: Date;
     updatedAt?: Date;
+    rating?: number | undefined;
+    ratingText?: string | undefined;
+    closeType?: string | undefined;
+    closedByAgentId?: string | undefined;
+    assignedAgentIds?: string[];
+    channel?: string | undefined;
+    isServed?: boolean;
+    finishedAt?: Date | undefined;
+    domain?: string | undefined;
+    referer?: string | undefined;
+    locationCountry?: string | undefined;
+    locationCity?: string | undefined;
+    locationCode?: string | undefined;
+    tags?: string[];
 }
 
 export class GetConversationResponse extends BaseResponse implements IGetConversationResponse {
@@ -29239,6 +31492,13 @@ export class MessageDto implements IMessageDto {
     authorName?: string | undefined;
     content?: string | undefined;
     createdAt?: Date;
+    agentId?: string | undefined;
+    subType?: string | undefined;
+    deliveryStatus?: string | undefined;
+    deliveredAt?: Date | undefined;
+    responseTime?: number | undefined;
+    isFirstReply?: boolean;
+    pageUrl?: string | undefined;
 
     constructor(data?: IMessageDto) {
         if (data) {
@@ -29256,6 +31516,13 @@ export class MessageDto implements IMessageDto {
             this.authorName = _data["authorName"];
             this.content = _data["content"];
             this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+            this.agentId = _data["agentId"];
+            this.subType = _data["subType"];
+            this.deliveryStatus = _data["deliveryStatus"];
+            this.deliveredAt = _data["deliveredAt"] ? new Date(_data["deliveredAt"].toString()) : <any>undefined;
+            this.responseTime = _data["responseTime"];
+            this.isFirstReply = _data["isFirstReply"];
+            this.pageUrl = _data["pageUrl"];
         }
     }
 
@@ -29273,6 +31540,13 @@ export class MessageDto implements IMessageDto {
         data["authorName"] = this.authorName;
         data["content"] = this.content;
         data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        data["agentId"] = this.agentId;
+        data["subType"] = this.subType;
+        data["deliveryStatus"] = this.deliveryStatus;
+        data["deliveredAt"] = this.deliveredAt ? this.deliveredAt.toISOString() : <any>undefined;
+        data["responseTime"] = this.responseTime;
+        data["isFirstReply"] = this.isFirstReply;
+        data["pageUrl"] = this.pageUrl;
         return data;
     }
 }
@@ -29283,11 +31557,149 @@ export interface IMessageDto {
     authorName?: string | undefined;
     content?: string | undefined;
     createdAt?: Date;
+    agentId?: string | undefined;
+    subType?: string | undefined;
+    deliveryStatus?: string | undefined;
+    deliveredAt?: Date | undefined;
+    responseTime?: number | undefined;
+    isFirstReply?: boolean;
+    pageUrl?: string | undefined;
+}
+
+export class GenerateDraftReplyResponse extends BaseResponse implements IGenerateDraftReplyResponse {
+    answer?: string;
+    sources?: DraftReplySource[];
+
+    constructor(data?: IGenerateDraftReplyResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.answer = _data["answer"];
+            if (Array.isArray(_data["sources"])) {
+                this.sources = [] as any;
+                for (let item of _data["sources"])
+                    this.sources!.push(DraftReplySource.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GenerateDraftReplyResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GenerateDraftReplyResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["answer"] = this.answer;
+        if (Array.isArray(this.sources)) {
+            data["sources"] = [];
+            for (let item of this.sources)
+                data["sources"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGenerateDraftReplyResponse extends IBaseResponse {
+    answer?: string;
+    sources?: DraftReplySource[];
+}
+
+export class DraftReplySource implements IDraftReplySource {
+    documentId?: string;
+    filename?: string;
+    excerpt?: string;
+    score?: number;
+
+    constructor(data?: IDraftReplySource) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.documentId = _data["documentId"];
+            this.filename = _data["filename"];
+            this.excerpt = _data["excerpt"];
+            this.score = _data["score"];
+        }
+    }
+
+    static fromJS(data: any): DraftReplySource {
+        data = typeof data === 'object' ? data : {};
+        let result = new DraftReplySource();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["documentId"] = this.documentId;
+        data["filename"] = this.filename;
+        data["excerpt"] = this.excerpt;
+        data["score"] = this.score;
+        return data;
+    }
+}
+
+export interface IDraftReplySource {
+    documentId?: string;
+    filename?: string;
+    excerpt?: string;
+    score?: number;
+}
+
+export class GenerateDraftReplyBody implements IGenerateDraftReplyBody {
+    topic?: string | undefined;
+
+    constructor(data?: IGenerateDraftReplyBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.topic = _data["topic"];
+        }
+    }
+
+    static fromJS(data: any): GenerateDraftReplyBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new GenerateDraftReplyBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["topic"] = this.topic;
+        return data;
+    }
+}
+
+export interface IGenerateDraftReplyBody {
+    topic?: string | undefined;
 }
 
 export class RunManualSyncResponse extends BaseResponse implements IRunManualSyncResponse {
     conversationsProcessed?: number;
     messagesProcessed?: number;
+    conversationsReconciled?: number;
+    conversationsClosedRemotely?: number;
     startedAt?: Date;
     completedAt?: Date;
 
@@ -29300,6 +31712,8 @@ export class RunManualSyncResponse extends BaseResponse implements IRunManualSyn
         if (_data) {
             this.conversationsProcessed = _data["conversationsProcessed"];
             this.messagesProcessed = _data["messagesProcessed"];
+            this.conversationsReconciled = _data["conversationsReconciled"];
+            this.conversationsClosedRemotely = _data["conversationsClosedRemotely"];
             this.startedAt = _data["startedAt"] ? new Date(_data["startedAt"].toString()) : <any>undefined;
             this.completedAt = _data["completedAt"] ? new Date(_data["completedAt"].toString()) : <any>undefined;
         }
@@ -29316,6 +31730,8 @@ export class RunManualSyncResponse extends BaseResponse implements IRunManualSyn
         data = typeof data === 'object' ? data : {};
         data["conversationsProcessed"] = this.conversationsProcessed;
         data["messagesProcessed"] = this.messagesProcessed;
+        data["conversationsReconciled"] = this.conversationsReconciled;
+        data["conversationsClosedRemotely"] = this.conversationsClosedRemotely;
         data["startedAt"] = this.startedAt ? this.startedAt.toISOString() : <any>undefined;
         data["completedAt"] = this.completedAt ? this.completedAt.toISOString() : <any>undefined;
         super.toJSON(data);
@@ -29326,6 +31742,8 @@ export class RunManualSyncResponse extends BaseResponse implements IRunManualSyn
 export interface IRunManualSyncResponse extends IBaseResponse {
     conversationsProcessed?: number;
     messagesProcessed?: number;
+    conversationsReconciled?: number;
+    conversationsClosedRemotely?: number;
     startedAt?: Date;
     completedAt?: Date;
 }
@@ -30685,6 +33103,79 @@ export class GetTransportBoxByCodeResponse extends BaseResponse implements IGetT
 
 export interface IGetTransportBoxByCodeResponse extends IBaseResponse {
     transportBox?: TransportBoxDto | undefined;
+}
+
+export class OpenOrResumeBoxByCodeResponse extends BaseResponse implements IOpenOrResumeBoxByCodeResponse {
+    transportBox?: TransportBoxDto | undefined;
+    resumed?: boolean;
+
+    constructor(data?: IOpenOrResumeBoxByCodeResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.transportBox = _data["transportBox"] ? TransportBoxDto.fromJS(_data["transportBox"]) : <any>undefined;
+            this.resumed = _data["resumed"];
+        }
+    }
+
+    static override fromJS(data: any): OpenOrResumeBoxByCodeResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new OpenOrResumeBoxByCodeResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transportBox"] = this.transportBox ? this.transportBox.toJSON() : <any>undefined;
+        data["resumed"] = this.resumed;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IOpenOrResumeBoxByCodeResponse extends IBaseResponse {
+    transportBox?: TransportBoxDto | undefined;
+    resumed?: boolean;
+}
+
+export class OpenOrResumeBoxByCodeRequest implements IOpenOrResumeBoxByCodeRequest {
+    boxCode?: string;
+
+    constructor(data?: IOpenOrResumeBoxByCodeRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.boxCode = _data["boxCode"];
+        }
+    }
+
+    static fromJS(data: any): OpenOrResumeBoxByCodeRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new OpenOrResumeBoxByCodeRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["boxCode"] = this.boxCode;
+        return data;
+    }
+}
+
+export interface IOpenOrResumeBoxByCodeRequest {
+    boxCode?: string;
 }
 
 function formatDate(d: Date) {
