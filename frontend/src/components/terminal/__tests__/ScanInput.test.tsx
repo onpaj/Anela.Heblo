@@ -40,16 +40,17 @@ describe('ScanInput', () => {
 
   it('calls onScan and clears input on Enter', () => {
     render(<ScanInput label="Kód" onScan={onScan} />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'B001' } });
-    fireEvent.submit(screen.getByRole('form'));
+    fireEvent.submit(input.form!);
     expect(onScan).toHaveBeenCalledWith('B001');
     expect(input).toHaveValue('');
   });
 
   it('does not call onScan when input is empty', () => {
     render(<ScanInput label="Kód" onScan={onScan} />);
-    fireEvent.submit(screen.getByRole('form'));
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    fireEvent.submit(input.form!);
     expect(onScan).not.toHaveBeenCalled();
   });
 
