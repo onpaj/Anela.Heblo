@@ -27,6 +27,7 @@ using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Xcc.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -47,7 +48,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         // Add memory cache for FlexiProductPriceErpClient
         services.AddMemoryCache();
 
-        services.AddHttpClient();
+        services.AddHttpClient(string.Empty).WithHebloOutboundDefaults();
 
         // Add TimeProvider for FlexiStockClient
         services.AddSingleton(TimeProvider.System);

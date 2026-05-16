@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using Anela.Heblo.Adapters.ShoptetApi.ShoptetPay;
+using Anela.Heblo.Xcc.Http;
 using Anela.Heblo.Domain.Features.Bank;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +23,7 @@ public static class ShoptetPayAdapterServiceCollectionExtensions
             client.BaseAddress = new Uri(settings.BaseUrl);
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", settings.ApiToken);
-        });
+        }).WithHebloOutboundDefaults();
 
         services.AddTransient<IBankClient>(sp => sp.GetRequiredService<ShoptetPayBankClient>());
 

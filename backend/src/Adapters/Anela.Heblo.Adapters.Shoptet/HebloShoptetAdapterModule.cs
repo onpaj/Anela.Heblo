@@ -1,3 +1,4 @@
+using Anela.Heblo.Xcc.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text;
@@ -17,7 +18,7 @@ public static class ShoptetAdapterServiceCollectionExtensions
         // Register code pages to support windows-1250 encoding used by Shoptet CSV exports
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-        services.AddHttpClient();
+        services.AddHttpClient(string.Empty).WithHebloOutboundDefaults();
 
         services.AddSingleton<IProductPriceEshopClient, ShoptetPriceClient>();
 

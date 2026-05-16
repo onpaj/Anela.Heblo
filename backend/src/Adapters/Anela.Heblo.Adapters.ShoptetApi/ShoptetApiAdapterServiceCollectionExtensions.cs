@@ -1,5 +1,6 @@
 using System.Text;
 using Anela.Heblo.Adapters.ShoptetApi.EshopUrl;
+using Anela.Heblo.Xcc.Http;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
 using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
 using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices.Mapping;
@@ -34,28 +35,28 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
             client.BaseAddress = new Uri(settings.BaseUrl);
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
-        });
+        }).WithHebloOutboundDefaults();
 
         services.AddHttpClient<IEshopStockClient, ShoptetStockClient>((sp, client) =>
         {
             var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
             client.BaseAddress = new Uri(settings.BaseUrl);
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
-        });
+        }).WithHebloOutboundDefaults();
 
         services.AddHttpClient<IShoptetInvoiceClient, ShoptetInvoiceClient>((sp, client) =>
         {
             var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
             client.BaseAddress = new Uri(settings.BaseUrl);
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
-        });
+        }).WithHebloOutboundDefaults();
 
         services.Configure<ShoptetStockClientOptions>(
             configuration.GetSection(ShoptetStockClientOptions.SettingsKey));
 
         services.AddTransient<IPickingListSource, ShoptetApiExpeditionListSource>();
 
-        services.AddHttpClient<IProductEshopUrlClient, HeurekaProductFeedClient>();
+        services.AddHttpClient<IProductEshopUrlClient, HeurekaProductFeedClient>().WithHebloOutboundDefaults();
         services.Configure<HeurekaFeedOptions>(configuration.GetSection(HeurekaFeedOptions.ConfigKey));
 
         services.AddSingleton<BillingMethodMapper>();

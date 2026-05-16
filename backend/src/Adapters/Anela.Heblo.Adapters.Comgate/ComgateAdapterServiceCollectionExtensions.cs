@@ -1,4 +1,5 @@
 ﻿using Anela.Heblo.Domain.Features.Bank;
+using Anela.Heblo.Xcc.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,7 +14,7 @@ public static class ComgateAdapterServiceCollectionExtensions
         services.Configure<ComgateSettings>(comgateSection);
 
         // Register typed HttpClient for ComgateBankClient
-        services.AddHttpClient<ComgateBankClient>();
+        services.AddHttpClient<ComgateBankClient>().WithHebloOutboundDefaults();
 
         // Register IBankClient implementation
         services.AddTransient<IBankClient>(sp => sp.GetRequiredService<ComgateBankClient>());

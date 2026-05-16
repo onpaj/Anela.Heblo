@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
+using Anela.Heblo.Xcc.Http;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +24,7 @@ public static class AnthropicAdapterServiceCollectionExtensions
         {
             var options = sp.GetRequiredService<IOptions<AnthropicOptions>>().Value;
             client.Timeout = TimeSpan.FromSeconds(options.HttpTimeoutSeconds);
-        });
+        }).WithHebloOutboundDefaults();
 
         services.AddChatClient(sp =>
             new AnthropicChatClient(
