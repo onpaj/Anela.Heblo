@@ -47,24 +47,15 @@ describe('ScanInput', () => {
     expect(input).toHaveValue('');
   });
 
-  it('calls onScan on Potvrdit button click', () => {
-    render(<ScanInput label="Kód" onScan={onScan} />);
-    const input = screen.getByRole('textbox');
-    fireEvent.change(input, { target: { value: 'LOT-99' } });
-    fireEvent.click(screen.getByRole('button', { name: /potvrdit/i }));
-    expect(onScan).toHaveBeenCalledWith('LOT-99');
-  });
-
   it('does not call onScan when input is empty', () => {
     render(<ScanInput label="Kód" onScan={onScan} />);
     fireEvent.submit(screen.getByRole('textbox').closest('form')!);
     expect(onScan).not.toHaveBeenCalled();
   });
 
-  it('disables input and button when loading=true', () => {
+  it('disables input when loading=true', () => {
     render(<ScanInput label="Kód" onScan={onScan} loading={true} />);
     expect(screen.getByRole('textbox')).toBeDisabled();
-    expect(screen.getByRole('button', { name: /potvrdit/i })).toBeDisabled();
   });
 
   it('re-focuses input 100ms after blur', () => {

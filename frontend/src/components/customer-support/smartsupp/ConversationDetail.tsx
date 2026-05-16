@@ -5,19 +5,26 @@ import StatusPill from "./StatusPill";
 import AgentBadge from "./AgentBadge";
 import DaySeparator from "./DaySeparator";
 import ChatComposer from "./ChatComposer";
-import { PanelRight } from "lucide-react";
 
 interface ConversationDetailProps {
   conversationId: string;
   conversation: ConversationDto;
-  onToggleContactPanel: () => void;
 }
 
-function lastContactMessage(messages: MessageDto[]): string | null {
+// Returns the most recent customer message that actually carries text.
+// SmartSupp emits page-visit events as authorType "Visitor"/subType "system"
+// with empty content — those are skipped so they don't mask the real message.
+export function lastContactMessage(messages: MessageDto[]): string | null {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
-    const t = m.authorType.toLowerCase();
-    if (t === "visitor" || t === "contact") return m.content ?? null;
+    const authorType = m.authorType.toLowerCase();
+    const isContact = authorType === "visitor" || authorType === "contact";
+    const isSystem =
+      authorType === "system" || (m.subType ?? "").toLowerCase() === "system";
+    if (isContact && !isSystem) {
+      const content = m.content?.trim();
+      if (content) return content;
+    }
   }
   return null;
 }
@@ -39,7 +46,6 @@ function groupByDay(messages: MessageDto[]): Array<{ day: string; items: Message
 const ConversationDetail: React.FC<ConversationDetailProps> = ({
   conversationId,
   conversation,
-  onToggleContactPanel,
 }) => {
   const { data, isLoading } = useSmartsuppConversation(conversationId);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -68,15 +74,6 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
           {conversation.assignedAgentIds.map((id) => (
             <AgentBadge key={id} agentId={id} name={id} />
           ))}
-          <button
-            type="button"
-            onClick={onToggleContactPanel}
-            data-testid="toggle-contact-panel"
-            aria-label="Detail kontaktu"
-            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-500 hover:bg-gray-100"
-          >
-            <PanelRight className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
