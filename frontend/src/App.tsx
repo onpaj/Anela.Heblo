@@ -66,6 +66,7 @@ import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog"
 import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
 import TerminalLayout from "./components/terminal/TerminalLayout";
 import TerminalHome from "./components/terminal/TerminalHome";
+import TransportBoxCheck from "./components/terminal/TransportBoxCheck";
 import ComingSoonPage from "./components/terminal/ComingSoonPage";
 import "./i18n";
 
@@ -344,6 +345,7 @@ function App() {
                       {/* Mobile terminal — no sidebar, no topbar */}
                       <Route path="/terminal" element={<TerminalLayout />}>
                         <Route index element={<TerminalHome />} />
+                        <Route path="box-check" element={<TransportBoxCheck />} />
                         <Route path="receive" element={<ComingSoonPage title="Příjem boxu" />} />
                         <Route path="stocktake" element={<ComingSoonPage title="Inventura" />} />
                         <Route
