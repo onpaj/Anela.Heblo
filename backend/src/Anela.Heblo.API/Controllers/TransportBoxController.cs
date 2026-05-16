@@ -12,6 +12,7 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxSummary
 using Anela.Heblo.Application.Features.Logistics.UseCases.RemoveItemFromBox;
 using Anela.Heblo.Application.Features.Logistics.UseCases.UpdateTransportBoxDescription;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxByCode;
+using Anela.Heblo.Application.Features.Logistics.UseCases.OpenOrResumeBoxByCode;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -178,6 +179,24 @@ public class TransportBoxController : BaseApiController
         CancellationToken cancellationToken = default)
     {
         var request = new GetTransportBoxByCodeRequest { BoxCode = boxCode };
+        var response = await _mediator.Send(request, cancellationToken);
+
+        if (!response.Success)
+        {
+            return BadRequest(response);
+        }
+
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Open a transport box by code, or resume it if one is already Opened (terminal box-fill workflow)
+    /// </summary>
+    [HttpPost("open-by-code")]
+    public async Task<ActionResult<OpenOrResumeBoxByCodeResponse>> OpenOrResumeBoxByCode(
+        [FromBody] OpenOrResumeBoxByCodeRequest request,
+        CancellationToken cancellationToken = default)
+    {
         var response = await _mediator.Send(request, cancellationToken);
 
         if (!response.Success)
