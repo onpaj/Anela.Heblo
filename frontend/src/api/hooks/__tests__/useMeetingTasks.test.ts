@@ -4,6 +4,7 @@ import {
   useMeetingTasksList,
   useMeetingTaskDetail,
   useUpdateProposedTaskStatus,
+  useExplainMeetingSummary,
   MEETING_TASKS_KEYS,
   TranscriptListResponse,
   TranscriptDetailResponse,
@@ -161,6 +162,32 @@ describe('useMeetingTasks', () => {
 
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: MEETING_TASKS_KEYS.detail('tid') });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: MEETING_TASKS_KEYS.list });
+    });
+  });
+
+  describe('useExplainMeetingSummary', () => {
+    it('POSTs to /api/meeting-tasks/{id}/explain with selectedText', async () => {
+      const payload = {
+        success: true,
+        relevantTranscript: 'slice of transcript',
+        explanation: 'because of X',
+      };
+      mockFetch.mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve(payload) });
+      const { wrapper } = createQueryClientWrapper();
+      const { result } = renderHook(() => useExplainMeetingSummary(), { wrapper });
+
+      await result.current.mutateAsync({
+        transcriptId: 'some-id',
+        selectedText: 'selected fragment',
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${mockClient.baseUrl}/api/meeting-tasks/some-id/explain`,
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ selectedText: 'selected fragment' }),
+        }),
+      );
     });
   });
 });

@@ -251,3 +251,31 @@ export function useSubmitToTodo() {
     },
   });
 }
+
+// --- Explain Summary ---
+
+export interface ExplainSummaryResponse {
+  success: boolean;
+  relevantTranscript: string;
+  explanation: string;
+  errorCode?: string;
+}
+
+export interface ExplainSummaryInput {
+  transcriptId: string;
+  selectedText: string;
+}
+
+export function useExplainMeetingSummary() {
+  return useMutation<ExplainSummaryResponse, Error, ExplainSummaryInput>({
+    mutationFn: async (input) =>
+      fetchJson<ExplainSummaryResponse>(
+        `/api/meeting-tasks/${encodeURIComponent(input.transcriptId)}/explain`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ selectedText: input.selectedText }),
+        },
+      ),
+  });
+}
