@@ -31,6 +31,7 @@ public static class XccModule
         // CreateClient() call (and recycles the primary handler per HandlerLifetime).
         services.Configure<OutboundResilienceOptions>(configuration.GetSection(OutboundResilienceOptions.SectionName));
         services.AddTransient<OutboundCallObservabilityHandler>();
+        services.AddHebloOutboundResiliencePipelines();
 
         return services;
     }
