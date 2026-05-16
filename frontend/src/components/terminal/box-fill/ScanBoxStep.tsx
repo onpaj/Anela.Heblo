@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { AlertCircle, Loader } from "lucide-react";
-import TerminalScanInput from "../TerminalScanInput";
+import { AlertCircle } from "lucide-react";
+import ScanInput from "../ScanInput";
 import { useOpenOrResumeBox, type TerminalBox } from "../../../api/hooks/useBoxFill";
 import { isValidBoxCode } from "./boxCode";
 import { getErrorMessage } from "../../../utils/errorHandler";
@@ -33,17 +33,14 @@ const ScanBoxStep: React.FC<ScanBoxStepProps> = ({ onBoxReady }) => {
       <p className="text-sm text-neutral-gray">
         Naskenujte kód prázdného nebo rozpracovaného boxu pro zahájení plnění.
       </p>
-      <TerminalScanInput
+      <ScanInput
         label="Kód boxu"
         placeholder="B001"
         onScan={(v) => void handleScan(v)}
-        disabled={openBox.isPending}
+        loading={openBox.isPending}
+        suppressKeyboard
+        allowKeyboardToggle
       />
-      {openBox.isPending && (
-        <div className="flex items-center gap-2 text-sm text-neutral-gray">
-          <Loader className="h-4 w-4 animate-spin" /> Otevírám box...
-        </div>
-      )}
       {error && (
         <div
           role="alert"

@@ -10,8 +10,9 @@ jest.mock("../../../../utils/errorHandler", () => ({
 const mockMutateAsync = jest.fn();
 
 const scan = (code: string) => {
-  fireEvent.change(screen.getByTestId("terminal-scan-input"), { target: { value: code } });
-  fireEvent.click(screen.getByTestId("terminal-scan-submit"));
+  const input = screen.getByRole('textbox');
+  fireEvent.change(input, { target: { value: code } });
+  fireEvent.submit(input.closest('form')!);
 };
 
 describe("ScanBoxStep", () => {
