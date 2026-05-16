@@ -10,10 +10,6 @@ jest.mock('../../../api/hooks/useTransportBoxes', () => ({
   useTransportBoxByCodeQuery: jest.fn(),
   useChangeTransportBoxState: jest.fn(),
 }));
-jest.mock('@tanstack/react-query', () => ({
-  ...jest.requireActual('@tanstack/react-query'),
-  useQueryClient: () => ({ invalidateQueries: jest.fn() }),
-}));
 
 const mockByCode = useTransportBoxByCodeQuery as jest.Mock;
 const mockChangeState = useChangeTransportBoxState as jest.Mock;
@@ -50,7 +46,7 @@ const scan = (code: string) => {
   fireEvent.submit(screen.getByRole('textbox').closest('form')!);
 };
 
-const byCodeFor = (target: string, box: unknown) => (code: string | null) =>
+const byCodeFor = (target: string, box: Record<string, unknown> | null) => (code: string | null) =>
   code === target
     ? { data: box, isFetching: false }
     : { data: undefined, isFetching: false };
@@ -134,5 +130,15 @@ describe('TransportBoxReceive', () => {
 
     expect(screen.getByTestId('box-not-found')).toBeInTheDocument();
     expect(screen.getByText('Box B999 nenalezen')).toBeInTheDocument();
+  });
+
+  it('hides the success banner after SUCCESS_DISPLAY_MS elapses', async () => {
+    mockByCode.mockImplementation(byCodeFor('B001', receivableBox));
+    render(<TransportBoxReceive />);
+    act(() => scan('B001'));
+    await act(async () => { fireEvent.click(screen.getByTestId('accept-box')); });
+    expect(screen.getByTestId('receive-success')).toBeInTheDocument();
+    act(() => { jest.advanceTimersByTime(2500); });
+    expect(screen.queryByTestId('receive-success')).not.toBeInTheDocument();
   });
 });

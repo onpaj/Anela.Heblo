@@ -183,6 +183,11 @@ export const useChangeTransportBoxState = () => {
         queryKey: [...QUERY_KEYS.transportBoxTransitions, variables.boxId],
       });
 
+      // Invalidate byCode cache so the scan lookup reflects the new state
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.transportBox, 'byCode'],
+      });
+
       // Force refetch of the specific box detail to ensure fresh data
       queryClient.refetchQueries({
         queryKey: transportBoxKeys.detail(variables.boxId),

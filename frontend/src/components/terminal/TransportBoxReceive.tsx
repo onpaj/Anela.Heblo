@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2, PackageX, Check, X, CheckCircle2 } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
 import ScanInput from './ScanInput';
 import BoxDetail from './TransportBoxDetail';
 import {
   useTransportBoxByCodeQuery,
   useChangeTransportBoxState,
 } from '../../api/hooks/useTransportBoxes';
-import { QUERY_KEYS } from '../../api/client';
-import { TransportBoxState } from '../../api/generated/api-client';
+import { TransportBoxState, SwaggerException } from '../../api/generated/api-client';
 
 const SUCCESS_DISPLAY_MS = 2500;
 
@@ -16,7 +14,6 @@ const TransportBoxReceive: React.FC = () => {
   const [scannedCode, setScannedCode] = useState<string | null>(null);
   const [receivedCode, setReceivedCode] = useState<string | null>(null);
 
-  const queryClient = useQueryClient();
   const { data: box, isFetching } = useTransportBoxByCodeQuery(scannedCode);
   const changeState = useChangeTransportBoxState();
 
@@ -30,20 +27,17 @@ const TransportBoxReceive: React.FC = () => {
   }, [receivedCode]);
 
   const handleAccept = async () => {
-    if (!box || box.isReceivable !== true || changeState.isPending) return;
+    if (!box || box.isReceivable !== true || changeState.isPending || !box.id) return;
     try {
       await changeState.mutateAsync({
-        boxId: box.id!,
+        boxId: box.id,
         newState: TransportBoxState.Received,
-      });
-      queryClient.invalidateQueries({
-        queryKey: [...QUERY_KEYS.transportBox, 'byCode'],
       });
       setReceivedCode(box.code ?? null);
       setScannedCode(null);
-    } catch {
-      // Backend errors surface via the global toast handler; keep the box
-      // on screen so the user can retry.
+    } catch (error: unknown) {
+      if (!(error instanceof SwaggerException)) throw error;
+      // SwaggerException is handled by the global toast handler.
     }
   };
 
@@ -53,7 +47,7 @@ const TransportBoxReceive: React.FC = () => {
   };
 
   const handleScan = (value: string) => {
-    if (box?.isReceivable === true && box.code === value && !changeState.isPending) {
+    if (box?.isReceivable === true && box.code?.toUpperCase() === value && !changeState.isPending) {
       void handleAccept();
       return;
     }
