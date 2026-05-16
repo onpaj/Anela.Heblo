@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Package, Tag, Trash2, RotateCcw, AlertCircle, Loader, FlaskConical } from "lucide-react";
 import { TransportBoxItemsProps } from "./TransportBoxTypes";
 import { CatalogAutocomplete } from "../../common/CatalogAutocomplete";
@@ -102,6 +102,11 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
   const [activeAddTab, setActiveAddTab] = useState<ActiveAddTab>("manufactured");
   const [manufacturedSearch, setManufacturedSearch] = useState("");
   const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    setFailedImages(new Set());
+  }, [transportBox.items]);
+
   const [overdraftPending, setOverdraftPending] = useState<{
     item: ManufacturedProductInventoryItem;
     amount: number;
@@ -374,9 +379,11 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
                           src={item.imageUrl}
                           alt={item.productName || item.productCode || ""}
                           className="w-12 h-12 object-cover rounded flex-shrink-0"
-                          onError={() =>
-                            setFailedImages((prev) => new Set(prev).add(item.id ?? -1))
-                          }
+                          onError={() => {
+                            if (item.id !== undefined) {
+                              setFailedImages((prev) => new Set(prev).add(item.id!));
+                            }
+                          }}
                         />
                       ) : (
                         <div
