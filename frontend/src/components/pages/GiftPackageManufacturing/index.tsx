@@ -70,15 +70,14 @@ const GiftPackageManufacturing: React.FC = () => {
   
   const handleManufacture = async (quantity: number) => {
     if (!selectedPackage) return;
-    
+
     try {
       const request = new CreateGiftPackageManufactureRequest({
         giftPackageCode: selectedPackage.code,
         quantity: quantity,
-        allowStockOverride: false, // TODO: This could be made configurable via UI
-        userId: "00000000-0000-0000-0000-000000000000" // This will be overridden by the backend from current user context
+        allowStockOverride: false // TODO: This could be made configurable via UI
       });
-      
+
       await createManufactureMutation.mutateAsync(request);
       console.log(`Úspěšně vyrobeno ${quantity}x ${selectedPackage.name}`);
     } catch (error) {
