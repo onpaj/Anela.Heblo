@@ -39,9 +39,6 @@ export interface AddBoxItemInput {
   allowNegativeStock?: boolean;
 }
 
-const getInternals = (): ApiClientWithInternals =>
-  getAuthenticatedApiClient() as unknown as ApiClientWithInternals;
-
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
 // Issues a box-fill request and always resolves to a BoxFillResult — it never
@@ -49,8 +46,8 @@ const JSON_HEADERS = { "Content-Type": "application/json" };
 // failures (a thrown fetch) and unparseable bodies collapse to { success: false }.
 const boxFillRequest = async (path: string, init: RequestInit): Promise<BoxFillResult> => {
   try {
-    const api = getInternals();
-    const response = await api.http.fetch(`${api.baseUrl}${path}`, init);
+    const apiClient = getAuthenticatedApiClient() as unknown as ApiClientWithInternals;
+    const response = await apiClient.http.fetch(`${apiClient.baseUrl}${path}`, init);
     return (await response.json()) as BoxFillResult;
   } catch {
     return { success: false };
