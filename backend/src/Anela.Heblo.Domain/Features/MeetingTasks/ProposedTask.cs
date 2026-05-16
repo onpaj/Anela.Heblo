@@ -8,6 +8,7 @@ public class ProposedTask
     public string Title { get; set; } = null!;
     public string Description { get; set; } = null!;
     public string Assignee { get; set; } = null!;
+    public string? AssigneeEmail { get; set; }
     public DateTime? DueDate { get; set; }
     public ProposedTaskStatus Status { get; set; }
     public string? ExternalTaskId { get; set; }

@@ -24,6 +24,10 @@ public class ProposedTaskConfiguration : IEntityTypeConfiguration<ProposedTask>
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(x => x.AssigneeEmail)
+            .HasMaxLength(320)
+            .IsRequired(false);
+
         builder.Property(x => x.DueDate)
             .IsRequired(false)
             .AsUtcTimestamp();
