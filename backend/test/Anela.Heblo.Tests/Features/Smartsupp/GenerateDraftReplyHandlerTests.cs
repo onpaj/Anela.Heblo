@@ -196,11 +196,34 @@ public class GenerateDraftReplyHandlerTests
                 It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(exception);
 
+        // A transient cancellation/timeout from the chat client carries its own
+        // (or no) token — never the caller's — so the handler treats it as a
+        // service failure rather than caller-initiated cancellation.
+        using var cts = new CancellationTokenSource();
         var result = await CreateHandler().Handle(
-            new GenerateDraftReplyRequest { ConversationId = "c1", Topic = "Doprava" }, CancellationToken.None);
+            new GenerateDraftReplyRequest { ConversationId = "c1", Topic = "Doprava" }, cts.Token);
 
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.SmartsuppDraftReplyAiUnavailable);
+    }
+
+    [Fact]
+    public async Task Handle_RethrowsCancellation_WhenCallerCancels()
+    {
+        SetupConversation(ConversationWith(
+            Msg("m1", SmartsuppMessageAuthorType.Visitor, "Dotaz", 1)));
+        SetupSearch(Chunk("obsah", "doc.pdf"));
+
+        using var cts = new CancellationTokenSource();
+        _chatClient.Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TaskCanceledException("caller cancelled", null, cts.Token));
+
+        var act = () => CreateHandler().Handle(
+            new GenerateDraftReplyRequest { ConversationId = "c1", Topic = "Doprava" }, cts.Token);
+
+        // Caller-initiated cancellation must propagate, not be masked as a 503.
+        await act.Should().ThrowAsync<TaskCanceledException>();
     }
 
     [Fact]
