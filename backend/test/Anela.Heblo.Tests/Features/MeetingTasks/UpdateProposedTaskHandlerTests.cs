@@ -82,6 +82,36 @@ public class UpdateProposedTaskHandlerTests
     }
 
     [Fact]
+    public async Task UpdateTask_MapsAssigneeEmail()
+    {
+        // Arrange
+        var transcript = CreateTranscriptWithTask(out var transcriptId, out var taskId);
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(transcriptId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transcript);
+        var handler = new UpdateProposedTaskHandler(
+            _repositoryMock.Object,
+            NullLogger<UpdateProposedTaskHandler>.Instance);
+        var request = new UpdateProposedTaskRequest
+        {
+            TranscriptId = transcriptId,
+            TaskId = taskId,
+            Title = "Title",
+            Description = "Description",
+            Assignee = "alice",
+            AssigneeEmail = "andrea@anela.cz",
+            DueDate = null
+        };
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        transcript.Tasks.Single().AssigneeEmail.Should().Be("andrea@anela.cz");
+    }
+
+    [Fact]
     public async Task UpdateTask_ReturnsNotFound_WhenTranscriptMissing()
     {
         // Arrange

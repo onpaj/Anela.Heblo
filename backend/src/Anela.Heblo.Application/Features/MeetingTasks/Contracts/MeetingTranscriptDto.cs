@@ -7,6 +7,7 @@ public class MeetingTranscriptDto
     public DateTime PlaudCreatedAt { get; set; }
     public string Subject { get; set; } = null!;
     public string Summary { get; set; } = null!;
+    public string RawTranscript { get; set; } = null!;
     public string Status { get; set; } = null!;
     public DateTime ReceivedAt { get; set; }
     public DateTime? ReviewedAt { get; set; }

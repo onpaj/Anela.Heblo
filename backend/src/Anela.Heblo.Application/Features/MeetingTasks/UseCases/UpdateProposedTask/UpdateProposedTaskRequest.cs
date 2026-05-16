@@ -16,5 +16,7 @@ public class UpdateProposedTaskRequest : IRequest<UpdateProposedTaskResponse>
     [Required]
     public string Assignee { get; set; } = null!;
 
+    public string? AssigneeEmail { get; set; }
+
     public DateTime? DueDate { get; set; }
 }

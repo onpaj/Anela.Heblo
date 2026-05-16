@@ -43,6 +43,7 @@ public class UpdateProposedTaskHandler : IRequestHandler<UpdateProposedTaskReque
         task.Title = request.Title;
         task.Description = request.Description;
         task.Assignee = request.Assignee;
+        task.AssigneeEmail = request.AssigneeEmail;
         task.DueDate = request.DueDate;
 
         await _repository.SaveChangesAsync(cancellationToken);

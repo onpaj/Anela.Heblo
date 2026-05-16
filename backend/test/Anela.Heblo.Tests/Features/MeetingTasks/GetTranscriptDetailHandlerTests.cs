@@ -74,6 +74,47 @@ public class GetTranscriptDetailHandlerTests
     }
 
     [Fact]
+    public async Task Handle_MapsRawTranscriptAndAssigneeEmail()
+    {
+        // Arrange
+        var transcriptId = Guid.NewGuid();
+        var transcript = new MeetingTranscript
+        {
+            Id = transcriptId,
+            PlaudRecordingId = "rec_1",
+            PlaudCreatedAt = DateTime.UtcNow,
+            Subject = "Subject",
+            Summary = "Summary",
+            RawTranscript = "raw transcript text",
+            Status = MeetingTranscriptStatus.PendingReview,
+            ReceivedAt = DateTime.UtcNow,
+            Tasks = new List<ProposedTask>
+            {
+                new()
+                {
+                    Id = Guid.NewGuid(),
+                    MeetingTranscriptId = transcriptId,
+                    Title = "T", Description = "D",
+                    Assignee = "Andrea Nováková",
+                    AssigneeEmail = "andrea@anela.cz",
+                    Status = ProposedTaskStatus.Pending
+                }
+            }
+        };
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(transcriptId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transcript);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetTranscriptDetailRequest { Id = transcriptId }, CancellationToken.None);
+
+        // Assert
+        result.Transcript.RawTranscript.Should().Be("raw transcript text");
+        result.Transcript.Tasks.Single().AssigneeEmail.Should().Be("andrea@anela.cz");
+    }
+
+    [Fact]
     public async Task Handle_NonExistentTranscript_ReturnsNotFound()
     {
         // Arrange

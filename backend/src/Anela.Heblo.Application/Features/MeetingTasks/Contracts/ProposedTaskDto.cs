@@ -6,6 +6,7 @@ public class ProposedTaskDto
     public string Title { get; set; } = null!;
     public string Description { get; set; } = null!;
     public string Assignee { get; set; } = null!;
+    public string? AssigneeEmail { get; set; }
     public DateTime? DueDate { get; set; }
     public string Status { get; set; } = null!;
     public string? ExternalTaskId { get; set; }
