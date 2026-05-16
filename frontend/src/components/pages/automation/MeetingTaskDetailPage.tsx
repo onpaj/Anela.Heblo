@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft, Check, X, Plus, Send, CheckCheck, Clock, CheckCircle, CheckCircle2,
@@ -174,7 +175,7 @@ const MeetingTaskDetailPage: React.FC = () => {
 
       <div className="px-4 sm:px-6 lg:px-8 mt-4">
         <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 prose prose-sm prose-blue max-w-none">
-          <ReactMarkdown>{transcript.summary}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{transcript.summary}</ReactMarkdown>
         </div>
       </div>
 
@@ -300,7 +301,11 @@ const MeetingTaskDetailPage: React.FC = () => {
                         <span className="ml-2 text-xs text-green-700">(odeslano do TODO)</span>
                       )}
                     </div>
-                    {t.description && <div className="text-sm text-gray-700 mt-1">{t.description}</div>}
+                    {t.description && (
+                      <div className="text-sm text-gray-700 mt-1 prose prose-sm max-w-none">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{t.description}</ReactMarkdown>
+                      </div>
+                    )}
                     <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                       <span>
                         {t.assignee}{t.dueDate ? ` · ${new Date(t.dueDate).toLocaleDateString("cs-CZ")}` : ""}
