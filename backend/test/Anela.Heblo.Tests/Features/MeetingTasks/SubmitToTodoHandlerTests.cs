@@ -63,7 +63,9 @@ public class SubmitToTodoHandlerTests
             Id = id,
             PlaudRecordingId = "rec",
             PlaudCreatedAt = DateTime.UtcNow,
-            Subject = "S", Summary = "Sum", RawTranscript = "raw",
+            Subject = "S",
+            Summary = "Sum",
+            RawTranscript = "raw",
             Status = MeetingTranscriptStatus.PendingReview,
             ReceivedAt = DateTime.UtcNow,
             Tasks = new List<ProposedTask>
