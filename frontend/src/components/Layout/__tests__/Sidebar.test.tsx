@@ -40,16 +40,21 @@ describe('Sidebar navigation', () => {
     expect(screen.queryByText('Personální')).not.toBeInTheDocument();
   });
 
-  it('shows "Porady" item (not "Meeting Tasks")', () => {
+  it('does not show "Meeting Tasks" label; shows "Anela" group button', () => {
     renderSidebar();
     expect(screen.queryByText('Meeting Tasks')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Anela/i })).toBeInTheDocument();
   });
 
-  it('"Anela" group appears before "Finance" in the DOM', () => {
+  // Finance is role-gated (requires finance_reader role) and won't appear with empty roles mock.
+  // Instead we assert ordering relative to "Automatizace" which is always visible.
+  it('"Anela" group appears before other groups like Automatizace', () => {
     renderSidebar();
     const buttons = screen.getAllByRole('button');
-    const anela = buttons.findIndex(b => b.textContent?.includes('Anela'));
-    expect(anela).toBeGreaterThanOrEqual(0);
+    const anelaIdx = buttons.findIndex(b => b.textContent?.includes('Anela'));
+    const automatizaceIdx = buttons.findIndex(b => b.textContent?.includes('Automatizace'));
+    expect(anelaIdx).toBeGreaterThanOrEqual(0);
+    expect(automatizaceIdx).toBeGreaterThanOrEqual(0);
+    expect(anelaIdx).toBeLessThan(automatizaceIdx);
   });
 });
