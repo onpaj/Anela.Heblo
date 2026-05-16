@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Shared.WebSearch;
+using Anela.Heblo.Xcc.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -15,7 +16,7 @@ public static class WebSearchAdapterServiceCollectionExtensions
         {
             var opts = sp.GetRequiredService<IOptions<WebSearchAdapterOptions>>().Value;
             client.Timeout = TimeSpan.FromSeconds(opts.TimeoutSeconds);
-        });
+        }).WithHebloOutboundDefaults();
 
         var provider = configuration["WebSearch:Provider"] ?? "Mock";
 

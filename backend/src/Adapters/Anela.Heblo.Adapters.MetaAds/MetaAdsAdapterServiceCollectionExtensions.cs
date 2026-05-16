@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Xcc.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,7 +12,7 @@ public static class MetaAdsAdapterServiceCollectionExtensions
         IConfiguration configuration)
     {
         services.Configure<MetaAdsSettings>(configuration.GetSection(MetaAdsSettings.ConfigurationKey));
-        services.AddHttpClient<MetaAdsTransactionSource>();
+        services.AddHttpClient<MetaAdsTransactionSource>().WithHebloOutboundDefaults();
         services.AddScoped<IRecurringJob, MetaAdsInvoiceImportJob>();
         return services;
     }

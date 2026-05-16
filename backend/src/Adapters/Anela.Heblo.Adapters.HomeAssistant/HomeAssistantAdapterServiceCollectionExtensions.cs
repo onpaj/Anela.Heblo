@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
+using Anela.Heblo.Xcc.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -24,7 +25,7 @@ public static class HomeAssistantAdapterServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(settings.RequestTimeoutSeconds);
             client.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", settings.AccessToken);
-        });
+        }).WithHebloOutboundDefaults();
 
         services.AddTransient<IConditionsReadingProvider>(
             sp => sp.GetRequiredService<HomeAssistantConditionsReadingProvider>());

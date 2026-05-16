@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.Smartsupp;
+using Anela.Heblo.Xcc.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -15,7 +16,7 @@ public static class SmartsuppAdapterServiceCollectionExtensions
         {
             var options = sp.GetRequiredService<IOptions<SmartsuppOptions>>().Value;
             client.Timeout = TimeSpan.FromSeconds(options.HttpTimeoutSeconds);
-        });
+        }).WithHebloOutboundDefaults();
 
         services.AddScoped<ISmartsuppApiClient, SmartsuppApiClient>();
 
