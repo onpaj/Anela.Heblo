@@ -11,4 +11,9 @@ public class MeetingTasksOptions
     /// against the application base directory.
     /// </summary>
     public string UserDirectoryPath { get; set; } = "meeting-users.json";
+
+    /// <summary>
+    /// How many days back the Plaud polling job looks for recordings to ingest.
+    /// </summary>
+    public int MaxRecordingAgeDays { get; set; } = 7;
 }

@@ -3,16 +3,16 @@ using Anela.Heblo.Application.Features.MeetingTasks.UseCases.IngestPlaudRecordin
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.MeetingTasks.Infrastructure.Jobs;
 
 public class PlaudPollingJob : IRecurringJob
 {
-    private const int MaxRecordingAgeDays = 7; // Mirrors PlaudOptions.MaxRecordingAgeDays
-
     private readonly IPlaudClient _plaudClient;
     private readonly IMediator _mediator;
     private readonly IRecurringJobStatusChecker _statusChecker;
+    private readonly IOptions<MeetingTasksOptions> _options;
     private readonly ILogger<PlaudPollingJob> _logger;
 
     public RecurringJobMetadata Metadata { get; } = new()
@@ -28,11 +28,13 @@ public class PlaudPollingJob : IRecurringJob
         IPlaudClient plaudClient,
         IMediator mediator,
         IRecurringJobStatusChecker statusChecker,
+        IOptions<MeetingTasksOptions> options,
         ILogger<PlaudPollingJob> logger)
     {
         _plaudClient = plaudClient;
         _mediator = mediator;
         _statusChecker = statusChecker;
+        _options = options;
         _logger = logger;
     }
 
@@ -46,7 +48,8 @@ public class PlaudPollingJob : IRecurringJob
 
         _logger.LogInformation("Starting {JobName}", Metadata.JobName);
 
-        var readyRecordings = await _plaudClient.ListRecentAsync(MaxRecordingAgeDays, cancellationToken);
+        var maxAgeDays = _options.Value.MaxRecordingAgeDays;
+        var readyRecordings = await _plaudClient.ListRecentAsync(maxAgeDays, cancellationToken);
 
         _logger.LogInformation("{Ready} recording(s) found to ingest", readyRecordings.Count);
 

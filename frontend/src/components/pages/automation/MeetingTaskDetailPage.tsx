@@ -88,6 +88,7 @@ const MeetingTaskDetailPage: React.FC = () => {
   const [addingTask, setAddingTask] = useState(false);
   const [addForm, setAddForm] = useState<TaskFormData>(EMPTY_FORM);
   const [submitOpen, setSubmitOpen] = useState(false);
+  const [approveAllError, setApproveAllError] = useState<string | null>(null);
   const users = useMeetingUsers();
   const [transcriptOpen, setTranscriptOpen] = useState(false);
 
@@ -132,12 +133,17 @@ const MeetingTaskDetailPage: React.FC = () => {
     updateStatus.mutateAsync({ transcriptId: id, taskId, status });
 
   const approveAll = async () => {
+    setApproveAllError(null);
+    let failed = 0;
     for (const t of pendingTasks) {
       try {
         await updateStatus.mutateAsync({ transcriptId: id, taskId: t.id, status: "Approved" });
       } catch {
-        // Individual task approval failure is handled via React Query's isError state
+        failed++;
       }
+    }
+    if (failed > 0) {
+      setApproveAllError(`${failed} z ${pendingTasks.length} úloh se nepodařilo schválit.`);
     }
   };
 
@@ -223,6 +229,12 @@ const MeetingTaskDetailPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {approveAllError && (
+        <div className="px-4 sm:px-6 lg:px-8 mt-2">
+          <p className="text-sm text-red-600">{approveAllError}</p>
+        </div>
+      )}
 
       {addingTask && (
         <div className="px-4 sm:px-6 lg:px-8 mt-3">
