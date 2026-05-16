@@ -53,6 +53,14 @@ public class ModuleBoundariesTests
         // a separate consumer-owned contract (e.g., IGiftPackageBomSource) and is out of scope for
         // the current Logistics-Manufacture inventory decoupling. Track as a follow-up.
         "Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services.GiftPackageManufactureService -> Anela.Heblo.Domain.Features.Manufacture.IManufactureClient",
+
+        // ProductPart is the return element type of IManufactureClient.GetSetPartsAsync, used
+        // inside GiftPackageManufactureService.GetGiftPackageDetailAsync. The compiler-generated
+        // async state machine (<GetGiftPackageDetailAsync>d__N) references ProductPart directly
+        // via its captured local fields. This is covered by the DeclaringType check for the
+        // IManufactureClient entry above but requires its own entry because ProductPart lives in
+        // a separate type slot. Remove when IManufactureClient is decoupled (see entry above).
+        "Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services.GiftPackageManufactureService -> Anela.Heblo.Domain.Features.Manufacture.ProductPart",
     };
 
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
