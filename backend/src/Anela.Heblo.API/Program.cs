@@ -2,6 +2,7 @@ using Anela.Heblo.Adapters.Anthropic;
 using Anela.Heblo.Adapters.Smartsupp;
 using Anela.Heblo.Adapters.Azure;
 using Anela.Heblo.Adapters.HomeAssistant;
+using Anela.Heblo.Adapters.Plaud;
 using Anela.Heblo.Adapters.SendGrid;
 using Anela.Heblo.Adapters.Comgate;
 using Anela.Heblo.Adapters.GoogleAds;
@@ -89,6 +90,7 @@ public partial class Program
         builder.Services.AddWebSearchAdapter(builder.Configuration);
         builder.Services.AddSendGridAdapter(builder.Configuration);
         builder.Services.AddHomeAssistantAdapter(builder.Configuration);
+        builder.Services.AddPlaudAdapter(builder.Configuration);
 
         builder.Services.AddSingleton<IIssuedInvoiceSource>(sp => sp.GetRequiredService<ShoptetApiInvoiceSource>());
 

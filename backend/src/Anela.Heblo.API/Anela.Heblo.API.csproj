@@ -59,6 +59,7 @@
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Cups\Anela.Heblo.Adapters.Cups.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.SendGrid\Anela.Heblo.Adapters.SendGrid.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.HomeAssistant\Anela.Heblo.Adapters.HomeAssistant.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Plaud\Anela.Heblo.Adapters.Plaud.csproj" />
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Smartsupp\Anela.Heblo.Adapters.Smartsupp.csproj" />
         <ProjectReference Include="..\Anela.Heblo.Persistence\Anela.Heblo.Persistence.csproj" />
         <ProjectReference Include="..\Anela.Heblo.Xcc\Anela.Heblo.Xcc.csproj" />
