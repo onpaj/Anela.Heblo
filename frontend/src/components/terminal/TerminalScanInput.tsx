@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useId, useRef, useState } from "react";
 
 interface TerminalScanInputProps {
   label: string;
@@ -17,6 +17,7 @@ const TerminalScanInput: React.FC<TerminalScanInputProps> = ({
 }) => {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputId = useId();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +30,15 @@ const TerminalScanInput: React.FC<TerminalScanInputProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <label className="block text-sm font-medium text-neutral-slate">{label}</label>
+      <label htmlFor={inputId} className="block text-sm font-medium text-neutral-slate">
+        {label}
+      </label>
       <input
         ref={inputRef}
+        id={inputId}
         type="text"
+        autoComplete="off"
+        autoCapitalize="off"
         autoFocus={autoFocus}
         disabled={disabled}
         value={value}
