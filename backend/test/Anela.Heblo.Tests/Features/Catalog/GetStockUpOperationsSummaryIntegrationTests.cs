@@ -65,9 +65,6 @@ public class GetStockUpOperationsSummaryIntegrationTests : IAsyncLifetime
                 CREATE UNIQUE INDEX IF NOT EXISTS "IX_StockUpOperations_DocumentNumber_Unique"
                     ON public."StockUpOperations" ("DocumentNumber");
 
-                CREATE INDEX IF NOT EXISTS "IX_StockUpOperations_State"
-                    ON public."StockUpOperations" ("State");
-
                 CREATE INDEX IF NOT EXISTS "IX_StockUpOperations_Source"
                     ON public."StockUpOperations" ("SourceType", "SourceId");
 
@@ -228,5 +225,60 @@ public class GetStockUpOperationsSummaryIntegrationTests : IAsyncLifetime
         // The plan should reference the partial index. Seq Scan on StockUpOperations must not appear.
         Assert.DoesNotContain("\"Node Type\": \"Seq Scan\"", planJson);
         Assert.Contains("IX_StockUpOperations_State_Active", planJson);
+    }
+
+    [Fact]
+    public async Task Handle_QueryPlan_DoesNotUseSeqScan_WithoutBareStateIndex()
+    {
+        // Production parity test (FR-6): after the drop migration runs in prod, the bare
+        // IX_StockUpOperations_State index is gone. Verify the planner still picks the
+        // partial index for the summary query in that configuration. Because the fixture
+        // already creates the schema without the bare index (see InitializeAsync), we
+        // explicitly DROP it here in case a previous test created it, then run the same
+        // assertions as Handle_QueryPlan_DoesNotUseSeqScan.
+
+        for (var i = 0; i < 970; i++)
+        {
+            var op = new StockUpOperation($"DOC-NB-C-{i:D6}", $"P{i}", 1, StockUpSourceType.GiftPackageManufacture, i);
+            op.MarkAsCompleted(DateTime.UtcNow);
+            _context.Set<StockUpOperation>().Add(op);
+        }
+        for (var i = 0; i < 30; i++)
+        {
+            _context.Set<StockUpOperation>().Add(
+                new StockUpOperation($"DOC-NB-A-{i:D6}", $"PA{i}", 1, StockUpSourceType.GiftPackageManufacture, 20000 + i));
+        }
+        await _context.SaveChangesAsync();
+
+        await using var conn = new NpgsqlConnection(_container.GetConnectionString());
+        await conn.OpenAsync();
+
+        // Defensive: ensure the bare State index does not exist in this test's universe.
+        await using (var drop = conn.CreateCommand())
+        {
+            drop.CommandText = "DROP INDEX IF EXISTS public.\"IX_StockUpOperations_State\";";
+            await drop.ExecuteNonQueryAsync();
+        }
+
+        // ANALYZE so the planner has fresh statistics.
+        await using (var analyze = conn.CreateCommand())
+        {
+            analyze.CommandText = "ANALYZE public.\"StockUpOperations\";";
+            await analyze.ExecuteNonQueryAsync();
+        }
+
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            EXPLAIN (FORMAT JSON)
+            SELECT "State", COUNT(*)
+            FROM public."StockUpOperations"
+            WHERE "State" IN (0, 1, 3)
+            GROUP BY "State";
+            """;
+        var planJson = (string)(await cmd.ExecuteScalarAsync())!;
+
+        Assert.DoesNotContain("\"Node Type\": \"Seq Scan\"", planJson);
+        Assert.Contains("IX_StockUpOperations_State_Active", planJson);
+        Assert.DoesNotContain("IX_StockUpOperations_State\"", planJson);
     }
 }
