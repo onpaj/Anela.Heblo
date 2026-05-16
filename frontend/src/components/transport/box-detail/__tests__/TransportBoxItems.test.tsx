@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import TransportBoxItems from "../TransportBoxItems";
 import { TransportBoxDto, TransportBoxItemDto } from "../../../../api/generated/api-client";
 
@@ -39,7 +39,7 @@ function makeBox(items: TransportBoxItemDto[]): TransportBoxDto {
 }
 
 const defaultProps = {
-  isFormEditable: jest.fn(() => false),
+  isFormEditable: jest.fn((_field: "items" | "notes" | "boxNumber") => false),
   formatDate: () => "01.01.2024",
   handleRemoveItem: jest.fn(),
   quantityInput: "",
@@ -69,7 +69,7 @@ describe("TransportBoxItems — product thumbnails", () => {
     render(<TransportBoxItems {...defaultProps} transportBox={makeBox([item])} />);
 
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
-    expect(document.querySelector(".bg-gray-200")).toBeInTheDocument();
+    expect(screen.getByTestId("product-thumbnail-placeholder")).toBeInTheDocument();
   });
 
   it("still shows product name and code alongside the image", () => {
@@ -78,5 +78,18 @@ describe("TransportBoxItems — product thumbnails", () => {
 
     expect(screen.getByText("Test Product")).toBeInTheDocument();
     expect(screen.getByText("P001")).toBeInTheDocument();
+  });
+
+  it("shows grey placeholder when image fails to load", () => {
+    const item = makeItem({ imageUrl: "https://example.com/broken.jpg" });
+    render(
+      <TransportBoxItems {...defaultProps} transportBox={makeBox([item])} />
+    );
+
+    const img = screen.getByRole("img");
+    fireEvent.error(img);
+
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByTestId("product-thumbnail-placeholder")).toBeInTheDocument();
   });
 });

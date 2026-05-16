@@ -101,6 +101,7 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
 }) => {
   const [activeAddTab, setActiveAddTab] = useState<ActiveAddTab>("manufactured");
   const [manufacturedSearch, setManufacturedSearch] = useState("");
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
   const [overdraftPending, setOverdraftPending] = useState<{
     item: ManufacturedProductInventoryItem;
     amount: number;
@@ -368,23 +369,21 @@ const TransportBoxItems: React.FC<TransportBoxItemsProps> = ({
                   </td>
                   <td className="px-2 py-2 text-sm text-gray-900">
                     <div className="flex items-center gap-2">
-                      {item.imageUrl ? (
+                      {item.imageUrl && !failedImages.has(item.id ?? -1) ? (
                         <img
                           src={item.imageUrl}
                           alt={item.productName || item.productCode || ""}
                           className="w-12 h-12 object-cover rounded flex-shrink-0"
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            target.style.display = "none";
-                            const placeholder = target.nextElementSibling as HTMLElement | null;
-                            if (placeholder) placeholder.style.display = "block";
-                          }}
+                          onError={() =>
+                            setFailedImages((prev) => new Set(prev).add(item.id ?? -1))
+                          }
                         />
-                      ) : null}
-                      <div
-                        className="w-12 h-12 bg-gray-200 rounded flex-shrink-0"
-                        style={{ display: item.imageUrl ? "none" : "block" }}
-                      />
+                      ) : (
+                        <div
+                          data-testid="product-thumbnail-placeholder"
+                          className="w-12 h-12 bg-gray-200 rounded flex-shrink-0"
+                        />
+                      )}
                       <div className="min-w-0">
                         <div className="truncate" title={item.productName || "-"}>
                           {item.productName || "-"}
