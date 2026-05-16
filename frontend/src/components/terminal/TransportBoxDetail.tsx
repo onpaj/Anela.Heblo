@@ -5,22 +5,9 @@ import {
   TransportBoxItemDto,
   TransportBoxStateLogDto,
 } from '../../api/generated/api-client';
+import { formatDate, formatDateTime } from '../../utils/formatters';
 
 type Tab = 'contents' | 'history';
-
-const formatDate = (d?: Date): string =>
-  d ? new Date(d).toLocaleDateString('cs-CZ') : '—';
-
-const formatDateTime = (d?: Date): string =>
-  d
-    ? new Date(d).toLocaleString('cs-CZ', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : '—';
 
 const ContentsTab: React.FC<{ items: TransportBoxItemDto[] }> = ({ items }) => {
   if (items.length === 0) {
