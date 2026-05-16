@@ -51,12 +51,12 @@ describe("LeafletForm", () => {
 
   it("calls onTopicChange when input changes", async () => {
     const onTopicChange = jest.fn();
-    const user = userEvent.setup();
+    userEvent.setup();
 
     renderForm({ onTopicChange });
 
     const input = screen.getByRole("textbox", { name: "Téma" });
-    await user.type(input, "a");
+    await userEvent.type(input, "a");
 
     expect(onTopicChange).toHaveBeenCalledWith("a");
   });
@@ -82,14 +82,15 @@ describe("LeafletForm", () => {
 
   it("does not call onSubmit when topic is empty", async () => {
     const onSubmit = jest.fn();
-    const user = userEvent.setup();
+    userEvent.setup();
 
     renderForm({ topic: "", onSubmit });
 
-    const form = screen
-      .getByRole("button", { name: "Vygenerovat leták" })
-      .closest("form")!;
-    fireEvent.submit(form);
+    const button = screen.getByRole("button", { name: "Vygenerovat leták" });
+    const form = button.closest("form");
+    if (form) {
+      fireEvent.submit(form);
+    }
 
     expect(onSubmit).not.toHaveBeenCalled();
   });

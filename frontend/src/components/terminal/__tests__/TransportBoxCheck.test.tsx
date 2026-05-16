@@ -42,8 +42,9 @@ afterEach(() => {
 });
 
 const scan = (code: string) => {
-  fireEvent.change(screen.getByRole('textbox'), { target: { value: code } });
-  fireEvent.submit(screen.getByRole('textbox').closest('form')!);
+  const input = screen.getByRole('textbox') as HTMLInputElement;
+  fireEvent.change(input, { target: { value: code } });
+  fireEvent.submit(input.form!);
 };
 
 describe('TransportBoxCheck', () => {
@@ -133,6 +134,30 @@ describe('TransportBoxCheck', () => {
 
     // No element with role="alert" (toast pattern) should be present
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('shows a load-error message when the hook reports an error', () => {
+    mockHook.mockImplementation((code: string | null) =>
+      code ? { data: undefined, isFetching: false, isError: true, refetch: jest.fn() } : { data: undefined, isFetching: false, isError: false },
+    );
+    render(<TransportBoxCheck />);
+    act(() => scan('B986'));
+
+    expect(screen.getByTestId('box-load-error')).toBeInTheDocument();
+    expect(screen.getByText('Chyba při načítání boxu B986')).toBeInTheDocument();
+    expect(screen.queryByTestId('box-not-found')).not.toBeInTheDocument();
+  });
+
+  it('re-scanning the same error code calls refetch instead of deduplicating', () => {
+    const refetch = jest.fn();
+    mockHook.mockImplementation((code: string | null) =>
+      code ? { data: undefined, isFetching: false, isError: true, refetch } : { data: undefined, isFetching: false, isError: false },
+    );
+    render(<TransportBoxCheck />);
+    act(() => scan('B986'));
+    act(() => scan('B986'));
+
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('keyboard toggle flips the input mode between none and text', () => {

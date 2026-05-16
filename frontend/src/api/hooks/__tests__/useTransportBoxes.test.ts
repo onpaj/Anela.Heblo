@@ -289,9 +289,10 @@ describe("useTransportBoxes hooks", () => {
   });
 
   describe("useTransportBoxByCodeQuery", () => {
-    it("should throw with 'Box nenalezen' when response.success is false", async () => {
+    it("should throw with error code when response fails with a non-not-found error", async () => {
       mockApiClient.transportBox_GetTransportBoxByCode.mockResolvedValue({
         success: false,
+        errorCode: "ServerError",
         transportBox: null,
       });
 
@@ -305,7 +306,26 @@ describe("useTransportBoxes hooks", () => {
       });
 
       expect(result.current.error).toBeInstanceOf(Error);
-      expect((result.current.error as Error).message).toBe("Box nenalezen");
+      expect((result.current.error as Error).message).toBe("ServerError");
+    });
+
+    it("should return null when response indicates box not found", async () => {
+      mockApiClient.transportBox_GetTransportBoxByCode.mockResolvedValue({
+        success: false,
+        errorCode: "TransportBoxNotFound",
+        transportBox: null,
+      });
+
+      const { result } = renderHook(
+        () => useTransportBoxByCodeQuery("SCAN-001"),
+        { wrapper: createWrapper },
+      );
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(result.current.data).toBeNull();
     });
 
     it("should return the transport box when response.success is true", async () => {

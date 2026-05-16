@@ -7,17 +7,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Leaflet.Pipeline;
 
-public class LeafletGenerationLoggingBehavior
+public class LeafletGenerationPersistenceBehavior
     : IPipelineBehavior<GenerateLeafletRequest, GenerateLeafletResponse>
 {
     private readonly ILeafletRepository _repository;
     private readonly ICurrentUserService _currentUserService;
-    private readonly ILogger<LeafletGenerationLoggingBehavior> _logger;
+    private readonly ILogger<LeafletGenerationPersistenceBehavior> _logger;
 
-    public LeafletGenerationLoggingBehavior(
+    public LeafletGenerationPersistenceBehavior(
         ILeafletRepository repository,
         ICurrentUserService currentUserService,
-        ILogger<LeafletGenerationLoggingBehavior> logger)
+        ILogger<LeafletGenerationPersistenceBehavior> logger)
     {
         _repository = repository;
         _currentUserService = currentUserService;

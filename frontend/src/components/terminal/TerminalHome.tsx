@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Package, ClipboardList, Tag, PackageSearch, ChevronRight } from 'lucide-react';
+import { Package, ClipboardList, Tag, PackageSearch, PackagePlus, ChevronRight } from 'lucide-react';
 
 interface WorkflowTile {
   id: string;
@@ -21,12 +21,20 @@ const WORKFLOWS: WorkflowTile[] = [
     comingSoon: false,
   },
   {
+    id: 'box-fill',
+    title: 'Plnění boxu',
+    description: 'Naskenujte box, přidejte produkty a odešlete do přepravy',
+    href: '/terminal/box-fill',
+    icon: PackagePlus,
+    comingSoon: false,
+  },
+  {
     id: 'receive',
     title: 'Příjem boxu',
     description: 'Naskenujte kód boxu a potvrďte příjem zásilky do skladu',
     href: '/terminal/receive',
     icon: Package,
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: 'stocktake',
