@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.FileStorage;
+using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,12 +20,17 @@ public class FileStorageModuleTests
         var services = new ServiceCollection();
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         services.AddSingleton(Mock.Of<ITelemetryService>());
+        services.AddHttpContextAccessor(); // Required by OutboundCallObservabilityHandler
         services.Configure<ProductExportOptions>(opts =>
         {
             opts.MaxRetryAttempts = 3;
             opts.DownloadTimeout = TimeSpan.FromSeconds(120);
             opts.RetryBaseDelay = TimeSpan.FromSeconds(2);
         });
+
+        // Register Xcc services required by FileStorageModule (OutboundCallObservabilityHandler, etc.)
+        services.AddXccServices(new ConfigurationBuilder().Build());
+
         return services;
     }
 
