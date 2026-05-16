@@ -8,6 +8,7 @@ interface ScanInputProps {
   loading?: boolean;
   uppercase?: boolean;
   autoFocusOnMount?: boolean;
+  refocusOnBlur?: boolean;
   suppressKeyboard?: boolean;
   allowKeyboardToggle?: boolean;
 }
@@ -21,6 +22,7 @@ const ScanInput: React.FC<ScanInputProps> = ({
   loading = false,
   uppercase = true,
   autoFocusOnMount = true,
+  refocusOnBlur = true,
   suppressKeyboard = false,
   allowKeyboardToggle = false,
 }) => {
@@ -30,6 +32,8 @@ const ScanInput: React.FC<ScanInputProps> = ({
   const loadingRef = useRef(loading);
   loadingRef.current = loading;
   const prevLoadingRef = useRef(loading);
+  const refocusOnBlurRef = useRef(refocusOnBlur);
+  refocusOnBlurRef.current = refocusOnBlur;
 
   useEffect(() => {
     if (autoFocusOnMount) {
@@ -68,7 +72,7 @@ const ScanInput: React.FC<ScanInputProps> = ({
   );
 
   const handleBlur = useCallback(() => {
-    if (loadingRef.current) return;
+    if (!refocusOnBlurRef.current || loadingRef.current) return;
     setTimeout(() => {
       if (!loadingRef.current) inputRef.current?.focus();
     }, REFOCUS_DELAY_MS);

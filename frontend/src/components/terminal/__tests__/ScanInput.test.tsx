@@ -67,6 +67,16 @@ describe('ScanInput', () => {
     expect(input).toHaveFocus();
   });
 
+  it('does not re-focus on blur when refocusOnBlur=false', () => {
+    // autoFocusOnMount=false prevents the mount effect from being deferred into
+    // the act() call, which would re-focus an enabled input regardless of refocusOnBlur.
+    render(<ScanInput label="Kód" onScan={onScan} refocusOnBlur={false} autoFocusOnMount={false} />);
+    const input = screen.getByRole('textbox');
+    fireEvent.blur(input);
+    act(() => { jest.advanceTimersByTime(100); });
+    expect(document.activeElement).not.toBe(input);
+  });
+
   it('does not re-focus on blur when loading=true', () => {
     render(<ScanInput label="Kód" onScan={onScan} loading={true} />);
     const input = screen.getByRole('textbox');
