@@ -83,4 +83,16 @@ describe("useBoxFill", () => {
     expect(init.method).toBe("PUT");
     expect(JSON.parse(init.body)).toEqual({ boxId: 5, newState: "InTransit" });
   });
+
+  it("collapses a thrown network error to a failure result", async () => {
+    mockGetClient.mockReturnValue({
+      baseUrl: "http://test",
+      http: { fetch: jest.fn().mockRejectedValue(new Error("network down")) },
+    } as unknown as ReturnType<typeof clientModule.getAuthenticatedApiClient>);
+
+    const { result } = renderHook(() => useOpenOrResumeBox(), { wrapper: createWrapper });
+    const res = await result.current.mutateAsync("B001");
+
+    expect(res.success).toBe(false);
+  });
 });

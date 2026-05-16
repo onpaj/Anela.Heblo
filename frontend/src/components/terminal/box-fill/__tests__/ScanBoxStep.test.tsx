@@ -8,7 +8,6 @@ jest.mock("../../../../utils/errorHandler", () => ({
 }));
 
 const mockMutateAsync = jest.fn();
-jest.spyOn(useBoxFill, "useOpenOrResumeBox");
 
 const scan = (code: string) => {
   fireEvent.change(screen.getByTestId("terminal-scan-input"), { target: { value: code } });
@@ -23,6 +22,8 @@ describe("ScanBoxStep", () => {
       isPending: false,
     } as unknown as ReturnType<typeof useBoxFill.useOpenOrResumeBox>);
   });
+
+  afterEach(() => jest.restoreAllMocks());
 
   it("rejects an invalid box code without calling the API", () => {
     render(<ScanBoxStep onBoxReady={jest.fn()} />);
@@ -40,5 +41,12 @@ describe("ScanBoxStep", () => {
     scan("B001");
 
     await waitFor(() => expect(onBoxReady).toHaveBeenCalledWith(box, true));
+  });
+
+  it("shows an error when the API reports failure", async () => {
+    mockMutateAsync.mockResolvedValue({ success: false });
+    render(<ScanBoxStep onBoxReady={jest.fn()} />);
+    scan("B001");
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
 });
