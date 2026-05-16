@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.OrgChart.Services;
+using Anela.Heblo.Xcc.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,7 +19,7 @@ public static class OrgChartModule
         services.Configure<OrgChartOptions>(configuration.GetSection(OrgChartOptions.SectionName));
 
         // Register HTTP client for fetching organization data
-        services.AddHttpClient<IOrgChartService, OrgChartService>();
+        services.AddHttpClient<IOrgChartService, OrgChartService>().WithHebloOutboundDefaults();
 
         // MediatR handlers are automatically registered by AddMediatR scan
 

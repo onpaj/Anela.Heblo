@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
+using Anela.Heblo.Xcc.Http;
 using Anela.Heblo.Application.Features.Marketing.Services;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Persistence.Marketing;
@@ -40,7 +41,7 @@ namespace Anela.Heblo.Application.Features.Marketing
             if (!useMockAuth && !bypassJwt)
             {
                 // Graph HTTP client (safe to register multiple times — IHttpClientFactory deduplicates)
-                services.AddHttpClient("MicrosoftGraph");
+                services.AddHttpClient("MicrosoftGraph").WithHebloOutboundDefaults();
                 services.AddScoped<IOutlookCalendarSync, OutlookCalendarSyncService>();
             }
             else

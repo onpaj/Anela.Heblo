@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.MeetingTasks.Services;
+using Anela.Heblo.Xcc.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,7 +23,7 @@ public static class MeetingTasksModule
             // KnowledgeBaseModule only registers "MicrosoftGraph" when SharePoint is configured.
             // Re-register defensively here so GraphTodoService always finds a client at runtime.
             // AddHttpClient with the same name is idempotent.
-            services.AddHttpClient("MicrosoftGraph");
+            services.AddHttpClient("MicrosoftGraph").WithHebloOutboundDefaults();
             services.AddScoped<IGraphTodoService, GraphTodoService>();
         }
         else

@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Xcc.Http;
 using Anela.Heblo.Application.Features.Leaflet.Contracts;
 using Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure;
 using Microsoft.Identity.Web;
@@ -50,7 +51,7 @@ public static class KnowledgeBaseModule
 
         if (sharePointConfigured && !useMockAuth && !bypassJwtValidation)
         {
-            services.AddHttpClient("MicrosoftGraph");
+            services.AddHttpClient("MicrosoftGraph").WithHebloOutboundDefaults();
             services.AddMemoryCache();
             services.AddScoped<IOneDriveService, GraphOneDriveService>();
         }
