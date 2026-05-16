@@ -87,7 +87,7 @@ describe('TransportBoxCheck', () => {
 
   it('shows a load-error message when the hook reports an error', () => {
     mockHook.mockImplementation((code: string | null) =>
-      code ? { data: undefined, isFetching: false, isError: true } : { data: undefined, isFetching: false, isError: false },
+      code ? { data: undefined, isFetching: false, isError: true, refetch: jest.fn() } : { data: undefined, isFetching: false, isError: false },
     );
     render(<TransportBoxCheck />);
     act(() => scan('B986'));
@@ -95,6 +95,18 @@ describe('TransportBoxCheck', () => {
     expect(screen.getByTestId('box-load-error')).toBeInTheDocument();
     expect(screen.getByText('Chyba při načítání boxu B986')).toBeInTheDocument();
     expect(screen.queryByTestId('box-not-found')).not.toBeInTheDocument();
+  });
+
+  it('re-scanning the same error code calls refetch instead of deduplicating', () => {
+    const refetch = jest.fn();
+    mockHook.mockImplementation((code: string | null) =>
+      code ? { data: undefined, isFetching: false, isError: true, refetch } : { data: undefined, isFetching: false, isError: false },
+    );
+    render(<TransportBoxCheck />);
+    act(() => scan('B986'));
+    act(() => scan('B986'));
+
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('keyboard toggle flips the input mode between none and text', () => {

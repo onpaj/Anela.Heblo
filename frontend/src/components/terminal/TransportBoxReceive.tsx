@@ -14,7 +14,7 @@ const TransportBoxReceive: React.FC = () => {
   const [scannedCode, setScannedCode] = useState<string | null>(null);
   const [receivedCode, setReceivedCode] = useState<string | null>(null);
 
-  const { data: box, isFetching, isError } = useTransportBoxByCodeQuery(scannedCode);
+  const { data: box, isFetching, isError, refetch } = useTransportBoxByCodeQuery(scannedCode);
   const changeState = useChangeTransportBoxState();
 
   const showNotFound = !!scannedCode && !isFetching && !isError && !box;
@@ -53,6 +53,10 @@ const TransportBoxReceive: React.FC = () => {
       return;
     }
     setReceivedCode(null);
+    if (isError && scannedCode === value) {
+      void refetch();
+      return;
+    }
     setScannedCode(value);
   };
 

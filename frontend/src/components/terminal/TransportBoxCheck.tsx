@@ -6,17 +6,25 @@ import BoxDetail from './TransportBoxDetail';
 
 const TransportBoxCheck: React.FC = () => {
   const [scannedCode, setScannedCode] = useState<string | null>(null);
-  const { data: box, isFetching, isError } = useTransportBoxByCodeQuery(scannedCode);
+  const { data: box, isFetching, isError, refetch } = useTransportBoxByCodeQuery(scannedCode);
 
   const showNotFound = !!scannedCode && !isFetching && !isError && !box;
   const showError = !!scannedCode && !isFetching && isError;
+
+  const handleScan = (value: string) => {
+    if (isError && scannedCode === value) {
+      void refetch();
+      return;
+    }
+    setScannedCode(value);
+  };
 
   return (
     <div className="space-y-4">
       <div className="sticky top-0 z-10 bg-background-gray pb-3">
         <ScanInput
           label="Kód boxu"
-          onScan={setScannedCode}
+          onScan={handleScan}
           suppressKeyboard
           allowKeyboardToggle
         />

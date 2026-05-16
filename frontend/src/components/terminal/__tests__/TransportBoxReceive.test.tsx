@@ -133,7 +133,7 @@ describe('TransportBoxReceive', () => {
 
   it('shows a load-error message when the hook reports an error', () => {
     mockByCode.mockImplementation((code: string | null) =>
-      code ? { data: undefined, isFetching: false, isError: true } : { data: undefined, isFetching: false, isError: false },
+      code ? { data: undefined, isFetching: false, isError: true, refetch: jest.fn() } : { data: undefined, isFetching: false, isError: false },
     );
     render(<TransportBoxReceive />);
     act(() => scan('B986'));
@@ -141,6 +141,19 @@ describe('TransportBoxReceive', () => {
     expect(screen.getByTestId('box-load-error')).toBeInTheDocument();
     expect(screen.getByText('Chyba při načítání boxu B986')).toBeInTheDocument();
     expect(screen.queryByTestId('box-not-found')).not.toBeInTheDocument();
+  });
+
+  it('re-scanning the same error code calls refetch instead of deduplicating', () => {
+    const refetch = jest.fn();
+    mockByCode.mockImplementation((code: string | null) =>
+      code ? { data: undefined, isFetching: false, isError: true, refetch } : { data: undefined, isFetching: false, isError: false },
+    );
+    render(<TransportBoxReceive />);
+    act(() => scan('B986'));
+    act(() => scan('B986'));
+
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('box-load-error')).toBeInTheDocument();
   });
 
   it('hides the success banner after SUCCESS_DISPLAY_MS elapses', async () => {
