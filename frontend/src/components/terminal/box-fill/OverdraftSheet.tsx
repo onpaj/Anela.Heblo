@@ -23,6 +23,9 @@ const OverdraftSheet: React.FC<OverdraftSheetProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onCancel}>
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Nedostatek zásob – ${item.productName}`}
         className="bg-white rounded-t-2xl w-full max-w-md p-5 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >

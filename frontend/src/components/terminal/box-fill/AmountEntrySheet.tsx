@@ -17,7 +17,7 @@ const AmountEntrySheet: React.FC<AmountEntrySheetProps> = ({
   onConfirm,
   onCancel,
 }) => {
-  const [value, setValue] = useState(initialAmount ? String(initialAmount) : "");
+  const [value, setValue] = useState(initialAmount !== undefined ? String(initialAmount) : "");
   const [error, setError] = useState<string | null>(null);
 
   const submit = () => {
@@ -32,6 +32,9 @@ const AmountEntrySheet: React.FC<AmountEntrySheetProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onCancel}>
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Zadat množství – ${item.productName}`}
         className="bg-white rounded-t-2xl w-full max-w-md p-5 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
@@ -64,7 +67,7 @@ const AmountEntrySheet: React.FC<AmountEntrySheetProps> = ({
           className="w-full px-4 py-3 text-lg border border-border-light rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-blue"
         />
         {error && (
-          <div className="flex items-center gap-1 text-xs text-red-600">
+          <div role="alert" className="flex items-center gap-1 text-xs text-red-600">
             <AlertCircle className="h-3 w-3" /> {error}
           </div>
         )}
@@ -72,7 +75,8 @@ const AmountEntrySheet: React.FC<AmountEntrySheetProps> = ({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-3 text-base font-medium text-neutral-slate bg-gray-100 rounded-xl"
+            disabled={isSubmitting}
+            className="flex-1 py-3 text-base font-medium text-neutral-slate bg-gray-100 rounded-xl disabled:opacity-50"
           >
             Zrušit
           </button>
