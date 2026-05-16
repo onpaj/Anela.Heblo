@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.AddProposedTask;
+using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetMeetingUsers;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptDetail;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptList;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.SubmitToTodo;
@@ -28,6 +29,13 @@ public sealed class MeetingTasksController : BaseApiController
         CancellationToken ct = default)
     {
         var result = await _mediator.Send(request, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("users")]
+    public async Task<ActionResult<GetMeetingUsersResponse>> Users(CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(new GetMeetingUsersRequest(), ct);
         return HandleResponse(result);
     }
 
