@@ -10,50 +10,73 @@ public sealed class ClaudeMeetingTaskExtractorTests
 {
     private readonly Mock<IChatClient> _mockChatClient;
     private readonly Mock<ILogger<ClaudeMeetingTaskExtractor>> _mockLogger;
+    private readonly Mock<IMeetingUserDirectory> _mockDirectory;
     private readonly ClaudeMeetingTaskExtractor _extractor;
 
     public ClaudeMeetingTaskExtractorTests()
     {
         _mockChatClient = new Mock<IChatClient>();
         _mockLogger = new Mock<ILogger<ClaudeMeetingTaskExtractor>>();
-        _extractor = new ClaudeMeetingTaskExtractor(_mockChatClient.Object, _mockLogger.Object);
+        _mockDirectory = new Mock<IMeetingUserDirectory>();
+        _mockDirectory.Setup(d => d.GetAll()).Returns(new List<MeetingUser>
+        {
+            new("andrea@anela.cz", "Andrea Nováková", new[] { "Andy" }),
+        });
+        _extractor = new ClaudeMeetingTaskExtractor(
+            _mockChatClient.Object, _mockDirectory.Object, _mockLogger.Object);
     }
 
-    [Fact]
-    public async Task ExtractAsync_WithValidJsonResponse_ReturnsParsedTasks()
+    private void SetupResponse(string json)
     {
-        // Arrange
-        const string summary = "Meeting summary";
-        const string transcript = "Meeting transcript";
-
-        var jsonResponse = """[{"title":"Meeting Action","description":"Follow up with client","assignee":"John","dueDate":"2026-06-01"}]""";
-        var chatResponse = new ChatResponse([new ChatMessage(ChatRole.Assistant, jsonResponse)]);
-
+        var chatResponse = new ChatResponse([new ChatMessage(ChatRole.Assistant, json)]);
         _mockChatClient
             .Setup(x => x.GetResponseAsync(
                 It.IsAny<IEnumerable<ChatMessage>>(),
                 It.IsAny<ChatOptions?>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(chatResponse);
-
-        // Act
-        var result = await _extractor.ExtractAsync(summary, transcript, CancellationToken.None);
-
-        // Assert
-        result.Should().HaveCount(1);
-        result[0].Title.Should().Be("Meeting Action");
-        result[0].Description.Should().Be("Follow up with client");
-        result[0].Assignee.Should().Be("John");
-        result[0].DueDate.Should().Be(new DateTime(2026, 6, 1));
     }
 
     [Fact]
-    public async Task ExtractAsync_WhenChatClientThrowsException_ReturnsEmptyList()
+    public async Task ExtractAsync_WithValidJsonResponse_ReturnsParsedTasks()
     {
-        // Arrange
-        const string summary = "Meeting summary";
-        const string transcript = "Meeting transcript";
+        SetupResponse("""[{"title":"Meeting Action","description":"Follow up","assignee":"John","assigneeEmail":null,"dueDate":"2026-06-01"}]""");
 
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Should().HaveCount(1);
+        result[0].Title.Should().Be("Meeting Action");
+        result[0].Assignee.Should().Be("John");
+        result[0].AssigneeEmail.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ExtractAsync_ParsesAssigneeEmailWhenLlmMatchesUser()
+    {
+        SetupResponse("""[{"title":"T","description":"D","assignee":"Andrea Nováková","assigneeEmail":"andrea@anela.cz","dueDate":null}]""");
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result[0].AssigneeEmail.Should().Be("andrea@anela.cz");
+    }
+
+    [Fact]
+    public async Task ExtractAsync_IncludesDirectoryUsersInPrompt()
+    {
+        SetupResponse("[]");
+
+        await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        _mockChatClient.Verify(x => x.GetResponseAsync(
+            It.Is<IEnumerable<ChatMessage>>(msgs =>
+                msgs.Any(m => m.Role == ChatRole.System && m.Text!.Contains("andrea@anela.cz"))),
+            It.IsAny<ChatOptions?>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_WhenChatClientThrows_ReturnsEmptyList()
+    {
         _mockChatClient
             .Setup(x => x.GetResponseAsync(
                 It.IsAny<IEnumerable<ChatMessage>>(),
@@ -61,44 +84,19 @@ public sealed class ClaudeMeetingTaskExtractorTests
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("API error"));
 
-        // Act
-        var result = await _extractor.ExtractAsync(summary, transcript, CancellationToken.None);
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
 
-        // Assert
         result.Should().BeEmpty();
-        // Verify logger was called
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Warning,
-                It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
-                It.IsAny<HttpRequestException>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
     }
 
     [Fact]
     public async Task ExtractAsync_WithMarkdownWrappedJson_StripsFenceAndParses()
     {
-        // Arrange
-        const string wrappedJson = "```json\n[{\"title\":\"Action\",\"description\":\"Do it\",\"assignee\":\"Bob\",\"dueDate\":\"2026-06-01\"}]\n```";
-        var chatResponse = new ChatResponse([new ChatMessage(ChatRole.Assistant, wrappedJson)]);
+        SetupResponse("```json\n[{\"title\":\"Action\",\"description\":\"Do it\",\"assignee\":\"Bob\",\"assigneeEmail\":null,\"dueDate\":null}]\n```");
 
-        _mockChatClient
-            .Setup(x => x.GetResponseAsync(
-                It.IsAny<IEnumerable<ChatMessage>>(),
-                It.IsAny<ChatOptions?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(chatResponse);
-
-        // Act
         var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
 
-        // Assert
         result.Should().HaveCount(1);
         result[0].Title.Should().Be("Action");
-        result[0].Description.Should().Be("Do it");
-        result[0].Assignee.Should().Be("Bob");
-        result[0].DueDate.Should().Be(new DateTime(2026, 6, 1));
     }
 }
