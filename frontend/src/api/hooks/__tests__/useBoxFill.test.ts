@@ -1,12 +1,12 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
-import { useOpenOrResumeBox, useAddBoxItem } from "../useBoxFill";
+import { useOpenOrResumeBox, useAddBoxItem, useRemoveBoxItem, useSendBoxToTransit } from "../useBoxFill";
 import * as clientModule from "../../client";
 
 jest.mock("../../client", () => ({
   getAuthenticatedApiClient: jest.fn(),
-  QUERY_KEYS: { manufacturedProductInventory: ["manufactured-product-inventory"] },
+  QUERY_KEYS: { manufacturedProductInventory: ["manufactured-product-inventory"], transportBox: ["transport-boxes"] },
 }));
 
 const mockGetClient = clientModule.getAuthenticatedApiClient as jest.MockedFunction<
@@ -21,10 +21,12 @@ const createWrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 const setFetch = (response: Partial<Response> & { json: () => Promise<unknown> }) => {
+  const fetchMock = jest.fn().mockResolvedValue(response);
   mockGetClient.mockReturnValue({
     baseUrl: "http://test",
-    http: { fetch: jest.fn().mockResolvedValue(response) },
+    http: { fetch: fetchMock },
   } as unknown as ReturnType<typeof clientModule.getAuthenticatedApiClient>);
+  return fetchMock;
 };
 
 describe("useBoxFill", () => {
@@ -55,5 +57,30 @@ describe("useBoxFill", () => {
 
     await waitFor(() => expect(res.success).toBe(false));
     expect(res.errorCode).toBe(1404);
+  });
+
+  it("useRemoveBoxItem issues a DELETE to the box/item URL", async () => {
+    const fetchMock = setFetch({ ok: true, json: async () => ({ success: true }) });
+
+    const { result } = renderHook(() => useRemoveBoxItem(), { wrapper: createWrapper });
+    const res = await result.current.mutateAsync({ boxId: 3, itemId: 9 });
+
+    expect(res.success).toBe(true);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("http://test/api/transport-boxes/3/items/9");
+    expect(init.method).toBe("DELETE");
+  });
+
+  it("useSendBoxToTransit PUTs the InTransit state", async () => {
+    const fetchMock = setFetch({ ok: true, json: async () => ({ success: true }) });
+
+    const { result } = renderHook(() => useSendBoxToTransit(), { wrapper: createWrapper });
+    const res = await result.current.mutateAsync(5);
+
+    expect(res.success).toBe(true);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("http://test/api/transport-boxes/5/state");
+    expect(init.method).toBe("PUT");
+    expect(JSON.parse(init.body)).toEqual({ boxId: 5, newState: "InTransit" });
   });
 });

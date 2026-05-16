@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
+import { BaseResponse } from "../../types/errors";
 
 interface ApiClientWithInternals {
   baseUrl: string;
@@ -22,10 +23,7 @@ export interface TerminalBox {
   items: TerminalBoxItem[];
 }
 
-export interface BoxFillResult {
-  success: boolean;
-  errorCode?: number;
-  params?: Record<string, string>;
+export interface BoxFillResult extends BaseResponse {
   transportBox?: TerminalBox;
   resumed?: boolean;
 }
@@ -81,6 +79,7 @@ export const useAddBoxItem = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.manufacturedProductInventory });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.transportBox });
     },
   });
 };
@@ -98,6 +97,7 @@ export const useRemoveBoxItem = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.manufacturedProductInventory });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.transportBox });
     },
   });
 };
