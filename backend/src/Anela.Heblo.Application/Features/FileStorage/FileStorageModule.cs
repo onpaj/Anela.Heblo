@@ -1,5 +1,6 @@
 using System.Net;
 using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
+using Anela.Heblo.Xcc.Http;
 using Anela.Heblo.Application.Features.FileStorage.Services;
 using Anela.Heblo.Domain.Features.FileStorage;
 using Azure.Storage.Blobs;
@@ -45,7 +46,8 @@ public static class FileStorageModule
                 // DownloadFromUrlHandler. HttpClient.Timeout is left infinite so it does
                 // not race with the linked CTS.
                 c.Timeout = Timeout.InfiniteTimeSpan;
-            });
+            })
+            .WithHebloOutboundObservability();
 
         // Register resilience service as Singleton — it holds no request state and
         // its internal Polly pipeline is rebuilt per-call (see BuildPipeline).

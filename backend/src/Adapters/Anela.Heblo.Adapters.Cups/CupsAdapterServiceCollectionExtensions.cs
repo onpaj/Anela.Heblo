@@ -1,5 +1,6 @@
 using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Xcc.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SharpIpp;
@@ -18,7 +19,8 @@ public static class CupsAdapterServiceCollectionExtensions
         // avoiding mutation of shared DefaultRequestHeaders on the pooled HttpMessageHandler.
         services.AddTransient<CupsAuthHandler>();
         services.AddHttpClient("Cups")
-            .AddHttpMessageHandler<CupsAuthHandler>();
+            .AddHttpMessageHandler<CupsAuthHandler>()
+            .WithHebloOutboundObservability();
 
         // Transient: each resolve gets a fresh HttpClient from the factory (disposal managed by factory)
         services.AddTransient<ISharpIppClient>(sp =>

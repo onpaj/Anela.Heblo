@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Photobank.Configuration;
+using Anela.Heblo.Xcc.Http;
 using Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
@@ -46,7 +47,8 @@ public static class PhotobankModule
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
                 AllowAutoRedirect = true,
-            });
+            })
+            .WithHebloOutboundObservability();
             services.AddScoped<IPhotobankGraphService, PhotobankGraphService>();
         }
         else
