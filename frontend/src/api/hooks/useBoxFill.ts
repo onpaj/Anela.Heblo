@@ -42,10 +42,15 @@ export interface AddBoxItemInput {
 const getInternals = (): ApiClientWithInternals =>
   getAuthenticatedApiClient() as unknown as ApiClientWithInternals;
 
-// The add/remove/state endpoints return HTTP 400 with a JSON body on business
-// failures, so always read the body and surface { success: false } from it.
-const parseResult = async (response: Response): Promise<BoxFillResult> => {
+const JSON_HEADERS = { "Content-Type": "application/json" };
+
+// Issues a box-fill request and always resolves to a BoxFillResult — it never
+// rejects. Business failures arrive as HTTP 400 with a JSON body; network
+// failures (a thrown fetch) and unparseable bodies collapse to { success: false }.
+const boxFillRequest = async (path: string, init: RequestInit): Promise<BoxFillResult> => {
   try {
+    const api = getInternals();
+    const response = await api.http.fetch(`${api.baseUrl}${path}`, init);
     return (await response.json()) as BoxFillResult;
   } catch {
     return { success: false };
@@ -54,29 +59,23 @@ const parseResult = async (response: Response): Promise<BoxFillResult> => {
 
 export const useOpenOrResumeBox = () =>
   useMutation({
-    mutationFn: async (boxCode: string): Promise<BoxFillResult> => {
-      const api = getInternals();
-      const response = await api.http.fetch(`${api.baseUrl}/api/transport-boxes/open-by-code`, {
+    mutationFn: (boxCode: string): Promise<BoxFillResult> =>
+      boxFillRequest("/api/transport-boxes/open-by-code", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_HEADERS,
         body: JSON.stringify({ boxCode }),
-      });
-      return parseResult(response);
-    },
+      }),
   });
 
 export const useAddBoxItem = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: AddBoxItemInput): Promise<BoxFillResult> => {
-      const api = getInternals();
-      const response = await api.http.fetch(`${api.baseUrl}/api/transport-boxes/${input.boxId}/items`, {
+    mutationFn: (input: AddBoxItemInput): Promise<BoxFillResult> =>
+      boxFillRequest(`/api/transport-boxes/${input.boxId}/items`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_HEADERS,
         body: JSON.stringify(input),
-      });
-      return parseResult(response);
-    },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.manufacturedProductInventory });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.transportBox });
@@ -87,14 +86,10 @@ export const useAddBoxItem = () => {
 export const useRemoveBoxItem = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { boxId: number; itemId: number }): Promise<BoxFillResult> => {
-      const api = getInternals();
-      const response = await api.http.fetch(
-        `${api.baseUrl}/api/transport-boxes/${input.boxId}/items/${input.itemId}`,
-        { method: "DELETE" },
-      );
-      return parseResult(response);
-    },
+    mutationFn: (input: { boxId: number; itemId: number }): Promise<BoxFillResult> =>
+      boxFillRequest(`/api/transport-boxes/${input.boxId}/items/${input.itemId}`, {
+        method: "DELETE",
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.manufacturedProductInventory });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.transportBox });
@@ -104,13 +99,10 @@ export const useRemoveBoxItem = () => {
 
 export const useSendBoxToTransit = () =>
   useMutation({
-    mutationFn: async (boxId: number): Promise<BoxFillResult> => {
-      const api = getInternals();
-      const response = await api.http.fetch(`${api.baseUrl}/api/transport-boxes/${boxId}/state`, {
+    mutationFn: (boxId: number): Promise<BoxFillResult> =>
+      boxFillRequest(`/api/transport-boxes/${boxId}/state`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: JSON_HEADERS,
         body: JSON.stringify({ boxId, newState: "InTransit" }),
-      });
-      return parseResult(response);
-    },
+      }),
   });
