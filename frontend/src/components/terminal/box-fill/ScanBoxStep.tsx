@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import ScanInput from "../ScanInput";
 import { useOpenOrResumeBox, type TerminalBox } from "../../../api/hooks/useBoxFill";
 import { isValidBoxCode } from "./boxCode";
@@ -7,9 +7,10 @@ import { getErrorMessage } from "../../../utils/errorHandler";
 
 interface ScanBoxStepProps {
   onBoxReady: (box: TerminalBox, resumed: boolean) => void;
+  lastSentBoxCode?: string | null;
 }
 
-const ScanBoxStep: React.FC<ScanBoxStepProps> = ({ onBoxReady }) => {
+const ScanBoxStep: React.FC<ScanBoxStepProps> = ({ onBoxReady, lastSentBoxCode }) => {
   const [error, setError] = useState<string | null>(null);
   const openBox = useOpenOrResumeBox();
 
@@ -29,10 +30,15 @@ const ScanBoxStep: React.FC<ScanBoxStepProps> = ({ onBoxReady }) => {
 
   return (
     <div className="space-y-4 pt-2">
-      <h1 className="text-xl font-bold text-neutral-slate">Naskenujte box</h1>
-      <p className="text-sm text-neutral-gray">
-        Naskenujte kód prázdného nebo rozpracovaného boxu pro zahájení plnění.
-      </p>
+      {lastSentBoxCode && (
+        <div
+          role="status"
+          className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2"
+        >
+          <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+          Box <span className="font-mono font-semibold">{lastSentBoxCode}</span> byl odeslán do přepravy.
+        </div>
+      )}
       <ScanInput
         label="Kód boxu"
         placeholder="B001"
@@ -50,6 +56,9 @@ const ScanBoxStep: React.FC<ScanBoxStepProps> = ({ onBoxReady }) => {
           {error}
         </div>
       )}
+      <p className="text-sm text-neutral-gray">
+        Naskenujte kód prázdného nebo rozpracovaného boxu pro zahájení plnění.
+      </p>
     </div>
   );
 };
