@@ -21,7 +21,7 @@ describe('ScanInput', () => {
   it('auto-focuses the input on mount', () => {
     render(<ScanInput label="Kód" onScan={onScan} />);
     const input = screen.getByRole('textbox');
-    expect(document.activeElement).toBe(input);
+    expect(input).toHaveFocus();
   });
 
   it('uppercases input value by default', () => {
@@ -42,14 +42,14 @@ describe('ScanInput', () => {
     render(<ScanInput label="Kód" onScan={onScan} />);
     const input = screen.getByRole('textbox');
     fireEvent.change(input, { target: { value: 'B001' } });
-    fireEvent.submit(input.closest('form')!);
+    fireEvent.submit(screen.getByRole('form'));
     expect(onScan).toHaveBeenCalledWith('B001');
     expect(input).toHaveValue('');
   });
 
   it('does not call onScan when input is empty', () => {
     render(<ScanInput label="Kód" onScan={onScan} />);
-    fireEvent.submit(screen.getByRole('textbox').closest('form')!);
+    fireEvent.submit(screen.getByRole('form'));
     expect(onScan).not.toHaveBeenCalled();
   });
 
@@ -63,7 +63,7 @@ describe('ScanInput', () => {
     const input = screen.getByRole('textbox');
     fireEvent.blur(input);
     act(() => { jest.advanceTimersByTime(100); });
-    expect(document.activeElement).toBe(input);
+    expect(input).toHaveFocus();
   });
 
   it('does not re-focus on blur when loading=true', () => {
@@ -72,6 +72,6 @@ describe('ScanInput', () => {
     input.focus();
     fireEvent.blur(input);
     act(() => { jest.advanceTimersByTime(100); });
-    expect(document.activeElement).not.toBe(input);
+    expect(input).not.toHaveFocus();
   });
 });

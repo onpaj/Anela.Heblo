@@ -43,7 +43,7 @@ afterEach(() => {
 
 const scan = (code: string) => {
   fireEvent.change(screen.getByRole('textbox'), { target: { value: code } });
-  fireEvent.submit(screen.getByRole('textbox').closest('form')!);
+  fireEvent.submit(screen.getByRole('form'));
 };
 
 describe('TransportBoxCheck', () => {

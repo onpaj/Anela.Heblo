@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ConversationDetail from "../ConversationDetail";
 import { ConversationDto } from "../../../../api/hooks/useSmartsupp";
@@ -56,34 +56,27 @@ beforeAll(() => {
 
 describe("ConversationDetail", () => {
   it("renders the contact name in the header", () => {
-    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} onToggleContactPanel={() => {}} />));
+    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
     expect(screen.getByText("Jana Nováková")).toBeInTheDocument();
   });
 
   it("renders the status pill in the header", () => {
-    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} onToggleContactPanel={() => {}} />));
+    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
     expect(screen.getByTestId("status-pill")).toHaveTextContent("Aktivní");
   });
 
   it("renders the assigned agent badges in the header", () => {
-    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} onToggleContactPanel={() => {}} />));
+    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
     expect(screen.getAllByTestId("agent-badge").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("invokes onToggleContactPanel when the info icon is clicked", () => {
-    const toggle = jest.fn();
-    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} onToggleContactPanel={toggle} />));
-    fireEvent.click(screen.getByTestId("toggle-contact-panel"));
-    expect(toggle).toHaveBeenCalled();
-  });
-
   it("renders a day separator before the message group", () => {
-    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} onToggleContactPanel={() => {}} />));
+    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
     expect(screen.getByTestId("day-separator")).toBeInTheDocument();
   });
 
   it("renders the composer at the bottom", () => {
-    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} onToggleContactPanel={() => {}} />));
+    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
     expect(screen.getByPlaceholderText("Napište odpověď...")).toBeInTheDocument();
   });
 });

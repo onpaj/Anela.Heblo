@@ -43,7 +43,7 @@ afterEach(() => {
 
 const scan = (code: string) => {
   fireEvent.change(screen.getByRole('textbox'), { target: { value: code } });
-  fireEvent.submit(screen.getByRole('textbox').closest('form')!);
+  fireEvent.submit(screen.getByRole('form'));
 };
 
 const byCodeFor = (target: string, box: Record<string, unknown> | null) => (code: string | null) =>
@@ -74,9 +74,7 @@ describe('TransportBoxReceive', () => {
     render(<TransportBoxReceive />);
     act(() => scan('B001'));
 
-    await act(async () => {
-      fireEvent.click(screen.getByTestId('accept-box'));
-    });
+    fireEvent.click(screen.getByTestId('accept-box'));
 
     expect(mutateAsync).toHaveBeenCalledWith({ boxId: 1, newState: 'Received' });
     expect(screen.getByTestId('receive-success')).toBeInTheDocument();
@@ -100,9 +98,7 @@ describe('TransportBoxReceive', () => {
     render(<TransportBoxReceive />);
     act(() => scan('B001'));
 
-    act(() => {
-      fireEvent.click(screen.getByTestId('reject-box'));
-    });
+    fireEvent.click(screen.getByTestId('reject-box'));
 
     expect(mutateAsync).not.toHaveBeenCalled();
     expect(screen.queryByText('B001')).not.toBeInTheDocument();
@@ -136,7 +132,7 @@ describe('TransportBoxReceive', () => {
     mockByCode.mockImplementation(byCodeFor('B001', receivableBox));
     render(<TransportBoxReceive />);
     act(() => scan('B001'));
-    await act(async () => { fireEvent.click(screen.getByTestId('accept-box')); });
+    fireEvent.click(screen.getByTestId('accept-box'));
     expect(screen.getByTestId('receive-success')).toBeInTheDocument();
     act(() => { jest.advanceTimersByTime(2500); });
     expect(screen.queryByTestId('receive-success')).not.toBeInTheDocument();
