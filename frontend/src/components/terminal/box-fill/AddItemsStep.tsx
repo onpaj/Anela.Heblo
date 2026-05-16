@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AlertCircle, FlaskConical, Loader, Search, Trash2 } from "lucide-react";
+import { AlertCircle, FlaskConical, Loader, Trash2 } from "lucide-react";
 import {
   useManufacturedProductInventoryQuery,
   type ManufacturedProductInventoryItem,
@@ -29,7 +29,6 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
   onProceed,
   isTransiting = false,
 }) => {
-  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<ManufacturedProductInventoryItem | null>(null);
   const [overdraft, setOverdraft] = useState<{ item: ManufacturedProductInventoryItem; amount: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,15 +37,7 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
   const addItem = useAddBoxItem();
   const removeItem = useRemoveBoxItem();
 
-  const items = (data?.items ?? []).filter((it) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      it.productName.toLowerCase().includes(q) ||
-      it.productCode.toLowerCase().includes(q) ||
-      (it.lotNumber ?? "").toLowerCase().includes(q)
-    );
-  });
+  const items = data?.items ?? [];
 
   const performAdd = async (
     item: ManufacturedProductInventoryItem,
@@ -96,6 +87,17 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
 
   return (
     <div className="space-y-4">
+      <ScanInput
+        label={`Naskenujte kód boxu ${box.code}`}
+        placeholder={box.code}
+        onScan={(code) => { if (code === box.code) onProceed(); }}
+        loading={isTransiting}
+        autoFocusOnMount={false}
+        refocusOnBlur={false}
+        suppressKeyboard
+        allowKeyboardToggle
+      />
+
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-neutral-slate">Box {box.code}</h1>
         <span className="text-sm text-neutral-gray">{box.items.length} pol.</span>
@@ -117,18 +119,6 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
           {error}
         </div>
       )}
-
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-gray" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Hledat produkt, kód nebo šarži..."
-          data-testid="add-items-search"
-          className="w-full pl-9 pr-3 py-2 text-sm border border-border-light rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-blue"
-        />
-      </div>
 
       {isLoading && (
         <div className="flex items-center justify-center gap-2 py-6 text-sm text-neutral-gray">
@@ -208,17 +198,6 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
         {isTransiting && <Loader className="h-4 w-4 animate-spin" />}
         Odeslat do přepravy
       </button>
-
-      <ScanInput
-        label={`Nebo naskenujte kód boxu ${box.code}`}
-        placeholder={box.code}
-        onScan={(code) => { if (code === box.code) onProceed(); }}
-        loading={isTransiting}
-        autoFocusOnMount={false}
-        refocusOnBlur={false}
-        suppressKeyboard
-        allowKeyboardToggle
-      />
 
       {selected && (
         <AmountEntrySheet
