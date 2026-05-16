@@ -21,6 +21,8 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
         PropertyNameCaseInsensitive = true,
     };
 
+    private const decimal CentsToCurrency = 100m;
+
     public string Platform => "MetaAds";
 
     public MetaAdsTransactionSource(
@@ -64,7 +66,7 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
                     {
                         TransactionId = item.Id,
                         Platform = Platform,
-                        Amount = item.Amount / 100m,
+                        Amount = item.Amount / CentsToCurrency,
                         TransactionDate = txDate,
                         Currency = item.Currency,
                         Description = item.PaymentType,

@@ -2230,6 +2230,16 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("Amount");
 
+                    b.Property<string>("Currency")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("Currency");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("Description");
+
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("text")
                         .HasColumnName("ErrorMessage");
@@ -2250,6 +2260,10 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("Platform");
 
+                    b.Property<string>("RawData")
+                        .HasColumnType("text")
+                        .HasColumnName("RawData");
+
                     b.Property<DateTime>("TransactionDate")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("TransactionDate");
@@ -2261,6 +2275,13 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnName("TransactionId");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ImportedAt")
+                        .HasDatabaseName("IX_imported_marketing_transactions_ImportedAt");
+
+                    b.HasIndex("IsSynced")
+                        .HasDatabaseName("IX_imported_marketing_transactions_IsSynced_False")
+                        .HasFilter("\"IsSynced\" = false");
 
                     b.HasIndex("Platform", "TransactionId")
                         .IsUnique()

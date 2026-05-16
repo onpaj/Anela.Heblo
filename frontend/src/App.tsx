@@ -37,18 +37,23 @@ import StockOperationsPage from "./pages/StockOperationsPage";
 import RecurringJobsPage from "./pages/RecurringJobsPage";
 import KnowledgeBasePage from "./pages/KnowledgeBasePage";
 import KnowledgeBaseFeedbackPage from "./pages/KnowledgeBaseFeedbackPage";
-import MarketingFeedbackPage from "./pages/MarketingFeedbackPage";
-import ArticlesPage from "./pages/ArticlesPage";
 import ExpeditionListArchivePage from "./pages/ExpeditionListArchivePage";
+import MarketingFeedbackPage from "./pages/MarketingFeedbackPage";
 import MarketingCalendarPage from "./components/marketing/pages/MarketingCalendarPage";
 import PhotobankPage from "./components/marketing/photobank/pages/PhotobankPage";
 import PhotobankSettingsPage from "./components/marketing/photobank/pages/PhotobankSettingsPage";
+import ArticlesPage from "./pages/ArticlesPage";
+import DataQualityPage from "./pages/customer/DataQualityPage";
+import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
+import TerminalLayout from "./components/terminal/TerminalLayout";
+import TerminalHome from "./components/terminal/TerminalHome";
+import ComingSoonPage from "./components/terminal/ComingSoonPage";
 import AuthGuard from "./components/auth/AuthGuard";
 import { StatusBar } from "./components/StatusBar";
 import { loadConfig, Config } from "./config/runtimeConfig";
 import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
-import DataQualityPage from "./pages/customer/DataQualityPage";
 import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
+import MarketingCostsList from "./components/pages/MarketingCostsList";
 import SmartsuppChatsPage from "./components/customer-support/smartsupp/pages/SmartsuppChatsPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
 import { UserStorage } from "./auth/userStorage";
@@ -63,10 +68,6 @@ import { ChangelogProvider } from "./contexts/ChangelogContext";
 import { GlobalLoadingIndicator } from "./components/GlobalLoadingIndicator";
 import { AppInitializer } from "./components/AppInitializer";
 import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog";
-import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
-import TerminalLayout from "./components/terminal/TerminalLayout";
-import TerminalHome from "./components/terminal/TerminalHome";
-import ComingSoonPage from "./components/terminal/ComingSoonPage";
 import "./i18n";
 
 let isRedirecting = false;
@@ -355,20 +356,63 @@ function App() {
                       {/* Desktop app — full Layout with sidebar (pathless layout route) */}
                       <Route element={<Layout statusBar={<StatusBar />}><Outlet /></Layout>}>
                         <Route path="/" element={<Dashboard />} />
-                        <Route path="/finance/overview" element={<FinancialOverview />} />
-                        <Route path="/finance/bank-statements" element={<BankStatementImportChart />} />
-                        <Route path="/analytics/product-margin-summary" element={<ProductMarginSummary />} />
+                        <Route
+                          path="/finance/overview"
+                          element={<FinancialOverview />}
+                        />
+                        <Route
+                          path="/finance/bank-statements"
+                          element={<BankStatementImportChart />}
+                        />
+                        <Route
+                          path="/analytics/product-margin-summary"
+                          element={<ProductMarginSummary />}
+                        />
+                        <Route
+                          path="/marketing/costs"
+                          element={<MarketingCostsList />}
+                        />
                         <Route path="/catalog" element={<CatalogList />} />
-                        <Route path="/purchase/orders" element={<PurchaseOrderList />} />
-                        <Route path="/purchase/stock-analysis" element={<PurchaseStockAnalysis />} />
-                        <Route path="/purchase/invoice-classification" element={<InvoiceClassificationPage />} />
-                        <Route path="/manufacturing/stock-analysis" element={<ManufacturingStockAnalysis />} />
-                        <Route path="/manufacturing/output" element={<ManufactureOutput />} />
-                        <Route path="/manufacturing/batch-calculator" element={<ManufactureBatchCalculator />} />
-                        <Route path="/manufacturing/batch-planning" element={<BatchPlanningCalculator />} />
-                        <Route path="/manufacturing/orders" element={<ManufactureOrderList />} />
-                        <Route path="/manufacturing/orders/:id" element={<ManufactureOrderDetail />} />
-                        <Route path="/products/margins" element={<ProductMarginsList />} />
+                        <Route
+                          path="/purchase/orders"
+                          element={<PurchaseOrderList />}
+                        />
+                        <Route
+                          path="/purchase/stock-analysis"
+                          element={<PurchaseStockAnalysis />}
+                        />
+                        <Route
+                          path="/purchase/invoice-classification"
+                          element={<InvoiceClassificationPage />}
+                        />
+                        <Route
+                          path="/manufacturing/stock-analysis"
+                          element={<ManufacturingStockAnalysis />}
+                        />
+                        <Route
+                          path="/manufacturing/output"
+                          element={<ManufactureOutput />}
+                        />
+                        <Route
+                          path="/manufacturing/batch-calculator"
+                          element={<ManufactureBatchCalculator />}
+                        />
+                        <Route
+                          path="/manufacturing/batch-planning"
+                          element={<BatchPlanningCalculator />}
+                        />
+                        <Route
+                          path="/manufacturing/orders"
+                          element={<ManufactureOrderList />}
+                        />
+                        <Route
+                          path="/manufacturing/orders/:id"
+                          element={<ManufactureOrderDetail />}
+                        />
+                        <Route
+                          path="/products/margins"
+                          element={<ProductMarginsList />}
+                        />
                         <Route path="/journal" element={<JournalList />} />
                         <Route path="/marketing/calendar" element={<MarketingCalendarPage />} />
                         <Route path="/marketing/photobank" element={<PhotobankPage />} />
