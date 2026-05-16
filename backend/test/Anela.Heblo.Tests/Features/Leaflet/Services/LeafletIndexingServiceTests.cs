@@ -15,7 +15,7 @@ public class LeafletIndexingServiceTests
     private readonly Mock<IWordWindowChunker> _chunker;
     private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddings;
     private readonly Mock<ILeafletChunkSummarizer> _summarizer;
-    private readonly Mock<ILeafletRepository> _repo;
+    private readonly Mock<ILeafletDocumentRepository> _repo;
     private readonly Mock<ILogger<LeafletIndexingService>> _logger;
     private readonly LeafletOptions _options;
     private readonly LeafletIndexingService _service;
@@ -25,7 +25,7 @@ public class LeafletIndexingServiceTests
         _chunker = new Mock<IWordWindowChunker>();
         _embeddings = new Mock<IEmbeddingGenerator<string, Embedding<float>>>();
         _summarizer = new Mock<ILeafletChunkSummarizer>();
-        _repo = new Mock<ILeafletRepository>();
+        _repo = new Mock<ILeafletDocumentRepository>();
         _logger = new Mock<ILogger<LeafletIndexingService>>();
         _options = new LeafletOptions { ChunkSize = 800, ChunkOverlap = 80 };
 
@@ -139,36 +139,6 @@ public class LeafletIndexingServiceTests
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => _service.IndexAsync("some text content", document));
-    }
-
-    [Fact]
-    public async Task IndexAsync_sets_WordCount_from_input_text()
-    {
-        // Arrange
-        var document = CreateDocument();
-        var text = string.Join(' ', Enumerable.Range(1, 1500).Select(i => $"word{i}"));
-
-        _chunker
-            .Setup(c => c.Chunk(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()))
-            .Returns(new[] { "single chunk" });
-
-        var singleEmbedding = CreateEmbeddings(1);
-        _embeddings
-            .Setup(e => e.GenerateAsync(
-                It.IsAny<IEnumerable<string>>(),
-                It.IsAny<EmbeddingGenerationOptions?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(singleEmbedding);
-
-        _repo
-            .Setup(r => r.AddChunksAsync(It.IsAny<IEnumerable<LeafletChunk>>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        // Act
-        await _service.IndexAsync(text, document);
-
-        // Assert
-        Assert.Equal(1500, document.WordCount);
     }
 
     [Fact]

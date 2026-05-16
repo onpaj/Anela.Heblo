@@ -5,9 +5,9 @@ namespace Anela.Heblo.Application.Features.Leaflet.UseCases.DeleteLeafletDocumen
 
 public class DeleteLeafletDocumentHandler : IRequestHandler<DeleteLeafletDocumentRequest, DeleteLeafletDocumentResponse>
 {
-    private readonly ILeafletRepository _leafletRepository;
+    private readonly ILeafletDocumentRepository _leafletRepository;
 
-    public DeleteLeafletDocumentHandler(ILeafletRepository leafletRepository)
+    public DeleteLeafletDocumentHandler(ILeafletDocumentRepository leafletRepository)
     {
         _leafletRepository = leafletRepository;
     }

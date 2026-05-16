@@ -15,7 +15,7 @@ namespace Anela.Heblo.Tests.Features.Leaflet.UseCases;
 public class GenerateLeafletHandlerTests
 {
     private readonly Mock<ILeafletKnowledgeSource> _kb = new();
-    private readonly Mock<ILeafletRepository> _leaflets = new();
+    private readonly Mock<ILeafletDocumentRepository> _leaflets = new();
     private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddings = new();
     private readonly Mock<IRagQueryExpander> _expander = new();
     private readonly Mock<IChatClient> _chat = new();

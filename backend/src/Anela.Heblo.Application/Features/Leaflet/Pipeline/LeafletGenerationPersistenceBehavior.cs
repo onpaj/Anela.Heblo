@@ -10,12 +10,12 @@ namespace Anela.Heblo.Application.Features.Leaflet.Pipeline;
 public class LeafletGenerationPersistenceBehavior
     : IPipelineBehavior<GenerateLeafletRequest, GenerateLeafletResponse>
 {
-    private readonly ILeafletRepository _repository;
+    private readonly ILeafletGenerationRepository _repository;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<LeafletGenerationPersistenceBehavior> _logger;
 
     public LeafletGenerationPersistenceBehavior(
-        ILeafletRepository repository,
+        ILeafletGenerationRepository repository,
         ICurrentUserService currentUserService,
         ILogger<LeafletGenerationPersistenceBehavior> logger)
     {
