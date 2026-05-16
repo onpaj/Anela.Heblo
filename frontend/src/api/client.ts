@@ -155,6 +155,10 @@ const getAuthHeader = async (): Promise<string | null> => {
   }
 };
 
+const TERMINAL_ROUTE_PREFIX = "/terminal";
+const isTerminalRoute = (): boolean =>
+  window.location.pathname.startsWith(TERMINAL_ROUTE_PREFIX);
+
 // Create API client instance with runtime configuration
 let apiClient: ApiClient;
 
@@ -305,7 +309,7 @@ export const getAuthenticatedApiClient = (
               `🚨 Structured API Error [${response.status}] ${url}:`,
               errorInfo.message,
             );
-            globalToastHandler("Upozornění", errorInfo.message);
+            if (!isTerminalRoute()) globalToastHandler("Upozornění", errorInfo.message);
           } else if (shouldHandleHttpErrors && globalToastHandler) {
             // Only show unstructured errors for HTTP errors, not for business logic warnings
             const title = `Chyba API (${response.status})`;
@@ -313,13 +317,13 @@ export const getAuthenticatedApiClient = (
               `🚨 Unstructured API Error [${response.status}] ${url}:`,
               errorInfo.message,
             );
-            globalToastHandler(title, errorInfo.message);
+            if (!isTerminalRoute()) globalToastHandler(title, errorInfo.message);
           }
         } catch (toastError) {
           console.error("🍞 Failed to show error toast:", toastError);
           // Fallback toast only for HTTP errors
           if (shouldHandleHttpErrors && globalToastHandler) {
-            globalToastHandler(
+            if (!isTerminalRoute()) globalToastHandler(
               `Chyba API (${response.status})`,
               "Neočekávaná chyba na serveru",
             );
