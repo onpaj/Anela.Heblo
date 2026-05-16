@@ -10,6 +10,32 @@ interface ExplainModalProps {
   error: string | null;
 }
 
+interface DialogTurn {
+  speaker: string;
+  text: string;
+}
+
+const SPEAKER_COLORS = [
+  'bg-indigo-100 text-indigo-700',
+  'bg-emerald-100 text-emerald-700',
+  'bg-amber-100 text-amber-700',
+  'bg-rose-100 text-rose-700',
+];
+
+function parseTranscriptToDialog(transcript: string): DialogTurn[] | null {
+  // Split at "Speaker: " boundaries — speaker is a word starting with uppercase (incl. Czech)
+  const parts = transcript.split(/([A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][^\n:]{0,25}):\s+/);
+  if (parts.length < 3) return null;
+
+  const turns: DialogTurn[] = [];
+  for (let i = 1; i + 1 < parts.length; i += 2) {
+    const speaker = parts[i].trim();
+    const text = parts[i + 1].trim();
+    if (speaker && text) turns.push({ speaker, text });
+  }
+  return turns.length > 1 ? turns : null;
+}
+
 export function ExplainModal({
   isOpen,
   onClose,
@@ -28,6 +54,19 @@ export function ExplainModal({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  const dialogTurns = relevantTranscript ? parseTranscriptToDialog(relevantTranscript) : null;
+
+  const speakerColorMap = new Map<string, string>();
+  if (dialogTurns) {
+    let colorIdx = 0;
+    for (const { speaker } of dialogTurns) {
+      if (!speakerColorMap.has(speaker)) {
+        speakerColorMap.set(speaker, SPEAKER_COLORS[colorIdx % SPEAKER_COLORS.length]);
+        colorIdx++;
+      }
+    }
+  }
 
   return (
     <div
@@ -66,10 +105,23 @@ export function ExplainModal({
           {!isLoading && !error && relevantTranscript !== null && (
             <>
               <div>
-                <p className="text-xs font-semibold uppercase text-gray-500 mb-1">Záznam konverzace</p>
-                <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 whitespace-pre-wrap">
-                  {relevantTranscript}
-                </div>
+                <p className="text-xs font-semibold uppercase text-gray-500 mb-2">Záznam konverzace</p>
+                {dialogTurns ? (
+                  <div className="space-y-3">
+                    {dialogTurns.map((turn, i) => (
+                      <div key={i} className="flex flex-col gap-0.5">
+                        <span className={`self-start text-xs font-semibold px-1.5 py-0.5 rounded ${speakerColorMap.get(turn.speaker)}`}>
+                          {turn.speaker}
+                        </span>
+                        <p className="text-sm text-gray-800 pl-1">{turn.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 whitespace-pre-wrap">
+                    {relevantTranscript}
+                  </div>
+                )}
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase text-gray-500 mb-1">Vysvětlení</p>

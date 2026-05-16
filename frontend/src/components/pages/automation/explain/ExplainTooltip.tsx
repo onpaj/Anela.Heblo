@@ -17,8 +17,10 @@ export function ExplainTooltip({ anchorRect, onExplain }: ExplainTooltipProps) {
     <div style={style}>
       <button
         type="button"
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={onExplain}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          onExplain();
+        }}
         className="px-2 py-1 rounded-md text-xs font-medium bg-indigo-600 text-white shadow hover:bg-indigo-700"
       >
         Vysvětlit
