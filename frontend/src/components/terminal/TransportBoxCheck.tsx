@@ -175,7 +175,6 @@ const TransportBoxCheck: React.FC = () => {
         <ScanInput
           label="Kód boxu"
           onScan={setScannedCode}
-          loading={isFetching}
           suppressKeyboard
           allowKeyboardToggle
         />
