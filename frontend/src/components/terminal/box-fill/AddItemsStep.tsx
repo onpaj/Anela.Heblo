@@ -6,6 +6,7 @@ import {
 } from "../../../api/hooks/useManufacturedProductInventory";
 import { useAddBoxItem, useRemoveBoxItem, type TerminalBox } from "../../../api/hooks/useBoxFill";
 import { getErrorMessage } from "../../../utils/errorHandler";
+import ScanInput from "../ScanInput";
 import AmountEntrySheet from "./AmountEntrySheet";
 import OverdraftSheet from "./OverdraftSheet";
 
@@ -16,6 +17,7 @@ interface AddItemsStepProps {
   onBoxUpdated: (box: TerminalBox) => void;
   onAmountUsed: (productCode: string, amount: number) => void;
   onProceed: () => void;
+  isTransiting?: boolean;
 }
 
 const AddItemsStep: React.FC<AddItemsStepProps> = ({
@@ -25,6 +27,7 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
   onBoxUpdated,
   onAmountUsed,
   onProceed,
+  isTransiting = false,
 }) => {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<ManufacturedProductInventoryItem | null>(null);
@@ -198,12 +201,24 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
       <button
         type="button"
         onClick={onProceed}
-        disabled={box.items.length === 0}
+        disabled={box.items.length === 0 || isTransiting}
         data-testid="proceed-to-transit"
-        className="w-full py-3 text-base font-semibold text-white bg-primary-blue rounded-xl disabled:opacity-50"
+        className="w-full py-3 text-base font-semibold text-white bg-primary-blue rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
       >
+        {isTransiting && <Loader className="h-4 w-4 animate-spin" />}
         Odeslat do přepravy
       </button>
+
+      <ScanInput
+        label={`Nebo naskenujte kód boxu ${box.code}`}
+        placeholder={box.code}
+        onScan={(code) => { if (code === box.code) onProceed(); }}
+        loading={isTransiting}
+        autoFocusOnMount={false}
+        refocusOnBlur={false}
+        suppressKeyboard
+        allowKeyboardToggle
+      />
 
       {selected && (
         <AmountEntrySheet

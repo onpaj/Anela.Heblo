@@ -2,10 +2,9 @@ import React, { useState } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import ScanBoxStep from "./ScanBoxStep";
 import AddItemsStep from "./AddItemsStep";
-import ScanInput from "../ScanInput";
 import { useSendBoxToTransit, type TerminalBox } from "../../../api/hooks/useBoxFill";
 
-type Step = "scan" | "add-items" | "confirm-transit" | "done";
+type Step = "scan" | "add-items" | "done";
 
 const BoxFillWorkflow: React.FC = () => {
   const [step, setStep] = useState<Step>("scan");
@@ -28,12 +27,8 @@ const BoxFillWorkflow: React.FC = () => {
     setAmountMemory((prev) => ({ ...prev, [productCode]: amount }));
   };
 
-  const handleConfirmTransit = async (scannedCode: string) => {
+  const handleTransit = async () => {
     if (!box) return;
-    if (scannedCode !== box.code) {
-      setTransitError(`Kód boxu se neshoduje. Očekává se ${box.code}.`);
-      return;
-    }
     setTransitError(null);
     const result = await sendToTransit.mutateAsync(box.id);
     if (!result.success) {
@@ -57,43 +52,26 @@ const BoxFillWorkflow: React.FC = () => {
 
   if (step === "add-items" && box) {
     return (
-      <AddItemsStep
-        box={box}
-        resumed={resumed}
-        amountMemory={amountMemory}
-        onBoxUpdated={handleBoxUpdated}
-        onAmountUsed={handleAmountUsed}
-        onProceed={() => setStep("confirm-transit")}
-      />
-    );
-  }
-
-  if (step === "confirm-transit" && box) {
-    return (
-      <div className="space-y-4 pt-2">
-        <h1 className="text-xl font-bold text-neutral-slate">Potvrďte odeslání</h1>
-        <p className="text-sm text-neutral-gray">
-          Naskenujte kód boxu{" "}
-          <span className="font-mono font-semibold">{box.code}</span> pro
-          potvrzení odeslání do přepravy.
-        </p>
-        <ScanInput
-          label="Kód boxu"
-          onScan={(v) => void handleConfirmTransit(v)}
-          loading={sendToTransit.isPending}
-          suppressKeyboard
-          allowKeyboardToggle
-        />
+      <>
         {transitError && (
           <div
             role="alert"
-            className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2"
+            className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4"
           >
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
             {transitError}
           </div>
         )}
-      </div>
+        <AddItemsStep
+          box={box}
+          resumed={resumed}
+          amountMemory={amountMemory}
+          onBoxUpdated={handleBoxUpdated}
+          onAmountUsed={handleAmountUsed}
+          onProceed={() => void handleTransit()}
+          isTransiting={sendToTransit.isPending}
+        />
+      </>
     );
   }
 
