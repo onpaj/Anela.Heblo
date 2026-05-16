@@ -65,8 +65,8 @@ public sealed class ClaudeMeetingSummaryExplainerTests
 
         var result = await _sut.ExplainAsync("transcript", "text", CancellationToken.None);
 
-        result.Should().NotBeNull();
-        result.Explanation.Should().NotBeNull();
+        result.RelevantTranscript.Should().Be(string.Empty);
+        result.Explanation.Should().Be("Vysvětlení není k dispozici.");
     }
 
     [Fact]
@@ -81,6 +81,7 @@ public sealed class ClaudeMeetingSummaryExplainerTests
 
         var result = await _sut.ExplainAsync("transcript", "text", CancellationToken.None);
 
-        result.Should().NotBeNull();
+        result.RelevantTranscript.Should().Be(string.Empty);
+        result.Explanation.Should().Be("Vysvětlení není k dispozici.");
     }
 }

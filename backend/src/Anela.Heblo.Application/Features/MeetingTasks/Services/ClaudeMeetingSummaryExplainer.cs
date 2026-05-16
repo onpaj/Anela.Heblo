@@ -16,6 +16,11 @@ public sealed class ClaudeMeetingSummaryExplainer : IMeetingSummaryExplainer
         { "relevantTranscript": "...", "explanation": "..." }
         """;
 
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly IChatClient _chatClient;
     private readonly ILogger<ClaudeMeetingSummaryExplainer> _logger;
 
@@ -46,7 +51,7 @@ public sealed class ClaudeMeetingSummaryExplainer : IMeetingSummaryExplainer
 
             var result = JsonSerializer.Deserialize<MeetingSummaryExplanation>(
                 text,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                _jsonOptions);
 
             return result ?? FallbackExplanation();
         }
@@ -64,7 +69,7 @@ public sealed class ClaudeMeetingSummaryExplainer : IMeetingSummaryExplainer
     {
         var trimmed = text.Trim();
 
-        if (trimmed.StartsWith("```json"))
+        if (trimmed.StartsWith("```json", StringComparison.OrdinalIgnoreCase))
             trimmed = trimmed["```json".Length..];
         else if (trimmed.StartsWith("```"))
             trimmed = trimmed["```".Length..];
