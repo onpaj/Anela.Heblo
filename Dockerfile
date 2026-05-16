@@ -65,6 +65,12 @@ RUN apt-get update && apt-get install -y \
     && echo "Europe/Prague" > /etc/timezone \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install Node.js and Plaud CLI (@plaud-ai/cli is a Node.js tool)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g @plaud-ai/cli \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Copy published backend
 COPY --from=backend-build /app/publish ./
 
