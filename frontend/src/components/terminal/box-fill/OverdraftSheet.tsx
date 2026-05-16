@@ -56,7 +56,7 @@ const OverdraftSheet: React.FC<OverdraftSheetProps> = ({
         >
           Přidat pouze zbývající ({item.amount} ks)
         </button>
-        <button type="button" onClick={onCancel} className="w-full py-2 text-sm text-neutral-gray">
+        <button type="button" onClick={onCancel} disabled={isSubmitting} className="w-full py-2 text-sm text-neutral-gray disabled:opacity-50">
           Zrušit
         </button>
       </div>

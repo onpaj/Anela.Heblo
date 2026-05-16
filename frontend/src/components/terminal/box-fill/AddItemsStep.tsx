@@ -90,7 +90,7 @@ const AddItemsStep: React.FC<AddItemsStepProps> = ({
       <ScanInput
         label={`Naskenujte kód boxu ${box.code}`}
         placeholder={box.code}
-        onScan={(code) => { if (code === box.code) onProceed(); }}
+        onScan={(code) => { if (code === box.code && box.items.length > 0) onProceed(); }}
         loading={isTransiting}
         autoFocusOnMount={false}
         refocusOnBlur={false}
