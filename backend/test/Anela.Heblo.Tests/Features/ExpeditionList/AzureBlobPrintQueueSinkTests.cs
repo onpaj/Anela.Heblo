@@ -174,4 +174,48 @@ public class AzureBlobPrintQueueSinkTests : IDisposable
             It.IsAny<BlobContainerEncryptionScopeOptions>(),
             It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task SendAsync_FirstCreateIfNotExistsThrows_RetriesOnNextCall()
+    {
+        // Arrange
+        var file = Path.Combine(_tempDir, "order1.pdf");
+        await File.WriteAllTextAsync(file, "pdf");
+
+        // First call to CreateIfNotExistsAsync throws; subsequent calls succeed.
+        var attempt = 0;
+        _containerClient
+            .Setup(x => x.CreateIfNotExistsAsync(
+                It.IsAny<PublicAccessType>(),
+                It.IsAny<IDictionary<string, string>>(),
+                It.IsAny<BlobContainerEncryptionScopeOptions>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                attempt++;
+                if (attempt == 1)
+                {
+                    throw new InvalidOperationException("transient failure");
+                }
+                return Task.FromResult(Mock.Of<Azure.Response<BlobContainerInfo>>());
+            });
+
+        var sink = CreateSink();
+
+        // Act + Assert — first call throws
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sink.SendAsync([file]));
+
+        // Second call succeeds and triggers a retry of CreateIfNotExistsAsync
+        await sink.SendAsync([file]);
+
+        // Third call should NOT re-invoke CreateIfNotExistsAsync (cache is now hot)
+        await sink.SendAsync([file]);
+
+        // Assert — exactly 2 invocations total: the failed first, the successful second
+        _containerClient.Verify(x => x.CreateIfNotExistsAsync(
+            It.IsAny<PublicAccessType>(),
+            It.IsAny<IDictionary<string, string>>(),
+            It.IsAny<BlobContainerEncryptionScopeOptions>(),
+            It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
 }
