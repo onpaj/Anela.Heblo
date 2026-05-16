@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.AddProposedTask;
+using Anela.Heblo.Application.Features.MeetingTasks.UseCases.ExplainSummary;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetMeetingUsers;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptDetail;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptList;
@@ -91,6 +92,17 @@ public sealed class MeetingTasksController : BaseApiController
         CancellationToken ct = default)
     {
         var result = await _mediator.Send(new SubmitToTodoRequest { TranscriptId = transcriptId }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("{transcriptId:guid}/explain")]
+    public async Task<ActionResult<ExplainSummaryResponse>> ExplainSummary(
+        Guid transcriptId,
+        [FromBody] ExplainSummaryRequest request,
+        CancellationToken ct = default)
+    {
+        request.TranscriptId = transcriptId;
+        var result = await _mediator.Send(request, ct);
         return HandleResponse(result);
     }
 }

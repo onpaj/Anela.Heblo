@@ -111,6 +111,7 @@ export function useMeetingTasksList(
 ) {
   return useQuery<TranscriptListResponse>({
     queryKey: [...QUERY_KEYS.meetingTasks, statusFilter ?? "", page, pageSize],
+    refetchOnMount: "always",
     queryFn: () => {
       const params = new URLSearchParams();
       if (statusFilter) params.append("statusFilter", statusFilter);
@@ -248,5 +249,33 @@ export function useSubmitToTodo() {
       qc.invalidateQueries({ queryKey: MEETING_TASKS_KEYS.detail(transcriptId) });
       qc.invalidateQueries({ queryKey: MEETING_TASKS_KEYS.list });
     },
+  });
+}
+
+// --- Explain Summary ---
+
+export interface ExplainSummaryResponse {
+  success: boolean;
+  relevantTranscript: string;
+  explanation: string;
+  errorCode?: string;
+}
+
+export interface ExplainSummaryInput {
+  transcriptId: string;
+  selectedText: string;
+}
+
+export function useExplainMeetingSummary() {
+  return useMutation<ExplainSummaryResponse, Error, ExplainSummaryInput>({
+    mutationFn: async (input) =>
+      fetchJson<ExplainSummaryResponse>(
+        `/api/meeting-tasks/${encodeURIComponent(input.transcriptId)}/explain`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ selectedText: input.selectedText }),
+        },
+      ),
   });
 }

@@ -13,12 +13,16 @@ import {
   TaskFormData,
   TranscriptStatus,
   useAddProposedTask,
+  useExplainMeetingSummary,
   useMeetingTaskDetail,
   useMeetingUsers,
   useSubmitToTodo,
   useUpdateProposedTask,
   useUpdateProposedTaskStatus,
 } from "../../../api/hooks/useMeetingTasks";
+import { useExplainSelection } from './explain/useExplainSelection';
+import { ExplainTooltip } from './explain/ExplainTooltip';
+import { ExplainModal } from './explain/ExplainModal';
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
 
 const EMPTY_FORM: TaskFormData = { title: "", description: "", assignee: "", assigneeEmail: null, dueDate: null };
@@ -91,6 +95,24 @@ const MeetingTaskDetailPage: React.FC = () => {
   const [approveAllError, setApproveAllError] = useState<string | null>(null);
   const users = useMeetingUsers();
   const [transcriptOpen, setTranscriptOpen] = useState(false);
+
+  const explainSelection = useExplainSelection();
+  const explainMutation = useExplainMeetingSummary();
+  const [explainModalOpen, setExplainModalOpen] = useState(false);
+
+  const handleExplain = () => {
+    if (!explainSelection.selectedText) return;
+    setExplainModalOpen(true);
+    explainMutation.mutate({
+      transcriptId: id,
+      selectedText: explainSelection.selectedText,
+    });
+  };
+
+  const handleCloseExplain = () => {
+    setExplainModalOpen(false);
+    explainMutation.reset();
+  };
 
   if (detail.isLoading) {
     return <div className="p-8 text-gray-500">Nacitani...</div>;
@@ -180,7 +202,10 @@ const MeetingTaskDetailPage: React.FC = () => {
       </div>
 
       <div className="px-4 sm:px-6 lg:px-8 mt-4">
-        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 prose prose-sm prose-blue max-w-none">
+        <div
+          data-explainable="true"
+          className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 prose prose-sm prose-blue max-w-none"
+        >
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{transcript.summary}</ReactMarkdown>
         </div>
       </div>
@@ -288,7 +313,7 @@ const MeetingTaskDetailPage: React.FC = () => {
         </div>
       )}
 
-      <div className="px-4 sm:px-6 lg:px-8 mt-3 space-y-2">
+      <div data-explainable="true" className="px-4 sm:px-6 lg:px-8 mt-3 space-y-2">
         {tasks.map((t) => {
           const isEditing = editingTaskId === t.id;
           const cardClass = t.status === "Approved"
@@ -442,6 +467,28 @@ const MeetingTaskDetailPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {explainSelection.selectedText && explainSelection.anchorRect && (
+        <ExplainTooltip
+          anchorRect={explainSelection.anchorRect}
+          onExplain={handleExplain}
+        />
+      )}
+
+      <ExplainModal
+        isOpen={explainModalOpen}
+        onClose={handleCloseExplain}
+        isLoading={explainMutation.isPending}
+        relevantTranscript={explainMutation.data?.relevantTranscript ?? null}
+        explanation={explainMutation.data?.explanation ?? null}
+        error={
+          explainMutation.isError
+            ? (explainMutation.error instanceof Error ? explainMutation.error.message : 'Chyba při načítání vysvětlení.')
+            : (!explainMutation.data?.success && explainMutation.data)
+              ? 'Nepodařilo se získat vysvětlení.'
+              : null
+        }
+      />
     </div>
   );
 };
