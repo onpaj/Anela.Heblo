@@ -5,76 +5,91 @@ using Xunit;
 namespace Anela.Heblo.Tests.Architecture;
 
 /// <summary>
-/// Enforces module boundary rule from docs/architecture/development_guidelines.md:
-/// Leaflet must not reference any KnowledgeBase-owned type directly. All cross-module
-/// communication goes through Leaflet-owned contracts (e.g. ILeafletKnowledgeSource)
-/// implemented by KnowledgeBase via an adapter.
+/// Enforces module boundary rules from docs/architecture/development_guidelines.md:
+/// Consumer modules must not reference provider-owned types directly. All cross-module
+/// communication goes through consumer-owned contracts (e.g. ILeafletKnowledgeSource,
+/// IInventoryReservationService) implemented by the provider via an adapter.
 /// </summary>
 public class ModuleBoundariesTests
 {
-    // Namespaces that, if referenced from a Leaflet type, indicate a boundary violation.
-    private static readonly string[] ForbiddenNamespacePrefixes =
-    [
-        "Anela.Heblo.Domain.Features.KnowledgeBase",
-        "Anela.Heblo.Application.Features.KnowledgeBase",
-        "Anela.Heblo.Persistence.KnowledgeBase",
-    ];
+    public sealed record ModuleBoundaryRule(
+        string Name,
+        string InspectedNamespacePrefix,
+        IReadOnlyList<string> ForbiddenNamespacePrefixes,
+        IReadOnlySet<string> Allowlist);
 
-    private const string LeafletNamespacePrefix = "Anela.Heblo.Application.Features.Leaflet";
-
-    // Allowlist for explicitly-documented exceptions. Each entry needs a comment with the
+    // Pre-existing allowlist for Leaflet → KnowledgeBase. Each entry needs a comment with the
     // justification. Entries should be removed as the underlying violations are fixed.
     //
-    // Entry format: "{LeafletFullyQualifiedTypeName} -> {ForbiddenTypeFullName}"
+    // Entry format: "{ConsumerFullyQualifiedTypeName} -> {ProviderTypeFullName}"
     //
-    // Compiler-generated types (e.g. DisplayClasses for closures, state machines for async methods)
-    // are automatically handled by matching against the declaring type's namespace prefix.
-    private static readonly HashSet<string> Allowlist = new(StringComparer.Ordinal)
+    // Compiler-generated types (e.g. DisplayClasses for closures, state machines for async
+    // methods) are automatically handled by matching against the declaring type's namespace
+    // prefix below.
+    private static readonly HashSet<string> LeafletAllowlist = new(StringComparer.Ordinal)
     {
-        // Pre-existing dependency: UploadLeafletHandler and IndexLeafletHandler consume IDocumentTextExtractor,
-        // which currently lives in Anela.Heblo.Application.Features.KnowledgeBase.Services. Lifting this is out of
-        // scope for the 2026-05-15 Leaflet decoupling. Track separately and remove these entries
-        // when IDocumentTextExtractor is relocated to a shared namespace.
+        // Pre-existing dependency: UploadLeafletHandler and IndexLeafletHandler consume
+        // IDocumentTextExtractor, which currently lives in
+        // Anela.Heblo.Application.Features.KnowledgeBase.Services. Lifting this is out of
+        // scope for the 2026-05-15 Leaflet decoupling. Track separately and remove these
+        // entries when IDocumentTextExtractor is relocated to a shared namespace.
         "Anela.Heblo.Application.Features.Leaflet.UseCases.UploadLeaflet.UploadLeafletHandler -> Anela.Heblo.Application.Features.KnowledgeBase.Services.IDocumentTextExtractor",
         "Anela.Heblo.Application.Features.Leaflet.UseCases.IndexLeaflet.IndexLeafletHandler -> Anela.Heblo.Application.Features.KnowledgeBase.Services.IDocumentTextExtractor",
 
-        // Pre-existing dependency: LeafletIngestionJob consumes IOneDriveService, which currently
-        // lives in Anela.Heblo.Application.Features.KnowledgeBase.Services. Lifting this is out of
-        // scope for the 2026-05-15 Leaflet decoupling. Track separately and remove these entries
-        // when IOneDriveService is relocated to a shared namespace.
+        // Pre-existing dependency: LeafletIngestionJob consumes IOneDriveService, which
+        // currently lives in Anela.Heblo.Application.Features.KnowledgeBase.Services. Lifting
+        // this is out of scope for the 2026-05-15 Leaflet decoupling. Track separately and
+        // remove these entries when IOneDriveService is relocated to a shared namespace.
         "Anela.Heblo.Application.Features.Leaflet.Infrastructure.Jobs.LeafletIngestionJob -> Anela.Heblo.Application.Features.KnowledgeBase.Services.IOneDriveService",
         "Anela.Heblo.Application.Features.Leaflet.Infrastructure.Jobs.LeafletIngestionJob -> Anela.Heblo.Application.Features.KnowledgeBase.Services.OneDriveFile",
     };
 
-    [Fact]
-    public void Leaflet_types_should_not_reference_KnowledgeBase_owned_namespaces()
+    public static TheoryData<ModuleBoundaryRule> Rules() => new()
+    {
+        new ModuleBoundaryRule(
+            Name: "Leaflet -> KnowledgeBase",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Leaflet",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.KnowledgeBase",
+                "Anela.Heblo.Application.Features.KnowledgeBase",
+                "Anela.Heblo.Persistence.KnowledgeBase",
+            },
+            Allowlist: LeafletAllowlist),
+    };
+
+    [Theory]
+    [MemberData(nameof(Rules))]
+    public void Consumer_types_should_not_reference_provider_owned_namespaces(ModuleBoundaryRule rule)
     {
         var assembly = Assembly.Load("Anela.Heblo.Application");
-        var leafletTypes = assembly.GetTypes()
-            .Where(t => t.Namespace is not null && t.Namespace.StartsWith(LeafletNamespacePrefix, StringComparison.Ordinal))
+        var consumerTypes = assembly.GetTypes()
+            .Where(t => t.Namespace is not null
+                && t.Namespace.StartsWith(rule.InspectedNamespacePrefix, StringComparison.Ordinal))
             .ToList();
 
         var violations = new List<string>();
 
-        foreach (var leafletType in leafletTypes)
+        foreach (var consumerType in consumerTypes)
         {
-            foreach (var (referencedType, memberDescription) in EnumerateReferencedTypes(leafletType))
+            foreach (var (referencedType, memberDescription) in EnumerateReferencedTypes(consumerType))
             {
-                if (!IsForbidden(referencedType))
+                if (!IsForbidden(referencedType, rule.ForbiddenNamespacePrefixes))
                     continue;
 
-                var entry = $"{leafletType.FullName} -> {referencedType.FullName}";
-                if (Allowlist.Contains(entry))
+                var entry = $"{consumerType.FullName} -> {referencedType.FullName}";
+                if (rule.Allowlist.Contains(entry))
                     continue;
 
-                // Also check if the declaring type of a compiler-generated nested type is in the allowlist.
-                // For example, if "UploadLeafletHandler+<>c__DisplayClass3_0" references a forbidden type,
-                // check if "UploadLeafletHandler" references that same forbidden type.
-                var baseType = leafletType.DeclaringType;
+                // Also check if the declaring type of a compiler-generated nested type is in
+                // the allowlist. For example, if "UploadLeafletHandler+<>c__DisplayClass3_0"
+                // references a forbidden type, check if "UploadLeafletHandler" references that
+                // same forbidden type.
+                var baseType = consumerType.DeclaringType;
                 if (baseType is not null)
                 {
                     var baseEntry = $"{baseType.FullName} -> {referencedType.FullName}";
-                    if (Allowlist.Contains(baseEntry))
+                    if (rule.Allowlist.Contains(baseEntry))
                         continue;
                 }
 
@@ -83,9 +98,9 @@ public class ModuleBoundariesTests
         }
 
         violations.Should().BeEmpty(
-            "Leaflet types must not reference KnowledgeBase-owned namespaces. " +
-            "Define a Leaflet-owned contract in Application/Features/Leaflet/Contracts/ " +
-            "and have KnowledgeBase implement it via an adapter. " +
+            $"{rule.Name}: consumer types must not reference provider-owned namespaces. " +
+            "Define a consumer-owned contract in the consumer module's Contracts/ folder " +
+            "and have the provider module implement it via an adapter. " +
             "Found:\n  " + string.Join("\n  ", violations));
     }
 
@@ -159,12 +174,12 @@ public class ModuleBoundariesTests
             "Found:\n  " + string.Join("\n  ", violations));
     }
 
-    private static bool IsForbidden(Type type)
+    private static bool IsForbidden(Type type, IReadOnlyList<string> forbiddenPrefixes)
     {
         if (type.Namespace is null)
             return false;
 
-        foreach (var prefix in ForbiddenNamespacePrefixes)
+        foreach (var prefix in forbiddenPrefixes)
         {
             if (type.Namespace.Equals(prefix, StringComparison.Ordinal) ||
                 type.Namespace.StartsWith(prefix + ".", StringComparison.Ordinal))
