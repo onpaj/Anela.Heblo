@@ -283,6 +283,24 @@ public enum ErrorCodes
     // Smartsupp module errors (27XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
     SmartsuppConversationNotFound = 2701,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    SmartsuppDraftReplyAiUnavailable = 2702,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    SmartsuppConversationEmpty = 2703,
+
+    // Inventory module errors (28XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    LotNotFound = 2801,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    EanNotFound = 2802,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    LotAlreadyExists = 2803,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    InventoryMaterialNotFound = 2804,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InventoryMaterialInvalidType = 2805,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    LotHasEans = 2806,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

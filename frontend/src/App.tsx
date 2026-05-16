@@ -20,7 +20,7 @@ import JournalList from "./components/pages/Journal/JournalList";
 import JournalEntryNew from "./components/pages/JournalEntryNew";
 import JournalEntryEdit from "./components/pages/JournalEntryEdit";
 import TransportBoxList from "./components/pages/TransportBoxList";
-import TransportBoxReceive from "./components/pages/TransportBoxReceive";
+import TransportBoxReceivePage from "./components/pages/TransportBoxReceive";
 import GiftPackageManufacturing from "./components/pages/GiftPackageManufacturing";
 import WarehouseStatistics from "./components/pages/WarehouseStatistics";
 import InventoryList from "./components/pages/InventoryList";
@@ -30,6 +30,8 @@ import ManufactureOrderList from "./components/manufacture/pages/ManufactureOrde
 import ManufactureOrderDetail from "./components/manufacture/pages/ManufactureOrderDetail";
 import InvoiceImportStatistics from "./components/pages/automation/InvoiceImportStatistics";
 import BackgroundTasks from "./components/pages/automation/BackgroundTasks";
+import MeetingTasksPage from "./components/pages/automation/MeetingTasksPage";
+import MeetingTaskDetailPage from "./components/pages/automation/MeetingTaskDetailPage";
 import OrgChartPage from "./pages/OrgChartPage";
 import InvoiceClassificationPage from "./pages/InvoiceClassification/InvoiceClassificationPage";
 import PackingMaterialsPage from "./pages/PackingMaterialsPage";
@@ -66,7 +68,10 @@ import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog"
 import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
 import TerminalLayout from "./components/terminal/TerminalLayout";
 import TerminalHome from "./components/terminal/TerminalHome";
+import TransportBoxCheck from "./components/terminal/TransportBoxCheck";
+import TransportBoxReceive from "./components/terminal/TransportBoxReceive";
 import ComingSoonPage from "./components/terminal/ComingSoonPage";
+import BoxFillWorkflow from "./components/terminal/box-fill/BoxFillWorkflow";
 import "./i18n";
 
 let isRedirecting = false;
@@ -344,7 +349,9 @@ function App() {
                       {/* Mobile terminal — no sidebar, no topbar */}
                       <Route path="/terminal" element={<TerminalLayout />}>
                         <Route index element={<TerminalHome />} />
-                        <Route path="receive" element={<ComingSoonPage title="Příjem boxu" />} />
+                        <Route path="box-check" element={<TransportBoxCheck />} />
+                        <Route path="box-fill" element={<BoxFillWorkflow />} />
+                        <Route path="receive" element={<TransportBoxReceive />} />
                         <Route path="stocktake" element={<ComingSoonPage title="Inventura" />} />
                         <Route
                           path="lot-identification"
@@ -380,13 +387,15 @@ function App() {
                         <Route path="/manufacturing/inventory" element={<ManufactureInventoryList />} />
                         <Route path="/manufacturing/product-inventory" element={<ManufacturedInventoryPage />} />
                         <Route path="/logistics/transport-boxes" element={<TransportBoxList />} />
-                        <Route path="/logistics/receive-boxes" element={<TransportBoxReceive />} />
+                        <Route path="/logistics/receive-boxes" element={<TransportBoxReceivePage />} />
                         <Route path="/logistics/gift-package-manufacturing" element={<GiftPackageManufacturing />} />
                         <Route path="/logistics/warehouse-statistics" element={<WarehouseStatistics />} />
                         <Route path="/logistics/packing-materials" element={<PackingMaterialsPage />} />
                         <Route path="/logistics/expedition-archive" element={<ExpeditionListArchivePage />} />
                         <Route path="/automation/invoice-import-statistics" element={<InvoiceImportStatistics />} />
                         <Route path="/automation/background-tasks" element={<BackgroundTasks />} />
+                        <Route path="/automation/meeting-tasks" element={<MeetingTasksPage />} />
+                        <Route path="/automation/meeting-tasks/:id" element={<MeetingTaskDetailPage />} />
                         <Route path="/customer/issued-invoices" element={<IssuedInvoicesPage />} />
                         <Route path="/customer/bank-statements-overview" element={<BankStatementsOverviewPage />} />
                         <Route path="/customer/smartsupp" element={<SmartsuppChatsPage />} />

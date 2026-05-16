@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Features.MarketingInvoices;
 using Anela.Heblo.Application.Features.BackgroundJobs;
 using Anela.Heblo.Application.Features.Bank;
 using Anela.Heblo.Application.Features.Catalog;
+using Anela.Heblo.Application.Features.Catalog.Inventory;
 using Anela.Heblo.Application.Features.Dashboard;
 using Anela.Heblo.Application.Features.FileStorage;
 using Anela.Heblo.Application.Features.InvoiceClassification;
@@ -17,6 +18,7 @@ using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.Article;
 using Anela.Heblo.Application.Features.Leaflet;
+using Anela.Heblo.Application.Features.MeetingTasks;
 using Anela.Heblo.Application.Features.Purchase;
 using Anela.Heblo.Application.Features.FinancialOverview;
 using Anela.Heblo.Application.Features.Journal;
@@ -89,7 +91,9 @@ public static class ApplicationModule
         services.AddMarketingInvoicesModule();
         services.AddDataQualityModule();
         services.AddPhotobankModule(configuration);
-        services.AddSmartsuppModule();
+        services.AddMeetingTasksModule(configuration);
+        services.AddSmartsuppModule(configuration);
+        services.AddInventoryModule();
         // services.AddOrdersModule();
 
         return services;

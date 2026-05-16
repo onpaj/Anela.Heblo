@@ -4,12 +4,14 @@ using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Marketing;
+using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Inventory;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.Invoices;
@@ -107,6 +109,10 @@ public class ApplicationDbContext : DbContext
     // Marketing Invoices module
     public DbSet<ImportedMarketingTransaction> ImportedMarketingTransactions { get; set; } = null!;
 
+    // Meeting Tasks module
+    public DbSet<MeetingTranscript> MeetingTranscripts { get; set; } = null!;
+    public DbSet<ProposedTask> ProposedTasks { get; set; } = null!;
+
     // Data Quality module
     public DbSet<DqtRun> DqtRuns { get; set; } = null!;
     public DbSet<InvoiceDqtResult> InvoiceDqtResults { get; set; } = null!;
@@ -127,6 +133,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<SmartsuppConversation> SmartsuppConversations { get; set; } = null!;
     public DbSet<SmartsuppMessage> SmartsuppMessages { get; set; } = null!;
     public DbSet<SmartsuppContact> SmartsuppContacts { get; set; } = null!;
+
+    // Inventory module
+    public DbSet<Lot> Lots { get; set; } = null!;
+    public DbSet<Ean> Eans { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

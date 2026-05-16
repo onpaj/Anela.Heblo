@@ -23,7 +23,7 @@ public static class LeafletModule
 
         services.AddScoped<
             IPipelineBehavior<GenerateLeafletRequest, GenerateLeafletResponse>,
-            LeafletGenerationLoggingBehavior>();
+            LeafletGenerationPersistenceBehavior>();
 
         // LeafletIngestionJob is auto-discovered via IRecurringJob assembly scan in AddRecurringJobs()
         // ILeafletDocumentRepository and ILeafletGenerationRepository are registered in PersistenceModule

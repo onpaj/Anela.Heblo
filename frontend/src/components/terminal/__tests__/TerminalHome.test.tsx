@@ -16,6 +16,20 @@ describe('TerminalHome', () => {
     expect(screen.getByText('Vyberte operaci')).toBeInTheDocument();
   });
 
+  it('renders an active tile for box checking', () => {
+    renderHome();
+    const tile = screen.getByTestId('workflow-tile-box-check');
+    expect(tile).toBeInTheDocument();
+    expect(tile).toHaveAttribute('href', '/terminal/box-check');
+  });
+
+  it('renders an active tile for box filling', () => {
+    renderHome();
+    const tile = screen.getByTestId('workflow-tile-box-fill');
+    expect(tile).toBeInTheDocument();
+    expect(tile).toHaveAttribute('href', '/terminal/box-fill');
+  });
+
   it('renders tile for transport-box receiving', () => {
     renderHome();
     const tile = screen.getByTestId('workflow-tile-receive');
@@ -35,9 +49,9 @@ describe('TerminalHome', () => {
     expect(tile).toHaveAttribute('href', '/terminal/lot-identification');
   });
 
-  it('shows coming-soon label on all tiles', () => {
+  it('shows coming-soon label only on the stub tiles', () => {
     renderHome();
     const labels = screen.getAllByText('Brzy k dispozici');
-    expect(labels).toHaveLength(3);
+    expect(labels).toHaveLength(2);
   });
 });

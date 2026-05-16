@@ -1,8 +1,8 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.IndexLeaflet;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
-using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
+using Anela.Heblo.Domain.Shared.Rag;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

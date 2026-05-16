@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Shared.Rag;
 
 namespace Anela.Heblo.Application.Shared.Rag;
 

@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.GetChunkDetail;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Shared.Rag;
 using Moq;
 using Xunit;
 

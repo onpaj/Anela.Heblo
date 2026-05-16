@@ -4,9 +4,12 @@ using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Persistence.GridLayouts;
+using Anela.Heblo.Domain.Features.Catalog.Inventory;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
+using Anela.Heblo.Persistence.Catalog.Inventory;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.Leaflet;
 using Anela.Heblo.Persistence.BackgroundJobs;
 using Anela.Heblo.Persistence.DataQuality;
@@ -18,6 +21,7 @@ using Anela.Heblo.Persistence.InvoiceClassification;
 using Anela.Heblo.Persistence.Features.Article;
 using Anela.Heblo.Persistence.Features.Leaflet;
 using Anela.Heblo.Persistence.KnowledgeBase;
+using Anela.Heblo.Persistence.MeetingTasks;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.EntityFrameworkCore;
@@ -85,6 +89,18 @@ public static class PersistenceModule
             services.AddSingleton(dataSource); // Register for DI-managed disposal
         }
 
+        // Register EAN code generator — real implementation needs NpgsqlDataSource (raw ADO.NET
+        // for sequence access); fall back to NullEanCodeGenerator when running in-memory so that
+        // DI validation and tests can start without a live database.
+        if (!useInMemory && connectionString != "InMemory" && dataSource != null)
+        {
+            services.AddScoped<IEanCodeGenerator, EanCodeGenerator>();
+        }
+        else
+        {
+            services.AddScoped<IEanCodeGenerator, NullEanCodeGenerator>();
+        }
+
         // Register interceptors
         services.AddScoped<PostgresExceptionLoggingInterceptor>();
 
@@ -124,6 +140,9 @@ public static class PersistenceModule
 
         // KnowledgeBase repositories
         services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
+
+        // Meeting Tasks repositories
+        services.AddScoped<IMeetingTranscriptRepository, MeetingTranscriptRepository>();
 
         // Leaflet repositories
         services.AddScoped<ILeafletDocumentRepository, LeafletDocumentRepository>();
