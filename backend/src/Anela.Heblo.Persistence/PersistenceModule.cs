@@ -9,6 +9,7 @@ using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Persistence.Catalog.Inventory;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.Leaflet;
 using Anela.Heblo.Persistence.BackgroundJobs;
 using Anela.Heblo.Persistence.DataQuality;
@@ -20,6 +21,7 @@ using Anela.Heblo.Persistence.InvoiceClassification;
 using Anela.Heblo.Persistence.Features.Article;
 using Anela.Heblo.Persistence.Features.Leaflet;
 using Anela.Heblo.Persistence.KnowledgeBase;
+using Anela.Heblo.Persistence.MeetingTasks;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Anela.Heblo.Xcc.Telemetry;
 using Microsoft.EntityFrameworkCore;
@@ -138,6 +140,9 @@ public static class PersistenceModule
 
         // KnowledgeBase repositories
         services.AddScoped<IKnowledgeBaseRepository, KnowledgeBaseRepository>();
+
+        // Meeting Tasks repositories
+        services.AddScoped<IMeetingTranscriptRepository, MeetingTranscriptRepository>();
 
         // Leaflet repositories
         services.AddScoped<ILeafletRepository, LeafletRepository>();

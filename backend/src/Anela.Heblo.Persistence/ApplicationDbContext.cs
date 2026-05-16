@@ -4,6 +4,7 @@ using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Marketing;
+using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
@@ -107,6 +108,10 @@ public class ApplicationDbContext : DbContext
 
     // Marketing Invoices module
     public DbSet<ImportedMarketingTransaction> ImportedMarketingTransactions { get; set; } = null!;
+
+    // Meeting Tasks module
+    public DbSet<MeetingTranscript> MeetingTranscripts { get; set; } = null!;
+    public DbSet<ProposedTask> ProposedTasks { get; set; } = null!;
 
     // Data Quality module
     public DbSet<DqtRun> DqtRuns { get; set; } = null!;
