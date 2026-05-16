@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Scan, Loader2 } from 'lucide-react';
+import { Scan, Loader2, Keyboard } from 'lucide-react';
 
 interface ScanInputProps {
   label: string;
@@ -8,6 +8,8 @@ interface ScanInputProps {
   loading?: boolean;
   uppercase?: boolean;
   autoFocusOnMount?: boolean;
+  suppressKeyboard?: boolean;
+  allowKeyboardToggle?: boolean;
 }
 
 const REFOCUS_DELAY_MS = 100;
@@ -19,8 +21,11 @@ const ScanInput: React.FC<ScanInputProps> = ({
   loading = false,
   uppercase = true,
   autoFocusOnMount = true,
+  suppressKeyboard = false,
+  allowKeyboardToggle = false,
 }) => {
   const [value, setValue] = useState('');
+  const [keyboardSuppressed, setKeyboardSuppressed] = useState(suppressKeyboard);
   const inputRef = useRef<HTMLInputElement>(null);
   const loadingRef = useRef(loading);
   loadingRef.current = loading;
@@ -61,15 +66,25 @@ const ScanInput: React.FC<ScanInputProps> = ({
     }, REFOCUS_DELAY_MS);
   }, []);
 
+  const toggleKeyboard = useCallback(() => {
+    setKeyboardSuppressed((prev) => !prev);
+    setTimeout(() => inputRef.current?.focus(), REFOCUS_DELAY_MS);
+  }, []);
+
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-neutral-slate">{label}</label>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <div className="relative flex-1">
-          <Scan className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-gray pointer-events-none" />
+          {loading ? (
+            <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-gray animate-spin pointer-events-none" />
+          ) : (
+            <Scan className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-gray pointer-events-none" />
+          )}
           <input
             ref={inputRef}
             type="text"
+            inputMode={keyboardSuppressed ? 'none' : 'text'}
             value={value}
             onChange={handleChange}
             onBlur={handleBlur}
@@ -80,14 +95,21 @@ const ScanInput: React.FC<ScanInputProps> = ({
             className="w-full h-14 pl-10 pr-3 text-lg border border-border-light rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-primary-blue disabled:bg-gray-100 disabled:cursor-not-allowed"
           />
         </div>
-        <button
-          type="submit"
-          disabled={loading || !value.trim()}
-          className="h-14 px-5 bg-primary-blue text-white font-medium rounded-xl hover:bg-accent-blue-bright disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 whitespace-nowrap"
-        >
-          {loading && <Loader2 className="h-5 w-5 animate-spin" />}
-          Potvrdit
-        </button>
+        {allowKeyboardToggle && (
+          <button
+            type="button"
+            onClick={toggleKeyboard}
+            aria-label={keyboardSuppressed ? 'Zobrazit klávesnici' : 'Skrýt klávesnici'}
+            aria-pressed={!keyboardSuppressed}
+            className={`h-14 px-3 rounded-xl border transition-colors flex items-center justify-center ${
+              keyboardSuppressed
+                ? 'border-border-light text-neutral-gray hover:text-primary-blue hover:border-primary-blue'
+                : 'border-primary-blue text-primary-blue bg-secondary-blue-pale'
+            }`}
+          >
+            <Keyboard className="h-5 w-5" />
+          </button>
+        )}
       </form>
     </div>
   );

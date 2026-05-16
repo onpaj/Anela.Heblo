@@ -11,6 +11,7 @@ using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Inventory;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.Invoices;
@@ -132,6 +133,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<SmartsuppConversation> SmartsuppConversations { get; set; } = null!;
     public DbSet<SmartsuppMessage> SmartsuppMessages { get; set; } = null!;
     public DbSet<SmartsuppContact> SmartsuppContacts { get; set; } = null!;
+
+    // Inventory module
+    public DbSet<Lot> Lots { get; set; } = null!;
+    public DbSet<Ean> Eans { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
