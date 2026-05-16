@@ -44,7 +44,7 @@ public class OpenOrResumeBoxByCodeHandler : IRequestHandler<OpenOrResumeBoxByCod
             var code = request.BoxCode.Trim().ToUpper();
             var user = _currentUserService.GetCurrentUser();
             var userName = user.IsAuthenticated ? user.Name ?? "Unknown User" : "Anonymous";
-            var now = DateTime.SpecifyKind(_timeProvider.GetUtcNow().UtcDateTime, DateTimeKind.Utc);
+            var now = _timeProvider.GetUtcNow().UtcDateTime;
 
             var existing = await _repository.GetByCodeAsync(code);
 
@@ -66,12 +66,7 @@ public class OpenOrResumeBoxByCodeHandler : IRequestHandler<OpenOrResumeBoxByCod
             }
 
             // No box, or only a Closed box with this code — create and open a fresh one.
-            if (await _repository.IsBoxCodeActiveAsync(code))
-            {
-                return new OpenOrResumeBoxByCodeResponse(ErrorCodes.TransportBoxDuplicateActiveBoxFound,
-                    new Dictionary<string, string> { { "code", code } });
-            }
-
+            // GetByCodeAsync returns any active box first, so reaching here means none exists.
             var box = new TransportBox
             {
                 CreatorId = Guid.TryParse(user.Id, out var userId) ? userId : null,

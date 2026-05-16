@@ -32,7 +32,6 @@ public class OpenOrResumeBoxByCodeHandlerTests
         _repositoryMock.Setup(r => r.AddAsync(It.IsAny<TransportBox>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((TransportBox b, CancellationToken _) => b);
         _repositoryMock.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
-        _repositoryMock.Setup(r => r.IsBoxCodeActiveAsync(It.IsAny<string>())).ReturnsAsync(false);
 
         _handler = new OpenOrResumeBoxByCodeHandler(
             _repositoryMock.Object,
