@@ -15,7 +15,7 @@ namespace Anela.Heblo.Tests.Features.Leaflet.UseCases;
 /// </summary>
 public class IndexLeafletStatusTransitionTests
 {
-    private readonly Mock<ILeafletRepository> _repoMock = new();
+    private readonly Mock<ILeafletDocumentRepository> _repoMock = new();
     private readonly Mock<ILeafletIndexingService> _indexingMock = new();
     private readonly Mock<IDocumentTextExtractor> _extractorMock = new();
 

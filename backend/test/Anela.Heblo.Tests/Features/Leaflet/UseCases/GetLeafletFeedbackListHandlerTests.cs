@@ -7,7 +7,7 @@ namespace Anela.Heblo.Tests.Features.Leaflet.UseCases;
 
 public class GetLeafletFeedbackListHandlerTests
 {
-    private readonly Mock<ILeafletRepository> _repo = new();
+    private readonly Mock<ILeafletGenerationRepository> _repo = new();
 
     private static LeafletGeneration MakeGeneration(bool hasFeedback = false) =>
         new()

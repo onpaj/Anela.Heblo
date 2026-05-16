@@ -26,7 +26,7 @@ public static class LeafletModule
             LeafletGenerationPersistenceBehavior>();
 
         // LeafletIngestionJob is auto-discovered via IRecurringJob assembly scan in AddRecurringJobs()
-        // ILeafletRepository is registered in PersistenceModule
+        // ILeafletDocumentRepository and ILeafletGenerationRepository are registered in PersistenceModule
         // MediatR handlers are auto-registered via AddApplicationServices() assembly scan
 
         return services;
