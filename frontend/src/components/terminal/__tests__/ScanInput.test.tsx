@@ -75,4 +75,12 @@ describe('ScanInput', () => {
     act(() => { jest.advanceTimersByTime(100); });
     expect(input).not.toHaveFocus();
   });
+
+  it('re-focuses the input when loading transitions from true to false', () => {
+    const { rerender } = render(<ScanInput label="Kód" onScan={onScan} loading={true} />);
+    const input = screen.getByRole('textbox');
+    rerender(<ScanInput label="Kód" onScan={onScan} loading={false} />);
+    act(() => { jest.advanceTimersByTime(100); });
+    expect(input).toHaveFocus();
+  });
 });

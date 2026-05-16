@@ -29,6 +29,7 @@ const ScanInput: React.FC<ScanInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const loadingRef = useRef(loading);
   loadingRef.current = loading;
+  const prevLoadingRef = useRef(loading);
 
   useEffect(() => {
     if (autoFocusOnMount) {
@@ -37,6 +38,13 @@ const ScanInput: React.FC<ScanInputProps> = ({
     // intentionally runs once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (prevLoadingRef.current && !loading) {
+      setTimeout(() => inputRef.current?.focus(), REFOCUS_DELAY_MS);
+    }
+    prevLoadingRef.current = loading;
+  }, [loading]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
