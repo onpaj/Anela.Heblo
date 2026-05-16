@@ -23,20 +23,17 @@ jest.mock("../../auth/e2eAuth", () => ({
 describe("API Client - Toast suppression on /terminal routes", () => {
   let mockToastHandler: jest.Mock;
   let originalFetch: typeof global.fetch;
-  let originalLocation: Location;
 
   beforeAll(() => {
     originalFetch = global.fetch;
-    originalLocation = window.location;
   });
 
   afterAll(() => {
     global.fetch = originalFetch;
-    // Restore original location
+    // Restore to a real-looking location to avoid leaking into other suites
     Object.defineProperty(window, "location", {
-      value: originalLocation,
-      writable: true,
       configurable: true,
+      get: () => ({ pathname: "/" }),
     });
   });
 
@@ -54,9 +51,8 @@ describe("API Client - Toast suppression on /terminal routes", () => {
 
   const setPathname = (pathname: string) => {
     Object.defineProperty(window, "location", {
-      value: { ...window.location, pathname },
-      writable: true,
       configurable: true,
+      get: () => ({ pathname }),
     });
   };
 
