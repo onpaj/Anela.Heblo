@@ -13,6 +13,7 @@ public sealed class IngestPlaudRecordingHandlerTests
     private readonly Mock<IMeetingTranscriptRepository> _mockRepository;
     private readonly Mock<IPlaudClient> _mockPlaudClient;
     private readonly Mock<IMeetingTaskExtractor> _mockExtractor;
+    private readonly Mock<IMeetingUserDirectory> _mockDirectory;
     private readonly Mock<ILogger<IngestPlaudRecordingHandler>> _mockLogger;
     private readonly IngestPlaudRecordingHandler _handler;
 
@@ -22,11 +23,13 @@ public sealed class IngestPlaudRecordingHandlerTests
         _mockPlaudClient = new Mock<IPlaudClient>();
         _mockExtractor = new Mock<IMeetingTaskExtractor>();
         _mockLogger = new Mock<ILogger<IngestPlaudRecordingHandler>>();
+        _mockDirectory = new Mock<IMeetingUserDirectory>();
 
         _handler = new IngestPlaudRecordingHandler(
             _mockRepository.Object,
             _mockPlaudClient.Object,
             _mockExtractor.Object,
+            _mockDirectory.Object,
             _mockLogger.Object);
     }
 
@@ -188,5 +191,48 @@ public sealed class IngestPlaudRecordingHandlerTests
                 It.Is<MeetingTranscript>(t => t.Tasks.Count == 0),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_WhenLlmReturnsNameWithoutEmail_FillsEmailFromDirectory()
+    {
+        // Arrange
+        var request = new IngestPlaudRecordingRequest
+        {
+            PlaudRecordingId = "rec_safety",
+            Name = "Meeting",
+            PlaudCreatedAt = DateTime.UtcNow
+        };
+
+        _mockRepository
+            .Setup(r => r.ExistsByPlaudIdAsync(request.PlaudRecordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _mockPlaudClient
+            .Setup(c => c.GetTranscriptAsync(request.PlaudRecordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("transcript");
+        _mockPlaudClient
+            .Setup(c => c.GetSummaryAsync(request.PlaudRecordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudSummaryResult("Headline", "summary"));
+        _mockExtractor
+            .Setup(e => e.ExtractAsync("summary", "transcript", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExtractedTask>
+            {
+                new("Task", "Desc", "Andy", null, AssigneeEmail: null)
+            });
+        _mockDirectory
+            .Setup(d => d.Resolve("Andy"))
+            .Returns(new MeetingUser("andrea@anela.cz", "Andrea Nováková", new[] { "Andy" }));
+
+        MeetingTranscript? saved = null;
+        _mockRepository
+            .Setup(r => r.AddAsync(It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()))
+            .Callback<MeetingTranscript, CancellationToken>((t, _) => saved = t);
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        saved.Should().NotBeNull();
+        saved!.Tasks.Single().AssigneeEmail.Should().Be("andrea@anela.cz");
     }
 }

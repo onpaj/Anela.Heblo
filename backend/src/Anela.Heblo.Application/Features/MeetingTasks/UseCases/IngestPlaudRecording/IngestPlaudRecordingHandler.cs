@@ -10,17 +10,20 @@ public sealed class IngestPlaudRecordingHandler : IRequestHandler<IngestPlaudRec
     private readonly IMeetingTranscriptRepository _repository;
     private readonly IPlaudClient _plaudClient;
     private readonly IMeetingTaskExtractor _extractor;
+    private readonly IMeetingUserDirectory _userDirectory;
     private readonly ILogger<IngestPlaudRecordingHandler> _logger;
 
     public IngestPlaudRecordingHandler(
         IMeetingTranscriptRepository repository,
         IPlaudClient plaudClient,
         IMeetingTaskExtractor extractor,
+        IMeetingUserDirectory userDirectory,
         ILogger<IngestPlaudRecordingHandler> logger)
     {
         _repository = repository;
         _plaudClient = plaudClient;
         _extractor = extractor;
+        _userDirectory = userDirectory;
         _logger = logger;
     }
 
@@ -68,6 +71,7 @@ public sealed class IngestPlaudRecordingHandler : IRequestHandler<IngestPlaudRec
                     Title = t.Title,
                     Description = t.Description,
                     Assignee = t.Assignee,
+                    AssigneeEmail = ResolveAssigneeEmail(t),
                     DueDate = t.DueDate,
                     Status = ProposedTaskStatus.Pending,
                     IsManuallyAdded = false
@@ -87,5 +91,13 @@ public sealed class IngestPlaudRecordingHandler : IRequestHandler<IngestPlaudRec
             entity.Tasks.Count);
 
         return new IngestPlaudRecordingResponse { Success = true, TranscriptId = entity.Id };
+    }
+
+    private string? ResolveAssigneeEmail(ExtractedTask task)
+    {
+        if (!string.IsNullOrWhiteSpace(task.AssigneeEmail))
+            return task.AssigneeEmail;
+
+        return _userDirectory.Resolve(task.Assignee)?.Email;
     }
 }
