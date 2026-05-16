@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Loader2, PackageX } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import ScanInput from './ScanInput';
 import { useTransportBoxByCodeQuery } from '../../api/hooks/useTransportBoxes';
+import TerminalError from './TerminalError';
+import { getTerminalErrorMessage } from './terminalErrors';
 import TransportBoxStateBadge from '../transport/box-detail/components/TransportBoxStateBadge';
 import {
   TransportBoxDto,
@@ -165,9 +167,7 @@ const BoxDetail: React.FC<{ box: TransportBoxDto }> = ({ box }) => {
 
 const TransportBoxCheck: React.FC = () => {
   const [scannedCode, setScannedCode] = useState<string | null>(null);
-  const { data: box, isFetching } = useTransportBoxByCodeQuery(scannedCode);
-
-  const showNotFound = !!scannedCode && !isFetching && !box;
+  const { data: box, isFetching, isError, error } = useTransportBoxByCodeQuery(scannedCode);
 
   return (
     <div className="space-y-4">
@@ -186,19 +186,11 @@ const TransportBoxCheck: React.FC = () => {
         </div>
       )}
 
-      {showNotFound && (
-        <div
-          data-testid="box-not-found"
-          className="bg-white border border-border-light rounded-xl p-6 flex flex-col items-center text-center gap-2"
-        >
-          <PackageX className="h-10 w-10 text-neutral-gray" />
-          <p className="font-semibold text-neutral-slate">
-            Box {scannedCode} nenalezen
-          </p>
-          <p className="text-sm text-neutral-gray">
-            Zkontrolujte kód a naskenujte znovu
-          </p>
-        </div>
+      {isError && (
+        <TerminalError
+          message={getTerminalErrorMessage(error)}
+          hint="Zkontrolujte kód a naskenujte znovu"
+        />
       )}
 
       {!isFetching && box && <BoxDetail box={box} />}
