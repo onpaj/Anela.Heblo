@@ -8,12 +8,11 @@ jest.spyOn(ReactDOM, "createPortal").mockImplementation(function (node) {
 });
 
 describe("ToastContainer", () => {
-  it("uses responsive classes — full-bleed on mobile, right-anchored on sm+", () => {
+  it("uses responsive classes - full-bleed on mobile, right-anchored on sm+", () => {
     const toast = {
       id: "1",
       type: "info",
       title: "Test toast",
-      onClose: jest.fn(),
     };
 
     render(
@@ -22,11 +21,13 @@ describe("ToastContainer", () => {
       </div>,
     );
 
-    const wrapper = document.querySelector("div.fixed");
-    expect(wrapper).toBeTruthy();
-    expect(wrapper.className).toContain("left-4");
-    expect(wrapper.className).toContain("sm:left-auto");
-    expect(wrapper.className).toContain("sm:min-w-[600px]");
-    expect(wrapper.className).not.toContain("min-w-[600px]");
+    // eslint-disable-next-line testing-library/no-node-access
+    const wrapper = document.querySelector("div.fixed") as HTMLElement;
+    expect(wrapper).not.toBeNull();
+    const classes = wrapper.className.split(/\s+/);
+    expect(classes).toContain("left-4");
+    expect(classes).toContain("sm:left-auto");
+    expect(classes).toContain("sm:min-w-[600px]");
+    expect(classes).not.toContain("min-w-[600px]");
   });
 });
