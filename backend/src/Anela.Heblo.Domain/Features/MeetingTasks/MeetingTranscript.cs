@@ -13,4 +13,6 @@ public class MeetingTranscript
     public DateTime? ReviewedAt { get; set; }
     public string? ReviewedByUser { get; set; }
     public List<ProposedTask> Tasks { get; set; } = new();
+    public MeetingAccessLevel AccessLevel { get; set; } = MeetingAccessLevel.Private;
+    public List<MeetingAccessGrant> AccessGrants { get; set; } = new();
 }
