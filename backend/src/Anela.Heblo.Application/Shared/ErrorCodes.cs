@@ -235,6 +235,10 @@ public enum ErrorCodes
     MarketingActionNotFound = 2301,
     [HttpStatusCode(HttpStatusCode.Forbidden)]
     UnauthorizedMarketingAccess = 2302,
+    [HttpStatusCode(HttpStatusCode.Forbidden)]
+    MarketingCalendarAccessDenied = 2303,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    MarketingCalendarSyncFailed = 2304,
 
     // Article Generation errors (24XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

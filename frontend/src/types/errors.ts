@@ -77,6 +77,12 @@ export enum ErrorCodes {
   JournalEntryNotFound = 1601,
   UnauthorizedJournalAccess = 1602,
 
+  // Marketing Calendar errors (23XX)
+  MarketingActionNotFound = 2301,
+  UnauthorizedMarketingAccess = 2302,
+  MarketingCalendarAccessDenied = 2303,
+  MarketingCalendarSyncFailed = 2304,
+
   // External Service errors (90XX)
   ExternalServiceError = 9001,
   FlexiApiError = 9002,

@@ -209,6 +209,8 @@ const resources = {
         // Marketing Calendar module errors
         MarketingActionNotFound: "Marketingová akce nebyla nalezena",
         UnauthorizedMarketingAccess: "Nemáte oprávnění k této marketingové akci",
+        MarketingCalendarAccessDenied: "Nemáte oprávnění zapisovat do marketingového kalendáře. Musíte být členem marketingové skupiny.",
+        MarketingCalendarSyncFailed: "Nepodařilo se kontaktovat Outlook kalendář. Zkuste to prosím znovu.",
 
         // Photobank module errors
         PhotoNotFound: "Fotka nebyla nalezena",
