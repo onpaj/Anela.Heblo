@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
-using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
 using MediatR;
@@ -13,7 +12,7 @@ namespace Anela.Heblo.Application.Features.Logistics.UseCases.RemoveItemFromBox;
 public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest, RemoveItemFromBoxResponse>
 {
     private readonly ITransportBoxRepository _repository;
-    private readonly IManufacturedProductInventoryRepository _inventoryRepository;
+    private readonly IInventoryReservationService _inventoryReservationService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<RemoveItemFromBoxHandler> _logger;
     private readonly IMapper _mapper;
@@ -21,14 +20,14 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
 
     public RemoveItemFromBoxHandler(
         ITransportBoxRepository repository,
-        IManufacturedProductInventoryRepository inventoryRepository,
+        IInventoryReservationService inventoryReservationService,
         ICurrentUserService currentUserService,
         ILogger<RemoveItemFromBoxHandler> logger,
         IMapper mapper,
         TimeProvider timeProvider)
     {
         _repository = repository;
-        _inventoryRepository = inventoryRepository;
+        _inventoryReservationService = inventoryReservationService;
         _currentUserService = currentUserService;
         _logger = logger;
         _mapper = mapper;
@@ -67,17 +66,14 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
 
             if (removedItem.SourceInventoryId != null)
             {
-                var inventoryItem = await _inventoryRepository.GetByIdAsync(removedItem.SourceInventoryId.Value, cancellationToken);
-                if (inventoryItem != null)
-                {
-                    inventoryItem.Restore((decimal)removedItem.Amount, userName, timestamp, transportBox.Id, transportBox.Code);
-                    await _inventoryRepository.UpdateAsync(inventoryItem, cancellationToken);
-                }
-                else
-                {
-                    _logger.LogWarning("InventoryItem {InventoryId} not found during restore for BoxItem {BoxItemId} — skipping restore",
-                        removedItem.SourceInventoryId, removedItem.Id);
-                }
+                await _inventoryReservationService.RestoreAsync(
+                    inventoryId: removedItem.SourceInventoryId.Value,
+                    amount: (decimal)removedItem.Amount,
+                    userName: userName,
+                    timestamp: timestamp,
+                    boxId: transportBox.Id,
+                    boxCode: transportBox.Code,
+                    cancellationToken: cancellationToken);
             }
 
             await _repository.SaveChangesAsync(cancellationToken);

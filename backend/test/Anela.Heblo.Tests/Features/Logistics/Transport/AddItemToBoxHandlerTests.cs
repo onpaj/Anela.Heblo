@@ -3,7 +3,6 @@ using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases.AddItemToBox;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
-using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Users;
 using AutoMapper;
 using FluentAssertions;
@@ -16,7 +15,7 @@ namespace Anela.Heblo.Tests.Features.Logistics.Transport;
 public class AddItemToBoxHandlerTests
 {
     private readonly Mock<ITransportBoxRepository> _repositoryMock;
-    private readonly Mock<IManufacturedProductInventoryRepository> _inventoryRepositoryMock;
+    private readonly Mock<IInventoryReservationService> _inventoryReservationServiceMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ILogger<AddItemToBoxHandler>> _loggerMock;
     private readonly Mock<IMapper> _mapperMock;
@@ -28,7 +27,7 @@ public class AddItemToBoxHandlerTests
     public AddItemToBoxHandlerTests()
     {
         _repositoryMock = new Mock<ITransportBoxRepository>();
-        _inventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
+        _inventoryReservationServiceMock = new Mock<IInventoryReservationService>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _loggerMock = new Mock<ILogger<AddItemToBoxHandler>>();
         _mapperMock = new Mock<IMapper>();
@@ -52,7 +51,7 @@ public class AddItemToBoxHandlerTests
 
         _handler = new AddItemToBoxHandler(
             _repositoryMock.Object,
-            _inventoryRepositoryMock.Object,
+            _inventoryReservationServiceMock.Object,
             _currentUserServiceMock.Object,
             _loggerMock.Object,
             _mapperMock.Object,
@@ -109,11 +108,10 @@ public class AddItemToBoxHandlerTests
 
         // Assert
         result.Success.Should().BeTrue();
-        _inventoryRepositoryMock.Verify(
-            x => x.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()),
-            Times.Never);
-        _inventoryRepositoryMock.Verify(
-            x => x.UpdateAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()),
+        _inventoryReservationServiceMock.Verify(
+            x => x.TryConsumeAsync(
+                It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<DateTime>(),
+                It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -122,7 +120,6 @@ public class AddItemToBoxHandlerTests
     {
         // Arrange
         var box = CreateOpenBox();
-        var inventoryItem = CreateInventoryItem(productCode: "PROD-001", amount: 100m);
 
         var request = new AddItemToBoxRequest
         {
@@ -139,9 +136,11 @@ public class AddItemToBoxHandlerTests
             .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(box);
 
-        _inventoryRepositoryMock
-            .Setup(x => x.GetByIdAsync(42, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(inventoryItem);
+        _inventoryReservationServiceMock
+            .Setup(x => x.TryConsumeAsync(
+                42, 10m, It.IsAny<string>(), It.IsAny<DateTime>(),
+                1, "B001", false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConsumeInventoryResult(ConsumeInventoryOutcome.Success));
 
         _repositoryMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -153,11 +152,10 @@ public class AddItemToBoxHandlerTests
         // Assert
         result.Success.Should().BeTrue();
 
-        // Inventory was consumed (UpdateAsync called with item that has reduced amount)
-        _inventoryRepositoryMock.Verify(
-            x => x.UpdateAsync(
-                It.Is<ManufacturedProductInventoryItem>(i => i.Amount == 90m),
-                It.IsAny<CancellationToken>()),
+        _inventoryReservationServiceMock.Verify(
+            x => x.TryConsumeAsync(
+                42, 10m, "Test User", FixedTime,
+                1, "B001", false, It.IsAny<CancellationToken>()),
             Times.Once);
 
         // Box item has the lot and source inventory set
@@ -172,14 +170,12 @@ public class AddItemToBoxHandlerTests
     {
         // Arrange
         var box = CreateOpenBox();
-        var inventoryItem = CreateInventoryItem(productCode: "PROD-001", amount: 5m);
-
         var request = new AddItemToBoxRequest
         {
             BoxId = 1,
             ProductCode = "PROD-001",
             ProductName = "Test Product",
-            Amount = 100.0,  // more than available
+            Amount = 100.0,
             SourceInventoryId = 42
         };
 
@@ -187,9 +183,11 @@ public class AddItemToBoxHandlerTests
             .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(box);
 
-        _inventoryRepositoryMock
-            .Setup(x => x.GetByIdAsync(42, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(inventoryItem);
+        _inventoryReservationServiceMock
+            .Setup(x => x.TryConsumeAsync(
+                42, 100m, It.IsAny<string>(), It.IsAny<DateTime>(),
+                1, "B001", false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConsumeInventoryResult(ConsumeInventoryOutcome.InsufficientStock));
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -197,6 +195,7 @@ public class AddItemToBoxHandlerTests
         // Assert
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.ManufacturedInventoryInsufficientStock);
+        result.Params.Should().ContainKey("sourceInventoryId").WhoseValue.Should().Be("42");
 
         // Box save should not have been called
         _repositoryMock.Verify(
@@ -222,9 +221,11 @@ public class AddItemToBoxHandlerTests
             .Setup(x => x.GetByIdWithDetailsAsync(1))
             .ReturnsAsync(box);
 
-        _inventoryRepositoryMock
-            .Setup(x => x.GetByIdAsync(999, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ManufacturedProductInventoryItem?)null);
+        _inventoryReservationServiceMock
+            .Setup(x => x.TryConsumeAsync(
+                999, 5m, It.IsAny<string>(), It.IsAny<DateTime>(),
+                1, "B001", false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ConsumeInventoryResult(ConsumeInventoryOutcome.InventoryNotFound));
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -232,6 +233,7 @@ public class AddItemToBoxHandlerTests
         // Assert
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.ManufacturedInventoryItemNotFound);
+        result.Params.Should().ContainKey("sourceInventoryId").WhoseValue.Should().Be("999");
     }
 
     private static TransportBox CreateOpenBox()
@@ -251,13 +253,4 @@ public class AddItemToBoxHandlerTests
         return box;
     }
 
-    private static ManufacturedProductInventoryItem CreateInventoryItem(string productCode, decimal amount)
-    {
-        return new ManufacturedProductInventoryItem(
-            productCode: productCode,
-            productName: "Test Product",
-            amount: amount,
-            createdBy: "system",
-            createdAt: new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc));
-    }
 }

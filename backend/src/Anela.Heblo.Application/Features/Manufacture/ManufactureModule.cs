@@ -1,6 +1,8 @@
+using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.DashboardTiles;
 using Anela.Heblo.Application.Features.Manufacture.ErrorFilters;
+using Anela.Heblo.Application.Features.Manufacture.Infrastructure;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.Services.Workflows;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
@@ -46,6 +48,10 @@ public static class ManufactureModule
         // Register repositories
         services.AddScoped<IManufactureOrderRepository, ManufactureOrderRepository>();
         services.AddScoped<IManufacturedProductInventoryRepository, ManufacturedProductInventoryRepository>();
+
+        // Cross-module contract: Manufacture implements Logistics' IInventoryReservationService.
+        // DI registration is owned by the provider (Manufacture), not the consumer (Logistics).
+        services.AddScoped<IInventoryReservationService, ManufactureInventoryReservationAdapter>();
 
         // Register application services
         services.AddScoped<IManufactureOrderApplicationService, ManufactureOrderApplicationService>();
