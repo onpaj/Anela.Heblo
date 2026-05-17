@@ -16,11 +16,14 @@ public class MeetingTranscriptRepository : IMeetingTranscriptRepository
     {
         return _context.MeetingTranscripts
             .Include(x => x.Tasks)
+            .Include(x => x.AccessGrants)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
     }
 
     public async Task<(List<MeetingTranscript> Items, int TotalCount)> GetListAsync(
         MeetingTranscriptStatus? statusFilter,
+        bool isManager,
+        string? userEmail,
         int page,
         int pageSize,
         CancellationToken ct = default)
@@ -28,14 +31,22 @@ public class MeetingTranscriptRepository : IMeetingTranscriptRepository
         var query = _context.MeetingTranscripts.AsQueryable();
 
         if (statusFilter.HasValue)
-        {
             query = query.Where(x => x.Status == statusFilter.Value);
+
+        if (!isManager)
+        {
+            var email = (userEmail ?? string.Empty).ToLowerInvariant();
+            query = query.Where(x =>
+                x.AccessLevel == MeetingAccessLevel.Public ||
+                (x.AccessLevel == MeetingAccessLevel.Restricted &&
+                 x.AccessGrants.Any(g => g.UserEmail.ToLower() == email)));
         }
 
         var totalCount = await query.CountAsync(ct);
 
         var items = await query
             .Include(x => x.Tasks)
+            .Include(x => x.AccessGrants)
             .OrderByDescending(x => x.PlaudCreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -53,6 +64,18 @@ public class MeetingTranscriptRepository : IMeetingTranscriptRepository
     public async Task AddAsync(MeetingTranscript transcript, CancellationToken ct = default)
     {
         await _context.MeetingTranscripts.AddAsync(transcript, ct);
+    }
+
+    public async Task SetAccessAsync(
+        MeetingTranscript transcript,
+        MeetingAccessLevel level,
+        IReadOnlyList<MeetingAccessGrant> newGrants,
+        CancellationToken ct = default)
+    {
+        _context.MeetingAccessGrants.RemoveRange(transcript.AccessGrants);
+        transcript.AccessGrants.Clear();
+        transcript.AccessLevel = level;
+        await _context.MeetingAccessGrants.AddRangeAsync(newGrants, ct);
     }
 
     public Task SaveChangesAsync(CancellationToken ct = default)

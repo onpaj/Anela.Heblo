@@ -10,15 +10,18 @@ public class SubmitToTodoHandler : IRequestHandler<SubmitToTodoRequest, SubmitTo
 {
     private readonly IMeetingTranscriptRepository _repository;
     private readonly IGraphTodoService _todoService;
+    private readonly IMeetingAccessGuard _accessGuard;
     private readonly ILogger<SubmitToTodoHandler> _logger;
 
     public SubmitToTodoHandler(
         IMeetingTranscriptRepository repository,
         IGraphTodoService todoService,
+        IMeetingAccessGuard accessGuard,
         ILogger<SubmitToTodoHandler> logger)
     {
         _repository = repository;
         _todoService = todoService;
+        _accessGuard = accessGuard;
         _logger = logger;
     }
 
@@ -28,6 +31,12 @@ public class SubmitToTodoHandler : IRequestHandler<SubmitToTodoRequest, SubmitTo
         if (transcript is null)
         {
             _logger.LogWarning("SubmitToTodo: transcript {Id} not found", request.TranscriptId);
+            return new SubmitToTodoResponse(ErrorCodes.ResourceNotFound);
+        }
+
+        if (!_accessGuard.CanAccess(transcript))
+        {
+            _logger.LogWarning("Access denied to meeting transcript {TranscriptId} for current user", request.TranscriptId);
             return new SubmitToTodoResponse(ErrorCodes.ResourceNotFound);
         }
 

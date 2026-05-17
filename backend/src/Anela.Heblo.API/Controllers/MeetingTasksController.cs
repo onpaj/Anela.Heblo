@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetMeetingUsers;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptDetail;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptList;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.SubmitToTodo;
+using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateMeetingAccess;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTask;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTaskStatus;
 using MediatR;
@@ -99,6 +100,17 @@ public sealed class MeetingTasksController : BaseApiController
     public async Task<ActionResult<ExplainSummaryResponse>> ExplainSummary(
         Guid transcriptId,
         [FromBody] ExplainSummaryRequest request,
+        CancellationToken ct = default)
+    {
+        request.TranscriptId = transcriptId;
+        var result = await _mediator.Send(request, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpPut("{transcriptId:guid}/access")]
+    public async Task<ActionResult<UpdateMeetingAccessResponse>> UpdateAccess(
+        Guid transcriptId,
+        [FromBody] UpdateMeetingAccessRequest request,
         CancellationToken ct = default)
     {
         request.TranscriptId = transcriptId;

@@ -112,6 +112,7 @@ public class ApplicationDbContext : DbContext
     // Meeting Tasks module
     public DbSet<MeetingTranscript> MeetingTranscripts { get; set; } = null!;
     public DbSet<ProposedTask> ProposedTasks { get; set; } = null!;
+    public DbSet<MeetingAccessGrant> MeetingAccessGrants { get; set; } = null!;
 
     // Data Quality module
     public DbSet<DqtRun> DqtRuns { get; set; } = null!;

@@ -20,6 +20,11 @@ export interface ProposedTaskDto {
   isManuallyAdded: boolean;
 }
 
+export interface MeetingAccessGrantDto {
+  userEmail: string;
+  userDisplayName: string | null;
+}
+
 export interface MeetingTranscriptDto {
   id: string;
   subject: string;
@@ -35,6 +40,8 @@ export interface MeetingTranscriptDto {
   approvedTaskCount: number;
   rejectedTaskCount: number;
   tasks: ProposedTaskDto[];
+  accessLevel: 'Private' | 'Public' | 'Restricted';
+  accessGrants: MeetingAccessGrantDto[];
 }
 
 export interface TranscriptListResponse {
@@ -80,6 +87,17 @@ export interface MeetingUserDto {
 interface MeetingUsersResponse {
   success: boolean;
   users: MeetingUserDto[];
+}
+
+export interface UpdateMeetingAccessPayload {
+  accessLevel: 'Private' | 'Public' | 'Restricted';
+  restrictedUserEmails: string[];
+}
+
+export interface UpdateMeetingAccessResponse {
+  success: boolean;
+  accessLevel: string;
+  grants: MeetingAccessGrantDto[];
 }
 
 // --- Query keys ---
@@ -247,6 +265,32 @@ export function useSubmitToTodo() {
       ),
     onSuccess: (_d, transcriptId) => {
       qc.invalidateQueries({ queryKey: MEETING_TASKS_KEYS.detail(transcriptId) });
+      qc.invalidateQueries({ queryKey: MEETING_TASKS_KEYS.list });
+    },
+  });
+}
+
+export interface UpdateMeetingAccessInput extends UpdateMeetingAccessPayload {
+  transcriptId: string;
+}
+
+export function useUpdateMeetingAccess() {
+  const qc = useQueryClient();
+  return useMutation<UpdateMeetingAccessResponse, Error, UpdateMeetingAccessInput>({
+    mutationFn: async (input) =>
+      fetchJson<UpdateMeetingAccessResponse>(
+        `/api/meeting-tasks/${encodeURIComponent(input.transcriptId)}/access`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({
+            accessLevel: input.accessLevel,
+            restrictedUserEmails: input.restrictedUserEmails,
+          }),
+        },
+      ),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: MEETING_TASKS_KEYS.detail(vars.transcriptId) });
       qc.invalidateQueries({ queryKey: MEETING_TASKS_KEYS.list });
     },
   });

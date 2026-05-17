@@ -1,5 +1,7 @@
+using Anela.Heblo.Application.Features.MeetingTasks.Services;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptList;
 using Anela.Heblo.Domain.Features.MeetingTasks;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -10,13 +12,22 @@ namespace Anela.Heblo.Tests.Features.MeetingTasks;
 public class GetTranscriptListHandlerTests
 {
     private readonly Mock<IMeetingTranscriptRepository> _repositoryMock;
+    private readonly Mock<IMeetingAccessGuard> _guardMock;
+    private readonly Mock<ICurrentUserService> _userServiceMock;
     private readonly GetTranscriptListHandler _handler;
 
     public GetTranscriptListHandlerTests()
     {
         _repositoryMock = new Mock<IMeetingTranscriptRepository>();
+        _guardMock = new Mock<IMeetingAccessGuard>();
+        _guardMock.Setup(x => x.IsManager()).Returns(true);
+        _userServiceMock = new Mock<ICurrentUserService>();
+        _userServiceMock.Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(null, "Manager", null, true));
         _handler = new GetTranscriptListHandler(
             _repositoryMock.Object,
+            _guardMock.Object,
+            _userServiceMock.Object,
             NullLogger<GetTranscriptListHandler>.Instance);
     }
 
@@ -53,6 +64,8 @@ public class GetTranscriptListHandlerTests
         _repositoryMock
             .Setup(r => r.GetListAsync(
                 It.IsAny<MeetingTranscriptStatus?>(),
+                It.IsAny<bool>(),
+                It.IsAny<string?>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
@@ -83,7 +96,7 @@ public class GetTranscriptListHandlerTests
         item.Tasks.Should().BeEmpty();
 
         _repositoryMock.Verify(
-            r => r.GetListAsync(null, 1, 20, It.IsAny<CancellationToken>()),
+            r => r.GetListAsync(null, true, null, 1, 20, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }

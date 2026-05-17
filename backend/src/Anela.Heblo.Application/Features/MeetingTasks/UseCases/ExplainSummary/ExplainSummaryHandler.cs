@@ -10,15 +10,18 @@ public class ExplainSummaryHandler : IRequestHandler<ExplainSummaryRequest, Expl
 {
     private readonly IMeetingTranscriptRepository _repository;
     private readonly IMeetingSummaryExplainer _explainer;
+    private readonly IMeetingAccessGuard _accessGuard;
     private readonly ILogger<ExplainSummaryHandler> _logger;
 
     public ExplainSummaryHandler(
         IMeetingTranscriptRepository repository,
         IMeetingSummaryExplainer explainer,
+        IMeetingAccessGuard accessGuard,
         ILogger<ExplainSummaryHandler> logger)
     {
         _repository = repository;
         _explainer = explainer;
+        _accessGuard = accessGuard;
         _logger = logger;
     }
 
@@ -40,6 +43,12 @@ public class ExplainSummaryHandler : IRequestHandler<ExplainSummaryRequest, Expl
         if (transcript is null)
         {
             _logger.LogWarning("Meeting transcript {TranscriptId} not found", request.TranscriptId);
+            return new ExplainSummaryResponse(ErrorCodes.ResourceNotFound);
+        }
+
+        if (!_accessGuard.CanAccess(transcript))
+        {
+            _logger.LogWarning("Access denied to meeting transcript {TranscriptId} for current user", request.TranscriptId);
             return new ExplainSummaryResponse(ErrorCodes.ResourceNotFound);
         }
 
