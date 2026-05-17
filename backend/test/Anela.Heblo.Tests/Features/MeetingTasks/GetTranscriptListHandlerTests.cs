@@ -1,5 +1,7 @@
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptList;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.MeetingTasks;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -10,13 +12,19 @@ namespace Anela.Heblo.Tests.Features.MeetingTasks;
 public class GetTranscriptListHandlerTests
 {
     private readonly Mock<IMeetingTranscriptRepository> _repositoryMock;
+    private readonly Mock<ICurrentUserService> _userServiceMock;
     private readonly GetTranscriptListHandler _handler;
 
     public GetTranscriptListHandlerTests()
     {
         _repositoryMock = new Mock<IMeetingTranscriptRepository>();
+        _userServiceMock = new Mock<ICurrentUserService>();
+        _userServiceMock.Setup(x => x.IsInRole(AuthorizationConstants.Roles.MeetingManager)).Returns(true);
+        _userServiceMock.Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(null, "Manager", null, true));
         _handler = new GetTranscriptListHandler(
             _repositoryMock.Object,
+            _userServiceMock.Object,
             NullLogger<GetTranscriptListHandler>.Instance);
     }
 
