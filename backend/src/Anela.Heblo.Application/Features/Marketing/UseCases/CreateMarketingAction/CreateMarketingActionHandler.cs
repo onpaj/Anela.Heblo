@@ -78,7 +78,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAct
                 }
                 catch (OutlookCalendarSyncException ex)
                 {
-                    _logger.LogError(ex, "Outlook CreateEvent failed for new MarketingAction");
+                    _logger.LogError(ex, "Outlook CreateEvent failed for new MarketingAction; user {UserId}", currentUser.Id);
                     return OutlookError(ex);
                 }
             }
