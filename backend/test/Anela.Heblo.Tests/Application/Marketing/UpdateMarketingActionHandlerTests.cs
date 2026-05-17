@@ -165,4 +165,38 @@ public class UpdateMarketingActionHandlerTests
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.MarketingActionNotFound);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsUnauthorized_WhenUserIsNotAuthenticated()
+    {
+        _currentUserService
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(null, null, null, IsAuthenticated: false));
+
+        var result = await BuildHandler().Handle(BuildRequest(), CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.UnauthorizedMarketingAccess);
+        _repository.Verify(x => x.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_UpdatesProductsAndFolderLinks_WhenProvided()
+    {
+        var request = BuildRequest();
+        request.AssociatedProducts = new List<string> { "prod-1", "prod-2", "prod-1" };
+        request.FolderLinks = new List<CreateMarketingActionRequest.CreateFolderLinkRequest>
+        {
+            new() { FolderKey = " key-1 ", FolderType = MarketingFolderType.General },
+        };
+
+        var result = await BuildHandler().Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        _repository.Verify(x => x.UpdateAsync(
+            It.Is<MarketingAction>(a =>
+                a.ProductAssociations.Count == 2 &&
+                a.FolderLinks.Count == 1),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
