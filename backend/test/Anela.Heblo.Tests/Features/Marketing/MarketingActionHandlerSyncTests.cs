@@ -135,10 +135,9 @@ namespace Anela.Heblo.Tests.Features.Marketing
         public async Task CreateHandler_CallsOutlookSync_WhenPushEnabled()
         {
             // Arrange
-            var createdAction = BuildAction();
             _repositoryMock
                 .Setup(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(createdAction);
+                .ReturnsAsync((MarketingAction a, CancellationToken _) => a);
 
             _outlookSyncMock
                 .Setup(s => s.CreateEventAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
@@ -149,24 +148,17 @@ namespace Anela.Heblo.Tests.Features.Marketing
             // Act
             var result = await handler.Handle(BuildCreateRequest(), CancellationToken.None);
 
-            // Assert
+            // Assert — Outlook sync called before DB save; action is marked Synced
             result.Success.Should().BeTrue();
             _outlookSyncMock.Verify(
-                s => s.CreateEventAsync(createdAction, It.IsAny<CancellationToken>()),
+                s => s.CreateEventAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()),
                 Times.Once);
-            createdAction.OutlookEventId.Should().Be("evt-123");
-            createdAction.OutlookSyncStatus.Should().Be(MarketingSyncStatus.Synced);
         }
 
         [Fact]
-        public async Task CreateHandler_SetsFailedStatus_WhenOutlookThrows()
+        public async Task CreateHandler_ReturnsError_WhenOutlookThrows()
         {
             // Arrange
-            var createdAction = BuildAction();
-            _repositoryMock
-                .Setup(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(createdAction);
-
             _outlookSyncMock
                 .Setup(s => s.CreateEventAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new OutlookCalendarSyncException(HttpStatusCode.InternalServerError, null, "Graph API error"));
@@ -176,10 +168,11 @@ namespace Anela.Heblo.Tests.Features.Marketing
             // Act
             var result = await handler.Handle(BuildCreateRequest(), CancellationToken.None);
 
-            // Assert — action is still saved, but sync status is Failed
-            result.Success.Should().BeTrue();
-            createdAction.OutlookSyncStatus.Should().Be(MarketingSyncStatus.Failed);
-            createdAction.OutlookSyncError.Should().Contain("Graph API error");
+            // Assert — fail-fast: handler returns an error response without saving to DB
+            result.Success.Should().BeFalse();
+            _repositoryMock.Verify(
+                x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()),
+                Times.Never);
         }
 
         [Fact]
@@ -259,7 +252,7 @@ namespace Anela.Heblo.Tests.Features.Marketing
         }
 
         [Fact]
-        public async Task UpdateHandler_SetsFailedStatus_WhenOutlookThrows()
+        public async Task UpdateHandler_ReturnsError_WhenOutlookThrows()
         {
             // Arrange
             var existingAction = BuildAction(outlookEventId: "evt-existing");
@@ -276,9 +269,11 @@ namespace Anela.Heblo.Tests.Features.Marketing
             // Act
             var result = await handler.Handle(BuildUpdateRequest(), CancellationToken.None);
 
-            // Assert — handler returns success, but sync status is Failed
-            result.Success.Should().BeTrue();
-            existingAction.OutlookSyncStatus.Should().Be(MarketingSyncStatus.Failed);
+            // Assert — fail-fast: handler returns an error response without saving to DB
+            result.Success.Should().BeFalse();
+            _repositoryMock.Verify(
+                x => x.UpdateAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()),
+                Times.Never);
         }
 
         // ─── Delete handler ───────────────────────────────────────────────────────
@@ -305,18 +300,19 @@ namespace Anela.Heblo.Tests.Features.Marketing
             // Act
             var result = await handler.Handle(new DeleteMarketingActionRequest { Id = 42 }, CancellationToken.None);
 
-            // Assert
+            // Assert — Outlook delete happens before soft-delete; DB soft-delete always follows on success
             result.Success.Should().BeTrue();
             _outlookSyncMock.Verify(
                 s => s.DeleteEventAsync("evt-to-delete", It.IsAny<CancellationToken>()),
                 Times.Once);
             _outlookSyncMock.VerifyNoOtherCalls();
-            existingAction.OutlookEventId.Should().BeNull();
-            existingAction.OutlookSyncStatus.Should().Be(MarketingSyncStatus.NotSynced);
+            _repositoryMock.Verify(
+                x => x.DeleteSoftAsync(42, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+                Times.Once);
         }
 
         [Fact]
-        public async Task DeleteHandler_SoftDeletesLocally_EvenWhenOutlookFails()
+        public async Task DeleteHandler_ReturnsError_WhenOutlookThrowsNonNotFound()
         {
             // Arrange
             var existingAction = BuildAction(outlookEventId: "evt-failing");
@@ -328,21 +324,16 @@ namespace Anela.Heblo.Tests.Features.Marketing
                 .Setup(s => s.DeleteEventAsync("evt-failing", It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new OutlookCalendarSyncException(HttpStatusCode.InternalServerError, null, "Graph delete failed"));
 
-            _repositoryMock
-                .Setup(x => x.DeleteSoftAsync(42, AuthenticatedUser.Id!, AuthenticatedUser.Name!, It.IsAny<CancellationToken>()))
-                .Returns(Task.CompletedTask);
-
             var handler = BuildDeleteHandler(pushEnabled: true);
 
             // Act
             var result = await handler.Handle(new DeleteMarketingActionRequest { Id = 42 }, CancellationToken.None);
 
-            // Assert — soft delete still happens despite Outlook failure
-            result.Success.Should().BeTrue();
-            existingAction.OutlookSyncStatus.Should().Be(MarketingSyncStatus.Failed);
+            // Assert — fail-fast: Outlook error blocks soft-delete (non-404 errors are not swallowed)
+            result.Success.Should().BeFalse();
             _repositoryMock.Verify(
                 x => x.DeleteSoftAsync(42, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
-                Times.Once);
+                Times.Never);
         }
     }
 }

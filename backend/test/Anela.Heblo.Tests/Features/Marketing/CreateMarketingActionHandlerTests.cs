@@ -101,7 +101,8 @@ public class CreateMarketingActionHandlerTests
         _currentUserServiceMock.Setup(x => x.GetCurrentUser()).Returns(currentUser);
         _repositoryMock
             .Setup(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(createdAction);
+            .Callback<MarketingAction, CancellationToken>((a, _) => a.Id = 42)
+            .ReturnsAsync((MarketingAction a, CancellationToken _) => a);
         _repositoryMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);

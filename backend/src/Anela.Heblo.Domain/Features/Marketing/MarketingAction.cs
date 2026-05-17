@@ -123,17 +123,6 @@ namespace Anela.Heblo.Domain.Features.Marketing
             OutlookSyncError = null;
         }
 
-        public void MarkOutlookFailed(string? error, DateTime utcNow)
-        {
-            const int maxErrorLength = 1000;
-
-            OutlookSyncStatus = MarketingSyncStatus.Failed;
-            OutlookLastAttemptAt = utcNow;
-            OutlookSyncError = error?.Length > maxErrorLength
-                ? error[..maxErrorLength]
-                : error;
-        }
-
         public void ClearOutlookLink()
         {
             OutlookEventId = null;
