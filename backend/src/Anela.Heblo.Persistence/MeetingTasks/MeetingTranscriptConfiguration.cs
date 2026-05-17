@@ -53,6 +53,20 @@ public class MeetingTranscriptConfiguration : IEntityTypeConfiguration<MeetingTr
             .HasForeignKey(x => x.MeetingTranscriptId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.Property(x => x.AccessLevel)
+            .IsRequired()
+            .HasMaxLength(20)
+            .HasConversion<string>()
+            .HasDefaultValue(MeetingAccessLevel.Private);
+
+        builder.HasMany(x => x.AccessGrants)
+            .WithOne(x => x.MeetingTranscript)
+            .HasForeignKey(x => x.MeetingTranscriptId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => x.AccessLevel)
+            .HasDatabaseName("IX_MeetingTranscripts_AccessLevel");
+
         builder.HasIndex(x => x.PlaudRecordingId)
             .IsUnique()
             .HasDatabaseName("UX_MeetingTranscripts_PlaudRecordingId");

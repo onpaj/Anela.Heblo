@@ -6,6 +6,8 @@ public interface IMeetingTranscriptRepository
 
     Task<(List<MeetingTranscript> Items, int TotalCount)> GetListAsync(
         MeetingTranscriptStatus? statusFilter,
+        bool isManager,
+        string? userEmail,
         int page,
         int pageSize,
         CancellationToken ct = default);
@@ -13,6 +15,12 @@ public interface IMeetingTranscriptRepository
     Task<bool> ExistsByPlaudIdAsync(string plaudRecordingId, CancellationToken ct = default);
 
     Task AddAsync(MeetingTranscript transcript, CancellationToken ct = default);
+
+    Task SetAccessAsync(
+        MeetingTranscript transcript,
+        MeetingAccessLevel level,
+        IReadOnlyList<MeetingAccessGrant> newGrants,
+        CancellationToken ct = default);
 
     Task SaveChangesAsync(CancellationToken ct = default);
 }

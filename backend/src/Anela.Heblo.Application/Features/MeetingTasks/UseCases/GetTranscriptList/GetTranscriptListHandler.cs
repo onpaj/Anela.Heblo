@@ -33,6 +33,8 @@ public class GetTranscriptListHandler : IRequestHandler<GetTranscriptListRequest
 
         var (items, totalCount) = await _repository.GetListAsync(
             statusFilter,
+            isManager: true,     // temporary — Task 8 fixes this properly
+            userEmail: null,
             request.PageNumber,
             request.PageSize,
             cancellationToken);

@@ -53,6 +53,8 @@ public class GetTranscriptListHandlerTests
         _repositoryMock
             .Setup(r => r.GetListAsync(
                 It.IsAny<MeetingTranscriptStatus?>(),
+                It.IsAny<bool>(),
+                It.IsAny<string?>(),
                 It.IsAny<int>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
@@ -83,7 +85,7 @@ public class GetTranscriptListHandlerTests
         item.Tasks.Should().BeEmpty();
 
         _repositoryMock.Verify(
-            r => r.GetListAsync(null, 1, 20, It.IsAny<CancellationToken>()),
+            r => r.GetListAsync(null, true, null, 1, 20, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 }
