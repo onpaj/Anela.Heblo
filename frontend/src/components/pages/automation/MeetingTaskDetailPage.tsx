@@ -20,9 +20,11 @@ import {
   useUpdateProposedTask,
   useUpdateProposedTaskStatus,
 } from "../../../api/hooks/useMeetingTasks";
+import { useMeetingManagerPermission } from '../../../api/hooks/useMeetingManagerPermission';
 import { useExplainSelection } from './explain/useExplainSelection';
 import { ExplainTooltip } from './explain/ExplainTooltip';
 import { ExplainModal } from './explain/ExplainModal';
+import { ManageAccessModal } from './access/ManageAccessModal';
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
 
 const EMPTY_FORM: TaskFormData = { title: "", description: "", assignee: "", assigneeEmail: null, dueDate: null };
@@ -95,6 +97,8 @@ const MeetingTaskDetailPage: React.FC = () => {
   const [approveAllError, setApproveAllError] = useState<string | null>(null);
   const users = useMeetingUsers();
   const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const [accessModalOpen, setAccessModalOpen] = useState(false);
+  const isMeetingManager = useMeetingManagerPermission();
 
   const explainSelection = useExplainSelection();
   const explainMutation = useExplainMeetingSummary();
@@ -198,7 +202,30 @@ const MeetingTaskDetailPage: React.FC = () => {
             {new Date(transcript.plaudCreatedAt).toLocaleString("cs-CZ")} · {transcript.plaudRecordingId}
           </p>
         </div>
-        <TranscriptStatusBadge status={transcript.status} />
+        <div className="flex items-center gap-2 shrink-0">
+          <TranscriptStatusBadge status={transcript.status} />
+          {transcript.accessLevel && (
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+              transcript.accessLevel === 'Public'
+                ? 'bg-green-100 text-green-800'
+                : transcript.accessLevel === 'Restricted'
+                ? 'bg-yellow-100 text-yellow-800'
+                : 'bg-gray-100 text-gray-600'
+            }`}>
+              {transcript.accessLevel === 'Private' && 'Soukromé'}
+              {transcript.accessLevel === 'Public' && 'Veřejné'}
+              {transcript.accessLevel === 'Restricted' && 'Omezené'}
+            </span>
+          )}
+          {isMeetingManager && (
+            <button
+              onClick={() => setAccessModalOpen(true)}
+              className="px-3 py-1 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
+            >
+              Spravovat přístup
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="px-4 sm:px-6 lg:px-8 mt-4">
@@ -489,6 +516,15 @@ const MeetingTaskDetailPage: React.FC = () => {
               : null
         }
       />
+
+      {isMeetingManager && transcript && (
+        <ManageAccessModal
+          isOpen={accessModalOpen}
+          onClose={() => setAccessModalOpen(false)}
+          transcript={transcript}
+          users={users.data ?? []}
+        />
+      )}
     </div>
   );
 };
