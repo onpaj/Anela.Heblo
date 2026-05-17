@@ -20,6 +20,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
         private readonly ILogger<OutlookCalendarSyncService> _logger;
 
         private const string GraphScope = "https://graph.microsoft.com/.default";
+        private const string DelegatedGraphScope = "https://graph.microsoft.com/Group.ReadWrite.All";
         private const string CalendarEventsBaseUrl = "https://graph.microsoft.com/v1.0/groups/{0}/calendar/events";
         private const string CalendarViewBaseUrl = "https://graph.microsoft.com/v1.0/groups/{0}/calendarView";
         private const string TimeZone = "Europe/Prague";
@@ -48,7 +49,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
         {
             _logger.LogDebug("Creating Outlook event for marketing action {ActionId} in mailbox {Mailbox}", action.Id, _options.GroupId);
 
-            var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
+            var token = await _tokenAcquisition.GetAccessTokenForUserAsync(new[] { DelegatedGraphScope });
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
             var url = BuildBaseUrl();
@@ -79,7 +80,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 
             _logger.LogDebug("Updating Outlook event {EventId} for marketing action {ActionId}", action.OutlookEventId, action.Id);
 
-            var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
+            var token = await _tokenAcquisition.GetAccessTokenForUserAsync(new[] { DelegatedGraphScope });
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
             var url = $"{BuildBaseUrl()}/{action.OutlookEventId}";
@@ -102,7 +103,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
         {
             _logger.LogDebug("Deleting Outlook event {EventId}", outlookEventId);
 
-            var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphScope);
+            var token = await _tokenAcquisition.GetAccessTokenForUserAsync(new[] { DelegatedGraphScope });
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
             var url = $"{BuildBaseUrl()}/{outlookEventId}";
