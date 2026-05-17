@@ -118,6 +118,7 @@ public class MeetingTranscriptRepositoryTests : IDisposable
         };
 
         await _repository.SetAccessAsync(transcript, MeetingAccessLevel.Public, newGrants, default);
+        await _repository.SaveChangesAsync(default);
 
         var updated = await _context.MeetingTranscripts
             .Include(x => x.AccessGrants)

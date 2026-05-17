@@ -75,7 +75,6 @@ public class MeetingTranscriptRepository : IMeetingTranscriptRepository
         _context.MeetingAccessGrants.RemoveRange(transcript.AccessGrants);
         transcript.AccessLevel = level;
         await _context.MeetingAccessGrants.AddRangeAsync(newGrants, ct);
-        await _context.SaveChangesAsync(ct);
     }
 
     public Task SaveChangesAsync(CancellationToken ct = default)
