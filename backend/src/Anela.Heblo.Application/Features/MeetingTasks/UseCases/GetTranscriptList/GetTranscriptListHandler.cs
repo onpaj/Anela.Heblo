@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Features.MeetingTasks.Contracts;
-using Anela.Heblo.Domain.Features.Authorization;
+using Anela.Heblo.Application.Features.MeetingTasks.Services;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -10,15 +10,18 @@ namespace Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptLi
 public class GetTranscriptListHandler : IRequestHandler<GetTranscriptListRequest, GetTranscriptListResponse>
 {
     private readonly IMeetingTranscriptRepository _repository;
+    private readonly IMeetingAccessGuard _accessGuard;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<GetTranscriptListHandler> _logger;
 
     public GetTranscriptListHandler(
         IMeetingTranscriptRepository repository,
+        IMeetingAccessGuard accessGuard,
         ICurrentUserService currentUserService,
         ILogger<GetTranscriptListHandler> logger)
     {
         _repository = repository;
+        _accessGuard = accessGuard;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -36,7 +39,7 @@ public class GetTranscriptListHandler : IRequestHandler<GetTranscriptListRequest
             statusFilter = parsed;
         }
 
-        var isManager = _currentUserService.IsInRole(AuthorizationConstants.Roles.MeetingManager);
+        var isManager = _accessGuard.IsManager();
         var userEmail = _currentUserService.GetCurrentUser().Email;
 
         var (items, totalCount) = await _repository.GetListAsync(

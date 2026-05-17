@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.MeetingTasks.Services;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptList;
-using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
@@ -11,15 +11,18 @@ namespace Anela.Heblo.Tests.Application.MeetingTasks;
 public class GetTranscriptListHandlerIsManagerTests
 {
     private readonly Mock<IMeetingTranscriptRepository> _repositoryMock;
+    private readonly Mock<IMeetingAccessGuard> _guardMock;
     private readonly Mock<ICurrentUserService> _userServiceMock;
     private readonly GetTranscriptListHandler _handler;
 
     public GetTranscriptListHandlerIsManagerTests()
     {
         _repositoryMock = new Mock<IMeetingTranscriptRepository>();
+        _guardMock = new Mock<IMeetingAccessGuard>();
         _userServiceMock = new Mock<ICurrentUserService>();
         _handler = new GetTranscriptListHandler(
             _repositoryMock.Object,
+            _guardMock.Object,
             _userServiceMock.Object,
             new Mock<ILogger<GetTranscriptListHandler>>().Object);
     }
@@ -27,7 +30,7 @@ public class GetTranscriptListHandlerIsManagerTests
     [Fact]
     public async Task Handle_PassesIsManagerTrue_AndEmail_ToRepository_WhenManager()
     {
-        _userServiceMock.Setup(x => x.IsInRole(AuthorizationConstants.Roles.MeetingManager)).Returns(true);
+        _guardMock.Setup(x => x.IsManager()).Returns(true);
         _userServiceMock.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser(null, "Manager", "manager@test.com", true));
         _repositoryMock
@@ -45,7 +48,7 @@ public class GetTranscriptListHandlerIsManagerTests
     [Fact]
     public async Task Handle_PassesIsManagerFalse_AndEmail_ToRepository_WhenNonManager()
     {
-        _userServiceMock.Setup(x => x.IsInRole(AuthorizationConstants.Roles.MeetingManager)).Returns(false);
+        _guardMock.Setup(x => x.IsManager()).Returns(false);
         _userServiceMock.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser(null, "User", "user@test.com", true));
         _repositoryMock
