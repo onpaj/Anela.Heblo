@@ -90,8 +90,7 @@ public class OutlookCalendarSyncServiceTokenTests
             Times.Once);
 
         _tokenAcquisition.Verify(x => x.GetAccessTokenForAppAsync(
-            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(),
-            It.IsAny<TokenAcquisitionOptions?>()),
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<TokenAcquisitionOptions?>()),
             Times.Never);
     }
 
@@ -119,8 +118,7 @@ public class OutlookCalendarSyncServiceTokenTests
             Times.Once);
 
         _tokenAcquisition.Verify(x => x.GetAccessTokenForAppAsync(
-            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(),
-            It.IsAny<TokenAcquisitionOptions?>()),
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<TokenAcquisitionOptions?>()),
             Times.Never);
     }
 
@@ -148,8 +146,7 @@ public class OutlookCalendarSyncServiceTokenTests
             Times.Once);
 
         _tokenAcquisition.Verify(x => x.GetAccessTokenForAppAsync(
-            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(),
-            It.IsAny<TokenAcquisitionOptions?>()),
+            It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<TokenAcquisitionOptions?>()),
             Times.Never);
     }
 
