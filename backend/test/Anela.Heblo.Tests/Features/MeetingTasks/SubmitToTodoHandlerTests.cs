@@ -13,10 +13,17 @@ public class SubmitToTodoHandlerTests
 {
     private readonly Mock<IMeetingTranscriptRepository> _repo = new();
     private readonly Mock<IGraphTodoService> _graph = new();
+    private readonly Mock<IMeetingAccessGuard> _guard = new();
+
+    public SubmitToTodoHandlerTests()
+    {
+        _guard.Setup(g => g.CanAccess(It.IsAny<MeetingTranscript>())).Returns(true);
+    }
 
     private SubmitToTodoHandler CreateHandler() => new(
         _repo.Object,
         _graph.Object,
+        _guard.Object,
         NullLogger<SubmitToTodoHandler>.Instance);
 
     private static MeetingTranscript NewTranscript(params ProposedTask[] tasks)

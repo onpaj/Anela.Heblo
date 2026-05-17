@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.MeetingTasks.Contracts;
+using Anela.Heblo.Application.Features.MeetingTasks.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using MediatR;
@@ -9,13 +10,16 @@ namespace Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptDe
 public class GetTranscriptDetailHandler : IRequestHandler<GetTranscriptDetailRequest, GetTranscriptDetailResponse>
 {
     private readonly IMeetingTranscriptRepository _repository;
+    private readonly IMeetingAccessGuard _accessGuard;
     private readonly ILogger<GetTranscriptDetailHandler> _logger;
 
     public GetTranscriptDetailHandler(
         IMeetingTranscriptRepository repository,
+        IMeetingAccessGuard accessGuard,
         ILogger<GetTranscriptDetailHandler> logger)
     {
         _repository = repository;
+        _accessGuard = accessGuard;
         _logger = logger;
     }
 
@@ -28,6 +32,12 @@ public class GetTranscriptDetailHandler : IRequestHandler<GetTranscriptDetailReq
         if (transcript is null)
         {
             _logger.LogWarning("Meeting transcript {Id} not found", request.Id);
+            return new GetTranscriptDetailResponse(ErrorCodes.ResourceNotFound);
+        }
+
+        if (!_accessGuard.CanAccess(transcript))
+        {
+            _logger.LogWarning("Access denied to meeting transcript {TranscriptId} for current user", request.Id);
             return new GetTranscriptDetailResponse(ErrorCodes.ResourceNotFound);
         }
 
@@ -57,7 +67,13 @@ public class GetTranscriptDetailHandler : IRequestHandler<GetTranscriptDetailReq
                 Status = t.Status.ToString(),
                 ExternalTaskId = t.ExternalTaskId,
                 IsManuallyAdded = t.IsManuallyAdded
-            }).ToList()
+            }).ToList(),
+            AccessLevel = transcript.AccessLevel.ToString(),
+            AccessGrants = transcript.AccessGrants.Select(g => new MeetingAccessGrantDto
+            {
+                UserEmail = g.UserEmail,
+                UserDisplayName = g.UserDisplayName
+            }).ToList(),
         };
 
         return new GetTranscriptDetailResponse { Transcript = dto };

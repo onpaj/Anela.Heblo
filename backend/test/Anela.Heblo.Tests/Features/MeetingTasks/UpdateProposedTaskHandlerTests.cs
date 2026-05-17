@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.MeetingTasks.Services;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.AddProposedTask;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTaskStatus;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTask;
@@ -13,6 +14,12 @@ namespace Anela.Heblo.Tests.Features.MeetingTasks;
 public class UpdateProposedTaskHandlerTests
 {
     private readonly Mock<IMeetingTranscriptRepository> _repositoryMock = new();
+    private readonly Mock<IMeetingAccessGuard> _guardMock = new();
+
+    public UpdateProposedTaskHandlerTests()
+    {
+        _guardMock.Setup(g => g.CanAccess(It.IsAny<MeetingTranscript>())).Returns(true);
+    }
 
     private MeetingTranscript CreateTranscriptWithTask(out Guid transcriptId, out Guid taskId)
     {
@@ -56,6 +63,7 @@ public class UpdateProposedTaskHandlerTests
             .ReturnsAsync(transcript);
         var handler = new UpdateProposedTaskHandler(
             _repositoryMock.Object,
+            _guardMock.Object,
             NullLogger<UpdateProposedTaskHandler>.Instance);
         var request = new UpdateProposedTaskRequest
         {
@@ -91,6 +99,7 @@ public class UpdateProposedTaskHandlerTests
             .ReturnsAsync(transcript);
         var handler = new UpdateProposedTaskHandler(
             _repositoryMock.Object,
+            _guardMock.Object,
             NullLogger<UpdateProposedTaskHandler>.Instance);
         var request = new UpdateProposedTaskRequest
         {
@@ -121,6 +130,7 @@ public class UpdateProposedTaskHandlerTests
             .ReturnsAsync((MeetingTranscript?)null);
         var handler = new UpdateProposedTaskHandler(
             _repositoryMock.Object,
+            _guardMock.Object,
             NullLogger<UpdateProposedTaskHandler>.Instance);
         var request = new UpdateProposedTaskRequest
         {
@@ -151,6 +161,7 @@ public class UpdateProposedTaskHandlerTests
             .ReturnsAsync(transcript);
         var handler = new UpdateProposedTaskHandler(
             _repositoryMock.Object,
+            _guardMock.Object,
             NullLogger<UpdateProposedTaskHandler>.Instance);
         var request = new UpdateProposedTaskRequest
         {
@@ -181,6 +192,7 @@ public class UpdateProposedTaskHandlerTests
             .ReturnsAsync(transcript);
         var handler = new UpdateProposedTaskStatusHandler(
             _repositoryMock.Object,
+            _guardMock.Object,
             NullLogger<UpdateProposedTaskStatusHandler>.Instance);
         var request = new UpdateProposedTaskStatusRequest
         {
@@ -209,6 +221,7 @@ public class UpdateProposedTaskHandlerTests
             .ReturnsAsync((MeetingTranscript?)null);
         var handler = new UpdateProposedTaskStatusHandler(
             _repositoryMock.Object,
+            _guardMock.Object,
             NullLogger<UpdateProposedTaskStatusHandler>.Instance);
         var request = new UpdateProposedTaskStatusRequest
         {
@@ -236,6 +249,7 @@ public class UpdateProposedTaskHandlerTests
             .ReturnsAsync(transcript);
         var handler = new UpdateProposedTaskStatusHandler(
             _repositoryMock.Object,
+            _guardMock.Object,
             NullLogger<UpdateProposedTaskStatusHandler>.Instance);
         var request = new UpdateProposedTaskStatusRequest
         {
@@ -263,6 +277,7 @@ public class UpdateProposedTaskHandlerTests
             .ReturnsAsync(transcript);
         var handler = new UpdateProposedTaskStatusHandler(
             _repositoryMock.Object,
+            _guardMock.Object,
             NullLogger<UpdateProposedTaskStatusHandler>.Instance);
         var request = new UpdateProposedTaskStatusRequest
         {
@@ -290,6 +305,7 @@ public class UpdateProposedTaskHandlerTests
             .ReturnsAsync(transcript);
         var handler = new AddProposedTaskHandler(
             _repositoryMock.Object,
+            _guardMock.Object,
             NullLogger<AddProposedTaskHandler>.Instance);
         var dueDate = new DateTime(2026, 7, 1, 0, 0, 0, DateTimeKind.Utc);
         var request = new AddProposedTaskRequest
@@ -337,6 +353,7 @@ public class UpdateProposedTaskHandlerTests
             .ReturnsAsync((MeetingTranscript?)null);
         var handler = new AddProposedTaskHandler(
             _repositoryMock.Object,
+            _guardMock.Object,
             NullLogger<AddProposedTaskHandler>.Instance);
         var request = new AddProposedTaskRequest
         {

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.MeetingTasks.Services;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptDetail;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.MeetingTasks;
@@ -11,13 +12,17 @@ namespace Anela.Heblo.Tests.Features.MeetingTasks;
 public class GetTranscriptDetailHandlerTests
 {
     private readonly Mock<IMeetingTranscriptRepository> _repositoryMock;
+    private readonly Mock<IMeetingAccessGuard> _guardMock;
     private readonly GetTranscriptDetailHandler _handler;
 
     public GetTranscriptDetailHandlerTests()
     {
         _repositoryMock = new Mock<IMeetingTranscriptRepository>();
+        _guardMock = new Mock<IMeetingAccessGuard>();
+        _guardMock.Setup(g => g.CanAccess(It.IsAny<MeetingTranscript>())).Returns(true);
         _handler = new GetTranscriptDetailHandler(
             _repositoryMock.Object,
+            _guardMock.Object,
             NullLogger<GetTranscriptDetailHandler>.Instance);
     }
 

@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.MeetingTasks.Services;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using MediatR;
@@ -8,13 +9,16 @@ namespace Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedT
 public class UpdateProposedTaskStatusHandler : IRequestHandler<UpdateProposedTaskStatusRequest, UpdateProposedTaskStatusResponse>
 {
     private readonly IMeetingTranscriptRepository _repository;
+    private readonly IMeetingAccessGuard _accessGuard;
     private readonly ILogger<UpdateProposedTaskStatusHandler> _logger;
 
     public UpdateProposedTaskStatusHandler(
         IMeetingTranscriptRepository repository,
+        IMeetingAccessGuard accessGuard,
         ILogger<UpdateProposedTaskStatusHandler> logger)
     {
         _repository = repository;
+        _accessGuard = accessGuard;
         _logger = logger;
     }
 
@@ -28,6 +32,12 @@ public class UpdateProposedTaskStatusHandler : IRequestHandler<UpdateProposedTas
         if (transcript is null)
         {
             _logger.LogWarning("Meeting transcript {TranscriptId} not found", request.TranscriptId);
+            return new UpdateProposedTaskStatusResponse(ErrorCodes.ResourceNotFound);
+        }
+
+        if (!_accessGuard.CanAccess(transcript))
+        {
+            _logger.LogWarning("Access denied to meeting transcript {TranscriptId} for current user", request.TranscriptId);
             return new UpdateProposedTaskStatusResponse(ErrorCodes.ResourceNotFound);
         }
 

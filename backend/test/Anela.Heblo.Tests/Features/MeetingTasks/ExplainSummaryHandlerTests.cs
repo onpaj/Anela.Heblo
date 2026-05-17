@@ -13,13 +13,16 @@ public class ExplainSummaryHandlerTests
 {
     private readonly Mock<IMeetingTranscriptRepository> _repoMock = new();
     private readonly Mock<IMeetingSummaryExplainer> _explainerMock = new();
+    private readonly Mock<IMeetingAccessGuard> _guardMock = new();
     private readonly ExplainSummaryHandler _sut;
 
     public ExplainSummaryHandlerTests()
     {
+        _guardMock.Setup(g => g.CanAccess(It.IsAny<MeetingTranscript>())).Returns(true);
         _sut = new ExplainSummaryHandler(
             _repoMock.Object,
             _explainerMock.Object,
+            _guardMock.Object,
             NullLogger<ExplainSummaryHandler>.Instance);
     }
 
