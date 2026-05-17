@@ -39,7 +39,7 @@ public class MeetingTranscriptRepository : IMeetingTranscriptRepository
             query = query.Where(x =>
                 x.AccessLevel == MeetingAccessLevel.Public ||
                 (x.AccessLevel == MeetingAccessLevel.Restricted &&
-                 x.AccessGrants.Any(g => g.UserEmail == email)));
+                 x.AccessGrants.Any(g => g.UserEmail.ToLower() == email)));
         }
 
         var totalCount = await query.CountAsync(ct);
@@ -73,6 +73,7 @@ public class MeetingTranscriptRepository : IMeetingTranscriptRepository
         CancellationToken ct = default)
     {
         _context.MeetingAccessGrants.RemoveRange(transcript.AccessGrants);
+        transcript.AccessGrants.Clear();
         transcript.AccessLevel = level;
         await _context.MeetingAccessGrants.AddRangeAsync(newGrants, ct);
     }
