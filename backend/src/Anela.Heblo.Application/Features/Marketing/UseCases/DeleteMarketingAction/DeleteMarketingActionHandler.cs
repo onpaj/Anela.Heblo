@@ -60,8 +60,8 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
                 catch (OutlookCalendarSyncException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
                 {
                     _logger.LogInformation(
-                        "Outlook event {EventId} already deleted (404); proceeding with soft-delete",
-                        action.OutlookEventId);
+                        "Outlook event {EventId} already deleted (404); proceeding with soft-delete. ActionId={ActionId} UserId={UserId}",
+                        action.OutlookEventId, request.Id, currentUser.Id);
                 }
                 catch (OutlookCalendarSyncException ex)
                 {
