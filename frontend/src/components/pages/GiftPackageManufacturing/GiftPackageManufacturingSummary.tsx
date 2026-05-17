@@ -4,15 +4,14 @@ import {
   TrendingDown,
   CheckCircle,
   Package,
-  Settings,
 } from "lucide-react";
-import { StockSeverity } from "../../../api/generated/api-client";
+import { GiftPackageSeverity } from "../../../api/generated/api-client";
 import { GiftPackageSummary, GiftPackageFilters } from "./GiftPackageManufacturingList";
 
 interface GiftPackageManufacturingSummaryProps {
   summary: GiftPackageSummary;
   filters: GiftPackageFilters;
-  onSeverityFilterClick: (severity: StockSeverity | "All") => void;
+  onSeverityFilterClick: (severity: GiftPackageSeverity | "All") => void;
   compact?: boolean;
 }
 
@@ -40,9 +39,9 @@ const GiftPackageManufacturingSummary: React.FC<GiftPackageManufacturingSummaryP
         </button>
         <span className="text-gray-400">|</span>
         <button
-          onClick={() => onSeverityFilterClick(StockSeverity.Critical)}
+          onClick={() => onSeverityFilterClick(GiftPackageSeverity.Critical)}
           className={`px-1 py-0.5 rounded transition-colors hover:bg-red-50 ${
-            filters.severity === StockSeverity.Critical
+            filters.severity === GiftPackageSeverity.Critical
               ? "bg-red-50 ring-1 ring-red-300"
               : ""
           }`}
@@ -53,9 +52,9 @@ const GiftPackageManufacturingSummary: React.FC<GiftPackageManufacturingSummaryP
           </span>
         </button>
         <button
-          onClick={() => onSeverityFilterClick(StockSeverity.Severe)}
+          onClick={() => onSeverityFilterClick(GiftPackageSeverity.Severe)}
           className={`px-1 py-0.5 rounded transition-colors hover:bg-orange-50 ${
-            filters.severity === StockSeverity.Severe
+            filters.severity === GiftPackageSeverity.Severe
               ? "bg-orange-50 ring-1 ring-orange-300"
               : ""
           }`}
@@ -66,22 +65,9 @@ const GiftPackageManufacturingSummary: React.FC<GiftPackageManufacturingSummaryP
           </span>
         </button>
         <button
-          onClick={() => onSeverityFilterClick(StockSeverity.Low)}
-          className={`px-1 py-0.5 rounded transition-colors hover:bg-amber-50 ${
-            filters.severity === StockSeverity.Low
-              ? "bg-amber-50 ring-1 ring-amber-300"
-              : ""
-          }`}
-          title="Nízké zásoby"
-        >
-          <span className="text-amber-600 font-medium">
-            {summary.lowStockCount}
-          </span>
-        </button>
-        <button
-          onClick={() => onSeverityFilterClick(StockSeverity.Optimal)}
+          onClick={() => onSeverityFilterClick(GiftPackageSeverity.Optimal)}
           className={`px-1 py-0.5 rounded transition-colors hover:bg-emerald-50 ${
-            filters.severity === StockSeverity.Optimal
+            filters.severity === GiftPackageSeverity.Optimal
               ? "bg-emerald-50 ring-1 ring-emerald-300"
               : ""
           }`}
@@ -117,9 +103,9 @@ const GiftPackageManufacturingSummary: React.FC<GiftPackageManufacturingSummaryP
         </button>
 
         <button
-          onClick={() => onSeverityFilterClick(StockSeverity.Critical)}
+          onClick={() => onSeverityFilterClick(GiftPackageSeverity.Critical)}
           className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-red-50 ${
-            filters.severity === StockSeverity.Critical
+            filters.severity === GiftPackageSeverity.Critical
               ? "bg-red-50 ring-1 ring-red-300"
               : ""
           }`}
@@ -132,9 +118,9 @@ const GiftPackageManufacturingSummary: React.FC<GiftPackageManufacturingSummaryP
         </button>
 
         <button
-          onClick={() => onSeverityFilterClick(StockSeverity.Severe)}
+          onClick={() => onSeverityFilterClick(GiftPackageSeverity.Severe)}
           className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-orange-50 ${
-            filters.severity === StockSeverity.Severe
+            filters.severity === GiftPackageSeverity.Severe
               ? "bg-orange-50 ring-1 ring-orange-300"
               : ""
           }`}
@@ -147,24 +133,9 @@ const GiftPackageManufacturingSummary: React.FC<GiftPackageManufacturingSummaryP
         </button>
 
         <button
-          onClick={() => onSeverityFilterClick(StockSeverity.Low)}
-          className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-amber-50 ${
-            filters.severity === StockSeverity.Low
-              ? "bg-amber-50 ring-1 ring-amber-300"
-              : ""
-          }`}
-        >
-          <TrendingDown className="h-3 w-3 text-amber-500 mr-1" />
-          <span className="text-gray-600">Nízké:</span>
-          <span className="font-semibold text-amber-600 ml-1">
-            {summary.lowStockCount}
-          </span>
-        </button>
-
-        <button
-          onClick={() => onSeverityFilterClick(StockSeverity.Optimal)}
+          onClick={() => onSeverityFilterClick(GiftPackageSeverity.Optimal)}
           className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-emerald-50 ${
-            filters.severity === StockSeverity.Optimal
+            filters.severity === GiftPackageSeverity.Optimal
               ? "bg-emerald-50 ring-1 ring-emerald-300"
               : ""
           }`}
@@ -173,36 +144,6 @@ const GiftPackageManufacturingSummary: React.FC<GiftPackageManufacturingSummaryP
           <span className="text-gray-600">Optimální:</span>
           <span className="font-semibold text-green-600 ml-1">
             {summary.optimalCount}
-          </span>
-        </button>
-
-        <button
-          onClick={() => onSeverityFilterClick(StockSeverity.Overstocked)}
-          className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-blue-50 ${
-            filters.severity === StockSeverity.Overstocked
-              ? "bg-blue-50 ring-1 ring-blue-300"
-              : ""
-          }`}
-        >
-          <Package className="h-3 w-3 text-blue-500 mr-1" />
-          <span className="text-gray-600">Přeskladněno:</span>
-          <span className="font-semibold text-blue-600 ml-1">
-            {summary.overstockedCount}
-          </span>
-        </button>
-
-        <button
-          onClick={() => onSeverityFilterClick(StockSeverity.NotConfigured)}
-          className={`flex items-center px-2 py-1 rounded-md transition-colors hover:bg-gray-50 ${
-            filters.severity === StockSeverity.NotConfigured
-              ? "bg-gray-50 ring-1 ring-gray-300"
-              : ""
-          }`}
-        >
-          <Settings className="h-3 w-3 text-gray-500 mr-1" />
-          <span className="text-gray-600">Nezkonfigurováno:</span>
-          <span className="font-semibold text-gray-600 ml-1">
-            {summary.notConfiguredCount}
           </span>
         </button>
       </div>

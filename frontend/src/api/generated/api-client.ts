@@ -20167,7 +20167,7 @@ export class GiftPackageDto implements IGiftPackageDto {
     overstockOptimal?: number;
     overstockMinimal?: number;
     suggestedQuantity?: number;
-    severity?: StockSeverity;
+    severity?: GiftPackageSeverity;
     stockCoveragePercent?: number;
     ingredients?: GiftPackageIngredientDto[] | undefined;
 
@@ -20234,18 +20234,15 @@ export interface IGiftPackageDto {
     overstockOptimal?: number;
     overstockMinimal?: number;
     suggestedQuantity?: number;
-    severity?: StockSeverity;
+    severity?: GiftPackageSeverity;
     stockCoveragePercent?: number;
     ingredients?: GiftPackageIngredientDto[] | undefined;
 }
 
-export enum StockSeverity {
+export enum GiftPackageSeverity {
     Critical = "Critical",
     Severe = "Severe",
-    Low = "Low",
     Optimal = "Optimal",
-    Overstocked = "Overstocked",
-    NotConfigured = "NotConfigured",
 }
 
 export class GiftPackageIngredientDto implements IGiftPackageIngredientDto {
@@ -30723,6 +30720,15 @@ export interface IStockAnalysisItemDto {
     supplier?: string | undefined;
     recommendedOrderQuantity?: number | undefined;
     isConfigured?: boolean;
+}
+
+export enum StockSeverity {
+    Critical = "Critical",
+    Severe = "Severe",
+    Low = "Low",
+    Optimal = "Optimal",
+    Overstocked = "Overstocked",
+    NotConfigured = "NotConfigured",
 }
 
 export class LastPurchaseInfoDto implements ILastPurchaseInfoDto {

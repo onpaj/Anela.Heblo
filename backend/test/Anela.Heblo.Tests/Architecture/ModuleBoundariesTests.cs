@@ -89,6 +89,76 @@ public class ModuleBoundariesTests
             "Found:\n  " + string.Join("\n  ", violations));
     }
 
+    [Fact]
+    public void Logistics_types_should_not_reference_Purchase_owned_namespaces()
+    {
+        const string LogisticsNamespacePrefix = "Anela.Heblo.Application.Features.Logistics";
+
+        var forbiddenPrefixes = new[]
+        {
+            "Anela.Heblo.Domain.Features.Purchase",
+            "Anela.Heblo.Application.Features.Purchase",
+            "Anela.Heblo.Persistence.Purchase",
+        };
+
+        var logisticsAllowlist = new HashSet<string>(StringComparer.Ordinal);
+
+        bool IsLogisticsForbidden(Type type)
+        {
+            if (type.Namespace is null)
+                return false;
+
+            foreach (var prefix in forbiddenPrefixes)
+            {
+                if (type.Namespace.Equals(prefix, StringComparison.Ordinal) ||
+                    type.Namespace.StartsWith(prefix + ".", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        var assembly = Assembly.Load("Anela.Heblo.Application");
+        var logisticsTypes = assembly.GetTypes()
+            .Where(t => t.Namespace is not null && t.Namespace.StartsWith(LogisticsNamespacePrefix, StringComparison.Ordinal))
+            .ToList();
+
+        var violations = new List<string>();
+
+        foreach (var logisticsType in logisticsTypes)
+        {
+            foreach (var (referencedType, memberDescription) in EnumerateReferencedTypes(logisticsType))
+            {
+                if (!IsLogisticsForbidden(referencedType))
+                    continue;
+
+                var entry = $"{logisticsType.FullName} -> {referencedType.FullName}";
+                if (logisticsAllowlist.Contains(entry))
+                    continue;
+
+                // Also check if the declaring type of a compiler-generated nested type is in the allowlist.
+                // For example, if "SomeHandler+<>c__DisplayClass3_0" references a forbidden type,
+                // check if "SomeHandler" references that same forbidden type.
+                var baseType = logisticsType.DeclaringType;
+                if (baseType is not null)
+                {
+                    var baseEntry = $"{baseType.FullName} -> {referencedType.FullName}";
+                    if (logisticsAllowlist.Contains(baseEntry))
+                        continue;
+                }
+
+                violations.Add($"{entry} (via {memberDescription})");
+            }
+        }
+
+        violations.Should().BeEmpty(
+            "Logistics types must not reference Purchase-owned namespaces. " +
+            "Define a Logistics-owned contract and avoid importing Purchase types. " +
+            "Found:\n  " + string.Join("\n  ", violations));
+    }
+
     private static bool IsForbidden(Type type)
     {
         if (type.Namespace is null)

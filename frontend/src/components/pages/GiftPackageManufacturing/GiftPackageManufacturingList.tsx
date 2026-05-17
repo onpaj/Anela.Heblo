@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useAvailableGiftPackages } from "../../../api/hooks/useGiftPackageManufacturing";
-import { StockSeverity } from "../../../api/generated/api-client";
+import { GiftPackageSeverity } from "../../../api/generated/api-client";
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
 import GiftPackageManufacturingFilters from "./GiftPackageManufacturingFilters";
 import GiftPackageManufacturingSummary from "./GiftPackageManufacturingSummary";
@@ -24,7 +24,7 @@ interface GiftPackageFilters {
   fromDate: Date;
   toDate: Date;
   searchTerm: string;
-  severity: StockSeverity | "All";
+  severity: GiftPackageSeverity | "All";
   pageNumber: number;
   pageSize: number;
   sortBy: GiftPackageSortBy;
@@ -50,7 +50,7 @@ interface GiftPackage {
   availableStock: number;
   dailySales: number;
   suggestedQuantity: number;
-  severity: StockSeverity;
+  severity: GiftPackageSeverity;
   overstockOptimal: number;
   overstockMinimal: number;
   stockCoveragePercent: number;
@@ -60,10 +60,7 @@ interface GiftPackageSummary {
   totalPackages: number;
   criticalCount: number;
   severeCount: number;
-  lowStockCount: number;
   optimalCount: number;
-  overstockedCount: number;
-  notConfiguredCount: number;
 }
 
 interface GiftPackageManufacturingListProps {
@@ -84,11 +81,11 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
   // State for filters - initialize from URL parameters
   const [filters, setFilters] = useState<GiftPackageFilters>(() => {
     const severityParam = searchParams.get('severity');
-    
-    // Map URL parameter directly to StockSeverity enum or "All"
-    let severityValue: StockSeverity | "All" = "All";
-    if (severityParam && Object.values(StockSeverity).includes(severityParam as StockSeverity)) {
-      severityValue = severityParam as StockSeverity;
+
+    // Map URL parameter directly to GiftPackageSeverity enum or "All"
+    let severityValue: GiftPackageSeverity | "All" = "All";
+    if (severityParam && Object.values(GiftPackageSeverity).includes(severityParam as GiftPackageSeverity)) {
+      severityValue = severityParam as GiftPackageSeverity;
     }
     
     return {
@@ -128,7 +125,7 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
       availableStock: pkg.availableStock ?? 0,
       dailySales: pkg.dailySales ?? 0,
       suggestedQuantity: pkg.suggestedQuantity ?? 0,
-      severity: pkg.severity ?? StockSeverity.NotConfigured,
+      severity: pkg.severity ?? GiftPackageSeverity.Optimal,
       overstockOptimal: pkg.overstockOptimal ?? 0,
       overstockMinimal: pkg.overstockMinimal ?? 0,
       stockCoveragePercent: pkg.stockCoveragePercent ?? 0,
@@ -137,12 +134,9 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
     // Calculate summary
     const summaryData: GiftPackageSummary = {
       totalPackages: packages.length,
-      criticalCount: packages.filter(p => p.severity === StockSeverity.Critical).length,
-      severeCount: packages.filter(p => p.severity === StockSeverity.Severe).length,
-      lowStockCount: packages.filter(p => p.severity === StockSeverity.Low).length,
-      optimalCount: packages.filter(p => p.severity === StockSeverity.Optimal).length,
-      overstockedCount: packages.filter(p => p.severity === StockSeverity.Overstocked).length,
-      notConfiguredCount: packages.filter(p => p.severity === StockSeverity.NotConfigured).length,
+      criticalCount: packages.filter(p => p.severity === GiftPackageSeverity.Critical).length,
+      severeCount: packages.filter(p => p.severity === GiftPackageSeverity.Severe).length,
+      optimalCount: packages.filter(p => p.severity === GiftPackageSeverity.Optimal).length,
     };
     
     return { giftPackages: packages, summary: summaryData };
@@ -169,15 +163,12 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
     // Apply sorting
     filtered.sort((a, b) => {
       // Helper function to get severity order
-      const getSeverityOrder = (severity: StockSeverity) => {
+      const getSeverityOrder = (severity: GiftPackageSeverity) => {
         switch (severity) {
-          case StockSeverity.Critical: return 0;
-          case StockSeverity.Severe: return 1;
-          case StockSeverity.Low: return 2;
-          case StockSeverity.Optimal: return 3;
-          case StockSeverity.Overstocked: return 4;
-          case StockSeverity.NotConfigured: return 5;
-          default: return 6;
+          case GiftPackageSeverity.Critical: return 0;
+          case GiftPackageSeverity.Severe: return 1;
+          case GiftPackageSeverity.Optimal: return 2;
+          default: return 3;
         }
       };
 
@@ -220,6 +211,14 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
         case GiftPackageSortBy.StockCoveragePercent:
           aValue = a.stockCoveragePercent;
           bValue = b.stockCoveragePercent;
+          break;
+        case GiftPackageSortBy.OverstockOptimal:
+          aValue = a.overstockOptimal;
+          bValue = b.overstockOptimal;
+          break;
+        case GiftPackageSortBy.OverstockMinimal:
+          aValue = a.overstockMinimal;
+          bValue = b.overstockMinimal;
           break;
         default:
           aValue = a.code;
@@ -290,12 +289,10 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
   };
 
   // Export functionality (placeholder)
-  const handleExport = () => {
-    console.log("Export to CSV");
-  };
+  const handleExport = () => {};
 
   // Handle severity filter click from summary cards
-  const handleSeverityFilterClick = (severity: StockSeverity | "All") => {
+  const handleSeverityFilterClick = (severity: GiftPackageSeverity | "All") => {
     handleFilterChange({ severity });
   };
 
@@ -331,44 +328,32 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
   };
 
   // Get row background color based on severity
-  const getRowColorClass = (severity: StockSeverity) => {
+  const getRowColorClass = (severity: GiftPackageSeverity) => {
     switch (severity) {
-      case StockSeverity.Critical:
+      case GiftPackageSeverity.Critical:
         return "bg-red-50/30 hover:bg-red-50/50";
-      case StockSeverity.Severe:
+      case GiftPackageSeverity.Severe:
         return "bg-orange-50/30 hover:bg-orange-50/50";
-      case StockSeverity.Low:
-        return "bg-amber-50/30 hover:bg-amber-50/50";
-      case StockSeverity.Optimal:
+      case GiftPackageSeverity.Optimal:
         return "bg-emerald-50/30 hover:bg-emerald-50/50";
-      case StockSeverity.Overstocked:
-        return "bg-blue-50/30 hover:bg-blue-50/50";
-      case StockSeverity.NotConfigured:
-        return "bg-gray-50/30 hover:bg-gray-50/50";
       default:
         return "hover:bg-gray-50";
     }
   };
   
   // Get color strip for severity
-  const getSeverityStripColor = (severity: StockSeverity) => {
+  const getSeverityStripColor = (severity: GiftPackageSeverity) => {
     if (filters.severity !== "All") {
       return "";
     }
 
     switch (severity) {
-      case StockSeverity.Critical:
+      case GiftPackageSeverity.Critical:
         return "bg-red-500";
-      case StockSeverity.Severe:
+      case GiftPackageSeverity.Severe:
         return "bg-orange-500";
-      case StockSeverity.Low:
-        return "bg-amber-500";
-      case StockSeverity.Optimal:
+      case GiftPackageSeverity.Optimal:
         return "bg-emerald-500";
-      case StockSeverity.Overstocked:
-        return "bg-blue-500";
-      case StockSeverity.NotConfigured:
-        return "bg-gray-400";
       default:
         return "";
     }
@@ -510,39 +495,12 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
                       </div>
                     </div>
                     <div className="flex items-start">
-                      <div className="w-3 h-3 bg-amber-200 rounded-sm mr-2 mt-0.5 flex-shrink-0"></div>
-                      <div>
-                        <span className="font-medium text-amber-200">
-                          Nízké:
-                        </span>{" "}
-                        Doporučuje se výroba
-                      </div>
-                    </div>
-                    <div className="flex items-start">
                       <div className="w-3 h-3 bg-emerald-200 rounded-sm mr-2 mt-0.5 flex-shrink-0"></div>
                       <div>
                         <span className="font-medium text-emerald-200">
                           Optimální:
                         </span>{" "}
                         Zásoby jsou v pořádku
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="w-3 h-3 bg-blue-200 rounded-sm mr-2 mt-0.5 flex-shrink-0"></div>
-                      <div>
-                        <span className="font-medium text-blue-200">
-                          Přeskladněno:
-                        </span>{" "}
-                        Vysoké zásoby
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="w-3 h-3 bg-gray-200 rounded-sm mr-2 mt-0.5 flex-shrink-0"></div>
-                      <div>
-                        <span className="font-medium text-gray-200">
-                          Nezkonfigurováno:
-                        </span>{" "}
-                        Chybí data o prodeji
                       </div>
                     </div>
                   </div>
