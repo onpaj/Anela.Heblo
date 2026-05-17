@@ -67,24 +67,6 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAct
             action.ModifiedByUserId = currentUser.Id;
             action.ModifiedByUsername = currentUser.Name ?? "Unknown User";
 
-            action.ProductAssociations.Clear();
-            if (request.AssociatedProducts?.Any() == true)
-            {
-                foreach (var product in request.AssociatedProducts.Distinct())
-                {
-                    action.AssociateWithProduct(product);
-                }
-            }
-
-            action.FolderLinks.Clear();
-            if (request.FolderLinks?.Any() == true)
-            {
-                foreach (var link in request.FolderLinks)
-                {
-                    action.LinkToFolder(link.FolderKey.Trim(), link.FolderType);
-                }
-            }
-
             if (_options.Value.PushEnabled)
             {
                 try
@@ -106,6 +88,24 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAct
                         "Outlook push failed for MarketingAction {ActionId}; user {UserId}",
                         request.Id, currentUser.Id);
                     return OutlookError(ex);
+                }
+            }
+
+            action.ProductAssociations.Clear();
+            if (request.AssociatedProducts?.Any() == true)
+            {
+                foreach (var product in request.AssociatedProducts.Distinct())
+                {
+                    action.AssociateWithProduct(product);
+                }
+            }
+
+            action.FolderLinks.Clear();
+            if (request.FolderLinks?.Any() == true)
+            {
+                foreach (var link in request.FolderLinks)
+                {
+                    action.LinkToFolder(link.FolderKey.Trim(), link.FolderType);
                 }
             }
 

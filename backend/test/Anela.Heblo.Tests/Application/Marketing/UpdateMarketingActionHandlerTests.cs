@@ -79,13 +79,18 @@ public class UpdateMarketingActionHandlerTests
             .Returns(Task.CompletedTask);
 
         _repository
+            .Setup(x => x.UpdateAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
+            .Callback<MarketingAction, CancellationToken>((_, _) => callOrder.Add("db:update"))
+            .Returns(Task.CompletedTask);
+
+        _repository
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Callback<CancellationToken>(_ => callOrder.Add("db"))
+            .Callback<CancellationToken>(_ => callOrder.Add("db:save"))
             .ReturnsAsync(0);
 
         await BuildHandler().Handle(BuildRequest(), CancellationToken.None);
 
-        callOrder.Should().ContainInOrder("outlook", "db");
+        callOrder.Should().ContainInOrder("outlook", "db:update", "db:save");
     }
 
     [Fact]
