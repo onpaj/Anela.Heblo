@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.API.Infrastructure;
-using Anela.Heblo.Application.Features.Logistics.UseCases;
+using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
 using Anela.Heblo.Application.Features.Logistics.UseCases.AddItemToBox;
 using Anela.Heblo.Application.Features.Logistics.UseCases.CreateNewTransportBox;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxById;
