@@ -8,5 +8,5 @@ public class MeetingAccessGrant
     public string UserEmail { get; set; } = null!;
     public string? UserDisplayName { get; set; }
     public DateTime GrantedAt { get; set; }
-    public string GrantedByUser { get; set; } = null!;
+    public string GrantedByUserEmail { get; set; } = null!;
 }
