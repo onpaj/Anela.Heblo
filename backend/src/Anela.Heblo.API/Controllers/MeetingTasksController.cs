@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.MeetingTasks.UseCases.ExplainSummary;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetMeetingUsers;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptDetail;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptList;
+using Anela.Heblo.Application.Features.MeetingTasks.UseCases.ReimportMeetingTranscript;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.SubmitToTodo;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateMeetingAccess;
 using Anela.Heblo.Application.Features.MeetingTasks.UseCases.UpdateProposedTask;
@@ -117,4 +118,10 @@ public sealed class MeetingTasksController : BaseApiController
         var result = await _mediator.Send(request, ct);
         return HandleResponse(result);
     }
+
+    [HttpPost("{transcriptId:guid}/reimport")]
+    public async Task<ActionResult<ReimportMeetingTranscriptResponse>> Reimport(
+        Guid transcriptId,
+        CancellationToken ct = default)
+        => HandleResponse(await _mediator.Send(new ReimportMeetingTranscriptRequest { Id = transcriptId }, ct));
 }

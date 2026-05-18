@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft, Check, X, Plus, Send, CheckCheck, Clock, CheckCircle, CheckCircle2,
-  ChevronDown, ChevronRight, AlertTriangle,
+  ChevronDown, ChevronRight, AlertTriangle, RefreshCw,
 } from "lucide-react";
 import {
   MeetingUserDto,
@@ -16,6 +16,7 @@ import {
   useExplainMeetingSummary,
   useMeetingTaskDetail,
   useMeetingUsers,
+  useReimportMeeting,
   useSubmitToTodo,
   useUpdateProposedTask,
   useUpdateProposedTaskStatus,
@@ -98,6 +99,8 @@ const MeetingTaskDetailPage: React.FC = () => {
   const users = useMeetingUsers();
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [accessModalOpen, setAccessModalOpen] = useState(false);
+  const reimport = useReimportMeeting();
+  const [reimportError, setReimportError] = useState<string | null>(null);
   const isMeetingManager = useMeetingManagerPermission();
 
   const explainSelection = useExplainSelection();
@@ -116,6 +119,15 @@ const MeetingTaskDetailPage: React.FC = () => {
   const handleCloseExplain = () => {
     setExplainModalOpen(false);
     explainMutation.reset();
+  };
+
+  const handleReimport = async () => {
+    setReimportError(null);
+    try {
+      await reimport.mutateAsync(id);
+    } catch {
+      setReimportError("Reimport se nezdařil. Nahrávka pravděpodobně ještě není zpracována na straně Plaud.");
+    }
   };
 
   if (detail.isLoading) {
@@ -217,6 +229,15 @@ const MeetingTaskDetailPage: React.FC = () => {
               {transcript.accessLevel === 'Restricted' && 'Omezené'}
             </span>
           )}
+          <button
+            type="button"
+            onClick={handleReimport}
+            disabled={reimport.isPending}
+            className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-4 h-4 mr-1 ${reimport.isPending ? 'animate-spin' : ''}`} />
+            Reimport
+          </button>
           {isMeetingManager && (
             <button
               onClick={() => setAccessModalOpen(true)}
@@ -227,6 +248,12 @@ const MeetingTaskDetailPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {reimportError && (
+        <div className="px-4 sm:px-6 lg:px-8 mt-2">
+          <p className="text-sm text-red-600">{reimportError}</p>
+        </div>
+      )}
 
       <div className="px-4 sm:px-6 lg:px-8 mt-4">
         <div
