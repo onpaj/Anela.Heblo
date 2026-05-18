@@ -99,4 +99,68 @@ public sealed class ClaudeMeetingTaskExtractorTests
         result.Should().HaveCount(1);
         result[0].Title.Should().Be("Action");
     }
+
+    [Fact]
+    public async Task ExtractAsync_PassesMaxOutputTokens8192ToChatClient()
+    {
+        ChatOptions? capturedOptions = null;
+        _mockChatClient
+            .Setup(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((_, opts, _) => capturedOptions = opts)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "[]")]));
+
+        await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        capturedOptions.Should().NotBeNull();
+        capturedOptions!.MaxOutputTokens.Should().Be(8192);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_WhenJsonInvalid_LogsErrorAndReturnsEmpty()
+    {
+        _mockChatClient
+            .Setup(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "not-valid-json{{{")]));
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Should().BeEmpty();
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("malformed JSON")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_WhenApiThrows_LogsErrorAndReturnsEmpty()
+    {
+        _mockChatClient
+            .Setup(x => x.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("API error"));
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Should().BeEmpty();
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("extraction failed")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
 }

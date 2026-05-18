@@ -23,6 +23,9 @@ public sealed class ClaudeMeetingTaskExtractor : IMeetingTaskExtractor
     private const string NoUsersNote =
         "\n\nSeznam známých uživatelů je prázdný — assigneeEmail vždy nastav na null.";
 
+    private static readonly JsonSerializerOptions JsonOptions =
+        new() { PropertyNameCaseInsensitive = true };
+
     private readonly IChatClient _chatClient;
     private readonly IMeetingUserDirectory _userDirectory;
     private readonly ILogger<ClaudeMeetingTaskExtractor> _logger;
@@ -42,29 +45,35 @@ public sealed class ClaudeMeetingTaskExtractor : IMeetingTaskExtractor
         string transcript,
         CancellationToken ct = default)
     {
+        var messages = new[]
+        {
+            new ChatMessage(ChatRole.System, BuildSystemPrompt()),
+            new ChatMessage(ChatRole.User, $"Souhrn: {summary}\n\nTranskript: {transcript}")
+        };
+
+        var chatOptions = new ChatOptions { MaxOutputTokens = 8192 };
+
         try
         {
-            var messages = new[]
-            {
-                new ChatMessage(ChatRole.System, BuildSystemPrompt()),
-                new ChatMessage(ChatRole.User, $"Souhrn: {summary}\n\nTranskript: {transcript}")
-            };
-
-            var response = await _chatClient.GetResponseAsync(messages, cancellationToken: ct);
+            var response = await _chatClient.GetResponseAsync(messages, chatOptions, ct);
             var text = StripMarkdownCodeFence(response.Text ?? string.Empty);
 
-            var result = JsonSerializer.Deserialize<List<ExtractedTask>>(
-                text,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            try
+            {
+                var result = JsonSerializer.Deserialize<List<ExtractedTask>>(text, JsonOptions);
 
-            return result ?? new List<ExtractedTask>();
+                return result ?? [];
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Meeting task extraction returned malformed JSON — transcript will be imported without tasks");
+                return [];
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(
-                ex,
-                "Failed to extract tasks via Claude — transcript will be imported without tasks");
-            return new List<ExtractedTask>();
+            _logger.LogError(ex, "Meeting task extraction failed — transcript will be imported without tasks");
+            return [];
         }
     }
 
