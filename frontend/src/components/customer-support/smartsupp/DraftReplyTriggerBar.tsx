@@ -3,6 +3,8 @@ import { Sparkles, Tag } from "lucide-react";
 import { DRAFT_REPLY_HINTS } from "./draftReplyHints";
 import TopicPickerSheet from "./TopicPickerSheet";
 
+const NO_CUSTOMER_MESSAGE_TOOLTIP = "Konverzace neobsahuje zprávu zákazníka";
+
 interface DraftReplyTriggerBarProps {
   disabled: boolean;
   canGenerateWithoutTopic: boolean;
@@ -38,7 +40,7 @@ function DraftReplyTriggerBar({
           data-testid="generate-reply-desktop"
           disabled={disabled || !canGenerateWithoutTopic}
           onClick={() => onGenerate(undefined)}
-          title={canGenerateWithoutTopic ? undefined : "Konverzace neobsahuje zprávu zákazníka"}
+          title={canGenerateWithoutTopic ? undefined : NO_CUSTOMER_MESSAGE_TOOLTIP}
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Sparkles className="w-3.5 h-3.5" />
@@ -62,7 +64,7 @@ function DraftReplyTriggerBar({
           data-testid="generate-reply-mobile"
           disabled={disabled || !canGenerateWithoutTopic}
           onClick={() => onGenerate(undefined)}
-          title={canGenerateWithoutTopic ? undefined : "Konverzace neobsahuje zprávu zákazníka"}
+          title={canGenerateWithoutTopic ? undefined : NO_CUSTOMER_MESSAGE_TOOLTIP}
           className="inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[40px]"
         >
           <Sparkles className="w-4 h-4" />

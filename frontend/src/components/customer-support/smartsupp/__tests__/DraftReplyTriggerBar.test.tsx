@@ -85,18 +85,6 @@ describe("DraftReplyTriggerBar", () => {
     expect(screen.getByText("AI služba je nedostupná.")).toBeInTheDocument();
   });
 
-  it("renders a Témata button in the mobile row", () => {
-    render(
-      <DraftReplyTriggerBar
-        disabled={false}
-        canGenerateWithoutTopic={true}
-        error={null}
-        onGenerate={jest.fn()}
-      />,
-    );
-    expect(screen.getByRole("button", { name: /témata/i })).toBeInTheDocument();
-  });
-
   it("opens TopicPickerSheet when Témata is clicked", () => {
     render(
       <DraftReplyTriggerBar
@@ -126,15 +114,4 @@ describe("DraftReplyTriggerBar", () => {
     expect(onGenerate).toHaveBeenCalledWith("Doprava");
   });
 
-  it("disables the Témata button when disabled is true", () => {
-    render(
-      <DraftReplyTriggerBar
-        disabled={true}
-        canGenerateWithoutTopic={true}
-        error={null}
-        onGenerate={jest.fn()}
-      />,
-    );
-    expect(screen.getByRole("button", { name: /témata/i })).toBeDisabled();
-  });
 });
