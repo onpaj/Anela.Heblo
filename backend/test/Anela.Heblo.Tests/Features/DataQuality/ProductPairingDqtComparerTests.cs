@@ -78,7 +78,7 @@ public class ProductPairingDqtComparerTests
         SetupEshop(); // Empty Shoptet
         SetupErp(
             new ErpStock { ProductCode = "PROD001", ProductName = "Sellable", ProductTypeId = 8 },  // Product=8
-            new ErpStock { ProductCode = "MAT001",  ProductName = "Material",  ProductTypeId = 3 }   // Material=3, not sellable
+            new ErpStock { ProductCode = "MAT001", ProductName = "Material", ProductTypeId = 3 }   // Material=3, not sellable
         );
 
         // Act
