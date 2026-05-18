@@ -53,6 +53,8 @@ public class OpenMeteoWeatherForecastClient : IWeatherForecastClient
             throw new InvalidOperationException(
                 $"Open-Meteo returned {locations.Count} locations but {_options.Cities.Count} were requested");
 
+        // Open-Meteo preserves input order in batch responses, so index i corresponds to Cities[i].
+        // The count guard above ensures no out-of-bounds access if this assumption ever breaks.
         var forecasts = locations
             .Select((loc, i) => new CityForecast(
                 CityName: _options.Cities[i].Name,

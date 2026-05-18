@@ -5,6 +5,8 @@ namespace Anela.Heblo.Application.Features.WeatherForecast.UseCases.GetWeatherFo
 
 public class GetWeatherForecastResponse : BaseResponse
 {
+    // Empty list on both error and "no data" paths. The frontend hook throws on !data.success,
+    // so Days is only consumed when Success is true and the list is populated.
     public List<HottestDayDto> Days { get; set; } = new();
 
     public GetWeatherForecastResponse() { }

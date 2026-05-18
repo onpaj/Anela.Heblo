@@ -1,6 +1,6 @@
 namespace Anela.Heblo.Adapters.OpenMeteo;
 
-public class WeatherForecastOptions
+public sealed class WeatherForecastOptions
 {
     public static string ConfigKey => "WeatherForecast";
 
@@ -9,7 +9,7 @@ public class WeatherForecastOptions
     public int RequestTimeoutSeconds { get; init; } = 5;
 }
 
-public class WeatherCity
+public sealed class WeatherCity
 {
     public string Name { get; init; } = string.Empty;
     public double Latitude { get; init; }
