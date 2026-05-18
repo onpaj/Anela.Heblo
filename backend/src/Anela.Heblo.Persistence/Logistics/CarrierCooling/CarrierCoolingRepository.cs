@@ -1,7 +1,7 @@
 using Anela.Heblo.Domain.Features.Logistics;
 using Microsoft.EntityFrameworkCore;
 
-namespace Anela.Heblo.Persistence.CarrierCooling;
+namespace Anela.Heblo.Persistence.Logistics.CarrierCooling;
 
 public class CarrierCoolingRepository : ICarrierCoolingRepository
 {
