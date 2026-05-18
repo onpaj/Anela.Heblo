@@ -9,6 +9,8 @@ import ChatComposer from "./ChatComposer";
 interface ConversationDetailProps {
   conversationId: string;
   conversation: ConversationDto;
+  initialDraft?: string;
+  onDraftChange?: (draft: string) => void;
 }
 
 // Returns the most recent customer message that actually carries text.
@@ -46,6 +48,8 @@ function groupByDay(messages: MessageDto[]): Array<{ day: string; items: Message
 const ConversationDetail: React.FC<ConversationDetailProps> = ({
   conversationId,
   conversation,
+  initialDraft,
+  onDraftChange,
 }) => {
   const { data, isLoading } = useSmartsuppConversation(conversationId);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -96,8 +100,11 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
       </div>
 
       <ChatComposer
+        key={conversationId}
         conversationId={conversationId}
         lastContactMessage={lastContactMessage(messages)}
+        initialDraft={initialDraft}
+        onDraftChange={onDraftChange}
       />
     </div>
   );
