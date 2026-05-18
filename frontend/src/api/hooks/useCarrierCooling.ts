@@ -1,24 +1,10 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAuthenticatedApiClient } from "../client";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getAuthenticatedApiClient } from '../client';
 
-// Mirrors C# enums — values must match the backend string serialization
-export enum Carriers {
-  Zasilkovna = "Zasilkovna",
-  PPL = "PPL",
-  GLS = "GLS",
-  Osobak = "Osobak",
-}
-
-export enum DeliveryHandling {
-  NaRuky = "NaRuky",
-  Box = "Box",
-}
-
-export enum Cooling {
-  None = "None",
-  L1 = "L1",
-  L2 = "L2",
-}
+// String literal unions — values must match the backend string serialization
+export type Carriers = 'Zasilkovna' | 'PPL' | 'GLS' | 'Osobak';
+export type DeliveryHandling = 'NaRuky' | 'Box';
+export type Cooling = 'None' | 'L1' | 'L2';
 
 export interface CarrierCoolingRowDto {
   deliveryHandling: DeliveryHandling;
@@ -41,15 +27,15 @@ export interface SetCarrierCoolingRequest {
 }
 
 const QUERY_KEYS = {
-  matrix: ["carrierCooling", "matrix"] as const,
+  matrix: ['carrierCooling', 'matrix'] as const,
 };
 
 const getMatrix = async (): Promise<GetCarrierCoolingMatrixResponse> => {
   const apiClient = getAuthenticatedApiClient();
   const fullUrl = `${(apiClient as any).baseUrl}/api/carrier-cooling`;
   const response = await (apiClient as any).http.fetch(fullUrl, {
-    method: "GET",
-    headers: { Accept: "application/json" },
+    method: 'GET',
+    headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch cooling matrix: ${response.status}`);
@@ -61,10 +47,10 @@ const setCooling = async (request: SetCarrierCoolingRequest): Promise<void> => {
   const apiClient = getAuthenticatedApiClient();
   const fullUrl = `${(apiClient as any).baseUrl}/api/carrier-cooling`;
   const response = await (apiClient as any).http.fetch(fullUrl, {
-    method: "PUT",
+    method: 'PUT',
     headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
     },
     body: JSON.stringify(request),
   });
