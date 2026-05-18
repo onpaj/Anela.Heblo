@@ -27,7 +27,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Contracts
         public DateTime? EndDate { get; set; }
 
         public List<string>? AssociatedProducts { get; set; }
-        public List<CreateMarketingActionRequest.CreateFolderLinkRequest>? FolderLinks { get; set; }
+        public List<MarketingFolderLinkRequest>? FolderLinks { get; set; }
     }
 
     public class UpdateMarketingActionResponse : BaseResponse

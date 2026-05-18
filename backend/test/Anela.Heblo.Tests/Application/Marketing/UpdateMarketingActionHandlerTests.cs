@@ -186,7 +186,7 @@ public class UpdateMarketingActionHandlerTests
     {
         var request = BuildRequest();
         request.AssociatedProducts = new List<string> { "prod-1", "prod-2", "prod-1" };
-        request.FolderLinks = new List<CreateMarketingActionRequest.CreateFolderLinkRequest>
+        request.FolderLinks = new List<MarketingFolderLinkRequest>
         {
             new() { FolderKey = " key-1 ", FolderType = MarketingFolderType.General },
         };

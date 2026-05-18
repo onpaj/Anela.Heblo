@@ -25632,7 +25632,7 @@ export class CreateMarketingActionRequest implements ICreateMarketingActionReque
     startDate!: Date;
     endDate?: Date | undefined;
     associatedProducts?: string[] | undefined;
-    folderLinks?: CreateFolderLinkRequest[] | undefined;
+    folderLinks?: MarketingFolderLinkRequest[] | undefined;
 
     constructor(data?: ICreateMarketingActionRequest) {
         if (data) {
@@ -25658,7 +25658,7 @@ export class CreateMarketingActionRequest implements ICreateMarketingActionReque
             if (Array.isArray(_data["folderLinks"])) {
                 this.folderLinks = [] as any;
                 for (let item of _data["folderLinks"])
-                    this.folderLinks!.push(CreateFolderLinkRequest.fromJS(item));
+                    this.folderLinks!.push(MarketingFolderLinkRequest.fromJS(item));
             }
         }
     }
@@ -25698,7 +25698,7 @@ export interface ICreateMarketingActionRequest {
     startDate: Date;
     endDate?: Date | undefined;
     associatedProducts?: string[] | undefined;
-    folderLinks?: CreateFolderLinkRequest[] | undefined;
+    folderLinks?: MarketingFolderLinkRequest[] | undefined;
 }
 
 export enum MarketingActionType {
@@ -25710,11 +25710,11 @@ export enum MarketingActionType {
     Meeting = "Meeting",
 }
 
-export class CreateFolderLinkRequest implements ICreateFolderLinkRequest {
+export class MarketingFolderLinkRequest implements IMarketingFolderLinkRequest {
     folderKey!: string;
     folderType!: MarketingFolderType;
 
-    constructor(data?: ICreateFolderLinkRequest) {
+    constructor(data?: IMarketingFolderLinkRequest) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -25730,9 +25730,9 @@ export class CreateFolderLinkRequest implements ICreateFolderLinkRequest {
         }
     }
 
-    static fromJS(data: any): CreateFolderLinkRequest {
+    static fromJS(data: any): MarketingFolderLinkRequest {
         data = typeof data === 'object' ? data : {};
-        let result = new CreateFolderLinkRequest();
+        let result = new MarketingFolderLinkRequest();
         result.init(data);
         return result;
     }
@@ -25745,7 +25745,7 @@ export class CreateFolderLinkRequest implements ICreateFolderLinkRequest {
     }
 }
 
-export interface ICreateFolderLinkRequest {
+export interface IMarketingFolderLinkRequest {
     folderKey: string;
     folderType: MarketingFolderType;
 }
@@ -25807,7 +25807,7 @@ export class UpdateMarketingActionRequest implements IUpdateMarketingActionReque
     startDate!: Date;
     endDate?: Date | undefined;
     associatedProducts?: string[] | undefined;
-    folderLinks?: CreateFolderLinkRequest[] | undefined;
+    folderLinks?: MarketingFolderLinkRequest[] | undefined;
 
     constructor(data?: IUpdateMarketingActionRequest) {
         if (data) {
@@ -25834,7 +25834,7 @@ export class UpdateMarketingActionRequest implements IUpdateMarketingActionReque
             if (Array.isArray(_data["folderLinks"])) {
                 this.folderLinks = [] as any;
                 for (let item of _data["folderLinks"])
-                    this.folderLinks!.push(CreateFolderLinkRequest.fromJS(item));
+                    this.folderLinks!.push(MarketingFolderLinkRequest.fromJS(item));
             }
         }
     }
@@ -25876,7 +25876,7 @@ export interface IUpdateMarketingActionRequest {
     startDate: Date;
     endDate?: Date | undefined;
     associatedProducts?: string[] | undefined;
-    folderLinks?: CreateFolderLinkRequest[] | undefined;
+    folderLinks?: MarketingFolderLinkRequest[] | undefined;
 }
 
 export class DeleteMarketingActionResponse extends BaseResponse implements IDeleteMarketingActionResponse {
