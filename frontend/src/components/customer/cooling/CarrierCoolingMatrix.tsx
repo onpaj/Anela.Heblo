@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Carriers,
   CarrierGroupDto,
@@ -32,19 +31,6 @@ const COOLING_OPTIONS: { value: Cooling; label: string }[] = [
 ];
 
 function CarrierCoolingMatrix({ groups, onSetCooling, isSaving }: CarrierCoolingMatrixProps) {
-  const [savingKey, setSavingKey] = useState<string | null>(null);
-
-  const handleChange = (
-    carrier: Carriers,
-    deliveryHandling: DeliveryHandling,
-    cooling: Cooling
-  ) => {
-    const key = `${carrier}-${deliveryHandling}`;
-    setSavingKey(key);
-    onSetCooling({ carrier, deliveryHandling, cooling });
-    setTimeout(() => setSavingKey(null), 1500);
-  };
-
   return (
     <div className="space-y-4 p-4">
       {groups.map((group) => (
@@ -59,8 +45,7 @@ function CarrierCoolingMatrix({ groups, onSetCooling, isSaving }: CarrierCooling
           </div>
           <div className="divide-y divide-gray-50">
             {group.rows.map((row) => {
-              const key = `${group.carrier}-${row.deliveryHandling}`;
-              const isSavingRow = savingKey === key;
+              const radioName = `${group.carrier}-${row.deliveryHandling}`;
 
               return (
                 <div
@@ -78,11 +63,15 @@ function CarrierCoolingMatrix({ groups, onSetCooling, isSaving }: CarrierCooling
                       >
                         <input
                           type="radio"
-                          name={key}
+                          name={radioName}
                           value={option.value}
                           checked={row.cooling === option.value}
                           onChange={() =>
-                            handleChange(group.carrier, row.deliveryHandling, option.value)
+                            onSetCooling({
+                              carrier: group.carrier,
+                              deliveryHandling: row.deliveryHandling,
+                              cooling: option.value,
+                            })
                           }
                           disabled={isSaving}
                           className="h-4 w-4 text-indigo-600 cursor-pointer"
@@ -91,7 +80,7 @@ function CarrierCoolingMatrix({ groups, onSetCooling, isSaving }: CarrierCooling
                       </label>
                     ))}
                   </div>
-                  {isSavingRow && (
+                  {isSaving && (
                     <span className="text-xs text-gray-400 ml-2 animate-pulse">
                       Ukládám…
                     </span>
