@@ -111,6 +111,8 @@ public class MarketingCalendarControllerTests : IClassFixture<HebloWebApplicatio
     public async Task GetMarketingActions_WithInvalidActionTypeValues_ReturnsBadRequest(string invalidActionType)
     {
         // Arrange
+        // Out-of-range integer values (> 5) are rejected because they don't map to any enum ordinal.
+        // In-range ordinals (0–5) silently bind to the corresponding enum member — see GetMarketingActions_WithNumericActionTypeOrdinal_ReturnsOk.
         var url = $"/api/MarketingCalendar?ActionType={invalidActionType}";
 
         // Act
@@ -118,6 +120,22 @@ public class MarketingCalendarControllerTests : IClassFixture<HebloWebApplicatio
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
+    }
+
+    [Theory]
+    [InlineData("0")]    // SocialMedia ordinal
+    [InlineData("1")]    // Blog ordinal
+    [InlineData("5")]    // Meeting ordinal
+    public async Task GetMarketingActions_WithNumericActionTypeOrdinal_ReturnsOk(string ordinalValue)
+    {
+        // Arrange — numeric ordinals within the enum range bind successfully (ASP.NET Core default behavior)
+        var url = $"/api/MarketingCalendar?ActionType={ordinalValue}";
+
+        // Act
+        var response = await _client.GetAsync(url);
+
+        // Assert
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
     }
 
     [Theory]

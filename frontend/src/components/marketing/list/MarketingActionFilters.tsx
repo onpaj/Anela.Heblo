@@ -6,7 +6,7 @@ import {
   ALL_ACTION_TYPE_OPTIONS,
 } from "./marketingActionTypeLabels";
 
-interface Filters {
+export interface MarketingFilters {
   searchText: string;
   dateFrom: string;
   dateTo: string;
@@ -14,19 +14,19 @@ interface Filters {
 }
 
 interface MarketingActionFiltersProps {
-  filters: Filters;
-  onChange: (filters: Filters) => void;
+  filters: MarketingFilters;
+  onChange: (filters: MarketingFilters) => void;
   onClear: () => void;
 }
 
-const EMPTY_FILTERS: Filters = {
+const EMPTY_FILTERS: MarketingFilters = {
   searchText: "",
   dateFrom: "",
   dateTo: "",
   actionType: "",
 };
 
-const hasActiveFilters = (f: Filters) =>
+const hasActiveFilters = (f: MarketingFilters) =>
   f.searchText !== "" ||
   f.dateFrom !== "" ||
   f.dateTo !== "" ||
@@ -100,4 +100,3 @@ const MarketingActionFilters: React.FC<MarketingActionFiltersProps> = ({
 
 export default MarketingActionFilters;
 export { EMPTY_FILTERS };
-export type { Filters as MarketingFilters };
