@@ -17,14 +17,14 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
         private readonly ICurrentUserService _currentUserService;
         private readonly ILogger<DeleteMarketingActionHandler> _logger;
         private readonly IOutlookCalendarSync _outlookSync;
-        private readonly IOptions<MarketingCalendarOptions> _options;
+        private readonly IOptionsMonitor<MarketingCalendarOptions> _options;
 
         public DeleteMarketingActionHandler(
             IMarketingActionRepository repository,
             ICurrentUserService currentUserService,
             ILogger<DeleteMarketingActionHandler> logger,
             IOutlookCalendarSync outlookSync,
-            IOptions<MarketingCalendarOptions> options)
+            IOptionsMonitor<MarketingCalendarOptions> options)
         {
             _repository = repository;
             _currentUserService = currentUserService;
@@ -51,7 +51,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAct
                     new Dictionary<string, string> { { "actionId", request.Id.ToString() } });
             }
 
-            if (_options.Value.PushEnabled && !string.IsNullOrEmpty(action.OutlookEventId))
+            if (_options.CurrentValue.PushEnabled && !string.IsNullOrEmpty(action.OutlookEventId))
             {
                 try
                 {
