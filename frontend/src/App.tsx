@@ -52,6 +52,7 @@ import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
 import DataQualityPage from "./pages/customer/DataQualityPage";
 import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
 import SmartsuppChatsPage from "./components/customer-support/smartsupp/pages/SmartsuppChatsPage";
+import CoolingPage from "./pages/customer/CoolingPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
 import { UserStorage } from "./auth/userStorage";
 import { apiRequest } from "./auth/msalConfig";
@@ -399,6 +400,7 @@ function App() {
                         <Route path="/customer/issued-invoices" element={<IssuedInvoicesPage />} />
                         <Route path="/customer/bank-statements-overview" element={<BankStatementsOverviewPage />} />
                         <Route path="/customer/smartsupp" element={<SmartsuppChatsPage />} />
+                        <Route path="/customer/cooling" element={<CoolingPage />} />
                         <Route path="/orgchart" element={<OrgChartPage />} />
                         <Route path="/stock-up-operations" element={<StockOperationsPage />} />
                         <Route path="/recurring-jobs" element={<RecurringJobsPage />} />

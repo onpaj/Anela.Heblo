@@ -8,6 +8,7 @@ using Anela.Heblo.Adapters.ShoptetApi.Stock;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -62,6 +63,7 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
         services.AddSingleton<ShippingMethodMapper>();
         services.AddSingleton<ShoptetInvoiceMapper>();
         services.AddSingleton<ShoptetApiInvoiceSource>();
+        services.AddSingleton<IShippingMethodCatalog, ShippingMethodCatalog>();
 
         return services;
     }
