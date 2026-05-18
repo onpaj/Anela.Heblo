@@ -4,7 +4,7 @@ import DraftReplyToolbar from "../DraftReplyToolbar";
 import { DraftReplySource } from "../hooks/useGenerateDraftReply";
 
 const sources: DraftReplySource[] = [
-  { documentId: "d1", filename: "reklamace.pdf", excerpt: "...", score: 0.9 },
+  { chunkId: 'chunk-1', documentId: 'd1', filename: 'reklamace.pdf', excerpt: '...', score: 0.9 },
 ];
 
 describe("DraftReplyToolbar", () => {
