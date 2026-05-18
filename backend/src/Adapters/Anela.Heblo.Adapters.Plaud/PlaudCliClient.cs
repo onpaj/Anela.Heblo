@@ -203,8 +203,8 @@ public sealed class PlaudCliClient : IPlaudClient
         return new PlaudFileDetail
         {
             TranscriptAvailable = IsAvailable(lookup, "transcript"),
-            SummaryAvailable    = IsAvailable(lookup, "summary"),
-            AudioAvailable      = IsAvailable(lookup, "audio")
+            SummaryAvailable = IsAvailable(lookup, "summary"),
+            AudioAvailable = IsAvailable(lookup, "audio")
         };
     }
 }
