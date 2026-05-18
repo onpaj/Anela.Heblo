@@ -245,12 +245,33 @@ const resources = {
         ArticleNotGenerated: "Článek ještě nebyl vygenerován.",
         ArticleFeedbackAlreadySubmitted: "Zpětná vazba k tomuto článku již byla odeslána.",
 
+        // Shoptet data drift errors
+        DqtProductPairingFailed: "Chyba při párování produktů: {{details}}",
+        DqtStockWriteBackFailed: "Chyba zpětného zápisu skladu: {{details}}",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",
         ShoptetApiError: "Chyba Shoptet API",
         PaymentGatewayError: "Chyba platební brány",
         ErpGatewayError: "Chyba ERP brány (časový limit nebo nedostupnost)",
+      },
+      dataQuality: {
+        testTypes: {
+          IssuedInvoiceComparison: "Porovnání faktur",
+          ProductPairing: "Párování produktů",
+          StockWriteBackReconciliation: "Zpětný zápis skladu",
+        },
+        productPairingMismatches: {
+          MissingInErp: "Chybí v ERP",
+          MissingInShoptet: "Chybí v Shoptet",
+          PairCodeUnresolved: "Nespárovaný párový kód",
+        },
+        stockWriteBackMismatches: {
+          OperationFailed: "Operace selhala",
+          OperationStuck: "Operace zaseknutá",
+          StockTakingErrored: "Chyba inventury",
+        },
       },
     },
   },
@@ -348,6 +369,10 @@ const resources = {
         DqtInvalidDateRange: "Invalid date range: DateFrom must be before or equal to DateTo",
         DqtExternalServiceError: "External service error during data quality test: {{service}}",
 
+        // Shoptet data drift errors
+        DqtProductPairingFailed: "Product pairing failed: {{details}}",
+        DqtStockWriteBackFailed: "Stock write-back reconciliation failed: {{details}}",
+
         // Article Generation errors
         ArticleNotFound: "Article not found (ID: {{id}})",
         ArticleGenerationFailed: "Article generation failed. Please try again.",
@@ -356,6 +381,23 @@ const resources = {
         ArticleAlreadyGenerated: "Article has already been generated.",
         ArticleNotGenerated: "Article has not been generated yet.",
         ArticleFeedbackAlreadySubmitted: "Feedback for this article has already been submitted.",
+      },
+      dataQuality: {
+        testTypes: {
+          IssuedInvoiceComparison: "Invoice Comparison",
+          ProductPairing: "Product Pairing",
+          StockWriteBackReconciliation: "Stock Write-Back Reconciliation",
+        },
+        productPairingMismatches: {
+          MissingInErp: "Missing in ERP",
+          MissingInShoptet: "Missing in Shoptet",
+          PairCodeUnresolved: "Unresolved pair code",
+        },
+        stockWriteBackMismatches: {
+          OperationFailed: "Operation failed",
+          OperationStuck: "Operation stuck",
+          StockTakingErrored: "Stock-taking errored",
+        },
       },
     },
   },
