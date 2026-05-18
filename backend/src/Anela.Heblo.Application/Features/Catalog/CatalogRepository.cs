@@ -393,6 +393,7 @@ public class CatalogRepository : ICatalogRepository
                 product.Properties.SeasonMonths = attributes.SeasonMonthsArray;
                 product.MinimalManufactureQuantity = attributes.MinimalManufactureQuantity;
                 product.Properties.AllowedResiduePercentage = attributes.AllowedResiduePercentage;
+                product.Properties.Cooling = attributes.Cooling;
             }
 
             product.Stock.Transport = CachedInTransportData.ContainsKey(product.ProductCode) ? CachedInTransportData[product.ProductCode] : 0;
