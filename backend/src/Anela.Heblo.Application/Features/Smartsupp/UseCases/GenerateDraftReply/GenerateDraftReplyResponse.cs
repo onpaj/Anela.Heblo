@@ -14,6 +14,7 @@ public class GenerateDraftReplyResponse : BaseResponse
 /// <summary>Smartsupp-local mirror of a KnowledgeBase source chunk reference.</summary>
 public class DraftReplySource
 {
+    public Guid ChunkId { get; set; }
     public Guid DocumentId { get; set; }
     public string Filename { get; set; } = string.Empty;
     public string Excerpt { get; set; } = string.Empty;

@@ -95,6 +95,7 @@ public class GenerateDraftReplyHandler
             Answer = response.Text ?? string.Empty,
             Sources = searchResult.Chunks.Select(c => new DraftReplySource
             {
+                ChunkId = c.ChunkId,
                 DocumentId = c.DocumentId,
                 Filename = c.SourceFilename,
                 Excerpt = c.Content[..Math.Min(MaxExcerptLength, c.Content.Length)],

@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../../../../api/client";
 
 export interface DraftReplySource {
+  chunkId: string;
   documentId: string;
   filename: string;
   excerpt: string;

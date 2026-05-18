@@ -149,9 +149,10 @@ public class GenerateDraftReplyHandlerTests
     [Fact]
     public async Task Handle_ReturnsAnswerAndMappedSources_OnSuccess()
     {
+        var chunk = Chunk("Obsah dokumentu o dopravě.", "doprava.pdf");
         SetupConversation(ConversationWith(
             Msg("m1", SmartsuppMessageAuthorType.Visitor, "Dotaz", 1)));
-        SetupSearch(Chunk("Obsah dokumentu o dopravě.", "doprava.pdf"));
+        SetupSearch(chunk);
         SetupChat("Dobrý den, balíky odesíláme do 24 hodin.");
 
         var result = await CreateHandler().Handle(
@@ -162,6 +163,7 @@ public class GenerateDraftReplyHandlerTests
         result.Sources.Should().ContainSingle();
         result.Sources[0].Filename.Should().Be("doprava.pdf");
         result.Sources[0].Excerpt.Should().Be("Obsah dokumentu o dopravě.");
+        result.Sources[0].ChunkId.Should().Be(chunk.ChunkId);
     }
 
     [Fact]
