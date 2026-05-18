@@ -576,19 +576,14 @@ public class ShoptetApiExpeditionListSourceTests
         var source = new ShoptetApiExpeditionListSource(client, TimeProvider.System, catalogMock.Object);
 
         // Act
-        var act = async () => await source.CreatePickingList(DefaultRequest(), null);
+        var result = await source.CreatePickingList(DefaultRequest(), null);
 
         // Assert
-        await act.Should().NotThrowAsync();
-
-        // Catalog must have been called for the product code
         catalogMock.Verify(c => c.GetByIdAsync("P001", It.IsAny<CancellationToken>()), Times.Once);
 
         // Cleanup
-        foreach (var file in Directory.GetFiles(Path.GetTempPath(), "*.pdf").Where(File.Exists))
-        {
-            try { File.Delete(file); } catch { /* best effort */ }
-        }
+        foreach (var file in result.ExportedFiles.Where(File.Exists))
+            File.Delete(file);
     }
 
     [Fact]
