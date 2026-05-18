@@ -54,7 +54,6 @@ public static class ManufactureModule
         services.AddScoped<IInventoryReservationService, ManufactureInventoryReservationAdapter>();
 
         // Register application services
-        services.AddScoped<IManufactureOrderApplicationService, ManufactureOrderApplicationService>();
         services.AddScoped<IProductNameFormatter, ProductNameFormatter>();
         services.AddScoped<IManufactureNameBuilder, ManufactureNameBuilder>();
         services.AddScoped<IConfirmSemiProductManufactureWorkflow, ConfirmSemiProductManufactureWorkflow>();
