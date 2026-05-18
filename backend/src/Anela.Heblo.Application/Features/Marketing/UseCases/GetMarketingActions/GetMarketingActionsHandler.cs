@@ -26,6 +26,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.GetMarketingAction
                 PageNumber = request.PageNumber,
                 PageSize = request.PageSize,
                 SearchTerm = request.SearchTerm,
+                ActionType = request.ActionType,
                 ProductCodePrefix = request.ProductCodePrefix,
                 StartDateFrom = request.StartDateFrom,
                 StartDateTo = request.StartDateTo,
