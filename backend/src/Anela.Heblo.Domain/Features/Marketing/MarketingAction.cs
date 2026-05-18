@@ -73,13 +73,15 @@ namespace Anela.Heblo.Domain.Features.Marketing
             if (string.IsNullOrWhiteSpace(productCode))
                 throw new ArgumentException("Product code cannot be empty", nameof(productCode));
 
-            if (ProductAssociations.Any(pa => pa.ProductCodePrefix == productCode))
+            var normalized = productCode.Trim().ToUpperInvariant();
+
+            if (ProductAssociations.Any(pa => pa.ProductCodePrefix == normalized))
                 return;
 
             ProductAssociations.Add(new MarketingActionProduct
             {
                 MarketingActionId = Id,
-                ProductCodePrefix = productCode.Trim().ToUpperInvariant(),
+                ProductCodePrefix = normalized,
                 CreatedAt = DateTime.UtcNow,
             });
         }
