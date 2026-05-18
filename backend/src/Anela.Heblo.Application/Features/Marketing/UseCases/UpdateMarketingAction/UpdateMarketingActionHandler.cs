@@ -22,14 +22,14 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAct
         private readonly ICurrentUserService _currentUserService;
         private readonly ILogger<UpdateMarketingActionHandler> _logger;
         private readonly IOutlookCalendarSync _outlookSync;
-        private readonly IOptions<MarketingCalendarOptions> _options;
+        private readonly IOptionsMonitor<MarketingCalendarOptions> _options;
 
         public UpdateMarketingActionHandler(
             IMarketingActionRepository repository,
             ICurrentUserService currentUserService,
             ILogger<UpdateMarketingActionHandler> logger,
             IOutlookCalendarSync outlookSync,
-            IOptions<MarketingCalendarOptions> options)
+            IOptionsMonitor<MarketingCalendarOptions> options)
         {
             _repository = repository;
             _currentUserService = currentUserService;
@@ -67,7 +67,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAct
             action.ModifiedByUserId = currentUser.Id;
             action.ModifiedByUsername = currentUser.Name ?? "Unknown User";
 
-            if (_options.Value.PushEnabled)
+            if (_options.CurrentValue.PushEnabled)
             {
                 try
                 {

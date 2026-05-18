@@ -1,4 +1,5 @@
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
+using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;
 using QuestPDF.Infrastructure;
 
@@ -518,5 +519,117 @@ public class ExpeditionProtocolDocumentTests
         var act = () => ExpeditionProtocolDocument.Generate(data);
 
         act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Generate_WithCooledOrder_DoesNotThrow()
+    {
+        // Arrange — order with one L2 cooled item; frost badge must render without exception
+        var data = new ExpeditionProtocolData
+        {
+            CarrierDisplayName = "PPL",
+            Orders = new List<ExpeditionOrder>
+            {
+                new()
+                {
+                    Code = "COOL001",
+                    CustomerName = "Test Cooled",
+                    Address = "Chladná 1, 100 00 Praha",
+                    Phone = "+420 600000001",
+                    Items = new List<ExpeditionOrderItem>
+                    {
+                        new()
+                        {
+                            ProductCode = "CHLAD001",
+                            Name = "Chlazená Krémová Maska",
+                            Variant = "Obsah: 50 ml",
+                            WarehousePosition = "C01-1",
+                            Quantity = 1,
+                            StockCount = 20,
+                            StockDemand = 1,
+                            UnitPrice = 590.00m,
+                            Unit = "ks",
+                            Cooling = Cooling.L2,
+                        },
+                    },
+                },
+            },
+        };
+
+        // Act
+        var act = () => ExpeditionProtocolDocument.Generate(data);
+
+        // Assert
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Generate_CooledOrder_SavesToDiskForVisualInspection()
+    {
+        // Generates a PDF for manual visual verification of the frost badge.
+        // Output: <temp>/ExpeditionList_CooledOrder.pdf
+        var data = new ExpeditionProtocolData
+        {
+            CarrierDisplayName = "Zásilkovna",
+            Orders = new List<ExpeditionOrder>
+            {
+                new()
+                {
+                    Code = "COOL001",
+                    CustomerName = "Jana Mrazíková",
+                    Address = "Ledová 42, 100 00 Praha 1",
+                    Phone = "+420 725 191 660",
+                    Items = new List<ExpeditionOrderItem>
+                    {
+                        new()
+                        {
+                            ProductCode = "CHLAD001",
+                            Name = "Chlazená Krémová Maska",
+                            Variant = "Obsah: 50 ml",
+                            WarehousePosition = "C01-1",
+                            Quantity = 2,
+                            StockCount = 20,
+                            StockDemand = 2,
+                            UnitPrice = 590.00m,
+                            Unit = "ks",
+                            Cooling = Cooling.L2,
+                        },
+                    },
+                },
+                new()
+                {
+                    Code = "NORM001",
+                    CustomerName = "Petr Normální",
+                    Address = "Běžná 5, 110 00 Praha",
+                    Phone = "+420 600 000 002",
+                    Items = new List<ExpeditionOrderItem>
+                    {
+                        new()
+                        {
+                            ProductCode = "P001",
+                            Name = "Standardní produkt",
+                            Variant = string.Empty,
+                            WarehousePosition = "A01-1",
+                            Quantity = 1,
+                            StockCount = 50,
+                            StockDemand = 1,
+                            UnitPrice = 299.00m,
+                            Unit = "ks",
+                            Cooling = Cooling.None,
+                        },
+                    },
+                },
+            },
+        };
+
+        var pdfBytes = ExpeditionProtocolDocument.Generate(data);
+
+        var outputPath = Path.Combine(Path.GetTempPath(), "ExpeditionList_CooledOrder.pdf");
+        File.WriteAllBytes(outputPath, pdfBytes);
+
+        pdfBytes.Should().NotBeNullOrEmpty();
+        File.Exists(outputPath).Should().BeTrue();
+
+        Console.WriteLine($"PDF saved to: {outputPath}");
     }
 }

@@ -1,3 +1,5 @@
+using Anela.Heblo.Domain.Features.Catalog;
+
 namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 
 public class ExpeditionProtocolData
@@ -15,6 +17,8 @@ public class ExpeditionOrder
     public string? CustomerRemark { get; set; }
     public string? EshopRemark { get; set; }
     public List<ExpeditionOrderItem> Items { get; set; } = new();
+
+    public bool IsCooled => Items.Any(i => i.Cooling != Cooling.None);
 }
 
 public class ExpeditionOrderItem
@@ -30,4 +34,5 @@ public class ExpeditionOrderItem
     public string Unit { get; set; } = string.Empty;
     public bool IsFromSet { get; set; }
     public string? SetName { get; set; }
+    public Cooling Cooling { get; set; } = Cooling.None;
 }
