@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Controllers;
 
-public class CarrierCoolingControllerTests : IClassFixture<HebloWebApplicationFactory>
+public class CarrierCoolingControllerTests : IClassFixture<HebloWebApplicationFactory>, IAsyncLifetime
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -20,12 +20,18 @@ public class CarrierCoolingControllerTests : IClassFixture<HebloWebApplicationFa
         Converters = { new JsonStringEnumConverter() },
     };
 
+    private readonly HebloWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
     public CarrierCoolingControllerTests(HebloWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
+
+    public async Task InitializeAsync() => await _factory.ClearDatabaseAsync();
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task Get_ReturnsMatrixWithThreeGroups()
