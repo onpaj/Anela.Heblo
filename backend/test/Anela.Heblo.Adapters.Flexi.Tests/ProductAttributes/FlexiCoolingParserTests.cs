@@ -12,4 +12,11 @@ public class FlexiCoolingParserTests
         var attrs = new CatalogAttributes();
         attrs.Cooling.Should().Be(Cooling.None);
     }
+
+    [Fact]
+    public void CatalogProperties_HasCoolingProperty_DefaultsToNone()
+    {
+        var props = new CatalogProperties();
+        props.Cooling.Should().Be(Cooling.None);
+    }
 }

@@ -12,4 +12,6 @@ public record CatalogProperties
     public bool ManufactureWithoutSemiproduct { get; set; }
 
     public double AllowedResiduePercentage { get; set; } = 0;
+
+    public Cooling Cooling { get; set; } = Cooling.None;
 }
