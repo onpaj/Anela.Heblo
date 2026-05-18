@@ -231,12 +231,16 @@ public sealed class ReimportMeetingTranscriptHandlerTests
         var id = Guid.NewGuid();
         var pendingTask = new ProposedTask
         {
-            Id = Guid.NewGuid(), MeetingTranscriptId = id, Title = "Old Pending",
+            Id = Guid.NewGuid(),
+            MeetingTranscriptId = id,
+            Title = "Old Pending",
             Status = ProposedTaskStatus.Pending
         };
         var approvedTask = new ProposedTask
         {
-            Id = Guid.NewGuid(), MeetingTranscriptId = id, Title = "Already Approved",
+            Id = Guid.NewGuid(),
+            MeetingTranscriptId = id,
+            Title = "Already Approved",
             Status = ProposedTaskStatus.Approved
         };
         var entity = new MeetingTranscript
