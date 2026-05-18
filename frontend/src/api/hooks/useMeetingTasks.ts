@@ -341,6 +341,7 @@ export function useReimportMeeting() {
       ),
     onSuccess: (_d, transcriptId) => {
       qc.invalidateQueries({ queryKey: MEETING_TASKS_KEYS.detail(transcriptId) });
+      qc.invalidateQueries({ queryKey: MEETING_TASKS_KEYS.list });
     },
   });
 }
