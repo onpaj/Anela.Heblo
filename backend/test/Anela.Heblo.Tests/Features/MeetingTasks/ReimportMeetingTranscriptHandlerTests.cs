@@ -14,6 +14,8 @@ public sealed class ReimportMeetingTranscriptHandlerTests
     private readonly Mock<IMeetingTranscriptRepository> _mockRepository;
     private readonly Mock<IPlaudClient> _mockPlaudClient;
     private readonly Mock<IMeetingAccessGuard> _mockAccessGuard;
+    private readonly Mock<IMeetingTaskExtractor> _mockExtractor;
+    private readonly Mock<IMeetingUserDirectory> _mockDirectory;
     private readonly Mock<ILogger<ReimportMeetingTranscriptHandler>> _mockLogger;
     private readonly ReimportMeetingTranscriptHandler _handler;
 
@@ -22,6 +24,8 @@ public sealed class ReimportMeetingTranscriptHandlerTests
         _mockRepository = new Mock<IMeetingTranscriptRepository>();
         _mockPlaudClient = new Mock<IPlaudClient>();
         _mockAccessGuard = new Mock<IMeetingAccessGuard>();
+        _mockExtractor = new Mock<IMeetingTaskExtractor>();
+        _mockDirectory = new Mock<IMeetingUserDirectory>();
         _mockLogger = new Mock<ILogger<ReimportMeetingTranscriptHandler>>();
 
         _mockAccessGuard.Setup(g => g.CanAccess(It.IsAny<MeetingTranscript>())).Returns(true);
@@ -34,6 +38,8 @@ public sealed class ReimportMeetingTranscriptHandlerTests
             _mockRepository.Object,
             _mockPlaudClient.Object,
             _mockAccessGuard.Object,
+            _mockExtractor.Object,
+            _mockDirectory.Object,
             _mockLogger.Object);
     }
 
@@ -128,6 +134,14 @@ public sealed class ReimportMeetingTranscriptHandlerTests
             .Setup(c => c.GetSummaryAsync("rec_gen", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PlaudSummaryResult("New Headline", "New summary content"));
 
+        _mockExtractor
+            .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExtractedTask>());
+
+        _mockRepository
+            .Setup(r => r.ReplacePendingTasksAsync(It.IsAny<MeetingTranscript>(), It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         _mockRepository
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -141,8 +155,6 @@ public sealed class ReimportMeetingTranscriptHandlerTests
         entity.RawTranscript.Should().Be("New transcript content");
         entity.Summary.Should().Be("New summary content");
         entity.Subject.Should().Be("New Headline");
-        entity.Tasks.Should().HaveCount(1);
-        entity.Tasks.Single().Title.Should().Be("Keep This Task");
 
         _mockRepository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -177,6 +189,14 @@ public sealed class ReimportMeetingTranscriptHandlerTests
         _mockPlaudClient
             .Setup(c => c.GetSummaryAsync("rec_nohdr", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PlaudSummaryResult(string.Empty, "New summary"));
+
+        _mockExtractor
+            .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExtractedTask>());
+
+        _mockRepository
+            .Setup(r => r.ReplacePendingTasksAsync(It.IsAny<MeetingTranscript>(), It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         _mockRepository
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -214,6 +234,178 @@ public sealed class ReimportMeetingTranscriptHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WhenGenerated_ReExtractsPendingTasksAndPreservesApproved()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var pendingTask = new ProposedTask
+        {
+            Id = Guid.NewGuid(),
+            MeetingTranscriptId = id,
+            Title = "Old Pending",
+            Status = ProposedTaskStatus.Pending
+        };
+        var approvedTask = new ProposedTask
+        {
+            Id = Guid.NewGuid(),
+            MeetingTranscriptId = id,
+            Title = "Already Approved",
+            Status = ProposedTaskStatus.Approved
+        };
+        var entity = new MeetingTranscript
+        {
+            Id = id,
+            PlaudRecordingId = "rec_reextract",
+            Subject = "Subject",
+            Summary = "Old summary",
+            RawTranscript = "Old transcript",
+            Tasks = new List<ProposedTask> { pendingTask, approvedTask }
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entity);
+        _mockPlaudClient
+            .Setup(c => c.GetFileDetailAsync("rec_reextract", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudFileDetail { TranscriptAvailable = true, SummaryAvailable = true, AudioAvailable = true });
+        _mockPlaudClient
+            .Setup(c => c.GetTranscriptAsync("rec_reextract", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("New transcript");
+        _mockPlaudClient
+            .Setup(c => c.GetSummaryAsync("rec_reextract", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudSummaryResult("New Headline", "New summary"));
+
+        _mockExtractor
+            .Setup(e => e.ExtractAsync("New summary", "New transcript", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExtractedTask>
+            {
+                new("New Task 1", "Description 1", "Ondra", null, "ondra@anela.cz")
+            });
+
+        IReadOnlyList<ProposedTask>? capturedNewTasks = null;
+        _mockRepository
+            .Setup(r => r.ReplacePendingTasksAsync(entity, It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()))
+            .Callback<MeetingTranscript, IReadOnlyList<ProposedTask>, CancellationToken>((_, tasks, _) => capturedNewTasks = tasks)
+            .Returns(Task.CompletedTask);
+        _mockRepository
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var response = await _handler.Handle(new ReimportMeetingTranscriptRequest { Id = id }, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        capturedNewTasks.Should().HaveCount(1);
+        capturedNewTasks!.Single().Title.Should().Be("New Task 1");
+        capturedNewTasks.Single().AssigneeEmail.Should().Be("ondra@anela.cz");
+        capturedNewTasks.Single().Status.Should().Be(ProposedTaskStatus.Pending);
+        capturedNewTasks.Single().IsManuallyAdded.Should().BeFalse();
+        capturedNewTasks.Should().NotContain(t => t.Id == approvedTask.Id);
+    }
+
+    [Fact]
+    public async Task Handle_WhenExtractionReturnsEmpty_ReplacePendingCalledWithEmptyList()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var entity = new MeetingTranscript
+        {
+            Id = id,
+            PlaudRecordingId = "rec_empty_extract",
+            Subject = "Subject",
+            Summary = "Old summary",
+            RawTranscript = "Old transcript",
+            Tasks = new List<ProposedTask>()
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entity);
+        _mockPlaudClient
+            .Setup(c => c.GetFileDetailAsync("rec_empty_extract", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudFileDetail { TranscriptAvailable = true, SummaryAvailable = true, AudioAvailable = true });
+        _mockPlaudClient
+            .Setup(c => c.GetTranscriptAsync("rec_empty_extract", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Transcript");
+        _mockPlaudClient
+            .Setup(c => c.GetSummaryAsync("rec_empty_extract", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudSummaryResult("Headline", "Summary"));
+        _mockExtractor
+            .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExtractedTask>());
+
+        IReadOnlyList<ProposedTask>? capturedNewTasks = null;
+        _mockRepository
+            .Setup(r => r.ReplacePendingTasksAsync(It.IsAny<MeetingTranscript>(), It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()))
+            .Callback<MeetingTranscript, IReadOnlyList<ProposedTask>, CancellationToken>((_, tasks, _) => capturedNewTasks = tasks)
+            .Returns(Task.CompletedTask);
+        _mockRepository
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _handler.Handle(new ReimportMeetingTranscriptRequest { Id = id }, CancellationToken.None);
+
+        // Assert
+        capturedNewTasks.Should().NotBeNull();
+        capturedNewTasks.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_WhenExtractedTaskHasNoEmail_ResolvesFromDirectory()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var entity = new MeetingTranscript
+        {
+            Id = id,
+            PlaudRecordingId = "rec_resolve",
+            Subject = "Subject",
+            Summary = "Old",
+            RawTranscript = "Old",
+            Tasks = new List<ProposedTask>()
+        };
+
+        _mockRepository
+            .Setup(r => r.GetByIdAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entity);
+        _mockPlaudClient
+            .Setup(c => c.GetFileDetailAsync("rec_resolve", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudFileDetail { TranscriptAvailable = true, SummaryAvailable = true, AudioAvailable = true });
+        _mockPlaudClient
+            .Setup(c => c.GetTranscriptAsync("rec_resolve", It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Transcript");
+        _mockPlaudClient
+            .Setup(c => c.GetSummaryAsync("rec_resolve", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudSummaryResult("Headline", "Summary"));
+        _mockExtractor
+            .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExtractedTask>
+            {
+                new("Task", "Desc", "Andy", null, AssigneeEmail: null)
+            });
+        _mockDirectory
+            .Setup(d => d.Resolve("Andy"))
+            .Returns(new MeetingUser("andrea@anela.cz", "Andrea Pajgrt Bartošová", new[] { "Andy" }));
+
+        IReadOnlyList<ProposedTask>? capturedNewTasks = null;
+        _mockRepository
+            .Setup(r => r.ReplacePendingTasksAsync(It.IsAny<MeetingTranscript>(), It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()))
+            .Callback<MeetingTranscript, IReadOnlyList<ProposedTask>, CancellationToken>((_, tasks, _) => capturedNewTasks = tasks)
+            .Returns(Task.CompletedTask);
+        _mockRepository
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _handler.Handle(new ReimportMeetingTranscriptRequest { Id = id }, CancellationToken.None);
+
+        // Assert
+        capturedNewTasks!.Single().AssigneeEmail.Should().Be("andrea@anela.cz");
+    }
+
+    [Fact]
     public async Task Handle_WhenRecordingNamePresent_UsesRecordingNameAsSubject()
     {
         // Arrange
@@ -247,6 +439,12 @@ public sealed class ReimportMeetingTranscriptHandlerTests
             {
                 new() { Id = "rec_named", Name = "Týmová porada: letní plány", CreatedAt = entity.PlaudCreatedAt }
             });
+        _mockExtractor
+            .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExtractedTask>());
+        _mockRepository
+            .Setup(r => r.ReplacePendingTasksAsync(It.IsAny<MeetingTranscript>(), It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         _mockRepository
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -294,6 +492,12 @@ public sealed class ReimportMeetingTranscriptHandlerTests
             {
                 new() { Id = "rec_noname", Name = string.Empty, CreatedAt = entity.PlaudCreatedAt }
             });
+        _mockExtractor
+            .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExtractedTask>());
+        _mockRepository
+            .Setup(r => r.ReplacePendingTasksAsync(It.IsAny<MeetingTranscript>(), It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         _mockRepository
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -337,6 +541,12 @@ public sealed class ReimportMeetingTranscriptHandlerTests
         _mockPlaudClient
             .Setup(c => c.ListRecentAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Plaud API unavailable"));
+        _mockExtractor
+            .Setup(e => e.ExtractAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExtractedTask>());
+        _mockRepository
+            .Setup(r => r.ReplacePendingTasksAsync(It.IsAny<MeetingTranscript>(), It.IsAny<IReadOnlyList<ProposedTask>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
         _mockRepository
             .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);

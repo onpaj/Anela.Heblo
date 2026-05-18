@@ -26,10 +26,21 @@ public sealed class MeetingUserDirectory : IMeetingUserDirectory
         if (string.IsNullOrWhiteSpace(nameOrAlias))
             return null;
 
-        return _users.FirstOrDefault(u =>
-            string.Equals(u.DisplayName, nameOrAlias, StringComparison.OrdinalIgnoreCase) ||
-            u.Aliases.Any(a => string.Equals(a, nameOrAlias, StringComparison.OrdinalIgnoreCase)));
+        var direct = FindUser(nameOrAlias);
+        if (direct is not null)
+            return direct;
+
+        var parts = nameOrAlias.Split(['&', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length <= 1)
+            return null;
+
+        return parts.Select(FindUser).FirstOrDefault(u => u is not null);
     }
+
+    private MeetingUser? FindUser(string name) =>
+        _users.FirstOrDefault(u =>
+            string.Equals(u.DisplayName, name, StringComparison.OrdinalIgnoreCase) ||
+            u.Aliases.Any(a => string.Equals(a, name, StringComparison.OrdinalIgnoreCase)));
 
     private static IReadOnlyList<MeetingUser> Load(string path, ILogger logger)
     {

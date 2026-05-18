@@ -78,6 +78,20 @@ public class MeetingTranscriptRepository : IMeetingTranscriptRepository
         await _context.MeetingAccessGrants.AddRangeAsync(newGrants, ct);
     }
 
+    public async Task ReplacePendingTasksAsync(
+        MeetingTranscript transcript,
+        IReadOnlyList<ProposedTask> newTasks,
+        CancellationToken ct = default)
+    {
+        var pending = transcript.Tasks.Where(t => t.Status == ProposedTaskStatus.Pending).ToList();
+        _context.ProposedTasks.RemoveRange(pending);
+        foreach (var t in pending)
+            transcript.Tasks.Remove(t);
+
+        await _context.ProposedTasks.AddRangeAsync(newTasks, ct);
+        transcript.Tasks.AddRange(newTasks);
+    }
+
     public Task SaveChangesAsync(CancellationToken ct = default)
     {
         return _context.SaveChangesAsync(ct);

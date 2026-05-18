@@ -1,6 +1,8 @@
 using Anela.Heblo.Application.Features.MeetingTasks.Services;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.MeetingTasks;
 
@@ -29,7 +31,11 @@ public static class MeetingTasksModule
         {
             services.AddScoped<IGraphTodoService, NoOpGraphTodoService>();
         }
-        services.AddScoped<IMeetingTaskExtractor, ClaudeMeetingTaskExtractor>();
+        services.AddScoped<IMeetingTaskExtractor>(sp =>
+            new ClaudeMeetingTaskExtractor(
+                sp.GetRequiredKeyedService<IChatClient>(MeetingTasksConstants.ExtractionChatClientKey),
+                sp.GetRequiredService<IMeetingUserDirectory>(),
+                sp.GetRequiredService<ILogger<ClaudeMeetingTaskExtractor>>()));
         services.AddScoped<IMeetingSummaryExplainer, ClaudeMeetingSummaryExplainer>();
         services.AddSingleton<IMeetingUserDirectory, MeetingUserDirectory>();
         services.AddScoped<IMeetingAccessGuard, MeetingAccessGuard>();

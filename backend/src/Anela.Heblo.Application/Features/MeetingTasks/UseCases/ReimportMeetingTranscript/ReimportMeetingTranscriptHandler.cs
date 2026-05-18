@@ -12,17 +12,23 @@ public sealed class ReimportMeetingTranscriptHandler
     private readonly IMeetingTranscriptRepository _repository;
     private readonly IPlaudClient _plaudClient;
     private readonly IMeetingAccessGuard _accessGuard;
+    private readonly IMeetingTaskExtractor _extractor;
+    private readonly IMeetingUserDirectory _userDirectory;
     private readonly ILogger<ReimportMeetingTranscriptHandler> _logger;
 
     public ReimportMeetingTranscriptHandler(
         IMeetingTranscriptRepository repository,
         IPlaudClient plaudClient,
         IMeetingAccessGuard accessGuard,
+        IMeetingTaskExtractor extractor,
+        IMeetingUserDirectory userDirectory,
         ILogger<ReimportMeetingTranscriptHandler> logger)
     {
         _repository = repository;
         _plaudClient = plaudClient;
         _accessGuard = accessGuard;
+        _extractor = extractor;
+        _userDirectory = userDirectory;
         _logger = logger;
     }
 
@@ -82,10 +88,37 @@ public sealed class ReimportMeetingTranscriptHandler
             transcript.Subject = summaryResult.Headline;
         // else: leave transcript.Subject unchanged
 
+        var extractedTasks = await _extractor.ExtractAsync(summaryResult.MarkdownContent, rawTranscript, cancellationToken);
+        var newTasks = extractedTasks
+            .Select(t => new ProposedTask
+            {
+                Id = Guid.NewGuid(),
+                MeetingTranscriptId = transcript.Id,
+                Title = t.Title,
+                Description = t.Description,
+                Assignee = t.Assignee,
+                AssigneeEmail = ResolveAssigneeEmail(t),
+                DueDate = t.DueDate,
+                Status = ProposedTaskStatus.Pending,
+                IsManuallyAdded = false
+            })
+            .ToList();
+
+        await _repository.ReplacePendingTasksAsync(transcript, newTasks, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Reimported recording {RecordingId} for transcript {TranscriptId}", transcript.PlaudRecordingId, transcript.Id);
+        _logger.LogInformation(
+            "Reimported recording {RecordingId} for transcript {TranscriptId} with {TaskCount} tasks",
+            transcript.PlaudRecordingId, transcript.Id, newTasks.Count);
 
         return new ReimportMeetingTranscriptResponse();
+    }
+
+    private string? ResolveAssigneeEmail(ExtractedTask task)
+    {
+        if (!string.IsNullOrWhiteSpace(task.AssigneeEmail))
+            return task.AssigneeEmail;
+
+        return _userDirectory.Resolve(task.Assignee)?.Email;
     }
 }
