@@ -21,21 +21,19 @@ test.describe('Marketing Calendar — Mobile Agenda View', () => {
   });
 
   test('loading spinner resolves and 14 day sections appear', async ({ page }) => {
-    await expect(page.locator('text=Načítání...').first()).not.toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.agenda-day-group').first()).toBeVisible({ timeout: 15000 });
     const dayGroups = page.locator('.agenda-day-group');
     await expect(dayGroups).toHaveCount(14, { timeout: 10000 });
   });
 
   test('prev navigation shifts the window back', async ({ page }) => {
-    await expect(page.locator('text=Načítání...').first()).not.toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.agenda-day-group').first()).toBeVisible({ timeout: 15000 });
 
     const firstHeaderBefore = await page.locator('.agenda-day-group__header').first().textContent();
 
-    // CalendarNavigation prev button is the first icon-only button in the nav bar
-    const navButtons = page.locator('.mobile-agenda__nav button').filter({ hasText: /^$/ });
-    await navButtons.first().click();
+    await page.locator('button[aria-label="Předchozí"]').click();
 
-    await expect(page.locator('text=Načítání...').first()).not.toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.agenda-day-group').first()).toBeVisible({ timeout: 10000 });
 
     const firstHeaderAfter = await page.locator('.agenda-day-group__header').first().textContent();
     expect(firstHeaderAfter).not.toBe(firstHeaderBefore);
@@ -56,7 +54,7 @@ test.describe('Marketing Calendar — Mobile Agenda View', () => {
   });
 
   test('tapping an event card opens the edit modal', async ({ page }) => {
-    await expect(page.locator('text=Načítání...').first()).not.toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.agenda-day-group').first()).toBeVisible({ timeout: 15000 });
 
     const cards = page.locator('.agenda-event-card');
     const count = await cards.count();
