@@ -53,10 +53,34 @@ public sealed class ReimportMeetingTranscriptHandler
         var rawTranscript = await _plaudClient.GetTranscriptAsync(transcript.PlaudRecordingId, cancellationToken);
         var summaryResult = await _plaudClient.GetSummaryAsync(transcript.PlaudRecordingId, cancellationToken);
 
+        string? recordingName = null;
+        try
+        {
+            const int maxLookbackDays = 365; // Plaud's ListRecent window cap
+            var days = Math.Clamp(
+                (int)(DateTime.UtcNow.Date - transcript.PlaudCreatedAt.Date).TotalDays + 1,
+                1, maxLookbackDays);
+            var recent = await _plaudClient.ListRecentAsync(days, cancellationToken);
+            recordingName = recent.FirstOrDefault(r => r.Id == transcript.PlaudRecordingId)?.Name;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch recording name for {RecordingId}, falling back to headline",
+                transcript.PlaudRecordingId);
+        }
+
         transcript.RawTranscript = rawTranscript;
         transcript.Summary = summaryResult.MarkdownContent;
-        if (!string.IsNullOrWhiteSpace(summaryResult.Headline))
+
+        if (!string.IsNullOrWhiteSpace(recordingName))
+            transcript.Subject = recordingName;
+        else if (!string.IsNullOrWhiteSpace(summaryResult.Headline))
             transcript.Subject = summaryResult.Headline;
+        // else: leave transcript.Subject unchanged
 
         await _repository.SaveChangesAsync(cancellationToken);
 
