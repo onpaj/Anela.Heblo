@@ -488,6 +488,68 @@ public class ShoptetApiExpeditionListSourceTests
         foreach (var file in result.ExportedFiles.Where(File.Exists))
             File.Delete(file);
     }
+
+    [Fact]
+    public void ExpeditionOrder_IsCooled_False_WhenAllItemsHaveCoolingNone()
+    {
+        // Arrange
+        var order = new ExpeditionOrder
+        {
+            Code = "ORD001",
+            CustomerName = "Test",
+            Address = "Praha",
+            Phone = "123",
+            Items = new List<ExpeditionOrderItem>
+            {
+                new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.None },
+                new() { ProductCode = "P002", Name = "B", Variant = string.Empty, WarehousePosition = "A2", Quantity = 1, Cooling = Cooling.None },
+            },
+        };
+
+        // Act + Assert
+        order.IsCooled.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ExpeditionOrder_IsCooled_True_WhenAnyItemHasCoolingL1()
+    {
+        // Arrange
+        var order = new ExpeditionOrder
+        {
+            Code = "ORD002",
+            CustomerName = "Test",
+            Address = "Praha",
+            Phone = "123",
+            Items = new List<ExpeditionOrderItem>
+            {
+                new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.None },
+                new() { ProductCode = "P002", Name = "B", Variant = string.Empty, WarehousePosition = "A2", Quantity = 1, Cooling = Cooling.L1 },
+            },
+        };
+
+        // Act + Assert
+        order.IsCooled.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ExpeditionOrder_IsCooled_True_WhenAnyItemHasCoolingL2()
+    {
+        // Arrange
+        var order = new ExpeditionOrder
+        {
+            Code = "ORD003",
+            CustomerName = "Test",
+            Address = "Praha",
+            Phone = "123",
+            Items = new List<ExpeditionOrderItem>
+            {
+                new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.L2 },
+            },
+        };
+
+        // Act + Assert
+        order.IsCooled.Should().BeTrue();
+    }
 }
 
 /// <summary>
