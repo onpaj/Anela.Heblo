@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Anela.Heblo.Tests" />
+    <InternalsVisibleTo Include="Anela.Heblo.Persistence" />
   </ItemGroup>
 
   <ItemGroup>
