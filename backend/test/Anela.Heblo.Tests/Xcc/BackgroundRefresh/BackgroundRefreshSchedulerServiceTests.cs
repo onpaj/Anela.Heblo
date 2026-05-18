@@ -300,8 +300,9 @@ public class BackgroundRefreshSchedulerServiceTests
         var schedulerTask = scheduler.StartAsync(cts.Token);
 
         // ExecuteAsync exits immediately when all tasks are disabled (no loops to wait on).
-        // Give it time to run before asserting — consistent with the other tests in this class.
-        await Task.Delay(200);
+        // Await the executing task directly so the test is timing-independent on CI.
+        if (scheduler.ExecuteTask != null)
+            await scheduler.ExecuteTask;
 
         cts.Cancel();
         await Task.WhenAll(orchestratorTask, schedulerTask);
