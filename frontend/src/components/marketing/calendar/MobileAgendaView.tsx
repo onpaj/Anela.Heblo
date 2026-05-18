@@ -55,6 +55,7 @@ export function MobileAgendaView() {
     endDate: windowEnd,
   });
 
+  // useMarketingAction has enabled: id > 0, so passing 0 when nothing is selected is a no-op
   const detailQuery = useMarketingAction(selectedActionId ?? 0);
 
   useEffect(() => {
