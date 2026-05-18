@@ -49,7 +49,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             ? new HashSet<Carriers>(request.Carriers)
             : null;
 
-        var ordersByCarrier = new Dictionary<Carriers, List<(string Code, string ShippingGuid)>>();
+        var ordersByMethod = new Dictionary<ShippingMethod, List<(string Code, string ShippingGuid)>>();
         foreach (var order in allOrders)
         {
             var shippingGuid = order.Shipping?.Guid;
@@ -58,10 +58,10 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             if (carrierFilter != null && !carrierFilter.Contains(method.Carrier))
                 continue;
 
-            if (!ordersByCarrier.TryGetValue(method.Carrier, out var list))
+            if (!ordersByMethod.TryGetValue(method, out var list))
             {
                 list = new List<(string, string)>();
-                ordersByCarrier[method.Carrier] = list;
+                ordersByMethod[method] = list;
             }
 
             list.Add((order.Code, shippingGuid));
@@ -77,15 +77,12 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             s => (s.Carrier, s.DeliveryHandling),
             s => s.Cooling);
 
-        foreach (var (carrier, orders) in ordersByCarrier)
+        foreach (var (method, orders) in ordersByMethod)
         {
-            // Sort by shippingGuid so same method types are together
-            var sorted = orders.OrderBy(o => o.ShippingGuid).ToList();
-
-            // Determine batch limits from the first shipping method for this carrier
-            var maxItems = ShippingMethodRegistry.ByGuid.TryGetValue(sorted[0].ShippingGuid, out var sm) ? sm.MaxItems : 20;
-            var maxOrders = sm?.MaxOrders ?? int.MaxValue;
-            var carrierDisplayName = carrier.ToString();
+            var sorted = orders;
+            var maxItems = method.MaxItems;
+            var maxOrders = method.MaxOrders;
+            var carrierDisplayName = method.DisplayName;
 
             // 3. Fetch all order details for this carrier upfront, then batch greedily by item count.
             //    This ensures batches are split based on how much content fits on a printed page,
@@ -138,7 +135,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                 };
 
                 var pdfBytes = _generateDocument(data);
-                var fileName = $"{timestamp}_{carrier}_{batchIndex}.pdf";
+                var fileName = $"{timestamp}_{method.Name}_{batchIndex}.pdf";
                 var filePath = Path.Combine(Path.GetTempPath(), fileName);
                 await File.WriteAllBytesAsync(filePath, pdfBytes, cancellationToken);
                 exportedFiles.Add(filePath);
