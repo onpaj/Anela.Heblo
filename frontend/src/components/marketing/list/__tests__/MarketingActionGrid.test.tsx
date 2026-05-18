@@ -167,8 +167,7 @@ describe("MarketingActionGrid — pagination", () => {
       />,
     );
     const buttons = screen.getAllByRole("button");
-    const prevBtn = buttons.find((b) => b.querySelector("svg"));
-    expect(prevBtn).toBeDisabled();
+    expect(buttons[0]).toBeDisabled();
   });
 
   it("disables next button on last page", () => {
