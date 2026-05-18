@@ -79,4 +79,19 @@ describe("ConversationDetail", () => {
     render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
     expect(screen.getByPlaceholderText("Napište odpověď...")).toBeInTheDocument();
   });
+
+  it("pre-fills the composer textarea with initialDraft", () => {
+    render(
+      wrap(
+        <ConversationDetail
+          conversationId="c1"
+          conversation={conv}
+          initialDraft="Předvyplněný text"
+          onDraftChange={jest.fn()}
+        />,
+      ),
+    );
+    const textarea = screen.getByPlaceholderText("Napište odpověď...") as HTMLTextAreaElement;
+    expect(textarea.value).toBe("Předvyplněný text");
+  });
 });
