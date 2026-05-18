@@ -46,7 +46,7 @@ function DraftReplySourcesModal({ sources, onClose }: DraftReplySourcesModalProp
                 onClick={() => setSelectedSource(source)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && setSelectedSource(source)}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelectedSource(source)}
                 aria-label={`Zobrazit zdroj ${source.filename}`}
               >
                 <div className="flex items-center justify-between">

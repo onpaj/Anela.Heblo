@@ -58,6 +58,15 @@ describe('DraftReplySourcesModal', () => {
     expect(detail.dataset.chunkId).toBe('chunk-1');
   });
 
+  it('opens ChunkDetailModal when Space is pressed on a source row', () => {
+    render(<DraftReplySourcesModal sources={sources} onClose={jest.fn()} />);
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: /zobrazit zdroj reklamace\.pdf/i }),
+      { key: ' ' },
+    );
+    expect(screen.getByTestId('chunk-detail-modal')).toBeInTheDocument();
+  });
+
   it('returns to source list when ChunkDetailModal onClose is called', () => {
     render(<DraftReplySourcesModal sources={sources} onClose={jest.fn()} />);
     fireEvent.click(
