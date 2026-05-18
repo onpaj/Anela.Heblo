@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useSmartsuppConversations, useTriggerSmartsuppSync } from "../../../../api/hooks/useSmartsupp";
 import { useToast } from "../../../../contexts/ToastContext";
 import ConversationList from "../ConversationList";
@@ -16,9 +17,12 @@ function readPanelOpen(key: string, defaultOpen: boolean): boolean {
   return stored === "true";
 }
 
+type MobileView = "list" | "chat" | "contact";
+
 const SmartsuppChatsPage: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [status, setStatus] = useState<"Open" | "Resolved">("Open");
+  const [mobileView, setMobileView] = useState<MobileView>("list");
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [listPanelOpen, setListPanelOpen] = useState<boolean>(() =>
     readPanelOpen(LIST_PANEL_KEY, true),
@@ -64,7 +68,9 @@ const SmartsuppChatsPage: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center justify-end px-4 py-2 border-b border-gray-200 bg-white">
+      <div
+        className={`${mobileView !== "list" ? "hidden md:flex" : "flex"} items-center justify-end px-4 py-2 border-b border-gray-200 bg-white`}
+      >
         <button
           type="button"
           onClick={handleSyncClick}
@@ -76,33 +82,44 @@ const SmartsuppChatsPage: React.FC = () => {
       </div>
 
       <div className="flex flex-1 overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200">
-        {listPanelOpen && (
-          <div className="w-96 flex-shrink-0 overflow-hidden">
-            <ConversationList
-              conversations={conversations}
-              selectedId={selectedId}
-              status={status}
-              isLoading={isLoading}
-              onSelect={setSelectedId}
-              onStatusChange={(s) => {
-                setStatus(s);
-                setSelectedId(null);
-              }}
-            />
-          </div>
-        )}
-        <CollapsibleRail
-          side="left"
-          isOpen={listPanelOpen}
-          label="Seznam konverzací"
-          onToggle={() => togglePanel(LIST_PANEL_KEY, setListPanelOpen)}
-        />
+        <div
+          className={`${mobileView === "list" ? "flex" : "hidden"} ${listPanelOpen ? "md:flex" : "md:hidden"} flex-col w-full md:w-96 flex-shrink-0 overflow-hidden`}
+        >
+          <ConversationList
+            conversations={conversations}
+            selectedId={selectedId}
+            status={status}
+            isLoading={isLoading}
+            onSelect={(id) => {
+              setSelectedId(id);
+              setMobileView("chat");
+            }}
+            onStatusChange={(s) => {
+              setStatus(s);
+              setSelectedId(null);
+              setMobileView("list");
+            }}
+          />
+        </div>
 
-        <div className="flex-1 overflow-hidden min-w-0">
+        <div className="hidden md:flex">
+          <CollapsibleRail
+            side="left"
+            isOpen={listPanelOpen}
+            label="Seznam konverzací"
+            onToggle={() => togglePanel(LIST_PANEL_KEY, setListPanelOpen)}
+          />
+        </div>
+
+        <div
+          className={`${mobileView === "chat" ? "flex" : "hidden"} md:flex flex-col flex-1 overflow-hidden min-w-0`}
+        >
           {selectedConversation ? (
             <ConversationDetail
               conversationId={selectedId!}
               conversation={selectedConversation}
+              onBack={() => setMobileView("list")}
+              onOpenContactDetails={() => setMobileView("contact")}
               initialDraft={drafts[selectedId!] ?? ""}
               onDraftChange={(text) => handleDraftChange(selectedId!, text)}
             />
@@ -114,7 +131,7 @@ const SmartsuppChatsPage: React.FC = () => {
         </div>
 
         {selectedConversation && (
-          <div className="hidden lg:flex">
+          <div className="hidden md:flex">
             <CollapsibleRail
               side="right"
               isOpen={contactPanelOpen}
@@ -126,6 +143,29 @@ const SmartsuppChatsPage: React.FC = () => {
                 <ContactDetailsPanel conversation={selectedConversation} />
               </div>
             )}
+          </div>
+        )}
+
+        {mobileView === "contact" && selectedConversation && (
+          <div
+            data-testid="mobile-contact-subpage"
+            className="flex flex-col w-full md:hidden overflow-hidden"
+          >
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200 bg-white">
+              <button
+                type="button"
+                data-testid="back-to-chat-btn"
+                onClick={() => setMobileView("chat")}
+                aria-label="Zpět na konverzaci"
+                className="flex items-center justify-center min-h-[40px] min-w-[40px] p-1 -ml-1 text-gray-600 flex-shrink-0"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <span className="font-semibold text-gray-900">Detail kontaktu</span>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <ContactDetailsPanel conversation={selectedConversation} />
+            </div>
           </div>
         )}
       </div>

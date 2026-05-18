@@ -85,19 +85,19 @@ describe("SmartsuppChatsPage", () => {
     expect(screen.getByText("Všechny konverzace")).toBeInTheDocument();
   });
 
-  it("collapses the conversation list when its rail is clicked", () => {
+  it("persists the collapsed state to localStorage when the left rail is clicked", () => {
     render(wrap(<SmartsuppChatsPage />));
 
     fireEvent.click(screen.getByTestId("collapsible-rail-left"));
 
-    expect(screen.queryByText("Všechny konverzace")).not.toBeInTheDocument();
     expect(localStorage.getItem("smartsupp.listPanel.open")).toBe("false");
   });
 
-  it("restores a collapsed conversation list from localStorage", () => {
+  it("shows the conversation list in list view even when listPanel.open is stored as false", () => {
     localStorage.setItem("smartsupp.listPanel.open", "false");
     render(wrap(<SmartsuppChatsPage />));
-    expect(screen.queryByText("Všechny konverzace")).not.toBeInTheDocument();
+    // Mobile (jsdom) always renders the list in list view regardless of listPanelOpen
+    expect(screen.getByText("Všechny konverzace")).toBeInTheDocument();
   });
 
   it("keeps the contact panel collapsed by default once a conversation is selected", () => {
@@ -117,6 +117,38 @@ describe("SmartsuppChatsPage", () => {
     fireEvent.click(screen.getByTestId("collapsible-rail-right"));
 
     expect(localStorage.getItem("smartsupp.contactPanel.open")).toBe("true");
+  });
+
+  it("shows navigation buttons in ConversationDetail after a conversation is selected", () => {
+    render(wrap(<SmartsuppChatsPage />));
+    expect(screen.queryByTestId("back-to-list-btn")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
+    expect(screen.getByTestId("back-to-list-btn")).toBeInTheDocument();
+    expect(screen.getByTestId("open-contact-details-btn")).toBeInTheDocument();
+  });
+
+  it("clicking the info button shows the mobile contact subpage", () => {
+    render(wrap(<SmartsuppChatsPage />));
+    fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
+    expect(screen.queryByTestId("mobile-contact-subpage")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("open-contact-details-btn"));
+    expect(screen.getByTestId("mobile-contact-subpage")).toBeInTheDocument();
+  });
+
+  it("the contact back button hides the mobile contact subpage", () => {
+    render(wrap(<SmartsuppChatsPage />));
+    fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
+    fireEvent.click(screen.getByTestId("open-contact-details-btn"));
+    expect(screen.getByTestId("mobile-contact-subpage")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("back-to-chat-btn"));
+    expect(screen.queryByTestId("mobile-contact-subpage")).not.toBeInTheDocument();
+  });
+
+  it("the chat back button does not show the mobile contact subpage", () => {
+    render(wrap(<SmartsuppChatsPage />));
+    fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
+    fireEvent.click(screen.getByTestId("back-to-list-btn"));
+    expect(screen.queryByTestId("mobile-contact-subpage")).not.toBeInTheDocument();
   });
 
   it("preserves draft text when switching between conversations", () => {
