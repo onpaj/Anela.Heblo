@@ -95,8 +95,22 @@ public class ShoptetApiExpeditionListSourceTests
         };
     }
 
-    private static ShoptetApiExpeditionListSource BuildSource(ShoptetOrderClient client) =>
-        new(client, TimeProvider.System, new Mock<ICatalogRepository>().Object);
+    private static ShoptetApiExpeditionListSource BuildSource(
+        ShoptetOrderClient client,
+        ICarrierCoolingRepository? carrierCooling = null,
+        Func<ExpeditionProtocolData, byte[]>? generateDocument = null)
+    {
+        var coolingRepo = carrierCooling ?? BuildEmptyCoolingRepo();
+        return new ShoptetApiExpeditionListSource(client, TimeProvider.System, new Mock<ICatalogRepository>().Object, coolingRepo, generateDocument);
+    }
+
+    private static ICarrierCoolingRepository BuildEmptyCoolingRepo()
+    {
+        var mock = new Mock<ICarrierCoolingRepository>();
+        mock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<CarrierCoolingSetting>());
+        return mock.Object;
+    }
 
     private static PrintPickingListRequest DefaultRequest(bool changeState = false) =>
         new()
@@ -499,6 +513,7 @@ public class ShoptetApiExpeditionListSourceTests
             CustomerName = "Test",
             Address = "Praha",
             Phone = "123",
+            CarrierCooling = Cooling.L2,
             Items = new List<ExpeditionOrderItem>
             {
                 new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.None },
@@ -520,6 +535,7 @@ public class ShoptetApiExpeditionListSourceTests
             CustomerName = "Test",
             Address = "Praha",
             Phone = "123",
+            CarrierCooling = Cooling.L1,
             Items = new List<ExpeditionOrderItem>
             {
                 new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.None },
@@ -541,6 +557,7 @@ public class ShoptetApiExpeditionListSourceTests
             CustomerName = "Test",
             Address = "Praha",
             Phone = "123",
+            CarrierCooling = Cooling.L2,
             Items = new List<ExpeditionOrderItem>
             {
                 new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.L2 },
@@ -548,6 +565,57 @@ public class ShoptetApiExpeditionListSourceTests
         };
 
         // Act + Assert
+        order.IsCooled.Should().BeTrue();
+    }
+
+    // ─── IsCooled truth table (carrier-aware) ─────────────────────────────────────
+
+    [Theory]
+    // Carrier None → never show ribbon regardless of product cooling
+    [InlineData(Cooling.None, Cooling.None,  false)]
+    [InlineData(Cooling.None, Cooling.L1,   false)]
+    [InlineData(Cooling.None, Cooling.L2,   false)]
+    // Carrier L1 → only L1 products trigger ribbon (L2 > L1 so does NOT match)
+    [InlineData(Cooling.L1,   Cooling.None,  false)]
+    [InlineData(Cooling.L1,   Cooling.L1,   true)]
+    [InlineData(Cooling.L1,   Cooling.L2,   false)]
+    // Carrier L2 → L1 and L2 products both trigger ribbon
+    [InlineData(Cooling.L2,   Cooling.None,  false)]
+    [InlineData(Cooling.L2,   Cooling.L1,   true)]
+    [InlineData(Cooling.L2,   Cooling.L2,   true)]
+    public void IsCooled_MatchesCarrierAwareRule(Cooling carrierCooling, Cooling itemCooling, bool expected)
+    {
+        var order = new ExpeditionOrder
+        {
+            Code = "ORD001",
+            CustomerName = "Test",
+            Address = "Praha",
+            Phone = "123",
+            CarrierCooling = carrierCooling,
+            Items = [new ExpeditionOrderItem { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = itemCooling }],
+        };
+
+        order.IsCooled.Should().Be(expected);
+    }
+
+    [Fact]
+    public void IsCooled_True_WhenAtLeastOneItemMatchesCarrierLevel()
+    {
+        // L2 carrier, two items: L2 item and None item — the L2 item qualifies
+        var order = new ExpeditionOrder
+        {
+            Code = "ORD002",
+            CustomerName = "Test",
+            Address = "Praha",
+            Phone = "123",
+            CarrierCooling = Cooling.L2,
+            Items =
+            [
+                new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.None },
+                new() { ProductCode = "P002", Name = "B", Variant = string.Empty, WarehousePosition = "A2", Quantity = 1, Cooling = Cooling.L2 },
+            ],
+        };
+
         order.IsCooled.Should().BeTrue();
     }
 
@@ -573,7 +641,7 @@ public class ShoptetApiExpeditionListSourceTests
                 Properties = new CatalogProperties { Cooling = Cooling.L1 },
             });
 
-        var source = new ShoptetApiExpeditionListSource(client, TimeProvider.System, catalogMock.Object);
+        var source = new ShoptetApiExpeditionListSource(client, TimeProvider.System, catalogMock.Object, BuildEmptyCoolingRepo());
 
         // Act
         var result = await source.CreatePickingList(DefaultRequest(), null);
@@ -633,6 +701,222 @@ public class ShoptetApiExpeditionListSourceTests
 
         // Assert
         item.Cooling.Should().Be(Cooling.None);
+    }
+
+    // ─── ResolveCarrierCooling ────────────────────────────────────────────────────
+
+    [Fact]
+    public void ResolveCarrierCooling_ReturnsCoolingFromMatrix_WhenKeyExists()
+    {
+        var matrix = new Dictionary<(Carriers, DeliveryHandling), Cooling>
+        {
+            [(Carriers.PPL, DeliveryHandling.NaRuky)] = Cooling.L1,
+        };
+
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCooling(PplDoRukyGuid, matrix);
+
+        result.Should().Be(Cooling.L1);
+    }
+
+    [Fact]
+    public void ResolveCarrierCooling_ReturnsNone_WhenGuidNotInRegistry()
+    {
+        var matrix = new Dictionary<(Carriers, DeliveryHandling), Cooling>
+        {
+            [(Carriers.PPL, DeliveryHandling.NaRuky)] = Cooling.L1,
+        };
+
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCooling("unknown-guid", matrix);
+
+        result.Should().Be(Cooling.None);
+    }
+
+    [Fact]
+    public void ResolveCarrierCooling_ReturnsNone_WhenMatrixHasNoEntryForCarrierHandling()
+    {
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCooling(
+            PplDoRukyGuid,
+            new Dictionary<(Carriers, DeliveryHandling), Cooling>());
+
+        result.Should().Be(Cooling.None);
+    }
+
+    [Fact]
+    public void ResolveCarrierCooling_ReturnsNone_ForExportMethod()
+    {
+        // PPL_EXPORT — ResolveDeliveryHandling returns null for EXPORT → always None
+        const string PplExportGuid = "f17a0a12-0ebe-11eb-933a-002590dad85e";
+        var matrix = new Dictionary<(Carriers, DeliveryHandling), Cooling>
+        {
+            [(Carriers.PPL, DeliveryHandling.NaRuky)] = Cooling.L1,
+            [(Carriers.PPL, DeliveryHandling.Box)] = Cooling.L2,
+        };
+
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCooling(PplExportGuid, matrix);
+
+        result.Should().Be(Cooling.None);
+    }
+
+    // ─── CreatePickingList — carrier cooling integration ──────────────────────────
+
+    [Fact]
+    public async Task CreatePickingList_AssignsCarrierCooling_FromMatrix()
+    {
+        var listResp = SinglePageList(("P001", PplDoRukyGuid));
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
+                return Json(listResp);
+            return Json(DetailFor(req.RequestUri.Segments.Last()));
+        });
+
+        var coolingMock = new Mock<ICarrierCoolingRepository>();
+        coolingMock
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new CarrierCoolingSetting(Carriers.PPL, DeliveryHandling.NaRuky, Cooling.L1, "test"),
+            });
+
+        var capturedOrders = new List<ExpeditionOrder>();
+        var source = BuildSource(client, coolingMock.Object, data =>
+        {
+            capturedOrders.AddRange(data.Orders);
+            return Array.Empty<byte>();
+        });
+
+        var result = await source.CreatePickingList(DefaultRequest(), null);
+
+        coolingMock.Verify(r => r.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
+        result.TotalCount.Should().Be(1);
+        capturedOrders.Should().ContainSingle()
+            .Which.CarrierCooling.Should().Be(Cooling.L1);
+    }
+
+    [Fact]
+    public async Task CreatePickingList_LoadsMatrixOnce_AcrossMultipleOrderBatches()
+    {
+        // Two carriers → two batches → matrix still loaded only once
+        var listResp = SinglePageList(("Z001", ZasilkovnaDoRukyGuid), ("P001", PplDoRukyGuid));
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
+                return Json(listResp);
+            return Json(DetailFor(req.RequestUri.Segments.Last()));
+        });
+
+        var coolingMock = new Mock<ICarrierCoolingRepository>();
+        coolingMock
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<CarrierCoolingSetting>());
+
+        var source = BuildSource(client, coolingMock.Object);
+
+        var result = await source.CreatePickingList(DefaultRequest(), null);
+
+        coolingMock.Verify(r => r.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
+        result.TotalCount.Should().Be(2);
+
+        foreach (var file in result.ExportedFiles.Where(File.Exists))
+            File.Delete(file);
+    }
+
+    // ─── ResolveDeliveryHandling ──────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("ZASILKOVNA_DO_RUKY")]
+    [InlineData("PPL_DO_RUKY")]
+    [InlineData("PPL_DO_RUKY_CHLAZENY")]
+    [InlineData("ZASILKOVNA_DO_RUKY_SK")]
+    [InlineData("ZASILKOVNA_DO_RUKY_SK_CHLAZENY")]
+    [InlineData("GLS_DO_RUKY")]
+    public void ResolveDeliveryHandling_ReturnsNaRuky_ForDoRukyMethods(string name)
+    {
+        var method = new ShippingMethod { Carrier = Carriers.PPL, Name = name, Guids = [] };
+        ShippingMethodRegistry.ResolveDeliveryHandling(method).Should().Be(DeliveryHandling.NaRuky);
+    }
+
+    [Theory]
+    [InlineData("PPL_PARCELSHOP")]
+    [InlineData("PPL_PARCELSHOP_CHLAZENY")]
+    [InlineData("ZASILKOVNA_ZPOINT")]
+    [InlineData("ZASILKOVNA_ZPOINT_CHLAZENY")]
+    [InlineData("ZASILKOVNA_ZPOINT_ZDARMA")]
+    [InlineData("ZASILKOVNA_ZPOINT_CHLAZENY_ZDARMA")]
+    [InlineData("GLS_PARCELSHOP")]
+    public void ResolveDeliveryHandling_ReturnsBox_ForParcelshopAndZpointMethods(string name)
+    {
+        var method = new ShippingMethod { Carrier = Carriers.PPL, Name = name, Guids = [] };
+        ShippingMethodRegistry.ResolveDeliveryHandling(method).Should().Be(DeliveryHandling.Box);
+    }
+
+    [Theory]
+    [InlineData("PPL_EXPORT")]
+    [InlineData("PPL_EXPORT_CHLAZENY")]
+    [InlineData("GLS_EXPORT")]
+    [InlineData("OSOBAK")]
+    public void ResolveDeliveryHandling_ReturnsNull_ForExportAndOsobakMethods(string name)
+    {
+        var method = new ShippingMethod { Carrier = Carriers.PPL, Name = name, Guids = [] };
+        ShippingMethodRegistry.ResolveDeliveryHandling(method).Should().BeNull();
+    }
+
+    // ─── DisplayName ─────────────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("ZASILKOVNA_DO_RUKY",                "Zásilkovna (do ruky)")]
+    [InlineData("ZASILKOVNA_ZPOINT",                 "Zásilkovna Z-Point")]
+    [InlineData("ZASILKOVNA_DO_RUKY_SK",             "Zásilkovna (do ruky) SK")]
+    [InlineData("ZASILKOVNA_DO_RUKY_CHLAZENY",       "Zásilkovna chlazený balík (do ruky)")]
+    [InlineData("ZASILKOVNA_ZPOINT_CHLAZENY",        "Zásilkovna Z-Point chlazený balík")]
+    [InlineData("ZASILKOVNA_DO_RUKY_SK_CHLAZENY",    "Zásilkovna SK chlazený balík (do ruky)")]
+    [InlineData("ZASILKOVNA_ZPOINT_ZDARMA",          "Zásilkovna Z-Point - DOPRAVA ZDARMA")]
+    [InlineData("ZASILKOVNA_ZPOINT_CHLAZENY_ZDARMA", "Zásilkovna Z-Point - PLATÍTE POUZE CHLADÍTKO")]
+    [InlineData("PPL_DO_RUKY",                       "PPL (do ruky)")]
+    [InlineData("PPL_PARCELSHOP",                    "PPL ParcelShop")]
+    [InlineData("PPL_EXPORT",                        "PPL Export")]
+    [InlineData("PPL_DO_RUKY_CHLAZENY",              "PPL chlazený balík (do ruky)")]
+    [InlineData("PPL_PARCELSHOP_CHLAZENY",           "PPL ParcelShop chlazený balík")]
+    [InlineData("PPL_EXPORT_CHLAZENY",               "PPL Export chlazený balík")]
+    [InlineData("GLS_DO_RUKY",                       "GLS (do ruky)")]
+    [InlineData("GLS_EXPORT",                        "GLS Export")]
+    [InlineData("GLS_PARCELSHOP",                    "GLS ParcelShop")]
+    [InlineData("OSOBAK",                            "Osobní odběr")]
+    public void ShippingMethod_DisplayName_IsSetForAllRegisteredMethods(string methodName, string expectedDisplayName)
+    {
+        var method = ShippingMethodRegistry.ShippingList
+            .FirstOrDefault(m => m.Name == methodName);
+
+        method.Should().NotBeNull($"method {methodName} should exist in the registry");
+        method!.DisplayName.Should().Be(expectedDisplayName);
+    }
+
+    // ─── Full method name in protocol data ───────────────────────────────────────
+
+    private const string ZasilkovnaZPointGuid = "7878c138-578d-11e9-beb1-002590dad85e";
+
+    [Fact]
+    public async Task CreatePickingList_UsesFullMethodDisplayName_InProtocolData()
+    {
+        var listResp = SinglePageList(("Z001", ZasilkovnaZPointGuid));
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
+                return Json(listResp);
+            return Json(DetailFor(req.RequestUri.Segments.Last()));
+        });
+
+        var capturedData = new List<ExpeditionProtocolData>();
+        var source = BuildSource(client, generateDocument: data =>
+        {
+            capturedData.Add(data);
+            return Array.Empty<byte>();
+        });
+
+        await source.CreatePickingList(DefaultRequest(), null);
+
+        capturedData.Should().ContainSingle()
+            .Which.CarrierDisplayName.Should().Be("Zásilkovna Z-Point");
     }
 }
 

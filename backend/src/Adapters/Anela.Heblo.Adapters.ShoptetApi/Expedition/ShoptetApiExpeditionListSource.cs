@@ -19,12 +19,21 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
     private readonly ShoptetOrderClient _client;
     private readonly TimeProvider _timeProvider;
     private readonly ICatalogRepository _catalog;
+    private readonly ICarrierCoolingRepository _carrierCooling;
+    private readonly Func<ExpeditionProtocolData, byte[]> _generateDocument;
 
-    public ShoptetApiExpeditionListSource(IEshopOrderClient client, TimeProvider timeProvider, ICatalogRepository catalog)
+    public ShoptetApiExpeditionListSource(
+        IEshopOrderClient client,
+        TimeProvider timeProvider,
+        ICatalogRepository catalog,
+        ICarrierCoolingRepository carrierCooling,
+        Func<ExpeditionProtocolData, byte[]>? generateDocument = null)
     {
         _client = (ShoptetOrderClient)client;
         _timeProvider = timeProvider;
         _catalog = catalog;
+        _carrierCooling = carrierCooling;
+        _generateDocument = generateDocument ?? ExpeditionProtocolDocument.Generate;
     }
 
     public async Task<PrintPickingListResult> CreatePickingList(
@@ -40,7 +49,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             ? new HashSet<Carriers>(request.Carriers)
             : null;
 
-        var ordersByCarrier = new Dictionary<Carriers, List<(string Code, string ShippingGuid)>>();
+        var ordersByMethod = new Dictionary<ShippingMethod, List<(string Code, string ShippingGuid)>>();
         foreach (var order in allOrders)
         {
             var shippingGuid = order.Shipping?.Guid;
@@ -49,10 +58,10 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             if (carrierFilter != null && !carrierFilter.Contains(method.Carrier))
                 continue;
 
-            if (!ordersByCarrier.TryGetValue(method.Carrier, out var list))
+            if (!ordersByMethod.TryGetValue(method, out var list))
             {
                 list = new List<(string, string)>();
-                ordersByCarrier[method.Carrier] = list;
+                ordersByMethod[method] = list;
             }
 
             list.Add((order.Code, shippingGuid));
@@ -62,24 +71,29 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         var processedCodes = new List<string>();
         var timestamp = _timeProvider.GetFilenameTimestamp();
 
-        foreach (var (carrier, orders) in ordersByCarrier)
-        {
-            // Sort by shippingGuid so same method types are together
-            var sorted = orders.OrderBy(o => o.ShippingGuid).ToList();
+        // Load carrier cooling matrix once for the entire run
+        var allSettings = await _carrierCooling.GetAllAsync(cancellationToken);
+        var coolingMatrix = allSettings.ToDictionary(
+            s => (s.Carrier, s.DeliveryHandling),
+            s => s.Cooling);
 
-            // Determine batch limits from the first shipping method for this carrier
-            var maxItems = ShippingMethodRegistry.ByGuid.TryGetValue(sorted[0].ShippingGuid, out var sm) ? sm.MaxItems : 20;
-            var maxOrders = sm?.MaxOrders ?? int.MaxValue;
-            var carrierDisplayName = carrier.ToString();
+        foreach (var (method, orders) in ordersByMethod)
+        {
+            var sorted = orders;
+            var maxItems = method.MaxItems;
+            var maxOrders = method.MaxOrders;
+            var carrierDisplayName = method.DisplayName;
 
             // 3. Fetch all order details for this carrier upfront, then batch greedily by item count.
             //    This ensures batches are split based on how much content fits on a printed page,
             //    rather than by an arbitrary order count.
             var allExpeditionOrders = new List<ExpeditionOrder>();
-            foreach (var (code, _) in sorted)
+            foreach (var (code, shippingGuid) in sorted)
             {
                 var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
-                allExpeditionOrders.Add(MapToExpeditionOrder(detail));
+                var expeditionOrder = MapToExpeditionOrder(detail);
+                expeditionOrder.CarrierCooling = ResolveCarrierCooling(shippingGuid, coolingMatrix);
+                allExpeditionOrders.Add(expeditionOrder);
                 processedCodes.Add(code);
             }
 
@@ -120,8 +134,8 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                     Orders = batch,
                 };
 
-                var pdfBytes = ExpeditionProtocolDocument.Generate(data);
-                var fileName = $"{timestamp}_{carrier}_{batchIndex}.pdf";
+                var pdfBytes = _generateDocument(data);
+                var fileName = $"{timestamp}_{method.Name}_{batchIndex}.pdf";
                 var filePath = Path.Combine(Path.GetTempPath(), fileName);
                 await File.WriteAllBytesAsync(filePath, pdfBytes, cancellationToken);
                 exportedFiles.Add(filePath);
@@ -227,6 +241,22 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             if (coolingByCode.TryGetValue(item.ProductCode, out var cooling))
                 item.Cooling = cooling;
         }
+    }
+
+    internal static Cooling ResolveCarrierCooling(
+        string shippingGuid,
+        IReadOnlyDictionary<(Carriers, DeliveryHandling), Cooling> matrix)
+    {
+        if (!ShippingMethodRegistry.ByGuid.TryGetValue(shippingGuid, out var method))
+            return Cooling.None;
+
+        var handling = ShippingMethodRegistry.ResolveDeliveryHandling(method);
+        if (!handling.HasValue)
+            return Cooling.None;
+
+        return matrix.TryGetValue((method.Carrier, handling.Value), out var cooling)
+            ? cooling
+            : Cooling.None;
     }
 
     internal static List<ExpeditionOrderItem> MapOrderItems(Model.ExpeditionOrderDetail detail)

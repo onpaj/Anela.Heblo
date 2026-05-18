@@ -14,6 +14,8 @@ public class ShippingMethod
 
     public string Name { get; set; } = null!;
 
+    public string DisplayName { get; set; } = null!;
+
     /// <summary>
     /// Maximum number of item lines (across all orders in a batch) before starting a new batch.
     /// Controls how many orders end up in a single PDF so that the printed protocol fits on two pages.
