@@ -550,6 +550,46 @@ public class ShoptetApiExpeditionListSourceTests
         // Act + Assert
         order.IsCooled.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task CreatePickingList_EnrichesCooling_FromCatalog()
+    {
+        // Arrange — one Zasilkovna order with product P001; catalog returns Cooling=L1 for P001
+        var listResp = SinglePageList(("Z001", ZasilkovnaDoRukyGuid));
+
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
+                return Json(listResp);
+            return Json(DetailFor(req.RequestUri.Segments.Last()));  // P001 item
+        });
+
+        var catalogMock = new Mock<ICatalogRepository>();
+        catalogMock
+            .Setup(c => c.GetByIdAsync("P001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CatalogAggregate
+            {
+                ProductCode = "P001",
+                Properties = new CatalogProperties { Cooling = Cooling.L1 },
+            });
+
+        var source = new ShoptetApiExpeditionListSource(client, TimeProvider.System, catalogMock.Object);
+
+        // Act
+        var act = async () => await source.CreatePickingList(DefaultRequest(), null);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+
+        // Catalog must have been called for the product code
+        catalogMock.Verify(c => c.GetByIdAsync("P001", It.IsAny<CancellationToken>()), Times.Once);
+
+        // Cleanup
+        foreach (var file in Directory.GetFiles(Path.GetTempPath(), "*.pdf").Where(File.Exists))
+        {
+            try { File.Delete(file); } catch { /* best effort */ }
+        }
+    }
 }
 
 /// <summary>
