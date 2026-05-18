@@ -499,6 +499,7 @@ public class ShoptetApiExpeditionListSourceTests
             CustomerName = "Test",
             Address = "Praha",
             Phone = "123",
+            CarrierCooling = Cooling.L2,
             Items = new List<ExpeditionOrderItem>
             {
                 new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.None },
@@ -520,6 +521,7 @@ public class ShoptetApiExpeditionListSourceTests
             CustomerName = "Test",
             Address = "Praha",
             Phone = "123",
+            CarrierCooling = Cooling.L1,
             Items = new List<ExpeditionOrderItem>
             {
                 new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.None },
@@ -541,6 +543,7 @@ public class ShoptetApiExpeditionListSourceTests
             CustomerName = "Test",
             Address = "Praha",
             Phone = "123",
+            CarrierCooling = Cooling.L2,
             Items = new List<ExpeditionOrderItem>
             {
                 new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.L2 },
@@ -548,6 +551,57 @@ public class ShoptetApiExpeditionListSourceTests
         };
 
         // Act + Assert
+        order.IsCooled.Should().BeTrue();
+    }
+
+    // ─── IsCooled truth table (carrier-aware) ─────────────────────────────────────
+
+    [Theory]
+    // Carrier None → never show ribbon regardless of product cooling
+    [InlineData(Cooling.None, Cooling.None,  false)]
+    [InlineData(Cooling.None, Cooling.L1,   false)]
+    [InlineData(Cooling.None, Cooling.L2,   false)]
+    // Carrier L1 → only L1 products trigger ribbon (L2 > L1 so does NOT match)
+    [InlineData(Cooling.L1,   Cooling.None,  false)]
+    [InlineData(Cooling.L1,   Cooling.L1,   true)]
+    [InlineData(Cooling.L1,   Cooling.L2,   false)]
+    // Carrier L2 → L1 and L2 products both trigger ribbon
+    [InlineData(Cooling.L2,   Cooling.None,  false)]
+    [InlineData(Cooling.L2,   Cooling.L1,   true)]
+    [InlineData(Cooling.L2,   Cooling.L2,   true)]
+    public void IsCooled_MatchesCarrierAwareRule(Cooling carrierCooling, Cooling itemCooling, bool expected)
+    {
+        var order = new ExpeditionOrder
+        {
+            Code = "ORD001",
+            CustomerName = "Test",
+            Address = "Praha",
+            Phone = "123",
+            CarrierCooling = carrierCooling,
+            Items = [new ExpeditionOrderItem { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = itemCooling }],
+        };
+
+        order.IsCooled.Should().Be(expected);
+    }
+
+    [Fact]
+    public void IsCooled_True_WhenAtLeastOneItemMatchesCarrierLevel()
+    {
+        // L2 carrier, two items: L2 item and None item — the L2 item qualifies
+        var order = new ExpeditionOrder
+        {
+            Code = "ORD002",
+            CustomerName = "Test",
+            Address = "Praha",
+            Phone = "123",
+            CarrierCooling = Cooling.L2,
+            Items =
+            [
+                new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.None },
+                new() { ProductCode = "P002", Name = "B", Variant = string.Empty, WarehousePosition = "A2", Quantity = 1, Cooling = Cooling.L2 },
+            ],
+        };
+
         order.IsCooled.Should().BeTrue();
     }
 
