@@ -327,4 +327,48 @@ public sealed class IngestPlaudRecordingHandlerTests
         saved.Should().NotBeNull();
         saved!.Subject.Should().Be("Týmová porada: Z-boxy a dopravci");
     }
+
+    [Fact]
+    public async Task Handle_WhenRecordingNameEmpty_UsesHeadlineAsSubject()
+    {
+        // Arrange
+        var request = new IngestPlaudRecordingRequest
+        {
+            PlaudRecordingId = "rec_unnamed",
+            Name = "",
+            PlaudCreatedAt = DateTime.UtcNow
+        };
+
+        _mockRepository
+            .Setup(r => r.ExistsByPlaudIdAsync(request.PlaudRecordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        _mockPlaudClient
+            .Setup(c => c.GetFileDetailAsync(request.PlaudRecordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudFileDetail { TranscriptAvailable = true, SummaryAvailable = true, AudioAvailable = true });
+        _mockPlaudClient
+            .Setup(c => c.GetTranscriptAsync(request.PlaudRecordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("transcript");
+        _mockPlaudClient
+            .Setup(c => c.GetSummaryAsync(request.PlaudRecordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudSummaryResult("Generated Meeting Title", "summary"));
+        _mockExtractor
+            .Setup(e => e.ExtractAsync("summary", "transcript", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExtractedTask>());
+
+        MeetingTranscript? saved = null;
+        _mockRepository
+            .Setup(r => r.AddAsync(It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()))
+            .Callback<MeetingTranscript, CancellationToken>((t, _) => saved = t);
+        _mockRepository
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        saved.Should().NotBeNull();
+        saved!.Subject.Should().Be("Generated Meeting Title");
+    }
 }
