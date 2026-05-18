@@ -22,5 +22,14 @@ public interface IMeetingTranscriptRepository
         IReadOnlyList<MeetingAccessGrant> newGrants,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// Removes all Pending tasks from the transcript and replaces them with
+    /// <paramref name="newTasks"/>. Approved and Rejected tasks are preserved.
+    /// </summary>
+    Task ReplacePendingTasksAsync(
+        MeetingTranscript transcript,
+        IReadOnlyList<ProposedTask> newTasks,
+        CancellationToken ct = default);
+
     Task SaveChangesAsync(CancellationToken ct = default);
 }
