@@ -10,6 +10,7 @@ interface CarrierCoolingMatrixProps {
   groups: CarrierGroupDto[];
   onSetCooling: (request: SetCarrierCoolingRequest) => void;
   isSaving: boolean;
+  savingRow: { carrier: Carriers; deliveryHandling: DeliveryHandling } | null;
 }
 
 const CARRIER_LABELS: Record<Carriers, string> = {
@@ -30,7 +31,7 @@ const COOLING_OPTIONS: { value: Cooling; label: string }[] = [
   { value: 'L2', label: 'L2' },
 ];
 
-function CarrierCoolingMatrix({ groups, onSetCooling, isSaving }: CarrierCoolingMatrixProps) {
+function CarrierCoolingMatrix({ groups, onSetCooling, isSaving, savingRow }: CarrierCoolingMatrixProps) {
   return (
     <div className="space-y-4 p-4">
       {groups.map((group) => (
@@ -46,6 +47,11 @@ function CarrierCoolingMatrix({ groups, onSetCooling, isSaving }: CarrierCooling
           <div className="divide-y divide-gray-50">
             {group.rows.map((row) => {
               const radioName = `${group.carrier}-${row.deliveryHandling}`;
+
+              const isThisRowSaving =
+                isSaving &&
+                savingRow?.carrier === group.carrier &&
+                savingRow?.deliveryHandling === row.deliveryHandling;
 
               return (
                 <div
@@ -80,7 +86,7 @@ function CarrierCoolingMatrix({ groups, onSetCooling, isSaving }: CarrierCooling
                       </label>
                     ))}
                   </div>
-                  {isSaving && (
+                  {isThisRowSaving && (
                     <span className="text-xs text-gray-400 ml-2 animate-pulse">
                       Ukládám…
                     </span>

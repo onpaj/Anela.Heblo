@@ -8,7 +8,7 @@ import {
 
 function CoolingPage() {
   const { data, isLoading, error } = useCarrierCoolingMatrix();
-  const { mutate: setCooling, isPending } = useSetCarrierCooling();
+  const { mutate: setCooling, isPending, variables: savingRow } = useSetCarrierCooling();
 
   return (
     <div
@@ -43,6 +43,7 @@ function CoolingPage() {
             groups={data.groups}
             onSetCooling={setCooling}
             isSaving={isPending}
+            savingRow={savingRow ?? null}
           />
         )}
       </div>
