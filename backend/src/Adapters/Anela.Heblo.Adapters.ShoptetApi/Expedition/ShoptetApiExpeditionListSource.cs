@@ -20,17 +20,20 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
     private readonly TimeProvider _timeProvider;
     private readonly ICatalogRepository _catalog;
     private readonly ICarrierCoolingRepository _carrierCooling;
+    private readonly Func<ExpeditionProtocolData, byte[]> _generateDocument;
 
     public ShoptetApiExpeditionListSource(
         IEshopOrderClient client,
         TimeProvider timeProvider,
         ICatalogRepository catalog,
-        ICarrierCoolingRepository carrierCooling)
+        ICarrierCoolingRepository carrierCooling,
+        Func<ExpeditionProtocolData, byte[]>? generateDocument = null)
     {
         _client = (ShoptetOrderClient)client;
         _timeProvider = timeProvider;
         _catalog = catalog;
         _carrierCooling = carrierCooling;
+        _generateDocument = generateDocument ?? ExpeditionProtocolDocument.Generate;
     }
 
     public async Task<PrintPickingListResult> CreatePickingList(
@@ -134,7 +137,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                     Orders = batch,
                 };
 
-                var pdfBytes = ExpeditionProtocolDocument.Generate(data);
+                var pdfBytes = _generateDocument(data);
                 var fileName = $"{timestamp}_{carrier}_{batchIndex}.pdf";
                 var filePath = Path.Combine(Path.GetTempPath(), fileName);
                 await File.WriteAllBytesAsync(filePath, pdfBytes, cancellationToken);

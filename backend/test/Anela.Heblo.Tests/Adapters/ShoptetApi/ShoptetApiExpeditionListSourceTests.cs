@@ -97,10 +97,11 @@ public class ShoptetApiExpeditionListSourceTests
 
     private static ShoptetApiExpeditionListSource BuildSource(
         ShoptetOrderClient client,
-        ICarrierCoolingRepository? carrierCooling = null)
+        ICarrierCoolingRepository? carrierCooling = null,
+        Func<ExpeditionProtocolData, byte[]>? generateDocument = null)
     {
         var coolingRepo = carrierCooling ?? BuildEmptyCoolingRepo();
-        return new ShoptetApiExpeditionListSource(client, TimeProvider.System, new Mock<ICatalogRepository>().Object, coolingRepo);
+        return new ShoptetApiExpeditionListSource(client, TimeProvider.System, new Mock<ICatalogRepository>().Object, coolingRepo, generateDocument);
     }
 
     private static ICarrierCoolingRepository BuildEmptyCoolingRepo()
@@ -777,15 +778,19 @@ public class ShoptetApiExpeditionListSourceTests
                 new CarrierCoolingSetting(Carriers.PPL, DeliveryHandling.NaRuky, Cooling.L1, "test"),
             });
 
-        var source = BuildSource(client, coolingMock.Object);
+        var capturedOrders = new List<ExpeditionOrder>();
+        var source = BuildSource(client, coolingMock.Object, data =>
+        {
+            capturedOrders.AddRange(data.Orders);
+            return Array.Empty<byte>();
+        });
 
         var result = await source.CreatePickingList(DefaultRequest(), null);
 
         coolingMock.Verify(r => r.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
         result.TotalCount.Should().Be(1);
-
-        foreach (var file in result.ExportedFiles.Where(File.Exists))
-            File.Delete(file);
+        capturedOrders.Should().ContainSingle()
+            .Which.CarrierCooling.Should().Be(Cooling.L1);
     }
 
     [Fact]
