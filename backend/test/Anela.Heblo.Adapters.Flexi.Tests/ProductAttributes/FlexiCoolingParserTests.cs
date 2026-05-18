@@ -28,6 +28,7 @@ public class FlexiCoolingParserTests
     [InlineData("l2", Cooling.L2)]
     [InlineData(" L2 ", Cooling.L2)]
     [InlineData(" l1 ", Cooling.L1)]
+    [InlineData("NONE", Cooling.None)]
     public void ParseCooling_WithValidValues_ReturnsParsedEnum(string input, Cooling expected)
     {
         var result = FlexiProductAttributesQueryClient.ParseCooling(input);
@@ -40,7 +41,6 @@ public class FlexiCoolingParserTests
     [InlineData("   ")]
     [InlineData("L3")]
     [InlineData("garbage")]
-    [InlineData("NONE")]
     public void ParseCooling_WithInvalidOrMissingValues_ReturnsNone(string? input)
     {
         var result = FlexiProductAttributesQueryClient.ParseCooling(input);
