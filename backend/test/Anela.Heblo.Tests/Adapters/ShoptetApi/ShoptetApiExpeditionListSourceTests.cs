@@ -860,6 +860,64 @@ public class ShoptetApiExpeditionListSourceTests
         var method = new ShippingMethod { Carrier = Carriers.PPL, Name = name, Guids = [] };
         ShippingMethodRegistry.ResolveDeliveryHandling(method).Should().BeNull();
     }
+
+    // ─── DisplayName ─────────────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("ZASILKOVNA_DO_RUKY",                "Zásilkovna (do ruky)")]
+    [InlineData("ZASILKOVNA_ZPOINT",                 "Zásilkovna Z-Point")]
+    [InlineData("ZASILKOVNA_DO_RUKY_SK",             "Zásilkovna (do ruky) SK")]
+    [InlineData("ZASILKOVNA_DO_RUKY_CHLAZENY",       "Zásilkovna chlazený balík (do ruky)")]
+    [InlineData("ZASILKOVNA_ZPOINT_CHLAZENY",        "Zásilkovna Z-Point chlazený balík")]
+    [InlineData("ZASILKOVNA_DO_RUKY_SK_CHLAZENY",    "Zásilkovna SK chlazený balík (do ruky)")]
+    [InlineData("ZASILKOVNA_ZPOINT_ZDARMA",          "Zásilkovna Z-Point - DOPRAVA ZDARMA")]
+    [InlineData("ZASILKOVNA_ZPOINT_CHLAZENY_ZDARMA", "Zásilkovna Z-Point - PLATÍTE POUZE CHLADÍTKO")]
+    [InlineData("PPL_DO_RUKY",                       "PPL (do ruky)")]
+    [InlineData("PPL_PARCELSHOP",                    "PPL ParcelShop")]
+    [InlineData("PPL_EXPORT",                        "PPL Export")]
+    [InlineData("PPL_DO_RUKY_CHLAZENY",              "PPL chlazený balík (do ruky)")]
+    [InlineData("PPL_PARCELSHOP_CHLAZENY",           "PPL ParcelShop chlazený balík")]
+    [InlineData("PPL_EXPORT_CHLAZENY",               "PPL Export chlazený balík")]
+    [InlineData("GLS_DO_RUKY",                       "GLS (do ruky)")]
+    [InlineData("GLS_EXPORT",                        "GLS Export")]
+    [InlineData("GLS_PARCELSHOP",                    "GLS ParcelShop")]
+    [InlineData("OSOBAK",                            "Osobní odběr")]
+    public void ShippingMethod_DisplayName_IsSetForAllRegisteredMethods(string methodName, string expectedDisplayName)
+    {
+        var method = ShippingMethodRegistry.ShippingList
+            .FirstOrDefault(m => m.Name == methodName);
+
+        method.Should().NotBeNull($"method {methodName} should exist in the registry");
+        method!.DisplayName.Should().Be(expectedDisplayName);
+    }
+
+    // ─── Full method name in protocol data ───────────────────────────────────────
+
+    private const string ZasilkovnaZPointGuid = "7878c138-578d-11e9-beb1-002590dad85e";
+
+    [Fact]
+    public async Task CreatePickingList_UsesFullMethodDisplayName_InProtocolData()
+    {
+        var listResp = SinglePageList(("Z001", ZasilkovnaZPointGuid));
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
+                return Json(listResp);
+            return Json(DetailFor(req.RequestUri.Segments.Last()));
+        });
+
+        var capturedData = new List<ExpeditionProtocolData>();
+        var source = BuildSource(client, generateDocument: data =>
+        {
+            capturedData.Add(data);
+            return Array.Empty<byte>();
+        });
+
+        await source.CreatePickingList(DefaultRequest(), null);
+
+        capturedData.Should().ContainSingle()
+            .Which.CarrierDisplayName.Should().Be("Zásilkovna Z-Point");
+    }
 }
 
 /// <summary>
