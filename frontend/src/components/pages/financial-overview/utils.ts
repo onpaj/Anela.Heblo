@@ -27,7 +27,9 @@ export const getPeriodLabel = (period: PeriodType): string => {
       return 'Posledních 13 měsíců'
     case 'last-26-months':
       return 'Posledních 26 měsíců'
-    default:
-      return 'Posledních 6 měsíců'
+    default: {
+      const _exhaustive: never = period
+      throw new Error(`Unhandled period: ${_exhaustive}`)
+    }
   }
 }

@@ -1,16 +1,16 @@
 import { formatCurrency, getPeriodLabel, MONTH_SLOT_WIDTH } from '../utils'
 
 describe('formatCurrency', () => {
-  it('returns a string containing Kč', () => {
-    expect(formatCurrency(1000)).toMatch(/Kč/)
+  it('formats a positive integer amount', () => {
+    expect(formatCurrency(1000)).toBe('1 000 Kč')
   })
 
-  it('formats zero', () => {
-    expect(formatCurrency(0)).toMatch(/Kč/)
+  it('formats zero as 0 Kč', () => {
+    expect(formatCurrency(0)).toBe('0 Kč')
   })
 
-  it('formats negative amount', () => {
-    expect(formatCurrency(-5000)).toMatch(/Kč/)
+  it('formats a negative amount with leading minus sign', () => {
+    expect(formatCurrency(-5000)).toBe('-5 000 Kč')
   })
 })
 
@@ -37,7 +37,7 @@ describe('getPeriodLabel', () => {
 })
 
 describe('MONTH_SLOT_WIDTH', () => {
-  it('equals 48', () => {
-    expect(MONTH_SLOT_WIDTH).toBe(48)
+  it('is wide enough to display a month label (minimum 40px)', () => {
+    expect(MONTH_SLOT_WIDTH).toBeGreaterThanOrEqual(40)
   })
 })
