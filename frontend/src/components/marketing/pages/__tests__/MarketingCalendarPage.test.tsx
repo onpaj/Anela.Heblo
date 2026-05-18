@@ -123,10 +123,22 @@ jest.mock("../../../../auth/useAuth", () => ({
   }),
 }));
 
+let mockIsMobile = false;
+jest.mock("../../../../hooks/useMediaQuery", () => ({
+  useIsMobile: () => mockIsMobile,
+}));
+jest.mock("../../calendar/MobileAgendaView", () => {
+  const React = require("react");
+  return {
+    MobileAgendaView: () => React.createElement("div", { "data-testid": "mobile-agenda-view" }),
+  };
+});
+
 beforeEach(() => {
   calendarRenderLog.length = 0;
   calendarHookCalls.length = 0;
   mockGotoDate.mockClear();
+  mockIsMobile = false;
 });
 
 describe("MarketingCalendarPage — default render", () => {
@@ -326,5 +338,25 @@ describe("MarketingCalendarPage — 'Dnes' button respects active view", () => {
     const expected = startOfWeekMondayForTest(new Date());
     expected.setDate(expected.getDate() - 7);
     expectSameInstant(arg, expected);
+  });
+});
+
+describe('mobile view', () => {
+  it('renders MobileAgendaView when isMobile is true', () => {
+    mockIsMobile = true;
+    render(<MarketingCalendarPage />);
+    expect(screen.getByTestId('mobile-agenda-view')).toBeInTheDocument();
+  });
+
+  it('does not render the desktop calendar when isMobile is true', () => {
+    mockIsMobile = true;
+    render(<MarketingCalendarPage />);
+    expect(screen.queryByTestId('marketing-month-calendar')).not.toBeInTheDocument();
+  });
+
+  it('renders the desktop calendar when isMobile is false', () => {
+    mockIsMobile = false;
+    render(<MarketingCalendarPage />);
+    expect(screen.queryByTestId('mobile-agenda-view')).not.toBeInTheDocument();
   });
 });

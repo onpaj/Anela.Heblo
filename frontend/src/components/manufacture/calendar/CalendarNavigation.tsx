@@ -56,6 +56,7 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
         onClick={onPrevious}
         className={`${classes.button} hover:bg-gray-100 rounded-lg transition-colors`}
         title={previousTitle}
+        aria-label={previousTitle}
       >
         <ChevronLeft className={`${classes.icon} text-gray-600`} />
       </button>
@@ -78,6 +79,7 @@ const CalendarNavigation: React.FC<CalendarNavigationProps> = ({
         onClick={onNext}
         className={`${classes.button} hover:bg-gray-100 rounded-lg transition-colors`}
         title={nextTitle}
+        aria-label={nextTitle}
       >
         <ChevronRight className={`${classes.icon} text-gray-600`} />
       </button>

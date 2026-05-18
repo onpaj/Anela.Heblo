@@ -42,7 +42,9 @@ describe("ChatComposer", () => {
   it("disables the generate button when there is no contact message", () => {
     mockHook({});
     render(<ChatComposer conversationId="c1" lastContactMessage={null} />);
-    expect(screen.getByRole("button", { name: /generovat odpověď/i })).toBeDisabled();
+    screen.getAllByRole("button", { name: /generovat odpověď/i }).forEach((btn) => {
+      expect(btn).toBeDisabled();
+    });
   });
 
   it("places the generated answer into the textarea and shows the AI toolbar", async () => {
@@ -96,5 +98,36 @@ describe("ChatComposer", () => {
       target: { value: "hello" },
     });
     expect(screen.getByText(/5 \//)).toBeInTheDocument();
+  });
+
+  it("initializes textarea with initialDraft value", () => {
+    mockHook({});
+    render(<ChatComposer conversationId="c1" lastContactMessage={null} initialDraft="Předvyplněný draft" />);
+    const textarea = screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement;
+    expect(textarea.value).toBe("Předvyplněný draft");
+  });
+
+  it("calls onDraftChange when user types", () => {
+    mockHook({});
+    const onDraftChange = jest.fn();
+    render(<ChatComposer conversationId="c1" lastContactMessage={null} onDraftChange={onDraftChange} />);
+    fireEvent.change(screen.getByPlaceholderText(/napište odpověď/i), { target: { value: "Ahoj" } });
+    expect(onDraftChange).toHaveBeenCalledWith("Ahoj");
+  });
+
+  it("calls onDraftChange with empty string on discard", async () => {
+    const onDraftChange = jest.fn();
+    mockHook({ result: { answer: "Vygenerovaná odpověď", sources: [] } });
+    render(<ChatComposer conversationId="c1" lastContactMessage="Hi" onDraftChange={onDraftChange} />);
+    expect(await screen.findByText("Návrh od AI")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /zahodit/i }));
+    expect(onDraftChange).toHaveBeenLastCalledWith("");
+  });
+
+  it("calls onDraftChange with AI answer when draft is generated", async () => {
+    const onDraftChange = jest.fn();
+    mockHook({ result: { answer: "AI odpověď", sources: [] } });
+    render(<ChatComposer conversationId="c1" lastContactMessage="Hi" onDraftChange={onDraftChange} />);
+    await waitFor(() => expect(onDraftChange).toHaveBeenCalledWith("AI odpověď"));
   });
 });

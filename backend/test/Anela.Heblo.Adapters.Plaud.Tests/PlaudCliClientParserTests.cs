@@ -57,4 +57,57 @@ public sealed class PlaudCliClientParserTests
         result.Should().HaveCount(1);
         result[0].Id.Should().Be("b6c774e4c9b2c55fa8159db2430726cc");
     }
+
+    [Fact]
+    public async Task ParseFileDetail_WithGeneratedFixture_ReturnsIsGeneratedTrue()
+    {
+        var fixturePath = Path.Combine(
+            Path.GetDirectoryName(typeof(PlaudCliClientParserTests).Assembly.Location)!,
+            "Fixtures", "plaud_file_generated_sample.txt");
+
+        var fixtureContent = await File.ReadAllTextAsync(fixturePath);
+
+        var result = PlaudCliClient.ParseFileDetail(fixtureContent);
+
+        result.TranscriptAvailable.Should().BeTrue();
+        result.SummaryAvailable.Should().BeTrue();
+        result.AudioAvailable.Should().BeTrue();
+        result.IsGenerated.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ParseFileDetail_WithRawFixture_ReturnsIsGeneratedFalse()
+    {
+        var fixturePath = Path.Combine(
+            Path.GetDirectoryName(typeof(PlaudCliClientParserTests).Assembly.Location)!,
+            "Fixtures", "plaud_file_raw_sample.txt");
+
+        var fixtureContent = await File.ReadAllTextAsync(fixturePath);
+
+        var result = PlaudCliClient.ParseFileDetail(fixtureContent);
+
+        result.TranscriptAvailable.Should().BeFalse();
+        result.SummaryAvailable.Should().BeFalse();
+        result.AudioAvailable.Should().BeFalse();
+        result.IsGenerated.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ParseFileDetail_IgnoresHeaderLines()
+    {
+        const string input = """
+            - Fetching file...
+            File Details:
+              audio:        available
+              transcript:   available
+              summary:      unavailable
+            """;
+
+        var result = PlaudCliClient.ParseFileDetail(input);
+
+        result.AudioAvailable.Should().BeTrue();
+        result.TranscriptAvailable.Should().BeTrue();
+        result.SummaryAvailable.Should().BeFalse();
+        result.IsGenerated.Should().BeFalse();
+    }
 }

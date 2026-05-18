@@ -1,3 +1,5 @@
+using Anela.Heblo.Domain.Features.Catalog;
+
 namespace Anela.Heblo.Domain.Features.Catalog.Attributes;
 
 public class CatalogAttributes
@@ -16,4 +18,6 @@ public class CatalogAttributes
     public int ExpirationMonths { get; set; } = 12;
 
     public double AllowedResiduePercentage { get; set; } = 0;
+
+    public Cooling Cooling { get; set; } = Cooling.None;
 }

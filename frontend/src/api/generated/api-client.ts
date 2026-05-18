@@ -12989,6 +12989,7 @@ export class PropertiesDto implements IPropertiesDto {
     stockMinSetup?: number;
     batchSize?: number;
     seasonMonths?: number[];
+    cooling?: Cooling;
 
     constructor(data?: IPropertiesDto) {
         if (data) {
@@ -13009,6 +13010,7 @@ export class PropertiesDto implements IPropertiesDto {
                 for (let item of _data["seasonMonths"])
                     this.seasonMonths!.push(item);
             }
+            this.cooling = _data["cooling"];
         }
     }
 
@@ -13029,6 +13031,7 @@ export class PropertiesDto implements IPropertiesDto {
             for (let item of this.seasonMonths)
                 data["seasonMonths"].push(item);
         }
+        data["cooling"] = this.cooling;
         return data;
     }
 }
@@ -13038,6 +13041,13 @@ export interface IPropertiesDto {
     stockMinSetup?: number;
     batchSize?: number;
     seasonMonths?: number[];
+    cooling?: Cooling;
+}
+
+export enum Cooling {
+    None = "None",
+    L1 = "L1",
+    L2 = "L2",
 }
 
 export class LotDto implements ILotDto {
@@ -31800,6 +31810,7 @@ export interface IGenerateDraftReplyResponse extends IBaseResponse {
 }
 
 export class DraftReplySource implements IDraftReplySource {
+    chunkId?: string;
     documentId?: string;
     filename?: string;
     excerpt?: string;
@@ -31816,6 +31827,7 @@ export class DraftReplySource implements IDraftReplySource {
 
     init(_data?: any) {
         if (_data) {
+            this.chunkId = _data["chunkId"];
             this.documentId = _data["documentId"];
             this.filename = _data["filename"];
             this.excerpt = _data["excerpt"];
@@ -31832,6 +31844,7 @@ export class DraftReplySource implements IDraftReplySource {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["chunkId"] = this.chunkId;
         data["documentId"] = this.documentId;
         data["filename"] = this.filename;
         data["excerpt"] = this.excerpt;
@@ -31841,6 +31854,7 @@ export class DraftReplySource implements IDraftReplySource {
 }
 
 export interface IDraftReplySource {
+    chunkId?: string;
     documentId?: string;
     filename?: string;
     excerpt?: string;

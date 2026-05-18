@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { ArrowLeft, Info } from "lucide-react";
 import { ConversationDto, MessageDto, useSmartsuppConversation } from "../../../api/hooks/useSmartsupp";
 import MessageBubble from "./MessageBubble";
 import StatusPill from "./StatusPill";
@@ -9,6 +10,10 @@ import ChatComposer from "./ChatComposer";
 interface ConversationDetailProps {
   conversationId: string;
   conversation: ConversationDto;
+  onBack?: () => void;
+  onOpenContactDetails?: () => void;
+  initialDraft?: string;
+  onDraftChange?: (draft: string) => void;
 }
 
 // Returns the most recent customer message that actually carries text.
@@ -46,6 +51,10 @@ function groupByDay(messages: MessageDto[]): Array<{ day: string; items: Message
 const ConversationDetail: React.FC<ConversationDetailProps> = ({
   conversationId,
   conversation,
+  onBack,
+  onOpenContactDetails,
+  initialDraft,
+  onDraftChange,
 }) => {
   const { data, isLoading } = useSmartsuppConversation(conversationId);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -60,7 +69,18 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-6 py-3 border-b border-gray-200 flex items-center gap-3">
+      <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-3">
+        {onBack && (
+          <button
+            type="button"
+            data-testid="back-to-list-btn"
+            onClick={onBack}
+            aria-label="Zpět"
+            className="md:hidden flex items-center justify-center min-h-[40px] min-w-[40px] p-1 -ml-1 text-gray-600 flex-shrink-0"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        )}
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-gray-900 truncate">{displayName}</h3>
@@ -74,6 +94,17 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
           {conversation.assignedAgentIds.map((id) => (
             <AgentBadge key={id} agentId={id} name={id} />
           ))}
+          {onOpenContactDetails && (
+            <button
+              type="button"
+              data-testid="open-contact-details-btn"
+              onClick={onOpenContactDetails}
+              aria-label="Detail kontaktu"
+              className="md:hidden flex items-center justify-center min-h-[40px] min-w-[40px] p-1 text-gray-600"
+            >
+              <Info className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -96,8 +127,11 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
       </div>
 
       <ChatComposer
+        key={conversationId}
         conversationId={conversationId}
         lastContactMessage={lastContactMessage(messages)}
+        initialDraft={initialDraft}
+        onDraftChange={onDraftChange}
       />
     </div>
   );

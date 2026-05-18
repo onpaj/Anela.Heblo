@@ -569,6 +569,44 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("StockUpOperations", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.DataQuality.DqtDriftResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<Guid>("DqtRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EntityKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("HebloValue")
+                        .HasColumnType("text");
+
+                    b.Property<int>("MismatchCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ShoptetValue")
+                        .HasColumnType("text");
+
+                    b.Property<int>("TestType")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DqtRunId");
+
+                    b.HasIndex("TestType", "EntityKey");
+
+                    b.ToTable("DqtDriftResults", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.DataQuality.DqtRun", b =>
                 {
                     b.Property<Guid>("Id")

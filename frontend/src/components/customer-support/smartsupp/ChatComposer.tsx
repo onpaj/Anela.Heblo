@@ -7,12 +7,14 @@ import { useGenerateDraftReply, type DraftReplySource } from "./hooks/useGenerat
 interface ChatComposerProps {
   conversationId: string | null;
   lastContactMessage: string | null;
+  initialDraft?: string;
+  onDraftChange?: (draft: string) => void;
 }
 
 const MAX_CHARS = 4000;
 
-function ChatComposer({ conversationId, lastContactMessage }: ChatComposerProps) {
-  const [draft, setDraft] = useState("");
+function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraftChange }: ChatComposerProps) {
+  const [draft, setDraft] = useState(initialDraft ?? "");
   const [isAiDraft, setIsAiDraft] = useState(false);
   const [sources, setSources] = useState<DraftReplySource[]>([]);
   const [lastTopic, setLastTopic] = useState<string | undefined>(undefined);
@@ -23,12 +25,14 @@ function ChatComposer({ conversationId, lastContactMessage }: ChatComposerProps)
   // Move a freshly generated answer into the composer as an editable AI draft.
   useEffect(() => {
     if (result) {
-      setDraft(result.answer.slice(0, MAX_CHARS));
+      const answer = result.answer.slice(0, MAX_CHARS);
+      setDraft(answer);
       setSources(result.sources);
       setIsAiDraft(true);
+      onDraftChange?.(answer);
       reset();
     }
-  }, [result, reset]);
+  }, [result, reset, onDraftChange]);
 
   const canGenerateWithoutTopic =
     lastContactMessage !== null && lastContactMessage.trim() !== "";
@@ -52,7 +56,9 @@ function ChatComposer({ conversationId, lastContactMessage }: ChatComposerProps)
   const cancelOverwrite = () => setPendingTopic(null);
 
   const handleDraftChange = (value: string) => {
-    setDraft(value.slice(0, MAX_CHARS));
+    const trimmed = value.slice(0, MAX_CHARS);
+    setDraft(trimmed);
+    onDraftChange?.(trimmed);
     if (isAiDraft) {
       setIsAiDraft(false);
     }
@@ -64,6 +70,7 @@ function ChatComposer({ conversationId, lastContactMessage }: ChatComposerProps)
     setIsAiDraft(false);
     setLastTopic(undefined);
     setPendingTopic(null);
+    onDraftChange?.("");
   };
 
   return (

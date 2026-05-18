@@ -19,11 +19,23 @@ const getDefaultDates = () => {
   };
 };
 
+type TestTypeOption = {
+  value: string;
+  label: string;
+};
+
+const TEST_TYPE_OPTIONS: TestTypeOption[] = [
+  { value: 'IssuedInvoiceComparison', label: 'Porovnání faktur' },
+  { value: 'ProductPairing', label: 'Párování produktů' },
+  { value: 'StockWriteBackReconciliation', label: 'Zpětný zápis skladu' },
+];
+
 const RunDqtButton: React.FC = () => {
   const defaults = getDefaultDates();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateFrom, setDateFrom] = useState(defaults.dateFrom);
   const [dateTo, setDateTo] = useState(defaults.dateTo);
+  const [testType, setTestType] = useState('IssuedInvoiceComparison');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
   );
@@ -33,7 +45,7 @@ const RunDqtButton: React.FC = () => {
   const handleRun = () => {
     setFeedback(null);
     mutate(
-      { dateFrom, dateTo },
+      { testType, dateFrom, dateTo },
       {
         onSuccess: () => {
           setFeedback({ type: 'success', message: 'DQT test byl spuštěn.' });
@@ -49,6 +61,19 @@ const RunDqtButton: React.FC = () => {
   return (
     <div className="flex flex-col items-end gap-2">
       <div className="flex items-center gap-2">
+        {/* Test type selector */}
+        <select
+          value={testType}
+          onChange={(e) => setTestType(e.target.value)}
+          className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+        >
+          {TEST_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
         {/* Toggle date picker */}
         <button
           type="button"

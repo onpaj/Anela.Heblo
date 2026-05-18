@@ -21,6 +21,8 @@ import { ACTION_TYPE_TO_INT, formatDateStr } from '../calendar/fullcalendarAdapt
 import type { CalendarEvent } from '../calendar/fullcalendarAdapters';
 import { PAGE_CONTAINER_HEIGHT } from '../../../constants/layout';
 import { useAuth } from '../../../auth/useAuth';
+import { useIsMobile } from '../../../hooks/useMediaQuery';
+import { MobileAgendaView } from '../calendar/MobileAgendaView';
 
 const MARKETING_IMPORT_ROLE = 'super_user';
 
@@ -60,6 +62,7 @@ const MarketingCalendarPage: React.FC = () => {
   const [editingAction, setEditingAction] = useState<MarketingActionDto | null>(null);
   const [prefillDates, setPrefillDates] = useState<{ dateFrom: string; dateTo: string } | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const calendarRef = useRef<FullCalendar>(null);
 
@@ -229,6 +232,10 @@ const MarketingCalendarPage: React.FC = () => {
     },
     [],
   );
+
+  if (isMobile) {
+    return <MobileAgendaView />;
+  }
 
   return (
     <div className="flex flex-col" style={{ height: PAGE_CONTAINER_HEIGHT }}>

@@ -7,4 +7,6 @@ public class GetDqtRunDetailResponse : BaseResponse
 {
     public DqtRunDto? Run { get; set; }
     public List<InvoiceDqtResultDto> Results { get; set; } = new();
+    public List<DqtDriftResultDto>? DriftResults { get; set; }
+    public int TotalDriftResults { get; set; }
 }

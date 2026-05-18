@@ -11,9 +11,9 @@ using Anela.Heblo.Application.Features.Marketing.UseCases.UpdateMarketingAction;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -51,43 +51,40 @@ namespace Anela.Heblo.Tests.Features.Marketing
         private CreateMarketingActionHandler BuildCreateHandler(bool pushEnabled)
         {
             var options = new MarketingCalendarOptions { PushEnabled = pushEnabled, GroupId = "cal@example.com" };
-            var mockOptions = new Mock<IOptions<MarketingCalendarOptions>>();
-            mockOptions.Setup(o => o.Value).Returns(options);
+            var monitor = new TestOptionsMonitor<MarketingCalendarOptions>(options);
 
             return new CreateMarketingActionHandler(
                 _repositoryMock.Object,
                 _currentUserServiceMock.Object,
                 NullLogger<CreateMarketingActionHandler>.Instance,
                 _outlookSyncMock.Object,
-                mockOptions.Object);
+                monitor);
         }
 
         private UpdateMarketingActionHandler BuildUpdateHandler(bool pushEnabled)
         {
             var options = new MarketingCalendarOptions { PushEnabled = pushEnabled, GroupId = "cal@example.com" };
-            var mockOptions = new Mock<IOptions<MarketingCalendarOptions>>();
-            mockOptions.Setup(o => o.Value).Returns(options);
+            var monitor = new TestOptionsMonitor<MarketingCalendarOptions>(options);
 
             return new UpdateMarketingActionHandler(
                 _repositoryMock.Object,
                 _currentUserServiceMock.Object,
                 NullLogger<UpdateMarketingActionHandler>.Instance,
                 _outlookSyncMock.Object,
-                mockOptions.Object);
+                monitor);
         }
 
         private DeleteMarketingActionHandler BuildDeleteHandler(bool pushEnabled)
         {
             var options = new MarketingCalendarOptions { PushEnabled = pushEnabled, GroupId = "cal@example.com" };
-            var mockOptions = new Mock<IOptions<MarketingCalendarOptions>>();
-            mockOptions.Setup(o => o.Value).Returns(options);
+            var monitor = new TestOptionsMonitor<MarketingCalendarOptions>(options);
 
             return new DeleteMarketingActionHandler(
                 _repositoryMock.Object,
                 _currentUserServiceMock.Object,
                 NullLogger<DeleteMarketingActionHandler>.Instance,
                 _outlookSyncMock.Object,
-                mockOptions.Object);
+                monitor);
         }
 
         private static MarketingAction BuildAction(string? outlookEventId = null)

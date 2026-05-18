@@ -43,10 +43,20 @@ export interface GetDqtRunsResponse {
   totalPages: number;
 }
 
+export interface DqtDriftResultDto {
+  entityKey: string;
+  mismatchCode: number;
+  hebloValue: string | null;
+  shoptetValue: string | null;
+  details: string | null;
+}
+
 export interface GetDqtRunDetailResponse {
   success: boolean;
   run: DqtRunDto | null;
   results: InvoiceDqtResultDto[];
+  driftResults: DqtDriftResultDto[];
+  totalDriftResults: number;
 }
 
 export interface RunDqtRequest {
