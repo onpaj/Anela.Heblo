@@ -6389,7 +6389,7 @@ export class ApiClient {
         return Promise.resolve<GetManufacturingStockAnalysisResponse>(null as any);
     }
 
-    marketingCalendar_GetMarketingActions(pageNumber: number | undefined, pageSize: number | undefined, searchTerm: string | null | undefined, productCodePrefix: string | null | undefined, startDateFrom: Date | null | undefined, startDateTo: Date | null | undefined, endDateFrom: Date | null | undefined, endDateTo: Date | null | undefined, includeDeleted: boolean | undefined): Promise<GetMarketingActionsResponse> {
+    marketingCalendar_GetMarketingActions(pageNumber: number | undefined, pageSize: number | undefined, searchTerm: string | null | undefined, actionType: MarketingActionType | null | undefined, productCodePrefix: string | null | undefined, startDateFrom: Date | null | undefined, startDateTo: Date | null | undefined, endDateFrom: Date | null | undefined, endDateTo: Date | null | undefined, includeDeleted: boolean | undefined): Promise<GetMarketingActionsResponse> {
         let url_ = this.baseUrl + "/api/MarketingCalendar?";
         if (pageNumber === null)
             throw new Error("The parameter 'pageNumber' cannot be null.");
@@ -6401,6 +6401,8 @@ export class ApiClient {
             url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
         if (searchTerm !== undefined && searchTerm !== null)
             url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+        if (actionType !== undefined && actionType !== null)
+            url_ += "ActionType=" + encodeURIComponent("" + actionType) + "&";
         if (productCodePrefix !== undefined && productCodePrefix !== null)
             url_ += "ProductCodePrefix=" + encodeURIComponent("" + productCodePrefix) + "&";
         if (startDateFrom !== undefined && startDateFrom !== null)
@@ -7063,6 +7065,47 @@ export class ApiClient {
             });
         }
         return Promise.resolve<ExplainSummaryResponse>(null as any);
+    }
+
+    meetingTasks_UpdateAccess(transcriptId: string, request: UpdateMeetingAccessRequest): Promise<UpdateMeetingAccessResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks/{transcriptId}/access";
+        if (transcriptId === undefined || transcriptId === null)
+            throw new Error("The parameter 'transcriptId' must be defined.");
+        url_ = url_.replace("{transcriptId}", encodeURIComponent("" + transcriptId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_UpdateAccess(_response);
+        });
+    }
+
+    protected processMeetingTasks_UpdateAccess(response: Response): Promise<UpdateMeetingAccessResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateMeetingAccessResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateMeetingAccessResponse>(null as any);
     }
 
     orgChart_GetOrganizationStructure(): Promise<OrgChartResponse> {
@@ -10699,6 +10742,8 @@ export enum ErrorCodes {
     DqtExternalServiceError = "DqtExternalServiceError",
     MarketingActionNotFound = "MarketingActionNotFound",
     UnauthorizedMarketingAccess = "UnauthorizedMarketingAccess",
+    MarketingCalendarAccessDenied = "MarketingCalendarAccessDenied",
+    MarketingCalendarSyncFailed = "MarketingCalendarSyncFailed",
     ArticleNotFound = "ArticleNotFound",
     ArticleGenerationFailed = "ArticleGenerationFailed",
     WebSearchUnavailable = "WebSearchUnavailable",
@@ -25389,6 +25434,15 @@ export interface IMarketingActionFolderLinkDto {
     folderType?: string;
 }
 
+export enum MarketingActionType {
+    SocialMedia = "SocialMedia",
+    Blog = "Blog",
+    Newsletter = "Newsletter",
+    PR = "PR",
+    Event = "Event",
+    Meeting = "Meeting",
+}
+
 export class GetMarketingActionResponse extends BaseResponse implements IGetMarketingActionResponse {
     action?: MarketingActionDto | undefined;
 
@@ -25646,15 +25700,6 @@ export interface ICreateMarketingActionRequest {
     endDate?: Date | undefined;
     associatedProducts?: string[] | undefined;
     folderLinks?: CreateFolderLinkRequest[] | undefined;
-}
-
-export enum MarketingActionType {
-    SocialMedia = "SocialMedia",
-    Blog = "Blog",
-    Newsletter = "Newsletter",
-    PR = "PR",
-    Event = "Event",
-    Meeting = "Meeting",
 }
 
 export class CreateFolderLinkRequest implements ICreateFolderLinkRequest {
@@ -26103,6 +26148,8 @@ export class MeetingTranscriptDto implements IMeetingTranscriptDto {
     approvedTaskCount?: number;
     rejectedTaskCount?: number;
     tasks?: ProposedTaskDto[];
+    accessLevel?: string;
+    accessGrants?: MeetingAccessGrantDto[];
 
     constructor(data?: IMeetingTranscriptDto) {
         if (data) {
@@ -26132,6 +26179,12 @@ export class MeetingTranscriptDto implements IMeetingTranscriptDto {
                 this.tasks = [] as any;
                 for (let item of _data["tasks"])
                     this.tasks!.push(ProposedTaskDto.fromJS(item));
+            }
+            this.accessLevel = _data["accessLevel"];
+            if (Array.isArray(_data["accessGrants"])) {
+                this.accessGrants = [] as any;
+                for (let item of _data["accessGrants"])
+                    this.accessGrants!.push(MeetingAccessGrantDto.fromJS(item));
             }
         }
     }
@@ -26163,6 +26216,12 @@ export class MeetingTranscriptDto implements IMeetingTranscriptDto {
             for (let item of this.tasks)
                 data["tasks"].push(item.toJSON());
         }
+        data["accessLevel"] = this.accessLevel;
+        if (Array.isArray(this.accessGrants)) {
+            data["accessGrants"] = [];
+            for (let item of this.accessGrants)
+                data["accessGrants"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -26182,6 +26241,8 @@ export interface IMeetingTranscriptDto {
     approvedTaskCount?: number;
     rejectedTaskCount?: number;
     tasks?: ProposedTaskDto[];
+    accessLevel?: string;
+    accessGrants?: MeetingAccessGrantDto[];
 }
 
 export class ProposedTaskDto implements IProposedTaskDto {
@@ -26250,6 +26311,46 @@ export interface IProposedTaskDto {
     status?: string;
     externalTaskId?: string | undefined;
     isManuallyAdded?: boolean;
+}
+
+export class MeetingAccessGrantDto implements IMeetingAccessGrantDto {
+    userEmail?: string;
+    userDisplayName?: string | undefined;
+
+    constructor(data?: IMeetingAccessGrantDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.userEmail = _data["userEmail"];
+            this.userDisplayName = _data["userDisplayName"];
+        }
+    }
+
+    static fromJS(data: any): MeetingAccessGrantDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MeetingAccessGrantDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["userEmail"] = this.userEmail;
+        data["userDisplayName"] = this.userDisplayName;
+        return data;
+    }
+}
+
+export interface IMeetingAccessGrantDto {
+    userEmail?: string;
+    userDisplayName?: string | undefined;
 }
 
 export class GetMeetingUsersResponse extends BaseResponse implements IGetMeetingUsersResponse {
@@ -26749,6 +26850,103 @@ export class ExplainSummaryRequest implements IExplainSummaryRequest {
 export interface IExplainSummaryRequest {
     transcriptId?: string;
     selectedText: string;
+}
+
+export class UpdateMeetingAccessResponse extends BaseResponse implements IUpdateMeetingAccessResponse {
+    accessLevel?: string | undefined;
+    grants?: MeetingAccessGrantDto[];
+
+    constructor(data?: IUpdateMeetingAccessResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.accessLevel = _data["accessLevel"];
+            if (Array.isArray(_data["grants"])) {
+                this.grants = [] as any;
+                for (let item of _data["grants"])
+                    this.grants!.push(MeetingAccessGrantDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): UpdateMeetingAccessResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateMeetingAccessResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["accessLevel"] = this.accessLevel;
+        if (Array.isArray(this.grants)) {
+            data["grants"] = [];
+            for (let item of this.grants)
+                data["grants"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateMeetingAccessResponse extends IBaseResponse {
+    accessLevel?: string | undefined;
+    grants?: MeetingAccessGrantDto[];
+}
+
+export class UpdateMeetingAccessRequest implements IUpdateMeetingAccessRequest {
+    transcriptId?: string;
+    accessLevel?: string;
+    restrictedUserEmails?: string[];
+
+    constructor(data?: IUpdateMeetingAccessRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.transcriptId = _data["transcriptId"];
+            this.accessLevel = _data["accessLevel"];
+            if (Array.isArray(_data["restrictedUserEmails"])) {
+                this.restrictedUserEmails = [] as any;
+                for (let item of _data["restrictedUserEmails"])
+                    this.restrictedUserEmails!.push(item);
+            }
+        }
+    }
+
+    static fromJS(data: any): UpdateMeetingAccessRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateMeetingAccessRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["transcriptId"] = this.transcriptId;
+        data["accessLevel"] = this.accessLevel;
+        if (Array.isArray(this.restrictedUserEmails)) {
+            data["restrictedUserEmails"] = [];
+            for (let item of this.restrictedUserEmails)
+                data["restrictedUserEmails"].push(item);
+        }
+        return data;
+    }
+}
+
+export interface IUpdateMeetingAccessRequest {
+    transcriptId?: string;
+    accessLevel?: string;
+    restrictedUserEmails?: string[];
 }
 
 export class OrgChartResponse extends BaseResponse implements IOrgChartResponse {
@@ -31604,6 +31802,7 @@ export interface IGenerateDraftReplyResponse extends IBaseResponse {
 }
 
 export class DraftReplySource implements IDraftReplySource {
+    chunkId?: string;
     documentId?: string;
     filename?: string;
     excerpt?: string;
@@ -31620,6 +31819,7 @@ export class DraftReplySource implements IDraftReplySource {
 
     init(_data?: any) {
         if (_data) {
+            this.chunkId = _data["chunkId"];
             this.documentId = _data["documentId"];
             this.filename = _data["filename"];
             this.excerpt = _data["excerpt"];
@@ -31636,6 +31836,7 @@ export class DraftReplySource implements IDraftReplySource {
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
+        data["chunkId"] = this.chunkId;
         data["documentId"] = this.documentId;
         data["filename"] = this.filename;
         data["excerpt"] = this.excerpt;
@@ -31645,6 +31846,7 @@ export class DraftReplySource implements IDraftReplySource {
 }
 
 export interface IDraftReplySource {
+    chunkId?: string;
     documentId?: string;
     filename?: string;
     excerpt?: string;
