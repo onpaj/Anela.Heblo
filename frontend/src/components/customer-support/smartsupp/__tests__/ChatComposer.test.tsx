@@ -42,7 +42,9 @@ describe("ChatComposer", () => {
   it("disables the generate button when there is no contact message", () => {
     mockHook({});
     render(<ChatComposer conversationId="c1" lastContactMessage={null} />);
-    expect(screen.getByRole("button", { name: /generovat odpověď/i })).toBeDisabled();
+    screen.getAllByRole("button", { name: /generovat odpověď/i }).forEach((btn) => {
+      expect(btn).toBeDisabled();
+    });
   });
 
   it("places the generated answer into the textarea and shows the AI toolbar", async () => {
