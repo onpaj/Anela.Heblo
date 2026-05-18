@@ -488,6 +488,152 @@ public class ShoptetApiExpeditionListSourceTests
         foreach (var file in result.ExportedFiles.Where(File.Exists))
             File.Delete(file);
     }
+
+    [Fact]
+    public void ExpeditionOrder_IsCooled_False_WhenAllItemsHaveCoolingNone()
+    {
+        // Arrange
+        var order = new ExpeditionOrder
+        {
+            Code = "ORD001",
+            CustomerName = "Test",
+            Address = "Praha",
+            Phone = "123",
+            Items = new List<ExpeditionOrderItem>
+            {
+                new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.None },
+                new() { ProductCode = "P002", Name = "B", Variant = string.Empty, WarehousePosition = "A2", Quantity = 1, Cooling = Cooling.None },
+            },
+        };
+
+        // Act + Assert
+        order.IsCooled.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ExpeditionOrder_IsCooled_True_WhenAnyItemHasCoolingL1()
+    {
+        // Arrange
+        var order = new ExpeditionOrder
+        {
+            Code = "ORD002",
+            CustomerName = "Test",
+            Address = "Praha",
+            Phone = "123",
+            Items = new List<ExpeditionOrderItem>
+            {
+                new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.None },
+                new() { ProductCode = "P002", Name = "B", Variant = string.Empty, WarehousePosition = "A2", Quantity = 1, Cooling = Cooling.L1 },
+            },
+        };
+
+        // Act + Assert
+        order.IsCooled.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ExpeditionOrder_IsCooled_True_WhenAnyItemHasCoolingL2()
+    {
+        // Arrange
+        var order = new ExpeditionOrder
+        {
+            Code = "ORD003",
+            CustomerName = "Test",
+            Address = "Praha",
+            Phone = "123",
+            Items = new List<ExpeditionOrderItem>
+            {
+                new() { ProductCode = "P001", Name = "A", Variant = string.Empty, WarehousePosition = "A1", Quantity = 1, Cooling = Cooling.L2 },
+            },
+        };
+
+        // Act + Assert
+        order.IsCooled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreatePickingList_EnrichesCooling_FromCatalog()
+    {
+        // Arrange — one Zasilkovna order with product P001; catalog returns Cooling=L1 for P001
+        var listResp = SinglePageList(("Z001", ZasilkovnaDoRukyGuid));
+
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
+                return Json(listResp);
+            return Json(DetailFor(req.RequestUri.Segments.Last()));  // P001 item
+        });
+
+        var catalogMock = new Mock<ICatalogRepository>();
+        catalogMock
+            .Setup(c => c.GetByIdAsync("P001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CatalogAggregate
+            {
+                ProductCode = "P001",
+                Properties = new CatalogProperties { Cooling = Cooling.L1 },
+            });
+
+        var source = new ShoptetApiExpeditionListSource(client, TimeProvider.System, catalogMock.Object);
+
+        // Act
+        var result = await source.CreatePickingList(DefaultRequest(), null);
+
+        // Assert
+        catalogMock.Verify(c => c.GetByIdAsync("P001", It.IsAny<CancellationToken>()), Times.Once);
+
+        // Cleanup
+        foreach (var file in result.ExportedFiles.Where(File.Exists))
+            File.Delete(file);
+    }
+
+    [Fact]
+    public void ApplyEnrichment_SetsCooling_FromDictionary()
+    {
+        // Arrange
+        var item = new ExpeditionOrderItem
+        {
+            ProductCode = "P001",
+            Name = "Test",
+            Variant = string.Empty,
+            WarehousePosition = "A1",
+            Quantity = 1,
+        };
+        var coolingByCode = new Dictionary<string, Cooling> { ["P001"] = Cooling.L1 };
+
+        // Act
+        ShoptetApiExpeditionListSource.ApplyEnrichment(
+            new[] { item },
+            stockByCode: new Dictionary<string, decimal>(),
+            locationByCode: new Dictionary<string, string>(),
+            coolingByCode: coolingByCode);
+
+        // Assert
+        item.Cooling.Should().Be(Cooling.L1);
+    }
+
+    [Fact]
+    public void ApplyEnrichment_LeavesDefaultCooling_WhenProductNotInCoolingDictionary()
+    {
+        // Arrange
+        var item = new ExpeditionOrderItem
+        {
+            ProductCode = "P999",
+            Name = "Unknown",
+            Variant = string.Empty,
+            WarehousePosition = "A1",
+            Quantity = 1,
+        };
+
+        // Act
+        ShoptetApiExpeditionListSource.ApplyEnrichment(
+            new[] { item },
+            stockByCode: new Dictionary<string, decimal>(),
+            locationByCode: new Dictionary<string, string>(),
+            coolingByCode: new Dictionary<string, Cooling>());
+
+        // Assert
+        item.Cooling.Should().Be(Cooling.None);
+    }
 }
 
 /// <summary>
