@@ -17,14 +17,14 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAct
         private readonly ICurrentUserService _currentUserService;
         private readonly ILogger<CreateMarketingActionHandler> _logger;
         private readonly IOutlookCalendarSync _outlookSync;
-        private readonly IOptions<MarketingCalendarOptions> _options;
+        private readonly IOptionsMonitor<MarketingCalendarOptions> _options;
 
         public CreateMarketingActionHandler(
             IMarketingActionRepository repository,
             ICurrentUserService currentUserService,
             ILogger<CreateMarketingActionHandler> logger,
             IOutlookCalendarSync outlookSync,
-            IOptions<MarketingCalendarOptions> options)
+            IOptionsMonitor<MarketingCalendarOptions> options)
         {
             _repository = repository;
             _currentUserService = currentUserService;
@@ -69,7 +69,7 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAct
 
             string? outlookEventId = null;
 
-            if (_options.Value.PushEnabled)
+            if (_options.CurrentValue.PushEnabled)
             {
                 try
                 {
