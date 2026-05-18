@@ -12,6 +12,28 @@ const PAGE_SIZE = 20;
 
 type StatusBadgeProps = { status: string };
 
+type AccessLevelBadgeProps = { accessLevel: string };
+
+function AccessLevelBadge({ accessLevel }: AccessLevelBadgeProps) {
+  const colorMap: Record<string, string> = {
+    Private: "bg-gray-100 text-gray-700",
+    Public: "bg-green-100 text-green-800",
+    Restricted: "bg-orange-100 text-orange-800",
+  };
+  const labelMap: Record<string, string> = {
+    Private: "Soukrome",
+    Public: "Verejne",
+    Restricted: "Omezene",
+  };
+  const color = colorMap[accessLevel] ?? "bg-gray-100 text-gray-700";
+  const label = labelMap[accessLevel] ?? accessLevel;
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${color}`}>
+      {label}
+    </span>
+  );
+}
+
 function StatusBadge({ status }: StatusBadgeProps) {
   const colorMap: Record<string, string> = {
     PendingReview: "bg-yellow-100 text-yellow-800",
@@ -103,18 +125,19 @@ const MeetingTasksPage: React.FC = () => {
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Predmet</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prijato</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ulohy</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pristup</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stav</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {isLoading && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">Nacitani...</td>
+                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">Nacitani...</td>
                 </tr>
               )}
               {!isLoading && items.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">Zadne zaznamy</td>
+                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">Zadne zaznamy</td>
                 </tr>
               )}
               {!isLoading && items.map((row: MeetingTranscriptDto) => (
@@ -135,6 +158,7 @@ const MeetingTasksPage: React.FC = () => {
                       </span>
                     )}
                   </td>
+                  <td className="px-4 py-2"><AccessLevelBadge accessLevel={row.accessLevel} /></td>
                   <td className="px-4 py-2"><StatusBadge status={row.status} /></td>
                 </tr>
               ))}
