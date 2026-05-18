@@ -78,27 +78,25 @@ const SmartsuppChatsPage: React.FC = () => {
       </div>
 
       <div className="flex flex-1 overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200">
-        {listPanelOpen && (
-          <div
-            className={`${mobileView === "list" ? "flex" : "hidden md:flex"} flex-col w-full md:w-96 flex-shrink-0 overflow-hidden`}
-          >
-            <ConversationList
-              conversations={conversations}
-              selectedId={selectedId}
-              status={status}
-              isLoading={isLoading}
-              onSelect={(id) => {
-                setSelectedId(id);
-                setMobileView("chat");
-              }}
-              onStatusChange={(s) => {
-                setStatus(s);
-                setSelectedId(null);
-                setMobileView("list");
-              }}
-            />
-          </div>
-        )}
+        <div
+          className={`${mobileView === "list" ? "flex" : "hidden"} ${listPanelOpen ? "md:flex" : "md:hidden"} flex-col w-full md:w-96 flex-shrink-0 overflow-hidden`}
+        >
+          <ConversationList
+            conversations={conversations}
+            selectedId={selectedId}
+            status={status}
+            isLoading={isLoading}
+            onSelect={(id) => {
+              setSelectedId(id);
+              setMobileView("chat");
+            }}
+            onStatusChange={(s) => {
+              setStatus(s);
+              setSelectedId(null);
+              setMobileView("list");
+            }}
+          />
+        </div>
 
         <div className="hidden md:flex">
           <CollapsibleRail
