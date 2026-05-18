@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import MarketingActionGrid from "../MarketingActionGrid";
 import type { MarketingActionDto } from "../MarketingActionGrid";
+import { MarketingActionType } from "../../../../api/generated/api-client";
 
 const defaultProps = {
   actions: [],
@@ -15,7 +16,7 @@ const sampleActions: MarketingActionDto[] = [
   {
     id: 1,
     title: "Letní kampaň",
-    actionType: "Campaign",
+    actionType: MarketingActionType.PR,
     dateFrom: "2026-06-01",
     dateTo: "2026-06-30",
     associatedProducts: ["AKL001", "AKL002"],
@@ -23,7 +24,7 @@ const sampleActions: MarketingActionDto[] = [
   {
     id: 2,
     title: "Email newsletter",
-    actionType: "Launch",
+    actionType: MarketingActionType.Newsletter,
     dateFrom: "2026-07-01",
     dateTo: "2026-07-15",
     associatedProducts: [],
@@ -33,8 +34,6 @@ const sampleActions: MarketingActionDto[] = [
 beforeEach(() => {
   jest.clearAllMocks();
 });
-
-// ─── Loading state ────────────────────────────────────────────────────────────
 
 describe("MarketingActionGrid — loading", () => {
   it("shows loading message when isLoading is true", () => {
@@ -47,8 +46,6 @@ describe("MarketingActionGrid — loading", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 });
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
 
 describe("MarketingActionGrid — empty state", () => {
   it("shows empty message when actions array is empty", () => {
@@ -63,8 +60,6 @@ describe("MarketingActionGrid — empty state", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 });
-
-// ─── Table rendering ──────────────────────────────────────────────────────────
 
 describe("MarketingActionGrid — table", () => {
   it("renders a row for each action", () => {
@@ -82,17 +77,17 @@ describe("MarketingActionGrid — table", () => {
     expect(screen.getByText("Produkty")).toBeInTheDocument();
   });
 
-  it("shows Czech label for Campaign action type", () => {
+  it("shows Czech label for PR action type", () => {
     render(<MarketingActionGrid {...defaultProps} actions={sampleActions} />);
     expect(screen.getByText("PR")).toBeInTheDocument();
   });
 
-  it("shows Czech label for Launch action type", () => {
+  it("shows Czech label for Newsletter action type", () => {
     render(<MarketingActionGrid {...defaultProps} actions={sampleActions} />);
-    expect(screen.getByText("Email")).toBeInTheDocument();
+    expect(screen.getByText("Newsletter")).toBeInTheDocument();
   });
 
-  it("falls back to Other badge for unknown action type", () => {
+  it("falls back to raw actionType when value is not in the enum", () => {
     const action: MarketingActionDto = {
       id: 99,
       title: "Neznámý typ",
@@ -101,7 +96,6 @@ describe("MarketingActionGrid — table", () => {
       dateTo: "2026-01-31",
     };
     render(<MarketingActionGrid {...defaultProps} actions={[action]} />);
-    // Falls back to raw actionType string
     expect(screen.getByText("Unknown")).toBeInTheDocument();
   });
 
@@ -112,7 +106,6 @@ describe("MarketingActionGrid — table", () => {
 
   it("shows dash when no associated products", () => {
     render(<MarketingActionGrid {...defaultProps} actions={sampleActions} />);
-    // The second action has no products → should show "—"
     const dashes = screen.getAllByText("—");
     expect(dashes.length).toBeGreaterThanOrEqual(1);
   });
@@ -144,8 +137,6 @@ describe("MarketingActionGrid — table", () => {
   });
 });
 
-// ─── Pagination ───────────────────────────────────────────────────────────────
-
 describe("MarketingActionGrid — pagination", () => {
   it("does not render pagination when totalPages is 1", () => {
     render(
@@ -176,8 +167,7 @@ describe("MarketingActionGrid — pagination", () => {
       />,
     );
     const buttons = screen.getAllByRole("button");
-    const prevBtn = buttons.find((b) => b.querySelector("svg"));
-    expect(prevBtn).toBeDisabled();
+    expect(buttons[0]).toBeDisabled();
   });
 
   it("disables next button on last page", () => {
@@ -227,14 +217,12 @@ describe("MarketingActionGrid — pagination", () => {
   });
 });
 
-// ─── OutlookSyncStatus badge ──────────────────────────────────────────────────
-
 describe("MarketingActionGrid — OutlookSyncStatus badge", () => {
   it("renders red dot badge when outlookSyncStatus is 'Failed'", () => {
     const action: MarketingActionDto = {
       id: 10,
       title: "Akce se selháním",
-      actionType: "General",
+      actionType: MarketingActionType.SocialMedia,
       dateFrom: "2026-03-01",
       dateTo: "2026-03-15",
       outlookSyncStatus: "Failed",
@@ -251,7 +239,7 @@ describe("MarketingActionGrid — OutlookSyncStatus badge", () => {
     const action: MarketingActionDto = {
       id: 11,
       title: "Synchronizovaná akce",
-      actionType: "General",
+      actionType: MarketingActionType.SocialMedia,
       dateFrom: "2026-03-01",
       dateTo: "2026-03-15",
       outlookSyncStatus: "Synced",
@@ -266,7 +254,7 @@ describe("MarketingActionGrid — OutlookSyncStatus badge", () => {
     const action: MarketingActionDto = {
       id: 12,
       title: "Akce bez statusu",
-      actionType: "General",
+      actionType: MarketingActionType.SocialMedia,
       dateFrom: "2026-03-01",
       dateTo: "2026-03-15",
     };

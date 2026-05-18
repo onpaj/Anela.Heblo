@@ -92,6 +92,7 @@ const MarketingCalendarPage: React.FC = () => {
   const listQuery = useMarketingActions({
     pageNumber,
     searchTerm: filters.searchText || undefined,
+    actionType: filters.actionType || undefined,
     startDateFrom: filters.dateFrom ? new Date(filters.dateFrom) : undefined,
     startDateTo: filters.dateTo ? new Date(filters.dateTo) : undefined,
   });

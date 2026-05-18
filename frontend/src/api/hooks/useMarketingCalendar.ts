@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
+import { MarketingActionType } from "../generated/api-client";
 
 interface GetMarketingActionsParams {
   pageNumber?: number;
   pageSize?: number;
   searchTerm?: string;
+  actionType?: MarketingActionType;
   productCodePrefix?: string;
   startDateFrom?: Date;
   startDateTo?: Date;
@@ -46,10 +48,14 @@ export const useMarketingActions = (
     queryKey: [...QUERY_KEYS.marketingCalendar, "actions", params],
     queryFn: async () => {
       const client = await getAuthenticatedApiClient();
+      // Positional args match the generated signature (last verified at commit 2f582c12):
+      // (pageNumber, pageSize, searchTerm, actionType, productCodePrefix, startDateFrom, startDateTo, endDateFrom, endDateTo, includeDeleted)
+      // If the backend DTO changes, re-run `npm run build` to regenerate and verify argument positions.
       return await (client as any).marketingCalendar_GetMarketingActions(
         params.pageNumber,
         params.pageSize,
         params.searchTerm,
+        params.actionType,
         params.productCodePrefix,
         params.startDateFrom,
         params.startDateTo,

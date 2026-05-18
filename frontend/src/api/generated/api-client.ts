@@ -6389,7 +6389,7 @@ export class ApiClient {
         return Promise.resolve<GetManufacturingStockAnalysisResponse>(null as any);
     }
 
-    marketingCalendar_GetMarketingActions(pageNumber: number | undefined, pageSize: number | undefined, searchTerm: string | null | undefined, productCodePrefix: string | null | undefined, startDateFrom: Date | null | undefined, startDateTo: Date | null | undefined, endDateFrom: Date | null | undefined, endDateTo: Date | null | undefined, includeDeleted: boolean | undefined): Promise<GetMarketingActionsResponse> {
+    marketingCalendar_GetMarketingActions(pageNumber: number | undefined, pageSize: number | undefined, searchTerm: string | null | undefined, actionType: MarketingActionType | null | undefined, productCodePrefix: string | null | undefined, startDateFrom: Date | null | undefined, startDateTo: Date | null | undefined, endDateFrom: Date | null | undefined, endDateTo: Date | null | undefined, includeDeleted: boolean | undefined): Promise<GetMarketingActionsResponse> {
         let url_ = this.baseUrl + "/api/MarketingCalendar?";
         if (pageNumber === null)
             throw new Error("The parameter 'pageNumber' cannot be null.");
@@ -6401,6 +6401,8 @@ export class ApiClient {
             url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
         if (searchTerm !== undefined && searchTerm !== null)
             url_ += "SearchTerm=" + encodeURIComponent("" + searchTerm) + "&";
+        if (actionType !== undefined && actionType !== null)
+            url_ += "ActionType=" + encodeURIComponent("" + actionType) + "&";
         if (productCodePrefix !== undefined && productCodePrefix !== null)
             url_ += "ProductCodePrefix=" + encodeURIComponent("" + productCodePrefix) + "&";
         if (startDateFrom !== undefined && startDateFrom !== null)
@@ -25442,6 +25444,15 @@ export interface IMarketingActionFolderLinkDto {
     folderType?: string;
 }
 
+export enum MarketingActionType {
+    SocialMedia = "SocialMedia",
+    Blog = "Blog",
+    Newsletter = "Newsletter",
+    PR = "PR",
+    Event = "Event",
+    Meeting = "Meeting",
+}
+
 export class GetMarketingActionResponse extends BaseResponse implements IGetMarketingActionResponse {
     action?: MarketingActionDto | undefined;
 
@@ -25699,15 +25710,6 @@ export interface ICreateMarketingActionRequest {
     endDate?: Date | undefined;
     associatedProducts?: string[] | undefined;
     folderLinks?: MarketingFolderLinkRequest[] | undefined;
-}
-
-export enum MarketingActionType {
-    SocialMedia = "SocialMedia",
-    Blog = "Blog",
-    Newsletter = "Newsletter",
-    PR = "PR",
-    Event = "Event",
-    Meeting = "Meeting",
 }
 
 export class MarketingFolderLinkRequest implements IMarketingFolderLinkRequest {

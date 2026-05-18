@@ -66,7 +66,7 @@ jest.mock("../../list/MarketingActionFilters", () => {
   return {
     __esModule: true,
     default: () => React.createElement("div", { "data-testid": "marketing-action-filters" }),
-    EMPTY_FILTERS: { searchText: "", dateFrom: "", dateTo: "" },
+    EMPTY_FILTERS: { searchText: "", dateFrom: "", dateTo: "", actionType: "" },
   };
 });
 
