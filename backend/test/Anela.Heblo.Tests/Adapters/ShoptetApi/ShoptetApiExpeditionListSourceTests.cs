@@ -590,6 +590,55 @@ public class ShoptetApiExpeditionListSourceTests
             try { File.Delete(file); } catch { /* best effort */ }
         }
     }
+
+    [Fact]
+    public void ApplyEnrichment_SetsCooling_FromDictionary()
+    {
+        // Arrange
+        var item = new ExpeditionOrderItem
+        {
+            ProductCode = "P001",
+            Name = "Test",
+            Variant = string.Empty,
+            WarehousePosition = "A1",
+            Quantity = 1,
+        };
+        var coolingByCode = new Dictionary<string, Cooling> { ["P001"] = Cooling.L1 };
+
+        // Act
+        ShoptetApiExpeditionListSource.ApplyEnrichment(
+            new[] { item },
+            stockByCode: new Dictionary<string, decimal>(),
+            locationByCode: new Dictionary<string, string>(),
+            coolingByCode: coolingByCode);
+
+        // Assert
+        item.Cooling.Should().Be(Cooling.L1);
+    }
+
+    [Fact]
+    public void ApplyEnrichment_LeavesDefaultCooling_WhenProductNotInCoolingDictionary()
+    {
+        // Arrange
+        var item = new ExpeditionOrderItem
+        {
+            ProductCode = "P999",
+            Name = "Unknown",
+            Variant = string.Empty,
+            WarehousePosition = "A1",
+            Quantity = 1,
+        };
+
+        // Act
+        ShoptetApiExpeditionListSource.ApplyEnrichment(
+            new[] { item },
+            stockByCode: new Dictionary<string, decimal>(),
+            locationByCode: new Dictionary<string, string>(),
+            coolingByCode: new Dictionary<string, Cooling>());
+
+        // Assert
+        item.Cooling.Should().Be(Cooling.None);
+    }
 }
 
 /// <summary>
