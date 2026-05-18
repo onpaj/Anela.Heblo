@@ -39,9 +39,9 @@ function DraftReplySourcesModal({ sources, onClose }: DraftReplySourcesModalProp
             </button>
           </div>
           <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
-            {sources.map((source, index) => (
+            {sources.map((source) => (
               <div
-                key={`${source.chunkId}-${index}`}
+                key={source.chunkId}
                 className="px-6 py-4 space-y-1 cursor-pointer hover:bg-gray-50"
                 onClick={() => setSelectedSource(source)}
                 role="button"
