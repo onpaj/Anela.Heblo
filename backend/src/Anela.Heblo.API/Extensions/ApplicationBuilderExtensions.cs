@@ -287,6 +287,12 @@ public static class ApplicationBuilderExtensions
             using var scope = app.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
+            if (!db.Database.IsRelational())
+            {
+                logger.LogInformation("Non-relational database provider — skipping migrations.");
+                return;
+            }
+
             var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
 
             if (pending.Count == 0)
