@@ -174,4 +174,37 @@ public sealed class PlaudCliClient : IPlaudClient
 
         return result;
     }
+
+    public async Task<PlaudFileDetail> GetFileDetailAsync(string recordingId, CancellationToken ct = default)
+    {
+        var output = await RunCliAsync(new[] { "file", recordingId }, ct);
+        return ParseFileDetail(output);
+    }
+
+    public static PlaudFileDetail ParseFileDetail(string output)
+    {
+        var lookup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var line in output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var colonIndex = line.IndexOf(':');
+            if (colonIndex < 0) continue;
+
+            var key = line[..colonIndex].Trim();
+            var value = line[(colonIndex + 1)..].Trim();
+
+            if (!string.IsNullOrEmpty(key) && !key.StartsWith('-') && !key.StartsWith("File"))
+                lookup[key] = value;
+        }
+
+        static bool IsAvailable(Dictionary<string, string> d, string k) =>
+            d.TryGetValue(k, out var v) && v.Equals("available", StringComparison.OrdinalIgnoreCase);
+
+        return new PlaudFileDetail
+        {
+            TranscriptAvailable = IsAvailable(lookup, "transcript"),
+            SummaryAvailable    = IsAvailable(lookup, "summary"),
+            AudioAvailable      = IsAvailable(lookup, "audio")
+        };
+    }
 }
