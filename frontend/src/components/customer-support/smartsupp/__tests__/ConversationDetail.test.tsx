@@ -129,4 +129,19 @@ describe("ConversationDetail", () => {
     fireEvent.click(screen.getByTestId("open-contact-details-btn"));
     expect(onOpenContactDetails).toHaveBeenCalledTimes(1);
   });
+
+  it("pre-fills the composer textarea with initialDraft", () => {
+    render(
+      wrap(
+        <ConversationDetail
+          conversationId="c1"
+          conversation={conv}
+          initialDraft="Předvyplněný text"
+          onDraftChange={jest.fn()}
+        />,
+      ),
+    );
+    const textarea = screen.getByPlaceholderText("Napište odpověď...") as HTMLTextAreaElement;
+    expect(textarea.value).toBe("Předvyplněný text");
+  });
 });

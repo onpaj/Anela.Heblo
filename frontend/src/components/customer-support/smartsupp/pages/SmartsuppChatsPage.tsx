@@ -23,6 +23,7 @@ const SmartsuppChatsPage: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [status, setStatus] = useState<"Open" | "Resolved">("Open");
   const [mobileView, setMobileView] = useState<MobileView>("list");
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [listPanelOpen, setListPanelOpen] = useState<boolean>(() =>
     readPanelOpen(LIST_PANEL_KEY, true),
   );
@@ -36,6 +37,9 @@ const SmartsuppChatsPage: React.FC = () => {
 
   const conversations = data?.items ?? [];
   const selectedConversation = conversations.find((c) => c.id === selectedId) ?? null;
+
+  const handleDraftChange = (id: string, text: string) =>
+    setDrafts((prev) => ({ ...prev, [id]: text }));
 
   const handleSyncClick = () => {
     syncMutation.mutate(undefined, {
@@ -116,6 +120,8 @@ const SmartsuppChatsPage: React.FC = () => {
               conversation={selectedConversation}
               onBack={() => setMobileView("list")}
               onOpenContactDetails={() => setMobileView("contact")}
+              initialDraft={drafts[selectedId!] ?? ""}
+              onDraftChange={(text) => handleDraftChange(selectedId!, text)}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">

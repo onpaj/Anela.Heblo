@@ -12,6 +12,8 @@ interface ConversationDetailProps {
   conversation: ConversationDto;
   onBack?: () => void;
   onOpenContactDetails?: () => void;
+  initialDraft?: string;
+  onDraftChange?: (draft: string) => void;
 }
 
 // Returns the most recent customer message that actually carries text.
@@ -51,6 +53,8 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
   conversation,
   onBack,
   onOpenContactDetails,
+  initialDraft,
+  onDraftChange,
 }) => {
   const { data, isLoading } = useSmartsuppConversation(conversationId);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -123,8 +127,11 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
       </div>
 
       <ChatComposer
+        key={conversationId}
         conversationId={conversationId}
         lastContactMessage={lastContactMessage(messages)}
+        initialDraft={initialDraft}
+        onDraftChange={onDraftChange}
       />
     </div>
   );

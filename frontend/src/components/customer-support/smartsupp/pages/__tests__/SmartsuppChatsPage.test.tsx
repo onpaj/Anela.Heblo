@@ -7,26 +7,48 @@ jest.mock("../../../../../contexts/ToastContext", () => ({
   useToast: () => ({ showSuccess: jest.fn(), showError: jest.fn() }),
 }));
 
-const mockConversationItem = {
-  id: "c1",
-  subject: null,
-  contactName: "Jana Nováková",
-  contactEmail: "jana@example.com",
-  contactAvatarUrl: null,
-  status: "open",
-  isUnread: false,
-  lastMessageAt: new Date().toISOString(),
-  lastMessagePreview: null,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  assignedAgentIds: [],
-  isServed: true,
-  tags: [],
-};
-
 jest.mock("../../../../../api/hooks/useSmartsupp", () => ({
   useSmartsuppConversations: () => ({
-    data: { success: true, items: [mockConversationItem], total: 1, page: 1, pageSize: 100 },
+    data: {
+      success: true,
+      items: [
+        {
+          id: "c1",
+          subject: null,
+          contactName: "Jana Nováková",
+          contactEmail: "jana@example.com",
+          contactAvatarUrl: null,
+          status: "open",
+          isUnread: false,
+          lastMessageAt: new Date().toISOString(),
+          lastMessagePreview: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          assignedAgentIds: [],
+          isServed: true,
+          tags: [],
+        },
+        {
+          id: "c2",
+          subject: null,
+          contactName: "Pavel Novák",
+          contactEmail: "pavel@example.com",
+          contactAvatarUrl: null,
+          status: "open",
+          isUnread: false,
+          lastMessageAt: new Date().toISOString(),
+          lastMessagePreview: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          assignedAgentIds: [],
+          isServed: true,
+          tags: [],
+        },
+      ],
+      total: 2,
+      page: 1,
+      pageSize: 100,
+    },
     isLoading: false,
   }),
   useSmartsuppConversation: () => ({ data: { messages: [] }, isLoading: false }),
@@ -127,5 +149,27 @@ describe("SmartsuppChatsPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
     fireEvent.click(screen.getByTestId("back-to-list-btn"));
     expect(screen.queryByTestId("mobile-contact-subpage")).not.toBeInTheDocument();
+  });
+
+  it("preserves draft text when switching between conversations", () => {
+    render(wrap(<SmartsuppChatsPage />));
+
+    // Select first conversation and type a draft
+    fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
+    fireEvent.change(screen.getByPlaceholderText(/napište odpověď/i), {
+      target: { value: "draft A" },
+    });
+
+    // Switch to second conversation — textarea should be empty
+    fireEvent.click(screen.getByRole("button", { name: /Pavel Novák/ }));
+    expect(
+      (screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement).value,
+    ).toBe("");
+
+    // Switch back to first — draft must be restored
+    fireEvent.click(screen.getByRole("button", { name: /Jana Nováková/ }));
+    expect(
+      (screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement).value,
+    ).toBe("draft A");
   });
 });
