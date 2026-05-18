@@ -351,7 +351,7 @@ describe('mobile view', () => {
   it('does not render the desktop calendar when isMobile is true', () => {
     mockIsMobile = true;
     render(<MarketingCalendarPage />);
-    expect(screen.queryByTestId('full-calendar')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('marketing-month-calendar')).not.toBeInTheDocument();
   });
 
   it('renders the desktop calendar when isMobile is false', () => {
