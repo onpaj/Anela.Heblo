@@ -24,6 +24,6 @@ public class SetCarrierCoolingHandler : IRequestHandler<SetCarrierCoolingRequest
 
         await _repository.UpsertAsync(setting, cancellationToken);
 
-        return new SetCarrierCoolingResponse { Success = true };
+        return new SetCarrierCoolingResponse();
     }
 }
