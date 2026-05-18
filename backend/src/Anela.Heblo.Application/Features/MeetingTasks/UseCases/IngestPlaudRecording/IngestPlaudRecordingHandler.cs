@@ -54,10 +54,10 @@ public sealed class IngestPlaudRecordingHandler : IRequestHandler<IngestPlaudRec
         // Extract tasks using the meeting task extractor
         var extractedTasks = await _extractor.ExtractAsync(summaryResult.MarkdownContent, transcript, cancellationToken);
 
-        // Prefer the summary headline as subject; fall back to the recording name from the listing
-        var subject = !string.IsNullOrWhiteSpace(summaryResult.Headline)
-            ? summaryResult.Headline
-            : request.Name;
+        // Prefer the human-set recording name; fall back to the summary headline
+        var subject = !string.IsNullOrWhiteSpace(request.Name)
+            ? request.Name
+            : summaryResult.Headline;
 
         // Create MeetingTranscript entity
         var transcriptId = Guid.NewGuid();

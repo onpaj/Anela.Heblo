@@ -168,6 +168,29 @@ public class CreateMarketingActionHandlerTests
     }
 
     [Fact]
+    public async Task Handle_PersistsFolderLinks_WhenProvided()
+    {
+        MarketingAction? capturedAction = null;
+        _repository
+            .Setup(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
+            .Callback<MarketingAction, CancellationToken>((a, _) => capturedAction = a)
+            .ReturnsAsync((MarketingAction a, CancellationToken _) => a);
+
+        var request = BuildRequest();
+        request.FolderLinks = new List<MarketingFolderLinkRequest>
+        {
+            new() { FolderKey = " key-1 ", FolderType = MarketingFolderType.General },
+        };
+
+        var result = await BuildHandler().Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        capturedAction!.FolderLinks.Should().HaveCount(1);
+        capturedAction.FolderLinks.Single().FolderKey.Should().Be("key-1");
+        capturedAction.FolderLinks.Single().FolderType.Should().Be(MarketingFolderType.General);
+    }
+
+    [Fact]
     public async Task Handle_HonorsRuntimePushEnabledFlip_TrueToFalse()
     {
         var monitor = new TestOptionsMonitor<MarketingCalendarOptions>(

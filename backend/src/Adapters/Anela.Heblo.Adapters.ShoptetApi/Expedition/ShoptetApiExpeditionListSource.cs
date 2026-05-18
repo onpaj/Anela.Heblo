@@ -119,11 +119,12 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
 
             async Task FlushBatchAsync(List<ExpeditionOrder> batch)
             {
-                // Enrich with stock counts and warehouse positions from catalog.
+                // Enrich with stock counts, warehouse positions, and cooling from catalog.
                 // Positions are only applied where the Shoptet API left them blank (set components).
                 var productCodes = batch.SelectMany(o => o.Items).Select(i => i.ProductCode).Distinct();
                 var stockByCode = new Dictionary<string, decimal>();
                 var locationByCode = new Dictionary<string, string>();
+                var coolingByCode = new Dictionary<string, Cooling>();
                 foreach (var productCode in productCodes)
                 {
                     var entry = await _catalog.GetByIdAsync(productCode, cancellationToken);
@@ -132,15 +133,14 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                         stockByCode[productCode] = entry.Stock.Eshop;
                         if (!string.IsNullOrEmpty(entry.Location))
                             locationByCode[productCode] = entry.Location;
+                        coolingByCode[productCode] = entry.Properties.Cooling;
                     }
                 }
-                foreach (var item in batch.SelectMany(o => o.Items))
-                {
-                    if (stockByCode.TryGetValue(item.ProductCode, out var stock))
-                        item.StockCount = stock;
-                    if (string.IsNullOrEmpty(item.WarehousePosition) && locationByCode.TryGetValue(item.ProductCode, out var location))
-                        item.WarehousePosition = location;
-                }
+                ApplyEnrichment(
+                    batch.SelectMany(o => o.Items),
+                    stockByCode,
+                    locationByCode,
+                    coolingByCode);
 
                 var data = new ExpeditionProtocolData
                 {
@@ -238,6 +238,23 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             EshopRemark = detail.Notes?.EshopRemark,
             Items = MapOrderItems(detail),
         };
+    }
+
+    internal static void ApplyEnrichment(
+        IEnumerable<ExpeditionOrderItem> items,
+        Dictionary<string, decimal> stockByCode,
+        Dictionary<string, string> locationByCode,
+        Dictionary<string, Cooling> coolingByCode)
+    {
+        foreach (var item in items)
+        {
+            if (stockByCode.TryGetValue(item.ProductCode, out var stock))
+                item.StockCount = stock;
+            if (string.IsNullOrEmpty(item.WarehousePosition) && locationByCode.TryGetValue(item.ProductCode, out var location))
+                item.WarehousePosition = location;
+            if (coolingByCode.TryGetValue(item.ProductCode, out var cooling))
+                item.Cooling = cooling;
+        }
     }
 
     internal static List<ExpeditionOrderItem> MapOrderItems(Model.ExpeditionOrderDetail detail)
