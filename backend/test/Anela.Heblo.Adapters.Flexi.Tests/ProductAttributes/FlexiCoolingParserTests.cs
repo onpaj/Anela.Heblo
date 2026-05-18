@@ -1,3 +1,4 @@
+using Anela.Heblo.Adapters.Flexi.ProductAttributes;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using FluentAssertions;
@@ -18,5 +19,31 @@ public class FlexiCoolingParserTests
     {
         var props = new CatalogProperties();
         props.Cooling.Should().Be(Cooling.None);
+    }
+
+    [Theory]
+    [InlineData("L1", Cooling.L1)]
+    [InlineData("L2", Cooling.L2)]
+    [InlineData("l1", Cooling.L1)]
+    [InlineData("l2", Cooling.L2)]
+    [InlineData(" L2 ", Cooling.L2)]
+    [InlineData(" l1 ", Cooling.L1)]
+    public void ParseCooling_WithValidValues_ReturnsParsedEnum(string input, Cooling expected)
+    {
+        var result = FlexiProductAttributesQueryClient.ParseCooling(input);
+        result.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("L3")]
+    [InlineData("garbage")]
+    [InlineData("NONE")]
+    public void ParseCooling_WithInvalidOrMissingValues_ReturnsNone(string? input)
+    {
+        var result = FlexiProductAttributesQueryClient.ParseCooling(input);
+        result.Should().Be(Cooling.None);
     }
 }
