@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import DraftReplyTriggerBar from "../DraftReplyTriggerBar";
 
 describe("DraftReplyTriggerBar", () => {
@@ -14,7 +14,7 @@ describe("DraftReplyTriggerBar", () => {
     );
     expect(screen.getByText("Reklamace")).toBeInTheDocument();
     expect(screen.getByText("Výměna zboží")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /generovat odpověď/i })).toBeInTheDocument();
+    expect(screen.getByTestId("generate-reply-desktop")).toBeInTheDocument();
   });
 
   it("calls onGenerate with the hint label when a pill is clicked", () => {
@@ -41,7 +41,7 @@ describe("DraftReplyTriggerBar", () => {
         onGenerate={onGenerate}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /generovat odpověď/i }));
+    fireEvent.click(screen.getByTestId("generate-reply-desktop"));
     expect(onGenerate).toHaveBeenCalledWith(undefined);
   });
 
@@ -54,7 +54,8 @@ describe("DraftReplyTriggerBar", () => {
         onGenerate={jest.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: /generovat odpověď/i })).toBeDisabled();
+    expect(screen.getByTestId("generate-reply-desktop")).toBeDisabled();
+    expect(screen.getByTestId("generate-reply-mobile")).toBeDisabled();
   });
 
   it("disables every control while disabled is true", () => {
@@ -67,7 +68,9 @@ describe("DraftReplyTriggerBar", () => {
       />,
     );
     expect(screen.getByRole("button", { name: "Reklamace" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /generovat odpověď/i })).toBeDisabled();
+    expect(screen.getByTestId("generate-reply-desktop")).toBeDisabled();
+    expect(screen.getByTestId("generate-reply-mobile")).toBeDisabled();
+    expect(screen.getByRole("button", { name: /témata/i })).toBeDisabled();
   });
 
   it("shows an error message when error is provided", () => {
@@ -80,5 +83,58 @@ describe("DraftReplyTriggerBar", () => {
       />,
     );
     expect(screen.getByText("AI služba je nedostupná.")).toBeInTheDocument();
+  });
+
+  it("renders a Témata button in the mobile row", () => {
+    render(
+      <DraftReplyTriggerBar
+        disabled={false}
+        canGenerateWithoutTopic={true}
+        error={null}
+        onGenerate={jest.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /témata/i })).toBeInTheDocument();
+  });
+
+  it("opens TopicPickerSheet when Témata is clicked", () => {
+    render(
+      <DraftReplyTriggerBar
+        disabled={false}
+        canGenerateWithoutTopic={true}
+        error={null}
+        onGenerate={jest.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /témata/i }));
+    expect(screen.getByTestId("topic-picker-backdrop")).toBeInTheDocument();
+  });
+
+  it("calls onGenerate with label when a topic is picked from the sheet", () => {
+    const onGenerate = jest.fn();
+    render(
+      <DraftReplyTriggerBar
+        disabled={false}
+        canGenerateWithoutTopic={true}
+        error={null}
+        onGenerate={onGenerate}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /témata/i }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Doprava" }));
+    expect(onGenerate).toHaveBeenCalledWith("Doprava");
+  });
+
+  it("disables the Témata button when disabled is true", () => {
+    render(
+      <DraftReplyTriggerBar
+        disabled={true}
+        canGenerateWithoutTopic={true}
+        error={null}
+        onGenerate={jest.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /témata/i })).toBeDisabled();
   });
 });
