@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
+import { MarketingActionType } from "../generated/api-client";
 
 interface GetMarketingActionsParams {
   pageNumber?: number;
   pageSize?: number;
   searchTerm?: string;
+  actionType?: MarketingActionType;
   productCodePrefix?: string;
   startDateFrom?: Date;
   startDateTo?: Date;
@@ -50,6 +52,7 @@ export const useMarketingActions = (
         params.pageNumber,
         params.pageSize,
         params.searchTerm,
+        params.actionType,
         params.productCodePrefix,
         params.startDateFrom,
         params.startDateTo,
