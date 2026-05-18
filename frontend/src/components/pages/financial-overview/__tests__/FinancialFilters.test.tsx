@@ -31,8 +31,8 @@ const defaultProps = {
 
 describe('FinancialFilters — mobile', () => {
   beforeEach(() => {
-    useIsMobile.mockReturnValue(true)
     jest.clearAllMocks()
+    useIsMobile.mockReturnValue(true)
   })
 
   it('shows the toggle button with "Filtry & období" text', () => {
@@ -71,8 +71,8 @@ describe('FinancialFilters — mobile', () => {
 
 describe('FinancialFilters — desktop', () => {
   beforeEach(() => {
-    useIsMobile.mockReturnValue(false)
     jest.clearAllMocks()
+    useIsMobile.mockReturnValue(false)
   })
 
   it('renders the period select inline without a toggle button', () => {

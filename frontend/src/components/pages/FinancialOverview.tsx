@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChartOptions } from "chart.js";
+import { ChartOptions, type ChartData } from "chart.js";
 import {
   TrendingUp,
   TrendingDown,
@@ -151,7 +151,7 @@ const FinancialOverview: React.FC = () => {
       );
     }
 
-    return { labels, datasets };
+    return { labels, datasets } as ChartData<"bar">;
   }, [data?.data, includeStockData]);
 
   const chartOptions: ChartOptions<"bar"> = React.useMemo(

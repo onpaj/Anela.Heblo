@@ -1,18 +1,18 @@
 import React from 'react'
 import { Chart } from 'react-chartjs-2'
-import type { ChartOptions } from 'chart.js'
+import type { ChartOptions, ChartData } from 'chart.js'
 import { useIsMobile } from '../../../hooks/useMediaQuery'
 import { MONTH_SLOT_WIDTH } from './utils'
 
 interface FinancialChartProps {
-  chartData: { labels: string[]; datasets: any[] }
+  chartData: ChartData<'bar'>
   chartOptions: ChartOptions<'bar'>
   title: string
 }
 
 export const FinancialChart: React.FC<FinancialChartProps> = ({ chartData, chartOptions, title }) => {
   const isMobile = useIsMobile()
-  const monthCount = chartData.labels.length
+  const monthCount = chartData.labels?.length ?? 0
   const innerMinWidth = isMobile ? monthCount * MONTH_SLOT_WIDTH : undefined
 
   return (
