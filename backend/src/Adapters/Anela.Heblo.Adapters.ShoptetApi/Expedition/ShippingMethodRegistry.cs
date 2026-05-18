@@ -31,4 +31,9 @@ internal static class ShippingMethodRegistry
         ShippingList
             .SelectMany(s => s.Guids.Select(g => (Guid: g, Method: s)))
             .ToDictionary(x => x.Guid, x => x.Method);
+
+    internal static DeliveryHandling? ResolveDeliveryHandling(ShippingMethod method) =>
+        method.Name.Contains("DO_RUKY") ? DeliveryHandling.NaRuky :
+        method.Name.Contains("PARCELSHOP") || method.Name.Contains("ZPOINT") ? DeliveryHandling.Box :
+        (DeliveryHandling?)null;
 }

@@ -634,6 +634,46 @@ public class ShoptetApiExpeditionListSourceTests
         // Assert
         item.Cooling.Should().Be(Cooling.None);
     }
+
+    // ─── ResolveDeliveryHandling ──────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("ZASILKOVNA_DO_RUKY")]
+    [InlineData("PPL_DO_RUKY")]
+    [InlineData("PPL_DO_RUKY_CHLAZENY")]
+    [InlineData("ZASILKOVNA_DO_RUKY_SK")]
+    [InlineData("ZASILKOVNA_DO_RUKY_SK_CHLAZENY")]
+    [InlineData("GLS_DO_RUKY")]
+    public void ResolveDeliveryHandling_ReturnsNaRuky_ForDoRukyMethods(string name)
+    {
+        var method = new ShippingMethod { Carrier = Carriers.PPL, Name = name, Guids = [] };
+        ShippingMethodRegistry.ResolveDeliveryHandling(method).Should().Be(DeliveryHandling.NaRuky);
+    }
+
+    [Theory]
+    [InlineData("PPL_PARCELSHOP")]
+    [InlineData("PPL_PARCELSHOP_CHLAZENY")]
+    [InlineData("ZASILKOVNA_ZPOINT")]
+    [InlineData("ZASILKOVNA_ZPOINT_CHLAZENY")]
+    [InlineData("ZASILKOVNA_ZPOINT_ZDARMA")]
+    [InlineData("ZASILKOVNA_ZPOINT_CHLAZENY_ZDARMA")]
+    [InlineData("GLS_PARCELSHOP")]
+    public void ResolveDeliveryHandling_ReturnsBox_ForParcelshopAndZpointMethods(string name)
+    {
+        var method = new ShippingMethod { Carrier = Carriers.PPL, Name = name, Guids = [] };
+        ShippingMethodRegistry.ResolveDeliveryHandling(method).Should().Be(DeliveryHandling.Box);
+    }
+
+    [Theory]
+    [InlineData("PPL_EXPORT")]
+    [InlineData("PPL_EXPORT_CHLAZENY")]
+    [InlineData("GLS_EXPORT")]
+    [InlineData("OSOBAK")]
+    public void ResolveDeliveryHandling_ReturnsNull_ForExportAndOsobakMethods(string name)
+    {
+        var method = new ShippingMethod { Carrier = Carriers.PPL, Name = name, Guids = [] };
+        ShippingMethodRegistry.ResolveDeliveryHandling(method).Should().BeNull();
+    }
 }
 
 /// <summary>
