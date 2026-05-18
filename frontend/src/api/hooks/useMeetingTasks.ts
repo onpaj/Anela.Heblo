@@ -323,3 +323,24 @@ export function useExplainMeetingSummary() {
       ),
   });
 }
+
+// --- Reimport ---
+
+export interface ReimportMeetingResponse {
+  success: boolean;
+  errorCode?: string;
+}
+
+export function useReimportMeeting() {
+  const qc = useQueryClient();
+  return useMutation<ReimportMeetingResponse, Error, string>({
+    mutationFn: async (transcriptId) =>
+      fetchJson<ReimportMeetingResponse>(
+        `/api/meeting-tasks/${encodeURIComponent(transcriptId)}/reimport`,
+        { method: "POST", headers: { Accept: "application/json" } },
+      ),
+    onSuccess: (_d, transcriptId) => {
+      qc.invalidateQueries({ queryKey: MEETING_TASKS_KEYS.detail(transcriptId) });
+    },
+  });
+}
