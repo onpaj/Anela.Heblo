@@ -113,6 +113,10 @@ public sealed class ReimportMeetingTranscriptHandlerTests
             .ReturnsAsync(entity);
 
         _mockPlaudClient
+            .Setup(c => c.ListRecentAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PlaudRecordingSummary>());
+
+        _mockPlaudClient
             .Setup(c => c.GetFileDetailAsync("rec_gen", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PlaudFileDetail { TranscriptAvailable = true, SummaryAvailable = true, AudioAvailable = true });
 
