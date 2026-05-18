@@ -75,10 +75,11 @@ public class AnthropicChatClient : IChatClient
             .ToArray();
 
         var model = options?.ModelId ?? _options.Model;
+        var maxTokensOverride = options?.MaxOutputTokens;
 
         _logger.LogDebug("Calling Claude {Model}, messages count {Count}", model, messageList.Count);
 
-        var requestBody = BuildRequestBody(model, systemMessage, userMessages);
+        var requestBody = BuildRequestBody(model, systemMessage, userMessages, maxTokensOverride);
 
         var httpResponse = await _pipeline.ExecuteAsync(async token =>
         {
@@ -127,14 +128,15 @@ public class AnthropicChatClient : IChatClient
 
     public void Dispose() { }
 
-    private object BuildRequestBody(string model, string? systemMessage, object[] userMessages)
+    private object BuildRequestBody(string model, string? systemMessage, object[] userMessages, int? maxTokensOverride = null)
     {
+        var maxTokens = maxTokensOverride ?? _options.MaxTokens;
         if (systemMessage is not null)
         {
             return new
             {
                 model,
-                max_tokens = _options.MaxTokens,
+                max_tokens = maxTokens,
                 system = systemMessage,
                 messages = userMessages
             };
@@ -143,7 +145,7 @@ public class AnthropicChatClient : IChatClient
         return new
         {
             model,
-            max_tokens = _options.MaxTokens,
+            max_tokens = maxTokens,
             messages = userMessages
         };
     }
