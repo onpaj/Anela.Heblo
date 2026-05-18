@@ -12,8 +12,8 @@ public class GetCarrierCoolingMatrixHandler : IRequestHandler<GetCarrierCoolingM
 
     public GetCarrierCoolingMatrixHandler(ICarrierCoolingRepository repository, IShippingMethodCatalog catalog)
     {
-        _repository = repository;
-        _catalog = catalog;
+        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
     }
 
     public async Task<GetCarrierCoolingMatrixResponse> Handle(
