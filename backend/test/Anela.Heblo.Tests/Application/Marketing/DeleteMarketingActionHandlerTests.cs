@@ -6,9 +6,9 @@ using Anela.Heblo.Application.Features.Marketing.UseCases.DeleteMarketingAction;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Anela.Heblo.Tests.Application.Marketing;
@@ -56,7 +56,8 @@ public class DeleteMarketingActionHandlerTests
             _currentUserService.Object,
             _logger.Object,
             _outlookSync.Object,
-            Options.Create(new MarketingCalendarOptions { GroupId = "grp", PushEnabled = pushEnabled }));
+            new TestOptionsMonitor<MarketingCalendarOptions>(
+                new MarketingCalendarOptions { GroupId = "grp", PushEnabled = pushEnabled }));
 
     [Fact]
     public async Task Handle_CallsOutlookDeleteBeforeSoftDelete_WhenPushEnabled()
@@ -166,5 +167,59 @@ public class DeleteMarketingActionHandlerTests
 
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.MarketingActionNotFound);
+    }
+
+    [Fact]
+    public async Task Handle_HonorsRuntimePushEnabledFlip_TrueToFalse()
+    {
+        _repository
+            .Setup(x => x.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => BuildExistingAction());
+
+        var monitor = new TestOptionsMonitor<MarketingCalendarOptions>(
+            new MarketingCalendarOptions { GroupId = "grp", PushEnabled = true });
+        var handler = new DeleteMarketingActionHandler(
+            _repository.Object,
+            _currentUserService.Object,
+            _logger.Object,
+            _outlookSync.Object,
+            monitor);
+
+        await handler.Handle(BuildRequest(), CancellationToken.None);
+
+        monitor.Set(new MarketingCalendarOptions { GroupId = "grp", PushEnabled = false });
+
+        await handler.Handle(BuildRequest(), CancellationToken.None);
+
+        _outlookSync.Verify(
+            x => x.DeleteEventAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_HonorsRuntimePushEnabledFlip_FalseToTrue()
+    {
+        _repository
+            .Setup(x => x.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => BuildExistingAction());
+
+        var monitor = new TestOptionsMonitor<MarketingCalendarOptions>(
+            new MarketingCalendarOptions { GroupId = "grp", PushEnabled = false });
+        var handler = new DeleteMarketingActionHandler(
+            _repository.Object,
+            _currentUserService.Object,
+            _logger.Object,
+            _outlookSync.Object,
+            monitor);
+
+        await handler.Handle(BuildRequest(), CancellationToken.None);
+
+        monitor.Set(new MarketingCalendarOptions { GroupId = "grp", PushEnabled = true });
+
+        await handler.Handle(BuildRequest(), CancellationToken.None);
+
+        _outlookSync.Verify(
+            x => x.DeleteEventAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

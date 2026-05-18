@@ -39,6 +39,14 @@ public sealed class IngestPlaudRecordingHandler : IRequestHandler<IngestPlaudRec
             return new IngestPlaudRecordingResponse { Skipped = true };
         }
 
+        // Check if Plaud has finished generating transcript + summary for this recording
+        var detail = await _plaudClient.GetFileDetailAsync(request.PlaudRecordingId, cancellationToken);
+        if (!detail.IsGenerated)
+        {
+            _logger.LogInformation("Recording {RecordingId} not yet generated on Plaud, skipping", request.PlaudRecordingId);
+            return new IngestPlaudRecordingResponse { Skipped = true, NotGenerated = true };
+        }
+
         // Fetch transcript and summary from Plaud
         var transcript = await _plaudClient.GetTranscriptAsync(request.PlaudRecordingId, cancellationToken);
         var summaryResult = await _plaudClient.GetSummaryAsync(request.PlaudRecordingId, cancellationToken);

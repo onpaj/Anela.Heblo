@@ -61,6 +61,10 @@ public sealed class IngestPlaudRecordingHandlerTests
             .ReturnsAsync(false);
 
         _mockPlaudClient
+            .Setup(c => c.GetFileDetailAsync(recordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudFileDetail { TranscriptAvailable = true, SummaryAvailable = true, AudioAvailable = true });
+
+        _mockPlaudClient
             .Setup(c => c.GetTranscriptAsync(recordingId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transcript);
 
@@ -161,6 +165,10 @@ public sealed class IngestPlaudRecordingHandlerTests
             .ReturnsAsync(false);
 
         _mockPlaudClient
+            .Setup(c => c.GetFileDetailAsync(recordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudFileDetail { TranscriptAvailable = true, SummaryAvailable = true, AudioAvailable = true });
+
+        _mockPlaudClient
             .Setup(c => c.GetTranscriptAsync(recordingId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transcript);
 
@@ -208,6 +216,9 @@ public sealed class IngestPlaudRecordingHandlerTests
             .Setup(r => r.ExistsByPlaudIdAsync(request.PlaudRecordingId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         _mockPlaudClient
+            .Setup(c => c.GetFileDetailAsync(request.PlaudRecordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudFileDetail { TranscriptAvailable = true, SummaryAvailable = true, AudioAvailable = true });
+        _mockPlaudClient
             .Setup(c => c.GetTranscriptAsync(request.PlaudRecordingId, It.IsAny<CancellationToken>()))
             .ReturnsAsync("transcript");
         _mockPlaudClient
@@ -234,5 +245,42 @@ public sealed class IngestPlaudRecordingHandlerTests
         // Assert
         saved.Should().NotBeNull();
         saved!.Tasks.Single().AssigneeEmail.Should().Be("andrea@anela.cz");
+    }
+
+    [Fact]
+    public async Task Handle_WhenRecordingNotGenerated_SkipsWithoutSavingOrFetchingTranscript()
+    {
+        // Arrange
+        var recordingId = "rec_raw";
+
+        var request = new IngestPlaudRecordingRequest
+        {
+            PlaudRecordingId = recordingId,
+            Name = "Raw Recording",
+            PlaudCreatedAt = DateTime.UtcNow
+        };
+
+        _mockRepository
+            .Setup(r => r.ExistsByPlaudIdAsync(recordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _mockPlaudClient
+            .Setup(c => c.GetFileDetailAsync(recordingId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PlaudFileDetail { TranscriptAvailable = false, SummaryAvailable = false, AudioAvailable = false });
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Skipped.Should().BeTrue();
+        response.NotGenerated.Should().BeTrue();
+
+        _mockPlaudClient.Verify(
+            c => c.GetTranscriptAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        _mockRepository.Verify(
+            r => r.AddAsync(It.IsAny<MeetingTranscript>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

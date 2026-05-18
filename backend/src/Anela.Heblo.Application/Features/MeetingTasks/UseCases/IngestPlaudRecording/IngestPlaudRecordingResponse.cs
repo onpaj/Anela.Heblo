@@ -5,5 +5,6 @@ namespace Anela.Heblo.Application.Features.MeetingTasks.UseCases.IngestPlaudReco
 public class IngestPlaudRecordingResponse : BaseResponse
 {
     public bool Skipped { get; set; }
+    public bool NotGenerated { get; set; }
     public Guid? TranscriptId { get; set; }
 }
