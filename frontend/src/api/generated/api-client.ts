@@ -12991,6 +12991,7 @@ export class PropertiesDto implements IPropertiesDto {
     stockMinSetup?: number;
     batchSize?: number;
     seasonMonths?: number[];
+    cooling?: Cooling;
 
     constructor(data?: IPropertiesDto) {
         if (data) {
@@ -13011,6 +13012,7 @@ export class PropertiesDto implements IPropertiesDto {
                 for (let item of _data["seasonMonths"])
                     this.seasonMonths!.push(item);
             }
+            this.cooling = _data["cooling"];
         }
     }
 
@@ -13031,6 +13033,7 @@ export class PropertiesDto implements IPropertiesDto {
             for (let item of this.seasonMonths)
                 data["seasonMonths"].push(item);
         }
+        data["cooling"] = this.cooling;
         return data;
     }
 }
@@ -13040,6 +13043,13 @@ export interface IPropertiesDto {
     stockMinSetup?: number;
     batchSize?: number;
     seasonMonths?: number[];
+    cooling?: Cooling;
+}
+
+export enum Cooling {
+    None = "None",
+    L1 = "L1",
+    L2 = "L2",
 }
 
 export class LotDto implements ILotDto {

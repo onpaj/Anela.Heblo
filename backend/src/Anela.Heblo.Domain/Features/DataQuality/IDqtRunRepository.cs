@@ -17,4 +17,7 @@ public interface IDqtRunRepository : IRepository<DqtRun, Guid>
         CancellationToken cancellationToken = default);
     Task<DqtRun?> GetWithResultsAsync(Guid id, int resultPage, int resultPageSize, CancellationToken cancellationToken = default);
     Task AddResultsAsync(IEnumerable<InvoiceDqtResult> results, CancellationToken cancellationToken = default);
+    Task AddDriftResultsAsync(IEnumerable<DqtDriftResult> results, CancellationToken ct = default);
+    Task<(List<DqtDriftResult> Items, int TotalCount)> GetDriftResultsAsync(
+        Guid runId, int page, int pageSize, CancellationToken ct = default);
 }

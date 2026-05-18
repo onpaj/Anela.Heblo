@@ -66,6 +66,27 @@ public class DqtRunRepository : BaseRepository<DqtRun, Guid>, IDqtRunRepository
         await Context.Set<InvoiceDqtResult>().AddRangeAsync(results, cancellationToken);
     }
 
+    public async Task AddDriftResultsAsync(IEnumerable<DqtDriftResult> results, CancellationToken ct = default)
+    {
+        await Context.Set<DqtDriftResult>().AddRangeAsync(results, ct);
+    }
+
+    public async Task<(List<DqtDriftResult> Items, int TotalCount)> GetDriftResultsAsync(
+        Guid runId, int page, int pageSize, CancellationToken ct = default)
+    {
+        var query = Context.Set<DqtDriftResult>()
+            .Where(r => r.DqtRunId == runId)
+            .OrderBy(r => r.EntityKey);
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return (items, totalCount);
+    }
+
     public async Task<DqtRun?> GetWithResultsAsync(Guid id, int resultPage, int resultPageSize, CancellationToken cancellationToken = default)
     {
         var run = await DbSet

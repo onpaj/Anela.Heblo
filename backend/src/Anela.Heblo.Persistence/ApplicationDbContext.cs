@@ -117,6 +117,7 @@ public class ApplicationDbContext : DbContext
     // Data Quality module
     public DbSet<DqtRun> DqtRuns { get; set; } = null!;
     public DbSet<InvoiceDqtResult> InvoiceDqtResults { get; set; } = null!;
+    public DbSet<DqtDriftResult> DqtDriftResults { get; set; } = null!;
 
     // Photobank
     public DbSet<PhotobankIndexRoot> PhotobankIndexRoots { get; set; } = null!;
