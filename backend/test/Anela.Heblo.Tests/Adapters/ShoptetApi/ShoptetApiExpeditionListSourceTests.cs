@@ -95,8 +95,21 @@ public class ShoptetApiExpeditionListSourceTests
         };
     }
 
-    private static ShoptetApiExpeditionListSource BuildSource(ShoptetOrderClient client) =>
-        new(client, TimeProvider.System, new Mock<ICatalogRepository>().Object);
+    private static ShoptetApiExpeditionListSource BuildSource(
+        ShoptetOrderClient client,
+        ICarrierCoolingRepository? carrierCooling = null)
+    {
+        var coolingRepo = carrierCooling ?? BuildEmptyCoolingRepo();
+        return new ShoptetApiExpeditionListSource(client, TimeProvider.System, new Mock<ICatalogRepository>().Object, coolingRepo);
+    }
+
+    private static ICarrierCoolingRepository BuildEmptyCoolingRepo()
+    {
+        var mock = new Mock<ICarrierCoolingRepository>();
+        mock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<CarrierCoolingSetting>());
+        return mock.Object;
+    }
 
     private static PrintPickingListRequest DefaultRequest(bool changeState = false) =>
         new()
@@ -627,7 +640,7 @@ public class ShoptetApiExpeditionListSourceTests
                 Properties = new CatalogProperties { Cooling = Cooling.L1 },
             });
 
-        var source = new ShoptetApiExpeditionListSource(client, TimeProvider.System, catalogMock.Object);
+        var source = new ShoptetApiExpeditionListSource(client, TimeProvider.System, catalogMock.Object, BuildEmptyCoolingRepo());
 
         // Act
         var result = await source.CreatePickingList(DefaultRequest(), null);
@@ -687,6 +700,120 @@ public class ShoptetApiExpeditionListSourceTests
 
         // Assert
         item.Cooling.Should().Be(Cooling.None);
+    }
+
+    // ─── ResolveCarrierCooling ────────────────────────────────────────────────────
+
+    [Fact]
+    public void ResolveCarrierCooling_ReturnsCoolingFromMatrix_WhenKeyExists()
+    {
+        var matrix = new Dictionary<(Carriers, DeliveryHandling), Cooling>
+        {
+            [(Carriers.PPL, DeliveryHandling.NaRuky)] = Cooling.L1,
+        };
+
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCooling(PplDoRukyGuid, matrix);
+
+        result.Should().Be(Cooling.L1);
+    }
+
+    [Fact]
+    public void ResolveCarrierCooling_ReturnsNone_WhenGuidNotInRegistry()
+    {
+        var matrix = new Dictionary<(Carriers, DeliveryHandling), Cooling>
+        {
+            [(Carriers.PPL, DeliveryHandling.NaRuky)] = Cooling.L1,
+        };
+
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCooling("unknown-guid", matrix);
+
+        result.Should().Be(Cooling.None);
+    }
+
+    [Fact]
+    public void ResolveCarrierCooling_ReturnsNone_WhenMatrixHasNoEntryForCarrierHandling()
+    {
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCooling(
+            PplDoRukyGuid,
+            new Dictionary<(Carriers, DeliveryHandling), Cooling>());
+
+        result.Should().Be(Cooling.None);
+    }
+
+    [Fact]
+    public void ResolveCarrierCooling_ReturnsNone_ForExportMethod()
+    {
+        // PPL_EXPORT — ResolveDeliveryHandling returns null for EXPORT → always None
+        const string PplExportGuid = "f17a0a12-0ebe-11eb-933a-002590dad85e";
+        var matrix = new Dictionary<(Carriers, DeliveryHandling), Cooling>
+        {
+            [(Carriers.PPL, DeliveryHandling.NaRuky)] = Cooling.L1,
+            [(Carriers.PPL, DeliveryHandling.Box)] = Cooling.L2,
+        };
+
+        var result = ShoptetApiExpeditionListSource.ResolveCarrierCooling(PplExportGuid, matrix);
+
+        result.Should().Be(Cooling.None);
+    }
+
+    // ─── CreatePickingList — carrier cooling integration ──────────────────────────
+
+    [Fact]
+    public async Task CreatePickingList_AssignsCarrierCooling_FromMatrix()
+    {
+        var listResp = SinglePageList(("P001", PplDoRukyGuid));
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
+                return Json(listResp);
+            return Json(DetailFor(req.RequestUri.Segments.Last()));
+        });
+
+        var coolingMock = new Mock<ICarrierCoolingRepository>();
+        coolingMock
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new CarrierCoolingSetting(Carriers.PPL, DeliveryHandling.NaRuky, Cooling.L1, "test"),
+            });
+
+        var source = BuildSource(client, coolingMock.Object);
+
+        var result = await source.CreatePickingList(DefaultRequest(), null);
+
+        coolingMock.Verify(r => r.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
+        result.TotalCount.Should().Be(1);
+
+        foreach (var file in result.ExportedFiles.Where(File.Exists))
+            File.Delete(file);
+    }
+
+    [Fact]
+    public async Task CreatePickingList_LoadsMatrixOnce_AcrossMultipleOrderBatches()
+    {
+        // Two carriers → two batches → matrix still loaded only once
+        var listResp = SinglePageList(("Z001", ZasilkovnaDoRukyGuid), ("P001", PplDoRukyGuid));
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?"))
+                return Json(listResp);
+            return Json(DetailFor(req.RequestUri.Segments.Last()));
+        });
+
+        var coolingMock = new Mock<ICarrierCoolingRepository>();
+        coolingMock
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<CarrierCoolingSetting>());
+
+        var source = BuildSource(client, coolingMock.Object);
+
+        var result = await source.CreatePickingList(DefaultRequest(), null);
+
+        coolingMock.Verify(r => r.GetAllAsync(It.IsAny<CancellationToken>()), Times.Once);
+        result.TotalCount.Should().Be(2);
+
+        foreach (var file in result.ExportedFiles.Where(File.Exists))
+            File.Delete(file);
     }
 
     // ─── ResolveDeliveryHandling ──────────────────────────────────────────────────
