@@ -21,7 +21,7 @@ public class CarrierCoolingSetting
         ModifiedAt = DateTime.UtcNow;
     }
 
-    public void UpdateCooling(Cooling cooling, string modifiedBy)
+    internal void UpdateCooling(Cooling cooling, string modifiedBy)
     {
         Cooling = cooling;
         ModifiedBy = modifiedBy;
