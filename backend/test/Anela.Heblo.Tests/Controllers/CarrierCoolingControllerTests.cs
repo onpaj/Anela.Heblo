@@ -77,4 +77,19 @@ public class CarrierCoolingControllerTests : IClassFixture<HebloWebApplicationFa
         var naRukyRow = pplGroup.Rows.First(r => r.DeliveryHandling == DeliveryHandling.NaRuky);
         naRukyRow.Cooling.Should().Be(Cooling.L1);
     }
+
+    [Fact]
+    public async Task Put_ReturnsBadRequest_WhenCarrierHandlingComboIsUnavailable()
+    {
+        var putRequest = new SetCarrierCoolingRequest
+        {
+            Carrier = Carriers.Osobak,
+            DeliveryHandling = DeliveryHandling.NaRuky,
+            Cooling = Cooling.L1,
+        };
+
+        var response = await _client.PutAsJsonAsync("/api/carrier-cooling", putRequest, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }

@@ -42,6 +42,6 @@ public class CarrierCoolingController : BaseApiController
         return User.FindFirst(ClaimTypes.NameIdentifier)?.Value
             ?? User.FindFirst("sub")?.Value
             ?? User.FindFirst("oid")?.Value
-            ?? throw new Exception("User not found");
+            ?? throw new InvalidOperationException("Authenticated user has no identity claim.");
     }
 }

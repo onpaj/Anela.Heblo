@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.CarrierCooling.UseCases.SetCarrierCooling;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
 using FluentAssertions;
@@ -10,17 +11,21 @@ namespace Anela.Heblo.Tests.Application.CarrierCooling;
 public class SetCarrierCoolingHandlerTests
 {
     private readonly Mock<ICarrierCoolingRepository> _repositoryMock = new();
-    private readonly SetCarrierCoolingHandler _sut;
+    private readonly Mock<IShippingMethodCatalog> _catalogMock = new();
 
-    public SetCarrierCoolingHandlerTests()
+    private SetCarrierCoolingHandler CreateSut() =>
+        new(_repositoryMock.Object, _catalogMock.Object);
+
+    private void SetupValidCombo(Carriers carrier, DeliveryHandling handling)
     {
-        _sut = new SetCarrierCoolingHandler(_repositoryMock.Object);
+        _catalogMock.Setup(c => c.GetAvailableDeliveryOptions())
+            .Returns(new List<(Carriers Carrier, DeliveryHandling Handling)> { (carrier, handling) }.AsReadOnly());
     }
 
     [Fact]
-    public async Task Handle_CallsUpsertAndReturnsSuccess()
+    public async Task Handle_CallsUpsertAndReturnsSuccess_WhenComboIsAvailable()
     {
-        // Arrange
+        SetupValidCombo(Carriers.PPL, DeliveryHandling.NaRuky);
         var request = new SetCarrierCoolingRequest
         {
             Carrier = Carriers.PPL,
@@ -33,10 +38,8 @@ public class SetCarrierCoolingHandlerTests
             .Setup(r => r.UpsertAsync(It.IsAny<CarrierCoolingSetting>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        // Act
-        var result = await _sut.Handle(request, CancellationToken.None);
+        var result = await CreateSut().Handle(request, CancellationToken.None);
 
-        // Assert
         result.Success.Should().BeTrue();
         _repositoryMock.Verify(
             r => r.UpsertAsync(
@@ -47,5 +50,26 @@ public class SetCarrierCoolingHandlerTests
                     s.ModifiedBy == "user-123"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsValidationError_WhenComboIsUnavailable()
+    {
+        _catalogMock.Setup(c => c.GetAvailableDeliveryOptions())
+            .Returns(new List<(Carriers Carrier, DeliveryHandling Handling)>().AsReadOnly());
+
+        var request = new SetCarrierCoolingRequest
+        {
+            Carrier = Carriers.Osobak,
+            DeliveryHandling = DeliveryHandling.NaRuky,
+            Cooling = Cooling.L1,
+            ModifiedBy = "user-123",
+        };
+
+        var result = await CreateSut().Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ValidationError);
+        _repositoryMock.Verify(r => r.UpsertAsync(It.IsAny<CarrierCoolingSetting>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
