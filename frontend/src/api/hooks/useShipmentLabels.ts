@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ErrorCodes, ShipmentLabelDto } from '../generated/api-client';
+import { ErrorCodes, GetShipmentLabelsRequest, ShipmentLabelDto } from '../generated/api-client';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 const MESSAGES: Record<string, string> = {
@@ -12,7 +12,7 @@ const GENERIC_ERROR = 'Štítek se nepodařilo načíst';
 
 const fetchShipmentLabels = async (orderCode: string): Promise<ShipmentLabelDto[]> => {
   const apiClient = getAuthenticatedApiClient(false);
-  const response = await apiClient.shipmentLabels_GetLabels({ orderCode });
+  const response = await apiClient.shipmentLabels_GetLabels(new GetShipmentLabelsRequest({ orderCode }));
   if (!response.success) {
     const message =
       (response.errorCode && MESSAGES[response.errorCode]) ?? GENERIC_ERROR;

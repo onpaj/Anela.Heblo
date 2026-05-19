@@ -1,11 +1,11 @@
+import { ShipmentLabelDto } from '../../api/generated/api-client';
 import { getAuthenticatedApiClient } from '../../api/client';
 
-interface LabelIdentifier {
-  shipmentGuid: string;
-  packageName: string;
-}
+export const printLabelPdf = (orderCode: string, label: ShipmentLabelDto): void => {
+  if (!label.shipmentGuid || !label.packageName) {
+    throw new Error('Invalid label: missing shipmentGuid or packageName');
+  }
 
-export const printLabelPdf = (orderCode: string, label: LabelIdentifier): void => {
   const apiClient = getAuthenticatedApiClient(false);
   const baseUrl = (apiClient as any).baseUrl as string;
   const url =
