@@ -10,7 +10,5 @@ public class ShipmentLabelsSettings
 
     public int DefaultPackageDepthMm { get; set; } = 150;
 
-    public int DefaultItemWeightGrams { get; set; } = 500;
-
     public int MinPackageWeightGrams { get; set; } = 100;
 }
