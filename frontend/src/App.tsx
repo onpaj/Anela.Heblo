@@ -73,6 +73,9 @@ import TransportBoxCheck from "./components/terminal/TransportBoxCheck";
 import TransportBoxReceive from "./components/terminal/TransportBoxReceive";
 import ComingSoonPage from "./components/terminal/ComingSoonPage";
 import BoxFillWorkflow from "./components/terminal/box-fill/BoxFillWorkflow";
+import BaleniLayout from "./components/baleni/BaleniLayout";
+import BaleniHome from "./components/baleni/BaleniHome";
+import BaleniPlaceholder from "./components/baleni/BaleniPlaceholder";
 import "./i18n";
 
 let isRedirecting = false;
@@ -358,6 +361,14 @@ function App() {
                           path="lot-identification"
                           element={<ComingSoonPage title="Identifikace šarže" />}
                         />
+                      </Route>
+
+                      {/* Balení device module — landscape touch PC, no sidebar */}
+                      <Route path="/baleni" element={<BaleniLayout />}>
+                        <Route index element={<BaleniHome />} />
+                        <Route path="baleni" element={<BaleniPlaceholder title="Balení" />} />
+                        <Route path="zasilky" element={<BaleniPlaceholder title="Zásilky" />} />
+                        <Route path="statistiky" element={<BaleniPlaceholder title="Statistiky" />} />
                       </Route>
 
                       {/* Desktop app — full Layout with sidebar (pathless layout route) */}

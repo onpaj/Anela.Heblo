@@ -282,6 +282,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Terminál",
           href: "/terminal",
         },
+        {
+          id: "baleni",
+          name: "Balení",
+          href: "/baleni",
+        },
       ],
     },
 
