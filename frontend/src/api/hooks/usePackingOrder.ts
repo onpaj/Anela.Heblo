@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAuthenticatedApiClient } from '../client';
+import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
 export type Cooling = 'None' | 'L1' | 'L2';
 
@@ -49,7 +49,7 @@ const fetchPackingOrder = async (code: string): Promise<PackingOrder> => {
 /** Loads a packing order by scanned code. Disabled until a code is provided. */
 export const usePackingOrder = (code: string | null) =>
   useQuery({
-    queryKey: ['packingOrder', code],
+    queryKey: [...QUERY_KEYS.packingOrder, code],
     queryFn: () => fetchPackingOrder(code as string),
     enabled: !!code,
     retry: false,

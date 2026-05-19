@@ -440,6 +440,7 @@ export const QUERY_KEYS = {
   smartsupp: ["smartsupp"] as const,
   manufacturedProductInventory: ["manufactured-product-inventory"] as const,
   meetingTasks: ["meetingTasks"] as const,
+  packingOrder: ["packingOrder"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,
