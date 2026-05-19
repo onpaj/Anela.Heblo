@@ -310,7 +310,7 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     WeatherForecastUnavailable = 2901,
 
-    // ShipmentLabels module errors (29XX)
+    // ShipmentLabels module errors (2902–29XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
     ShipmentLabelsNoShipmentFound = 2902,
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
