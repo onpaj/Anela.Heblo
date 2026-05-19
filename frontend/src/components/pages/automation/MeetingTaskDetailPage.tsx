@@ -235,14 +235,14 @@ const MeetingTaskDetailPage: React.FC = () => {
               type="button"
               onClick={() =>
                 downloadTextFile(
-                  transcript.summary,
-                  `${sanitizeFilename(transcript.subject)}-summary.md`,
+                  transcript.summary ?? '',
+                  `${sanitizeFilename(transcript.subject ?? '')}-summary.md`,
                   'text/markdown',
                 )
               }
               className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
             >
-              <Download className="w-4 h-4 mr-1" />
+              <Download className="w-4 h-4 mr-1" aria-hidden="true" />
               Stáhnout souhrn
             </button>
           )}
@@ -251,14 +251,14 @@ const MeetingTaskDetailPage: React.FC = () => {
               type="button"
               onClick={() =>
                 downloadTextFile(
-                  transcript.rawTranscript,
-                  `${sanitizeFilename(transcript.subject)}-transcript.txt`,
+                  transcript.rawTranscript ?? '',
+                  `${sanitizeFilename(transcript.subject ?? '')}-transcript.txt`,
                   'text/plain',
                 )
               }
               className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
             >
-              <Download className="w-4 h-4 mr-1" />
+              <Download className="w-4 h-4 mr-1" aria-hidden="true" />
               Stáhnout přepis
             </button>
           )}
