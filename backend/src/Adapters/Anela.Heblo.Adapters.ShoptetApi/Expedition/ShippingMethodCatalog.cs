@@ -8,15 +8,7 @@ public class ShippingMethodCatalog : IShippingMethodCatalog
     {
         return ShippingMethodRegistry.ShippingList
             .Where(m => m.Carrier != Carriers.Osobak && !m.Name.Contains("_EXPORT"))
-            .Select(m =>
-            {
-                DeliveryHandling? handling =
-                    m.Name.Contains("DO_RUKY") ? DeliveryHandling.NaRuky :
-                    m.Name.Contains("PARCELSHOP") || m.Name.Contains("ZPOINT") ? DeliveryHandling.Box :
-                    (DeliveryHandling?)null;
-
-                return (m.Carrier, Handling: handling);
-            })
+            .Select(m => (m.Carrier, Handling: ShippingMethodRegistry.ResolveDeliveryHandling(m)))
             .Where(x => x.Handling.HasValue)
             .Select(x => (x.Carrier, x.Handling!.Value))
             .Distinct()
