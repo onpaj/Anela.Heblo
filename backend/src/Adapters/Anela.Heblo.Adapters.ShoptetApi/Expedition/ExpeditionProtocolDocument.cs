@@ -27,7 +27,7 @@ public class ExpeditionProtocolDocument : IDocument
     // Frost badge layout constants
     private const float FrostIconSize = 12f;
     private const float FrostBadgePadding = 3f;
-    private const float FrostBadgeBorderThickness = 0.5f;
+    private const float FrostBadgeBorderThickness = 1.5f;
 
     private static readonly byte[] FrostIconBytes = GenerateFrostIcon();
 
@@ -83,30 +83,30 @@ public class ExpeditionProtocolDocument : IDocument
             .Padding(BorderPadding)
             .Column(orderCol =>
         {
-            // Order heading: "Objednávka " + bold code — 30% larger than body (9 * 1.3 ≈ 12)
-            orderCol.Item().Text(t =>
+            // Order heading row: order number on the left, frost badge on the right (if cooled)
+            orderCol.Item().Row(headingRow =>
             {
-                t.Span("Objednávka ").FontSize(10);
-                t.Span(order.Code).Bold().FontSize(10);
-            });
+                headingRow.RelativeItem().AlignMiddle().Text(t =>
+                {
+                    t.Span("Objednávka ").FontSize(10);
+                    t.Span(order.Code).Bold().FontSize(10);
+                });
 
-            // Frost badge — shown only for orders containing at least one cooled product
-            if (order.IsCooled)
-            {
-                orderCol.Item().PaddingTop(3).PaddingBottom(3).Element(pill =>
-                    pill
+                if (order.IsCooled)
+                {
+                    headingRow.AutoItem()
                         .Border(FrostBadgeBorderThickness)
-                        .BorderColor(Colors.Blue.Medium)
-                        .Background(Colors.Blue.Lighten4)
+                        .BorderColor(Colors.Black)
                         .Padding(FrostBadgePadding)
                         .Row(row =>
                         {
                             row.AutoItem().Width(FrostIconSize).Height(FrostIconSize).Image(FrostIconBytes).FitArea();
                             row.AutoItem().PaddingLeft(3).AlignMiddle()
                                 .Text("CHLAZENÁ ZÁSILKA")
-                                .Bold().FontSize(10).FontColor(Colors.Blue.Darken2);
-                        }));
-            }
+                                .Bold().FontSize(10).FontColor(Colors.Black);
+                        });
+                }
+            });
 
             // Barcode — 60% of full width
             var barcodeBytes = GenerateBarcode(order.Code);
@@ -330,7 +330,7 @@ public class ExpeditionProtocolDocument : IDocument
 
         using var paint = new SKPaint
         {
-            Color = new SKColor(0x1E, 0x88, 0xE5), // blue
+            Color = SKColors.Black,
             StrokeWidth = 4f,
             IsAntialias = true,
             Style = SKPaintStyle.Stroke,
