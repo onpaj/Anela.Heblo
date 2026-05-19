@@ -17,26 +17,14 @@ internal class GraphUserCollection
     public List<GraphUser> Value { get; set; } = [];
 }
 
-internal class GraphTodoList
+internal class GraphPlannerTask
 {
     [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty;
-
-    [JsonPropertyName("displayName")]
-    public string DisplayName { get; set; } = string.Empty;
 }
 
-internal class GraphTodoListCollection
+internal class GraphPlannerTaskDetails
 {
-    [JsonPropertyName("value")]
-    public List<GraphTodoList> Value { get; set; } = [];
-}
-
-internal class GraphTodoTask
-{
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = string.Empty;
-
-    [JsonPropertyName("title")]
-    public string Title { get; set; } = string.Empty;
+    [JsonPropertyName("description")]
+    public string Description { get; set; } = string.Empty;
 }

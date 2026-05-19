@@ -1,10 +1,15 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Anela.Heblo.Application.Features.MeetingTasks;
 
 public class MeetingTasksOptions
 {
     public const string SectionName = "MeetingTasks";
 
-    public string TodoListName { get; set; } = "Meeting Actions";
+    [Required]
+    public string PlannerPlanId { get; set; } = string.Empty;
+
+    public string? PlannerBucketId { get; set; }
 
     /// <summary>
     /// Path to the static user-directory JSON file. Relative paths are resolved

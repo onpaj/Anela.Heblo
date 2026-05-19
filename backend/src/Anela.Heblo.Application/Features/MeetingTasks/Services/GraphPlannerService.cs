@@ -7,23 +7,25 @@ using Microsoft.Identity.Web;
 
 namespace Anela.Heblo.Application.Features.MeetingTasks.Services;
 
-public class GraphTodoService : IGraphTodoService
+public class GraphPlannerService : IMeetingTaskExporter
 {
     private readonly ITokenAcquisition _tokenAcquisition;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<GraphTodoService> _logger;
-    private readonly string _todoListName;
+    private readonly ILogger<GraphPlannerService> _logger;
+    private readonly string _planId;
+    private readonly string? _bucketId;
 
-    public GraphTodoService(
+    public GraphPlannerService(
         ITokenAcquisition tokenAcquisition,
         IHttpClientFactory httpClientFactory,
         IOptions<MeetingTasksOptions> options,
-        ILogger<GraphTodoService> logger)
+        ILogger<GraphPlannerService> logger)
     {
         _tokenAcquisition = tokenAcquisition;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _todoListName = options.Value.TodoListName;
+        _planId = options.Value.PlannerPlanId;
+        _bucketId = options.Value.PlannerBucketId;
     }
 
     public async Task<string?> ResolveUserIdByEmailAsync(string email, CancellationToken ct = default)
@@ -70,7 +72,7 @@ public class GraphTodoService : IGraphTodoService
         }
     }
 
-    public async Task<TodoTaskResult> CreateTodoTaskAsync(
+    public async Task<MeetingTaskExportResult> ExportTaskAsync(
         string userId,
         string title,
         string description,
@@ -82,83 +84,75 @@ public class GraphTodoService : IGraphTodoService
             var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphApiHelpers.GraphScope);
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-            var listId = await GetOrCreateTodoListAsync(client, userId, token, ct);
-
             var body = new Dictionary<string, object>
             {
+                ["planId"] = _planId,
                 ["title"] = title,
-                ["body"] = new Dictionary<string, string>
+                ["assignments"] = new Dictionary<string, object>
                 {
-                    ["contentType"] = "text",
-                    ["content"] = description ?? string.Empty
+                    [userId] = new Dictionary<string, string>
+                    {
+                        ["@odata.type"] = "#microsoft.graph.plannerAssignment",
+                        ["orderHint"] = " !"
+                    }
                 }
             };
 
-            if (dueDate.HasValue)
-            {
-                body["dueDateTime"] = new Dictionary<string, string>
-                {
-                    ["dateTime"] = dueDate.Value.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffff"),
-                    ["timeZone"] = "UTC"
-                };
-            }
+            if (_bucketId is not null)
+                body["bucketId"] = _bucketId;
 
-            var taskUrl = $"{GraphApiHelpers.GraphBaseUrl}/users/{userId}/todo/lists/{listId}/tasks";
+            if (dueDate.HasValue)
+                body["dueDateTime"] = dueDate.Value.ToUniversalTime().ToString("o");
+
+            var taskUrl = $"{GraphApiHelpers.GraphBaseUrl}/planner/tasks";
             var taskRequest = GraphApiHelpers.CreateRequest(HttpMethod.Post, taskUrl, token);
             taskRequest.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
 
-            var response = await client.SendAsync(taskRequest, ct);
+            var taskResponse = await client.SendAsync(taskRequest, ct);
+            await GraphApiHelpers.EnsureSuccessAsync(taskResponse, "POST /planner/tasks", ct);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                var snippet = await response.Content.ReadAsStringAsync(ct);
-                var error = $"Graph POST /todo/tasks for user {userId} returned {(int)response.StatusCode} {response.StatusCode}: {Truncate(snippet, 200)}";
-                _logger.LogError("Failed to create TODO task for user {UserId}: {Status}", userId, response.StatusCode);
-                return new TodoTaskResult(false, null, error);
-            }
+            var created = await GraphApiHelpers.DeserializeAsync<GraphPlannerTask>(taskResponse, ct);
 
-            var created = await GraphApiHelpers.DeserializeAsync<GraphTodoTask>(response, ct);
-            return new TodoTaskResult(true, created.Id, null);
+            if (!string.IsNullOrWhiteSpace(description))
+                await PatchDescriptionAsync(client, created.Id, description, token, ct);
+
+            return new MeetingTaskExportResult(true, created.Id, null);
         }
         catch (Exception ex)
         {
             if (ex is GraphApiException gae)
-                _logger.LogError(ex, "Exception while creating TODO task for user {UserId}, Status {StatusCode}", userId, gae.StatusCode);
+                _logger.LogError(ex, "Graph error exporting Planner task for user {UserId}, Status {StatusCode}", userId, gae.StatusCode);
             else
-                _logger.LogError(ex, "Exception while creating TODO task for user {UserId}", userId);
-            return new TodoTaskResult(false, null, ex.Message);
+                _logger.LogError(ex, "Exception exporting Planner task for user {UserId}", userId);
+            return new MeetingTaskExportResult(false, null, ex.Message);
         }
     }
 
-    private async Task<string> GetOrCreateTodoListAsync(
+    private async Task PatchDescriptionAsync(
         HttpClient client,
-        string userId,
+        string taskId,
+        string description,
         string token,
         CancellationToken ct)
     {
-        var listsUrl = $"{GraphApiHelpers.GraphBaseUrl}/users/{userId}/todo/lists";
+        var detailsUrl = $"{GraphApiHelpers.GraphBaseUrl}/planner/tasks/{taskId}/details";
 
-        var getRequest = GraphApiHelpers.CreateRequest(HttpMethod.Get, listsUrl, token);
+        var getRequest = GraphApiHelpers.CreateRequest(HttpMethod.Get, detailsUrl, token);
         var getResponse = await client.SendAsync(getRequest, ct);
-        await GraphApiHelpers.EnsureSuccessAsync(getResponse, "GET /todo/lists", ct);
+        await GraphApiHelpers.EnsureSuccessAsync(getResponse, $"GET /planner/tasks/{taskId}/details", ct);
 
-        var lists = await GraphApiHelpers.DeserializeAsync<GraphTodoListCollection>(getResponse, ct);
-        var existing = lists.Value.FirstOrDefault(
-            l => string.Equals(l.DisplayName, _todoListName, StringComparison.OrdinalIgnoreCase));
-        if (existing is not null)
-            return existing.Id;
+        var etag = getResponse.Headers.ETag?.Tag
+            ?? throw new InvalidOperationException(
+                $"Planner GET details for task {taskId} returned no ETag — cannot PATCH description.");
 
-        var createRequest = GraphApiHelpers.CreateRequest(HttpMethod.Post, listsUrl, token);
-        var createBody = JsonSerializer.Serialize(new Dictionary<string, string> { ["displayName"] = _todoListName });
-        createRequest.Content = new StringContent(createBody, Encoding.UTF8, "application/json");
+        var patchRequest = GraphApiHelpers.CreateRequest(HttpMethod.Patch, detailsUrl, token);
+        patchRequest.Headers.TryAddWithoutValidation("If-Match", etag);
+        patchRequest.Content = new StringContent(
+            JsonSerializer.Serialize(new Dictionary<string, string> { ["description"] = description }),
+            Encoding.UTF8,
+            "application/json");
 
-        var createResponse = await client.SendAsync(createRequest, ct);
-        await GraphApiHelpers.EnsureSuccessAsync(createResponse, "POST /todo/lists", ct);
-
-        var created = await GraphApiHelpers.DeserializeAsync<GraphTodoList>(createResponse, ct);
-        return created.Id;
+        var patchResponse = await client.SendAsync(patchRequest, ct);
+        await GraphApiHelpers.EnsureSuccessAsync(patchResponse, $"PATCH /planner/tasks/{taskId}/details", ct);
     }
-
-    private static string Truncate(string value, int max) =>
-        value.Length <= max ? value : value[..max];
 }
