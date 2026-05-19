@@ -122,7 +122,10 @@ public class GraphTodoService : IGraphTodoService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception while creating TODO task for user {UserId}", userId);
+            if (ex is GraphApiException gae)
+                _logger.LogError(ex, "Exception while creating TODO task for user {UserId}, Status {StatusCode}", userId, gae.StatusCode);
+            else
+                _logger.LogError(ex, "Exception while creating TODO task for user {UserId}", userId);
             return new TodoTaskResult(false, null, ex.Message);
         }
     }
@@ -137,7 +140,7 @@ public class GraphTodoService : IGraphTodoService
 
         var getRequest = GraphApiHelpers.CreateRequest(HttpMethod.Get, listsUrl, token);
         var getResponse = await client.SendAsync(getRequest, ct);
-        getResponse.EnsureSuccessStatusCode();
+        await GraphApiHelpers.EnsureSuccessAsync(getResponse, "GET /todo/lists", ct);
 
         var lists = await GraphApiHelpers.DeserializeAsync<GraphTodoListCollection>(getResponse, ct);
         var existing = lists.Value.FirstOrDefault(
@@ -150,7 +153,7 @@ public class GraphTodoService : IGraphTodoService
         createRequest.Content = new StringContent(createBody, Encoding.UTF8, "application/json");
 
         var createResponse = await client.SendAsync(createRequest, ct);
-        createResponse.EnsureSuccessStatusCode();
+        await GraphApiHelpers.EnsureSuccessAsync(createResponse, "POST /todo/lists", ct);
 
         var created = await GraphApiHelpers.DeserializeAsync<GraphTodoList>(createResponse, ct);
         return created.Id;

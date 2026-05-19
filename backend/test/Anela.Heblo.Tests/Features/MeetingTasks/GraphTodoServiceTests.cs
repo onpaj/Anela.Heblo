@@ -287,6 +287,25 @@ public class GraphTodoServiceTests
         result.Error.Should().Be("network down");
     }
 
+    [Fact]
+    public async Task CreateTodoTaskAsync_TodoListLookup401_ErrorIncludesStatusCodeAndBody()
+    {
+        // GET /todo/lists returns 401 with a Graph error body.
+        // After the fix the error must carry both the status code AND a snippet of the body.
+        var (service, _) = CreateService(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
+        {
+            Content = new StringContent(
+                """{"error":{"code":"InvalidAuthenticationToken","message":"Access token is invalid."}}""",
+                Encoding.UTF8, "application/json")
+        });
+
+        var result = await service.CreateTodoTaskAsync("user-1", "T", "desc", null);
+
+        result.Success.Should().BeFalse();
+        result.Error.Should().Contain("401");
+        result.Error.Should().Contain("InvalidAuthenticationToken");
+    }
+
     private sealed class RecordingHandler : HttpMessageHandler
     {
         private readonly Func<HttpRequestMessage, HttpResponseMessage> _responder;
