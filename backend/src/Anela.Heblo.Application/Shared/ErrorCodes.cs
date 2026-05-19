@@ -315,6 +315,8 @@ public enum ErrorCodes
     ShipmentLabelsNoShipmentFound = 2902,
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     ShipmentLabelsNotGenerated = 2903,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ShipmentLabelPdfNotFound = 2904,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
