@@ -169,6 +169,8 @@ Optional `include` sections: `notes`, `images`, `shippingDetails`, `stockLocatio
 
 **Fields in list response:** `code`, `guid`, `creationTime`, `changeTime`, `company`, `fullName`, `email`, `phone`, `remark`, `cashDeskOrder`, `customerGuid`, `paid`, `status`, `source`, `price`, `paymentMethod`, `shipping`, `adminUrl`, `salesChannelGuid`. **`externalCode` is NOT included.** Use `GET /api/orders/{code}` (single detail) to get `externalCode`.
 
+**`shipping` object on `GET /api/orders/{code}`** — the single-order detail base response (no `include` needed) returns a `shipping` object with the same shape as the list endpoint, exposing `shipping.guid` and `shipping.name`. The Balení packing flow (`GET /api/orders/{code}?include=stockLocation,notes`) relies on these two fields to resolve the order's shipping method and derive carrier cooling.
+
 ### 3.6 PATCH /api/orders/{code}/notes — Update Remarks (operationId: updateRemarksForOrder)
 
 Updates the order's remark/note slots. Any property omitted from the body is left unchanged on the server — the endpoint is a partial update.
@@ -846,3 +848,92 @@ echo | openssl s_client -servername "$EXPORT_HOST" -connect "$EXPORT_HOST:443" 2
 **Resilience configuration:** Per-attempt timeout 120 s, 3 Polly retries with exponential + jitter backoff (base 2 s). Hangfire auto-retry is disabled on this job (`[AutomaticRetry(Attempts = 0)]`); all retry logic lives in Polly only. See `ProductExportOptions` for tunables (`HeadTimeout`, `DownloadTimeout`, `MaxRetryAttempts`, `RetryBaseDelay`).
 
 **Related code:** `ProductExportDownloadJob`, `DownloadFromUrlHandler`, `DownloadResilienceService`, `AzureBlobStorageService.DownloadFromUrlAsync`.
+
+---
+
+## 11. Delivery API
+
+### 11.1 Shipments Endpoint
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/shipments` | List shipments (filter by `orderCode`) |
+
+### 11.2 Filtering
+
+Pass `orderCode` as a query parameter to retrieve shipments for a specific order:
+
+```
+GET /api/shipments?orderCode={orderCode}
+```
+
+Optional `status` filter also available (not used in this integration).
+
+### 11.3 Response Envelope
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "guid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "orderCode": "0001234",
+        "packages": [
+          {
+            "name": "Zásilka 1",
+            "width": 20,
+            "height": 10,
+            "depth": 5,
+            "weight": 0.5,
+            "packagingId": 1,
+            "labelUrl": "https://api.myshoptet.com/api/shipments/{guid}/label.pdf",
+            "labelZpl": "^XA^FO50,50^ADN,36,20^FDHello ZPL^FS^XZ",
+            "trackingNumber": "TRK123456",
+            "trackingUrl": "https://carrier.cz/track/TRK123456"
+          }
+        ]
+      }
+    ],
+    "paginator": {
+      "totalCount": 1,
+      "itemsPerPage": 10,
+      "currentPage": 1,
+      "pageCount": 1
+    }
+  },
+  "errors": []
+}
+```
+
+### 11.4 Error Envelope
+
+When Shoptet returns an error (non-2xx or populated `errors[]`):
+
+```json
+{
+  "data": null,
+  "errors": [
+    {
+      "errorCode": "shipment-not-found",
+      "message": "Shipment not found for given order",
+      "instance": "/api/shipments?orderCode=0001234"
+    }
+  ]
+}
+```
+
+### 11.5 Labels
+
+- `labelUrl` — PDF download URL, may be `null` if the label has not been generated yet.
+- `labelZpl` — Raw Zebra ZPL string for direct USB printing, may be `null`.
+- An order may have multiple shipments, each with multiple packages. All are returned; the kiosk prints each.
+- If both `labelUrl` and `labelZpl` are `null` for all packages, labels have not been generated yet.
+
+### 11.6 Authentication
+
+Same host (`https://api.myshoptet.com`) and `Shoptet-Private-API-Token` header as all other Shoptet endpoints. `ShoptetApiSettings.BaseUrl` and `ShoptetApiSettings.ApiToken` are reused — no new configuration keys.
+
+### 11.7 Implementation status
+
+- **Backend** (`POST /api/shipment-labels`) — complete. Fetches labels by order code, returns PDF URL + ZPL string per package, maps 29XX error codes for not-found and not-generated cases.
+- **UI / Balení module** — not yet implemented. The Balení kiosk PWA needs a new screen that calls this endpoint and sends the ZPL payload to the USB-connected Zebra printer. The cloud backend is data-only — USB hardware access happens entirely on the kiosk device.

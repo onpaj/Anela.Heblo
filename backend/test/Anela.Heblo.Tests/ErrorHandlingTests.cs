@@ -91,6 +91,7 @@ public class ErrorHandlingTests
         var photobankErrors = errorCodes.Where(code => code >= 2600 && code < 2700).ToList(); // 26XX range
         var smartsuppErrors = errorCodes.Where(code => code >= 2700 && code < 2800).ToList(); // 27XX range
         var inventoryErrors = errorCodes.Where(code => code >= 2800 && code < 2900).ToList(); // 28XX range
+        var range29xxErrors = errorCodes.Where(code => code >= 2900 && code < 3000).ToList(); // 29XX range (WeatherForecast + ShipmentLabels)
         var externalServiceErrors = errorCodes.Where(code => code >= 9000 && code < 9100).ToList(); // 90XX range
 
         // Ensure we have some errors in the expected categories
@@ -112,6 +113,7 @@ public class ErrorHandlingTests
         Assert.True(photobankErrors.Count > 0, "Should have Photobank errors in 26XX range");
         Assert.True(smartsuppErrors.Count > 0, "Should have Smartsupp errors in 27XX range");
         Assert.True(inventoryErrors.Count > 0, "Should have Inventory errors in 28XX range");
+        Assert.True(range29xxErrors.Count > 0, "Should have errors in 29XX range");
         Assert.True(externalServiceErrors.Count > 0, "Should have external service errors in 90XX range");
 
         // Ensure all error codes fall into defined module ranges
@@ -120,7 +122,7 @@ public class ErrorHandlingTests
                               configErrors.Count + journalErrors.Count + analyticsErrors.Count +
                               fileStorageErrors.Count + backgroundJobsErrors.Count + knowledgeBaseErrors.Count +
                               shoptetOrdersErrors.Count + dataQualityErrors.Count + marketingErrors.Count +
-                              articleErrors.Count + leafletErrors.Count + photobankErrors.Count + smartsuppErrors.Count + inventoryErrors.Count + externalServiceErrors.Count;
+                              articleErrors.Count + leafletErrors.Count + photobankErrors.Count + smartsuppErrors.Count + inventoryErrors.Count + range29xxErrors.Count + externalServiceErrors.Count;
 
         Assert.Equal(errorCodes.Count, categorizedCount);
     }

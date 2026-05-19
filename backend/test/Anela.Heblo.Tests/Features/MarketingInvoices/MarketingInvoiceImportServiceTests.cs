@@ -59,7 +59,7 @@ public class MarketingInvoiceImportServiceTests
         Assert.Equal(0, result.Skipped);
         Assert.Equal(0, result.Failed);
         _mockRepository.Verify(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-        _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -88,6 +88,7 @@ public class MarketingInvoiceImportServiceTests
         Assert.Equal(1, result.Skipped);
         Assert.Equal(0, result.Failed);
         _mockRepository.Verify(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -124,5 +125,100 @@ public class MarketingInvoiceImportServiceTests
         Assert.Equal(1, result.Imported);
         Assert.Equal(0, result.Skipped);
         Assert.Equal(1, result.Failed);
+    }
+
+    [Fact]
+    public async Task ImportAsync_FinalSaveChangesThrows_ReportsAllStagedAsFailed_DoesNotThrow()
+    {
+        // Arrange
+        var from = new DateTime(2026, 4, 1);
+        var to = new DateTime(2026, 4, 2);
+
+        var transactions = new List<MarketingTransaction>
+        {
+            new() { TransactionId = "TX-001", Platform = "TestPlatform", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+            new() { TransactionId = "TX-002", Platform = "TestPlatform", Amount = 200m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+        };
+
+        _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transactions);
+
+        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        // The single post-loop flush fails — none of the staged records are persisted
+        _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("flush failed"));
+
+        // Act
+        var result = await _service.ImportAsync(from, to);
+
+        // Assert
+        Assert.Equal(0, result.Imported);
+        Assert.Equal(0, result.Skipped);
+        Assert.Equal(2, result.Failed);
+        _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ImportAsync_EmptyInput_DoesNotCallSaveChanges()
+    {
+        // Arrange
+        var from = new DateTime(2026, 4, 1);
+        var to = new DateTime(2026, 4, 2);
+
+        _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MarketingTransaction>());
+
+        // Act
+        var result = await _service.ImportAsync(from, to);
+
+        // Assert
+        Assert.Equal(0, result.Imported);
+        Assert.Equal(0, result.Skipped);
+        Assert.Equal(0, result.Failed);
+        _mockRepository.Verify(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ImportAsync_DuplicateTransactionIdWithinSameRun_StagesOnlyOnce()
+    {
+        // Arrange
+        var from = new DateTime(2026, 4, 1);
+        var to = new DateTime(2026, 4, 2);
+
+        // Same TransactionId returned twice by the source in one run
+        var transactions = new List<MarketingTransaction>
+        {
+            new() { TransactionId = "TX-DUP", Platform = "TestPlatform", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+            new() { TransactionId = "TX-DUP", Platform = "TestPlatform", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+        };
+
+        _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transactions);
+
+        // Not present in the DB — ExistsAsync cannot see un-flushed staged entities
+        _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _service.ImportAsync(from, to);
+
+        // Assert
+        Assert.Equal(1, result.Imported);
+        Assert.Equal(1, result.Skipped);
+        Assert.Equal(0, result.Failed);
+        _mockRepository.Verify(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }

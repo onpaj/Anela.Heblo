@@ -5,6 +5,7 @@ import {
   useManufacturingStockAnalysisQuery,
   TimePeriodFilter,
   calculateTimePeriodRange,
+  formatWarehouseStock,
 } from "../useManufacturingStockAnalysis";
 import { getAuthenticatedApiClient } from "../../client";
 
@@ -330,5 +331,56 @@ describe("calculateTimePeriodRange", () => {
     // Outer bounds via primary (range A: sixMonthsAgo → now)
     expect(result!.fromDate).toEqual(rangeA.from);
     expect(result!.toDate).toEqual(now);
+  });
+});
+
+describe("formatWarehouseStock", () => {
+  const baseItem = {
+    code: "P1",
+    name: "Product 1",
+    currentStock: 0,
+    erpStock: 0,
+    eshopStock: 0,
+    transportStock: 0,
+    manufacturedStock: 0,
+    primaryStockSource: "Erp",
+    reserve: 0,
+    quarantine: 0,
+    planned: 0,
+    salesInPeriod: 0,
+    dailySalesRate: 0,
+    optimalDaysSetup: 0,
+    stockDaysAvailable: 0,
+    minimumStock: 0,
+    overstockPercentage: 0,
+    batchSize: "1",
+    severity: "Adequate",
+    isConfigured: true,
+  } as any;
+
+  it("shows only the total when transport and manufactured are both zero", () => {
+    const item = { ...baseItem, currentStock: 5, erpStock: 5 };
+    expect(formatWarehouseStock(item)).toBe("5");
+  });
+
+  it("shows primary+transport breakdown when only transport is non-zero", () => {
+    const item = { ...baseItem, currentStock: 12, erpStock: 5, transportStock: 7 };
+    expect(formatWarehouseStock(item)).toBe("12 (5+7)");
+  });
+
+  it("shows primary+manufactured breakdown when only manufactured is non-zero", () => {
+    const item = { ...baseItem, currentStock: 8, erpStock: 5, manufacturedStock: 3 };
+    expect(formatWarehouseStock(item)).toBe("8 (5+3)");
+  });
+
+  it("shows primary+transport+manufactured breakdown when both are non-zero", () => {
+    const item = {
+      ...baseItem,
+      currentStock: 15,
+      erpStock: 5,
+      transportStock: 7,
+      manufacturedStock: 3,
+    };
+    expect(formatWarehouseStock(item)).toBe("15 (5+7+3)");
   });
 });

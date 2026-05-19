@@ -128,6 +128,11 @@ public static class CatalogModule
         );
 
         services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshManufacturedData),
+            (r, ct) => r.RefreshManufacturedData(ct)
+        );
+
+        services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshReserveData),
             (r, ct) => r.RefreshReserveData(ct)
         );

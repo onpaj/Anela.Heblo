@@ -29,6 +29,8 @@ public class MarketingInvoiceImportService
         var transactions = await source.GetTransactionsAsync(from, to, ct);
 
         var result = new MarketingImportResult();
+        var stagedCount = 0;
+        var stagedIds = new HashSet<string>();
 
         foreach (var transaction in transactions)
         {
@@ -55,9 +57,8 @@ public class MarketingInvoiceImportService
                 };
 
                 await _repository.AddAsync(entity, ct);
-                await _repository.SaveChangesAsync(ct);
-
-                result.Imported++;
+                stagedIds.Add(transaction.TransactionId);
+                stagedCount++;
             }
             catch (Exception ex)
             {
@@ -66,6 +67,24 @@ public class MarketingInvoiceImportService
                     "Failed to import transaction {TransactionId} for {Platform}",
                     transaction.TransactionId, source.Platform);
                 result.Failed++;
+            }
+        }
+
+        if (stagedCount > 0)
+        {
+            try
+            {
+                await _repository.SaveChangesAsync(ct);
+                result.Imported = stagedCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Failed to persist {Count} marketing transactions for {Platform}",
+                    stagedCount, _source.Platform);
+                result.Failed += stagedCount;
+                // result.Imported intentionally stays 0 — nothing was committed.
             }
         }
 
