@@ -306,6 +306,12 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     LotHasEans = 2806,
 
+    // ShipmentLabels module errors (29XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ShipmentLabelsNoShipmentFound = 2901,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShipmentLabelsNotGenerated = 2902,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
