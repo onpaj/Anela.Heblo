@@ -19,6 +19,7 @@ public class OpenMeteoWeatherForecastClientTests
             "daily": {
               "time": ["2024-06-01", "2024-06-02", "2024-06-03"],
               "temperature_2m_max": [28.5, 25.0, 30.2],
+              "temperature_2m_min": [15.0, 12.0, 17.0],
               "weather_code": [0, 3, 1]
             }
           },
@@ -28,6 +29,7 @@ public class OpenMeteoWeatherForecastClientTests
             "daily": {
               "time": ["2024-06-01", "2024-06-02", "2024-06-03"],
               "temperature_2m_max": [27.0, 26.5, 29.8],
+              "temperature_2m_min": [14.0, 11.0, 16.0],
               "weather_code": [1, 2, 3]
             }
           }
@@ -89,6 +91,7 @@ public class OpenMeteoWeatherForecastClientTests
         praha.Days.Should().HaveCount(3);
         praha.Days[0].Date.Should().Be(new DateOnly(2024, 6, 1));
         praha.Days[0].MaxTemperatureCelsius.Should().BeApproximately(28.5, 0.01);
+        praha.Days[0].MinTemperatureCelsius.Should().BeApproximately(15.0, 0.01);
         praha.Days[0].WeatherCode.Should().Be(0);
         praha.Days[2].MaxTemperatureCelsius.Should().BeApproximately(30.2, 0.01);
 
@@ -175,6 +178,7 @@ public class OpenMeteoWeatherForecastClientTests
                 "daily": {
                   "time": ["2024-06-01", "2024-06-02"],
                   "temperature_2m_max": [28.5],
+                  "temperature_2m_min": [15.0, 12.0],
                   "weather_code": [0, 3]
                 }
               },
@@ -184,6 +188,7 @@ public class OpenMeteoWeatherForecastClientTests
                 "daily": {
                   "time": ["2024-06-01", "2024-06-02"],
                   "temperature_2m_max": [27.0, 26.5],
+                  "temperature_2m_min": [14.0, 11.0],
                   "weather_code": [1, 2]
                 }
               }
