@@ -2,7 +2,7 @@ namespace Anela.Heblo.Adapters.OpenMeteo;
 
 public sealed class WeatherForecastOptions
 {
-    public static string ConfigKey => "WeatherForecast";
+    public const string ConfigKey = "WeatherForecast";
 
     public List<WeatherCity> Cities { get; init; } = new();
     public int CacheDurationMinutes { get; init; } = 180;

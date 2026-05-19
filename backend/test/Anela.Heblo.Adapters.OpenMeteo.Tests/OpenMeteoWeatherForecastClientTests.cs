@@ -128,4 +128,72 @@ public class OpenMeteoWeatherForecastClientTests
         await client.Invoking(c => c.GetForecastAsync(CancellationToken.None))
             .Should().ThrowAsync<HttpRequestException>();
     }
+
+    [Fact]
+    public async Task GetForecastAsync_NullResponseBody_ThrowsInvalidOperationException()
+    {
+        var handler = SetupOkHandler("null");
+        var client = CreateClient(handler);
+
+        await client.Invoking(c => c.GetForecastAsync(CancellationToken.None))
+            .Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*null*");
+    }
+
+    [Fact]
+    public async Task GetForecastAsync_LocationCountMismatch_ThrowsInvalidOperationException()
+    {
+        var singleCityJson = """
+            [
+              {
+                "latitude": 50.08,
+                "longitude": 14.44,
+                "daily": {
+                  "time": ["2024-06-01"],
+                  "temperature_2m_max": [28.5],
+                  "weather_code": [0]
+                }
+              }
+            ]
+            """;
+        var handler = SetupOkHandler(singleCityJson);
+        var client = CreateClient(handler);
+
+        await client.Invoking(c => c.GetForecastAsync(CancellationToken.None))
+            .Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*1 locations*2*");
+    }
+
+    [Fact]
+    public async Task GetForecastAsync_InconsistentDailyArrayLengths_ThrowsInvalidOperationException()
+    {
+        var inconsistentJson = """
+            [
+              {
+                "latitude": 50.08,
+                "longitude": 14.44,
+                "daily": {
+                  "time": ["2024-06-01", "2024-06-02"],
+                  "temperature_2m_max": [28.5],
+                  "weather_code": [0, 3]
+                }
+              },
+              {
+                "latitude": 49.20,
+                "longitude": 16.61,
+                "daily": {
+                  "time": ["2024-06-01", "2024-06-02"],
+                  "temperature_2m_max": [27.0, 26.5],
+                  "weather_code": [1, 2]
+                }
+              }
+            ]
+            """;
+        var handler = SetupOkHandler(inconsistentJson);
+        var client = CreateClient(handler);
+
+        await client.Invoking(c => c.GetForecastAsync(CancellationToken.None))
+            .Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*inconsistent lengths*");
+    }
 }

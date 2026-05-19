@@ -56,14 +56,22 @@ public class OpenMeteoWeatherForecastClient : IWeatherForecastClient
         // Open-Meteo preserves input order in batch responses, so index i corresponds to Cities[i].
         // The count guard above ensures no out-of-bounds access if this assumption ever breaks.
         var forecasts = locations
-            .Select((loc, i) => new CityForecast(
-                CityName: _options.Cities[i].Name,
-                Days: loc.Daily.Time
-                    .Select((time, j) => new CityForecastDay(
-                        Date: DateOnly.Parse(time),
-                        MaxTemperatureCelsius: loc.Daily.TemperatureMax[j],
-                        WeatherCode: loc.Daily.WeatherCode[j]))
-                    .ToList()))
+            .Select((loc, i) =>
+            {
+                var dayCount = loc.Daily.Time.Count;
+                if (loc.Daily.TemperatureMax.Count != dayCount || loc.Daily.WeatherCode.Count != dayCount)
+                    throw new InvalidOperationException(
+                        $"Open-Meteo daily arrays for '{_options.Cities[i].Name}' have inconsistent lengths");
+
+                return new CityForecast(
+                    CityName: _options.Cities[i].Name,
+                    Days: loc.Daily.Time
+                        .Select((time, j) => new CityForecastDay(
+                            Date: DateOnly.Parse(time),
+                            MaxTemperatureCelsius: loc.Daily.TemperatureMax[j],
+                            WeatherCode: loc.Daily.WeatherCode[j]))
+                        .ToList());
+            })
             .ToList();
 
         _cache.Set(CacheKey, (IReadOnlyList<CityForecast>)forecasts,
