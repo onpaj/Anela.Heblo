@@ -23,8 +23,3 @@ internal class GraphPlannerTask
     public string Id { get; set; } = string.Empty;
 }
 
-internal class GraphPlannerTaskDetails
-{
-    [JsonPropertyName("description")]
-    public string Description { get; set; } = string.Empty;
-}
