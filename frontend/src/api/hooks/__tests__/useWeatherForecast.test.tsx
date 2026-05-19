@@ -29,8 +29,8 @@ describe('useWeatherForecast', () => {
 
   it('fetches and returns forecast days on success', async () => {
     const mockDays = [
-      { date: '2024-06-01', cityName: 'Praha', maxTemperatureCelsius: 28.5, weatherCode: 0 },
-      { date: '2024-06-02', cityName: 'Brno', maxTemperatureCelsius: 26.5, weatherCode: 3 },
+      { date: '2024-06-01', cityName: 'Praha', minTemperatureCelsius: 15.0, maxTemperatureCelsius: 28.5, weatherCode: 0 },
+      { date: '2024-06-02', cityName: 'Brno', minTemperatureCelsius: 13.0, maxTemperatureCelsius: 26.5, weatherCode: 3 },
     ];
     mockFetch.mockResolvedValueOnce({
       ok: true,
