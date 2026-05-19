@@ -6,8 +6,8 @@ public class MeetingTasksOptions
 {
     public const string SectionName = "MeetingTasks";
 
-    // [Required] applies even in mock-auth mode. appsettings.json must always carry a
-    // non-empty placeholder so startup validation passes in all environments.
+    // [Required] rejects null/empty. In non-mock-auth mode MeetingTasksModule also validates
+    // that the value is not the "CONFIGURE_IN_USER_SECRETS" placeholder.
     [Required]
     public string PlannerPlanId { get; set; } = string.Empty;
 

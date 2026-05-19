@@ -75,6 +75,90 @@ public class GraphPlannerServiceTests
         result.Should().BeNull();
     }
 
+    [Fact]
+    public async Task ResolveUserIdByEmailAsync_MultipleMatches_ReturnsFirstUserId()
+    {
+        var (service, _) = CreateService(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"value":[{"id":"user-1","displayName":"Alice"},{"id":"user-2","displayName":"Alice2"}]}""",
+                Encoding.UTF8, "application/json")
+        });
+
+        var result = await service.ResolveUserIdByEmailAsync("alice@anela.cz");
+
+        result.Should().Be("user-1");
+    }
+
+    [Fact]
+    public async Task ResolveUserIdByEmailAsync_HttpError_ReturnsNull()
+    {
+        var (service, _) = CreateService(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized));
+
+        var result = await service.ResolveUserIdByEmailAsync("ondra@anela.cz");
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ResolveUserIdByEmailAsync_TransportException_ReturnsNull()
+    {
+        var (service, _) = CreateService(_ => throw new HttpRequestException("network down"));
+
+        var result = await service.ResolveUserIdByEmailAsync("ondra@anela.cz");
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ResolveUserIdByEmailAsync_EmailWithSingleQuote_DoublesQuoteBeforeUrlEncoding()
+    {
+        var (service, handler) = CreateService(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(
+                """{"value":[{"id":"user-x","displayName":"O'Brien"}]}""",
+                Encoding.UTF8, "application/json")
+        });
+
+        var result = await service.ResolveUserIdByEmailAsync("o'brien@anela.cz");
+
+        result.Should().Be("user-x");
+        // OData v4: single quotes inside string literals must be doubled before URL-encoding.
+        // "o'brien" → "o''brien" → "%27%27" in the query string.
+        handler.Requests[0].RequestUri!.AbsoluteUri.Should().Contain("%27%27",
+            "OData requires single quotes in string literals to be doubled before URL-encoding");
+    }
+
+    [Fact]
+    public async Task ResolveUserIdByEmailAsync_UsesAppToken_WithBearerAuthorizationHeader()
+    {
+        var tokenAcquisition = new Mock<ITokenAcquisition>();
+        tokenAcquisition
+            .Setup(t => t.GetAccessTokenForAppAsync(GraphApiHelpers.GraphScope, null, null))
+            .ReturnsAsync("app-token-xyz");
+
+        var recordingHandler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("""{"value":[]}""", Encoding.UTF8, "application/json")
+        });
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient("MicrosoftGraph")).Returns(new HttpClient(recordingHandler));
+
+        var service = new GraphPlannerService(
+            tokenAcquisition.Object,
+            factory.Object,
+            Options.Create(new MeetingTasksOptions { PlannerPlanId = "plan-1" }),
+            NullLogger<GraphPlannerService>.Instance);
+
+        await service.ResolveUserIdByEmailAsync("ondra@anela.cz");
+
+        tokenAcquisition.Verify(
+            t => t.GetAccessTokenForAppAsync(GraphApiHelpers.GraphScope, null, null), Times.Once);
+        recordingHandler.Requests[0].RequestUri!.AbsoluteUri.Should().Contain("/users");
+        recordingHandler.Requests[0].Headers.Authorization!.Scheme.Should().Be("Bearer");
+        recordingHandler.Requests[0].Headers.Authorization.Parameter.Should().Be("app-token-xyz");
+    }
+
     // ─── ExportTaskAsync ──────────────────────────────────────────────────────
 
     [Fact]
@@ -239,6 +323,33 @@ public class GraphPlannerServiceTests
 
         result.Success.Should().BeFalse();
         result.Error.Should().Be("network down");
+    }
+
+    [Fact]
+    public async Task ExportTaskAsync_DescriptionPatchFails_ReturnsSuccessWithTaskId()
+    {
+        // POST succeeds but GET details returns 401 — patch cannot proceed.
+        // The task already exists in Planner, so we must return success + ExternalTaskId
+        // to prevent a duplicate task on retry.
+        var calls = new Queue<HttpResponseMessage>();
+        calls.Enqueue(new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent("""{"id":"t1"}""", Encoding.UTF8, "application/json")
+        });
+        calls.Enqueue(new HttpResponseMessage(HttpStatusCode.Unauthorized)
+        {
+            Content = new StringContent(
+                """{"error":{"code":"InvalidAuthenticationToken"}}""",
+                Encoding.UTF8, "application/json")
+        });
+
+        var (service, _) = CreateService(_ => calls.Dequeue());
+
+        var result = await service.ExportTaskAsync("user-abc", "Title", "Some description", null);
+
+        result.Success.Should().BeTrue("task was already created before the patch failed");
+        result.ExternalTaskId.Should().Be("t1");
+        result.Error.Should().BeNull();
     }
 
     // ─── Recording infrastructure ─────────────────────────────────────────────

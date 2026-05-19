@@ -12,7 +12,7 @@ public static class MeetingTasksModule
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddOptions<MeetingTasksOptions>()
+        var optionsBuilder = services.AddOptions<MeetingTasksOptions>()
             .Bind(configuration.GetSection(MeetingTasksOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
@@ -22,6 +22,9 @@ public static class MeetingTasksModule
 
         if (!useMockAuth && !bypassJwt)
         {
+            optionsBuilder.Validate(
+                o => o.PlannerPlanId != "CONFIGURE_IN_USER_SECRETS",
+                "MeetingTasks:PlannerPlanId is still set to the placeholder value. Set the real plan ID in user secrets.");
             // KnowledgeBaseModule only registers "MicrosoftGraph" when SharePoint is configured.
             // Re-register defensively here so GraphPlannerService always finds a client at runtime.
             // AddHttpClient with the same name is idempotent.

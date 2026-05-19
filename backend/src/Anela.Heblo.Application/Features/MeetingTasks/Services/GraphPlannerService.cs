@@ -114,7 +114,20 @@ public class GraphPlannerService : IMeetingTaskExporter
             var created = await GraphApiHelpers.DeserializeAsync<GraphPlannerTask>(taskResponse, ct);
 
             if (!string.IsNullOrWhiteSpace(description))
-                await PatchDescriptionAsync(client, created.Id, description, token, ct);
+            {
+                try
+                {
+                    await PatchDescriptionAsync(client, created.Id, description, token, ct);
+                }
+                catch (Exception patchEx)
+                {
+                    // Task already created — swallow patch failure so ExternalTaskId is persisted on
+                    // return. Without this, a retry would create a duplicate Planner task.
+                    _logger.LogWarning(patchEx,
+                        "Failed to patch description for Planner task {TaskId}; task created without description",
+                        created.Id);
+                }
+            }
 
             return new MeetingTaskExportResult(true, created.Id, null);
         }
