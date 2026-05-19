@@ -16,6 +16,8 @@ export interface PackingOrder {
   shippingMethodName: string;
   cooling: Cooling;
   isCooled: boolean;
+  statusId: number;
+  isInPackingState: boolean;
   customerNote: string | null;
   eshopNote: string | null;
   items: PackingOrderItem[];

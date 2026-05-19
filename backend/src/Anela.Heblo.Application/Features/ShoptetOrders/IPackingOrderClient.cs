@@ -23,6 +23,9 @@ public class PackingOrder
     public Cooling Cooling { get; set; } = Cooling.None;
     public bool IsCooled { get; set; }
 
+    /// <summary>Shoptet order status ID, used to verify the order is in the packing state.</summary>
+    public int StatusId { get; set; }
+
     /// <summary>Customer remark entered at checkout; null when none.</summary>
     public string? CustomerNote { get; set; }
 

@@ -44,6 +44,8 @@ describe('BaleniPacking', () => {
         shippingMethodName: 'PPL (do ruky)',
         cooling: 'None',
         isCooled: false,
+        statusId: 26,
+        isInPackingState: true,
         customerNote: null,
         eshopNote: null,
         items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
@@ -64,6 +66,8 @@ describe('BaleniPacking', () => {
         shippingMethodName: 'PPL (do ruky)',
         cooling: 'L2',
         isCooled: true,
+        statusId: 26,
+        isInPackingState: true,
         customerNote: 'Zabalit jako dárek',
         eshopNote: 'Stálý zákazník',
         items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
@@ -74,6 +78,48 @@ describe('BaleniPacking', () => {
     expect(screen.getByText('Zabalit jako dárek')).toBeInTheDocument();
     expect(screen.getByText('Stálý zákazník')).toBeInTheDocument();
     expect(screen.getByText('Chlazení L2')).toBeInTheDocument();
+  });
+
+  it('shows a danger warning when the order is not in the packing state', () => {
+    mockHook.mockReturnValue({
+      ...baseResult,
+      data: {
+        code: '250001',
+        customerName: 'Jan Novák',
+        shippingMethodName: 'PPL (do ruky)',
+        cooling: 'None',
+        isCooled: false,
+        statusId: 5,
+        isInPackingState: false,
+        customerNote: null,
+        eshopNote: null,
+        items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
+      },
+    });
+
+    render(<BaleniPacking />);
+    expect(screen.getByTestId('packing-state-warning')).toBeInTheDocument();
+  });
+
+  it('does not show the danger warning when the order is in the packing state', () => {
+    mockHook.mockReturnValue({
+      ...baseResult,
+      data: {
+        code: '250001',
+        customerName: 'Jan Novák',
+        shippingMethodName: 'PPL (do ruky)',
+        cooling: 'None',
+        isCooled: false,
+        statusId: 26,
+        isInPackingState: true,
+        customerNote: null,
+        eshopNote: null,
+        items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
+      },
+    });
+
+    render(<BaleniPacking />);
+    expect(screen.queryByTestId('packing-state-warning')).not.toBeInTheDocument();
   });
 
   it('shows a not-found message for an unknown order', () => {

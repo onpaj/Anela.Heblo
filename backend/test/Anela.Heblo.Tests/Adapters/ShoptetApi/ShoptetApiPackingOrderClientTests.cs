@@ -178,4 +178,17 @@ public class ShoptetApiPackingOrderClientTests
         result!.CustomerNote.Should().BeNull();
         result.EshopNote.Should().BeNull();
     }
+
+    [Fact]
+    public async Task GetPackingOrderAsync_MapsOrderStatusId()
+    {
+        var detail = DetailResponse("250006", PplDoRukyGuid, "PPL (do ruky)");
+        detail.Data.Order.Status = new OrderStatusSummary { Id = 26 };
+        var orderClient = BuildOrderClient(_ => Json(detail));
+        var sut = new ShoptetApiPackingOrderClient(orderClient, CatalogWith(), CoolingWith());
+
+        var result = await sut.GetPackingOrderAsync("250006", CancellationToken.None);
+
+        result!.StatusId.Should().Be(26);
+    }
 }

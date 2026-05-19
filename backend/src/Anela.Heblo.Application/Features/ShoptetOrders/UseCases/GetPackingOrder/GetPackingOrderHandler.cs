@@ -1,19 +1,23 @@
 using Anela.Heblo.Application.Shared;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.ShoptetOrders.UseCases.GetPackingOrder;
 
 public class GetPackingOrderHandler : IRequestHandler<GetPackingOrderRequest, GetPackingOrderResponse>
 {
     private readonly IPackingOrderClient _client;
+    private readonly IOptions<ShoptetOrdersSettings> _settings;
     private readonly ILogger<GetPackingOrderHandler> _logger;
 
     public GetPackingOrderHandler(
         IPackingOrderClient client,
+        IOptions<ShoptetOrdersSettings> settings,
         ILogger<GetPackingOrderHandler> logger)
     {
         _client = client;
+        _settings = settings;
         _logger = logger;
     }
 
@@ -39,6 +43,8 @@ public class GetPackingOrderHandler : IRequestHandler<GetPackingOrderRequest, Ge
                 ShippingMethodName = order.ShippingMethodName,
                 Cooling = order.Cooling,
                 IsCooled = order.IsCooled,
+                StatusId = order.StatusId,
+                IsInPackingState = order.StatusId == _settings.Value.PackingStateId,
                 CustomerNote = order.CustomerNote,
                 EshopNote = order.EshopNote,
                 Items = order.Items,

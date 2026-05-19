@@ -4,6 +4,7 @@ import ScanInput from '../terminal/ScanInput';
 import { usePackingOrder, PackingOrderNotFoundError } from '../../api/hooks/usePackingOrder';
 import PackingOrderMeta from './PackingOrderMeta';
 import PackingCoolingIndicator from './PackingCoolingIndicator';
+import PackingStateWarning from './PackingStateWarning';
 import PackingOrderNotes from './PackingOrderNotes';
 import PackingItems from './PackingItems';
 
@@ -60,6 +61,7 @@ function BaleniPacking() {
 
   return (
     <div className="flex flex-col gap-4" data-testid="baleni-packing">
+      {data && <PackingStateWarning order={data} />}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           {data && <PackingOrderMeta order={data} />}

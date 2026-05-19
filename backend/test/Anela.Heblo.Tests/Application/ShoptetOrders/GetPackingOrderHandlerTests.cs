@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace Anela.Heblo.Tests.Application.ShoptetOrders;
@@ -12,8 +13,11 @@ public class GetPackingOrderHandlerTests
 {
     private readonly Mock<IPackingOrderClient> _clientMock = new();
 
-    private GetPackingOrderHandler CreateHandler() =>
-        new(_clientMock.Object, NullLogger<GetPackingOrderHandler>.Instance);
+    private GetPackingOrderHandler CreateHandler(int packingStateId = 26) =>
+        new(
+            _clientMock.Object,
+            Options.Create(new ShoptetOrdersSettings { PackingStateId = packingStateId }),
+            NullLogger<GetPackingOrderHandler>.Instance);
 
     [Fact]
     public async Task Handle_OrderFound_ReturnsMappedResponse()
@@ -27,6 +31,7 @@ public class GetPackingOrderHandlerTests
                 ShippingMethodName = "PPL (do ruky)",
                 Cooling = Cooling.L1,
                 IsCooled = true,
+                StatusId = 26,
                 CustomerNote = "Zabalit jako dárek",
                 EshopNote = "Stálý zákazník",
                 Items = new List<PackingOrderItem>
@@ -47,6 +52,34 @@ public class GetPackingOrderHandlerTests
         response.CustomerNote.Should().Be("Zabalit jako dárek");
         response.EshopNote.Should().Be("Stálý zákazník");
         response.Items.Should().ContainSingle().Which.Name.Should().Be("Krém");
+    }
+
+    [Fact]
+    public async Task Handle_OrderInPackingState_SetsIsInPackingStateTrue()
+    {
+        _clientMock
+            .Setup(c => c.GetPackingOrderAsync("250001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PackingOrder { Code = "250001", StatusId = 26 });
+
+        var response = await CreateHandler(packingStateId: 26).Handle(
+            new GetPackingOrderRequest { Code = "250001" }, CancellationToken.None);
+
+        response.StatusId.Should().Be(26);
+        response.IsInPackingState.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_OrderNotInPackingState_SetsIsInPackingStateFalse()
+    {
+        _clientMock
+            .Setup(c => c.GetPackingOrderAsync("250001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PackingOrder { Code = "250001", StatusId = 5 });
+
+        var response = await CreateHandler(packingStateId: 26).Handle(
+            new GetPackingOrderRequest { Code = "250001" }, CancellationToken.None);
+
+        response.StatusId.Should().Be(5);
+        response.IsInPackingState.Should().BeFalse();
     }
 
     [Fact]

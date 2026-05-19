@@ -19,6 +19,13 @@ public class GetPackingOrderResponse : BaseResponse
     public string ShippingMethodName { get; set; } = string.Empty;
     public Cooling Cooling { get; set; } = Cooling.None;
     public bool IsCooled { get; set; }
+
+    /// <summary>Shoptet order status ID.</summary>
+    public int StatusId { get; set; }
+
+    /// <summary>True when the order is in the expected "Balí se" packing state.</summary>
+    public bool IsInPackingState { get; set; }
+
     public string? CustomerNote { get; set; }
     public string? EshopNote { get; set; }
     public List<PackingOrderItem> Items { get; set; } = new();

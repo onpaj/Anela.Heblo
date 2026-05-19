@@ -76,6 +76,7 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             ShippingMethodName = detail.Shipping?.Name ?? string.Empty,
             Cooling = order.CarrierCooling,
             IsCooled = order.IsCooled,
+            StatusId = detail.Status?.Id ?? 0,
             CustomerNote = string.IsNullOrWhiteSpace(order.CustomerRemark) ? null : order.CustomerRemark,
             EshopNote = string.IsNullOrWhiteSpace(order.EshopRemark) ? null : order.EshopRemark,
             Items = items,
