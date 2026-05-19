@@ -71,4 +71,26 @@ public class StockDataTests
         available.Should().Be(110m);
         total.Should().Be(110m, "Total should equal Available when Reserve is zero");
     }
+
+    [Fact]
+    public void Available_IncludesManufactured()
+    {
+        // Arrange
+        var stockData = new StockData
+        {
+            Erp = 100m,
+            Transport = 10m,
+            Manufactured = 7m,
+            Reserve = 25m,
+            PrimaryStockSource = StockSource.Erp
+        };
+
+        // Act
+        var available = stockData.Available;
+        var total = stockData.Total;
+
+        // Assert
+        available.Should().Be(117m, "Available should be Erp (100) + Transport (10) + Manufactured (7)");
+        total.Should().Be(142m, "Total should be Available (117) + Reserve (25)");
+    }
 }
