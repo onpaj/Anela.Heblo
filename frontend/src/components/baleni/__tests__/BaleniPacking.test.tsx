@@ -8,10 +8,10 @@ jest.mock('../../../api/hooks/usePackingOrder', () => ({
   usePackingOrder: jest.fn(),
 }));
 
-jest.mock('../PackingLabelPrinter', () => ({
+jest.mock('../PackingShipmentCreator', () => ({
   __esModule: true,
   default: ({ orderCode }: { orderCode: string }) => (
-    <div data-testid="packing-label-printer" data-order-code={orderCode} />
+    <div data-testid="packing-shipment-creator" data-order-code={orderCode} />
   ),
 }));
 
@@ -174,7 +174,7 @@ describe('BaleniPacking', () => {
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 
-  it('mounts PackingLabelPrinter when order is in packing state', () => {
+  it('mounts PackingShipmentCreator when order is in packing state', () => {
     mockHook.mockReturnValue({
       ...baseResult,
       data: {
@@ -192,14 +192,14 @@ describe('BaleniPacking', () => {
     });
 
     render(<BaleniPacking />);
-    expect(screen.getByTestId('packing-label-printer')).toBeInTheDocument();
-    expect(screen.getByTestId('packing-label-printer')).toHaveAttribute(
+    expect(screen.getByTestId('packing-shipment-creator')).toBeInTheDocument();
+    expect(screen.getByTestId('packing-shipment-creator')).toHaveAttribute(
       'data-order-code',
       '250001'
     );
   });
 
-  it('does not mount PackingLabelPrinter when order is not in packing state', () => {
+  it('does not mount PackingShipmentCreator when order is not in packing state', () => {
     mockHook.mockReturnValue({
       ...baseResult,
       data: {
@@ -217,6 +217,6 @@ describe('BaleniPacking', () => {
     });
 
     render(<BaleniPacking />);
-    expect(screen.queryByTestId('packing-label-printer')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('packing-shipment-creator')).not.toBeInTheDocument();
   });
 });

@@ -40,4 +40,36 @@ test.describe('Balení — packing screen', () => {
       page.getByTestId('print-next-label-button')
     ).toHaveText(/Vytisknout štítek 2\//);
   });
+
+  test('shows Vytvořit zásilku button for an order with no existing shipment', async ({ page }) => {
+    if (!TestPackingOrders.noShipmentPacking) {
+      throw new Error(
+        'TestPackingOrders.noShipmentPacking fixture missing — set a real order code with no shipment in test-data.ts'
+      );
+    }
+
+    const input = page.getByRole('textbox');
+    await input.fill(TestPackingOrders.noShipmentPacking);
+    await input.press('Enter');
+
+    await expect(page.getByRole('button', { name: /Vytvořit zásilku/i })).toBeVisible({ timeout: 15000 });
+  });
+
+  test('shows existing-shipment warning for an order with an existing shipment', async ({ page }) => {
+    if (!TestPackingOrders.existingShipmentPacking) {
+      throw new Error(
+        'TestPackingOrders.existingShipmentPacking fixture missing — set a real order code with an existing shipment in test-data.ts'
+      );
+    }
+
+    const input = page.getByRole('textbox');
+    await input.fill(TestPackingOrders.existingShipmentPacking);
+    await input.press('Enter');
+
+    await page.getByRole('button', { name: /Vytvořit zásilku/i }).click({ timeout: 15000 });
+
+    await expect(page.getByText(/Zásilka již existuje/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: /Použít existující/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Vytvořit novou/i })).toBeVisible();
+  });
 });

@@ -292,7 +292,16 @@ export const ExpectedDashboardStats = {
 export const TestPackingOrders: Record<string, string | null> = {
   // Multi-package order in packing state
   // TODO: Set a real multi-package packing order code from staging environment
-  multiPackagePacking: null
+  multiPackagePacking: null,
+
+  // An order in packing state (statusId 26) that has NO existing Shoptet shipment.
+  // Set a real staging order code here before running E2E tests.
+  // Throw (never skip) if missing — see CLAUDE.md rule.
+  noShipmentPacking: null,
+
+  // An order in packing state that ALREADY HAS a Shoptet shipment.
+  // Used to test the reuse/create-new choice.
+  existingShipmentPacking: null
 };
 
 /**
