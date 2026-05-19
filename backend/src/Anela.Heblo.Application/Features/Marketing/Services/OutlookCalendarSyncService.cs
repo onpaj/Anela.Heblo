@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -5,6 +6,7 @@ using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Domain.Features.Marketing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
 
 namespace Anela.Heblo.Application.Features.Marketing.Services
@@ -49,7 +51,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
         {
             _logger.LogDebug("Creating Outlook event for marketing action {ActionId} in mailbox {Mailbox}", action.Id, _options.GroupId);
 
-            var token = await _tokenAcquisition.GetAccessTokenForUserAsync(new[] { DelegatedGraphScope });
+            var token = await GetDelegatedTokenAsync();
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
             var url = BuildBaseUrl();
@@ -80,7 +82,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
 
             _logger.LogDebug("Updating Outlook event {EventId} for marketing action {ActionId}", action.OutlookEventId, action.Id);
 
-            var token = await _tokenAcquisition.GetAccessTokenForUserAsync(new[] { DelegatedGraphScope });
+            var token = await GetDelegatedTokenAsync();
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
             var url = $"{BuildBaseUrl()}/{action.OutlookEventId}";
@@ -103,7 +105,7 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
         {
             _logger.LogDebug("Deleting Outlook event {EventId}", outlookEventId);
 
-            var token = await _tokenAcquisition.GetAccessTokenForUserAsync(new[] { DelegatedGraphScope });
+            var token = await GetDelegatedTokenAsync();
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
             var url = $"{BuildBaseUrl()}/{outlookEventId}";
@@ -152,6 +154,24 @@ namespace Anela.Heblo.Application.Features.Marketing.Services
             }
 
             return allEvents.AsReadOnly();
+        }
+
+        private async Task<string> GetDelegatedTokenAsync()
+        {
+            try
+            {
+                return await _tokenAcquisition.GetAccessTokenForUserAsync(new[] { DelegatedGraphScope });
+            }
+            catch (MsalUiRequiredException ex)
+            {
+                _logger.LogError(ex,
+                    "User consent required for Graph scope {Scope}. Grant admin consent in Azure Portal for app {AppId}.",
+                    DelegatedGraphScope, ex.Claims);
+                throw new OutlookCalendarSyncException(
+                    HttpStatusCode.Forbidden,
+                    ex.Message,
+                    $"Microsoft 365 consent required for scope {DelegatedGraphScope}. An admin must grant consent in Azure Portal.");
+            }
         }
 
         private string BuildBaseUrl() =>
