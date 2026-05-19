@@ -4,6 +4,7 @@ import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 export interface HottestDayDto {
   date: string;
   cityName: string;
+  minTemperatureCelsius: number;
   maxTemperatureCelsius: number;
   weatherCode: number;
 }
@@ -34,6 +35,6 @@ export function useWeatherForecast() {
   return useQuery({
     queryKey: QUERY_KEYS.weatherForecast,
     queryFn: fetchWeatherForecast,
-    staleTime: 30 * 60 * 1000, // 30 min; server-side cache is 180 min so refetches are cheap
+    staleTime: 30 * 60 * 1000,
   });
 }

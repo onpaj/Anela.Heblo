@@ -2,7 +2,7 @@ import { useWeatherForecast } from '../../../api/hooks/useWeatherForecast';
 import { getWeatherIcon } from './weatherIcons';
 import LoadingState from '../../common/LoadingState';
 import ErrorState from '../../common/ErrorState';
-import { getTemperatureBarPercent, getTemperatureColor } from './temperatureScale';
+import { getTemperatureColor, getTemperatureRangeBar } from './temperatureScale';
 
 function WeatherForecastReport() {
   const { data, isLoading, isError } = useWeatherForecast();
@@ -30,20 +30,27 @@ function WeatherForecastReport() {
             day: 'numeric',
             month: 'numeric',
           });
+          const { left, width } = getTemperatureRangeBar(
+            day.minTemperatureCelsius,
+            day.maxTemperatureCelsius,
+          );
 
           return (
             <div key={day.date} className="flex items-center gap-3 text-sm">
               <span className="w-24 shrink-0 text-gray-500">{label}</span>
               <Icon className="h-4 w-4 shrink-0 text-gray-600" />
-              <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+              <span className="w-10 shrink-0 text-right text-gray-600">
+                {Math.round(day.minTemperatureCelsius)}°C
+              </span>
+              <div className="relative flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
                 <div
                   data-testid="temp-bar"
-                  className={`h-2 ${getTemperatureColor(day.maxTemperatureCelsius)}`}
-                  style={{ width: `${getTemperatureBarPercent(day.maxTemperatureCelsius)}%` }}
+                  className={`absolute h-2 ${getTemperatureColor(day.maxTemperatureCelsius)}`}
+                  style={{ left: `${left}%`, width: `${width}%` }}
                 />
               </div>
-              <span className="w-16 shrink-0 text-right font-medium text-gray-900">
-                {day.maxTemperatureCelsius.toFixed(1)} °C
+              <span className="w-10 shrink-0 text-left font-medium text-gray-900">
+                {Math.round(day.maxTemperatureCelsius)}°C
               </span>
               <span className="w-20 shrink-0 text-right text-gray-500">{day.cityName}</span>
             </div>
