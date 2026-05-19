@@ -21,7 +21,7 @@ const CARRIER_LABELS: Record<Carriers, string> = {
 };
 
 const HANDLING_LABELS: Record<DeliveryHandling, string> = {
-  NaRuky: 'Na ruky',
+  NaRuky: 'Do ruky',
   Box: 'Box',
 };
 
@@ -33,13 +33,13 @@ const COOLING_OPTIONS: { value: Cooling; label: string }[] = [
 
 function CarrierCoolingMatrix({ groups, onSetCooling, isSaving, savingRow }: CarrierCoolingMatrixProps) {
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-3 p-4">
       {groups.map((group) => (
         <div
           key={group.carrier}
           className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"
         >
-          <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+          <div className="px-3 py-2 border-b border-gray-100 bg-gray-50">
             <h2 className="text-sm font-semibold text-gray-800">
               {CARRIER_LABELS[group.carrier] ?? `Dopravce ${group.carrier}`}
             </h2>
@@ -56,12 +56,12 @@ function CarrierCoolingMatrix({ groups, onSetCooling, isSaving, savingRow }: Car
               return (
                 <div
                   key={row.deliveryHandling}
-                  className="flex items-center px-4 py-3 gap-6"
+                  className="flex items-center px-3 py-2 gap-4"
                 >
-                  <span className="w-24 text-sm text-gray-700 flex-shrink-0">
+                  <span className="w-20 text-sm text-gray-700 flex-shrink-0">
                     {HANDLING_LABELS[row.deliveryHandling] ?? String(row.deliveryHandling)}
                   </span>
-                  <div className="flex gap-6">
+                  <div className="flex gap-4">
                     {COOLING_OPTIONS.map((option) => (
                       <label
                         key={option.value}

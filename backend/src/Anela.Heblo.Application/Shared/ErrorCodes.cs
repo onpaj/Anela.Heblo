@@ -306,6 +306,10 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     LotHasEans = 2806,
 
+    // WeatherForecast module errors (29XX)
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    WeatherForecastUnavailable = 2901,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

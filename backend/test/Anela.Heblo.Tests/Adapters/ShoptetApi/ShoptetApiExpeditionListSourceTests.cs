@@ -572,17 +572,17 @@ public class ShoptetApiExpeditionListSourceTests
 
     [Theory]
     // Carrier None → never show ribbon regardless of product cooling
-    [InlineData(Cooling.None, Cooling.None,  false)]
-    [InlineData(Cooling.None, Cooling.L1,   false)]
-    [InlineData(Cooling.None, Cooling.L2,   false)]
+    [InlineData(Cooling.None, Cooling.None, false)]
+    [InlineData(Cooling.None, Cooling.L1, false)]
+    [InlineData(Cooling.None, Cooling.L2, false)]
     // Carrier L1 → only L1 products trigger ribbon (L2 > L1 so does NOT match)
-    [InlineData(Cooling.L1,   Cooling.None,  false)]
-    [InlineData(Cooling.L1,   Cooling.L1,   true)]
-    [InlineData(Cooling.L1,   Cooling.L2,   false)]
+    [InlineData(Cooling.L1, Cooling.None, false)]
+    [InlineData(Cooling.L1, Cooling.L1, true)]
+    [InlineData(Cooling.L1, Cooling.L2, false)]
     // Carrier L2 → L1 and L2 products both trigger ribbon
-    [InlineData(Cooling.L2,   Cooling.None,  false)]
-    [InlineData(Cooling.L2,   Cooling.L1,   true)]
-    [InlineData(Cooling.L2,   Cooling.L2,   true)]
+    [InlineData(Cooling.L2, Cooling.None, false)]
+    [InlineData(Cooling.L2, Cooling.L1, true)]
+    [InlineData(Cooling.L2, Cooling.L2, true)]
     public void IsCooled_MatchesCarrierAwareRule(Cooling carrierCooling, Cooling itemCooling, bool expected)
     {
         var order = new ExpeditionOrder
@@ -864,24 +864,24 @@ public class ShoptetApiExpeditionListSourceTests
     // ─── DisplayName ─────────────────────────────────────────────────────────────
 
     [Theory]
-    [InlineData("ZASILKOVNA_DO_RUKY",                "Zásilkovna (do ruky)")]
-    [InlineData("ZASILKOVNA_ZPOINT",                 "Zásilkovna Z-Point")]
-    [InlineData("ZASILKOVNA_DO_RUKY_SK",             "Zásilkovna (do ruky) SK")]
-    [InlineData("ZASILKOVNA_DO_RUKY_CHLAZENY",       "Zásilkovna chlazený balík (do ruky)")]
-    [InlineData("ZASILKOVNA_ZPOINT_CHLAZENY",        "Zásilkovna Z-Point chlazený balík")]
-    [InlineData("ZASILKOVNA_DO_RUKY_SK_CHLAZENY",    "Zásilkovna SK chlazený balík (do ruky)")]
-    [InlineData("ZASILKOVNA_ZPOINT_ZDARMA",          "Zásilkovna Z-Point - DOPRAVA ZDARMA")]
+    [InlineData("ZASILKOVNA_DO_RUKY", "Zásilkovna (do ruky)")]
+    [InlineData("ZASILKOVNA_ZPOINT", "Zásilkovna Z-Point")]
+    [InlineData("ZASILKOVNA_DO_RUKY_SK", "Zásilkovna (do ruky) SK")]
+    [InlineData("ZASILKOVNA_DO_RUKY_CHLAZENY", "Zásilkovna chlazený balík (do ruky)")]
+    [InlineData("ZASILKOVNA_ZPOINT_CHLAZENY", "Zásilkovna Z-Point chlazený balík")]
+    [InlineData("ZASILKOVNA_DO_RUKY_SK_CHLAZENY", "Zásilkovna SK chlazený balík (do ruky)")]
+    [InlineData("ZASILKOVNA_ZPOINT_ZDARMA", "Zásilkovna Z-Point - DOPRAVA ZDARMA")]
     [InlineData("ZASILKOVNA_ZPOINT_CHLAZENY_ZDARMA", "Zásilkovna Z-Point - PLATÍTE POUZE CHLADÍTKO")]
-    [InlineData("PPL_DO_RUKY",                       "PPL (do ruky)")]
-    [InlineData("PPL_PARCELSHOP",                    "PPL ParcelShop")]
-    [InlineData("PPL_EXPORT",                        "PPL Export")]
-    [InlineData("PPL_DO_RUKY_CHLAZENY",              "PPL chlazený balík (do ruky)")]
-    [InlineData("PPL_PARCELSHOP_CHLAZENY",           "PPL ParcelShop chlazený balík")]
-    [InlineData("PPL_EXPORT_CHLAZENY",               "PPL Export chlazený balík")]
-    [InlineData("GLS_DO_RUKY",                       "GLS (do ruky)")]
-    [InlineData("GLS_EXPORT",                        "GLS Export")]
-    [InlineData("GLS_PARCELSHOP",                    "GLS ParcelShop")]
-    [InlineData("OSOBAK",                            "Osobní odběr")]
+    [InlineData("PPL_DO_RUKY", "PPL (do ruky)")]
+    [InlineData("PPL_PARCELSHOP", "PPL ParcelShop")]
+    [InlineData("PPL_EXPORT", "PPL Export")]
+    [InlineData("PPL_DO_RUKY_CHLAZENY", "PPL chlazený balík (do ruky)")]
+    [InlineData("PPL_PARCELSHOP_CHLAZENY", "PPL ParcelShop chlazený balík")]
+    [InlineData("PPL_EXPORT_CHLAZENY", "PPL Export chlazený balík")]
+    [InlineData("GLS_DO_RUKY", "GLS (do ruky)")]
+    [InlineData("GLS_EXPORT", "GLS Export")]
+    [InlineData("GLS_PARCELSHOP", "GLS ParcelShop")]
+    [InlineData("OSOBAK", "Osobní odběr")]
     public void ShippingMethod_DisplayName_IsSetForAllRegisteredMethods(string methodName, string expectedDisplayName)
     {
         var method = ShippingMethodRegistry.ShippingList
