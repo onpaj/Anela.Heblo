@@ -930,3 +930,8 @@ When Shoptet returns an error (non-2xx or populated `errors[]`):
 ### 11.6 Authentication
 
 Same host (`https://api.myshoptet.com`) and `Shoptet-Private-API-Token` header as all other Shoptet endpoints. `ShoptetApiSettings.BaseUrl` and `ShoptetApiSettings.ApiToken` are reused — no new configuration keys.
+
+### 11.7 Implementation status
+
+- **Backend** (`POST /api/shipment-labels`) — complete. Fetches labels by order code, returns PDF URL + ZPL string per package, maps 29XX error codes for not-found and not-generated cases.
+- **UI / Balení module** — not yet implemented. The Balení kiosk PWA needs a new screen that calls this endpoint and sends the ZPL payload to the USB-connected Zebra printer. The cloud backend is data-only — USB hardware access happens entirely on the kiosk device.
