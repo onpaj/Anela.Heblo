@@ -53,4 +53,21 @@ describe('WeatherForecastReport', () => {
 
     expect(screen.getByText(/nepodařilo se načíst předpověď/i)).toBeInTheDocument();
   });
+
+  it('renders exactly 7 temperature bar elements with a width style', () => {
+    (useWeatherForecast as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: mockDays,
+    });
+
+    render(<WeatherForecastReport />);
+
+    const bars = screen.getAllByTestId('temp-bar');
+    expect(bars).toHaveLength(7);
+    bars.forEach((bar) => {
+      const style = bar.getAttribute('style');
+      expect(style).toMatch(/width:\s*\d+(\.\d+)?%/);
+    });
+  });
 });

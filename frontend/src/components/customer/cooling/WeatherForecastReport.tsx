@@ -2,6 +2,7 @@ import { useWeatherForecast } from '../../../api/hooks/useWeatherForecast';
 import { getWeatherIcon } from './weatherIcons';
 import LoadingState from '../../common/LoadingState';
 import ErrorState from '../../common/ErrorState';
+import { getTemperatureBarPercent, getTemperatureColor } from './temperatureScale';
 
 function WeatherForecastReport() {
   const { data, isLoading, isError } = useWeatherForecast();
@@ -34,10 +35,17 @@ function WeatherForecastReport() {
             <div key={day.date} className="flex items-center gap-3 text-sm">
               <span className="w-24 shrink-0 text-gray-500">{label}</span>
               <Icon className="h-4 w-4 shrink-0 text-gray-600" />
-              <span className="w-16 font-medium text-gray-900">
+              <div className="flex-1 h-2 rounded-full bg-gray-100">
+                <div
+                  data-testid="temp-bar"
+                  className={`h-2 rounded-full ${getTemperatureColor(day.maxTemperatureCelsius)}`}
+                  style={{ width: `${getTemperatureBarPercent(day.maxTemperatureCelsius)}%` }}
+                />
+              </div>
+              <span className="w-16 shrink-0 text-right font-medium text-gray-900">
                 {day.maxTemperatureCelsius.toFixed(1)} °C
               </span>
-              <span className="text-gray-500">{day.cityName}</span>
+              <span className="w-20 shrink-0 text-right text-gray-500">{day.cityName}</span>
             </div>
           );
         })}
