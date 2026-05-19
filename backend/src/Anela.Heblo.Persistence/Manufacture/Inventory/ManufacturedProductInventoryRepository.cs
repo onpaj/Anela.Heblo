@@ -45,4 +45,13 @@ public class ManufacturedProductInventoryRepository
 
         return (items, totalCount);
     }
+
+    public async Task<Dictionary<string, decimal>> GetTotalAmountByProductCodeAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await DbSet
+            .GroupBy(x => x.ProductCode)
+            .Select(g => new { ProductCode = g.Key, Total = g.Sum(x => x.Amount) })
+            .ToDictionaryAsync(x => x.ProductCode, x => x.Total, cancellationToken);
+    }
 }
