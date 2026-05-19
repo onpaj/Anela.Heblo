@@ -36,6 +36,15 @@ public class MarketingInvoiceImportService
         {
             try
             {
+                if (stagedIds.Contains(transaction.TransactionId))
+                {
+                    _logger.LogDebug(
+                        "Transaction {TransactionId} for {Platform} already staged in this run — skipping",
+                        transaction.TransactionId, source.Platform);
+                    result.Skipped++;
+                    continue;
+                }
+
                 var exists = await _repository.ExistsAsync(source.Platform, transaction.TransactionId, ct);
                 if (exists)
                 {
