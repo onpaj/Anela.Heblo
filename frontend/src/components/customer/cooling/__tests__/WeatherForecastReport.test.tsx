@@ -72,6 +72,6 @@ describe('WeatherForecastReport', () => {
     });
     // Day 1: min=18°C → left=45% (non-zero confirms it's a range bar, not 0→max)
     expect(bars[0].getAttribute('style')).toMatch(/left:\s*4[0-9]/);
-    expect(bars[0]).toHaveClass('bg-orange-500'); // 28.5°C → [28, 34) → orange
+    expect(bars[0]).toHaveClass('bg-red-500'); // 28.5°C → ≥26 → red
   });
 });
