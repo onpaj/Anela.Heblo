@@ -12,7 +12,9 @@ public static class HebloOpenMeteoAdapterModule
         IConfiguration configuration)
     {
         services.AddOptions<WeatherForecastOptions>()
-            .Bind(configuration.GetSection(WeatherForecastOptions.ConfigKey));
+            .Bind(configuration.GetSection(WeatherForecastOptions.ConfigKey))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         services.AddMemoryCache();
 

@@ -39,6 +39,7 @@ public class GetWeatherForecastHandlerTests
 
         var day1 = result.Days.Single(d => d.Date == new DateOnly(2024, 6, 1));
         Assert.Equal("Praha", day1.CityName);
+        Assert.Equal(18.0, day1.MinTemperatureCelsius);
         Assert.Equal(28.5, day1.MaxTemperatureCelsius);
         Assert.Equal(0, day1.WeatherCode);
 
