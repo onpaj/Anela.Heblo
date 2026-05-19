@@ -8,6 +8,13 @@ jest.mock('../../../api/hooks/usePackingOrder', () => ({
   usePackingOrder: jest.fn(),
 }));
 
+jest.mock('../PackingLabelPrinter', () => ({
+  __esModule: true,
+  default: ({ orderCode }: { orderCode: string }) => (
+    <div data-testid="packing-label-printer" data-order-code={orderCode} />
+  ),
+}));
+
 const mockHook = usePackingOrder as jest.Mock;
 
 const baseResult = {
@@ -165,5 +172,51 @@ describe('BaleniPacking', () => {
     fireEvent.submit(input.closest('form')!);
 
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('mounts PackingLabelPrinter when order is in packing state', () => {
+    mockHook.mockReturnValue({
+      ...baseResult,
+      data: {
+        code: '250001',
+        customerName: 'Jan Novák',
+        shippingMethodName: 'PPL',
+        cooling: 'None',
+        isCooled: false,
+        statusId: 26,
+        isInPackingState: true,
+        customerNote: null,
+        eshopNote: null,
+        items: [],
+      },
+    });
+
+    render(<BaleniPacking />);
+    expect(screen.getByTestId('packing-label-printer')).toBeInTheDocument();
+    expect(screen.getByTestId('packing-label-printer')).toHaveAttribute(
+      'data-order-code',
+      '250001'
+    );
+  });
+
+  it('does not mount PackingLabelPrinter when order is not in packing state', () => {
+    mockHook.mockReturnValue({
+      ...baseResult,
+      data: {
+        code: '250001',
+        customerName: 'Jan Novák',
+        shippingMethodName: 'PPL',
+        cooling: 'None',
+        isCooled: false,
+        statusId: 5,
+        isInPackingState: false,
+        customerNote: null,
+        eshopNote: null,
+        items: [],
+      },
+    });
+
+    render(<BaleniPacking />);
+    expect(screen.queryByTestId('packing-label-printer')).not.toBeInTheDocument();
   });
 });
