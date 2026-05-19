@@ -46,6 +46,7 @@ public class UpdateManufacturedInventoryItemHandler
         item.ManualAdjust(request.NewAmount, user.Name ?? "System", now, request.Note);
 
         await _repository.UpdateAsync(item, cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
 
         return new UpdateManufacturedInventoryItemResponse
         {
