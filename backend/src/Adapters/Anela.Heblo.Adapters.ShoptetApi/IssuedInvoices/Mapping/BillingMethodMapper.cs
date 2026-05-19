@@ -59,16 +59,4 @@ public class BillingMethodMapper
         return BillingMethod.BankTransfer;
     }
 
-    public BillingMethod Map(string? shoptetCode)
-    {
-        if (string.IsNullOrEmpty(shoptetCode) || !CodeMap.TryGetValue(shoptetCode, out var method))
-        {
-            if (!string.IsNullOrEmpty(shoptetCode))
-                _logger.LogWarning(
-                    "Unknown Shoptet billingMethod code '{Code}' — defaulting to BankTransfer. Add to BillingMethodMapper.Map.",
-                    shoptetCode);
-            return BillingMethod.BankTransfer;
-        }
-        return method;
-    }
 }
