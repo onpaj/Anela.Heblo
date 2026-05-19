@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Send } from "lucide-react";
+import { Maximize2, Minimize2, Send } from "lucide-react";
 import DraftReplyTriggerBar from "./DraftReplyTriggerBar";
 import DraftReplyToolbar from "./DraftReplyToolbar";
 import { useGenerateDraftReply, type DraftReplySource } from "./hooks/useGenerateDraftReply";
@@ -19,6 +19,7 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
   const [sources, setSources] = useState<DraftReplySource[]>([]);
   const [lastTopic, setLastTopic] = useState<string | undefined>(undefined);
   const [pendingTopic, setPendingTopic] = useState<{ topic: string | undefined } | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const { generate, isLoading, error, result, reset } = useGenerateDraftReply(conversationId);
 
@@ -111,14 +112,29 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
             onDiscard={handleDiscard}
           />
         )}
-        <textarea
-          value={draft}
-          disabled={isLoading}
-          onChange={(e) => handleDraftChange(e.target.value)}
-          placeholder={isLoading ? "Generuji návrh odpovědi…" : "Napište odpověď..."}
-          rows={3}
-          className="w-full resize-none rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-50"
-        />
+        <div className="relative">
+          <textarea
+            value={draft}
+            disabled={isLoading}
+            onChange={(e) => handleDraftChange(e.target.value)}
+            placeholder={isLoading ? "Generuji návrh odpovědi…" : "Napište odpověď..."}
+            rows={isExpanded ? 14 : 5}
+            className="w-full resize-none rounded-md border border-gray-200 py-2 pl-3 pr-9 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-50"
+          />
+          <button
+            type="button"
+            onClick={() => setIsExpanded((v) => !v)}
+            aria-label={isExpanded ? "Zmenšit" : "Zvětšit"}
+            title={isExpanded ? "Zmenšit" : "Zvětšit"}
+            className="absolute right-2 top-2 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          >
+            {isExpanded ? (
+              <Minimize2 className="h-4 w-4" />
+            ) : (
+              <Maximize2 className="h-4 w-4" />
+            )}
+          </button>
+        </div>
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-400">
             {draft.length} / {MAX_CHARS}
