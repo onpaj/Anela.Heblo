@@ -15,6 +15,7 @@ const baseResult = {
   isLoading: false,
   isError: false,
   error: null,
+  refetch: jest.fn(),
 };
 
 beforeEach(() => {
@@ -80,5 +81,20 @@ describe('BaleniPacking', () => {
     fireEvent.change(input, { target: { value: '250001' } });
     fireEvent.submit(input.closest('form')!);
     expect(mockHook).toHaveBeenLastCalledWith('250001');
+  });
+
+  it('refetches instead of changing state when the same code is scanned twice', () => {
+    const refetch = jest.fn();
+    mockHook.mockReturnValue({ ...baseResult, refetch });
+
+    render(<BaleniPacking />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: '250001' } });
+    fireEvent.submit(input.closest('form')!);
+    fireEvent.change(input, { target: { value: '250001' } });
+    fireEvent.submit(input.closest('form')!);
+
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });

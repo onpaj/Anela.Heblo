@@ -15,9 +15,15 @@ function CenteredMessage({ children }: { children: ReactNode }) {
 
 function BaleniPacking() {
   const [scannedCode, setScannedCode] = useState<string | null>(null);
-  const { data, isLoading, isError, error } = usePackingOrder(scannedCode);
+  const { data, isLoading, isError, error, refetch } = usePackingOrder(scannedCode);
 
-  const handleScan = (value: string) => setScannedCode(value);
+  const handleScan = (value: string) => {
+    if (value === scannedCode) {
+      void refetch();
+    } else {
+      setScannedCode(value);
+    }
+  };
 
   const renderBody = () => {
     if (isLoading) {
