@@ -13,8 +13,6 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 /// </summary>
 public class ShoptetApiPackingOrderClient : IPackingOrderClient
 {
-    // ShoptetOrderClient is the only IEshopOrderClient implementation — safe to cast,
-    // mirroring ShoptetApiExpeditionListSource, to reach expedition-specific methods.
     private readonly ShoptetOrderClient _orderClient;
     private readonly ICatalogRepository _catalog;
     private readonly ICarrierCoolingRepository _carrierCooling;
@@ -24,7 +22,10 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
         ICatalogRepository catalog,
         ICarrierCoolingRepository carrierCooling)
     {
-        _orderClient = (ShoptetOrderClient)orderClient;
+        _orderClient = orderClient as ShoptetOrderClient
+            ?? throw new InvalidOperationException(
+                $"{nameof(IEshopOrderClient)} must be {nameof(ShoptetOrderClient)} " +
+                $"but got {orderClient.GetType().Name}.");
         _catalog = catalog;
         _carrierCooling = carrierCooling;
     }
@@ -75,6 +76,8 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             ShippingMethodName = detail.Shipping?.Name ?? string.Empty,
             Cooling = order.CarrierCooling,
             IsCooled = order.IsCooled,
+            CustomerNote = string.IsNullOrWhiteSpace(order.CustomerRemark) ? null : order.CustomerRemark,
+            EshopNote = string.IsNullOrWhiteSpace(order.EshopRemark) ? null : order.EshopRemark,
             Items = items,
         };
     }

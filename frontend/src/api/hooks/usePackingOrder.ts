@@ -16,6 +16,8 @@ export interface PackingOrder {
   shippingMethodName: string;
   cooling: Cooling;
   isCooled: boolean;
+  customerNote: string | null;
+  eshopNote: string | null;
   items: PackingOrderItem[];
 }
 
@@ -28,7 +30,7 @@ export class PackingOrderNotFoundError extends Error {
 }
 
 const fetchPackingOrder = async (code: string): Promise<PackingOrder> => {
-  const apiClient = getAuthenticatedApiClient();
+  const apiClient = getAuthenticatedApiClient(false);
   const fullUrl = `${(apiClient as any).baseUrl}/api/shoptet-orders/${encodeURIComponent(code)}/packing`;
   const response = await (apiClient as any).http.fetch(fullUrl, {
     method: 'GET',

@@ -147,4 +147,35 @@ public class ShoptetApiPackingOrderClientTests
         result!.Cooling.Should().Be(Cooling.None);
         result.IsCooled.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task GetPackingOrderAsync_MapsCustomerAndEshopNotes()
+    {
+        var detail = DetailResponse("250004", PplDoRukyGuid, "PPL (do ruky)");
+        detail.Data.Order.Notes = new OrderNotes
+        {
+            CustomerRemark = "Prosím zabalit jako dárek",
+            EshopRemark = "Stálý zákazník",
+        };
+        var orderClient = BuildOrderClient(_ => Json(detail));
+        var sut = new ShoptetApiPackingOrderClient(orderClient, CatalogWith(), CoolingWith());
+
+        var result = await sut.GetPackingOrderAsync("250004", CancellationToken.None);
+
+        result!.CustomerNote.Should().Be("Prosím zabalit jako dárek");
+        result.EshopNote.Should().Be("Stálý zákazník");
+    }
+
+    [Fact]
+    public async Task GetPackingOrderAsync_LeavesNotesNull_WhenAbsent()
+    {
+        var orderClient = BuildOrderClient(_ =>
+            Json(DetailResponse("250005", PplDoRukyGuid, "PPL (do ruky)")));
+        var sut = new ShoptetApiPackingOrderClient(orderClient, CatalogWith(), CoolingWith());
+
+        var result = await sut.GetPackingOrderAsync("250005", CancellationToken.None);
+
+        result!.CustomerNote.Should().BeNull();
+        result.EshopNote.Should().BeNull();
+    }
 }

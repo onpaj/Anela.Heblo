@@ -22,6 +22,13 @@ public class PackingOrder
     public string ShippingMethodName { get; set; } = string.Empty;
     public Cooling Cooling { get; set; } = Cooling.None;
     public bool IsCooled { get; set; }
+
+    /// <summary>Customer remark entered at checkout; null when none.</summary>
+    public string? CustomerNote { get; set; }
+
+    /// <summary>Internal staff remark on the order; null when none.</summary>
+    public string? EshopNote { get; set; }
+
     public List<PackingOrderItem> Items { get; set; } = new();
 }
 

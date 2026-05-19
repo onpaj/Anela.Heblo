@@ -44,6 +44,8 @@ describe('BaleniPacking', () => {
         shippingMethodName: 'PPL (do ruky)',
         cooling: 'None',
         isCooled: false,
+        customerNote: null,
+        eshopNote: null,
         items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
       },
     });
@@ -51,6 +53,27 @@ describe('BaleniPacking', () => {
     render(<BaleniPacking />);
     expect(screen.getByText('Objednávka 250001')).toBeInTheDocument();
     expect(screen.getByText('Krém')).toBeInTheDocument();
+  });
+
+  it('renders customer and internal notes when present', () => {
+    mockHook.mockReturnValue({
+      ...baseResult,
+      data: {
+        code: '250001',
+        customerName: 'Jan Novák',
+        shippingMethodName: 'PPL (do ruky)',
+        cooling: 'L2',
+        isCooled: true,
+        customerNote: 'Zabalit jako dárek',
+        eshopNote: 'Stálý zákazník',
+        items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
+      },
+    });
+
+    render(<BaleniPacking />);
+    expect(screen.getByText('Zabalit jako dárek')).toBeInTheDocument();
+    expect(screen.getByText('Stálý zákazník')).toBeInTheDocument();
+    expect(screen.getByText('Chlazení L2')).toBeInTheDocument();
   });
 
   it('shows a not-found message for an unknown order', () => {

@@ -27,6 +27,8 @@ public class GetPackingOrderHandlerTests
                 ShippingMethodName = "PPL (do ruky)",
                 Cooling = Cooling.L1,
                 IsCooled = true,
+                CustomerNote = "Zabalit jako dárek",
+                EshopNote = "Stálý zákazník",
                 Items = new List<PackingOrderItem>
                 {
                     new() { Name = "Krém", Quantity = 2, ImageUrl = "https://img/p.jpg" },
@@ -42,6 +44,8 @@ public class GetPackingOrderHandlerTests
         response.ShippingMethodName.Should().Be("PPL (do ruky)");
         response.Cooling.Should().Be(Cooling.L1);
         response.IsCooled.Should().BeTrue();
+        response.CustomerNote.Should().Be("Zabalit jako dárek");
+        response.EshopNote.Should().Be("Stálý zákazník");
         response.Items.Should().ContainSingle().Which.Name.Should().Be("Krém");
     }
 

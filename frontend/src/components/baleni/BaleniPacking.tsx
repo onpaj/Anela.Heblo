@@ -3,6 +3,8 @@ import { ScanLine, Loader2 } from 'lucide-react';
 import ScanInput from '../terminal/ScanInput';
 import { usePackingOrder, PackingOrderNotFoundError } from '../../api/hooks/usePackingOrder';
 import PackingOrderMeta from './PackingOrderMeta';
+import PackingCoolingIndicator from './PackingCoolingIndicator';
+import PackingOrderNotes from './PackingOrderNotes';
 import PackingItems from './PackingItems';
 
 function CenteredMessage({ children }: { children: ReactNode }) {
@@ -59,8 +61,11 @@ function BaleniPacking() {
   return (
     <div className="flex flex-col gap-4" data-testid="baleni-packing">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0">
           {data && <PackingOrderMeta order={data} />}
+        </div>
+        <div className="flex flex-1 justify-center">
+          {data && <PackingCoolingIndicator order={data} />}
         </div>
         <div className="w-72 shrink-0">
           <ScanInput
@@ -74,6 +79,9 @@ function BaleniPacking() {
           />
         </div>
       </div>
+      {data && (
+        <PackingOrderNotes customerNote={data.customerNote} eshopNote={data.eshopNote} />
+      )}
       {data && (
         <p className="text-xs uppercase tracking-wide text-neutral-gray">
           Položky ({data.items.length})

@@ -39,6 +39,8 @@ public class GetPackingOrderHandler : IRequestHandler<GetPackingOrderRequest, Ge
                 ShippingMethodName = order.ShippingMethodName,
                 Cooling = order.Cooling,
                 IsCooled = order.IsCooled,
+                CustomerNote = order.CustomerNote,
+                EshopNote = order.EshopNote,
                 Items = order.Items,
             };
         }

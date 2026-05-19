@@ -19,5 +19,7 @@ public class GetPackingOrderResponse : BaseResponse
     public string ShippingMethodName { get; set; } = string.Empty;
     public Cooling Cooling { get; set; } = Cooling.None;
     public bool IsCooled { get; set; }
+    public string? CustomerNote { get; set; }
+    public string? EshopNote { get; set; }
     public List<PackingOrderItem> Items { get; set; } = new();
 }
