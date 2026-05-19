@@ -4,7 +4,9 @@ using Anela.Heblo.Adapters.ShoptetApi.Expedition;
 using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
 using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices.Mapping;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
+using Anela.Heblo.Adapters.ShoptetApi.Shipments;
 using Anela.Heblo.Adapters.ShoptetApi.Stock;
+using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
@@ -45,6 +47,13 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
         });
 
         services.AddHttpClient<IShoptetInvoiceClient, ShoptetInvoiceClient>((sp, client) =>
+        {
+            var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
+            client.BaseAddress = new Uri(settings.BaseUrl);
+            client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
+        });
+
+        services.AddHttpClient<IShipmentClient, ShoptetShipmentClient>((sp, client) =>
         {
             var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
             client.BaseAddress = new Uri(settings.BaseUrl);
