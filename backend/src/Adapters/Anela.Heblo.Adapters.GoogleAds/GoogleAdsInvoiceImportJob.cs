@@ -51,8 +51,8 @@ public class GoogleAdsInvoiceImportJob : IRecurringJob
             var to = DateTime.UtcNow;
             var from = to.AddDays(-7);
 
-            var service = new MarketingInvoiceImportService(_source, _repository, _importLogger);
-            var result = await service.ImportAsync(from, to, cancellationToken);
+            var service = new MarketingInvoiceImportService(_repository, _importLogger);
+            var result = await service.ImportAsync(_source, from, to, cancellationToken);
 
             _logger.LogInformation(
                 "{JobName} completed. Imported={Imported}, Skipped={Skipped}, Failed={Failed}",
