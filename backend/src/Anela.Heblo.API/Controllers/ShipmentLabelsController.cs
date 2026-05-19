@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.CreateOrderShipment;
 using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.GetOrderShipmentLabels;
 using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.GetShipmentLabelPdf;
 using Anela.Heblo.Application.Shared;
@@ -37,6 +38,23 @@ public class ShipmentLabelsController : BaseApiController
     }
 
     /// <summary>
+    /// Creates a new shipment for an order via the Shoptet API and returns label data.
+    /// </summary>
+    [HttpPost("create")]
+    public async Task<ActionResult<CreateOrderShipmentResponse>> CreateShipment(
+        [FromBody] CreateShipmentRequest body,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(new CreateOrderShipmentRequest
+        {
+            OrderCode = body.OrderCode,
+            ForceCreate = body.ForceCreate,
+        }, cancellationToken);
+
+        return HandleResponse(response);
+    }
+
+    /// <summary>
     /// Proxies a shipment label PDF same-origin so the kiosk iframe can print it.
     /// Resolves the carrier URL server-side — the frontend never receives a raw external URL.
     /// </summary>
@@ -69,4 +87,13 @@ public class GetShipmentLabelsRequest
 {
     [JsonPropertyName("orderCode")]
     public string OrderCode { get; set; } = null!;
+}
+
+public class CreateShipmentRequest
+{
+    [JsonPropertyName("orderCode")]
+    public string OrderCode { get; set; } = null!;
+
+    [JsonPropertyName("forceCreate")]
+    public bool ForceCreate { get; set; }
 }

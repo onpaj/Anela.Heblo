@@ -256,6 +256,11 @@ const resources = {
         ShipmentLabelsNoShipmentFound: "Zásilka k objednávce nebyla nalezena.",
         ShipmentLabelsNotGenerated: "Štítky zásilek nebyly dosud vygenerovány.",
         ShipmentLabelPdfNotFound: "PDF štítek zásilky nebyl nalezen.",
+        ShipmentAlreadyExists: "Zásilka pro tuto objednávku již existuje.",
+        ShipmentCarrierNotResolved: "Nepodařilo se určit dopravce pro objednávku.",
+        ShipmentCreationFailed: "Vytvoření zásilky se nezdařilo.",
+        ShipmentLabelNotReady: "Štítek zásilky ještě není připraven.",
+        ShipmentOrderWeightUnavailable: "Hmotnost objednávky není dostupná.",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",

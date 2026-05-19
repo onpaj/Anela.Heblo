@@ -90,7 +90,7 @@ public static class ApplicationModule
         services.AddExpeditionListModule(configuration);
         services.AddExpeditionListArchiveModule();
         services.AddShoptetOrdersModule(configuration);
-        services.AddShipmentLabelsModule();
+        services.AddShipmentLabelsModule(configuration);
         services.AddGridLayoutsModule();
         services.AddMarketingInvoicesModule();
         services.AddCarrierCoolingModule();
