@@ -146,4 +146,29 @@ public class GetOrderShipmentLabelsHandlerTests
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
     }
+
+    [Fact]
+    public async Task Handle_MixedLabels_SomeNullSomePrintable_ReturnsAllPackages()
+    {
+        // Arrange — one printable package (has LabelUrl) + one non-printable (both null)
+        // Per spec: all packages are returned; the kiosk decides what to print.
+        var guid = Guid.NewGuid();
+        _clientMock.Setup(c => c.GetLabelsByOrderCodeAsync("0004444", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new ShipmentLabel { ShipmentGuid = guid, OrderCode = "0004444", PackageName = "P1", LabelUrl = "https://x.com/1.pdf", LabelZpl = null },
+                new ShipmentLabel { ShipmentGuid = guid, OrderCode = "0004444", PackageName = "P2", LabelUrl = null, LabelZpl = null },
+            ]);
+
+        // Act
+        var response = await CreateHandler().Handle(
+            new GetOrderShipmentLabelsRequest { OrderCode = "0004444" },
+            CancellationToken.None);
+
+        // Assert — success because at least one package has a printable label; all packages returned
+        response.Success.Should().BeTrue();
+        response.Labels.Should().HaveCount(2);
+        response.Labels[0].HasPdf.Should().BeTrue();
+        response.Labels[1].HasPdf.Should().BeFalse();
+        response.Labels[1].HasZpl.Should().BeFalse();
+    }
 }
