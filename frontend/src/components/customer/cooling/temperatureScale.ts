@@ -1,10 +1,10 @@
 export const TEMP_SCALE_MIN = 0;
 export const TEMP_SCALE_MAX = 40;
 
-export const COOL_THRESHOLD = 15;
-export const WARM_THRESHOLD = 22;
-export const HOT_THRESHOLD = 28;
-export const VERY_HOT_THRESHOLD = 34;
+export const COOL_THRESHOLD = 10;
+export const WARM_THRESHOLD = 16;
+export const HOT_THRESHOLD = 21;
+export const VERY_HOT_THRESHOLD = 26;
 
 export function getTemperatureBarPercent(temp: number): number {
   const clamped = Math.max(TEMP_SCALE_MIN, Math.min(TEMP_SCALE_MAX, temp));
