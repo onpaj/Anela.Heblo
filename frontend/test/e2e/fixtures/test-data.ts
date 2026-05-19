@@ -287,6 +287,15 @@ export const ExpectedDashboardStats = {
 } as const;
 
 /**
+ * Well-known packing/balení orders for testing
+ */
+export const TestPackingOrders: Record<string, string | null> = {
+  // Multi-package order in packing state
+  // TODO: Set a real multi-package packing order code from staging environment
+  multiPackagePacking: null
+};
+
+/**
  * Helper function to verify test data exists
  * Use this at the beginning of tests to fail fast if data is missing
  */
