@@ -18,3 +18,14 @@ export function getTemperatureColor(temp: number): string {
   if (temp < VERY_HOT_THRESHOLD) return 'bg-orange-500';
   return 'bg-red-500';
 }
+
+export interface TemperatureRangeBar {
+  left: number;
+  width: number;
+}
+
+export function getTemperatureRangeBar(min: number, max: number): TemperatureRangeBar {
+  const left = getTemperatureBarPercent(min);
+  const right = getTemperatureBarPercent(max);
+  return { left, width: right - left };
+}

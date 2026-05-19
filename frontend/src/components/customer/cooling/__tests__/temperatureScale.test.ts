@@ -1,8 +1,13 @@
 import {
   TEMP_SCALE_MIN,
   TEMP_SCALE_MAX,
+  COOL_THRESHOLD,
+  WARM_THRESHOLD,
+  HOT_THRESHOLD,
+  VERY_HOT_THRESHOLD,
   getTemperatureBarPercent,
   getTemperatureColor,
+  getTemperatureRangeBar,
 } from '../temperatureScale';
 
 describe('getTemperatureBarPercent', () => {
@@ -56,5 +61,31 @@ describe('getTemperatureColor', () => {
   it('returns orange for temperatures in [28, 34)', () => {
     expect(getTemperatureColor(28)).toBe('bg-orange-500');
     expect(getTemperatureColor(33)).toBe('bg-orange-500');
+  });
+});
+
+describe('getTemperatureRangeBar', () => {
+  it('returns left=0 and width=100 for the full scale range (0–40 °C)', () => {
+    const result = getTemperatureRangeBar(TEMP_SCALE_MIN, TEMP_SCALE_MAX);
+    expect(result.left).toBe(0);
+    expect(result.width).toBe(100);
+  });
+
+  it('returns correct left and width for a mid-range day (10–30 °C)', () => {
+    const result = getTemperatureRangeBar(10, 30);
+    expect(result.left).toBe(25);   // (10 - 0) / (40 - 0) * 100
+    expect(result.width).toBe(50);  // (30 - 10) / (40 - 0) * 100
+  });
+
+  it('clamps both min and max outside the scale (-5–50 °C)', () => {
+    const result = getTemperatureRangeBar(-5, 50);
+    expect(result.left).toBe(0);
+    expect(result.width).toBe(100);
+  });
+
+  it('returns width=0 when min equals max', () => {
+    const result = getTemperatureRangeBar(20, 20);
+    expect(result.left).toBe(50);
+    expect(result.width).toBe(0);
   });
 });
