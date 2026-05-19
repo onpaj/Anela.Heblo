@@ -21,7 +21,9 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
         PropertyNameCaseInsensitive = true,
     };
 
-    public string Platform => "MetaAds";
+    public const string PlatformName = "MetaAds";
+
+    public string Platform => PlatformName;
 
     public MetaAdsTransactionSource(
         HttpClient httpClient,
