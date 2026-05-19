@@ -11,7 +11,7 @@ interface ForecastDay {
   weatherCode: number;
 }
 
-interface WeatherForecastTileProps {
+export interface WeatherForecastTileProps {
   data: {
     status?: string;
     error?: string;
@@ -42,6 +42,8 @@ export function WeatherForecastTile({ data }: WeatherForecastTileProps) {
         ) : (
           days.map((day) => {
             const icon = getWeatherIcon(day.weatherCode);
+            // new Date('YYYY-MM-DD') parses as UTC, shifting to the previous day in
+            // negative-offset timezones. Construct in local time instead.
             const [year, month, dayNum] = day.date.split('-').map(Number);
             const dateObj = new Date(year, month - 1, dayNum);
             const label = dateObj.toLocaleDateString('cs-CZ', {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { WeatherForecastTile } from '../WeatherForecastTile';
+import { WeatherForecastTile, type WeatherForecastTileProps } from '../WeatherForecastTile';
 
 const fiveDays = {
   status: 'success',
@@ -16,7 +16,7 @@ const fiveDays = {
   },
 };
 
-function renderTile(data: object) {
+function renderTile(data: WeatherForecastTileProps['data']) {
   return render(
     <MemoryRouter>
       <WeatherForecastTile data={data} />
