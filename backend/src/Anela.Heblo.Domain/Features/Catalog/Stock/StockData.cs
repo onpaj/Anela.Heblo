@@ -7,6 +7,7 @@ public record StockData
     public decimal Eshop { get; set; }
     public decimal Erp { get; set; }
     public decimal Transport { get; set; }
+    public decimal Manufactured { get; set; }
     public decimal Reserve { get; set; }
     public decimal Quarantine { get; set; }
     public decimal Ordered { get; set; }
@@ -14,7 +15,7 @@ public record StockData
 
     public StockSource PrimaryStockSource { get; set; } = StockSource.Erp;
 
-    public decimal Available => (PrimaryStockSource == StockSource.Erp ? Erp : Eshop) + Transport;
+    public decimal Available => (PrimaryStockSource == StockSource.Erp ? Erp : Eshop) + Transport + Manufactured;
 
     /// <summary>
     /// Total stock including both available stock and reserve stock

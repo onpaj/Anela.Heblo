@@ -28,13 +28,16 @@ public class MarketingInvoiceImportService
         var transactions = await _source.GetTransactionsAsync(from, to, ct);
 
         var result = new MarketingImportResult();
+        var stagedCount = 0;
+        var stagedIds = new HashSet<string>();
 
         foreach (var transaction in transactions)
         {
             try
             {
-                var exists = await _repository.ExistsAsync(_source.Platform, transaction.TransactionId, ct);
-                if (exists)
+                // ExistsAsync queries the DB and cannot see entities staged via AddAsync but not yet flushed.
+                if (stagedIds.Contains(transaction.TransactionId) ||
+                    await _repository.ExistsAsync(_source.Platform, transaction.TransactionId, ct))
                 {
                     _logger.LogDebug(
                         "Transaction {TransactionId} for {Platform} already imported — skipping",
@@ -54,9 +57,8 @@ public class MarketingInvoiceImportService
                 };
 
                 await _repository.AddAsync(entity, ct);
-                await _repository.SaveChangesAsync(ct);
-
-                result.Imported++;
+                stagedIds.Add(transaction.TransactionId);
+                stagedCount++;
             }
             catch (Exception ex)
             {
@@ -65,6 +67,24 @@ public class MarketingInvoiceImportService
                     "Failed to import transaction {TransactionId} for {Platform}",
                     transaction.TransactionId, _source.Platform);
                 result.Failed++;
+            }
+        }
+
+        if (stagedCount > 0)
+        {
+            try
+            {
+                await _repository.SaveChangesAsync(ct);
+                result.Imported = stagedCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Failed to persist {Count} marketing transactions for {Platform}",
+                    stagedCount, _source.Platform);
+                result.Failed += stagedCount;
+                // result.Imported intentionally stays 0 — nothing was committed.
             }
         }
 

@@ -342,6 +342,20 @@ const ManufacturingStockAnalysis: React.FC = () => {
       ),
     },
     {
+      id: 'vyrobeno',
+      header: 'Vyrobeno',
+      align: 'right',
+      minWidth: 60,
+      defaultWidth: 120,
+      cellClassName: 'text-xs text-gray-900',
+      renderCell: (item) =>
+        (item.manufacturedStock || 0) > 0 ? (
+          <div className="font-bold">{formatNumber(item.manufacturedStock, 0)}</div>
+        ) : (
+          <span className="text-gray-400">—</span>
+        ),
+    },
+    {
       id: 'reserve',
       header: 'Rezerv',
       sortBy: ManufacturingStockSortBy.Reserve,
