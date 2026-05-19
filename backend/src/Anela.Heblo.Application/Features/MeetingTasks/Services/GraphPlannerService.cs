@@ -3,12 +3,15 @@ using System.Text.Json;
 using Anela.Heblo.Application.Common.Graph;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
 
 namespace Anela.Heblo.Application.Features.MeetingTasks.Services;
 
 public class GraphPlannerService : IMeetingTaskExporter
 {
+    private const string DelegatedPlannerScope = "https://graph.microsoft.com/Tasks.ReadWrite";
+
     private readonly ITokenAcquisition _tokenAcquisition;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GraphPlannerService> _logger;
@@ -81,7 +84,7 @@ public class GraphPlannerService : IMeetingTaskExporter
     {
         try
         {
-            var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphApiHelpers.GraphScope);
+            var token = await GetDelegatedTokenAsync();
             using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
             var body = new Dictionary<string, object>
@@ -138,6 +141,22 @@ public class GraphPlannerService : IMeetingTaskExporter
             else
                 _logger.LogError(ex, "Exception exporting Planner task for user {UserId}", userId);
             return new MeetingTaskExportResult(false, null, ex.Message);
+        }
+    }
+
+    private async Task<string> GetDelegatedTokenAsync()
+    {
+        try
+        {
+            return await _tokenAcquisition.GetAccessTokenForUserAsync(new[] { DelegatedPlannerScope });
+        }
+        catch (MsalUiRequiredException ex)
+        {
+            _logger.LogError(ex,
+                "User consent required for Graph scope {Scope}. Grant admin consent in Azure Portal.",
+                DelegatedPlannerScope);
+            throw new InvalidOperationException(
+                $"Microsoft 365 consent required for scope {DelegatedPlannerScope}. An admin must grant consent in Azure Portal.", ex);
         }
     }
 
