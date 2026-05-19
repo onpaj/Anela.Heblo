@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Shipments.Dto;
 
-public class ShoptetShipmentListResponse
+internal class ShoptetShipmentListResponse
 {
     [JsonPropertyName("data")]
     public ShoptetShipmentListData? Data { get; set; }
@@ -11,7 +11,7 @@ public class ShoptetShipmentListResponse
     public List<ShoptetErrorDto>? Errors { get; set; }
 }
 
-public class ShoptetShipmentListData
+internal class ShoptetShipmentListData
 {
     [JsonPropertyName("items")]
     public List<ShoptetShipmentDto>? Items { get; set; }

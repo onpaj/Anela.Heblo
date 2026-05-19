@@ -191,4 +191,22 @@ public class ShoptetShipmentClientTests
         // Assert
         capturedRequest!.RequestUri!.PathAndQuery.Should().Be("/api/shipments?orderCode=MY-ORDER-CODE");
     }
+
+    [Fact]
+    public async Task GetLabelsByOrderCodeAsync_EncodesOrderCodeInQueryString()
+    {
+        // Arrange — order code with a space (must become %20 in the URL)
+        HttpRequestMessage? capturedRequest = null;
+        var client = BuildClient(req =>
+        {
+            capturedRequest = req;
+            return Json(new { data = new { items = Array.Empty<object>() }, errors = Array.Empty<object>() });
+        });
+
+        // Act
+        await client.GetLabelsByOrderCodeAsync("ORDER 01");
+
+        // Assert
+        capturedRequest!.RequestUri!.PathAndQuery.Should().Be("/api/shipments?orderCode=ORDER%2001");
+    }
 }

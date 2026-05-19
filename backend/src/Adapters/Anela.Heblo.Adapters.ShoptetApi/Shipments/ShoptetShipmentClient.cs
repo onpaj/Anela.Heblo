@@ -23,7 +23,8 @@ public class ShoptetShipmentClient : IShipmentClient
         string orderCode,
         CancellationToken ct = default)
     {
-        var response = await _http.GetAsync($"/api/shipments?orderCode={orderCode}", ct);
+        var encodedOrderCode = Uri.EscapeDataString(orderCode);
+        var response = await _http.GetAsync($"/api/shipments?orderCode={encodedOrderCode}", ct);
 
         if (!response.IsSuccessStatusCode)
         {
