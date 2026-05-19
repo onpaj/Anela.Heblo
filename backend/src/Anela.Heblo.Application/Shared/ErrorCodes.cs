@@ -306,11 +306,15 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     LotHasEans = 2806,
 
+    // WeatherForecast module errors (29XX)
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    WeatherForecastUnavailable = 2901,
+
     // ShipmentLabels module errors (29XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
-    ShipmentLabelsNoShipmentFound = 2901,
+    ShipmentLabelsNoShipmentFound = 2902,
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
-    ShipmentLabelsNotGenerated = 2902,
+    ShipmentLabelsNotGenerated = 2903,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

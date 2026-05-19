@@ -100,6 +100,19 @@ describe("ChatComposer", () => {
     expect(screen.getByText(/5 \//)).toBeInTheDocument();
   });
 
+  it("toggles the textarea height with the expand button", () => {
+    mockHook({});
+    render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" />);
+    const textarea = screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement;
+    expect(textarea.rows).toBe(5);
+
+    fireEvent.click(screen.getByRole("button", { name: /zvětšit/i }));
+    expect(textarea.rows).toBe(14);
+
+    fireEvent.click(screen.getByRole("button", { name: /zmenšit/i }));
+    expect(textarea.rows).toBe(5);
+  });
+
   it("initializes textarea with initialDraft value", () => {
     mockHook({});
     render(<ChatComposer conversationId="c1" lastContactMessage={null} initialDraft="Předvyplněný draft" />);

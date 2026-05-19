@@ -579,6 +579,7 @@ public class ExpeditionProtocolDocumentTests
                     CustomerName = "Jana Mrazíková",
                     Address = "Ledová 42, 100 00 Praha 1",
                     Phone = "+420 725 191 660",
+                    CarrierCooling = Cooling.L2,
                     Items = new List<ExpeditionOrderItem>
                     {
                         new()

@@ -1,6 +1,7 @@
 import { Thermometer } from 'lucide-react';
 import { PAGE_CONTAINER_HEIGHT } from '../../constants/layout';
 import CarrierCoolingMatrix from '../../components/customer/cooling/CarrierCoolingMatrix';
+import WeatherForecastReport from '../../components/customer/cooling/WeatherForecastReport';
 import {
   useCarrierCoolingMatrix,
   useSetCarrierCooling,
@@ -26,6 +27,8 @@ function CoolingPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
+        <WeatherForecastReport />
+
         {isLoading && (
           <div className="flex items-center justify-center h-32">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
