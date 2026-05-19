@@ -36,6 +36,7 @@ public class GetWeatherForecastHandler : IRequestHandler<GetWeatherForecastReque
                     {
                         Date = hottest.Day.Date,
                         CityName = hottest.CityName,
+                        MinTemperatureCelsius = hottest.Day.MinTemperatureCelsius,
                         MaxTemperatureCelsius = hottest.Day.MaxTemperatureCelsius,
                         WeatherCode = hottest.Day.WeatherCode,
                     };

@@ -13,9 +13,9 @@ public class GetWeatherForecastHandlerTests
     private GetWeatherForecastHandler CreateHandler() =>
         new(_clientMock.Object, NullLogger<GetWeatherForecastHandler>.Instance);
 
-    private static CityForecast City(string name, params (string date, double temp, int code)[] days) =>
+    private static CityForecast City(string name, params (string date, double minTemp, double maxTemp, int code)[] days) =>
         new(name, days
-            .Select(d => new CityForecastDay(DateOnly.Parse(d.date), d.temp, d.code))
+            .Select(d => new CityForecastDay(DateOnly.Parse(d.date), d.minTemp, d.maxTemp, d.code))
             .ToList());
 
     [Fact]
@@ -25,11 +25,11 @@ public class GetWeatherForecastHandlerTests
             .ReturnsAsync(new List<CityForecast>
             {
                 City("Praha",
-                    ("2024-06-01", 28.5, 0),
-                    ("2024-06-02", 25.0, 3)),
+                    ("2024-06-01", 18.0, 28.5, 0),
+                    ("2024-06-02", 15.0, 25.0, 3)),
                 City("Brno",
-                    ("2024-06-01", 27.0, 1),
-                    ("2024-06-02", 26.5, 2)),
+                    ("2024-06-01", 17.0, 27.0, 1),
+                    ("2024-06-02", 16.0, 26.5, 2)),
             });
 
         var result = await CreateHandler().Handle(new GetWeatherForecastRequest(), CancellationToken.None);
@@ -54,9 +54,9 @@ public class GetWeatherForecastHandlerTests
             .ReturnsAsync(new List<CityForecast>
             {
                 City("Praha",
-                    ("2024-06-03", 30.0, 0),
-                    ("2024-06-01", 28.0, 1),
-                    ("2024-06-02", 25.0, 2)),
+                    ("2024-06-03", 20.0, 30.0, 0),
+                    ("2024-06-01", 18.0, 28.0, 1),
+                    ("2024-06-02", 15.0, 25.0, 2)),
             });
 
         var result = await CreateHandler().Handle(new GetWeatherForecastRequest(), CancellationToken.None);

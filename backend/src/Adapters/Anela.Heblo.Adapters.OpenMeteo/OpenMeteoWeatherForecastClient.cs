@@ -38,7 +38,7 @@ public class OpenMeteoWeatherForecastClient : IWeatherForecastClient
 
         var lats = string.Join(",", _options.Cities.Select(c => c.Latitude.ToString(CultureInfo.InvariantCulture)));
         var lons = string.Join(",", _options.Cities.Select(c => c.Longitude.ToString(CultureInfo.InvariantCulture)));
-        var url = $"/v1/forecast?latitude={lats}&longitude={lons}&daily=temperature_2m_max,weather_code&forecast_days=7&timezone=Europe%2FPrague";
+        var url = $"/v1/forecast?latitude={lats}&longitude={lons}&daily=temperature_2m_max,temperature_2m_min,weather_code&forecast_days=7&timezone=Europe%2FPrague";
 
         _logger.LogInformation("Fetching weather forecast from Open-Meteo for {CityCount} cities", _options.Cities.Count);
 
@@ -59,7 +59,9 @@ public class OpenMeteoWeatherForecastClient : IWeatherForecastClient
             .Select((loc, i) =>
             {
                 var dayCount = loc.Daily.Time.Count;
-                if (loc.Daily.TemperatureMax.Count != dayCount || loc.Daily.WeatherCode.Count != dayCount)
+                if (loc.Daily.TemperatureMax.Count != dayCount
+                    || loc.Daily.TemperatureMin.Count != dayCount
+                    || loc.Daily.WeatherCode.Count != dayCount)
                     throw new InvalidOperationException(
                         $"Open-Meteo daily arrays for '{_options.Cities[i].Name}' have inconsistent lengths");
 
@@ -68,6 +70,7 @@ public class OpenMeteoWeatherForecastClient : IWeatherForecastClient
                     Days: loc.Daily.Time
                         .Select((time, j) => new CityForecastDay(
                             Date: DateOnly.Parse(time),
+                            MinTemperatureCelsius: loc.Daily.TemperatureMin[j],
                             MaxTemperatureCelsius: loc.Daily.TemperatureMax[j],
                             WeatherCode: loc.Daily.WeatherCode[j]))
                         .ToList());
@@ -93,6 +96,9 @@ public class OpenMeteoWeatherForecastClient : IWeatherForecastClient
 
         [JsonPropertyName("temperature_2m_max")]
         public List<double> TemperatureMax { get; init; } = new();
+
+        [JsonPropertyName("temperature_2m_min")]
+        public List<double> TemperatureMin { get; init; } = new();
 
         [JsonPropertyName("weather_code")]
         public List<int> WeatherCode { get; init; } = new();
