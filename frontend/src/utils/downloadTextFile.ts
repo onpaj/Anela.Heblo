@@ -1,8 +1,8 @@
 export function sanitizeFilename(subject: string): string {
   const safe = subject
     .trim()
-    .replace(/\s+/g, '-')
     .replace(/[/\\:*?"<>|]/g, '')
+    .replace(/\s+/g, '-')
     .replace(/^-+|-+$/g, '')
     .toLowerCase();
   return safe.length > 0 ? safe : 'download';
