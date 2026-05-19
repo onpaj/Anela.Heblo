@@ -32,35 +32,35 @@ describe('getTemperatureBarPercent', () => {
 });
 
 describe('getTemperatureColor', () => {
-  it('returns a cool class for temperatures below 15 °C', () => {
-    expect(getTemperatureColor(10)).toBe('bg-sky-400');
+  it('returns a cool class for temperatures below 10 °C', () => {
+    expect(getTemperatureColor(9)).toBe('bg-sky-400');
     expect(getTemperatureColor(0)).toBe('bg-sky-400');
   });
 
-  it('returns a hot class for temperatures above 34 °C', () => {
+  it('returns a hot class for temperatures at or above 26 °C', () => {
+    expect(getTemperatureColor(26)).toBe('bg-red-500');
     expect(getTemperatureColor(35)).toBe('bg-red-500');
-    expect(getTemperatureColor(40)).toBe('bg-red-500');
   });
 
   it('returns different classes for cool vs hot temperatures', () => {
     const cool = getTemperatureColor(5);
-    const hot = getTemperatureColor(38);
+    const hot = getTemperatureColor(30);
     expect(cool).not.toBe(hot);
   });
 
-  it('returns emerald for temperatures in [15, 22)', () => {
+  it('returns emerald for temperatures in [10, 16)', () => {
+    expect(getTemperatureColor(10)).toBe('bg-emerald-400');
     expect(getTemperatureColor(15)).toBe('bg-emerald-400');
-    expect(getTemperatureColor(21)).toBe('bg-emerald-400');
   });
 
-  it('returns amber for temperatures in [22, 28)', () => {
-    expect(getTemperatureColor(22)).toBe('bg-amber-400');
-    expect(getTemperatureColor(27)).toBe('bg-amber-400');
+  it('returns amber for temperatures in [16, 21)', () => {
+    expect(getTemperatureColor(16)).toBe('bg-amber-400');
+    expect(getTemperatureColor(20)).toBe('bg-amber-400');
   });
 
-  it('returns orange for temperatures in [28, 34)', () => {
-    expect(getTemperatureColor(28)).toBe('bg-orange-500');
-    expect(getTemperatureColor(33)).toBe('bg-orange-500');
+  it('returns orange for temperatures in [21, 26)', () => {
+    expect(getTemperatureColor(21)).toBe('bg-orange-500');
+    expect(getTemperatureColor(25)).toBe('bg-orange-500');
   });
 });
 
