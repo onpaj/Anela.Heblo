@@ -82,7 +82,7 @@ public class MarketingInvoiceImportService
                 _logger.LogError(
                     ex,
                     "Failed to persist {Count} marketing transactions for {Platform}",
-                    stagedCount, _source.Platform);
+                    stagedCount, source.Platform);
                 result.Failed += stagedCount;
                 // result.Imported intentionally stays 0 — nothing was committed.
             }

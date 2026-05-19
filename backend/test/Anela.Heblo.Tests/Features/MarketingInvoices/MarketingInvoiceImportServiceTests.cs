@@ -154,7 +154,7 @@ public class MarketingInvoiceImportServiceTests
             .ThrowsAsync(new InvalidOperationException("flush failed"));
 
         // Act
-        var result = await _service.ImportAsync(from, to);
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
 
         // Assert
         Assert.Equal(0, result.Imported);
@@ -174,7 +174,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(new List<MarketingTransaction>());
 
         // Act
-        var result = await _service.ImportAsync(from, to);
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
 
         // Assert
         Assert.Equal(0, result.Imported);
@@ -212,7 +212,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(1);
 
         // Act
-        var result = await _service.ImportAsync(from, to);
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
 
         // Assert
         Assert.Equal(1, result.Imported);
