@@ -3,7 +3,6 @@ using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.GetOrderShipmentL
 using Anela.Heblo.Application.Features.ShipmentLabels.Validators;
 using FluentValidation;
 using MediatR;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anela.Heblo.Application.Features.ShipmentLabels;
@@ -11,8 +10,7 @@ namespace Anela.Heblo.Application.Features.ShipmentLabels;
 public static class ShipmentLabelsModule
 {
     public static IServiceCollection AddShipmentLabelsModule(
-        this IServiceCollection services,
-        IConfiguration configuration)
+        this IServiceCollection services)
     {
         services.AddScoped<IValidator<GetOrderShipmentLabelsRequest>, GetOrderShipmentLabelsRequestValidator>();
         services.AddScoped<
