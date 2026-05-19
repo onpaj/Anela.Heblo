@@ -1,0 +1,76 @@
+using Anela.Heblo.Application.Features.ShoptetOrders;
+using Anela.Heblo.Application.Features.ShoptetOrders.UseCases.GetPackingOrder;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Catalog;
+using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+
+namespace Anela.Heblo.Tests.Application.ShoptetOrders;
+
+public class GetPackingOrderHandlerTests
+{
+    private readonly Mock<IPackingOrderClient> _clientMock = new();
+
+    private GetPackingOrderHandler CreateHandler() =>
+        new(_clientMock.Object, NullLogger<GetPackingOrderHandler>.Instance);
+
+    [Fact]
+    public async Task Handle_OrderFound_ReturnsMappedResponse()
+    {
+        _clientMock
+            .Setup(c => c.GetPackingOrderAsync("250001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PackingOrder
+            {
+                Code = "250001",
+                CustomerName = "Jan Novák",
+                ShippingMethodName = "PPL (do ruky)",
+                Cooling = Cooling.L1,
+                IsCooled = true,
+                Items = new List<PackingOrderItem>
+                {
+                    new() { Name = "Krém", Quantity = 2, ImageUrl = "https://img/p.jpg" },
+                },
+            });
+
+        var response = await CreateHandler().Handle(
+            new GetPackingOrderRequest { Code = "250001" }, CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        response.Code.Should().Be("250001");
+        response.CustomerName.Should().Be("Jan Novák");
+        response.ShippingMethodName.Should().Be("PPL (do ruky)");
+        response.Cooling.Should().Be(Cooling.L1);
+        response.IsCooled.Should().BeTrue();
+        response.Items.Should().ContainSingle().Which.Name.Should().Be("Krém");
+    }
+
+    [Fact]
+    public async Task Handle_OrderNotFound_ReturnsShoptetOrderNotFound()
+    {
+        _clientMock
+            .Setup(c => c.GetPackingOrderAsync("999999", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PackingOrder?)null);
+
+        var response = await CreateHandler().Handle(
+            new GetPackingOrderRequest { Code = "999999" }, CancellationToken.None);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.ShoptetOrderNotFound);
+        response.Params.Should().ContainKey("orderCode").WhoseValue.Should().Be("999999");
+    }
+
+    [Fact]
+    public async Task Handle_ClientThrows_ReturnsInternalServerError()
+    {
+        _clientMock
+            .Setup(c => c.GetPackingOrderAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Shoptet unavailable"));
+
+        var response = await CreateHandler().Handle(
+            new GetPackingOrderRequest { Code = "250001" }, CancellationToken.None);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.InternalServerError);
+    }
+}
