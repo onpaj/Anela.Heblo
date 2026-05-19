@@ -255,6 +255,7 @@ const resources = {
         // ShipmentLabels module errors
         ShipmentLabelsNoShipmentFound: "Zásilka k objednávce nebyla nalezena.",
         ShipmentLabelsNotGenerated: "Štítky zásilek nebyly dosud vygenerovány.",
+        ShipmentLabelPdfNotFound: "PDF štítek zásilky nebyl nalezen.",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
