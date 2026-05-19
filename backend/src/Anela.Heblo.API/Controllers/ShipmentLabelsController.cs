@@ -1,4 +1,6 @@
 using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.GetOrderShipmentLabels;
+using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.GetShipmentLabelPdf;
+using Anela.Heblo.Application.Shared;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +34,34 @@ public class ShipmentLabelsController : BaseApiController
         });
 
         return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Proxies a shipment label PDF same-origin so the kiosk iframe can print it.
+    /// Resolves the carrier URL server-side — the frontend never receives a raw external URL.
+    /// </summary>
+    [HttpGet("pdf")]
+    public async Task<IActionResult> GetLabelPdf(
+        [FromQuery] string orderCode,
+        [FromQuery] Guid shipmentGuid,
+        [FromQuery] string packageName,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(new GetShipmentLabelPdfRequest
+        {
+            OrderCode = orderCode,
+            ShipmentGuid = shipmentGuid,
+            PackageName = packageName,
+        }, cancellationToken);
+
+        if (!response.Success)
+        {
+            return response.ErrorCode == ErrorCodes.ShipmentLabelPdfNotFound
+                ? NotFound(new { errorCode = response.ErrorCode?.ToString() })
+                : StatusCode(500, new { errorCode = response.ErrorCode?.ToString() });
+        }
+
+        return File(response.PdfStream!, "application/pdf");
     }
 }
 
