@@ -9,18 +9,18 @@ namespace Anela.Heblo.Application.Features.MeetingTasks.UseCases.SubmitToTodo;
 public class SubmitToTodoHandler : IRequestHandler<SubmitToTodoRequest, SubmitToTodoResponse>
 {
     private readonly IMeetingTranscriptRepository _repository;
-    private readonly IGraphTodoService _todoService;
+    private readonly IMeetingTaskExporter _taskExporter;
     private readonly IMeetingAccessGuard _accessGuard;
     private readonly ILogger<SubmitToTodoHandler> _logger;
 
     public SubmitToTodoHandler(
         IMeetingTranscriptRepository repository,
-        IGraphTodoService todoService,
+        IMeetingTaskExporter taskExporter,
         IMeetingAccessGuard accessGuard,
         ILogger<SubmitToTodoHandler> logger)
     {
         _repository = repository;
-        _todoService = todoService;
+        _taskExporter = taskExporter;
         _accessGuard = accessGuard;
         _logger = logger;
     }
@@ -56,7 +56,7 @@ public class SubmitToTodoHandler : IRequestHandler<SubmitToTodoRequest, SubmitTo
                 continue;
             }
 
-            var userId = await _todoService.ResolveUserIdByEmailAsync(task.AssigneeEmail, cancellationToken);
+            var userId = await _taskExporter.ResolveUserIdByEmailAsync(task.AssigneeEmail, cancellationToken);
             if (userId is null)
             {
                 response.FailedCount++;
@@ -65,7 +65,7 @@ public class SubmitToTodoHandler : IRequestHandler<SubmitToTodoRequest, SubmitTo
                 continue;
             }
 
-            var result = await _todoService.CreateTodoTaskAsync(
+            var result = await _taskExporter.ExportTaskAsync(
                 userId,
                 task.Title,
                 task.Description,
@@ -77,14 +77,14 @@ public class SubmitToTodoHandler : IRequestHandler<SubmitToTodoRequest, SubmitTo
                 task.ExternalTaskId = result.ExternalTaskId;
                 // Per-task save: bounds blast radius if the process crashes mid-loop.
                 // Without this, ExternalTaskId would be lost and the next /submit call would
-                // recreate the Graph task — breaking idempotency.
+                // recreate the Planner task — breaking idempotency.
                 await _repository.SaveChangesAsync(cancellationToken);
                 response.SuccessCount++;
             }
             else
             {
                 response.FailedCount++;
-                response.Errors.Add($"Failed to create TODO task '{task.Title}' for '{task.AssigneeEmail}': {result.Error}");
+                response.Errors.Add($"Failed to export Planner task '{task.Title}' for '{task.AssigneeEmail}': {result.Error}");
             }
         }
 
@@ -102,7 +102,7 @@ public class SubmitToTodoHandler : IRequestHandler<SubmitToTodoRequest, SubmitTo
         await _repository.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
-            "Submitted {SuccessCount} tasks to TODO for transcript {Id}, {FailedCount} failed",
+            "Exported {SuccessCount} Planner tasks for transcript {Id}, {FailedCount} failed",
             response.SuccessCount, transcript.Id, response.FailedCount);
 
         return response;

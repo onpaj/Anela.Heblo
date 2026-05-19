@@ -29,6 +29,7 @@ public class DeleteManufacturedInventoryItemHandler
             };
 
         await _repository.DeleteAsync(item, cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
 
         return new DeleteManufacturedInventoryItemResponse();
     }

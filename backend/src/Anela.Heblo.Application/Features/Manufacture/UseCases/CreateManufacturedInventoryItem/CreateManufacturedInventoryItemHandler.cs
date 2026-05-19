@@ -45,6 +45,7 @@ public class CreateManufacturedInventoryItemHandler
             request.ManufactureOrderId);
 
         var created = await _repository.AddAsync(item, cancellationToken);
+        await _repository.SaveChangesAsync(cancellationToken);
 
         return new CreateManufacturedInventoryItemResponse
         {
