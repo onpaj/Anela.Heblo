@@ -317,6 +317,16 @@ public enum ErrorCodes
     ShipmentLabelsNotGenerated = 2903,
     [HttpStatusCode(HttpStatusCode.NotFound)]
     ShipmentLabelPdfNotFound = 2904,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    ShipmentAlreadyExists = 2905,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShipmentCarrierNotResolved = 2906,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    ShipmentCreationFailed = 2907,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShipmentLabelNotReady = 2908,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShipmentOrderWeightUnavailable = 2909,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
