@@ -4,6 +4,7 @@ import LoadingState from '../../common/LoadingState';
 import ErrorState from '../../common/ErrorState';
 import { getTemperatureColor, getTemperatureRangeBar } from './temperatureScale';
 
+
 function WeatherForecastReport() {
   const { data, isLoading, isError } = useWeatherForecast();
 
@@ -22,7 +23,7 @@ function WeatherForecastReport() {
       </h2>
       <div className="space-y-2">
         {data.map((day) => {
-          const Icon = getWeatherIcon(day.weatherCode);
+          const icon = getWeatherIcon(day.weatherCode);
           const [year, month, dayNum] = day.date.split('-').map(Number);
           const dateObj = new Date(year, month - 1, dayNum);
           const label = dateObj.toLocaleDateString('cs-CZ', {
@@ -38,7 +39,7 @@ function WeatherForecastReport() {
           return (
             <div key={day.date} className="flex items-center gap-3 text-sm">
               <span className="w-24 shrink-0 text-gray-500">{label}</span>
-              <Icon className="h-4 w-4 shrink-0 text-gray-600" />
+              <span className="shrink-0 text-base leading-none">{icon}</span>
               <span className="w-10 shrink-0 text-right text-gray-600">
                 {Math.round(day.minTemperatureCelsius)}°C
               </span>
