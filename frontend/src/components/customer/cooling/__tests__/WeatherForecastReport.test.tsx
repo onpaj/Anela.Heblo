@@ -69,5 +69,6 @@ describe('WeatherForecastReport', () => {
       const style = bar.getAttribute('style');
       expect(style).toMatch(/width:\s*\d+(\.\d+)?%/);
     });
+    expect(bars[0]).toHaveClass('bg-orange-500');
   });
 });

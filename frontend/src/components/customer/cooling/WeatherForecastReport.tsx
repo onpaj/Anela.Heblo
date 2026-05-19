@@ -35,10 +35,10 @@ function WeatherForecastReport() {
             <div key={day.date} className="flex items-center gap-3 text-sm">
               <span className="w-24 shrink-0 text-gray-500">{label}</span>
               <Icon className="h-4 w-4 shrink-0 text-gray-600" />
-              <div className="flex-1 h-2 rounded-full bg-gray-100">
+              <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
                 <div
                   data-testid="temp-bar"
-                  className={`h-2 rounded-full ${getTemperatureColor(day.maxTemperatureCelsius)}`}
+                  className={`h-2 ${getTemperatureColor(day.maxTemperatureCelsius)}`}
                   style={{ width: `${getTemperatureBarPercent(day.maxTemperatureCelsius)}%` }}
                 />
               </div>
