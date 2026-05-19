@@ -198,7 +198,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         return all;
     }
 
-    private static ExpeditionOrder MapToExpeditionOrder(Model.ExpeditionOrderDetail detail)
+    internal static ExpeditionOrder MapToExpeditionOrder(Model.ExpeditionOrderDetail detail)
     {
         var addr = detail.DeliveryAddress ?? detail.BillingAddress;
         var address = addr != null
