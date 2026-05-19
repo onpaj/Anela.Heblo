@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft, Check, X, Plus, Send, CheckCheck, Clock, CheckCircle, CheckCircle2,
-  ChevronDown, ChevronRight, AlertTriangle, RefreshCw,
+  ChevronDown, ChevronRight, AlertTriangle, RefreshCw, Download,
 } from "lucide-react";
 import {
   MeetingUserDto,
@@ -26,6 +26,7 @@ import { useExplainSelection } from './explain/useExplainSelection';
 import { ExplainTooltip } from './explain/ExplainTooltip';
 import { ExplainModal } from './explain/ExplainModal';
 import { ManageAccessModal } from './access/ManageAccessModal';
+import { downloadTextFile, sanitizeFilename } from "../../../utils/downloadTextFile";
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
 
 const EMPTY_FORM: TaskFormData = { title: "", description: "", assignee: "", assigneeEmail: null, dueDate: null };
@@ -228,6 +229,38 @@ const MeetingTaskDetailPage: React.FC = () => {
               {transcript.accessLevel === 'Public' && 'Veřejné'}
               {transcript.accessLevel === 'Restricted' && 'Omezené'}
             </span>
+          )}
+          {transcript.summary?.trim() && (
+            <button
+              type="button"
+              onClick={() =>
+                downloadTextFile(
+                  transcript.summary,
+                  `${sanitizeFilename(transcript.subject)}-summary.md`,
+                  'text/markdown',
+                )
+              }
+              className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
+            >
+              <Download className="w-4 h-4 mr-1" />
+              Stáhnout souhrn
+            </button>
+          )}
+          {transcript.rawTranscript?.trim() && (
+            <button
+              type="button"
+              onClick={() =>
+                downloadTextFile(
+                  transcript.rawTranscript,
+                  `${sanitizeFilename(transcript.subject)}-transcript.txt`,
+                  'text/plain',
+                )
+              }
+              className="inline-flex items-center px-3 py-1 text-sm rounded-lg border border-gray-300 hover:bg-gray-50"
+            >
+              <Download className="w-4 h-4 mr-1" />
+              Stáhnout přepis
+            </button>
           )}
           <button
             type="button"
