@@ -149,7 +149,7 @@ public class TestCatalogRepository : ICatalogRepository
 
     // Data load timestamps - always return current time for test
     public DateTime? TransportLoadDate => DateTime.UtcNow;
-    public DateTime? ManufacturedLoadDate => null;
+    public DateTime? ManufacturedLoadDate => DateTime.UtcNow;
     public DateTime? ReserveLoadDate => DateTime.UtcNow;
     public DateTime? QuarantineLoadDate => DateTime.UtcNow;
     public DateTime? OrderedLoadDate => DateTime.UtcNow;

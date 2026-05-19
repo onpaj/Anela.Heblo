@@ -50,6 +50,7 @@ public class ManufacturedProductInventoryRepository
         CancellationToken cancellationToken = default)
     {
         return await DbSet
+            .Where(x => x.Amount > 0)
             .GroupBy(x => x.ProductCode)
             .Select(g => new { ProductCode = g.Key, Total = g.Sum(x => x.Amount) })
             .ToDictionaryAsync(x => x.ProductCode, x => x.Total, cancellationToken);
