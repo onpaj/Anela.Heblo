@@ -70,7 +70,7 @@ public class ShoptetInvoiceMapper
         }
 
         var headerPrice = MapInvoicePrice(src.Price);   // WithVat is toPay (post-rounding) or withVat fallback
-        var totalWithVat = products.Where(i => i.ItemPrice.VatRate != "none").Sum(i => i.ItemPrice.TotalWithVat);
+        var totalWithVat = products.Where(i => i.ItemPrice.VatRate != "zero").Sum(i => i.ItemPrice.TotalWithVat);
         var totalWithoutVat = products.Sum(i => i.ItemPrice.TotalWithoutVat);
 
         // Use the header's effective WithVat (toPay when within rounding range, otherwise withVat) as the
@@ -91,7 +91,7 @@ public class ShoptetInvoiceMapper
             CreationTime = ParseDate(src.CreationTime),
             DueDate = ParseDate(src.DueDate),
             TaxDate = ParseDate(src.TaxDate),
-            BillingMethod = _billingMapper.Map(src.BillingMethod?.Name),
+            BillingMethod = _billingMapper.Map(src.BillingMethod),
             ShippingMethod = ResolveShippingFromItemNames(products.Select(i => i.Name)),
             VatPayer = !string.IsNullOrEmpty(src.BillingAddress?.VatId),
             BillingAddress = billingAddress,
@@ -115,8 +115,8 @@ public class ShoptetInvoiceMapper
         itemType is not null && AggregateDiscountTypes.Contains(itemType);
 
     /// <summary>
-    /// Converts a Shoptet REST API numeric VAT rate string (e.g. "21.00") to a Pohoda named rate
-    /// (e.g. "high") — matching the format the Playwright/XML adapter produces from rateVAT.
+    /// Converts a Shoptet REST API numeric VAT rate string (e.g. "21.00") to a canonical named
+    /// rate ("high", "first", "second", "zero") understood by the Flexi VAT rate mapping.
     /// </summary>
     private static string? MapVatRate(string? vatRate)
     {
@@ -130,10 +130,10 @@ public class ShoptetInvoiceMapper
         return rate switch
         {
             21m => "high",
-            12m => "low",
-            10m => "low",
-            15m => "low",
-            0m => "none",
+            12m => "first",
+            15m => "first",
+            10m => "second",
+            0m => "zero",
             _ => vatRate,
         };
     }
