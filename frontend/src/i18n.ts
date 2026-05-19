@@ -249,6 +249,10 @@ const resources = {
         DqtProductPairingFailed: "Chyba při párování produktů: {{details}}",
         DqtStockWriteBackFailed: "Chyba zpětného zápisu skladu: {{details}}",
 
+        // ShipmentLabels module errors
+        ShipmentLabelsNoShipmentFound: "Zásilka k objednávce nebyla nalezena.",
+        ShipmentLabelsNotGenerated: "Štítky zásilek nebyly dosud vygenerovány.",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",
