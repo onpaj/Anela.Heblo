@@ -1034,6 +1034,78 @@ export class ApiClient {
         return Promise.resolve<BankStatementImportDto>(null as any);
     }
 
+    carrierCooling_GetMatrix(): Promise<GetCarrierCoolingMatrixResponse> {
+        let url_ = this.baseUrl + "/api/carrier-cooling";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCarrierCooling_GetMatrix(_response);
+        });
+    }
+
+    protected processCarrierCooling_GetMatrix(response: Response): Promise<GetCarrierCoolingMatrixResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetCarrierCoolingMatrixResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetCarrierCoolingMatrixResponse>(null as any);
+    }
+
+    carrierCooling_SetCooling(request: SetCarrierCoolingRequest): Promise<SetCarrierCoolingResponse> {
+        let url_ = this.baseUrl + "/api/carrier-cooling";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCarrierCooling_SetCooling(_response);
+        });
+    }
+
+    protected processCarrierCooling_SetCooling(response: Response): Promise<SetCarrierCoolingResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SetCarrierCoolingResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SetCarrierCoolingResponse>(null as any);
+    }
+
     catalog_GetCatalogList(productTypes: ProductType[] | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined): Promise<GetCatalogListResponse> {
         let url_ = this.baseUrl + "/api/Catalog?";
         if (productTypes !== undefined && productTypes !== null)
@@ -7108,6 +7180,43 @@ export class ApiClient {
         return Promise.resolve<UpdateMeetingAccessResponse>(null as any);
     }
 
+    meetingTasks_Reimport(transcriptId: string): Promise<ReimportMeetingTranscriptResponse> {
+        let url_ = this.baseUrl + "/api/meeting-tasks/{transcriptId}/reimport";
+        if (transcriptId === undefined || transcriptId === null)
+            throw new Error("The parameter 'transcriptId' must be defined.");
+        url_ = url_.replace("{transcriptId}", encodeURIComponent("" + transcriptId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMeetingTasks_Reimport(_response);
+        });
+    }
+
+    protected processMeetingTasks_Reimport(response: Response): Promise<ReimportMeetingTranscriptResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ReimportMeetingTranscriptResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReimportMeetingTranscriptResponse>(null as any);
+    }
+
     orgChart_GetOrganizationStructure(): Promise<OrgChartResponse> {
         let url_ = this.baseUrl + "/api/OrgChart";
         url_ = url_.replace(/[?&]$/, "");
@@ -9272,6 +9381,44 @@ export class ApiClient {
         return Promise.resolve<TriggerRecurringJobResponse>(null as any);
     }
 
+    shipmentLabels_GetLabels(body: GetShipmentLabelsRequest): Promise<GetOrderShipmentLabelsResponse> {
+        let url_ = this.baseUrl + "/api/shipment-labels";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processShipmentLabels_GetLabels(_response);
+        });
+    }
+
+    protected processShipmentLabels_GetLabels(response: Response): Promise<GetOrderShipmentLabelsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetOrderShipmentLabelsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetOrderShipmentLabelsResponse>(null as any);
+    }
+
     shoptetOrders_BlockOrder(code: string, body: BlockOrderRequest): Promise<BlockOrderProcessingResponse> {
         let url_ = this.baseUrl + "/api/shoptet-orders/{code}/block";
         if (code === undefined || code === null)
@@ -10249,6 +10396,40 @@ export class ApiClient {
         }
         return Promise.resolve<OpenOrResumeBoxByCodeResponse>(null as any);
     }
+
+    weatherForecast_Get(): Promise<GetWeatherForecastResponse> {
+        let url_ = this.baseUrl + "/api/weather-forecast";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processWeatherForecast_Get(_response);
+        });
+    }
+
+    protected processWeatherForecast_Get(response: Response): Promise<GetWeatherForecastResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetWeatherForecastResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetWeatherForecastResponse>(null as any);
+    }
 }
 
 export abstract class BaseResponse implements IBaseResponse {
@@ -10772,6 +10953,9 @@ export enum ErrorCodes {
     InventoryMaterialNotFound = "InventoryMaterialNotFound",
     InventoryMaterialInvalidType = "InventoryMaterialInvalidType",
     LotHasEans = "LotHasEans",
+    WeatherForecastUnavailable = "WeatherForecastUnavailable",
+    ShipmentLabelsNoShipmentFound = "ShipmentLabelsNoShipmentFound",
+    ShipmentLabelsNotGenerated = "ShipmentLabelsNotGenerated",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -12600,6 +12784,228 @@ export interface IGetBankStatementListResponse extends IBaseResponse {
     totalCount?: number;
 }
 
+export class GetCarrierCoolingMatrixResponse extends BaseResponse implements IGetCarrierCoolingMatrixResponse {
+    groups?: CarrierGroupDto[];
+
+    constructor(data?: IGetCarrierCoolingMatrixResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["groups"])) {
+                this.groups = [] as any;
+                for (let item of _data["groups"])
+                    this.groups!.push(CarrierGroupDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetCarrierCoolingMatrixResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetCarrierCoolingMatrixResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.groups)) {
+            data["groups"] = [];
+            for (let item of this.groups)
+                data["groups"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetCarrierCoolingMatrixResponse extends IBaseResponse {
+    groups?: CarrierGroupDto[];
+}
+
+export class CarrierGroupDto implements ICarrierGroupDto {
+    carrier?: Carriers;
+    rows?: CarrierCoolingRowDto[];
+
+    constructor(data?: ICarrierGroupDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.carrier = _data["carrier"];
+            if (Array.isArray(_data["rows"])) {
+                this.rows = [] as any;
+                for (let item of _data["rows"])
+                    this.rows!.push(CarrierCoolingRowDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): CarrierGroupDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CarrierGroupDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["carrier"] = this.carrier;
+        if (Array.isArray(this.rows)) {
+            data["rows"] = [];
+            for (let item of this.rows)
+                data["rows"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface ICarrierGroupDto {
+    carrier?: Carriers;
+    rows?: CarrierCoolingRowDto[];
+}
+
+export enum Carriers {
+    Zasilkovna = "Zasilkovna",
+    PPL = "PPL",
+    GLS = "GLS",
+    Osobak = "Osobak",
+}
+
+export class CarrierCoolingRowDto implements ICarrierCoolingRowDto {
+    deliveryHandling?: DeliveryHandling;
+    cooling?: Cooling;
+
+    constructor(data?: ICarrierCoolingRowDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.deliveryHandling = _data["deliveryHandling"];
+            this.cooling = _data["cooling"];
+        }
+    }
+
+    static fromJS(data: any): CarrierCoolingRowDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new CarrierCoolingRowDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["deliveryHandling"] = this.deliveryHandling;
+        data["cooling"] = this.cooling;
+        return data;
+    }
+}
+
+export interface ICarrierCoolingRowDto {
+    deliveryHandling?: DeliveryHandling;
+    cooling?: Cooling;
+}
+
+export enum DeliveryHandling {
+    NaRuky = "NaRuky",
+    Box = "Box",
+}
+
+export enum Cooling {
+    None = "None",
+    L1 = "L1",
+    L2 = "L2",
+}
+
+export class SetCarrierCoolingResponse extends BaseResponse implements ISetCarrierCoolingResponse {
+
+    constructor(data?: ISetCarrierCoolingResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): SetCarrierCoolingResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetCarrierCoolingResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISetCarrierCoolingResponse extends IBaseResponse {
+}
+
+export class SetCarrierCoolingRequest implements ISetCarrierCoolingRequest {
+    carrier?: Carriers;
+    deliveryHandling?: DeliveryHandling;
+    cooling?: Cooling;
+    modifiedBy?: string;
+
+    constructor(data?: ISetCarrierCoolingRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.carrier = _data["carrier"];
+            this.deliveryHandling = _data["deliveryHandling"];
+            this.cooling = _data["cooling"];
+            this.modifiedBy = _data["modifiedBy"];
+        }
+    }
+
+    static fromJS(data: any): SetCarrierCoolingRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetCarrierCoolingRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["carrier"] = this.carrier;
+        data["deliveryHandling"] = this.deliveryHandling;
+        data["cooling"] = this.cooling;
+        data["modifiedBy"] = this.modifiedBy;
+        return data;
+    }
+}
+
+export interface ISetCarrierCoolingRequest {
+    carrier?: Carriers;
+    deliveryHandling?: DeliveryHandling;
+    cooling?: Cooling;
+    modifiedBy?: string;
+}
+
 export class GetCatalogListResponse extends BaseResponse implements IGetCatalogListResponse {
     items?: CatalogItemDto[];
     totalCount?: number;
@@ -13044,12 +13450,6 @@ export interface IPropertiesDto {
     batchSize?: number;
     seasonMonths?: number[];
     cooling?: Cooling;
-}
-
-export enum Cooling {
-    None = "None",
-    L1 = "L1",
-    L2 = "L2",
 }
 
 export class LotDto implements ILotDto {
@@ -14852,6 +15252,8 @@ export interface IDqtRunDto {
 
 export enum DqtTestType {
     IssuedInvoiceComparison = "IssuedInvoiceComparison",
+    ProductPairing = "ProductPairing",
+    StockWriteBackReconciliation = "StockWriteBackReconciliation",
 }
 
 export enum DqtRunStatus {
@@ -14863,6 +15265,8 @@ export enum DqtRunStatus {
 export class GetDqtRunDetailResponse extends BaseResponse implements IGetDqtRunDetailResponse {
     run?: DqtRunDto | undefined;
     results?: InvoiceDqtResultDto[];
+    driftResults?: DqtDriftResultDto[] | undefined;
+    totalDriftResults?: number;
 
     constructor(data?: IGetDqtRunDetailResponse) {
         super(data);
@@ -14877,6 +15281,12 @@ export class GetDqtRunDetailResponse extends BaseResponse implements IGetDqtRunD
                 for (let item of _data["results"])
                     this.results!.push(InvoiceDqtResultDto.fromJS(item));
             }
+            if (Array.isArray(_data["driftResults"])) {
+                this.driftResults = [] as any;
+                for (let item of _data["driftResults"])
+                    this.driftResults!.push(DqtDriftResultDto.fromJS(item));
+            }
+            this.totalDriftResults = _data["totalDriftResults"];
         }
     }
 
@@ -14895,6 +15305,12 @@ export class GetDqtRunDetailResponse extends BaseResponse implements IGetDqtRunD
             for (let item of this.results)
                 data["results"].push(item.toJSON());
         }
+        if (Array.isArray(this.driftResults)) {
+            data["driftResults"] = [];
+            for (let item of this.driftResults)
+                data["driftResults"].push(item.toJSON());
+        }
+        data["totalDriftResults"] = this.totalDriftResults;
         super.toJSON(data);
         return data;
     }
@@ -14903,6 +15319,8 @@ export class GetDqtRunDetailResponse extends BaseResponse implements IGetDqtRunD
 export interface IGetDqtRunDetailResponse extends IBaseResponse {
     run?: DqtRunDto | undefined;
     results?: InvoiceDqtResultDto[];
+    driftResults?: DqtDriftResultDto[] | undefined;
+    totalDriftResults?: number;
 }
 
 export class InvoiceDqtResultDto implements IInvoiceDqtResultDto {
@@ -14970,6 +15388,62 @@ export interface IInvoiceDqtResultDto {
     mismatchFlags?: string[];
     shoptetValue?: string | undefined;
     flexiValue?: string | undefined;
+    details?: string | undefined;
+}
+
+export class DqtDriftResultDto implements IDqtDriftResultDto {
+    entityKey?: string;
+    mismatchCode?: number;
+    testType?: string;
+    hebloValue?: string | undefined;
+    shoptetValue?: string | undefined;
+    details?: string | undefined;
+
+    constructor(data?: IDqtDriftResultDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.entityKey = _data["entityKey"];
+            this.mismatchCode = _data["mismatchCode"];
+            this.testType = _data["testType"];
+            this.hebloValue = _data["hebloValue"];
+            this.shoptetValue = _data["shoptetValue"];
+            this.details = _data["details"];
+        }
+    }
+
+    static fromJS(data: any): DqtDriftResultDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new DqtDriftResultDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["entityKey"] = this.entityKey;
+        data["mismatchCode"] = this.mismatchCode;
+        data["testType"] = this.testType;
+        data["hebloValue"] = this.hebloValue;
+        data["shoptetValue"] = this.shoptetValue;
+        data["details"] = this.details;
+        return data;
+    }
+}
+
+export interface IDqtDriftResultDto {
+    entityKey?: string;
+    mismatchCode?: number;
+    testType?: string;
+    hebloValue?: string | undefined;
+    shoptetValue?: string | undefined;
     details?: string | undefined;
 }
 
@@ -25010,6 +25484,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
     erpStock?: number;
     eshopStock?: number;
     transportStock?: number;
+    manufacturedStock?: number;
     primaryStockSource?: string;
     reserve?: number;
     quarantine?: number;
@@ -25043,6 +25518,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
             this.erpStock = _data["erpStock"];
             this.eshopStock = _data["eshopStock"];
             this.transportStock = _data["transportStock"];
+            this.manufacturedStock = _data["manufacturedStock"];
             this.primaryStockSource = _data["primaryStockSource"];
             this.reserve = _data["reserve"];
             this.quarantine = _data["quarantine"];
@@ -25076,6 +25552,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
         data["erpStock"] = this.erpStock;
         data["eshopStock"] = this.eshopStock;
         data["transportStock"] = this.transportStock;
+        data["manufacturedStock"] = this.manufacturedStock;
         data["primaryStockSource"] = this.primaryStockSource;
         data["reserve"] = this.reserve;
         data["quarantine"] = this.quarantine;
@@ -25102,6 +25579,7 @@ export interface IManufacturingStockItemDto {
     erpStock?: number;
     eshopStock?: number;
     transportStock?: number;
+    manufacturedStock?: number;
     primaryStockSource?: string;
     reserve?: number;
     quarantine?: number;
@@ -26957,6 +27435,33 @@ export interface IUpdateMeetingAccessRequest {
     transcriptId?: string;
     accessLevel?: string;
     restrictedUserEmails?: string[];
+}
+
+export class ReimportMeetingTranscriptResponse extends BaseResponse implements IReimportMeetingTranscriptResponse {
+
+    constructor(data?: IReimportMeetingTranscriptResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): ReimportMeetingTranscriptResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReimportMeetingTranscriptResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IReimportMeetingTranscriptResponse extends IBaseResponse {
 }
 
 export class OrgChartResponse extends BaseResponse implements IOrgChartResponse {
@@ -31377,6 +31882,147 @@ export interface ITriggerRecurringJobResponse extends IBaseResponse {
     jobId?: string | undefined;
 }
 
+export class GetOrderShipmentLabelsResponse extends BaseResponse implements IGetOrderShipmentLabelsResponse {
+    labels?: ShipmentLabelDto[];
+
+    constructor(data?: IGetOrderShipmentLabelsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["labels"])) {
+                this.labels = [] as any;
+                for (let item of _data["labels"])
+                    this.labels!.push(ShipmentLabelDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetOrderShipmentLabelsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetOrderShipmentLabelsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.labels)) {
+            data["labels"] = [];
+            for (let item of this.labels)
+                data["labels"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetOrderShipmentLabelsResponse extends IBaseResponse {
+    labels?: ShipmentLabelDto[];
+}
+
+export class ShipmentLabelDto implements IShipmentLabelDto {
+    shipmentGuid?: string;
+    packageName?: string;
+    labelUrl?: string | undefined;
+    labelZpl?: string | undefined;
+    hasPdf?: boolean;
+    hasZpl?: boolean;
+    trackingNumber?: string | undefined;
+    trackingUrl?: string | undefined;
+
+    constructor(data?: IShipmentLabelDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.shipmentGuid = _data["shipmentGuid"];
+            this.packageName = _data["packageName"];
+            this.labelUrl = _data["labelUrl"];
+            this.labelZpl = _data["labelZpl"];
+            this.hasPdf = _data["hasPdf"];
+            this.hasZpl = _data["hasZpl"];
+            this.trackingNumber = _data["trackingNumber"];
+            this.trackingUrl = _data["trackingUrl"];
+        }
+    }
+
+    static fromJS(data: any): ShipmentLabelDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ShipmentLabelDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["shipmentGuid"] = this.shipmentGuid;
+        data["packageName"] = this.packageName;
+        data["labelUrl"] = this.labelUrl;
+        data["labelZpl"] = this.labelZpl;
+        data["hasPdf"] = this.hasPdf;
+        data["hasZpl"] = this.hasZpl;
+        data["trackingNumber"] = this.trackingNumber;
+        data["trackingUrl"] = this.trackingUrl;
+        return data;
+    }
+}
+
+export interface IShipmentLabelDto {
+    shipmentGuid?: string;
+    packageName?: string;
+    labelUrl?: string | undefined;
+    labelZpl?: string | undefined;
+    hasPdf?: boolean;
+    hasZpl?: boolean;
+    trackingNumber?: string | undefined;
+    trackingUrl?: string | undefined;
+}
+
+export class GetShipmentLabelsRequest implements IGetShipmentLabelsRequest {
+    orderCode?: string;
+
+    constructor(data?: IGetShipmentLabelsRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.orderCode = _data["orderCode"];
+        }
+    }
+
+    static fromJS(data: any): GetShipmentLabelsRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetShipmentLabelsRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["orderCode"] = this.orderCode;
+        return data;
+    }
+}
+
+export interface IGetShipmentLabelsRequest {
+    orderCode?: string;
+}
+
 export class BlockOrderProcessingResponse extends BaseResponse implements IBlockOrderProcessingResponse {
 
     constructor(data?: IBlockOrderProcessingResponse) {
@@ -33380,6 +34026,99 @@ export class OpenOrResumeBoxByCodeRequest implements IOpenOrResumeBoxByCodeReque
 
 export interface IOpenOrResumeBoxByCodeRequest {
     boxCode?: string;
+}
+
+export class GetWeatherForecastResponse extends BaseResponse implements IGetWeatherForecastResponse {
+    days?: HottestDayDto[];
+
+    constructor(data?: IGetWeatherForecastResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["days"])) {
+                this.days = [] as any;
+                for (let item of _data["days"])
+                    this.days!.push(HottestDayDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetWeatherForecastResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetWeatherForecastResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.days)) {
+            data["days"] = [];
+            for (let item of this.days)
+                data["days"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetWeatherForecastResponse extends IBaseResponse {
+    days?: HottestDayDto[];
+}
+
+export class HottestDayDto implements IHottestDayDto {
+    date?: Date;
+    cityName?: string;
+    minTemperatureCelsius?: number;
+    maxTemperatureCelsius?: number;
+    weatherCode?: number;
+
+    constructor(data?: IHottestDayDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.date = _data["date"] ? new Date(_data["date"].toString()) : <any>undefined;
+            this.cityName = _data["cityName"];
+            this.minTemperatureCelsius = _data["minTemperatureCelsius"];
+            this.maxTemperatureCelsius = _data["maxTemperatureCelsius"];
+            this.weatherCode = _data["weatherCode"];
+        }
+    }
+
+    static fromJS(data: any): HottestDayDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new HottestDayDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["date"] = this.date ? formatDate(this.date) : <any>undefined;
+        data["cityName"] = this.cityName;
+        data["minTemperatureCelsius"] = this.minTemperatureCelsius;
+        data["maxTemperatureCelsius"] = this.maxTemperatureCelsius;
+        data["weatherCode"] = this.weatherCode;
+        return data;
+    }
+}
+
+export interface IHottestDayDto {
+    date?: Date;
+    cityName?: string;
+    minTemperatureCelsius?: number;
+    maxTemperatureCelsius?: number;
+    weatherCode?: number;
 }
 
 function formatDate(d: Date) {
