@@ -8,7 +8,7 @@ using Moq;
 
 namespace Anela.Heblo.Tests.Features.WeatherForecast.DashboardTiles;
 
-public class WeatherForecastTileTests
+public sealed class WeatherForecastTileTests
 {
     private readonly Mock<IWeatherForecastClient> _clientMock;
     private readonly Mock<ILogger<WeatherForecastTile>> _loggerMock;
@@ -29,7 +29,7 @@ public class WeatherForecastTileTests
         _tile.Size.Should().Be(TileSize.Large);
         _tile.Category.Should().Be(TileCategory.Manufacture);
         _tile.DefaultEnabled.Should().BeFalse();
-        _tile.AutoShow.Should().BeTrue();
+        _tile.AutoShow.Should().BeFalse();
         _tile.ComponentType.Should().Be(typeof(object));
         _tile.RequiredPermissions.Should().BeEmpty();
     }
@@ -103,7 +103,8 @@ public class WeatherForecastTileTests
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        _clientMock.Setup(x => x.GetForecastAsync(It.IsAny<CancellationToken>()))
+        _clientMock
+            .Setup(x => x.GetForecastAsync(It.Is<CancellationToken>(t => t.IsCancellationRequested)))
             .ThrowsAsync(new OperationCanceledException());
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>

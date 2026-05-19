@@ -14,7 +14,7 @@ public class WeatherForecastTile : ITile
     public TileSize Size => TileSize.Large;
     public TileCategory Category => TileCategory.Manufacture;
     public bool DefaultEnabled => false;
-    public bool AutoShow => true;
+    public bool AutoShow => false;
     public Type ComponentType => typeof(object);
     public string[] RequiredPermissions => Array.Empty<string>();
 
@@ -38,7 +38,7 @@ public class WeatherForecastTile : ITile
                 .OrderBy(g => g.Key)
                 .Select(g =>
                 {
-                    var hottest = g.MaxBy(x => x.Day.MaxTemperatureCelsius)!;
+                    var hottest = g.MaxBy(x => x.Day.MaxTemperatureCelsius);
                     return new
                     {
                         date = hottest.Day.Date.ToString("yyyy-MM-dd"),
