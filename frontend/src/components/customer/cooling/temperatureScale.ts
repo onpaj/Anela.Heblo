@@ -25,7 +25,8 @@ export interface TemperatureRangeBar {
 }
 
 export function getTemperatureRangeBar(min: number, max: number): TemperatureRangeBar {
+  const safeMax = Math.max(min, max);
   const left = getTemperatureBarPercent(min);
-  const right = getTemperatureBarPercent(max);
+  const right = getTemperatureBarPercent(safeMax);
   return { left, width: right - left };
 }

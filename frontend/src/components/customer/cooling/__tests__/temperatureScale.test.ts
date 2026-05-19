@@ -88,4 +88,10 @@ describe('getTemperatureRangeBar', () => {
     expect(result.left).toBe(50);
     expect(result.width).toBe(0);
   });
+
+  it('returns width=0 when min exceeds max (inverted bad data)', () => {
+    const result = getTemperatureRangeBar(25, 15);
+    expect(result.left).toBe(getTemperatureBarPercent(25));
+    expect(result.width).toBe(0);
+  });
 });
