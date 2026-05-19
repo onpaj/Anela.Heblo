@@ -69,6 +69,7 @@
         <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.Smartsupp\Anela.Heblo.Adapters.Smartsupp.csproj" />
         <ProjectReference Include="..\Anela.Heblo.Persistence\Anela.Heblo.Persistence.csproj" />
         <ProjectReference Include="..\Anela.Heblo.Xcc\Anela.Heblo.Xcc.csproj" />
+        <ProjectReference Include="..\Adapters\Anela.Heblo.Adapters.OpenMeteo\Anela.Heblo.Adapters.OpenMeteo.csproj" />
     </ItemGroup>
 
     <!-- NSwag tool for OpenAPI client generation -->

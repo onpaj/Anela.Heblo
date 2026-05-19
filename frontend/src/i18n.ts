@@ -249,6 +249,9 @@ const resources = {
         DqtProductPairingFailed: "Chyba při párování produktů: {{details}}",
         DqtStockWriteBackFailed: "Chyba zpětného zápisu skladu: {{details}}",
 
+        // Weather forecast errors
+        WeatherForecastUnavailable: "Předpověď počasí je momentálně nedostupná.",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",
