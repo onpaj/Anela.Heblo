@@ -8,7 +8,7 @@ const VERY_HOT_THRESHOLD = 34;
 
 export function getTemperatureBarPercent(temp: number): number {
   const clamped = Math.max(TEMP_SCALE_MIN, Math.min(TEMP_SCALE_MAX, temp));
-  return (clamped / TEMP_SCALE_MAX) * 100;
+  return ((clamped - TEMP_SCALE_MIN) / (TEMP_SCALE_MAX - TEMP_SCALE_MIN)) * 100;
 }
 
 export function getTemperatureColor(temp: number): string {

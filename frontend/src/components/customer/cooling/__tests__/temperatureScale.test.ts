@@ -42,4 +42,19 @@ describe('getTemperatureColor', () => {
     const hot = getTemperatureColor(38);
     expect(cool).not.toBe(hot);
   });
+
+  it('returns emerald for temperatures in [15, 22)', () => {
+    expect(getTemperatureColor(15)).toBe('bg-emerald-400');
+    expect(getTemperatureColor(21)).toBe('bg-emerald-400');
+  });
+
+  it('returns amber for temperatures in [22, 28)', () => {
+    expect(getTemperatureColor(22)).toBe('bg-amber-400');
+    expect(getTemperatureColor(27)).toBe('bg-amber-400');
+  });
+
+  it('returns orange for temperatures in [28, 34)', () => {
+    expect(getTemperatureColor(28)).toBe('bg-orange-500');
+    expect(getTemperatureColor(33)).toBe('bg-orange-500');
+  });
 });
