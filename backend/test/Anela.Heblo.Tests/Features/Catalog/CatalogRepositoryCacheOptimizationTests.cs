@@ -13,6 +13,7 @@ using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Purchase;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
@@ -42,6 +43,7 @@ public class CatalogRepositoryCacheOptimizationTests
     private readonly Mock<IManufactureOrderRepository> _manufactureOrderRepositoryMock;
     private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
     private readonly Mock<IManufactureDifficultyRepository> _manufactureDifficultyRepositoryMock;
+    private readonly Mock<IManufacturedProductInventoryRepository> _manufacturedInventoryRepositoryMock;
     private readonly Mock<ICatalogResilienceService> _resilienceServiceMock;
     private readonly Mock<ICatalogMergeScheduler> _mergeSchedulerMock;
     private readonly IMemoryCache _cache;
@@ -75,6 +77,9 @@ public class CatalogRepositoryCacheOptimizationTests
         _manufactureOrderRepositoryMock = new Mock<IManufactureOrderRepository>();
         _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
         _manufactureDifficultyRepositoryMock = new Mock<IManufactureDifficultyRepository>();
+        _manufacturedInventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
+        _manufacturedInventoryRepositoryMock.Setup(x => x.GetTotalAmountByProductCodeAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, decimal>());
         _resilienceServiceMock = new Mock<ICatalogResilienceService>();
         _mergeSchedulerMock = new Mock<ICatalogMergeScheduler>();
         _cache = new MemoryCache(new MemoryCacheOptions());
@@ -138,6 +143,7 @@ public class CatalogRepositoryCacheOptimizationTests
             _manufactureOrderRepositoryMock.Object,
             _manufactureHistoryClientMock.Object,
             _manufactureDifficultyRepositoryMock.Object,
+            _manufacturedInventoryRepositoryMock.Object,
             _resilienceServiceMock.Object,
             _mergeSchedulerMock.Object,
             _cache,
