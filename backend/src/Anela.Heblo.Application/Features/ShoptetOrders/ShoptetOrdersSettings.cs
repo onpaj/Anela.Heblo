@@ -16,4 +16,10 @@ public class ShoptetOrdersSettings
     /// Configure actual value in user secrets / Azure App Config per environment.
     /// </summary>
     public int BlockedStatusId { get; set; }
+
+    /// <summary>
+    /// Shoptet order status ID representing the "Balí se" (being packed) state.
+    /// The Balení packing screen warns the operator when a scanned order is in any other state.
+    /// </summary>
+    public int PackingStateId { get; set; } = 26;
 }

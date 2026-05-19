@@ -169,6 +169,8 @@ Optional `include` sections: `notes`, `images`, `shippingDetails`, `stockLocatio
 
 **Fields in list response:** `code`, `guid`, `creationTime`, `changeTime`, `company`, `fullName`, `email`, `phone`, `remark`, `cashDeskOrder`, `customerGuid`, `paid`, `status`, `source`, `price`, `paymentMethod`, `shipping`, `adminUrl`, `salesChannelGuid`. **`externalCode` is NOT included.** Use `GET /api/orders/{code}` (single detail) to get `externalCode`.
 
+**`shipping` object on `GET /api/orders/{code}`** — the single-order detail base response (no `include` needed) returns a `shipping` object with the same shape as the list endpoint, exposing `shipping.guid` and `shipping.name`. The Balení packing flow (`GET /api/orders/{code}?include=stockLocation,notes`) relies on these two fields to resolve the order's shipping method and derive carrier cooling.
+
 ### 3.6 PATCH /api/orders/{code}/notes — Update Remarks (operationId: updateRemarksForOrder)
 
 Updates the order's remark/note slots. Any property omitted from the body is left unchanged on the server — the endpoint is a partial update.

@@ -12,7 +12,7 @@ namespace Anela.Heblo.Tests.Features.MeetingTasks;
 public class SubmitToTodoHandlerTests
 {
     private readonly Mock<IMeetingTranscriptRepository> _repo = new();
-    private readonly Mock<IGraphTodoService> _graph = new();
+    private readonly Mock<IMeetingTaskExporter> _taskExporter = new();
     private readonly Mock<IMeetingAccessGuard> _guard = new();
 
     public SubmitToTodoHandlerTests()
@@ -22,7 +22,7 @@ public class SubmitToTodoHandlerTests
 
     private SubmitToTodoHandler CreateHandler() => new(
         _repo.Object,
-        _graph.Object,
+        _taskExporter.Object,
         _guard.Object,
         NullLogger<SubmitToTodoHandler>.Instance);
 
@@ -102,7 +102,7 @@ public class SubmitToTodoHandlerTests
 
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.ResourceNotFound);
-        _graph.Verify(g => g.ResolveUserIdByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        _taskExporter.Verify(t => t.ResolveUserIdByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -113,12 +113,12 @@ public class SubmitToTodoHandlerTests
         var transcript = NewTranscript(t1, t2);
 
         _repo.Setup(r => r.GetByIdAsync(transcript.Id, It.IsAny<CancellationToken>())).ReturnsAsync(transcript);
-        _graph.Setup(g => g.ResolveUserIdByEmailAsync("a@anela.cz", It.IsAny<CancellationToken>())).ReturnsAsync("user-a");
-        _graph.Setup(g => g.ResolveUserIdByEmailAsync("b@anela.cz", It.IsAny<CancellationToken>())).ReturnsAsync("user-b");
-        _graph.Setup(g => g.CreateTodoTaskAsync("user-a", "T1", "desc", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TodoTaskResult(true, "ext-1", null));
-        _graph.Setup(g => g.CreateTodoTaskAsync("user-b", "T2", "desc", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TodoTaskResult(true, "ext-2", null));
+        _taskExporter.Setup(t => t.ResolveUserIdByEmailAsync("a@anela.cz", It.IsAny<CancellationToken>())).ReturnsAsync("user-a");
+        _taskExporter.Setup(t => t.ResolveUserIdByEmailAsync("b@anela.cz", It.IsAny<CancellationToken>())).ReturnsAsync("user-b");
+        _taskExporter.Setup(t => t.ExportTaskAsync("user-a", "T1", "desc", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeetingTaskExportResult(true, "ext-1", null));
+        _taskExporter.Setup(t => t.ExportTaskAsync("user-b", "T2", "desc", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeetingTaskExportResult(true, "ext-2", null));
 
         var handler = CreateHandler();
 
@@ -146,9 +146,9 @@ public class SubmitToTodoHandlerTests
         var transcript = NewTranscript(approved, rejected);
 
         _repo.Setup(r => r.GetByIdAsync(transcript.Id, It.IsAny<CancellationToken>())).ReturnsAsync(transcript);
-        _graph.Setup(g => g.ResolveUserIdByEmailAsync(approved.AssigneeEmail!, It.IsAny<CancellationToken>())).ReturnsAsync("u");
-        _graph.Setup(g => g.CreateTodoTaskAsync("u", "OK", "desc", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TodoTaskResult(true, "ext-ok", null));
+        _taskExporter.Setup(t => t.ResolveUserIdByEmailAsync(approved.AssigneeEmail!, It.IsAny<CancellationToken>())).ReturnsAsync("u");
+        _taskExporter.Setup(t => t.ExportTaskAsync("u", "OK", "desc", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeetingTaskExportResult(true, "ext-ok", null));
 
         var handler = CreateHandler();
 
@@ -159,7 +159,7 @@ public class SubmitToTodoHandlerTests
         result.FailedCount.Should().Be(0);
         transcript.Status.Should().Be(MeetingTranscriptStatus.PartiallyApproved);
 
-        _graph.Verify(g => g.CreateTodoTaskAsync(It.IsAny<string>(), "NO", It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Never);
+        _taskExporter.Verify(t => t.ExportTaskAsync(It.IsAny<string>(), "NO", It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -170,9 +170,9 @@ public class SubmitToTodoHandlerTests
         var transcript = NewTranscript(approved, pending);
 
         _repo.Setup(r => r.GetByIdAsync(transcript.Id, It.IsAny<CancellationToken>())).ReturnsAsync(transcript);
-        _graph.Setup(g => g.ResolveUserIdByEmailAsync(approved.AssigneeEmail!, It.IsAny<CancellationToken>())).ReturnsAsync("u");
-        _graph.Setup(g => g.CreateTodoTaskAsync("u", "Yes", "desc", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TodoTaskResult(true, "ext-yes", null));
+        _taskExporter.Setup(t => t.ResolveUserIdByEmailAsync(approved.AssigneeEmail!, It.IsAny<CancellationToken>())).ReturnsAsync("u");
+        _taskExporter.Setup(t => t.ExportTaskAsync("u", "Yes", "desc", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeetingTaskExportResult(true, "ext-yes", null));
 
         var handler = CreateHandler();
 
@@ -190,16 +190,16 @@ public class SubmitToTodoHandlerTests
         var transcript = NewTranscript(alreadyDone, newOne);
 
         _repo.Setup(r => r.GetByIdAsync(transcript.Id, It.IsAny<CancellationToken>())).ReturnsAsync(transcript);
-        _graph.Setup(g => g.ResolveUserIdByEmailAsync(newOne.AssigneeEmail!, It.IsAny<CancellationToken>())).ReturnsAsync("u");
-        _graph.Setup(g => g.CreateTodoTaskAsync("u", "New", "desc", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TodoTaskResult(true, "ext-new", null));
+        _taskExporter.Setup(t => t.ResolveUserIdByEmailAsync(newOne.AssigneeEmail!, It.IsAny<CancellationToken>())).ReturnsAsync("u");
+        _taskExporter.Setup(t => t.ExportTaskAsync("u", "New", "desc", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeetingTaskExportResult(true, "ext-new", null));
 
         var handler = CreateHandler();
 
         var result = await handler.Handle(new SubmitToTodoRequest { TranscriptId = transcript.Id }, CancellationToken.None);
 
         result.SuccessCount.Should().Be(1);
-        _graph.Verify(g => g.CreateTodoTaskAsync(It.IsAny<string>(), "Old", It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Never);
+        _taskExporter.Verify(t => t.ExportTaskAsync(It.IsAny<string>(), "Old", It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Never);
         transcript.Status.Should().Be(MeetingTranscriptStatus.Approved);
     }
 
@@ -210,7 +210,7 @@ public class SubmitToTodoHandlerTests
         var transcript = NewTranscript(task);
 
         _repo.Setup(r => r.GetByIdAsync(transcript.Id, It.IsAny<CancellationToken>())).ReturnsAsync(transcript);
-        _graph.Setup(g => g.ResolveUserIdByEmailAsync("ghost@anela.cz", It.IsAny<CancellationToken>())).ReturnsAsync((string?)null);
+        _taskExporter.Setup(t => t.ResolveUserIdByEmailAsync("ghost@anela.cz", It.IsAny<CancellationToken>())).ReturnsAsync((string?)null);
 
         var handler = CreateHandler();
 
@@ -223,7 +223,7 @@ public class SubmitToTodoHandlerTests
         task.ExternalTaskId.Should().BeNull();
         transcript.Status.Should().Be(MeetingTranscriptStatus.PendingReview);
 
-        _graph.Verify(g => g.CreateTodoTaskAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Never);
+        _taskExporter.Verify(t => t.ExportTaskAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -234,12 +234,12 @@ public class SubmitToTodoHandlerTests
         var transcript = NewTranscript(bad, good);
 
         _repo.Setup(r => r.GetByIdAsync(transcript.Id, It.IsAny<CancellationToken>())).ReturnsAsync(transcript);
-        _graph.Setup(g => g.ResolveUserIdByEmailAsync("a@anela.cz", It.IsAny<CancellationToken>())).ReturnsAsync("user-a");
-        _graph.Setup(g => g.ResolveUserIdByEmailAsync("b@anela.cz", It.IsAny<CancellationToken>())).ReturnsAsync("user-b");
-        _graph.Setup(g => g.CreateTodoTaskAsync("user-a", "Bad", "desc", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TodoTaskResult(false, null, "Graph 500"));
-        _graph.Setup(g => g.CreateTodoTaskAsync("user-b", "Good", "desc", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TodoTaskResult(true, "ext-good", null));
+        _taskExporter.Setup(t => t.ResolveUserIdByEmailAsync("a@anela.cz", It.IsAny<CancellationToken>())).ReturnsAsync("user-a");
+        _taskExporter.Setup(t => t.ResolveUserIdByEmailAsync("b@anela.cz", It.IsAny<CancellationToken>())).ReturnsAsync("user-b");
+        _taskExporter.Setup(t => t.ExportTaskAsync("user-a", "Bad", "desc", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeetingTaskExportResult(false, null, "Graph 500"));
+        _taskExporter.Setup(t => t.ExportTaskAsync("user-b", "Good", "desc", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeetingTaskExportResult(true, "ext-good", null));
 
         var handler = CreateHandler();
 
@@ -263,11 +263,11 @@ public class SubmitToTodoHandlerTests
         var transcript = NewTranscript(t1, t2);
 
         _repo.Setup(r => r.GetByIdAsync(transcript.Id, It.IsAny<CancellationToken>())).ReturnsAsync(transcript);
-        _graph.Setup(g => g.ResolveUserIdByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("u");
-        _graph.Setup(g => g.CreateTodoTaskAsync("u", "T1", "desc", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TodoTaskResult(true, "ext-1", null));
-        _graph.Setup(g => g.CreateTodoTaskAsync("u", "T2", "desc", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TodoTaskResult(true, "ext-2", null));
+        _taskExporter.Setup(t => t.ResolveUserIdByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync("u");
+        _taskExporter.Setup(t => t.ExportTaskAsync("u", "T1", "desc", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeetingTaskExportResult(true, "ext-1", null));
+        _taskExporter.Setup(t => t.ExportTaskAsync("u", "T2", "desc", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeetingTaskExportResult(true, "ext-2", null));
 
         var saveCount = 0;
         _repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -299,22 +299,21 @@ public class SubmitToTodoHandlerTests
         var transcript = NewTranscript(t1, t2);
 
         _repo.Setup(r => r.GetByIdAsync(transcript.Id, It.IsAny<CancellationToken>())).ReturnsAsync(transcript);
-        _graph.Setup(g => g.ResolveUserIdByEmailAsync(t2.AssigneeEmail!, It.IsAny<CancellationToken>())).ReturnsAsync("u");
-        _graph.Setup(g => g.CreateTodoTaskAsync("u", "Todo", "desc", null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TodoTaskResult(true, "ext-2", null));
+        _taskExporter.Setup(t => t.ResolveUserIdByEmailAsync(t2.AssigneeEmail!, It.IsAny<CancellationToken>())).ReturnsAsync("u");
+        _taskExporter.Setup(t => t.ExportTaskAsync("u", "Todo", "desc", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeetingTaskExportResult(true, "ext-2", null));
 
         var handler = CreateHandler();
 
         var result = await handler.Handle(new SubmitToTodoRequest { TranscriptId = transcript.Id }, CancellationToken.None);
 
         result.SuccessCount.Should().Be(1);
-        _graph.Verify(g => g.CreateTodoTaskAsync(It.IsAny<string>(), "Done", It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Never);
+        _taskExporter.Verify(t => t.ExportTaskAsync(It.IsAny<string>(), "Done", It.IsAny<string>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
     public async Task Handle_SkipsAndReportsTaskWithNoAssigneeEmail()
     {
-        // Arrange — transcript with one approved task that has AssigneeEmail = null
         var transcript = BuildTranscriptWithApprovedTask(assigneeEmail: null);
         _repo
             .Setup(r => r.GetByIdAsync(transcript.Id, It.IsAny<CancellationToken>()))
@@ -322,43 +321,38 @@ public class SubmitToTodoHandlerTests
 
         var handler = CreateHandler();
 
-        // Act
         var result = await handler.Handle(
             new SubmitToTodoRequest { TranscriptId = transcript.Id }, CancellationToken.None);
 
-        // Assert
         result.SuccessCount.Should().Be(0);
         result.FailedCount.Should().Be(1);
         result.Errors.Should().ContainSingle().Which.Should().Contain("no resolved user");
-        _graph.Verify(
-            s => s.ResolveUserIdByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+        _taskExporter.Verify(
+            t => t.ResolveUserIdByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
     [Fact]
     public async Task Handle_SubmitsTaskWithResolvedAssigneeEmail()
     {
-        // Arrange
         var transcript = BuildTranscriptWithApprovedTask(assigneeEmail: "andrea@anela.cz");
         _repo
             .Setup(r => r.GetByIdAsync(transcript.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transcript);
-        _graph
-            .Setup(s => s.ResolveUserIdByEmailAsync("andrea@anela.cz", It.IsAny<CancellationToken>()))
+        _taskExporter
+            .Setup(t => t.ResolveUserIdByEmailAsync("andrea@anela.cz", It.IsAny<CancellationToken>()))
             .ReturnsAsync("graph-user-id");
-        _graph
-            .Setup(s => s.CreateTodoTaskAsync(
+        _taskExporter
+            .Setup(t => t.ExportTaskAsync(
                 "graph-user-id", It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new TodoTaskResult(true, "ext-1", null));
+            .ReturnsAsync(new MeetingTaskExportResult(true, "ext-1", null));
 
         var handler = CreateHandler();
 
-        // Act
         var result = await handler.Handle(
             new SubmitToTodoRequest { TranscriptId = transcript.Id }, CancellationToken.None);
 
-        // Assert
         result.SuccessCount.Should().Be(1);
         result.FailedCount.Should().Be(0);
     }
