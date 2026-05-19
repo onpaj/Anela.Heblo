@@ -24,6 +24,18 @@ describe('sanitizeFilename', () => {
   it('preserves hyphens already in the subject', () => {
     expect(sanitizeFilename('Stand-up meeting')).toBe('stand-up-meeting');
   });
+
+  it('returns "download" when subject contains only special characters', () => {
+    expect(sanitizeFilename('???')).toBe('download');
+  });
+
+  it('removes trailing hyphens after stripping dangerous characters', () => {
+    expect(sanitizeFilename('hello /')).toBe('hello');
+  });
+
+  it('returns "download" when subject becomes empty after sanitization', () => {
+    expect(sanitizeFilename('   /\\:*?"<>|   ')).toBe('download');
+  });
 });
 
 describe('downloadTextFile', () => {
@@ -31,6 +43,8 @@ describe('downloadTextFile', () => {
   let mockRevokeObjectURL: jest.Mock;
   let mockClick: jest.Mock;
   let mockAnchor: HTMLAnchorElement;
+  let appendSpy: jest.SpyInstance;
+  let removeSpy: jest.SpyInstance;
 
   beforeEach(() => {
     mockClick = jest.fn();
@@ -45,6 +59,10 @@ describe('downloadTextFile', () => {
     global.URL.createObjectURL = mockCreateObjectURL;
     global.URL.revokeObjectURL = mockRevokeObjectURL;
     jest.spyOn(document, 'createElement').mockReturnValue(mockAnchor);
+
+    // Mock appendChild and removeChild to avoid jsdom validation
+    appendSpy = jest.spyOn(document.body, 'appendChild').mockImplementation(() => mockAnchor as any);
+    removeSpy = jest.spyOn(document.body, 'removeChild').mockImplementation(() => mockAnchor as any);
   });
 
   afterEach(() => {
@@ -59,11 +77,15 @@ describe('downloadTextFile', () => {
     expect((mockCreateObjectURL.mock.calls[0][0] as Blob).type).toBe('text/plain');
   });
 
-  it('sets href, download filename, and triggers click on the anchor', () => {
+  it('appends anchor to body, clicks, removes, then revokes URL', () => {
     downloadTextFile('# Summary\nContent', 'meeting-summary.md', 'text/markdown');
+
     expect(mockAnchor.href).toBe('blob:mock-url');
     expect(mockAnchor.download).toBe('meeting-summary.md');
+    expect(appendSpy).toHaveBeenCalledWith(mockAnchor);
     expect(mockClick).toHaveBeenCalledTimes(1);
+    expect(removeSpy).toHaveBeenCalledWith(mockAnchor);
+    expect(mockRevokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
   });
 
   it('revokes the object URL after click', () => {

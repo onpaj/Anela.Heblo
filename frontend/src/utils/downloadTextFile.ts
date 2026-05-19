@@ -1,9 +1,11 @@
 export function sanitizeFilename(subject: string): string {
-  return subject
+  const safe = subject
     .trim()
     .replace(/\s+/g, '-')
     .replace(/[/\\:*?"<>|]/g, '')
+    .replace(/^-+|-+$/g, '')
     .toLowerCase();
+  return safe.length > 0 ? safe : 'download';
 }
 
 export function downloadTextFile(content: string, filename: string, mimeType: string): void {
@@ -12,6 +14,8 @@ export function downloadTextFile(content: string, filename: string, mimeType: st
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
