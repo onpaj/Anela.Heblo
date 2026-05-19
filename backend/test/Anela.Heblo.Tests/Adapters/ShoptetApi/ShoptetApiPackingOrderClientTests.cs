@@ -182,9 +182,12 @@ public class ShoptetApiPackingOrderClientTests
     [Fact]
     public async Task GetPackingOrderAsync_MapsOrderStatusId()
     {
-        var detail = DetailResponse("250006", PplDoRukyGuid, "PPL (do ruky)");
-        detail.Data.Order.Status = new OrderStatusSummary { Id = 26 };
-        var orderClient = BuildOrderClient(_ => Json(detail));
+        // The status is read from the base /api/orders/{code} endpoint (no ?include),
+        // so route the fake handler: ?include= -> expedition detail, plain -> status.
+        var orderClient = BuildOrderClient(req =>
+            req.RequestUri!.Query.Contains("include")
+                ? Json(DetailResponse("250006", PplDoRukyGuid, "PPL (do ruky)"))
+                : Json(new { data = new { order = new { code = "250006", status = new { id = 26 } } } }));
         var sut = new ShoptetApiPackingOrderClient(orderClient, CatalogWith(), CoolingWith());
 
         var result = await sut.GetPackingOrderAsync("250006", CancellationToken.None);

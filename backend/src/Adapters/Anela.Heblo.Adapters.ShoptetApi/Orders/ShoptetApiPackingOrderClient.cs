@@ -42,6 +42,11 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             return null;
         }
 
+        // Read the order status via the base detail endpoint. The status object is not
+        // reliably present on the ?include= expedition response, so reuse the proven
+        // path used by the order-blocking feature.
+        var statusId = await _orderClient.GetOrderStatusIdAsync(code, ct);
+
         var order = ShoptetApiExpeditionListSource.MapToExpeditionOrder(detail);
 
         // Carrier cooling — resolve from the (carrier, delivery handling) matrix.
@@ -76,7 +81,7 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             ShippingMethodName = detail.Shipping?.Name ?? string.Empty,
             Cooling = order.CarrierCooling,
             IsCooled = order.IsCooled,
-            StatusId = detail.Status?.Id ?? 0,
+            StatusId = statusId,
             CustomerNote = string.IsNullOrWhiteSpace(order.CustomerRemark) ? null : order.CustomerRemark,
             EshopNote = string.IsNullOrWhiteSpace(order.EshopRemark) ? null : order.EshopRemark,
             Items = items,
