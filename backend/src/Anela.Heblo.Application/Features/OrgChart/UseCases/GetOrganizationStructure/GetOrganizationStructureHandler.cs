@@ -24,16 +24,6 @@ public class GetOrganizationStructureHandler : IRequestHandler<GetOrganizationSt
     public async Task<OrgChartResponse> Handle(GetOrganizationStructureRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Handling request to fetch organizational structure");
-
-        try
-        {
-            var result = await _orgChartService.GetOrganizationStructureAsync(cancellationToken);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error fetching organizational structure");
-            throw;
-        }
+        return await _orgChartService.GetOrganizationStructureAsync(cancellationToken);
     }
 }

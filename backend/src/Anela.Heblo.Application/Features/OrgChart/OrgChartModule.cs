@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.OrgChart.Services;
+using Anela.Heblo.Application.Features.OrgChart.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
