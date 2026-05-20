@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Maximize2, Minimize2, Send } from "lucide-react";
+import { Loader2, Maximize2, Minimize2, Send } from "lucide-react";
 import DraftReplyTriggerBar from "./DraftReplyTriggerBar";
 import DraftReplyToolbar from "./DraftReplyToolbar";
 import { useGenerateDraftReply, type DraftReplySource } from "./hooks/useGenerateDraftReply";
+import { useSendMessage } from "./hooks/useSendMessage";
 
 interface ChatComposerProps {
   conversationId: string | null;
@@ -22,8 +23,8 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
   const [isExpanded, setIsExpanded] = useState(false);
 
   const { generate, isLoading, error, result, reset } = useGenerateDraftReply(conversationId);
+  const { send, isPending: isSending, error: sendError, justSent, clearSent } = useSendMessage(conversationId);
 
-  // Move a freshly generated answer into the composer as an editable AI draft.
   useEffect(() => {
     if (result) {
       const answer = result.answer.slice(0, MAX_CHARS);
@@ -34,6 +35,18 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
       reset();
     }
   }, [result, reset, onDraftChange]);
+
+  useEffect(() => {
+    if (justSent) {
+      setDraft("");
+      setSources([]);
+      setIsAiDraft(false);
+      setLastTopic(undefined);
+      setPendingTopic(null);
+      onDraftChange?.("");
+      clearSent();
+    }
+  }, [justSent, clearSent, onDraftChange]);
 
   const canGenerateWithoutTopic =
     lastContactMessage !== null && lastContactMessage.trim() !== "";
@@ -74,10 +87,17 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
     onDraftChange?.("");
   };
 
+  const handleSend = () => {
+    if (!draft.trim() || isSending) return;
+    send(draft);
+  };
+
+  const isBusy = isLoading || isSending;
+
   return (
     <div className="flex flex-col">
       <DraftReplyTriggerBar
-        disabled={isLoading}
+        disabled={isBusy}
         canGenerateWithoutTopic={canGenerateWithoutTopic}
         error={error}
         onGenerate={requestGeneration}
@@ -107,7 +127,7 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
         {isAiDraft && (
           <DraftReplyToolbar
             sources={sources}
-            disabled={isLoading}
+            disabled={isBusy}
             onRegenerate={() => generate(lastTopic)}
             onDiscard={handleDiscard}
           />
@@ -115,7 +135,7 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
         <div className="relative">
           <textarea
             value={draft}
-            disabled={isLoading}
+            disabled={isBusy}
             onChange={(e) => handleDraftChange(e.target.value)}
             placeholder={isLoading ? "Generuji návrh odpovědi…" : "Napište odpověď..."}
             rows={isExpanded ? 14 : 5}
@@ -135,19 +155,26 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
             )}
           </button>
         </div>
+        {sendError && (
+          <p className="text-xs text-red-500">{sendError}</p>
+        )}
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-400">
             {draft.length} / {MAX_CHARS}
           </span>
           <button
             type="button"
-            disabled
-            title="Odpovídání bude přidáno později"
+            onClick={handleSend}
+            disabled={!draft.trim() || isBusy}
             aria-label="Odeslat"
-            className="inline-flex cursor-not-allowed items-center gap-2 rounded-md bg-blue-500 px-3 py-1.5 text-sm font-medium text-white opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Send className="h-4 w-4" />
-            Odeslat
+            {isSending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            {isSending ? "Odesílám…" : "Odeslat"}
           </button>
         </div>
       </div>

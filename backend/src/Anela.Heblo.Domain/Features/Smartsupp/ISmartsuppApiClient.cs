@@ -22,6 +22,12 @@ public interface ISmartsuppApiClient
     Task<SmartsuppVisitorData?> GetVisitorAsync(
         string visitorId,
         CancellationToken cancellationToken);
+
+    Task<SmartsuppSentMessageData> SendMessageAsync(
+        string conversationId,
+        string content,
+        string? agentName,
+        CancellationToken cancellationToken);
 }
 
 public class SmartsuppSearchResult
@@ -121,4 +127,10 @@ public class SmartsuppContactData
     public bool GdprApproved { get; set; }
     public string? TagsJson { get; set; }
     public string? PropertiesJson { get; set; }
+}
+
+public class SmartsuppSentMessageData
+{
+    public string Id { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
 }
