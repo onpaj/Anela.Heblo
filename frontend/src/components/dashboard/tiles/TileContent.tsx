@@ -11,6 +11,7 @@ import { PurchaseOrdersInTransitTile } from './PurchaseOrdersInTransitTile';
 import { LowStockAlertTile } from './LowStockAlertTile';
 import { DataQualityTile } from './DataQualityTile';
 import { DqtYesterdayStatusTile } from './DqtYesterdayStatusTile';
+import { WeatherForecastTile } from './WeatherForecastTile';
 import { DefaultTile } from './DefaultTile';
 import { Truck, PackageCheck, Package, FileText, Landmark, ClipboardList, Beaker, AlertTriangle, Gift } from 'lucide-react';
 
@@ -75,6 +76,8 @@ export const TileContent: React.FC<TileContentProps> = ({ tile }) => {
       return <DataQualityTile data={tile.data} />;
     case 'dqtyesterdaystatus':
       return <DqtYesterdayStatusTile data={tile.data} />;
+    case 'weatherforecast':
+      return <WeatherForecastTile data={tile.data} />;
     default:
       return <DefaultTile data={tile.data} />;
   }
