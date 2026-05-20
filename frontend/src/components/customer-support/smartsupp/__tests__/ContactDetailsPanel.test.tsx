@@ -3,6 +3,11 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import ContactDetailsPanel from "../ContactDetailsPanel";
 import { ConversationDto } from "../../../../api/hooks/useSmartsupp";
 
+jest.mock("../../../../api/hooks/useSmartsupp", () => ({
+  ...jest.requireActual("../../../../api/hooks/useSmartsupp"),
+  useSmartsuppShoptetInfo: () => ({ data: null, isLoading: false }),
+}));
+
 const fullConv: ConversationDto = {
   id: "c1",
   subject: null,

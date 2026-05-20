@@ -5,6 +5,7 @@ import AgentBadge from "./AgentBadge";
 import { Star } from "lucide-react";
 import { countryCodeToFlag } from "./utils/countryCodeToFlag";
 import Section from "./Section";
+import ShoptetCustomerCard from "./ShoptetCustomerCard";
 
 interface ContactDetailsPanelProps {
   conversation: ConversationDto;
@@ -200,6 +201,9 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
           ))}
         </Section>
       )}
+
+      {/* Shoptet Zákazník — rendered when resolved */}
+      <ShoptetCustomerCard conversationId={conversation.id} />
 
       {/* Informace o kontaktu — merged variables + contactProperties, Shoptet keys first */}
       {infoEntries.length > 0 && (
