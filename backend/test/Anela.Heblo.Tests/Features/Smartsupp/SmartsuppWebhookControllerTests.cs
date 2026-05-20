@@ -266,7 +266,8 @@ public class SmartsuppWebhookControllerTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var entries = await ReadAuditEntriesAsync(factory);
-        entries.Should().ContainSingle();
+        entries.Should().ContainSingle()
+            .Which.SignatureStatus.Should().Be(SmartsuppWebhookSignatureStatus.Valid);
     }
 
     [Fact]
