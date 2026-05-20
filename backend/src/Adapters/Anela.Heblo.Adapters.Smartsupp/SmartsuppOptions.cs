@@ -9,4 +9,5 @@ public class SmartsuppOptions
     public int HttpTimeoutSeconds { get; set; } = 30;
     public string WebhookSecret { get; set; } = "";
     public string? WebhookAppId { get; set; }
+    public List<string> IgnoredEventTypes { get; set; } = new();
 }

@@ -60,6 +60,15 @@ public class SmartsuppWebhookController : ControllerBase
 
         _metrics.RecordPayloadBytes(rawBody.Length);
 
+        if (TryPeekEventName(rawBody, out var ignoredEventName)
+            && _options.IgnoredEventTypes.Contains(ignoredEventName, StringComparer.Ordinal))
+        {
+            _logger.LogDebug(
+                "smartsupp webhook ignored event={Event} from {RemoteIp}",
+                ignoredEventName, remoteIp);
+            return Ok();
+        }
+
         var headerValue = Request.Headers.TryGetValue(SignatureHeader, out var sig) ? sig.ToString() : null;
         var rawBodyText = Encoding.UTF8.GetString(rawBody);
         var headersJson = SerializeHeaders(Request);
@@ -176,4 +185,24 @@ public class SmartsuppWebhookController : ControllerBase
         element.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String
             ? DateTime.SpecifyKind(v.GetDateTime().ToUniversalTime(), DateTimeKind.Utc)
             : null;
+
+    private static bool TryPeekEventName(byte[] rawBody, out string eventName)
+    {
+        eventName = "";
+        try
+        {
+            using var doc = JsonDocument.Parse(rawBody);
+            if (doc.RootElement.TryGetProperty("event", out var v)
+                && v.ValueKind == JsonValueKind.String)
+            {
+                eventName = v.GetString() ?? "";
+                return eventName.Length > 0;
+            }
+        }
+        catch (JsonException)
+        {
+            // Fall through — main flow handles malformed JSON.
+        }
+        return false;
+    }
 }

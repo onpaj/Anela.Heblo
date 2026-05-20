@@ -207,12 +207,91 @@ public class SmartsuppWebhookControllerTests
             .Which.ProcessingStatus.Should().Be(SmartsuppWebhookProcessingStatus.HandlerException);
         entries[0].ProcessingError.Should().Contain("boom");
     }
+
+    [Fact]
+    public async Task Receive_ReturnsOkWithNoAudit_WhenEventIsInIgnoreList()
+    {
+        using var factory = new SmartsuppWebhookFactory();
+        factory.SetIgnoredEventTypes(["visitor.connected"]);
+        var client = factory.CreateClient();
+        var body = "{\"event\":\"visitor.connected\"}";
+
+        var response = await client.SendAsync(BuildRequest(body, signature: null));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var entries = await ReadAuditEntriesAsync(factory);
+        entries.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Receive_ProcessesNormally_WhenEventIsNotInIgnoreList()
+    {
+        using var factory = new SmartsuppWebhookFactory();
+        factory.SetIgnoredEventTypes(["visitor.connected"]);
+        var client = factory.CreateClient();
+        var body = """
+        {
+          "event": "conversation.exploded",
+          "timestamp": "2026-05-20T10:00:00Z",
+          "account_id": "acc-1",
+          "app_id": "app-1",
+          "data": {}
+        }
+        """;
+
+        var response = await client.SendAsync(BuildRequest(body, Sign(body, Secret)));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var entries = await ReadAuditEntriesAsync(factory);
+        entries.Should().ContainSingle().Which.EventName.Should().Be("conversation.exploded");
+    }
+
+    [Fact]
+    public async Task Receive_DoesNotFilter_WhenEventNameDiffersByCase()
+    {
+        using var factory = new SmartsuppWebhookFactory();
+        factory.SetIgnoredEventTypes(["visitor.connected"]);
+        var client = factory.CreateClient();
+        var body = """
+        {
+          "event": "Visitor.Connected",
+          "timestamp": "2026-05-20T10:00:00Z",
+          "account_id": "acc-1",
+          "app_id": "app-1",
+          "data": {}
+        }
+        """;
+
+        var response = await client.SendAsync(BuildRequest(body, Sign(body, Secret)));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var entries = await ReadAuditEntriesAsync(factory);
+        entries.Should().ContainSingle()
+            .Which.SignatureStatus.Should().Be(SmartsuppWebhookSignatureStatus.Valid);
+    }
+
+    [Fact]
+    public async Task Receive_AuditsMalformedJson_WhenIgnoreListConfigured()
+    {
+        using var factory = new SmartsuppWebhookFactory();
+        factory.SetIgnoredEventTypes(["visitor.connected"]);
+        var client = factory.CreateClient();
+        var body = "not-json-at-all";
+
+        var response = await client.SendAsync(BuildRequest(body, Sign(body, Secret)));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var entries = await ReadAuditEntriesAsync(factory);
+        entries.Should().ContainSingle()
+            .Which.ProcessingStatus.Should().Be(SmartsuppWebhookProcessingStatus.MalformedJson);
+    }
 }
 
 public class SmartsuppWebhookFactory : HebloWebApplicationFactory
 {
     private string? _webhookAppId;
     private bool _replaceReactionsWithThrowing;
+    private List<string> _ignoredEventTypes = new();
 
     public SmartsuppWebhookFactory()
     {
@@ -225,6 +304,9 @@ public class SmartsuppWebhookFactory : HebloWebApplicationFactory
     }
 
     public void ReplaceReactionsWithThrowing() => _replaceReactionsWithThrowing = true;
+
+    public void SetIgnoredEventTypes(IEnumerable<string> types) =>
+        _ignoredEventTypes = types.ToList();
 
     protected override void ConfigureTestServices(IServiceCollection services)
     {
@@ -246,11 +328,14 @@ public class SmartsuppWebhookFactory : HebloWebApplicationFactory
     {
         builder.ConfigureAppConfiguration((_, config) =>
         {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
+            var dict = new Dictionary<string, string?>
             {
                 ["Smartsupp:WebhookSecret"] = "test-shared-secret",
                 ["Smartsupp:WebhookAppId"] = _webhookAppId,
-            });
+            };
+            for (var i = 0; i < _ignoredEventTypes.Count; i++)
+                dict[$"Smartsupp:IgnoredEventTypes:{i}"] = _ignoredEventTypes[i];
+            config.AddInMemoryCollection(dict);
         });
     }
 }
