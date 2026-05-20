@@ -142,6 +142,24 @@ public sealed class ClaudeMeetingTaskExtractorTests
     }
 
     [Fact]
+    public async Task ExtractAsync_WhenResponseIsEmptyArray_LogsWarningAndReturnsEmpty()
+    {
+        SetupResponse("[]");
+
+        var result = await _extractor.ExtractAsync("summary", "transcript", CancellationToken.None);
+
+        result.Should().BeEmpty();
+        _mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("no tasks")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task ExtractAsync_WhenApiThrows_LogsErrorAndReturnsEmpty()
     {
         _mockChatClient
