@@ -20,7 +20,6 @@ public sealed class WebhookForwarder
     public async Task<ForwardResult> ForwardAsync(SmartsuppWebhookAuditEntry entry, CancellationToken ct)
     {
         var client = _http.CreateClient(nameof(WebhookForwarder));
-        client.Timeout = TimeSpan.FromSeconds(_options.TimeoutSeconds);
 
         var request = new HttpRequestMessage(HttpMethod.Post, _options.TargetUrl)
         {

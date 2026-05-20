@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using SmartsuppWebhookReplay.Models;
@@ -31,11 +32,13 @@ public static class AuditEndpoints
         if (!string.IsNullOrEmpty(@event))
             query = query.Where(e => e.EventName == @event);
 
-        if (!string.IsNullOrEmpty(processingStatus))
-            query = query.Where(e => EF.Property<string>(e, "ProcessingStatus") == processingStatus);
+        if (!string.IsNullOrEmpty(processingStatus)
+            && Enum.TryParse<SmartsuppWebhookProcessingStatus>(processingStatus, out var procEnum))
+            query = query.Where(e => e.ProcessingStatus == procEnum);
 
-        if (!string.IsNullOrEmpty(signatureStatus))
-            query = query.Where(e => EF.Property<string>(e, "SignatureStatus") == signatureStatus);
+        if (!string.IsNullOrEmpty(signatureStatus)
+            && Enum.TryParse<SmartsuppWebhookSignatureStatus>(signatureStatus, out var sigEnum))
+            query = query.Where(e => e.SignatureStatus == sigEnum);
 
         if (from.HasValue)
             query = query.Where(e => e.ReceivedAt >= from.Value);
