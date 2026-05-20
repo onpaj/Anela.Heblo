@@ -91,6 +91,7 @@ Ověření identity probíhá přes HMAC-SHA256 hlavičku `X-Smartsupp-Hmac`. Vi
 | `GET` | `/api/smartsupp/conversations/{id}` | Detail konverzace |
 | `POST` | `/api/smartsupp/sync` | Spustí manuální synchronizaci (`{ "since": "2026-01-01T00:00:00Z" }` — volitelné) |
 | `POST` | `/api/smartsupp/conversations/{id}/draft-reply` | Vygeneruje AI návrh odpovědi (`{ "topic": "Reklamace" }` — volitelné) |
+| `GET` | `/api/smartsupp/conversations/{id}/shoptet-info` | Vrátí profil Shoptet zákazníka a poslední objednávky pro danou konverzaci. Vrátí 404 pokud nelze zákazníka identifikovat. |
 
 ---
 
