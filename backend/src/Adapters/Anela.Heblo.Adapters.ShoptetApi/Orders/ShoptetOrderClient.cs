@@ -190,6 +190,8 @@ public class ShoptetOrderClient : IEshopOrderClient
         response.EnsureSuccessStatusCode();
     }
 
+    // NOTE: Fetches only page 1. For high-volume stores the matching orders may not appear on the first page,
+    // which can cause the email-fallback resolution path to under-return results or miss the customer GUID.
     public async Task<List<EshopOrderInfo>> GetRecentOrdersByEmailAsync(string email, int count, CancellationToken ct = default)
     {
         var itemsPerPage = Math.Min(count, 50);
