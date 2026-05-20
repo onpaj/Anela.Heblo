@@ -49,8 +49,13 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
         { content },
       );
 
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({})) as Partial<SendMessageApiResponse>;
+        throw new Error(messageForSendError(errData?.errorCode));
+      }
+
       const data = (await response.json()) as SendMessageApiResponse;
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(messageForSendError(data?.errorCode));
       }
     },

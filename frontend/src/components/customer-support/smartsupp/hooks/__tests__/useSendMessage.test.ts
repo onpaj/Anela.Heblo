@@ -62,6 +62,25 @@ describe("useSendMessage", () => {
     expect(result.current.error).toMatch(/Nepodařilo|nedostupn/i);
   });
 
+  it("shows generic error message when API returns non-JSON error body", async () => {
+    (getAuthenticatedApiClient as jest.Mock).mockReturnValue({
+      baseUrl: "http://api.test",
+      http: {
+        fetch: jest.fn().mockResolvedValue({
+          ok: false,
+          status: 503,
+          json: async () => { throw new SyntaxError("Unexpected token"); },
+        }),
+      },
+    });
+
+    const { result } = renderHook(() => useSendMessage("conv1"), { wrapper });
+    act(() => result.current.send("Text"));
+
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.error).toBe("Nepodařilo se odeslat zprávu.");
+  });
+
   it("does nothing when conversationId is null", async () => {
     const { result } = renderHook(() => useSendMessage(null), { wrapper });
     act(() => result.current.send("Text"));
