@@ -52,4 +52,14 @@ public interface ISmartsuppRepository
         CancellationToken cancellationToken);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
+
+    Task UpdateVisitorCacheAsync(
+        string conversationId,
+        string? userAgent,
+        string? os,
+        string? browser,
+        string? browserVersion,
+        int? visitsCount,
+        DateTime fetchedAt,
+        CancellationToken cancellationToken);
 }
