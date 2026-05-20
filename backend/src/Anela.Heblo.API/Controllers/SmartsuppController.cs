@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetContactShoptetInfo;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetVisitorInfo;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -70,6 +71,19 @@ public class SmartsuppController : BaseApiController
     {
         var result = await _mediator.Send(
             new GetSmartsuppContactShoptetInfoRequest { ConversationId = id },
+            cancellationToken);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("conversations/{id}/visitor-info")]
+    [ProducesResponseType(typeof(GetVisitorInfoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GetVisitorInfoResponse>> GetVisitorInfo(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetVisitorInfoRequest { ConversationId = id },
             cancellationToken);
         return HandleResponse(result);
     }
