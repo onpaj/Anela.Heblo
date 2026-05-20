@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.SendMessage;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
 using MediatR;
@@ -60,9 +61,29 @@ public class SmartsuppController : BaseApiController
         return HandleResponse(result);
     }
 
+    [HttpPost("conversations/{conversationId}/messages")]
+    [ProducesResponseType(typeof(SendMessageResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<SendMessageResponse>> SendMessage(
+        string conversationId,
+        [FromBody] SendMessageBody body,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new SendMessageRequest { ConversationId = conversationId, Content = body.Content };
+        var result = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(result);
+    }
+
 }
 
 public sealed class GenerateDraftReplyBody
 {
     public string? Topic { get; set; }
+}
+
+public sealed class SendMessageBody
+{
+    public string Content { get; set; } = string.Empty;
 }

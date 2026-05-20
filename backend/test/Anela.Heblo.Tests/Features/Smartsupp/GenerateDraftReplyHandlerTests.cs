@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.AI;
@@ -18,10 +19,23 @@ public class GenerateDraftReplyHandlerTests
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IChatClient> _chatClient = new();
     private readonly Mock<ILogger<GenerateDraftReplyHandler>> _logger = new();
+    private readonly Mock<ICurrentUserService> _currentUserService = new();
+
+    public GenerateDraftReplyHandlerTests()
+    {
+        _currentUserService.Setup(s => s.GetCurrentUser())
+            .Returns(new CurrentUser("default", "Test Agent", "test@test.com", true));
+    }
+
+    private void SetupCurrentUser(string name = "Ondřej Pajgrt") =>
+        _currentUserService.Setup(s => s.GetCurrentUser())
+            .Returns(new CurrentUser("1", name, "ondra@anela.cz", true));
 
     private GenerateDraftReplyHandler CreateHandler(SmartsuppDraftReplyOptions? options = null) =>
         new(_repo.Object, _mediator.Object, _chatClient.Object,
-            Options.Create(options ?? new SmartsuppDraftReplyOptions()), _logger.Object);
+            Options.Create(options ?? new SmartsuppDraftReplyOptions()),
+            _currentUserService.Object,
+            _logger.Object);
 
     private static SmartsuppMessage Msg(string id, SmartsuppMessageAuthorType type, string content, int minute) =>
         new()
@@ -241,5 +255,48 @@ public class GenerateDraftReplyHandlerTests
             new GenerateDraftReplyRequest { ConversationId = "c1", Topic = null }, CancellationToken.None);
 
         _capturedSearch!.Query.Length.Should().Be(2000);
+    }
+
+    [Fact]
+    public async Task Handle_InjectsAgentFirstNameIntoSystemPrompt()
+    {
+        SetupCurrentUser("Ondřej Pajgrt");
+        SetupConversation(ConversationWith(
+            Msg("m1", SmartsuppMessageAuthorType.Visitor, "Dotaz", 1)));
+        SetupSearch();
+        SetupChat();
+
+        var options = new SmartsuppDraftReplyOptions
+        {
+            DraftReplySystemPrompt = "Jméno: {agent_name}. Téma: {topic}. Kontext: {context}. Přepis: {transcript}"
+        };
+
+        await CreateHandler(options).Handle(
+            new GenerateDraftReplyRequest { ConversationId = "c1", Topic = "Test" }, CancellationToken.None);
+
+        var systemMessage = _capturedChat!.First(m => m.Role == ChatRole.System).Text!;
+        systemMessage.Should().Contain("Jméno: Ondřej");
+        systemMessage.Should().NotContain("{agent_name}");
+    }
+
+    [Fact]
+    public async Task Handle_FallsBackToAnela_WhenUserNameIsUnknown()
+    {
+        SetupCurrentUser("Unknown User");
+        SetupConversation(ConversationWith(
+            Msg("m1", SmartsuppMessageAuthorType.Visitor, "Dotaz", 1)));
+        SetupSearch();
+        SetupChat();
+
+        var options = new SmartsuppDraftReplyOptions
+        {
+            DraftReplySystemPrompt = "Jméno: {agent_name}. Téma: {topic}. Kontext: {context}. Přepis: {transcript}"
+        };
+
+        await CreateHandler(options).Handle(
+            new GenerateDraftReplyRequest { ConversationId = "c1", Topic = "Test" }, CancellationToken.None);
+
+        var systemMessage = _capturedChat!.First(m => m.Role == ChatRole.System).Text!;
+        systemMessage.Should().Contain("Jméno: Anela");
     }
 }

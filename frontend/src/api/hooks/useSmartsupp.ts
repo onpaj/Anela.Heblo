@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAuthenticatedApiClient } from "../client";
+import { getClientAndBaseUrl, apiGet } from "../smartsuppClient";
 
 export interface ConversationDto {
   id: string;
@@ -58,14 +58,9 @@ export interface GetConversationResponse {
   messages: MessageDto[];
 }
 
-function getClientAndBaseUrl(): { apiClient: ReturnType<typeof getAuthenticatedApiClient>; baseUrl: string } {
-  const apiClient = getAuthenticatedApiClient();
-  const baseUrl = (apiClient as any).baseUrl as string;
-  return { apiClient, baseUrl };
-}
 
-async function apiFetch(apiClient: ReturnType<typeof getAuthenticatedApiClient>, url: string): Promise<Response> {
-  const response = await (apiClient as any).http.fetch(url, { method: "GET" });
+async function apiFetch(apiClient: Parameters<typeof apiGet>[0], url: string): Promise<Response> {
+  const response = await apiGet(apiClient, url);
   if (!response.ok) {
     throw new Error(`Smartsupp API error: ${response.status} ${response.statusText}`);
   }
