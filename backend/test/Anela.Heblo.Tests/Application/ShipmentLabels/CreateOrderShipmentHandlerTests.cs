@@ -19,7 +19,6 @@ public class CreateOrderShipmentHandlerTests
         DefaultPackageWidthMm = 300,
         DefaultPackageHeightMm = 200,
         DefaultPackageDepthMm = 150,
-        DefaultItemWeightGrams = 500,
         MinPackageWeightGrams = 100,
     };
 
