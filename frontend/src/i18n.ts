@@ -227,6 +227,7 @@ const resources = {
         SmartsuppConversationNotFound: "Konverzace Smartsupp nebyla nalezena",
         SmartsuppDraftReplyAiUnavailable: "AI služba je momentálně nedostupná. Zkuste to prosím znovu.",
         SmartsuppConversationEmpty: "Konverzace neobsahuje zprávu zákazníka.",
+        SmartsuppShoptetCustomerNotFound: "Zákazník v Shoptetu nenalezen.",
 
         // Inventory module errors
         LotNotFound: "Šarže nebyla nalezena.",
