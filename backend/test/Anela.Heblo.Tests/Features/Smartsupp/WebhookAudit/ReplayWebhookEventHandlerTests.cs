@@ -78,4 +78,27 @@ public class ReplayWebhookEventHandlerTests
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(ErrorCodes.ResourceNotFound);
     }
+
+    [Fact]
+    public async Task Handle_ReturnsInvalidOperation_WhenRawBodyIsMalformedJson()
+    {
+        using var ctx = CreateContext();
+        var id = Guid.NewGuid();
+        ctx.SmartsuppWebhookAuditEntries.Add(new SmartsuppWebhookAuditEntry
+        {
+            Id = id,
+            ReceivedAt = DateTime.UtcNow,
+            RawBody = "not-json-at-all",
+            SignatureStatus = SmartsuppWebhookSignatureStatus.Valid,
+            ProcessingStatus = SmartsuppWebhookProcessingStatus.MalformedJson,
+        });
+        await ctx.SaveChangesAsync();
+
+        var handler = new ReplayWebhookEventHandler(ctx, Mock.Of<IMediator>());
+        var response = await handler.Handle(
+            new ReplayWebhookEventRequest { Id = id, ReplayedBy = "x" }, default);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.InvalidOperation);
+    }
 }

@@ -29,8 +29,17 @@ public class ReplayWebhookEventHandler
         if (entry is null)
             return new ReplayWebhookEventResponse(ErrorCodes.ResourceNotFound);
 
-        var envelope = JsonDocument.Parse(entry.RawBody).RootElement.Clone();
-        var data = envelope.TryGetProperty("data", out var d) ? d.Clone() : default;
+        JsonElement data;
+        try
+        {
+            using var doc = JsonDocument.Parse(entry.RawBody);
+            data = doc.RootElement.TryGetProperty("data", out var d) ? d.Clone() : default;
+        }
+        catch (JsonException)
+        {
+            return new ReplayWebhookEventResponse(ErrorCodes.InvalidOperation);
+        }
+
         var timestamp = entry.EventTimestamp ?? DateTime.UtcNow;
 
         await _mediator.Send(new ProcessWebhookEventRequest
