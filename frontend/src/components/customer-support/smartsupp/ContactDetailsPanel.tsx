@@ -25,6 +25,7 @@ function mergedInfoEntries(
   variables: Record<string, string>,
   contactProperties: Record<string, string>
 ): [string, string][] {
+  // variables win on key collision — they reflect live conversation state, contactProperties are static contact defaults
   const merged: Record<string, string> = { ...contactProperties, ...variables };
   const entries = Object.entries(merged);
   const shoptet = entries.filter(([k]) => SHOPTET_KEYS.has(k));
@@ -75,7 +76,7 @@ const ContactDetailsPanel: React.FC<ContactDetailsPanelProps> = ({ conversation,
     conversation.referer ||
     conversation.channel;
 
-  const infoEntries = mergedInfoEntries(conversation.variables ?? {}, conversation.contactProperties ?? {});
+  const infoEntries = mergedInfoEntries(conversation.variables, conversation.contactProperties);
 
   return (
     <aside className="h-full w-full overflow-y-auto bg-white border-l border-gray-200">
@@ -168,10 +169,10 @@ const ContactDetailsPanel: React.FC<ContactDetailsPanelProps> = ({ conversation,
       )}
 
       {/* Contact tags */}
-      {(conversation.contactTags ?? []).length > 0 && (
+      {conversation.contactTags.length > 0 && (
         <Section title="Štítky kontaktu">
           <div className="flex flex-wrap gap-1.5">
-            {(conversation.contactTags ?? []).map((t) => (
+            {conversation.contactTags.map((t) => (
               <span
                 key={t}
                 className="inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-blue-50 text-blue-700"
@@ -200,9 +201,9 @@ const ContactDetailsPanel: React.FC<ContactDetailsPanelProps> = ({ conversation,
       )}
 
       {/* Other conversations */}
-      {(conversation.otherConversations ?? []).length > 0 && (
-        <Section title={`Jiné konverzace (${(conversation.otherConversations ?? []).length})`}>
-          {(conversation.otherConversations ?? []).map((c) => (
+      {conversation.otherConversations.length > 0 && (
+        <Section title={`Jiné konverzace (${conversation.otherConversations.length})`}>
+          {conversation.otherConversations.map((c) => (
             <OtherConversationRow key={c.id} conv={c} onSelect={onSelectConversation} />
           ))}
         </Section>
