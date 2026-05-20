@@ -7,5 +7,6 @@ public class ShoptetCustomerInfoDto
     public string? Email { get; set; }
     public string? CustomerGroup { get; set; }
     public string? PriceList { get; set; }
+    /// <summary>Pre-formatted from the Shoptet customer's billing address fields (countryCode, city, zip, street).</summary>
     public string? DefaultShippingAddress { get; set; }
 }
