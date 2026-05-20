@@ -1,16 +1,13 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useOrgChart } from '../api/hooks/useOrgChart';
-import { PositionDto } from '../api/generated/api-client';
-
-// Type aliases for better readability
-type Position = PositionDto;
-
-interface OrganizationData {
-  organization: {
-    name: string;
-    positions: Position[];
-  };
-}
+import {
+  calculateLevels,
+  getAllParentPositionIds,
+  buildTree,
+  getChildren as orgChartGetChildren,
+  Position,
+  OrganizationData,
+} from './orgChartUtils';
 
 interface PositionRect {
   id: string;
@@ -31,38 +28,6 @@ const OrgChartPage: React.FC = () => {
   const [positionRects, setPositionRects] = useState<PositionRect[]>([]);
   const [zoom, setZoom] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Calculate correct level based on parent hierarchy
-  const calculateLevels = (data: OrganizationData): OrganizationData => {
-    const positionMap = new Map(data.organization.positions.map((p) => [p.id!, p]));
-
-    const getLevel = (positionId: string, visited = new Set<string>()): number => {
-      if (visited.has(positionId)) {
-        console.error(`Circular dependency detected for position ${positionId}`);
-        return 1;
-      }
-
-      const position = positionMap.get(positionId);
-      if (!position) return 1;
-      if (!position.parentPositionId) return 1;
-
-      visited.add(positionId);
-      return getLevel(position.parentPositionId, visited) + 1;
-    };
-
-    const updatedPositions = data.organization.positions.map((position) => ({
-      ...position,
-      level: getLevel(position.id!),
-    })) as Position[];
-
-    return {
-      ...data,
-      organization: {
-        ...data.organization,
-        positions: updatedPositions,
-      },
-    };
-  };
 
   // Transform backend response to local format and calculate levels
   const orgData = useMemo(() => {
@@ -157,23 +122,6 @@ const OrgChartPage: React.FC = () => {
 
   const departments = Array.from(new Set(orgData.organization.positions.map((p) => p.department)));
 
-  // Helper function to recursively find all parent positions
-  const getAllParentPositionIds = (positionId: string, allPositions: Position[]): Set<string> => {
-    const parentIds = new Set<string>();
-    const positionMap = new Map(allPositions.map((p) => [p.id!, p]));
-
-    const findParents = (id: string) => {
-      const position = positionMap.get(id);
-      if (position && position.parentPositionId) {
-        parentIds.add(position.parentPositionId);
-        findParents(position.parentPositionId);
-      }
-    };
-
-    findParents(positionId);
-    return parentIds;
-  };
-
   // Filter positions based on department and level
   const filteredPositions = (() => {
     const allPositions = orgData.organization.positions;
@@ -234,23 +182,8 @@ const OrgChartPage: React.FC = () => {
       .toUpperCase();
   };
 
-  // Build hierarchical tree structure
-  const buildTree = (positions: Position[]): Position[] => {
-    const positionMap = new Map(positions.map((p) => [p.id, p]));
-    const roots: Position[] = [];
-
-    positions.forEach((position) => {
-      if (!position.parentPositionId || !positionMap.has(position.parentPositionId)) {
-        roots.push(position);
-      }
-    });
-
-    return roots;
-  };
-
-  const getChildren = (parentId: string): Position[] => {
-    return filteredPositions.filter((p) => p.parentPositionId === parentId);
-  };
+  const getChildren = (parentId: string): Position[] =>
+    orgChartGetChildren(parentId, filteredPositions);
 
   // Render position card
   const renderPositionCard = (position: Position): JSX.Element => {
