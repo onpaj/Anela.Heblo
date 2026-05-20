@@ -183,6 +183,17 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
             .Select(c => new OpenConversationRef(c.Id, c.LastMessageAt))
             .ToListAsync(cancellationToken);
 
+    public async Task<List<SmartsuppConversation>> ListConversationsForContactAsync(
+        string contactId,
+        string excludeConversationId,
+        CancellationToken cancellationToken) =>
+        await _db.SmartsuppConversations
+            .AsNoTracking()
+            .Where(c => c.ContactId == contactId && c.Id != excludeConversationId)
+            .OrderByDescending(c => c.LastMessageAt)
+            .Take(20)
+            .ToListAsync(cancellationToken);
+
     public async Task MarkConversationResolvedAsync(
         string conversationId,
         DateTime finishedAt,

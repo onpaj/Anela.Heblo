@@ -34,6 +34,11 @@ public interface ISmartsuppRepository
     Task<List<OpenConversationRef>> ListOpenConversationRefsAsync(
         CancellationToken cancellationToken);
 
+    Task<List<SmartsuppConversation>> ListConversationsForContactAsync(
+        string contactId,
+        string excludeConversationId,
+        CancellationToken cancellationToken);
+
     Task MarkConversationResolvedAsync(
         string conversationId,
         DateTime finishedAt,
