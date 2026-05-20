@@ -10,6 +10,11 @@ namespace Anela.Heblo.Application.Features.OrgChart.Services;
 /// </summary>
 public class OrgChartService : IOrgChartService
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly HttpClient _httpClient;
     private readonly OrgChartOptions _options;
     private readonly ILogger<OrgChartService> _logger;
@@ -36,12 +41,7 @@ public class OrgChartService : IOrgChartService
 
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
-
-            var orgChart = JsonSerializer.Deserialize<OrgChartResponse>(content, options);
+            var orgChart = JsonSerializer.Deserialize<OrgChartResponse>(content, JsonOptions);
 
             if (orgChart == null)
             {
