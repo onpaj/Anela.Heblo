@@ -8,6 +8,13 @@ jest.mock('../../../api/hooks/usePackingOrder', () => ({
   usePackingOrder: jest.fn(),
 }));
 
+jest.mock('../PackingShipmentCreator', () => ({
+  __esModule: true,
+  default: ({ orderCode }: { orderCode: string }) => (
+    <div data-testid="packing-shipment-creator" data-order-code={orderCode} />
+  ),
+}));
+
 const mockHook = usePackingOrder as jest.Mock;
 
 const baseResult = {
@@ -165,5 +172,51 @@ describe('BaleniPacking', () => {
     fireEvent.submit(input.closest('form')!);
 
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('mounts PackingShipmentCreator when order is in packing state', () => {
+    mockHook.mockReturnValue({
+      ...baseResult,
+      data: {
+        code: '250001',
+        customerName: 'Jan Novák',
+        shippingMethodName: 'PPL',
+        cooling: 'None',
+        isCooled: false,
+        statusId: 26,
+        isInPackingState: true,
+        customerNote: null,
+        eshopNote: null,
+        items: [],
+      },
+    });
+
+    render(<BaleniPacking />);
+    expect(screen.getByTestId('packing-shipment-creator')).toBeInTheDocument();
+    expect(screen.getByTestId('packing-shipment-creator')).toHaveAttribute(
+      'data-order-code',
+      '250001'
+    );
+  });
+
+  it('does not mount PackingShipmentCreator when order is not in packing state', () => {
+    mockHook.mockReturnValue({
+      ...baseResult,
+      data: {
+        code: '250001',
+        customerName: 'Jan Novák',
+        shippingMethodName: 'PPL',
+        cooling: 'None',
+        isCooled: false,
+        statusId: 5,
+        isInPackingState: false,
+        customerNote: null,
+        eshopNote: null,
+        items: [],
+      },
+    });
+
+    render(<BaleniPacking />);
+    expect(screen.queryByTestId('packing-shipment-creator')).not.toBeInTheDocument();
   });
 });

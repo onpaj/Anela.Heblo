@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Anela.Heblo.Adapters.ShoptetApi.Shipments;
+using Anela.Heblo.Application.Features.ShipmentLabels;
 using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Adapters.ShoptetApi;
@@ -208,5 +209,134 @@ public class ShoptetShipmentClientTests
 
         // Assert
         capturedRequest!.RequestUri!.PathAndQuery.Should().Be("/api/shipments?orderCode=ORDER%2001");
+    }
+
+    [Fact]
+    public async Task GetShippingOptionsAsync_WithOptions_ReturnsMappedList()
+    {
+        // Arrange
+        var client = BuildClient(_ => Json(new
+        {
+            data = new
+            {
+                shippingOptions = new[]
+                {
+                    new { shippingId = 123, methodName = "PPL", carrierCode = "PPL" },
+                    new { shippingId = 456, methodName = "Zásilkovna", carrierCode = "ZASILKOVNA" },
+                }
+            },
+            errors = (object?)null,
+        }));
+
+        // Act
+        var result = await client.GetShippingOptionsAsync("0001234");
+
+        // Assert
+        result.Should().HaveCount(2);
+        result[0].CarrierCode.Should().Be("123");
+        result[0].Name.Should().Be("PPL");
+        result[1].CarrierCode.Should().Be("456");
+    }
+
+    [Fact]
+    public async Task GetShippingOptionsAsync_WithEmptyOptions_ReturnsEmptyList()
+    {
+        // Arrange
+        var client = BuildClient(_ => Json(new
+        {
+            data = new { shippingOptions = Array.Empty<object>() },
+            errors = (object?)null,
+        }));
+
+        // Act
+        var result = await client.GetShippingOptionsAsync("0001234");
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetShippingOptionsAsync_WhenShoptetReturnsNonSuccess_ThrowsHttpRequestException()
+    {
+        // Arrange
+        var client = BuildClient(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+        {
+            Content = new StringContent("Service Unavailable", Encoding.UTF8, "text/plain"),
+        });
+
+        // Act
+        var act = () => client.GetShippingOptionsAsync("0001234");
+
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>().WithMessage("*503*");
+    }
+
+    [Fact]
+    public async Task CreateShipmentAsync_PostsCorrectBodyAndReturnsMappedResult()
+    {
+        // Arrange
+        var shipmentGuid = Guid.NewGuid();
+        HttpRequestMessage? capturedRequest = null;
+
+        var client = BuildClient(req =>
+        {
+            capturedRequest = req;
+            return Json(new
+            {
+                data = new { guid = shipmentGuid, checkUrls = (object?)null },
+                errors = (object?)null,
+            });
+        });
+
+        var command = new CreateShipmentCommand
+        {
+            OrderCode = "0001234",
+            CarrierCode = "123",
+            Package = new ShipmentPackage
+            {
+                WidthMm = 300,
+                HeightMm = 200,
+                DepthMm = 150,
+                WeightGrams = 500,
+            }
+        };
+
+        // Act
+        var result = await client.CreateShipmentAsync(command);
+
+        // Assert
+        result.ShipmentGuid.Should().Be(shipmentGuid);
+        capturedRequest!.Method.Should().Be(HttpMethod.Post);
+        capturedRequest.RequestUri!.PathAndQuery.Should().Be("/api/shipments");
+
+        var body = await capturedRequest.Content!.ReadAsStringAsync();
+        var json = JsonSerializer.Deserialize<JsonElement>(body);
+        var data = json.GetProperty("data");
+        data.GetProperty("orderCode").GetString().Should().Be("0001234");
+        data.GetProperty("shippingId").GetInt32().Should().Be(123);
+        data.GetProperty("packages")[0].GetProperty("weight").GetString().Should().Be("0.500");
+    }
+
+    [Fact]
+    public async Task CreateShipmentAsync_WhenShoptetReturnsNonSuccess_ThrowsHttpRequestException()
+    {
+        // Arrange
+        var client = BuildClient(_ => new HttpResponseMessage(HttpStatusCode.UnprocessableEntity)
+        {
+            Content = new StringContent("{}", Encoding.UTF8, "application/json"),
+        });
+
+        var command = new CreateShipmentCommand
+        {
+            OrderCode = "0001234",
+            CarrierCode = "123",
+            Package = new ShipmentPackage { WidthMm = 300, HeightMm = 200, DepthMm = 150, WeightGrams = 500 }
+        };
+
+        // Act
+        var act = () => client.CreateShipmentAsync(command);
+
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>().WithMessage("*422*");
     }
 }

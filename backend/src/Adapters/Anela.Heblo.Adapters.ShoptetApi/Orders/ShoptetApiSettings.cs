@@ -23,4 +23,9 @@ public class ShoptetApiSettings
     /// Configure per environment in user secrets: Shoptet:InvoiceShippingGuidMap:{guid}
     /// </summary>
     public Dictionary<string, ShippingMethod> InvoiceShippingGuidMap { get; set; } = new();
+
+    /// <summary>
+    /// Fallback item weight in grams when the catalog has no GrossWeight or NetWeight for a product.
+    /// </summary>
+    public int DefaultItemWeightGrams { get; set; } = 500;
 }

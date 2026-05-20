@@ -46,4 +46,6 @@ public class PackingOrderItem
 
     /// <summary>Parent set name when this item is a product-set component; null otherwise.</summary>
     public string? SetName { get; set; }
+
+    public int WeightGrams { get; set; }
 }

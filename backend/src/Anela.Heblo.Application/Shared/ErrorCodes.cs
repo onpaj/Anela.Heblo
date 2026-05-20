@@ -310,11 +310,23 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     WeatherForecastUnavailable = 2901,
 
-    // ShipmentLabels module errors (29XX)
+    // ShipmentLabels module errors (2902–29XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
     ShipmentLabelsNoShipmentFound = 2902,
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     ShipmentLabelsNotGenerated = 2903,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ShipmentLabelPdfNotFound = 2904,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    ShipmentAlreadyExists = 2905,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShipmentCarrierNotResolved = 2906,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    ShipmentCreationFailed = 2907,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShipmentLabelNotReady = 2908,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShipmentOrderWeightUnavailable = 2909,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

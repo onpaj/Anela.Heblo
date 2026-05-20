@@ -4,6 +4,8 @@ using Anela.Heblo.Adapters.ShoptetApi.Expedition.Model;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.ShoptetApi.Orders;
 
@@ -16,11 +18,15 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
     private readonly ShoptetOrderClient _orderClient;
     private readonly ICatalogRepository _catalog;
     private readonly ICarrierCoolingRepository _carrierCooling;
+    private readonly ILogger<ShoptetApiPackingOrderClient> _logger;
+    private readonly int _defaultItemWeightGrams;
 
     public ShoptetApiPackingOrderClient(
         IEshopOrderClient orderClient,
         ICatalogRepository catalog,
-        ICarrierCoolingRepository carrierCooling)
+        ICarrierCoolingRepository carrierCooling,
+        ILogger<ShoptetApiPackingOrderClient> logger,
+        IOptions<ShoptetApiSettings> settings)
     {
         _orderClient = orderClient as ShoptetOrderClient
             ?? throw new InvalidOperationException(
@@ -28,6 +34,8 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
                 $"but got {orderClient.GetType().Name}.");
         _catalog = catalog;
         _carrierCooling = carrierCooling;
+        _logger = logger;
+        _defaultItemWeightGrams = settings.Value.DefaultItemWeightGrams;
     }
 
     public async Task<PackingOrder?> GetPackingOrderAsync(string code, CancellationToken ct = default)
@@ -60,18 +68,35 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
         var catalogItems = await _catalog.GetByIdsAsync(productCodes, ct);
         var coolingByCode = catalogItems.ToDictionary(kv => kv.Key, kv => kv.Value.Properties.Cooling);
 
+        var weightByCode = catalogItems.ToDictionary(
+            kv => kv.Key,
+            kv => kv.Value.GrossWeight.HasValue ? (int?)((int)kv.Value.GrossWeight.Value)
+                : kv.Value.NetWeight.HasValue ? (int)kv.Value.NetWeight.Value
+                : (int?)null);
+
         ShoptetApiExpeditionListSource.ApplyEnrichment(
             order.Items,
             new Dictionary<string, decimal>(),
             new Dictionary<string, string>(),
             coolingByCode);
 
-        var items = order.Items.Select(i => new PackingOrderItem
+        var items = order.Items.Select(i =>
         {
-            Name = i.Name,
-            Quantity = i.Quantity,
-            ImageUrl = catalogItems.TryGetValue(i.ProductCode, out var c) ? c.Image : null,
-            SetName = i.IsFromSet ? i.SetName : null,
+            if (!weightByCode.TryGetValue(i.ProductCode, out var w) || w is null)
+            {
+                _logger.LogWarning(
+                    "Product {ProductCode} has no weight in catalog; using default {Default}g",
+                    i.ProductCode, _defaultItemWeightGrams);
+            }
+
+            return new PackingOrderItem
+            {
+                Name = i.Name,
+                Quantity = i.Quantity,
+                ImageUrl = catalogItems.TryGetValue(i.ProductCode, out var c) ? c.Image : null,
+                SetName = i.IsFromSet ? i.SetName : null,
+                WeightGrams = w ?? _defaultItemWeightGrams,
+            };
         }).ToList();
 
         return new PackingOrder

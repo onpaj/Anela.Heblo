@@ -7,6 +7,7 @@ import PackingCoolingIndicator from './PackingCoolingIndicator';
 import PackingStateWarning from './PackingStateWarning';
 import PackingOrderNotes from './PackingOrderNotes';
 import PackingItems from './PackingItems';
+import PackingShipmentCreator from './PackingShipmentCreator';
 
 function CenteredMessage({ children }: { children: ReactNode }) {
   return (
@@ -83,6 +84,9 @@ function BaleniPacking() {
       </div>
       {data && (
         <PackingOrderNotes customerNote={data.customerNote} eshopNote={data.eshopNote} />
+      )}
+      {data && data.isInPackingState && (
+        <PackingShipmentCreator orderCode={data.code} />
       )}
       {data && (
         <p className="text-xs uppercase tracking-wide text-neutral-gray">
