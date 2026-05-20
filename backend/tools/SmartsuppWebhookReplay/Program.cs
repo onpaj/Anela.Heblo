@@ -7,12 +7,11 @@ using SmartsuppWebhookReplay.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("Default")
-    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = builder.Configuration.GetConnectionString("ReplaySource");
 
 if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException(
-        "Connection string 'Default' is not configured. Add it to secrets.json.");
+        "Connection string 'ReplaySource' is not configured. Add ConnectionStrings:ReplaySource to secrets.json.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(opt =>
     opt.UseNpgsql(connectionString));
