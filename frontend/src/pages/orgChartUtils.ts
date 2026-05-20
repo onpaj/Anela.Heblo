@@ -71,7 +71,7 @@ export function getAllParentPositionIds(
 }
 
 export function buildTree(positions: Position[]): Position[] {
-  const positionMap = new Map(positions.map((p) => [p.id, p]));
+  const positionMap = new Map(positions.map((p) => [p.id!, p]));
   const roots: Position[] = [];
 
   positions.forEach((position) => {
