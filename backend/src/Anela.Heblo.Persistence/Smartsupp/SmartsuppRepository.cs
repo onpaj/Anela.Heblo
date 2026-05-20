@@ -76,6 +76,14 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         SmartsuppConversation conversation,
         CancellationToken cancellationToken)
     {
+        if (conversation.ContactId is not null)
+        {
+            var contactExists = await _db.SmartsuppContacts
+                .AnyAsync(c => c.Id == conversation.ContactId, cancellationToken);
+            if (!contactExists)
+                conversation.ContactId = null;
+        }
+
         var existing = await _db.SmartsuppConversations
             .FirstOrDefaultAsync(c => c.Id == conversation.Id, cancellationToken);
 
