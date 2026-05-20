@@ -45,10 +45,28 @@ function render() {
       <td>${row.processingDurationMs ?? '-'}</td>
       <td>
         <button class="send-btn" data-id="${row.id}" data-idx="${i}">Send</button>
+        <button class="json-btn" data-id="${row.id}">{ }</button>
         <span class="pills" id="pills-${row.id}"></span>
       </td>`;
     tbody.appendChild(tr);
   });
+}
+
+async function showJson(id) {
+  const modal = document.getElementById('json-modal');
+  const pre = document.getElementById('json-content');
+  pre.textContent = 'Loading…';
+  modal.showModal();
+  try {
+    const detail = await fetch(`/api/audit/${id}`).then(r => r.json());
+    try {
+      pre.textContent = JSON.stringify(JSON.parse(detail.rawBody), null, 2);
+    } catch {
+      pre.textContent = detail.rawBody;
+    }
+  } catch {
+    pre.textContent = 'Failed to load payload.';
+  }
 }
 
 async function sendRow(id) {
@@ -91,7 +109,20 @@ document.getElementById('btn-send-next').addEventListener('click', async () => {
 
 document.getElementById('btn-refresh').addEventListener('click', fetchRows);
 
+document.getElementById('btn-modal-close').addEventListener('click', () => {
+  document.getElementById('json-modal').close();
+});
+
+document.getElementById('json-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.close();
+});
+
 document.getElementById('tbody').addEventListener('click', e => {
+  const jsonBtn = e.target.closest('.json-btn');
+  if (jsonBtn) {
+    showJson(jsonBtn.dataset.id);
+    return;
+  }
   const btn = e.target.closest('.send-btn');
   if (btn) {
     sendRow(btn.dataset.id);

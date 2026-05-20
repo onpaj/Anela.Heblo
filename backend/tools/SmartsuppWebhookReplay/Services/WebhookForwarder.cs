@@ -11,11 +11,16 @@ public sealed class WebhookForwarder
 {
     private readonly IHttpClientFactory _http;
     private readonly ReplayOptions _options;
+    private readonly string? _signingSecret;
 
-    public WebhookForwarder(IHttpClientFactory http, IOptions<ReplayOptions> options)
+    public WebhookForwarder(IHttpClientFactory http, IOptions<ReplayOptions> options, IConfiguration config)
     {
         _http = http;
         _options = options.Value;
+        // Prefer Replay:WebhookSecret; fall back to the main app's Smartsupp:WebhookSecret
+        // so no extra secrets config is needed when both apps share the same secrets.json.
+        _signingSecret = options.Value.WebhookSecret
+            ?? config["Smartsupp:WebhookSecret"];
     }
 
     public async Task<ForwardResult> ForwardAsync(SmartsuppWebhookAuditEntry entry, CancellationToken ct)
@@ -30,8 +35,8 @@ public sealed class WebhookForwarder
         };
         request.Content.Headers.ContentType = new("application/json");
 
-        var signature = !string.IsNullOrEmpty(_options.WebhookSecret)
-            ? ComputeHmac(bodyBytes, _options.WebhookSecret)
+        var signature = !string.IsNullOrEmpty(_signingSecret)
+            ? ComputeHmac(bodyBytes, _signingSecret)
             : entry.SignatureHeader;
 
         if (!string.IsNullOrEmpty(signature))
