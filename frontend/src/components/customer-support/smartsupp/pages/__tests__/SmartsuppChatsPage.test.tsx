@@ -3,12 +3,9 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import SmartsuppChatsPage from "../SmartsuppChatsPage";
 
-jest.mock("../../../../../contexts/ToastContext", () => ({
-  useToast: () => ({ showSuccess: jest.fn(), showError: jest.fn() }),
-}));
-
 jest.mock("../../../../../api/hooks/useSmartsupp", () => ({
   useSmartsuppConversations: () => ({
+    isFetching: false,
     data: {
       success: true,
       items: [
@@ -52,7 +49,6 @@ jest.mock("../../../../../api/hooks/useSmartsupp", () => ({
     isLoading: false,
   }),
   useSmartsuppConversation: () => ({ data: { messages: [] }, isLoading: false }),
-  useTriggerSmartsuppSync: () => ({ mutate: jest.fn(), isPending: false }),
   SMARTSUPP_QUERY_KEYS: { conversations: () => [], conversation: () => [] },
 }));
 
@@ -70,9 +66,9 @@ const wrap = (ui: React.ReactNode) => {
 };
 
 describe("SmartsuppChatsPage", () => {
-  it("renders the sync button", () => {
+  it("renders the refresh button", () => {
     render(wrap(<SmartsuppChatsPage />));
-    expect(screen.getByRole("button", { name: /sync/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /obnovit/i })).toBeInTheDocument();
   });
 
   it("renders an empty-state message when no conversation is selected", () => {

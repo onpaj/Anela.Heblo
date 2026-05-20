@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { ArrowLeft } from "lucide-react";
-import { useSmartsuppConversations, useTriggerSmartsuppSync } from "../../../../api/hooks/useSmartsupp";
-import { useToast } from "../../../../contexts/ToastContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSmartsuppConversations } from "../../../../api/hooks/useSmartsupp";
+import { QUERY_KEYS } from "../../../../api/client";
 import ConversationList from "../ConversationList";
 import ConversationDetail from "../ConversationDetail";
 import ContactDetailsPanel from "../ContactDetailsPanel";
@@ -31,29 +32,14 @@ const SmartsuppChatsPage: React.FC = () => {
     readPanelOpen(CONTACT_PANEL_KEY, false),
   );
 
-  const { data, isLoading } = useSmartsuppConversations(status);
-  const { showSuccess, showError } = useToast();
-  const syncMutation = useTriggerSmartsuppSync();
+  const { data, isLoading, isFetching } = useSmartsuppConversations(status);
+  const queryClient = useQueryClient();
 
   const conversations = data?.items ?? [];
   const selectedConversation = conversations.find((c) => c.id === selectedId) ?? null;
 
   const handleDraftChange = (id: string, text: string) =>
     setDrafts((prev) => ({ ...prev, [id]: text }));
-
-  const handleSyncClick = () => {
-    syncMutation.mutate(undefined, {
-      onSuccess: (result) => {
-        showSuccess(
-          "Synchronizace dokončena",
-          `Konverzace: ${result.conversationsProcessed} • zprávy: ${result.messagesProcessed}`,
-        );
-      },
-      onError: (error) => {
-        showError("Synchronizace selhala", error instanceof Error ? error.message : "Neznámá chyba");
-      },
-    });
-  };
 
   const togglePanel = (
     key: string,
@@ -73,11 +59,11 @@ const SmartsuppChatsPage: React.FC = () => {
       >
         <button
           type="button"
-          onClick={handleSyncClick}
-          disabled={syncMutation.isPending}
+          onClick={() => queryClient.invalidateQueries({ queryKey: QUERY_KEYS.smartsupp })}
+          disabled={isFetching}
           className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {syncMutation.isPending ? "Synchronizuji…" : "Sync now"}
+          {isFetching ? "Načítám…" : "Obnovit"}
         </button>
       </div>
 

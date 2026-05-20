@@ -3,25 +3,21 @@ using System.Security.Cryptography;
 using System.Text;
 using Anela.Heblo.API.Webhooks.Smartsupp;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
+using Anela.Heblo.Domain.Features.Smartsupp;
+using Anela.Heblo.Persistence;
 using Anela.Heblo.Tests.Common;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Smartsupp;
 
-public class SmartsuppWebhookControllerTests : IClassFixture<SmartsuppWebhookFactory>
+public class SmartsuppWebhookControllerTests
 {
     private const string Secret = "test-shared-secret";
-
-    private readonly SmartsuppWebhookFactory _factory;
-
-    public SmartsuppWebhookControllerTests(SmartsuppWebhookFactory factory)
-    {
-        _factory = factory;
-    }
 
     private SmartsuppWebhookFactory CreateFactoryWithAppId(string appId)
     {
@@ -48,32 +44,52 @@ public class SmartsuppWebhookControllerTests : IClassFixture<SmartsuppWebhookFac
         return request;
     }
 
+    private async Task<List<SmartsuppWebhookAuditEntry>> ReadAuditEntriesAsync(SmartsuppWebhookFactory factory)
+    {
+        using var scope = factory.Services.CreateScope();
+        var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        return await ctx.SmartsuppWebhookAuditEntries
+            .OrderBy(e => e.ReceivedAt)
+            .ToListAsync();
+    }
+
     [Fact]
     public async Task Receive_ReturnsUnauthorized_WhenSignatureMissing()
     {
-        var client = _factory.CreateClient();
+        using var factory = new SmartsuppWebhookFactory();
+        var client = factory.CreateClient();
         var body = "{\"event\":\"conversation.opened\",\"data\":{}}";
 
         var response = await client.SendAsync(BuildRequest(body, signature: null));
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var entries = await ReadAuditEntriesAsync(factory);
+        entries.Should().ContainSingle()
+            .Which.SignatureStatus.Should().Be(SmartsuppWebhookSignatureStatus.Missing);
+        entries[0].ProcessingStatus.Should().Be(SmartsuppWebhookProcessingStatus.NotProcessed);
+        entries[0].RawBody.Should().Be(body);
     }
 
     [Fact]
     public async Task Receive_ReturnsUnauthorized_WhenSignatureWrong()
     {
-        var client = _factory.CreateClient();
+        using var factory = new SmartsuppWebhookFactory();
+        var client = factory.CreateClient();
         var body = "{\"event\":\"conversation.opened\",\"data\":{}}";
 
         var response = await client.SendAsync(BuildRequest(body, signature: "deadbeef"));
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var entries = await ReadAuditEntriesAsync(factory);
+        entries.Should().ContainSingle()
+            .Which.SignatureStatus.Should().Be(SmartsuppWebhookSignatureStatus.Mismatch);
     }
 
     [Fact]
     public async Task Receive_ReturnsOk_WhenSignatureValidAndKnownEvent()
     {
-        var client = _factory.CreateClient();
+        using var factory = new SmartsuppWebhookFactory();
+        var client = factory.CreateClient();
         var body = """
             {
               "event": "conversation.opened",
@@ -94,12 +110,19 @@ public class SmartsuppWebhookControllerTests : IClassFixture<SmartsuppWebhookFac
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         (await response.Content.ReadAsStringAsync()).Should().BeEmpty();
+        var entries = await ReadAuditEntriesAsync(factory);
+        entries.Should().ContainSingle();
+        entries[0].SignatureStatus.Should().Be(SmartsuppWebhookSignatureStatus.Valid);
+        entries[0].ProcessingStatus.Should().Be(SmartsuppWebhookProcessingStatus.Success);
+        entries[0].EventName.Should().Be("conversation.opened");
+        entries[0].RawBody.Should().Be(body);
     }
 
     [Fact]
     public async Task Receive_ReturnsOk_WhenUnknownEvent_AndSignatureValid()
     {
-        var client = _factory.CreateClient();
+        using var factory = new SmartsuppWebhookFactory();
+        var client = factory.CreateClient();
         var body = """
             {
               "event": "conversation.exploded",
@@ -112,23 +135,30 @@ public class SmartsuppWebhookControllerTests : IClassFixture<SmartsuppWebhookFac
         var response = await client.SendAsync(BuildRequest(body, Sign(body, Secret)));
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var entries = await ReadAuditEntriesAsync(factory);
+        entries.Should().ContainSingle()
+            .Which.ProcessingStatus.Should().Be(SmartsuppWebhookProcessingStatus.Success);
     }
 
     [Fact]
     public async Task Receive_ReturnsOk_WhenJsonMalformed_AndSignatureValid()
     {
-        var client = _factory.CreateClient();
+        using var factory = new SmartsuppWebhookFactory();
+        var client = factory.CreateClient();
         var body = "not-json-at-all";
 
         var response = await client.SendAsync(BuildRequest(body, Sign(body, Secret)));
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var entries = await ReadAuditEntriesAsync(factory);
+        entries.Should().ContainSingle()
+            .Which.ProcessingStatus.Should().Be(SmartsuppWebhookProcessingStatus.MalformedJson);
     }
 
     [Fact]
     public async Task Receive_ReturnsUnauthorized_WhenAppIdConfiguredAndMismatched()
     {
-        var factory = CreateFactoryWithAppId("expected-app");
+        using var factory = CreateFactoryWithAppId("expected-app");
         var client = factory.CreateClient();
         var body = """
             {
@@ -142,12 +172,47 @@ public class SmartsuppWebhookControllerTests : IClassFixture<SmartsuppWebhookFac
         var response = await client.SendAsync(BuildRequest(body, Sign(body, Secret)));
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        var entries = await ReadAuditEntriesAsync(factory);
+        entries.Should().ContainSingle()
+            .Which.SignatureStatus.Should().Be(SmartsuppWebhookSignatureStatus.AppIdMismatch);
+    }
+
+    [Fact]
+    public async Task Receive_WritesAuditEntry_WhenHandlerThrows()
+    {
+        using var factory = new SmartsuppWebhookFactory();
+        factory.ReplaceReactionsWithThrowing();
+        var client = factory.CreateClient();
+        var body = """
+            {
+              "event": "conversation.opened",
+              "timestamp": "2026-05-13T10:00:00Z",
+              "account_id": "acc-1",
+              "app_id": "app-1",
+              "data": {
+                "conversation": {
+                  "id": "c-int-x",
+                  "status": "open",
+                  "created_at": "2026-05-13T10:00:00Z",
+                  "updated_at": "2026-05-13T10:00:00Z"
+                }
+              }
+            }
+            """;
+        var response = await client.SendAsync(BuildRequest(body, Sign(body, Secret)));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var entries = await ReadAuditEntriesAsync(factory);
+        entries.Should().ContainSingle()
+            .Which.ProcessingStatus.Should().Be(SmartsuppWebhookProcessingStatus.HandlerException);
+        entries[0].ProcessingError.Should().Contain("boom");
     }
 }
 
 public class SmartsuppWebhookFactory : HebloWebApplicationFactory
 {
     private string? _webhookAppId;
+    private bool _replaceReactionsWithThrowing;
 
     public SmartsuppWebhookFactory()
     {
@@ -159,9 +224,22 @@ public class SmartsuppWebhookFactory : HebloWebApplicationFactory
         _webhookAppId = appId;
     }
 
+    public void ReplaceReactionsWithThrowing() => _replaceReactionsWithThrowing = true;
+
     protected override void ConfigureTestServices(IServiceCollection services)
     {
         services.AddSingleton<ISmartsuppWebhookMetrics, NoOpSmartsuppWebhookMetrics>();
+        if (_replaceReactionsWithThrowing)
+        {
+            foreach (var d in services.Where(s => s.ServiceType ==
+                typeof(Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Reactions.ISmartsuppWebhookReaction))
+                .ToList())
+            {
+                services.Remove(d);
+            }
+            services.AddScoped<Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Reactions.ISmartsuppWebhookReaction,
+                ThrowingReaction>();
+        }
     }
 
     protected override void ConfigureTestWebHost(IWebHostBuilder builder)
@@ -182,4 +260,13 @@ internal sealed class NoOpSmartsuppWebhookMetrics : ISmartsuppWebhookMetrics
     public void RecordReceived(string eventName, string outcome, double durationMs) { }
     public void RecordSignatureFailure(string reason) { }
     public void RecordPayloadBytes(int bytes) { }
+}
+
+internal sealed class ThrowingReaction
+    : Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Reactions.ISmartsuppWebhookReaction
+{
+    public string EventName => "conversation.opened";
+    public Task HandleAsync(
+        Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent.Reactions.WebhookEventContext ctx,
+        CancellationToken cancellationToken) => throw new InvalidOperationException("boom");
 }

@@ -1,7 +1,6 @@
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
-using Anela.Heblo.Application.Features.Smartsupp.UseCases.RunManualSync;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -61,15 +60,6 @@ public class SmartsuppController : BaseApiController
         return HandleResponse(result);
     }
 
-    [HttpPost("sync")]
-    [ProducesResponseType(typeof(RunManualSyncResponse), StatusCodes.Status200OK)]
-    public async Task<ActionResult<RunManualSyncResponse>> RunSync(
-        [FromBody] RunManualSyncRequest? request,
-        CancellationToken cancellationToken = default)
-    {
-        var result = await _mediator.Send(request ?? new RunManualSyncRequest(), cancellationToken);
-        return HandleResponse(result);
-    }
 }
 
 public sealed class GenerateDraftReplyBody
