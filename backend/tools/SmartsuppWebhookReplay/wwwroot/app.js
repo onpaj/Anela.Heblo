@@ -1,12 +1,12 @@
-const TARGET_URL = window.location.origin;
-const LS_KEY = `replay-cursor:${TARGET_URL}`;
+const LS_KEY = `replay-cursor:${window.location.origin}`;
 
 let rows = [];
 let cursor = parseInt(localStorage.getItem(LS_KEY) || '0', 10);
 const results = new Map(); // id -> last 5 ForwardResult[]
 
-document.getElementById('target-url').textContent =
-  `Target: ${TARGET_URL}/api/webhooks/smartsupp`;
+fetch('/api/config')
+  .then(r => r.json())
+  .then(cfg => { document.getElementById('target-url').textContent = `Target: ${cfg.targetUrl}`; });
 
 async function fetchRows() {
   const event = document.getElementById('f-event').value.trim();

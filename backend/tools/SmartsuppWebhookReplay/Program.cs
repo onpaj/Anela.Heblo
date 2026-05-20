@@ -33,5 +33,6 @@ app.UseStaticFiles();
 
 app.MapAuditEndpoints();
 app.MapForwardEndpoint();
+app.MapGet("/api/config", (IOptions<ReplayOptions> opts) => Results.Ok(new { targetUrl = opts.Value.TargetUrl }));
 
 app.Run();
