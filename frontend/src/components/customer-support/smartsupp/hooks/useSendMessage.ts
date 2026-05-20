@@ -1,0 +1,109 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAuthenticatedApiClient } from "../../../../api/client";
+import {
+  SMARTSUPP_QUERY_KEYS,
+  type GetConversationResponse,
+  type MessageDto,
+} from "../../../../api/hooks/useSmartsupp";
+
+interface SendMessageApiResponse {
+  success: boolean;
+  errorCode?: string;
+  messageId?: string;
+  createdAt?: string;
+}
+
+const SEND_ERROR_MESSAGES: Record<string, string> = {
+  SmartsuppSendMessageUnavailable: "Nepodařilo se odeslat zprávu — služba je nedostupná. Zkuste to prosím znovu.",
+  SmartsuppConversationNotFound: "Konverzace nebyla nalezena.",
+};
+
+function messageForSendError(code?: string): string {
+  if (code && SEND_ERROR_MESSAGES[code]) return SEND_ERROR_MESSAGES[code];
+  return "Nepodařilo se odeslat zprávu.";
+}
+
+interface UseSendMessageResult {
+  send: (content: string) => void;
+  isPending: boolean;
+  error: string | null;
+  justSent: boolean;
+  clearSent: () => void;
+}
+
+export function useSendMessage(conversationId: string | null): UseSendMessageResult {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation<void, Error, string>({
+    mutationFn: async (content) => {
+      if (!conversationId) {
+        throw new Error("Není vybrána konverzace.");
+      }
+
+      const apiClient = getAuthenticatedApiClient();
+      const baseUrl = (apiClient as unknown as { baseUrl: string }).baseUrl;
+      const http = (apiClient as unknown as {
+        http: { fetch: (url: string, init: RequestInit) => Promise<Response> };
+      }).http;
+
+      const response = await http.fetch(
+        `${baseUrl}/api/smartsupp/conversations/${conversationId}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content }),
+        },
+      );
+
+      const data = (await response.json()) as SendMessageApiResponse;
+      if (!response.ok || !data.success) {
+        throw new Error(messageForSendError(data?.errorCode));
+      }
+    },
+    onMutate: async (content) => {
+      if (!conversationId) return;
+      await queryClient.cancelQueries({
+        queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+      });
+      const previous = queryClient.getQueryData<GetConversationResponse>(
+        SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+      );
+      const optimisticMsg: MessageDto = {
+        id: `optimistic-${Date.now()}`,
+        authorType: "agent",
+        content,
+        createdAt: new Date().toISOString(),
+        isFirstReply: false,
+      };
+      queryClient.setQueryData<GetConversationResponse>(
+        SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+        (old) => (old ? { ...old, messages: [...old.messages, optimisticMsg] } : old),
+      );
+      return { previous };
+    },
+    onError: (_err, _content, context) => {
+      const ctx = context as { previous?: GetConversationResponse } | undefined;
+      if (ctx?.previous !== undefined && conversationId) {
+        queryClient.setQueryData(
+          SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+          ctx.previous,
+        );
+      }
+    },
+    onSettled: () => {
+      if (conversationId) {
+        queryClient.invalidateQueries({
+          queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+        });
+      }
+    },
+  });
+
+  return {
+    send: (content: string) => mutation.mutate(content),
+    isPending: mutation.isPending,
+    error: mutation.error ? mutation.error.message : null,
+    justSent: mutation.isSuccess,
+    clearSent: mutation.reset,
+  };
+}
