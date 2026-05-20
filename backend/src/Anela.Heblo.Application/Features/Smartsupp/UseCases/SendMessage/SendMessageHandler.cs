@@ -41,6 +41,8 @@ public class SendMessageHandler : IRequestHandler<SendMessageRequest, SendMessag
             sent = await _apiClient.SendMessageAsync(
                 request.ConversationId, request.Content, agentName, cancellationToken);
         }
+        // Only absorb cancellations that originated inside the API client (e.g. HttpClient timeouts),
+        // not cancellations requested by the caller.
         catch (Exception ex) when (ex is HttpRequestException or TimeoutException
                                        or ObjectDisposedException
                                        || (ex is TaskCanceledException tce && tce.CancellationToken != cancellationToken))
