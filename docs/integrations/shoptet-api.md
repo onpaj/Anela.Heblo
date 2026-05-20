@@ -206,7 +206,29 @@ Updates the order's remark/note slots. Any property omitted from the body is lef
 
 ---
 
-## 4. Products API
+## 4. Customers API
+
+> **TODO: Verify against live API.** Run `curl -H "Shoptet-Private-API-Token: <token>" https://api.myshoptet.com/api/customers/<guid>` with a real customer GUID and document the actual response shape here. Update `ShoptetCustomerResponse.cs` field names if they differ from the speculative model.
+
+### 4.1 Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/customers/{guid}` | Get customer by GUID |
+
+### 4.2 Known fields (speculative — verify before production)
+
+Response shape assumed to follow Shoptet conventions:
+- `data.customer.guid` — customer GUID
+- `data.customer.email` — customer email
+- `data.customer.fullName` — full name
+- `data.customer.customerGroup.name` — customer group name
+- `data.customer.priceList.name` — price list name
+- `data.customer.billingAddress` — billing address with `street`, `city`, `zip`, `countryCode`
+
+---
+
+## 5. Products API
 
 | Method | Path | Description |
 |---|---|---|
@@ -244,7 +266,7 @@ The snapshot endpoint (`GET /api/products/snapshot`) exists but requires a regis
 
 ---
 
-## 5. ShoptetPay API
+## 6. ShoptetPay API
 
 Base URL: `https://api.shoptetpay.com`
 
