@@ -17,17 +17,17 @@
     <input id="f-event" type="text" placeholder="Event name" />
     <select id="f-proc-status">
       <option value="">All processing statuses</option>
-      <option value="Processed">Processed</option>
+      <option value="NotProcessed">NotProcessed</option>
+      <option value="MalformedJson">MalformedJson</option>
+      <option value="Success">Success</option>
       <option value="HandlerException">HandlerException</option>
-      <option value="ParsingFailed">ParsingFailed</option>
-      <option value="Skipped">Skipped</option>
     </select>
     <select id="f-sig-status">
       <option value="">All signature statuses</option>
       <option value="Valid">Valid</option>
-      <option value="Invalid">Invalid</option>
       <option value="Missing">Missing</option>
-      <option value="Unknown">Unknown</option>
+      <option value="Mismatch">Mismatch</option>
+      <option value="AppIdMismatch">AppIdMismatch</option>
     </select>
     <input id="f-from" type="datetime-local" />
     <input id="f-to" type="datetime-local" />

@@ -1,6 +1,18 @@
-namespace Anela.Heblo.Domain.Features.Smartsupp;
+using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Smartsupp;
 
-public class SmartsuppWebhookAuditEntry
+namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.GetWebhookAuditEntry;
+
+public class GetWebhookAuditEntryResponse : BaseResponse
+{
+    public WebhookAuditEntryDto? Entry { get; set; }
+
+    public GetWebhookAuditEntryResponse() { }
+
+    public GetWebhookAuditEntryResponse(ErrorCodes errorCode) : base(errorCode) { }
+}
+
+public class WebhookAuditEntryDto
 {
     public Guid Id { get; set; }
     public DateTime ReceivedAt { get; set; }
