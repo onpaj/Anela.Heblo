@@ -47,12 +47,6 @@ function render() {
         <button class="send-btn" data-id="${row.id}" data-idx="${i}">Send</button>
         <span class="pills" id="pills-${row.id}"></span>
       </td>`;
-    tr.addEventListener('click', e => {
-      if (e.target.classList.contains('send-btn')) return;
-      cursor = i;
-      saveCursor();
-      render();
-    });
     tbody.appendChild(tr);
   });
 }
@@ -99,8 +93,15 @@ document.getElementById('btn-refresh').addEventListener('click', fetchRows);
 
 document.getElementById('tbody').addEventListener('click', e => {
   const btn = e.target.closest('.send-btn');
-  if (!btn) return;
-  sendRow(btn.dataset.id);
+  if (btn) {
+    sendRow(btn.dataset.id);
+    return;
+  }
+  const tr = e.target.closest('tr');
+  if (!tr || tr.dataset.idx === undefined) return;
+  cursor = parseInt(tr.dataset.idx, 10);
+  saveCursor();
+  render();
 });
 
 document.addEventListener('keydown', e => {
