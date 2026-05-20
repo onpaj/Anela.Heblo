@@ -17,7 +17,7 @@ namespace Anela.Heblo.Persistence.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    ReceivedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ReceivedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     RemoteIp = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: false),
                     SignatureHeader = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     SignatureStatus = table.Column<int>(type: "integer", nullable: false),
@@ -27,13 +27,13 @@ namespace Anela.Heblo.Persistence.Migrations
                     EventName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     AccountId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     AppId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    EventTimestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    EventTimestamp = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     ProcessingStatus = table.Column<int>(type: "integer", nullable: false),
                     ProcessingError = table.Column<string>(type: "text", nullable: true),
                     ProcessingDurationMs = table.Column<int>(type: "integer", nullable: false),
-                    ProcessedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ProcessedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     ReplayCount = table.Column<int>(type: "integer", nullable: false),
-                    LastReplayedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastReplayedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     LastReplayedBy = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true)
                 },
                 constraints: table =>

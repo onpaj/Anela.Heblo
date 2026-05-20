@@ -19,6 +19,11 @@ public sealed class SmartsuppWebhookAuditEntryConfiguration
         builder.Property(e => e.AppId).HasMaxLength(100);
         builder.Property(e => e.LastReplayedBy).HasMaxLength(200);
 
+        builder.Property(e => e.ReceivedAt).HasColumnType("timestamp without time zone");
+        builder.Property(e => e.EventTimestamp).HasColumnType("timestamp without time zone");
+        builder.Property(e => e.ProcessedAt).HasColumnType("timestamp without time zone");
+        builder.Property(e => e.LastReplayedAt).HasColumnType("timestamp without time zone");
+
         builder.Property(e => e.HeadersJson).HasColumnType("text");
         builder.Property(e => e.RawBody).HasColumnType("text");
         builder.Property(e => e.ProcessingError).HasColumnType("text");
