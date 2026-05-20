@@ -74,6 +74,7 @@ describe("ShoptetCustomerCard", () => {
     render(<ShoptetCustomerCard conversationId="c1" />, { wrapper });
     const link = screen.getByRole("link", { name: /zobrazit v shoptet/i });
     expect(link).toHaveAttribute("href", "https://anela.myshoptet.com/admin/orders/2024001");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
 
   it("renders shipping address when present", () => {

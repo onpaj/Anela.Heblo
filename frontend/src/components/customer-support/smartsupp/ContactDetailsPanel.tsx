@@ -4,19 +4,11 @@ import StatusPill from "./StatusPill";
 import AgentBadge from "./AgentBadge";
 import { Star } from "lucide-react";
 import { countryCodeToFlag } from "./utils/countryCodeToFlag";
+import Section from "./Section";
 
 interface ContactDetailsPanelProps {
   conversation: ConversationDto;
   onSelectConversation?: (id: string) => void;
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="px-4 py-3 border-b border-gray-100">
-      <div className="text-[11px] uppercase tracking-wide text-gray-400 font-medium mb-1.5">{title}</div>
-      {children}
-    </div>
-  );
 }
 
 const SHOPTET_KEYS = new Set(["shoptet_guid", "shoptet_shop", "shoptet_user_guid", "shoptet_cart_updated_at"]);

@@ -1,25 +1,16 @@
 import React from "react";
 import { useSmartsuppShoptetInfo } from "../../../api/hooks/useSmartsupp";
+import Section from "./Section";
 
 interface ShoptetCustomerCardProps {
   conversationId: string | null;
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="px-4 py-3 border-b border-gray-100">
-      <div className="text-[11px] uppercase tracking-wide text-gray-400 font-medium mb-1.5">
-        {title}
-      </div>
-      {children}
-    </div>
-  );
-}
-
 function ShoptetCustomerCard({ conversationId }: ShoptetCustomerCardProps) {
   const { data, isLoading } = useSmartsuppShoptetInfo(conversationId);
 
-  if (isLoading || !data?.contactInfo) return null;
+  if (isLoading) return null;
+  if (!data?.contactInfo) return null;
 
   const { customer, recentOrders, cartUpdatedAt } = data.contactInfo;
 
