@@ -38,7 +38,7 @@ public class WeatherForecastTile : ITile
                 .OrderBy(g => g.Key)
                 .Select(g =>
                 {
-                    var hottest = g.MaxBy(x => x.Day.MaxTemperatureCelsius);
+                    var hottest = g.MaxBy(x => x.Day.MaxTemperatureCelsius)!;
                     return new
                     {
                         date = hottest.Day.Date.ToString("yyyy-MM-dd"),
