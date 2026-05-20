@@ -76,13 +76,19 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         SmartsuppConversation conversation,
         CancellationToken cancellationToken)
     {
+        SmartsuppContact? linkedContact = null;
         if (conversation.ContactId is not null)
         {
-            var contactExists = await _db.SmartsuppContacts
-                .AnyAsync(c => c.Id == conversation.ContactId, cancellationToken);
-            if (!contactExists)
+            linkedContact = await _db.SmartsuppContacts
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == conversation.ContactId, cancellationToken);
+
+            if (linkedContact is null)
                 conversation.ContactId = null;
         }
+
+        conversation.ContactName ??= linkedContact?.Name;
+        conversation.ContactEmail ??= linkedContact?.Email;
 
         var existing = await _db.SmartsuppConversations
             .FirstOrDefaultAsync(c => c.Id == conversation.Id, cancellationToken);
@@ -105,9 +111,9 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         existing.IsServed = conversation.IsServed;
         existing.ContactId = conversation.ContactId;
         existing.Subject = conversation.Subject;
-        existing.ContactName = conversation.ContactName;
-        existing.ContactEmail = conversation.ContactEmail;
-        existing.ContactAvatarUrl = conversation.ContactAvatarUrl;
+        existing.ContactName = conversation.ContactName ?? existing.ContactName;
+        existing.ContactEmail = conversation.ContactEmail ?? existing.ContactEmail;
+        existing.ContactAvatarUrl = conversation.ContactAvatarUrl ?? existing.ContactAvatarUrl;
         existing.VisitorId = conversation.VisitorId;
         existing.ExtId = conversation.ExtId;
         existing.FinishedAt = conversation.FinishedAt;
@@ -210,6 +216,21 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         existing.DeliveredAt = deliveredAt;
     }
 
+
+    public async Task BackfillConversationDenormFieldsAsync(
+        SmartsuppContact contact,
+        CancellationToken cancellationToken)
+    {
+        var conversations = await _db.SmartsuppConversations
+            .Where(c => c.ContactId == contact.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var conv in conversations)
+        {
+            conv.ContactName = contact.Name ?? conv.ContactName;
+            conv.ContactEmail = contact.Email ?? conv.ContactEmail;
+        }
+    }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
         await _db.SaveChangesAsync(cancellationToken);

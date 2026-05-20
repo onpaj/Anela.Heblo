@@ -18,6 +18,10 @@ public interface ISmartsuppRepository
         SmartsuppContact contact,
         CancellationToken cancellationToken);
 
+    Task BackfillConversationDenormFieldsAsync(
+        SmartsuppContact contact,
+        CancellationToken cancellationToken);
+
     Task UpsertConversationAsync(
         SmartsuppConversation conversation,
         CancellationToken cancellationToken);
