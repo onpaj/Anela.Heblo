@@ -15,6 +15,8 @@ public sealed class ContactUpdatedReaction : ISmartsuppWebhookReaction
     {
         var contactEl = ctx.GetContact();
         if (contactEl is null) return;
-        await _repository.UpsertContactAsync(SmartsuppPayloadMapper.MapContact(contactEl.Value, ctx.Timestamp), cancellationToken);
+        var contact = SmartsuppPayloadMapper.MapContact(contactEl.Value, ctx.Timestamp);
+        await _repository.UpsertContactAsync(contact, cancellationToken);
+        await _repository.BackfillConversationDenormFieldsAsync(contact, cancellationToken);
     }
 }
