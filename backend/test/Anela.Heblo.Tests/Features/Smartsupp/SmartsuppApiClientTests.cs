@@ -319,4 +319,55 @@ public class SmartsuppApiClientTests
         await act.Should().ThrowAsync<HttpRequestException>()
             .Where(ex => ex.StatusCode == HttpStatusCode.InternalServerError);
     }
+
+    [Fact]
+    public async Task SendMessageAsync_ReturnsMessageData_WhenApiResponds()
+    {
+        // Arrange — response shape must match the actual Smartsupp v2 POST /conversations/{id}/messages response
+        var responseJson = JsonSerializer.Serialize(new
+        {
+            id = "msNewMessage123",
+            created_at = "2026-05-20T10:00:00Z",
+            type = "message",
+            sub_type = "agent",
+        });
+
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.Is<HttpRequestMessage>(r =>
+                    r.Method == HttpMethod.Post &&
+                    r.RequestUri!.PathAndQuery.Contains("conversations/conv123/messages")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(responseJson, Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handler.Object);
+
+        // Act
+        var result = await client.SendMessageAsync("conv123", "Dobrý den!", "Ondřej", CancellationToken.None);
+
+        // Assert
+        result.Id.Should().Be("msNewMessage123");
+        result.CreatedAt.Should().NotBe(default);
+    }
+
+    [Fact]
+    public async Task SendMessageAsync_ThrowsHttpRequestException_OnErrorResponse()
+    {
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.UnprocessableEntity));
+
+        var client = CreateClient(handler.Object, ResiliencePipeline.Empty);
+
+        var act = () => client.SendMessageAsync("conv123", "Text", null, CancellationToken.None);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
 }

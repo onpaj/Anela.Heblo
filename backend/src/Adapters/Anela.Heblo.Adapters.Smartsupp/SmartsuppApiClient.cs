@@ -426,7 +426,77 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         public bool GdprApproved { get; set; }
     }
 
-    public Task<SmartsuppSentMessageData> SendMessageAsync(
-        string conversationId, string content, string? agentName,
-        CancellationToken cancellationToken) => throw new NotImplementedException();
+    private sealed class SendMessageApiRequest
+    {
+        public SendMessageApiContent Content { get; init; } = null!;
+        public SendMessageApiAgent? Agent { get; init; }
+    }
+
+    private sealed class SendMessageApiContent
+    {
+        public string Type { get; init; } = "text";
+        public string Text { get; init; } = null!;
+    }
+
+    private sealed class SendMessageApiAgent
+    {
+        public string? Name { get; init; }
+    }
+
+    private sealed class SendMessageApiResponse
+    {
+        public string? Id { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public async Task<SmartsuppSentMessageData> SendMessageAsync(
+        string conversationId,
+        string content,
+        string? agentName,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(_options.ApiToken))
+            throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
+
+        var body = new SendMessageApiRequest
+        {
+            Content = new SendMessageApiContent { Text = content },
+            Agent = agentName is not null ? new SendMessageApiAgent { Name = agentName } : null,
+        };
+
+        var json = JsonSerializer.Serialize(body, JsonOptions);
+
+        return await _pipeline.ExecuteAsync(async ct =>
+        {
+            var client = _httpClientFactory.CreateClient("Smartsupp");
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"{_options.BaseUrl}conversations/{conversationId}/messages");
+            request.Headers.Add("Authorization", $"Bearer {_options.ApiToken}");
+            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.SendAsync(request, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Smartsupp send message failed {Status}: {Body}",
+                    response.StatusCode, errorBody);
+                var ex = new HttpRequestException(
+                    $"Smartsupp API {(int)response.StatusCode}", null, response.StatusCode);
+                if (response.Headers.RetryAfter?.Delta is { } delta)
+                    ex.Data["RetryAfter"] = delta;
+                throw ex;
+            }
+
+            var raw = await response.Content.ReadAsStringAsync(ct);
+            var result = JsonSerializer.Deserialize<SendMessageApiResponse>(raw, JsonOptions);
+
+            return new SmartsuppSentMessageData
+            {
+                Id = result?.Id ?? string.Empty,
+                CreatedAt = result?.CreatedAt ?? DateTime.UtcNow,
+            };
+        }, cancellationToken);
+    }
 }
