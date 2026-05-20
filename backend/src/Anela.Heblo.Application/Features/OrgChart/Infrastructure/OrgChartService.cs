@@ -1,9 +1,10 @@
 using System.Text.Json;
 using Anela.Heblo.Application.Features.OrgChart.Contracts;
+using Anela.Heblo.Application.Features.OrgChart.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Anela.Heblo.Application.Features.OrgChart.Services;
+namespace Anela.Heblo.Application.Features.OrgChart.Infrastructure;
 
 /// <summary>
 /// Service for retrieving organizational chart data from external source
