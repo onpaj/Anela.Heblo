@@ -29,4 +29,15 @@ public class ConversationDto
     public string? LocationCity { get; set; }
     public string? LocationCode { get; set; }
     public List<string> Tags { get; set; } = new();
+
+    // Phase 1: contact-sourced fields
+    public string? ContactPhone { get; set; }
+    public string? ContactNote { get; set; }
+    public List<string> ContactTags { get; set; } = new();
+    public Dictionary<string, string> ContactProperties { get; set; } = new();
+
+    // Phase 1: conversation-sourced fields
+    public string? LocationIp { get; set; }
+    public Dictionary<string, string> Variables { get; set; } = new();
+    public List<ConversationSummaryDto> OtherConversations { get; set; } = new();
 }
