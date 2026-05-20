@@ -425,4 +425,8 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         public JsonElement? Tags { get; set; }
         public bool GdprApproved { get; set; }
     }
+
+    public Task<SmartsuppSentMessageData> SendMessageAsync(
+        string conversationId, string content, string? agentName,
+        CancellationToken cancellationToken) => throw new NotImplementedException();
 }

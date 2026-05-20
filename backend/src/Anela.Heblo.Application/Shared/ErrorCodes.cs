@@ -291,6 +291,8 @@ public enum ErrorCodes
     SmartsuppDraftReplyAiUnavailable = 2702,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     SmartsuppConversationEmpty = 2703,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    SmartsuppSendMessageUnavailable = 2704,
 
     // Inventory module errors (28XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

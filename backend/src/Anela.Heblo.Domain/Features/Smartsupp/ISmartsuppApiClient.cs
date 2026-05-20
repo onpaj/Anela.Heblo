@@ -18,6 +18,20 @@ public interface ISmartsuppApiClient
     Task<SmartsuppContactData?> GetContactAsync(
         string contactId,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Sends a text message in a conversation on behalf of an agent.
+    /// </summary>
+    /// <remarks>
+    /// VERIFY the exact request shape against https://docs.smartsupp.com/rest-api
+    /// before relying on this implementation. The POST /v2/conversations/{id}/messages
+    /// endpoint body and auth requirements must be confirmed against the live docs.
+    /// </remarks>
+    Task<SmartsuppSentMessageData> SendMessageAsync(
+        string conversationId,
+        string content,
+        string? agentName,
+        CancellationToken cancellationToken);
 }
 
 public class SmartsuppSearchResult
@@ -107,4 +121,10 @@ public class SmartsuppContactData
     public bool GdprApproved { get; set; }
     public string? TagsJson { get; set; }
     public string? PropertiesJson { get; set; }
+}
+
+public class SmartsuppSentMessageData
+{
+    public string Id { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
 }
