@@ -70,6 +70,34 @@ describe("useSendMessage", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
+  it("rolls back optimistic update when API call fails", async () => {
+    setApiResponse(503, { success: false, errorCode: "SmartsuppSendMessageUnavailable" });
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    const existingMessages = [
+      { id: "existing-1", authorType: "contact", content: "Existující zpráva", createdAt: "2026-01-01T00:00:00Z", isFirstReply: false },
+    ];
+    queryClient.setQueryData(["smartsupp", "conversation", "conv1"], {
+      success: true,
+      messages: existingMessages,
+    });
+
+    function seededWrapper({ children }: { children: React.ReactNode }) {
+      return React.createElement(QueryClientProvider, { client: queryClient }, children);
+    }
+
+    const { result } = renderHook(() => useSendMessage("conv1"), { wrapper: seededWrapper });
+    act(() => result.current.send("Zpráva, která selže"));
+
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+
+    const cached = queryClient.getQueryData<{ messages: unknown[] }>(["smartsupp", "conversation", "conv1"]);
+    expect(cached?.messages).toHaveLength(1);
+    expect(cached?.messages[0]).toMatchObject({ id: "existing-1" });
+  });
+
   it("isPending is true while request is in flight", async () => {
     let resolvePromise!: (v: unknown) => void;
     (getAuthenticatedApiClient as jest.Mock).mockReturnValue({

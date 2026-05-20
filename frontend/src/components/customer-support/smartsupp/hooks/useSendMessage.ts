@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAuthenticatedApiClient } from "../../../../api/client";
+import { getClientAndBaseUrl, apiPost } from "../../../../api/smartsuppClient";
 import {
   SMARTSUPP_QUERY_KEYS,
   type GetConversationResponse,
@@ -31,28 +31,22 @@ interface UseSendMessageResult {
   clearSent: () => void;
 }
 
+type SendMessageContext = { previous?: GetConversationResponse };
+
 export function useSendMessage(conversationId: string | null): UseSendMessageResult {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation<void, Error, string>({
+  const mutation = useMutation<void, Error, string, SendMessageContext>({
     mutationFn: async (content) => {
       if (!conversationId) {
         throw new Error("Není vybrána konverzace.");
       }
 
-      const apiClient = getAuthenticatedApiClient();
-      const baseUrl = (apiClient as unknown as { baseUrl: string }).baseUrl;
-      const http = (apiClient as unknown as {
-        http: { fetch: (url: string, init: RequestInit) => Promise<Response> };
-      }).http;
-
-      const response = await http.fetch(
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await apiPost(
+        apiClient,
         `${baseUrl}/api/smartsupp/conversations/${conversationId}/messages`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content }),
-        },
+        { content },
       );
 
       const data = (await response.json()) as SendMessageApiResponse;
@@ -61,7 +55,7 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
       }
     },
     onMutate: async (content) => {
-      if (!conversationId) return;
+      if (!conversationId) return {};
       await queryClient.cancelQueries({
         queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
       });
@@ -82,11 +76,10 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
       return { previous };
     },
     onError: (_err, _content, context) => {
-      const ctx = context as { previous?: GetConversationResponse } | undefined;
-      if (ctx?.previous !== undefined && conversationId) {
+      if (context?.previous !== undefined && conversationId) {
         queryClient.setQueryData(
           SMARTSUPP_QUERY_KEYS.conversation(conversationId),
-          ctx.previous,
+          context.previous,
         );
       }
     },
