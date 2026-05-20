@@ -15,7 +15,7 @@ find_free_port() {
   echo "$port"
 }
 
-BACKEND_PORT="${BACKEND_PORT:-5001}"
+BACKEND_PORT="${BACKEND_PORT:-5000}"
 FRONTEND_PORT="$(find_free_port 3100)"
 REPLAY_PORT="$(find_free_port 5051)"
 
