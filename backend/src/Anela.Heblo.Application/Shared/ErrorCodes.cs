@@ -293,6 +293,8 @@ public enum ErrorCodes
     SmartsuppConversationEmpty = 2703,
     [HttpStatusCode(HttpStatusCode.NotFound)]
     SmartsuppShoptetCustomerNotFound = 2704,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    SmartsuppVisitorNotFound = 2705,
 
     // Inventory module errors (28XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
