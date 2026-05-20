@@ -17,15 +17,15 @@ public class ListWebhookAuditHandlerTests
         DateTime receivedAt,
         string eventName,
         SmartsuppWebhookProcessingStatus status) => new()
-    {
-        Id = Guid.NewGuid(),
-        ReceivedAt = receivedAt,
-        EventName = eventName,
-        SignatureStatus = SmartsuppWebhookSignatureStatus.Valid,
-        ProcessingStatus = status,
-        RawBody = "{}",
-        BodySizeBytes = 2,
-    };
+        {
+            Id = Guid.NewGuid(),
+            ReceivedAt = receivedAt,
+            EventName = eventName,
+            SignatureStatus = SmartsuppWebhookSignatureStatus.Valid,
+            ProcessingStatus = status,
+            RawBody = "{}",
+            BodySizeBytes = 2,
+        };
 
     [Fact]
     public async Task Handle_ReturnsRowsOrderedByReceivedAtDescending()
