@@ -29,7 +29,7 @@ public class GetSmartsuppContactShoptetInfoHandlerTests
     [Fact]
     public async Task Handle_ReturnsNotFound_WhenConversationMissing()
     {
-        _repo.Setup(r => r.GetConversationAsync("missing", default)).ReturnsAsync((SmartsuppConversation?)null);
+        _repo.Setup(r => r.GetConversationAsync("missing", It.IsAny<CancellationToken>())).ReturnsAsync((SmartsuppConversation?)null);
 
         var result = await CreateHandler().Handle(
             new GetSmartsuppContactShoptetInfoRequest { ConversationId = "missing" },
@@ -49,10 +49,10 @@ public class GetSmartsuppContactShoptetInfoHandlerTests
             VariablesJson = """{"shoptet_user_guid":"user-guid-1","shoptet_guid":"guid-2"}""",
             Messages = [],
         };
-        _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
-        _customerClient.Setup(c => c.GetCustomerByGuidAsync("user-guid-1", default)).ReturnsAsync(MakeCustomer("user-guid-1"));
-        _orderClient.Setup(o => o.GetRecentOrdersByEmailAsync("jana@test.cz", 5, default)).ReturnsAsync(MakeOrders("user-guid-1"));
-        _orderClient.Setup(o => o.GetOrderStatusNamesAsync(default)).ReturnsAsync(new Dictionary<int, string> { { 26, "Balí se" } });
+        _repo.Setup(r => r.GetConversationAsync("c1", It.IsAny<CancellationToken>())).ReturnsAsync(conversation);
+        _customerClient.Setup(c => c.GetCustomerByGuidAsync("user-guid-1", It.IsAny<CancellationToken>())).ReturnsAsync(MakeCustomer("user-guid-1"));
+        _orderClient.Setup(o => o.GetRecentOrdersByEmailAsync("jana@test.cz", 5, It.IsAny<CancellationToken>())).ReturnsAsync(MakeOrders("user-guid-1"));
+        _orderClient.Setup(o => o.GetOrderStatusNamesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new Dictionary<int, string> { { 26, "Balí se" } });
 
         var result = await CreateHandler().Handle(
             new GetSmartsuppContactShoptetInfoRequest { ConversationId = "c1" },
@@ -60,8 +60,8 @@ public class GetSmartsuppContactShoptetInfoHandlerTests
 
         result.Success.Should().BeTrue();
         // Must use user-guid-1, NOT guid-2
-        _customerClient.Verify(c => c.GetCustomerByGuidAsync("user-guid-1", default), Times.Once);
-        _customerClient.Verify(c => c.GetCustomerByGuidAsync("guid-2", default), Times.Never);
+        _customerClient.Verify(c => c.GetCustomerByGuidAsync("user-guid-1", It.IsAny<CancellationToken>()), Times.Once);
+        _customerClient.Verify(c => c.GetCustomerByGuidAsync("guid-2", It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -74,17 +74,17 @@ public class GetSmartsuppContactShoptetInfoHandlerTests
             VariablesJson = """{"shoptet_guid":"guid-abc"}""",
             Messages = [],
         };
-        _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
-        _customerClient.Setup(c => c.GetCustomerByGuidAsync("guid-abc", default)).ReturnsAsync(MakeCustomer("guid-abc"));
-        _orderClient.Setup(o => o.GetRecentOrdersByEmailAsync("jana@test.cz", 5, default)).ReturnsAsync(MakeOrders("guid-abc"));
-        _orderClient.Setup(o => o.GetOrderStatusNamesAsync(default)).ReturnsAsync(new Dictionary<int, string>());
+        _repo.Setup(r => r.GetConversationAsync("c1", It.IsAny<CancellationToken>())).ReturnsAsync(conversation);
+        _customerClient.Setup(c => c.GetCustomerByGuidAsync("guid-abc", It.IsAny<CancellationToken>())).ReturnsAsync(MakeCustomer("guid-abc"));
+        _orderClient.Setup(o => o.GetRecentOrdersByEmailAsync("jana@test.cz", 5, It.IsAny<CancellationToken>())).ReturnsAsync(MakeOrders("guid-abc"));
+        _orderClient.Setup(o => o.GetOrderStatusNamesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new Dictionary<int, string>());
 
         var result = await CreateHandler().Handle(
             new GetSmartsuppContactShoptetInfoRequest { ConversationId = "c1" },
             CancellationToken.None);
 
         result.Success.Should().BeTrue();
-        _customerClient.Verify(c => c.GetCustomerByGuidAsync("guid-abc", default), Times.Once);
+        _customerClient.Verify(c => c.GetCustomerByGuidAsync("guid-abc", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -98,10 +98,10 @@ public class GetSmartsuppContactShoptetInfoHandlerTests
             VariablesJson = null,
             Messages = [],
         };
-        _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
-        _orderClient.Setup(o => o.GetRecentOrdersByEmailAsync("jana@test.cz", 5, default)).ReturnsAsync(MakeOrders("cust-1"));
-        _customerClient.Setup(c => c.GetCustomerByGuidAsync("cust-1", default)).ReturnsAsync(MakeCustomer("cust-1"));
-        _orderClient.Setup(o => o.GetOrderStatusNamesAsync(default)).ReturnsAsync(new Dictionary<int, string> { { 26, "Balí se" } });
+        _repo.Setup(r => r.GetConversationAsync("c1", It.IsAny<CancellationToken>())).ReturnsAsync(conversation);
+        _orderClient.Setup(o => o.GetRecentOrdersByEmailAsync("jana@test.cz", 5, It.IsAny<CancellationToken>())).ReturnsAsync(MakeOrders("cust-1"));
+        _customerClient.Setup(c => c.GetCustomerByGuidAsync("cust-1", It.IsAny<CancellationToken>())).ReturnsAsync(MakeCustomer("cust-1"));
+        _orderClient.Setup(o => o.GetOrderStatusNamesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new Dictionary<int, string> { { 26, "Balí se" } });
 
         var result = await CreateHandler().Handle(
             new GetSmartsuppContactShoptetInfoRequest { ConversationId = "c1" },
@@ -125,8 +125,8 @@ public class GetSmartsuppContactShoptetInfoHandlerTests
             VariablesJson = null,
             Messages = [],
         };
-        _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
-        _orderClient.Setup(o => o.GetRecentOrdersByEmailAsync("unknown@test.cz", 5, default)).ReturnsAsync([]);
+        _repo.Setup(r => r.GetConversationAsync("c1", It.IsAny<CancellationToken>())).ReturnsAsync(conversation);
+        _orderClient.Setup(o => o.GetRecentOrdersByEmailAsync("unknown@test.cz", 5, It.IsAny<CancellationToken>())).ReturnsAsync([]);
 
         var result = await CreateHandler().Handle(
             new GetSmartsuppContactShoptetInfoRequest { ConversationId = "c1" },
@@ -146,10 +146,10 @@ public class GetSmartsuppContactShoptetInfoHandlerTests
             VariablesJson = """{"shoptet_guid":"guid-1","shoptet_cart_updated_at":"2026-04-15T12:00:00"}""",
             Messages = [],
         };
-        _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
-        _customerClient.Setup(c => c.GetCustomerByGuidAsync("guid-1", default)).ReturnsAsync(MakeCustomer("guid-1"));
-        _orderClient.Setup(o => o.GetRecentOrdersByEmailAsync("jana@test.cz", 5, default)).ReturnsAsync([]);
-        _orderClient.Setup(o => o.GetOrderStatusNamesAsync(default)).ReturnsAsync(new Dictionary<int, string>());
+        _repo.Setup(r => r.GetConversationAsync("c1", It.IsAny<CancellationToken>())).ReturnsAsync(conversation);
+        _customerClient.Setup(c => c.GetCustomerByGuidAsync("guid-1", It.IsAny<CancellationToken>())).ReturnsAsync(MakeCustomer("guid-1"));
+        _orderClient.Setup(o => o.GetRecentOrdersByEmailAsync("jana@test.cz", 5, It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        _orderClient.Setup(o => o.GetOrderStatusNamesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new Dictionary<int, string>());
 
         var result = await CreateHandler().Handle(
             new GetSmartsuppContactShoptetInfoRequest { ConversationId = "c1" },

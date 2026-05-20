@@ -4,5 +4,5 @@ namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.GetContactShoptetI
 
 public class GetSmartsuppContactShoptetInfoRequest : IRequest<GetSmartsuppContactShoptetInfoResponse>
 {
-    public string ConversationId { get; set; } = null!;
+    public required string ConversationId { get; set; }
 }

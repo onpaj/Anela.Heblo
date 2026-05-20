@@ -2,7 +2,7 @@ namespace Anela.Heblo.Application.Features.Smartsupp.Contracts;
 
 public class ShoptetContactInfoDto
 {
-    public ShoptetCustomerSnapshotDto Customer { get; set; } = null!;
+    public required ShoptetCustomerSnapshotDto Customer { get; set; }
     public List<ShoptetOrderSnapshotDto> RecentOrders { get; set; } = new();
     public DateTime? CartUpdatedAt { get; set; }
 }
@@ -18,7 +18,7 @@ public class ShoptetCustomerSnapshotDto
 
 public class ShoptetOrderSnapshotDto
 {
-    public string Code { get; set; } = null!;
+    public required string Code { get; set; }
     public string? StatusName { get; set; }
     public decimal? TotalWithVat { get; set; }
     public string? CurrencyCode { get; set; }

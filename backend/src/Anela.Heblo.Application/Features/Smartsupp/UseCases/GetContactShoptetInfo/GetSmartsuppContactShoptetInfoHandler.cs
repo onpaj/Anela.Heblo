@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Anela.Heblo.Application.Features.ShoptetCustomers;
 using Anela.Heblo.Application.Features.ShoptetOrders;
@@ -11,6 +12,8 @@ namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.GetContactShoptetI
 public class GetSmartsuppContactShoptetInfoHandler
     : IRequestHandler<GetSmartsuppContactShoptetInfoRequest, GetSmartsuppContactShoptetInfoResponse>
 {
+    private const int RecentOrdersLimit = 5;
+
     private readonly ISmartsuppRepository _repo;
     private readonly IShoptetCustomerClient _customerClient;
     private readonly IEshopOrderClient _orderClient;
@@ -53,7 +56,7 @@ public class GetSmartsuppContactShoptetInfoHandler
         else if (!string.IsNullOrWhiteSpace(conversation.ContactEmail))
         {
             preloadedOrders = await _orderClient.GetRecentOrdersByEmailAsync(
-                conversation.ContactEmail, 5, cancellationToken);
+                conversation.ContactEmail, RecentOrdersLimit, cancellationToken);
             var firstGuid = preloadedOrders.FirstOrDefault()?.CustomerGuid;
             if (!string.IsNullOrWhiteSpace(firstGuid))
                 customer = await _customerClient.GetCustomerByGuidAsync(firstGuid, cancellationToken);
@@ -63,11 +66,13 @@ public class GetSmartsuppContactShoptetInfoHandler
             return new GetSmartsuppContactShoptetInfoResponse(ErrorCodes.SmartsuppShoptetCustomerNotFound);
 
         var lookupEmail = customer.Email ?? conversation.ContactEmail ?? string.Empty;
-        var orders = preloadedOrders ?? await _orderClient.GetRecentOrdersByEmailAsync(lookupEmail, 5, cancellationToken);
+        var orders = preloadedOrders ?? await _orderClient.GetRecentOrdersByEmailAsync(lookupEmail, RecentOrdersLimit, cancellationToken);
         var statusNames = await _orderClient.GetOrderStatusNamesAsync(cancellationToken);
 
         DateTime? cartUpdatedAt = null;
-        if (!string.IsNullOrWhiteSpace(cartStr) && DateTime.TryParse(cartStr, out var parsedCart))
+        if (!string.IsNullOrWhiteSpace(cartStr) &&
+            DateTime.TryParse(cartStr, CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind, out var parsedCart))
             cartUpdatedAt = parsedCart;
 
         return new GetSmartsuppContactShoptetInfoResponse
