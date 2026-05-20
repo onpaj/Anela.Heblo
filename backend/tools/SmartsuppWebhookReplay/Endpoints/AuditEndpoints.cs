@@ -24,6 +24,7 @@ public static class AuditEndpoints
         CancellationToken ct = default)
     {
         take = Math.Min(take, 500);
+        skip = Math.Max(skip, 0);
 
         var query = db.SmartsuppWebhookAuditEntries.AsNoTracking();
 
