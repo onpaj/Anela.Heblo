@@ -217,6 +217,21 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
     }
 
 
+    public async Task BackfillConversationDenormFieldsAsync(
+        SmartsuppContact contact,
+        CancellationToken cancellationToken)
+    {
+        var conversations = await _db.SmartsuppConversations
+            .Where(c => c.ContactId == contact.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var conv in conversations)
+        {
+            conv.ContactName = contact.Name ?? conv.ContactName;
+            conv.ContactEmail = contact.Email ?? conv.ContactEmail;
+        }
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
         await _db.SaveChangesAsync(cancellationToken);
 }
