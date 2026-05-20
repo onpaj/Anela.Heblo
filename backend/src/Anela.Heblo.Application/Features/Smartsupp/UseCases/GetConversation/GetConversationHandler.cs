@@ -114,7 +114,7 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
         if (string.IsNullOrWhiteSpace(json)) return new Dictionary<string, string>();
         try
         {
-            var doc = System.Text.Json.JsonDocument.Parse(json);
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
             return doc.RootElement.EnumerateObject()
                 .ToDictionary(
                     p => p.Name,
