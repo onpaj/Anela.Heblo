@@ -51,5 +51,11 @@ public sealed class SmartsuppConversationConfiguration : IEntityTypeConfiguratio
         builder.Property(e => e.AssignedAgentIdsJson).HasColumnType("text");
         builder.Property(e => e.Channel).HasMaxLength(50);
         builder.Property(e => e.LastClosedAt).HasColumnType("timestamp without time zone");
+        builder.Property(e => e.VisitorUserAgent).HasColumnType("text");
+        builder.Property(e => e.VisitorOs).HasMaxLength(100);
+        builder.Property(e => e.VisitorBrowser).HasMaxLength(100);
+        builder.Property(e => e.VisitorBrowserVersion).HasMaxLength(100);
+        builder.Property(e => e.VisitorVisitsCount);
+        builder.Property(e => e.VisitorInfoFetchedAt).HasColumnType("timestamp without time zone");
     }
 }
