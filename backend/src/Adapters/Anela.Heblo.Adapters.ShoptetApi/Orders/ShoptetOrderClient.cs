@@ -190,6 +190,31 @@ public class ShoptetOrderClient : IEshopOrderClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<List<EshopOrderInfo>> GetRecentOrdersByEmailAsync(string email, int count, CancellationToken ct = default)
+    {
+        var itemsPerPage = Math.Min(count, 50);
+        var response = await _http.GetAsync($"/api/orders?page=1&itemsPerPage={itemsPerPage}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var data = await response.Content.ReadFromJsonAsync<OrderListResponse>(JsonOptions, ct);
+        return (data?.Data.Orders ?? [])
+            .Where(o => string.Equals(o.Email, email, StringComparison.OrdinalIgnoreCase))
+            .Take(count)
+            .Select(MapToOrderInfo)
+            .ToList();
+    }
+
+    public async Task<Dictionary<int, string>> GetOrderStatusNamesAsync(CancellationToken ct = default)
+    {
+        var response = await _http.GetAsync("/api/eshop?include=orderStatuses", ct);
+        response.EnsureSuccessStatusCode();
+
+        var data = await response.Content.ReadFromJsonAsync<ShoptetEshopResponse>(JsonOptions, ct);
+        return (data?.Data?.Eshop?.OrderStatuses ?? [])
+            .Where(s => !string.IsNullOrWhiteSpace(s.Name))
+            .ToDictionary(s => s.Id, s => s.Name!);
+    }
+
     // ── Expedition methods ────────────────────────────────────────────────────
 
     public async Task<OrderListResponse> GetOrdersByStatusAsync(int statusId, int page, CancellationToken ct = default)
@@ -229,6 +254,17 @@ public class ShoptetOrderClient : IEshopOrderClient
             Email = order.Email,
             StatusId = order.Status.Id,
         };
+
+    private static EshopOrderInfo MapToOrderInfo(OrderSummary o) => new()
+    {
+        Code = o.Code,
+        CustomerGuid = o.CustomerGuid,
+        TotalWithVat = o.Price?.WithVat,
+        CurrencyCode = o.Price?.CurrencyCode,
+        StatusId = o.Status.Id,
+        AdminUrl = o.AdminUrl,
+        OrderDate = o.CreationTime is { } t && DateTime.TryParse(t, out var dt) ? dt : null,
+    };
 }
 
 /// <summary>
