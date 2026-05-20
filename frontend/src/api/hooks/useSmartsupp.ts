@@ -1,6 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS, getAuthenticatedApiClient } from "../client";
 
+export interface ConversationSummaryDto {
+  id: string;
+  status: string;
+  lastMessageAt?: string | null;
+  lastMessagePreview?: string | null;
+  isUnread: boolean;
+}
+
 export interface ConversationDto {
   id: string;
   subject?: string | null;
@@ -27,6 +35,14 @@ export interface ConversationDto {
   locationCity?: string | null;
   locationCode?: string | null;
   tags: string[];
+  // Phase 1 additions
+  contactPhone?: string | null;
+  contactNote?: string | null;
+  contactTags: string[];
+  contactProperties: Record<string, string>;
+  locationIp?: string | null;
+  variables: Record<string, string>;
+  otherConversations: ConversationSummaryDto[];
 }
 
 export interface MessageDto {
