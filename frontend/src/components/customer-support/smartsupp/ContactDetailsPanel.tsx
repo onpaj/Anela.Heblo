@@ -60,7 +60,7 @@ function OtherConversationRow({
   );
 }
 
-const ContactDetailsPanel: React.FC<ContactDetailsPanelProps> = ({ conversation, onSelectConversation }) => {
+function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDetailsPanelProps) {
   const displayName = conversation.contactName ?? conversation.contactEmail ?? "Neznámý";
   const hasRating = typeof conversation.rating === "number";
 
@@ -224,6 +224,6 @@ const ContactDetailsPanel: React.FC<ContactDetailsPanelProps> = ({ conversation,
       )}
     </aside>
   );
-};
+}
 
 export default ContactDetailsPanel;

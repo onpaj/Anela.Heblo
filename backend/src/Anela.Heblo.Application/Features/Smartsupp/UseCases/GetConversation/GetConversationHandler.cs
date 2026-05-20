@@ -23,7 +23,7 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
 
         var otherConversations = conversation.ContactId is not null
             ? await _repository.ListConversationsForContactAsync(conversation.ContactId, conversation.Id, cancellationToken)
-            : new List<SmartsuppConversation>();
+            : [];
 
         return new GetConversationResponse
         {

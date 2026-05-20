@@ -5,6 +5,8 @@ namespace Anela.Heblo.Persistence.Smartsupp;
 
 public sealed class SmartsuppRepository : ISmartsuppRepository
 {
+    private const int MaxOtherConversations = 20;
+
     private readonly ApplicationDbContext _db;
 
     public SmartsuppRepository(ApplicationDbContext db)
@@ -192,7 +194,7 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
             .AsNoTracking()
             .Where(c => c.ContactId == contactId && c.Id != excludeConversationId)
             .OrderByDescending(c => c.LastMessageAt)
-            .Take(20)
+            .Take(MaxOtherConversations)
             .ToListAsync(cancellationToken);
 
     public async Task MarkConversationResolvedAsync(
