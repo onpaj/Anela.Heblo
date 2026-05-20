@@ -33,17 +33,19 @@ public class SmartsuppWebhookAuditCleanupJob : IRecurringJob
     {
         var cutoff = DateTime.UtcNow.AddDays(-RetentionDays);
 
-        var deleted = await _context.SmartsuppWebhookAuditEntries
+        var stale = await _context.SmartsuppWebhookAuditEntries
             .Where(e => e.ReceivedAt < cutoff)
-            .ExecuteDeleteAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
 
-        if (deleted == 0)
+        if (stale.Count == 0)
         {
             _logger.LogInformation("smartsupp webhook audit cleanup: nothing to delete");
             return;
         }
 
+        _context.SmartsuppWebhookAuditEntries.RemoveRange(stale);
+        await _context.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("smartsupp webhook audit cleanup: deleted {Count} entries older than {Cutoff:o}",
-            deleted, cutoff);
+            stale.Count, cutoff);
     }
 }
