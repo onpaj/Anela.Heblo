@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Microsoft.Extensions.Options;
@@ -20,14 +21,21 @@ public sealed class WebhookForwarder
     public async Task<ForwardResult> ForwardAsync(SmartsuppWebhookAuditEntry entry, CancellationToken ct)
     {
         var client = _http.CreateClient(nameof(WebhookForwarder));
+        var sentAt = DateTime.UtcNow;
 
+        var bodyBytes = Encoding.UTF8.GetBytes(entry.RawBody);
         var request = new HttpRequestMessage(HttpMethod.Post, _options.TargetUrl)
         {
-            Content = new StringContent(entry.RawBody, Encoding.UTF8, "application/json"),
+            Content = new ByteArrayContent(bodyBytes),
         };
+        request.Content.Headers.ContentType = new("application/json");
 
-        if (!string.IsNullOrEmpty(entry.SignatureHeader))
-            request.Headers.TryAddWithoutValidation("X-Smartsupp-Hmac", entry.SignatureHeader);
+        var signature = !string.IsNullOrEmpty(_options.WebhookSecret)
+            ? ComputeHmac(bodyBytes, _options.WebhookSecret)
+            : entry.SignatureHeader;
+
+        if (!string.IsNullOrEmpty(signature))
+            request.Headers.TryAddWithoutValidation("X-Smartsupp-Hmac", signature);
 
         var sw = Stopwatch.StartNew();
         var response = await client.SendAsync(request, ct);
@@ -39,7 +47,13 @@ public sealed class WebhookForwarder
             HttpStatus = (int)response.StatusCode,
             ResponseBody = body,
             DurationMs = (int)sw.ElapsedMilliseconds,
-            SentAt = DateTime.UtcNow,
+            SentAt = sentAt,
         };
+    }
+
+    private static string ComputeHmac(byte[] body, string secret)
+    {
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(secret));
+        return Convert.ToHexString(hmac.ComputeHash(body)).ToLowerInvariant();
     }
 }
