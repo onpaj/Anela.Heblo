@@ -80,10 +80,11 @@ describe('PositionCard', () => {
     // Assert
     expect(container.querySelector('[data-position-id="parent"]')).not.toBeNull();
     expect(container.querySelector('[data-position-id="child"]')).not.toBeNull();
-    // Verify child is rendered within parent's subtree
+    // Verify child is rendered within parent's outer wrapper (flex container)
     const parentCard = container.querySelector('[data-position-id="parent"]');
+    const parentWrapper = parentCard?.parentElement;
     const childCard = container.querySelector('[data-position-id="child"]');
-    expect(parentCard?.contains(childCard)).toBe(true);
+    expect(parentWrapper?.contains(childCard)).toBe(true);
     expect(container).toMatchSnapshot();
   });
 });

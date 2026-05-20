@@ -20,12 +20,10 @@ function PositionCard({ position, getChildren, getLevelColor }: PositionCardProp
   const children = getChildren(position.id!);
 
   return (
-    <div
-      data-position-id={position.id}
-      className="flex flex-col items-center"
-    >
+    <div className="flex flex-col items-center">
       {/* Position card content */}
       <div
+        data-position-id={position.id}
         className={`bg-white rounded-xl shadow-lg p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 ${getLevelColor(
           position.level ?? 1
         )} relative mb-20`}
@@ -116,7 +114,7 @@ function PositionCard({ position, getChildren, getLevelColor }: PositionCardProp
 
       {/* Children */}
       {children.length > 0 && (
-        <div className="flex justify-center gap-12 mt-8">
+        <div className="flex justify-center gap-12">
           {children.map((child) => (
             <PositionCard
               key={child.id}

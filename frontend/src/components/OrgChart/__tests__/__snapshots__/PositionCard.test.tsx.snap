@@ -4,10 +4,10 @@ exports[`PositionCard renders a leaf position with data-position-id on the outer
 <div>
   <div
     class="flex flex-col items-center"
-    data-position-id="pos-1"
   >
     <div
       class="bg-white rounded-xl shadow-lg p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 level-1 relative mb-20"
+      data-position-id="pos-1"
     >
       <div
         class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold mb-3"
@@ -60,10 +60,10 @@ exports[`PositionCard renders a recursive position with one child 1`] = `
 <div>
   <div
     class="flex flex-col items-center"
-    data-position-id="parent"
   >
     <div
       class="bg-white rounded-xl shadow-lg p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 level-2 relative mb-20"
+      data-position-id="parent"
     >
       <div
         class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold mb-3"
@@ -85,14 +85,14 @@ exports[`PositionCard renders a recursive position with one child 1`] = `
       />
     </div>
     <div
-      class="flex justify-center gap-12 mt-8"
+      class="flex justify-center gap-12"
     >
       <div
         class="flex flex-col items-center"
-        data-position-id="child"
       >
         <div
           class="bg-white rounded-xl shadow-lg p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 border-l-4 level-3 relative mb-20"
+          data-position-id="child"
         >
           <div
             class="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold mb-3"
