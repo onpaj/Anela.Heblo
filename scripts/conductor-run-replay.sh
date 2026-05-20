@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Conductor run script — launches backend + frontend + SmartsuppWebhookReplay tool.
-# All three pick free ports so multiple workspaces can run in parallel.
+# Conductor run script — launches frontend + SmartsuppWebhookReplay tool.
+# Backend is expected to be running externally (e.g. Rider debugger on port 5001).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -15,8 +15,7 @@ find_free_port() {
   echo "$port"
 }
 
-# Bases keep Conductor instances clear of the manual dev scripts (5001/3000/5050).
-BACKEND_PORT="$(find_free_port 5100)"
+BACKEND_PORT="${BACKEND_PORT:-5001}"
 FRONTEND_PORT="$(find_free_port 3100)"
 REPLAY_PORT="$(find_free_port 5051)"
 
@@ -25,37 +24,14 @@ if [ -z "$BRANCH" ]; then
   BRANCH="$(git -C "$PROJECT_ROOT" rev-parse --short HEAD)"
 fi
 
-echo "🚀 Starting Heblo + Replay tool (Conductor)"
+echo "🚀 Starting Heblo frontend + Replay tool (Conductor)"
 echo "   Branch:   $BRANCH"
-echo "   Backend:  http://localhost:$BACKEND_PORT"
+echo "   Backend:  http://localhost:$BACKEND_PORT  ← run this in Rider"
 echo "   Frontend: http://localhost:$FRONTEND_PORT"
 echo "   Replay:   http://localhost:$REPLAY_PORT"
 echo ""
 
 trap 'kill 0' EXIT INT TERM
-
-# ── Backend ──────────────────────────────────────────────────────────────────
-(
-  cd "$PROJECT_ROOT"
-  ASPNETCORE_ENVIRONMENT=Development \
-  ASPNETCORE_URLS="http://localhost:$BACKEND_PORT" \
-  UseConductorOverrides=true \
-    dotnet run --project backend/src/Anela.Heblo.API --no-launch-profile
-) &
-BACKEND_PID=$!
-
-echo "⏳ Waiting for backend to build and listen on port $BACKEND_PORT ..."
-for _ in $(seq 1 150); do
-  if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
-    echo "❌ Backend exited before becoming ready — check build output above."
-    exit 1
-  fi
-  if curl -sf -o /dev/null "http://localhost:$BACKEND_PORT/health/live" 2>/dev/null; then
-    echo "✅ Backend is up on http://localhost:$BACKEND_PORT"
-    break
-  fi
-  sleep 2
-done
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
 (
