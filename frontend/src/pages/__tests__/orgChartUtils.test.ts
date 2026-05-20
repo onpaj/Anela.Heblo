@@ -82,10 +82,9 @@ describe('calculateLevels', () => {
     // Act
     const result = calculateLevels(data);
 
-    // Assert — cycle guard prevents infinite recursion. Both positions get a finite level.
+    // Assert — cycle guard prevents infinite recursion. Both positions get level 1.
     result.organization.positions.forEach((p) => {
-      expect(typeof p.level).toBe('number');
-      expect(Number.isFinite(p.level)).toBe(true);
+      expect(p.level).toBe(1);
     });
 
     consoleError.mockRestore();
@@ -129,6 +128,20 @@ describe('getAllParentPositionIds', () => {
 
     // Assert
     expect(result.size).toBe(0);
+  });
+
+  it('handles cycles gracefully without infinite recursion', () => {
+    // Arrange
+    const positions = [
+      makePosition({ id: 'a', parentPositionId: 'b' }),
+      makePosition({ id: 'b', parentPositionId: 'a' }),
+    ];
+
+    // Act — must terminate without stack overflow
+    const result = getAllParentPositionIds('a', positions);
+
+    // Assert
+    expect(result.has('b')).toBe(true);
   });
 });
 
