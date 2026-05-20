@@ -23,9 +23,10 @@ public interface ISmartsuppApiClient
     /// Sends a text message in a conversation on behalf of an agent.
     /// </summary>
     /// <remarks>
-    /// VERIFY the exact request shape against https://docs.smartsupp.com/rest-api
-    /// before relying on this implementation. The POST /v2/conversations/{id}/messages
-    /// endpoint body and auth requirements must be confirmed against the live docs.
+    /// Assumed request shape (verify against https://docs.smartsupp.com/rest-api on first staging use):
+    /// POST {baseUrl}conversations/{id}/messages
+    /// Body: { "content": { "type": "text", "text": "..." }, "agent": { "name": "..." } }
+    /// Auth: Bearer token. See docs/integrations/smartsupp-api.md.
     /// </remarks>
     Task<SmartsuppSentMessageData> SendMessageAsync(
         string conversationId,

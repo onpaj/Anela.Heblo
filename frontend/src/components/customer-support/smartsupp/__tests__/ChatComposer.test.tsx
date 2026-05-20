@@ -191,6 +191,13 @@ describe("ChatComposer", () => {
     expect(btn).toBeDisabled();
   });
 
+  it("shows send error message when useSendMessage returns an error", () => {
+    mockHook({});
+    mockSendHook({ error: "Odeslání zprávy selhalo. Zkuste to prosím znovu." });
+    render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" />);
+    expect(screen.getByText("Odeslání zprávy selhalo. Zkuste to prosím znovu.")).toBeInTheDocument();
+  });
+
   it("clears draft and calls onDraftChange after successful send", async () => {
     const onDraftChange = jest.fn();
     mockHook({});

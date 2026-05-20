@@ -23,7 +23,7 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
   const [isExpanded, setIsExpanded] = useState(false);
 
   const { generate, isLoading, error, result, reset } = useGenerateDraftReply(conversationId);
-  const { send, isPending: isSending, justSent, clearSent } = useSendMessage(conversationId);
+  const { send, isPending: isSending, error: sendError, justSent, clearSent } = useSendMessage(conversationId);
 
   useEffect(() => {
     if (result) {
@@ -155,6 +155,9 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
             )}
           </button>
         </div>
+        {sendError && (
+          <p className="text-xs text-red-500">{sendError}</p>
+        )}
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-400">
             {draft.length} / {MAX_CHARS}
