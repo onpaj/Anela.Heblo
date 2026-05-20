@@ -19,15 +19,10 @@ public interface ISmartsuppApiClient
         string contactId,
         CancellationToken cancellationToken);
 
-    /// <summary>
-    /// Sends a text message in a conversation on behalf of an agent.
-    /// </summary>
-    /// <remarks>
-    /// Assumed request shape (verify against https://docs.smartsupp.com/rest-api on first staging use):
-    /// POST {baseUrl}conversations/{id}/messages
-    /// Body: { "content": { "type": "text", "text": "..." }, "agent": { "name": "..." } }
-    /// Auth: Bearer token. See docs/integrations/smartsupp-api.md.
-    /// </remarks>
+    Task<SmartsuppVisitorData?> GetVisitorAsync(
+        string visitorId,
+        CancellationToken cancellationToken);
+
     Task<SmartsuppSentMessageData> SendMessageAsync(
         string conversationId,
         string content,
@@ -106,6 +101,16 @@ public class SmartsuppMessageData
     public string? ChannelId { get; set; }
     public string? AuthorType { get; set; }
     public string? AuthorName { get; set; }
+}
+
+public class SmartsuppVisitorData
+{
+    public string Id { get; set; } = null!;
+    public string? UserAgent { get; set; }
+    public string? Os { get; set; }
+    public string? Browser { get; set; }
+    public string? BrowserVersion { get; set; }
+    public int? VisitsCount { get; set; }
 }
 
 public class SmartsuppContactData

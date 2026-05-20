@@ -5,6 +5,8 @@ namespace Anela.Heblo.Persistence.Smartsupp;
 
 public sealed class SmartsuppRepository : ISmartsuppRepository
 {
+    private const int MaxOtherConversations = 20;
+
     private readonly ApplicationDbContext _db;
 
     public SmartsuppRepository(ApplicationDbContext db)
@@ -38,6 +40,7 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         await _db.SmartsuppConversations
             .AsNoTracking()
             .Include(c => c.Messages.OrderBy(m => m.CreatedAt))
+            .Include(c => c.Contact)
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
     public async Task UpsertContactAsync(
@@ -183,6 +186,17 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
             .Select(c => new OpenConversationRef(c.Id, c.LastMessageAt))
             .ToListAsync(cancellationToken);
 
+    public async Task<List<SmartsuppConversation>> ListConversationsForContactAsync(
+        string contactId,
+        string excludeConversationId,
+        CancellationToken cancellationToken) =>
+        await _db.SmartsuppConversations
+            .AsNoTracking()
+            .Where(c => c.ContactId == contactId && c.Id != excludeConversationId)
+            .OrderByDescending(c => c.LastMessageAt)
+            .Take(MaxOtherConversations)
+            .ToListAsync(cancellationToken);
+
     public async Task MarkConversationResolvedAsync(
         string conversationId,
         DateTime finishedAt,
@@ -230,6 +244,31 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
             conv.ContactName = contact.Name ?? conv.ContactName;
             conv.ContactEmail = contact.Email ?? conv.ContactEmail;
         }
+    }
+
+    public async Task UpdateVisitorCacheAsync(
+        string conversationId,
+        string? userAgent,
+        string? os,
+        string? browser,
+        string? browserVersion,
+        int? visitsCount,
+        DateTime fetchedAt,
+        CancellationToken cancellationToken)
+    {
+        var conversation = await _db.SmartsuppConversations
+            .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken);
+
+        if (conversation is null)
+            return;
+
+        conversation.VisitorUserAgent = userAgent;
+        conversation.VisitorOs = os;
+        conversation.VisitorBrowser = browser;
+        conversation.VisitorBrowserVersion = browserVersion;
+        conversation.VisitorVisitsCount = visitsCount;
+        conversation.VisitorInfoFetchedAt = fetchedAt;
+        await _db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
