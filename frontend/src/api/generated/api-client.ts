@@ -9741,34 +9741,92 @@ export class ApiClient {
         return Promise.resolve<GenerateDraftReplyResponse>(null as any);
     }
 
-    smartsupp_RunSync(request: RunManualSyncRequest | undefined): Promise<RunManualSyncResponse> {
-        let url_ = this.baseUrl + "/api/smartsupp/sync";
+    smartsupp_GetShoptetInfo(id: string): Promise<GetSmartsuppContactShoptetInfoResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations/{id}/shoptet-info";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(request);
-
         let options_: RequestInit = {
-            body: content_,
-            method: "POST",
+            method: "GET",
             headers: {
-                "Content-Type": "application/json",
                 "Accept": "application/json"
             }
         };
 
         return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processSmartsupp_RunSync(_response);
+            return this.processSmartsupp_GetShoptetInfo(_response);
         });
     }
 
-    protected processSmartsupp_RunSync(response: Response): Promise<RunManualSyncResponse> {
+    protected processSmartsupp_GetShoptetInfo(response: Response): Promise<GetSmartsuppContactShoptetInfoResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = RunManualSyncResponse.fromJS(resultData200);
+            result200 = GetSmartsuppContactShoptetInfoResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetSmartsuppContactShoptetInfoResponse>(null as any);
+    }
+
+    smartsuppWebhookAudit_List(from: Date | null | undefined, to: Date | null | undefined, eventName: string | null | undefined, signatureStatus: SmartsuppWebhookSignatureStatus | null | undefined, processingStatus: SmartsuppWebhookProcessingStatus | null | undefined, skip: number | undefined, take: number | undefined): Promise<ListWebhookAuditResponse> {
+        let url_ = this.baseUrl + "/api/admin/smartsupp/webhooks?";
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
+        if (eventName !== undefined && eventName !== null)
+            url_ += "eventName=" + encodeURIComponent("" + eventName) + "&";
+        if (signatureStatus !== undefined && signatureStatus !== null)
+            url_ += "signatureStatus=" + encodeURIComponent("" + signatureStatus) + "&";
+        if (processingStatus !== undefined && processingStatus !== null)
+            url_ += "processingStatus=" + encodeURIComponent("" + processingStatus) + "&";
+        if (skip === null)
+            throw new Error("The parameter 'skip' cannot be null.");
+        else if (skip !== undefined)
+            url_ += "skip=" + encodeURIComponent("" + skip) + "&";
+        if (take === null)
+            throw new Error("The parameter 'take' cannot be null.");
+        else if (take !== undefined)
+            url_ += "take=" + encodeURIComponent("" + take) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsuppWebhookAudit_List(_response);
+        });
+    }
+
+    protected processSmartsuppWebhookAudit_List(response: Response): Promise<ListWebhookAuditResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListWebhookAuditResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -9776,7 +9834,95 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<RunManualSyncResponse>(null as any);
+        return Promise.resolve<ListWebhookAuditResponse>(null as any);
+    }
+
+    smartsuppWebhookAudit_Get(id: string): Promise<GetWebhookAuditEntryResponse> {
+        let url_ = this.baseUrl + "/api/admin/smartsupp/webhooks/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsuppWebhookAudit_Get(_response);
+        });
+    }
+
+    protected processSmartsuppWebhookAudit_Get(response: Response): Promise<GetWebhookAuditEntryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetWebhookAuditEntryResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetWebhookAuditEntryResponse>(null as any);
+    }
+
+    smartsuppWebhookAudit_Replay(id: string): Promise<ReplayWebhookEventResponse> {
+        let url_ = this.baseUrl + "/api/admin/smartsupp/webhooks/{id}/replay";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsuppWebhookAudit_Replay(_response);
+        });
+    }
+
+    protected processSmartsuppWebhookAudit_Replay(response: Response): Promise<ReplayWebhookEventResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ReplayWebhookEventResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReplayWebhookEventResponse>(null as any);
     }
 
     smartsuppWebhook_Receive(): Promise<FileResponse> {
@@ -11072,6 +11218,7 @@ export enum ErrorCodes {
     SmartsuppConversationNotFound = "SmartsuppConversationNotFound",
     SmartsuppDraftReplyAiUnavailable = "SmartsuppDraftReplyAiUnavailable",
     SmartsuppConversationEmpty = "SmartsuppConversationEmpty",
+    SmartsuppShoptetCustomerNotFound = "SmartsuppShoptetCustomerNotFound",
     LotNotFound = "LotNotFound",
     EanNotFound = "EanNotFound",
     LotAlreadyExists = "LotAlreadyExists",
@@ -32522,6 +32669,13 @@ export class ConversationDto implements IConversationDto {
     locationCity?: string | undefined;
     locationCode?: string | undefined;
     tags?: string[];
+    contactPhone?: string | undefined;
+    contactNote?: string | undefined;
+    contactTags?: string[];
+    contactProperties?: { [key: string]: string; };
+    locationIp?: string | undefined;
+    variables?: { [key: string]: string; };
+    otherConversations?: ConversationSummaryDto[];
 
     constructor(data?: IConversationDto) {
         if (data) {
@@ -32566,6 +32720,33 @@ export class ConversationDto implements IConversationDto {
                 this.tags = [] as any;
                 for (let item of _data["tags"])
                     this.tags!.push(item);
+            }
+            this.contactPhone = _data["contactPhone"];
+            this.contactNote = _data["contactNote"];
+            if (Array.isArray(_data["contactTags"])) {
+                this.contactTags = [] as any;
+                for (let item of _data["contactTags"])
+                    this.contactTags!.push(item);
+            }
+            if (_data["contactProperties"]) {
+                this.contactProperties = {} as any;
+                for (let key in _data["contactProperties"]) {
+                    if (_data["contactProperties"].hasOwnProperty(key))
+                        (<any>this.contactProperties)![key] = _data["contactProperties"][key];
+                }
+            }
+            this.locationIp = _data["locationIp"];
+            if (_data["variables"]) {
+                this.variables = {} as any;
+                for (let key in _data["variables"]) {
+                    if (_data["variables"].hasOwnProperty(key))
+                        (<any>this.variables)![key] = _data["variables"][key];
+                }
+            }
+            if (Array.isArray(_data["otherConversations"])) {
+                this.otherConversations = [] as any;
+                for (let item of _data["otherConversations"])
+                    this.otherConversations!.push(ConversationSummaryDto.fromJS(item));
             }
         }
     }
@@ -32612,6 +32793,33 @@ export class ConversationDto implements IConversationDto {
             for (let item of this.tags)
                 data["tags"].push(item);
         }
+        data["contactPhone"] = this.contactPhone;
+        data["contactNote"] = this.contactNote;
+        if (Array.isArray(this.contactTags)) {
+            data["contactTags"] = [];
+            for (let item of this.contactTags)
+                data["contactTags"].push(item);
+        }
+        if (this.contactProperties) {
+            data["contactProperties"] = {};
+            for (let key in this.contactProperties) {
+                if (this.contactProperties.hasOwnProperty(key))
+                    (<any>data["contactProperties"])[key] = (<any>this.contactProperties)[key];
+            }
+        }
+        data["locationIp"] = this.locationIp;
+        if (this.variables) {
+            data["variables"] = {};
+            for (let key in this.variables) {
+                if (this.variables.hasOwnProperty(key))
+                    (<any>data["variables"])[key] = (<any>this.variables)[key];
+            }
+        }
+        if (Array.isArray(this.otherConversations)) {
+            data["otherConversations"] = [];
+            for (let item of this.otherConversations)
+                data["otherConversations"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -32642,6 +32850,65 @@ export interface IConversationDto {
     locationCity?: string | undefined;
     locationCode?: string | undefined;
     tags?: string[];
+    contactPhone?: string | undefined;
+    contactNote?: string | undefined;
+    contactTags?: string[];
+    contactProperties?: { [key: string]: string; };
+    locationIp?: string | undefined;
+    variables?: { [key: string]: string; };
+    otherConversations?: ConversationSummaryDto[];
+}
+
+export class ConversationSummaryDto implements IConversationSummaryDto {
+    id?: string;
+    status?: string;
+    lastMessageAt?: Date | undefined;
+    lastMessagePreview?: string | undefined;
+    isUnread?: boolean;
+
+    constructor(data?: IConversationSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.status = _data["status"];
+            this.lastMessageAt = _data["lastMessageAt"] ? new Date(_data["lastMessageAt"].toString()) : <any>undefined;
+            this.lastMessagePreview = _data["lastMessagePreview"];
+            this.isUnread = _data["isUnread"];
+        }
+    }
+
+    static fromJS(data: any): ConversationSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConversationSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["status"] = this.status;
+        data["lastMessageAt"] = this.lastMessageAt ? this.lastMessageAt.toISOString() : <any>undefined;
+        data["lastMessagePreview"] = this.lastMessagePreview;
+        data["isUnread"] = this.isUnread;
+        return data;
+    }
+}
+
+export interface IConversationSummaryDto {
+    id?: string;
+    status?: string;
+    lastMessageAt?: Date | undefined;
+    lastMessagePreview?: string | undefined;
+    isUnread?: boolean;
 }
 
 export class GetConversationResponse extends BaseResponse implements IGetConversationResponse {
@@ -32902,63 +33169,45 @@ export interface IGenerateDraftReplyBody {
     topic?: string | undefined;
 }
 
-export class RunManualSyncResponse extends BaseResponse implements IRunManualSyncResponse {
-    conversationsProcessed?: number;
-    messagesProcessed?: number;
-    conversationsReconciled?: number;
-    conversationsClosedRemotely?: number;
-    startedAt?: Date;
-    completedAt?: Date;
+export class GetSmartsuppContactShoptetInfoResponse extends BaseResponse implements IGetSmartsuppContactShoptetInfoResponse {
+    contactInfo?: ShoptetContactInfoDto | undefined;
 
-    constructor(data?: IRunManualSyncResponse) {
+    constructor(data?: IGetSmartsuppContactShoptetInfoResponse) {
         super(data);
     }
 
     override init(_data?: any) {
         super.init(_data);
         if (_data) {
-            this.conversationsProcessed = _data["conversationsProcessed"];
-            this.messagesProcessed = _data["messagesProcessed"];
-            this.conversationsReconciled = _data["conversationsReconciled"];
-            this.conversationsClosedRemotely = _data["conversationsClosedRemotely"];
-            this.startedAt = _data["startedAt"] ? new Date(_data["startedAt"].toString()) : <any>undefined;
-            this.completedAt = _data["completedAt"] ? new Date(_data["completedAt"].toString()) : <any>undefined;
+            this.contactInfo = _data["contactInfo"] ? ShoptetContactInfoDto.fromJS(_data["contactInfo"]) : <any>undefined;
         }
     }
 
-    static override fromJS(data: any): RunManualSyncResponse {
+    static override fromJS(data: any): GetSmartsuppContactShoptetInfoResponse {
         data = typeof data === 'object' ? data : {};
-        let result = new RunManualSyncResponse();
+        let result = new GetSmartsuppContactShoptetInfoResponse();
         result.init(data);
         return result;
     }
 
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["conversationsProcessed"] = this.conversationsProcessed;
-        data["messagesProcessed"] = this.messagesProcessed;
-        data["conversationsReconciled"] = this.conversationsReconciled;
-        data["conversationsClosedRemotely"] = this.conversationsClosedRemotely;
-        data["startedAt"] = this.startedAt ? this.startedAt.toISOString() : <any>undefined;
-        data["completedAt"] = this.completedAt ? this.completedAt.toISOString() : <any>undefined;
+        data["contactInfo"] = this.contactInfo ? this.contactInfo.toJSON() : <any>undefined;
         super.toJSON(data);
         return data;
     }
 }
 
-export interface IRunManualSyncResponse extends IBaseResponse {
-    conversationsProcessed?: number;
-    messagesProcessed?: number;
-    conversationsReconciled?: number;
-    conversationsClosedRemotely?: number;
-    startedAt?: Date;
-    completedAt?: Date;
+export interface IGetSmartsuppContactShoptetInfoResponse extends IBaseResponse {
+    contactInfo?: ShoptetContactInfoDto | undefined;
 }
 
-export class RunManualSyncRequest implements IRunManualSyncRequest {
-    since?: Date | undefined;
+export class ShoptetContactInfoDto implements IShoptetContactInfoDto {
+    customer?: ShoptetCustomerSnapshotDto;
+    recentOrders?: ShoptetOrderSnapshotDto[];
+    cartUpdatedAt?: Date | undefined;
 
-    constructor(data?: IRunManualSyncRequest) {
+    constructor(data?: IShoptetContactInfoDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -32969,26 +33218,473 @@ export class RunManualSyncRequest implements IRunManualSyncRequest {
 
     init(_data?: any) {
         if (_data) {
-            this.since = _data["since"] ? new Date(_data["since"].toString()) : <any>undefined;
+            this.customer = _data["customer"] ? ShoptetCustomerSnapshotDto.fromJS(_data["customer"]) : <any>undefined;
+            if (Array.isArray(_data["recentOrders"])) {
+                this.recentOrders = [] as any;
+                for (let item of _data["recentOrders"])
+                    this.recentOrders!.push(ShoptetOrderSnapshotDto.fromJS(item));
+            }
+            this.cartUpdatedAt = _data["cartUpdatedAt"] ? new Date(_data["cartUpdatedAt"].toString()) : <any>undefined;
         }
     }
 
-    static fromJS(data: any): RunManualSyncRequest {
+    static fromJS(data: any): ShoptetContactInfoDto {
         data = typeof data === 'object' ? data : {};
-        let result = new RunManualSyncRequest();
+        let result = new ShoptetContactInfoDto();
         result.init(data);
         return result;
     }
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["since"] = this.since ? this.since.toISOString() : <any>undefined;
+        data["customer"] = this.customer ? this.customer.toJSON() : <any>undefined;
+        if (Array.isArray(this.recentOrders)) {
+            data["recentOrders"] = [];
+            for (let item of this.recentOrders)
+                data["recentOrders"].push(item.toJSON());
+        }
+        data["cartUpdatedAt"] = this.cartUpdatedAt ? this.cartUpdatedAt.toISOString() : <any>undefined;
         return data;
     }
 }
 
-export interface IRunManualSyncRequest {
-    since?: Date | undefined;
+export interface IShoptetContactInfoDto {
+    customer?: ShoptetCustomerSnapshotDto;
+    recentOrders?: ShoptetOrderSnapshotDto[];
+    cartUpdatedAt?: Date | undefined;
+}
+
+export class ShoptetCustomerSnapshotDto implements IShoptetCustomerSnapshotDto {
+    fullName?: string | undefined;
+    email?: string | undefined;
+    customerGroup?: string | undefined;
+    priceList?: string | undefined;
+    defaultShippingAddress?: string | undefined;
+
+    constructor(data?: IShoptetCustomerSnapshotDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.fullName = _data["fullName"];
+            this.email = _data["email"];
+            this.customerGroup = _data["customerGroup"];
+            this.priceList = _data["priceList"];
+            this.defaultShippingAddress = _data["defaultShippingAddress"];
+        }
+    }
+
+    static fromJS(data: any): ShoptetCustomerSnapshotDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ShoptetCustomerSnapshotDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["fullName"] = this.fullName;
+        data["email"] = this.email;
+        data["customerGroup"] = this.customerGroup;
+        data["priceList"] = this.priceList;
+        data["defaultShippingAddress"] = this.defaultShippingAddress;
+        return data;
+    }
+}
+
+export interface IShoptetCustomerSnapshotDto {
+    fullName?: string | undefined;
+    email?: string | undefined;
+    customerGroup?: string | undefined;
+    priceList?: string | undefined;
+    defaultShippingAddress?: string | undefined;
+}
+
+export class ShoptetOrderSnapshotDto implements IShoptetOrderSnapshotDto {
+    code?: string;
+    statusName?: string | undefined;
+    totalWithVat?: number | undefined;
+    currencyCode?: string | undefined;
+    orderDate?: Date | undefined;
+    adminUrl?: string | undefined;
+
+    constructor(data?: IShoptetOrderSnapshotDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.statusName = _data["statusName"];
+            this.totalWithVat = _data["totalWithVat"];
+            this.currencyCode = _data["currencyCode"];
+            this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
+            this.adminUrl = _data["adminUrl"];
+        }
+    }
+
+    static fromJS(data: any): ShoptetOrderSnapshotDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ShoptetOrderSnapshotDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["statusName"] = this.statusName;
+        data["totalWithVat"] = this.totalWithVat;
+        data["currencyCode"] = this.currencyCode;
+        data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
+        data["adminUrl"] = this.adminUrl;
+        return data;
+    }
+}
+
+export interface IShoptetOrderSnapshotDto {
+    code?: string;
+    statusName?: string | undefined;
+    totalWithVat?: number | undefined;
+    currencyCode?: string | undefined;
+    orderDate?: Date | undefined;
+    adminUrl?: string | undefined;
+}
+
+export class ListWebhookAuditResponse extends BaseResponse implements IListWebhookAuditResponse {
+    items?: WebhookAuditSummaryDto[];
+    total?: number;
+    skip?: number;
+    pageSize?: number;
+
+    constructor(data?: IListWebhookAuditResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(WebhookAuditSummaryDto.fromJS(item));
+            }
+            this.total = _data["total"];
+            this.skip = _data["skip"];
+            this.pageSize = _data["pageSize"];
+        }
+    }
+
+    static override fromJS(data: any): ListWebhookAuditResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListWebhookAuditResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["total"] = this.total;
+        data["skip"] = this.skip;
+        data["pageSize"] = this.pageSize;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListWebhookAuditResponse extends IBaseResponse {
+    items?: WebhookAuditSummaryDto[];
+    total?: number;
+    skip?: number;
+    pageSize?: number;
+}
+
+export class WebhookAuditSummaryDto implements IWebhookAuditSummaryDto {
+    id?: string;
+    receivedAt?: Date;
+    eventName?: string | undefined;
+    accountId?: string | undefined;
+    appId?: string | undefined;
+    signatureStatus?: SmartsuppWebhookSignatureStatus;
+    processingStatus?: SmartsuppWebhookProcessingStatus;
+    bodySizeBytes?: number;
+    processingDurationMs?: number;
+    replayCount?: number;
+    lastReplayedAt?: Date | undefined;
+    processedAt?: Date | undefined;
+
+    constructor(data?: IWebhookAuditSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.receivedAt = _data["receivedAt"] ? new Date(_data["receivedAt"].toString()) : <any>undefined;
+            this.eventName = _data["eventName"];
+            this.accountId = _data["accountId"];
+            this.appId = _data["appId"];
+            this.signatureStatus = _data["signatureStatus"];
+            this.processingStatus = _data["processingStatus"];
+            this.bodySizeBytes = _data["bodySizeBytes"];
+            this.processingDurationMs = _data["processingDurationMs"];
+            this.replayCount = _data["replayCount"];
+            this.lastReplayedAt = _data["lastReplayedAt"] ? new Date(_data["lastReplayedAt"].toString()) : <any>undefined;
+            this.processedAt = _data["processedAt"] ? new Date(_data["processedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): WebhookAuditSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new WebhookAuditSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["receivedAt"] = this.receivedAt ? this.receivedAt.toISOString() : <any>undefined;
+        data["eventName"] = this.eventName;
+        data["accountId"] = this.accountId;
+        data["appId"] = this.appId;
+        data["signatureStatus"] = this.signatureStatus;
+        data["processingStatus"] = this.processingStatus;
+        data["bodySizeBytes"] = this.bodySizeBytes;
+        data["processingDurationMs"] = this.processingDurationMs;
+        data["replayCount"] = this.replayCount;
+        data["lastReplayedAt"] = this.lastReplayedAt ? this.lastReplayedAt.toISOString() : <any>undefined;
+        data["processedAt"] = this.processedAt ? this.processedAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IWebhookAuditSummaryDto {
+    id?: string;
+    receivedAt?: Date;
+    eventName?: string | undefined;
+    accountId?: string | undefined;
+    appId?: string | undefined;
+    signatureStatus?: SmartsuppWebhookSignatureStatus;
+    processingStatus?: SmartsuppWebhookProcessingStatus;
+    bodySizeBytes?: number;
+    processingDurationMs?: number;
+    replayCount?: number;
+    lastReplayedAt?: Date | undefined;
+    processedAt?: Date | undefined;
+}
+
+export enum SmartsuppWebhookSignatureStatus {
+    Valid = "Valid",
+    Missing = "Missing",
+    Mismatch = "Mismatch",
+    AppIdMismatch = "AppIdMismatch",
+}
+
+export enum SmartsuppWebhookProcessingStatus {
+    NotProcessed = "NotProcessed",
+    MalformedJson = "MalformedJson",
+    Success = "Success",
+    HandlerException = "HandlerException",
+}
+
+export class GetWebhookAuditEntryResponse extends BaseResponse implements IGetWebhookAuditEntryResponse {
+    entry?: WebhookAuditEntryDto | undefined;
+
+    constructor(data?: IGetWebhookAuditEntryResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.entry = _data["entry"] ? WebhookAuditEntryDto.fromJS(_data["entry"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetWebhookAuditEntryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetWebhookAuditEntryResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["entry"] = this.entry ? this.entry.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetWebhookAuditEntryResponse extends IBaseResponse {
+    entry?: WebhookAuditEntryDto | undefined;
+}
+
+export class WebhookAuditEntryDto implements IWebhookAuditEntryDto {
+    id?: string;
+    receivedAt?: Date;
+    remoteIp?: string;
+    signatureHeader?: string | undefined;
+    signatureStatus?: SmartsuppWebhookSignatureStatus;
+    headersJson?: string;
+    rawBody?: string;
+    bodySizeBytes?: number;
+    eventName?: string | undefined;
+    accountId?: string | undefined;
+    appId?: string | undefined;
+    eventTimestamp?: Date | undefined;
+    processingStatus?: SmartsuppWebhookProcessingStatus;
+    processingError?: string | undefined;
+    processingDurationMs?: number;
+    processedAt?: Date | undefined;
+    replayCount?: number;
+    lastReplayedAt?: Date | undefined;
+    lastReplayedBy?: string | undefined;
+
+    constructor(data?: IWebhookAuditEntryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.receivedAt = _data["receivedAt"] ? new Date(_data["receivedAt"].toString()) : <any>undefined;
+            this.remoteIp = _data["remoteIp"];
+            this.signatureHeader = _data["signatureHeader"];
+            this.signatureStatus = _data["signatureStatus"];
+            this.headersJson = _data["headersJson"];
+            this.rawBody = _data["rawBody"];
+            this.bodySizeBytes = _data["bodySizeBytes"];
+            this.eventName = _data["eventName"];
+            this.accountId = _data["accountId"];
+            this.appId = _data["appId"];
+            this.eventTimestamp = _data["eventTimestamp"] ? new Date(_data["eventTimestamp"].toString()) : <any>undefined;
+            this.processingStatus = _data["processingStatus"];
+            this.processingError = _data["processingError"];
+            this.processingDurationMs = _data["processingDurationMs"];
+            this.processedAt = _data["processedAt"] ? new Date(_data["processedAt"].toString()) : <any>undefined;
+            this.replayCount = _data["replayCount"];
+            this.lastReplayedAt = _data["lastReplayedAt"] ? new Date(_data["lastReplayedAt"].toString()) : <any>undefined;
+            this.lastReplayedBy = _data["lastReplayedBy"];
+        }
+    }
+
+    static fromJS(data: any): WebhookAuditEntryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new WebhookAuditEntryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["receivedAt"] = this.receivedAt ? this.receivedAt.toISOString() : <any>undefined;
+        data["remoteIp"] = this.remoteIp;
+        data["signatureHeader"] = this.signatureHeader;
+        data["signatureStatus"] = this.signatureStatus;
+        data["headersJson"] = this.headersJson;
+        data["rawBody"] = this.rawBody;
+        data["bodySizeBytes"] = this.bodySizeBytes;
+        data["eventName"] = this.eventName;
+        data["accountId"] = this.accountId;
+        data["appId"] = this.appId;
+        data["eventTimestamp"] = this.eventTimestamp ? this.eventTimestamp.toISOString() : <any>undefined;
+        data["processingStatus"] = this.processingStatus;
+        data["processingError"] = this.processingError;
+        data["processingDurationMs"] = this.processingDurationMs;
+        data["processedAt"] = this.processedAt ? this.processedAt.toISOString() : <any>undefined;
+        data["replayCount"] = this.replayCount;
+        data["lastReplayedAt"] = this.lastReplayedAt ? this.lastReplayedAt.toISOString() : <any>undefined;
+        data["lastReplayedBy"] = this.lastReplayedBy;
+        return data;
+    }
+}
+
+export interface IWebhookAuditEntryDto {
+    id?: string;
+    receivedAt?: Date;
+    remoteIp?: string;
+    signatureHeader?: string | undefined;
+    signatureStatus?: SmartsuppWebhookSignatureStatus;
+    headersJson?: string;
+    rawBody?: string;
+    bodySizeBytes?: number;
+    eventName?: string | undefined;
+    accountId?: string | undefined;
+    appId?: string | undefined;
+    eventTimestamp?: Date | undefined;
+    processingStatus?: SmartsuppWebhookProcessingStatus;
+    processingError?: string | undefined;
+    processingDurationMs?: number;
+    processedAt?: Date | undefined;
+    replayCount?: number;
+    lastReplayedAt?: Date | undefined;
+    lastReplayedBy?: string | undefined;
+}
+
+export class ReplayWebhookEventResponse extends BaseResponse implements IReplayWebhookEventResponse {
+    replayCount?: number;
+    lastReplayedAt?: Date | undefined;
+
+    constructor(data?: IReplayWebhookEventResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.replayCount = _data["replayCount"];
+            this.lastReplayedAt = _data["lastReplayedAt"] ? new Date(_data["lastReplayedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): ReplayWebhookEventResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReplayWebhookEventResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["replayCount"] = this.replayCount;
+        data["lastReplayedAt"] = this.lastReplayedAt ? this.lastReplayedAt.toISOString() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IReplayWebhookEventResponse extends IBaseResponse {
+    replayCount?: number;
+    lastReplayedAt?: Date | undefined;
 }
 
 export class SubmitStockTakingResponse extends BaseResponse implements ISubmitStockTakingResponse {
