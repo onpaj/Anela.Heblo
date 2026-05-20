@@ -18,6 +18,7 @@ public static class SmartsuppModule
     public static IServiceCollection AddSmartsuppModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<ISmartsuppRepository, SmartsuppRepository>();
+        services.AddScoped<ISmartsuppWebhookAuditWriter, SmartsuppWebhookAuditWriter>();
 
         services.AddOptions<SmartsuppDraftReplyOptions>()
             .Bind(configuration.GetSection(SmartsuppDraftReplyOptions.SectionName));
