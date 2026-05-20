@@ -246,7 +246,7 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         }
     }
 
-    public Task UpdateVisitorCacheAsync(
+    public async Task UpdateVisitorCacheAsync(
         string conversationId,
         string? userAgent,
         string? os,
@@ -254,8 +254,22 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         string? browserVersion,
         int? visitsCount,
         DateTime fetchedAt,
-        CancellationToken cancellationToken) =>
-        throw new NotImplementedException("Implemented in Task 5.");
+        CancellationToken cancellationToken)
+    {
+        var conversation = await _db.SmartsuppConversations
+            .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken);
+
+        if (conversation is null)
+            return;
+
+        conversation.VisitorUserAgent = userAgent;
+        conversation.VisitorOs = os;
+        conversation.VisitorBrowser = browser;
+        conversation.VisitorBrowserVersion = browserVersion;
+        conversation.VisitorVisitsCount = visitsCount;
+        conversation.VisitorInfoFetchedAt = fetchedAt;
+        await _db.SaveChangesAsync(cancellationToken);
+    }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
         await _db.SaveChangesAsync(cancellationToken);
