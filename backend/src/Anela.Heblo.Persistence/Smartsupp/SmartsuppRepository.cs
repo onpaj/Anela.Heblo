@@ -38,6 +38,7 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         await _db.SmartsuppConversations
             .AsNoTracking()
             .Include(c => c.Messages.OrderBy(m => m.CreatedAt))
+            .Include(c => c.Contact)
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
     public async Task UpsertContactAsync(
