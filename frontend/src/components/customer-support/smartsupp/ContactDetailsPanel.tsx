@@ -1,11 +1,12 @@
 import React from "react";
-import { ConversationDto, ConversationSummaryDto } from "../../../api/hooks/useSmartsupp";
+import { ConversationDto, ConversationSummaryDto, useSmartsuppVisitorInfo } from "../../../api/hooks/useSmartsupp";
 import StatusPill from "./StatusPill";
 import AgentBadge from "./AgentBadge";
 import { Star } from "lucide-react";
 import { countryCodeToFlag } from "./utils/countryCodeToFlag";
 import Section from "./Section";
 import ShoptetCustomerCard from "./ShoptetCustomerCard";
+import VisitorInfoCard from "./VisitorInfoCard";
 
 interface ContactDetailsPanelProps {
   conversation: ConversationDto;
@@ -71,6 +72,9 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
 
   const infoEntries = mergedInfoEntries(conversation.variables, conversation.contactProperties);
 
+  const { data: visitorData, isLoading: visitorLoading } = useSmartsuppVisitorInfo(conversation.id);
+  const visitorInfo = visitorData?.visitorInfo;
+
   return (
     <aside className="h-full w-full overflow-y-auto bg-white border-l border-gray-200">
       {/* Header */}
@@ -82,6 +86,24 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
           <div className="font-semibold text-sm text-gray-900 truncate">{displayName}</div>
           {conversation.contactEmail && (
             <div className="text-xs text-gray-500 truncate">{conversation.contactEmail}</div>
+          )}
+          {(visitorLoading || visitorInfo) && (
+            <div className="flex gap-3 mt-1">
+              <span className="text-xs text-gray-500" data-testid="visits-count">
+                {visitorLoading ? (
+                  <span className="inline-block w-8 h-2 bg-gray-200 rounded animate-pulse" />
+                ) : visitorInfo?.visitsCount != null ? (
+                  <>Návštěvy <span className="font-medium text-gray-800">{visitorInfo.visitsCount}</span></>
+                ) : null}
+              </span>
+              <span className="text-xs text-gray-500" data-testid="chats-count">
+                {visitorLoading ? (
+                  <span className="inline-block w-8 h-2 bg-gray-200 rounded animate-pulse" />
+                ) : visitorInfo?.chatsCount != null ? (
+                  <>Chaty <span className="font-medium text-gray-800">{visitorInfo.chatsCount}</span></>
+                ) : null}
+              </span>
+            </div>
           )}
         </div>
       </div>
@@ -201,6 +223,9 @@ function ContactDetailsPanel({ conversation, onSelectConversation }: ContactDeta
           ))}
         </Section>
       )}
+
+      {/* Visitor info — OS, browser, browsing history */}
+      <VisitorInfoCard conversationId={conversation.id} />
 
       {/* Shoptet Zákazník — rendered when resolved */}
       <ShoptetCustomerCard conversationId={conversation.id} />

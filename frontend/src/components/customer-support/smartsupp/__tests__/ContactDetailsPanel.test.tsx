@@ -6,6 +6,7 @@ import { ConversationDto } from "../../../../api/hooks/useSmartsupp";
 jest.mock("../../../../api/hooks/useSmartsupp", () => ({
   ...jest.requireActual("../../../../api/hooks/useSmartsupp"),
   useSmartsuppShoptetInfo: () => ({ data: null, isLoading: false }),
+  useSmartsuppVisitorInfo: () => ({ data: null, isLoading: false }),
 }));
 
 const fullConv: ConversationDto = {
@@ -165,5 +166,11 @@ describe("ContactDetailsPanel", () => {
       />
     );
     expect(screen.queryByText("shoptet_guid")).not.toBeInTheDocument();
+  });
+
+  it("does not show visits/chats row when visitor info is unavailable", () => {
+    render(<ContactDetailsPanel conversation={fullConv} />);
+    expect(screen.queryByTestId("visits-count")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("chats-count")).not.toBeInTheDocument();
   });
 });
