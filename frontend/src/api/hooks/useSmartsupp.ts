@@ -91,6 +91,7 @@ async function apiFetch(apiClient: ReturnType<typeof getAuthenticatedApiClient>,
 export const SMARTSUPP_QUERY_KEYS = {
   conversations: (status: string) => ["smartsupp", "conversations", status] as const,
   conversation: (id: string) => ["smartsupp", "conversation", id] as const,
+  shoptetInfo: (id: string) => ["smartsupp", "shoptet-info", id] as const,
 };
 
 export function useSmartsuppConversations(status: "Open" | "Resolved" = "Open") {
@@ -117,6 +118,53 @@ export function useSmartsuppConversation(id: string | null) {
     enabled: !!id,
     refetchInterval: 30_000,
     staleTime: 15_000,
+  });
+}
+
+export interface ShoptetCustomerSnapshotDto {
+  fullName?: string | null;
+  email?: string | null;
+  customerGroup?: string | null;
+  priceList?: string | null;
+  defaultShippingAddress?: string | null;
+}
+
+export interface ShoptetOrderSnapshotDto {
+  code: string;
+  statusName?: string | null;
+  totalWithVat?: number | null;
+  currencyCode?: string | null;
+  orderDate?: string | null;
+  adminUrl?: string | null;
+}
+
+export interface ShoptetContactInfoDto {
+  customer: ShoptetCustomerSnapshotDto;
+  recentOrders: ShoptetOrderSnapshotDto[];
+  cartUpdatedAt?: string | null;
+}
+
+export interface GetSmartsuppShoptetInfoResponse {
+  success: boolean;
+  contactInfo?: ShoptetContactInfoDto | null;
+}
+
+export function useSmartsuppShoptetInfo(conversationId: string | null) {
+  return useQuery({
+    queryKey: SMARTSUPP_QUERY_KEYS.shoptetInfo(conversationId ?? ""),
+    queryFn: async () => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await (apiClient as any).http.fetch(
+        `${baseUrl}/api/smartsupp/conversations/${conversationId}/shoptet-info`,
+        { method: "GET" }
+      );
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error(`Shoptet info error: ${response.status}`);
+      return response.json() as Promise<GetSmartsuppShoptetInfoResponse>;
+    },
+    enabled: !!conversationId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 }
 
