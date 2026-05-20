@@ -60,9 +60,14 @@ public sealed class ClaudeMeetingTaskExtractor : IMeetingTaskExtractor
 
             try
             {
-                var result = JsonSerializer.Deserialize<List<ExtractedTask>>(text, JsonOptions);
+                var result = JsonSerializer.Deserialize<List<ExtractedTask>>(text, JsonOptions) ?? [];
 
-                return result ?? [];
+                if (result.Count == 0)
+                {
+                    _logger.LogWarning("Meeting task extraction completed with no tasks — Claude returned an empty array");
+                }
+
+                return result;
             }
             catch (JsonException ex)
             {
