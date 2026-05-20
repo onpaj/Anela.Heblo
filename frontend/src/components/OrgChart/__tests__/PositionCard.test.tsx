@@ -54,6 +54,7 @@ describe('PositionCard', () => {
       department: 'Sales',
       description: 'Manages the team',
       level: 2,
+      employees: [],
     });
     const child = makePosition({
       id: 'child',
@@ -79,6 +80,10 @@ describe('PositionCard', () => {
     // Assert
     expect(container.querySelector('[data-position-id="parent"]')).not.toBeNull();
     expect(container.querySelector('[data-position-id="child"]')).not.toBeNull();
+    // Verify child is rendered within parent's subtree
+    const parentCard = container.querySelector('[data-position-id="parent"]');
+    const childCard = container.querySelector('[data-position-id="child"]');
+    expect(parentCard?.contains(childCard)).toBe(true);
     expect(container).toMatchSnapshot();
   });
 });
