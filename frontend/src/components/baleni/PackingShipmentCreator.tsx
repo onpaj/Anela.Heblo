@@ -90,6 +90,9 @@ function PackingShipmentCreator({ orderCode }: PackingShipmentCreatorProps) {
   }
 
   if (result && !result.labelReady) {
+    if (labelsQuery.data && labelsQuery.data.length > 0) {
+      return <PackingLabelPrinter orderCode={orderCode} />;
+    }
     return (
       <button
         className="rounded-lg border border-neutral-300 bg-white px-5 py-3 text-sm font-medium shadow"

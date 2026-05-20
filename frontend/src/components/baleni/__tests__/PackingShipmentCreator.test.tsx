@@ -85,6 +85,20 @@ describe('PackingShipmentCreator', () => {
     expect(screen.getByRole('button', { name: /Zkusit znovu/i })).toBeInTheDocument()
   })
 
+  it('shows PackingLabelPrinter when labelsQuery returns data after retry', () => {
+    mockUseCreateShipment.mockReturnValue({
+      ...idleMutation,
+      isSuccess: true,
+      data: { labelReady: false, labels: [], existingShipmentFound: false },
+    })
+    mockUseShipmentLabels.mockReturnValue({
+      ...idleLabels,
+      data: [{ packageName: 'P1', labelUrl: 'https://x.com/label.pdf' }],
+    })
+    render(<PackingShipmentCreator orderCode="0001234" />)
+    expect(screen.getByTestId('packing-label-printer')).toBeInTheDocument()
+  })
+
   it('Zkusit znovu calls refetch on useShipmentLabels', () => {
     const refetch = jest.fn()
     mockUseCreateShipment.mockReturnValue({

@@ -14,12 +14,24 @@ export const printLabelPdf = (orderCode: string, label: ShipmentLabelDto): void 
     `&shipmentGuid=${encodeURIComponent(label.shipmentGuid)}` +
     `&packageName=${encodeURIComponent(label.packageName)}`;
 
-  const iframe = document.createElement('iframe');
-  iframe.style.display = 'none';
-  iframe.src = url;
-  iframe.onload = () => {
-    iframe.contentWindow?.print();
-    document.body.removeChild(iframe);
-  };
-  document.body.appendChild(iframe);
+  void fetch(url)
+    .then(res => {
+      if (!res.ok) throw new Error(`Label PDF unavailable: ${res.status}`);
+      return res.blob();
+    })
+    .then(blob => {
+      const blobUrl = URL.createObjectURL(blob);
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = blobUrl;
+      iframe.onload = () => {
+        iframe.contentWindow?.print();
+        document.body.removeChild(iframe);
+        URL.revokeObjectURL(blobUrl);
+      };
+      document.body.appendChild(iframe);
+    })
+    .catch(() => {
+      // silently ignore — the print simply won't fire if the PDF is unavailable
+    });
 };
