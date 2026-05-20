@@ -490,12 +490,13 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             }
 
             var raw = await response.Content.ReadAsStringAsync(ct);
-            var result = JsonSerializer.Deserialize<SendMessageApiResponse>(raw, JsonOptions);
+            var result = JsonSerializer.Deserialize<SendMessageApiResponse>(raw, JsonOptions)
+                ?? throw new InvalidOperationException("Smartsupp send message returned an empty response body.");
 
             return new SmartsuppSentMessageData
             {
-                Id = result?.Id ?? string.Empty,
-                CreatedAt = result?.CreatedAt ?? DateTime.UtcNow,
+                Id = result.Id ?? string.Empty,
+                CreatedAt = DateTime.SpecifyKind(result.CreatedAt, DateTimeKind.Unspecified),
             };
         }, cancellationToken);
     }

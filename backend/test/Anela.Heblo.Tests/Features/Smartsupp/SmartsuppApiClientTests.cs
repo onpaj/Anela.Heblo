@@ -351,7 +351,7 @@ public class SmartsuppApiClientTests
 
         // Assert
         result.Id.Should().Be("msNewMessage123");
-        result.CreatedAt.Should().NotBe(default);
+        result.CreatedAt.Should().Be(new DateTime(2026, 5, 20, 10, 0, 0));
     }
 
     [Fact]
