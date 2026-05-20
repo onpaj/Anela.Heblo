@@ -201,6 +201,41 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         }, cancellationToken);
     }
 
+    public async Task<SmartsuppVisitorData?> GetVisitorAsync(
+        string visitorId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(_options.ApiToken))
+            throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
+
+        return await _pipeline.ExecuteAsync(async ct =>
+        {
+            var client = _httpClientFactory.CreateClient("Smartsupp");
+            using var request = new HttpRequestMessage(HttpMethod.Get,
+                $"{_options.BaseUrl}visitors/{visitorId}");
+            request.Headers.Add("Authorization", $"Bearer {_options.ApiToken}");
+
+            var response = await client.SendAsync(request, ct);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return null;
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Smartsupp visitor failed {Status}: {Body}", response.StatusCode, errorBody);
+                var ex = new HttpRequestException($"Smartsupp API {(int)response.StatusCode}", null, response.StatusCode);
+                if (response.Headers.RetryAfter?.Delta is { } delta)
+                    ex.Data["RetryAfter"] = delta;
+                throw ex;
+            }
+
+            var raw = await response.Content.ReadAsStringAsync(ct);
+            var result = JsonSerializer.Deserialize<SmartsuppVisitorApiResponse>(raw, JsonOptions);
+            return result is null ? null : MapVisitor(result);
+        }, cancellationToken);
+    }
+
     private static SmartsuppSearchResult MapSearchResult(SmartsuppSearchApiResponse r) =>
         new()
         {
@@ -270,6 +305,17 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             AttachmentsJson = item.Attachments is { } a ? JsonSerializer.Serialize(a) : null,
             ChannelType = item.Channel?.Type,
             ChannelId = item.Channel?.Id,
+        };
+
+    private static SmartsuppVisitorData MapVisitor(SmartsuppVisitorApiResponse item) =>
+        new()
+        {
+            Id = item.Id ?? "",
+            UserAgent = item.UserAgent,
+            Os = item.Os,
+            Browser = item.Browser,
+            BrowserVersion = item.BrowserVersion,
+            VisitsCount = item.Visits,
         };
 
     private static SmartsuppContactData MapContact(SmartsuppContactApiResponse item) =>
@@ -424,5 +470,15 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         public string? BannedBy { get; set; }
         public JsonElement? Tags { get; set; }
         public bool GdprApproved { get; set; }
+    }
+
+    private sealed class SmartsuppVisitorApiResponse
+    {
+        public string? Id { get; set; }
+        public string? UserAgent { get; set; }
+        public string? Os { get; set; }
+        public string? Browser { get; set; }
+        public string? BrowserVersion { get; set; }
+        public int? Visits { get; set; }
     }
 }

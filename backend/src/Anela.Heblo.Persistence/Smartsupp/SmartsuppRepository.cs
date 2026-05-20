@@ -246,6 +246,17 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         }
     }
 
+    public Task UpdateVisitorCacheAsync(
+        string conversationId,
+        string? userAgent,
+        string? os,
+        string? browser,
+        string? browserVersion,
+        int? visitsCount,
+        DateTime fetchedAt,
+        CancellationToken cancellationToken) =>
+        throw new NotImplementedException("Implemented in Task 5.");
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken) =>
         await _db.SaveChangesAsync(cancellationToken);
 }
