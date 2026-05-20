@@ -80,8 +80,12 @@ function getClientAndBaseUrl(): { apiClient: ReturnType<typeof getAuthenticatedA
   return { apiClient, baseUrl };
 }
 
+async function apiFetchRaw(apiClient: ReturnType<typeof getAuthenticatedApiClient>, url: string): Promise<Response> {
+  return (apiClient as any).http.fetch(url, { method: "GET" });
+}
+
 async function apiFetch(apiClient: ReturnType<typeof getAuthenticatedApiClient>, url: string): Promise<Response> {
-  const response = await (apiClient as any).http.fetch(url, { method: "GET" });
+  const response = await apiFetchRaw(apiClient, url);
   if (!response.ok) {
     throw new Error(`Smartsupp API error: ${response.status} ${response.statusText}`);
   }
@@ -154,16 +158,16 @@ export function useSmartsuppShoptetInfo(conversationId: string | null) {
     queryKey: SMARTSUPP_QUERY_KEYS.shoptetInfo(conversationId ?? ""),
     queryFn: async () => {
       const { apiClient, baseUrl } = getClientAndBaseUrl();
-      const response = await (apiClient as any).http.fetch(
-        `${baseUrl}/api/smartsupp/conversations/${conversationId}/shoptet-info`,
-        { method: "GET" }
+      const response = await apiFetchRaw(
+        apiClient,
+        `${baseUrl}/api/smartsupp/conversations/${conversationId}/shoptet-info`
       );
       if (response.status === 404) return null;
       if (!response.ok) throw new Error(`Shoptet info error: ${response.status}`);
       return response.json() as Promise<GetSmartsuppShoptetInfoResponse>;
     },
     enabled: !!conversationId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 300_000,
     retry: false,
   });
 }
