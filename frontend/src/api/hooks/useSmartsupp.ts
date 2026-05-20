@@ -96,6 +96,7 @@ export const SMARTSUPP_QUERY_KEYS = {
   conversations: (status: string) => ["smartsupp", "conversations", status] as const,
   conversation: (id: string) => ["smartsupp", "conversation", id] as const,
   shoptetInfo: (id: string) => ["smartsupp", "shoptet-info", id] as const,
+  visitorInfo: (id: string) => ["smartsupp", "visitor-info", id] as const,
 };
 
 export function useSmartsuppConversations(status: "Open" | "Resolved" = "Open") {
@@ -153,6 +154,25 @@ export interface GetSmartsuppShoptetInfoResponse {
   contactInfo?: ShoptetContactInfoDto | null;
 }
 
+export interface VisitorPageDto {
+  url: string;
+}
+
+export interface VisitorInfoDto {
+  os?: string | null;
+  browser?: string | null;
+  browserVersion?: string | null;
+  userAgent?: string | null;
+  visitsCount?: number | null;
+  chatsCount: number;
+  pages: VisitorPageDto[];
+}
+
+export interface GetSmartsuppVisitorInfoResponse {
+  success: boolean;
+  visitorInfo?: VisitorInfoDto | null;
+}
+
 export function useSmartsuppShoptetInfo(conversationId: string | null) {
   return useQuery({
     queryKey: SMARTSUPP_QUERY_KEYS.shoptetInfo(conversationId ?? ""),
@@ -168,6 +188,25 @@ export function useSmartsuppShoptetInfo(conversationId: string | null) {
     },
     enabled: !!conversationId,
     staleTime: 300_000,
+    retry: false,
+  });
+}
+
+export function useSmartsuppVisitorInfo(conversationId: string | null) {
+  return useQuery({
+    queryKey: SMARTSUPP_QUERY_KEYS.visitorInfo(conversationId ?? ""),
+    queryFn: async () => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await apiFetchRaw(
+        apiClient,
+        `${baseUrl}/api/smartsupp/conversations/${conversationId}/visitor-info`
+      );
+      if (response.status === 404) return null;
+      if (!response.ok) throw new Error(`Visitor info error: ${response.status}`);
+      return response.json() as Promise<GetSmartsuppVisitorInfoResponse>;
+    },
+    enabled: !!conversationId,
+    staleTime: 600_000,
     retry: false,
   });
 }
