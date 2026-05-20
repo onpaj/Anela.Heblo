@@ -211,3 +211,110 @@ public class SmartsuppRepositoryMessageDeliveryTests
         await act.Should().NotThrowAsync();
     }
 }
+
+public class SmartsuppRepositoryDenormFieldTests
+{
+    private static ApplicationDbContext NewContext()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        return new ApplicationDbContext(options);
+    }
+
+    private static SmartsuppConversation MakeConversation(
+        string id,
+        string? contactName = null,
+        string? contactEmail = null,
+        string? contactId = null) =>
+        new()
+        {
+            Id = id,
+            Status = SmartsuppConversationStatus.Open,
+            ContactName = contactName,
+            ContactEmail = contactEmail,
+            ContactId = contactId,
+            CreatedAt = new DateTime(2026, 5, 20, 10, 0, 0, DateTimeKind.Unspecified),
+            UpdatedAt = new DateTime(2026, 5, 20, 11, 0, 0, DateTimeKind.Unspecified),
+            SyncedAt = new DateTime(2026, 5, 20, 12, 0, 0, DateTimeKind.Unspecified),
+        };
+
+    private static SmartsuppContact MakeContact(string id, string? name = null, string? email = null) =>
+        new()
+        {
+            Id = id,
+            Name = name,
+            Email = email,
+            CreatedAt = new DateTime(2026, 5, 20, 10, 0, 0, DateTimeKind.Unspecified),
+            UpdatedAt = new DateTime(2026, 5, 20, 10, 0, 0, DateTimeKind.Unspecified),
+            SyncedAt = new DateTime(2026, 5, 20, 10, 0, 0, DateTimeKind.Unspecified),
+        };
+
+    [Fact]
+    public async Task UpsertConversationAsync_PreservesDenormFields_WhenNewValuesAreNull()
+    {
+        // Arrange
+        await using var db = NewContext();
+        var existing = MakeConversation("c1", contactName: "Jana Nováková", contactEmail: "jana@x.cz");
+        db.SmartsuppConversations.Add(existing);
+        await db.SaveChangesAsync();
+
+        var repo = new SmartsuppRepository(db);
+        var incoming = MakeConversation("c1", contactName: null, contactEmail: null);
+        incoming.UpdatedAt = new DateTime(2026, 5, 20, 12, 0, 0, DateTimeKind.Unspecified);
+
+        // Act
+        await repo.UpsertConversationAsync(incoming, CancellationToken.None);
+        await db.SaveChangesAsync();
+
+        // Assert
+        var stored = await db.SmartsuppConversations.SingleAsync();
+        stored.ContactName.Should().Be("Jana Nováková");
+        stored.ContactEmail.Should().Be("jana@x.cz");
+    }
+
+    [Fact]
+    public async Task UpsertConversationAsync_HydratesDenormFields_FromExistingContact()
+    {
+        // Arrange
+        await using var db = NewContext();
+        var contact = MakeContact("c-contact-1", name: "Petr Novák", email: "petr@x.cz");
+        db.SmartsuppContacts.Add(contact);
+        await db.SaveChangesAsync();
+
+        var repo = new SmartsuppRepository(db);
+        var incoming = MakeConversation("conv-1", contactName: null, contactEmail: null, contactId: "c-contact-1");
+
+        // Act
+        await repo.UpsertConversationAsync(incoming, CancellationToken.None);
+        await db.SaveChangesAsync();
+
+        // Assert
+        var stored = await db.SmartsuppConversations.SingleAsync();
+        stored.ContactName.Should().Be("Petr Novák");
+        stored.ContactEmail.Should().Be("petr@x.cz");
+        stored.ContactId.Should().Be("c-contact-1");
+    }
+
+    [Fact]
+    public async Task BackfillConversationDenormFieldsAsync_UpdatesConversations_WithContactNameAndEmail()
+    {
+        // Arrange
+        await using var db = NewContext();
+        var conv = MakeConversation("conv-backfill", contactName: null, contactEmail: null, contactId: "c-backfill");
+        db.SmartsuppConversations.Add(conv);
+        await db.SaveChangesAsync();
+
+        var repo = new SmartsuppRepository(db);
+        var contact = MakeContact("c-backfill", name: "Marie Svobodová", email: "marie@x.cz");
+
+        // Act
+        await repo.BackfillConversationDenormFieldsAsync(contact, CancellationToken.None);
+        await db.SaveChangesAsync();
+
+        // Assert
+        var stored = await db.SmartsuppConversations.SingleAsync();
+        stored.ContactName.Should().Be("Marie Svobodová");
+        stored.ContactEmail.Should().Be("marie@x.cz");
+    }
+}
