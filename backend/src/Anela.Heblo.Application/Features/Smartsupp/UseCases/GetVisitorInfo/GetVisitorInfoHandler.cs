@@ -28,10 +28,10 @@ public class GetVisitorInfoHandler : IRequestHandler<GetVisitorInfoRequest, GetV
         if (string.IsNullOrEmpty(conversation.VisitorId))
             return new GetVisitorInfoResponse(ErrorCodes.SmartsuppVisitorNotFound);
 
-        var otherChats = await _repo.ListConversationsForContactAsync(
-            conversation.ContactId ?? "",
-            conversation.Id,
-            cancellationToken);
+        var otherChats = conversation.ContactId is not null
+            ? await _repo.ListConversationsForContactAsync(
+                  conversation.ContactId, conversation.Id, cancellationToken)
+            : [];
         var chatsCount = otherChats.Count + 1;
 
         var isCacheStale = conversation.VisitorInfoFetchedAt is null ||

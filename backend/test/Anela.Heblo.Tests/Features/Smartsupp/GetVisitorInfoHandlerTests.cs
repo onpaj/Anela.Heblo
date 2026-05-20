@@ -146,6 +146,37 @@ public class GetVisitorInfoHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ReturnsChatsCountOfOne_WhenContactIdIsNull()
+    {
+        // Arrange — contactless visitor with fresh cache so no API call is needed
+        var conv = MakeConversation(
+            contactId: null,
+            visitorInfoFetchedAt: DateTime.UtcNow.AddHours(-1));
+        conv.VisitorOs = "Android 14";
+        conv.VisitorBrowser = "Chrome Mobile";
+        conv.VisitorBrowserVersion = "124.0";
+        conv.VisitorUserAgent = "Mozilla/5.0 Android";
+        conv.VisitorVisitsCount = 3;
+
+        _repo.Setup(r => r.GetConversationAsync("c1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(conv);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new GetVisitorInfoRequest { ConversationId = "c1" },
+            CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.VisitorInfo!.ChatsCount.Should().Be(1);
+
+        _repo.Verify(
+            r => r.ListConversationsForContactAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsPageHistory_FromMessagePageUrls()
     {
         var conv = MakeConversation(visitorInfoFetchedAt: null);
