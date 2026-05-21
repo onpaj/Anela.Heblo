@@ -56,6 +56,9 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(UpdatePackingMaterialResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UpdatePackingMaterialResponse>> UpdatePackingMaterial(
         int id,
         [FromBody] UpdatePackingMaterialRequest request,
@@ -72,7 +75,9 @@ public class PackingMaterialsController : BaseApiController
         }
 
         var response = await _mediator.Send(request, cancellationToken);
-        return Ok(response);
+        if (response.Success) return Ok(response);
+        if (response.ErrorCode == ErrorCodes.ResourceNotFound) return NotFound(new { error = response.Error });
+        return BadRequest(new { error = response.Error });
     }
 
     [HttpPost("{id}/quantity")]
