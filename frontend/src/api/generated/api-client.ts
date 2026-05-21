@@ -9785,6 +9785,109 @@ export class ApiClient {
         return Promise.resolve<GetSmartsuppContactShoptetInfoResponse>(null as any);
     }
 
+    smartsupp_GetVisitorInfo(id: string): Promise<GetVisitorInfoResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations/{id}/visitor-info";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_GetVisitorInfo(_response);
+        });
+    }
+
+    protected processSmartsupp_GetVisitorInfo(response: Response): Promise<GetVisitorInfoResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetVisitorInfoResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetVisitorInfoResponse>(null as any);
+    }
+
+    smartsupp_SendMessage(conversationId: string, body: SendMessageBody): Promise<SendMessageResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations/{conversationId}/messages";
+        if (conversationId === undefined || conversationId === null)
+            throw new Error("The parameter 'conversationId' must be defined.");
+        url_ = url_.replace("{conversationId}", encodeURIComponent("" + conversationId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_SendMessage(_response);
+        });
+    }
+
+    protected processSmartsupp_SendMessage(response: Response): Promise<SendMessageResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SendMessageResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 503) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SendMessageResponse>(null as any);
+    }
+
     smartsuppWebhookAudit_List(from: Date | null | undefined, to: Date | null | undefined, eventName: string | null | undefined, signatureStatus: SmartsuppWebhookSignatureStatus | null | undefined, processingStatus: SmartsuppWebhookProcessingStatus | null | undefined, skip: number | undefined, take: number | undefined): Promise<ListWebhookAuditResponse> {
         let url_ = this.baseUrl + "/api/admin/smartsupp/webhooks?";
         if (from !== undefined && from !== null)
@@ -11219,6 +11322,9 @@ export enum ErrorCodes {
     SmartsuppDraftReplyAiUnavailable = "SmartsuppDraftReplyAiUnavailable",
     SmartsuppConversationEmpty = "SmartsuppConversationEmpty",
     SmartsuppShoptetCustomerNotFound = "SmartsuppShoptetCustomerNotFound",
+    SmartsuppVisitorNotFound = "SmartsuppVisitorNotFound",
+    SmartsuppSendMessageUnavailable = "SmartsuppSendMessageUnavailable",
+    SmartsuppAgentMappingNotFound = "SmartsuppAgentMappingNotFound",
     LotNotFound = "LotNotFound",
     EanNotFound = "EanNotFound",
     LotAlreadyExists = "LotAlreadyExists",
@@ -33360,6 +33466,216 @@ export interface IShoptetOrderSnapshotDto {
     currencyCode?: string | undefined;
     orderDate?: Date | undefined;
     adminUrl?: string | undefined;
+}
+
+export class GetVisitorInfoResponse extends BaseResponse implements IGetVisitorInfoResponse {
+    visitorInfo?: VisitorInfoDto | undefined;
+
+    constructor(data?: IGetVisitorInfoResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.visitorInfo = _data["visitorInfo"] ? VisitorInfoDto.fromJS(_data["visitorInfo"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetVisitorInfoResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetVisitorInfoResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["visitorInfo"] = this.visitorInfo ? this.visitorInfo.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetVisitorInfoResponse extends IBaseResponse {
+    visitorInfo?: VisitorInfoDto | undefined;
+}
+
+export class VisitorInfoDto implements IVisitorInfoDto {
+    os?: string | undefined;
+    browser?: string | undefined;
+    browserVersion?: string | undefined;
+    userAgent?: string | undefined;
+    visitsCount?: number | undefined;
+    chatsCount?: number;
+    pages?: VisitorPageDto[];
+
+    constructor(data?: IVisitorInfoDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.os = _data["os"];
+            this.browser = _data["browser"];
+            this.browserVersion = _data["browserVersion"];
+            this.userAgent = _data["userAgent"];
+            this.visitsCount = _data["visitsCount"];
+            this.chatsCount = _data["chatsCount"];
+            if (Array.isArray(_data["pages"])) {
+                this.pages = [] as any;
+                for (let item of _data["pages"])
+                    this.pages!.push(VisitorPageDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): VisitorInfoDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new VisitorInfoDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["os"] = this.os;
+        data["browser"] = this.browser;
+        data["browserVersion"] = this.browserVersion;
+        data["userAgent"] = this.userAgent;
+        data["visitsCount"] = this.visitsCount;
+        data["chatsCount"] = this.chatsCount;
+        if (Array.isArray(this.pages)) {
+            data["pages"] = [];
+            for (let item of this.pages)
+                data["pages"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IVisitorInfoDto {
+    os?: string | undefined;
+    browser?: string | undefined;
+    browserVersion?: string | undefined;
+    userAgent?: string | undefined;
+    visitsCount?: number | undefined;
+    chatsCount?: number;
+    pages?: VisitorPageDto[];
+}
+
+export class VisitorPageDto implements IVisitorPageDto {
+    url?: string;
+
+    constructor(data?: IVisitorPageDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.url = _data["url"];
+        }
+    }
+
+    static fromJS(data: any): VisitorPageDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new VisitorPageDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["url"] = this.url;
+        return data;
+    }
+}
+
+export interface IVisitorPageDto {
+    url?: string;
+}
+
+export class SendMessageResponse extends BaseResponse implements ISendMessageResponse {
+    messageId?: string;
+    createdAt?: Date;
+
+    constructor(data?: ISendMessageResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.messageId = _data["messageId"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): SendMessageResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SendMessageResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["messageId"] = this.messageId;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISendMessageResponse extends IBaseResponse {
+    messageId?: string;
+    createdAt?: Date;
+}
+
+export class SendMessageBody implements ISendMessageBody {
+    content?: string;
+
+    constructor(data?: ISendMessageBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.content = _data["content"];
+        }
+    }
+
+    static fromJS(data: any): SendMessageBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new SendMessageBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["content"] = this.content;
+        return data;
+    }
+}
+
+export interface ISendMessageBody {
+    content?: string;
 }
 
 export class ListWebhookAuditResponse extends BaseResponse implements IListWebhookAuditResponse {
