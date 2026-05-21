@@ -16,14 +16,17 @@ function getInitials(name: string): string {
 
 const AgentBadge: React.FC<AgentBadgeProps> = ({ agentId, name, showInitials = true }) => {
   const color = getAgentColor(agentId);
-  const trimmedName = name?.trim();
-  const hasName = !!trimmedName;
-  const initials = hasName
-    ? getInitials(trimmedName!)
-    : agentId
-        ? agentId.slice(0, 2).toUpperCase()
-        : "?";
-  const label = hasName ? trimmedName! : "Agent";
+  let initials: string;
+  let label: string;
+
+  if (name?.trim()) {
+    const trimmedName = name.trim();
+    initials = getInitials(trimmedName);
+    label = trimmedName;
+  } else {
+    initials = agentId ? agentId.slice(0, 2).toUpperCase() : "?";
+    label = "Agent";
+  }
 
   return (
     <span
