@@ -8,18 +8,7 @@ namespace Anela.Heblo.Application.Features.FeatureFlags;
 /// </summary>
 public static class FeatureFlagRegistry
 {
-    public static readonly IReadOnlyList<FeatureFlagDefinition> All =
-    [
-        new(FeatureFlagKeys.TransportBoxTracking,
-            Description: "Controls whether transport box tracking is enabled.",
-            DefaultValue: false),
-        new(FeatureFlagKeys.StockTaking,
-            Description: "Controls whether stock taking submission UI and processing is enabled.",
-            DefaultValue: false),
-        new(FeatureFlagKeys.BackgroundRefresh,
-            Description: "Controls whether background data refresh is enabled. Disable in test environments.",
-            DefaultValue: true),
-    ];
+    public static readonly IReadOnlyList<FeatureFlagDefinition> All = [];
 
     public static readonly IReadOnlyDictionary<string, FeatureFlagDefinition> ByKey =
         All.ToDictionary(d => d.Key, StringComparer.Ordinal);
