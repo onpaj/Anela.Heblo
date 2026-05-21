@@ -66,19 +66,24 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
             }
         }
 
-        // Relies on EF change tracking — GetAllWithAllocationsAsync must NOT use AsNoTracking
-        if (processedCount == 0 && materials.Count > 0)
-        {
-            var marker = materials[0];
-            marker.UpdateQuantity(marker.CurrentQuantity, processingDate, LogEntryType.AutomaticConsumption);
-        }
-
         if (allFactRows.Count > 0)
             await _repository.AddConsumptionRowsAsync(allFactRows, cancellationToken);
 
-        await _repository.SaveChangesAsync(cancellationToken);
+        var dailyRun = new PackingMaterialDailyRun(processingDate, processedCount);
+        await _repository.AddDailyRunAsync(dailyRun, cancellationToken);
 
-        _logger.LogInformation("Completed daily consumption processing for {Date}. Processed {ProcessedCount} materials",
+        try
+        {
+            await _repository.SaveChangesAsync(cancellationToken);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (IsDuplicateDailyRunViolation(ex))
+        {
+            _logger.LogWarning("PackingMaterialsDailyRunDuplicateDetected: duplicate daily run for {ProcessingDate} detected, rolling back",
+                processingDate);
+            return new ProcessDailyConsumptionResult(false, 0);
+        }
+
+        _logger.LogInformation("PackingMaterialsDailyRunRecorded: daily run recorded for {ProcessingDate}. MaterialsProcessed={MaterialsProcessed}",
             processingDate, processedCount);
 
         return new ProcessDailyConsumptionResult(true, processedCount);
@@ -114,4 +119,9 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
             _ => throw new ArgumentOutOfRangeException(nameof(material.ConsumptionType))
         };
     }
+
+    private static bool IsDuplicateDailyRunViolation(Microsoft.EntityFrameworkCore.DbUpdateException ex) =>
+        ex.InnerException is Npgsql.PostgresException pg
+        && pg.SqlState == Npgsql.PostgresErrorCodes.UniqueViolation
+        && string.Equals(pg.ConstraintName, "IX_PackingMaterialDailyRuns_Date", StringComparison.Ordinal);
 }

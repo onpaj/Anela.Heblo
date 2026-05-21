@@ -1,5 +1,4 @@
 using Anela.Heblo.Domain.Features.PackingMaterials;
-using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using Anela.Heblo.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,8 +32,13 @@ public class PackingMaterialRepository : BaseRepository<PackingMaterial, int>, I
 
     public async Task<bool> HasDailyProcessingBeenRunAsync(DateOnly date, CancellationToken cancellationToken = default)
     {
-        return await Context.Set<PackingMaterialLog>()
-            .AnyAsync(log => log.Date == date && log.LogType == LogEntryType.AutomaticConsumption, cancellationToken);
+        return await Context.Set<PackingMaterialDailyRun>()
+            .AnyAsync(r => r.Date == date, cancellationToken);
+    }
+
+    public async Task AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default)
+    {
+        await Context.Set<PackingMaterialDailyRun>().AddAsync(run, cancellationToken);
     }
 
     public async Task<IEnumerable<PackingMaterial>> GetAllWithAllocationsAsync(CancellationToken cancellationToken = default)

@@ -86,6 +86,7 @@ public class ApplicationDbContext : DbContext
     // Packing Materials module
     public DbSet<PackingMaterial> PackingMaterials { get; set; } = null!;
     public DbSet<PackingMaterialLog> PackingMaterialLogs { get; set; } = null!;
+    public DbSet<PackingMaterialDailyRun> PackingMaterialDailyRuns { get; set; } = null!;
 
     // Carrier Cooling module
     public DbSet<CarrierCoolingSetting> CarrierCoolingSettings { get; set; } = null!;
