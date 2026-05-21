@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.FeatureFlags;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Domain.Features.DataQuality;
@@ -144,6 +145,9 @@ public class ApplicationDbContext : DbContext
     // Inventory module
     public DbSet<Lot> Lots { get; set; } = null!;
     public DbSet<Ean> Eans { get; set; } = null!;
+
+    // Feature Flags module
+    public DbSet<FeatureFlagOverride> FeatureFlagOverrides { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
