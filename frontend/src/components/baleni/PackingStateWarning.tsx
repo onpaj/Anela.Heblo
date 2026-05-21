@@ -6,11 +6,12 @@ interface PackingStateWarningProps {
 }
 
 /**
- * Large danger banner shown when a scanned order is NOT in the "Balí se" packing state.
+ * Large danger banner shown when a scanned order is NOT eligible for packing.
+ * Displays warning text from the backend eligibility response.
  * Purely visual — it does not capture focus, so the scanner input stays ready.
  */
 function PackingStateWarning({ order }: PackingStateWarningProps) {
-  if (order.isInPackingState) {
+  if (order.eligibility.isEligible) {
     return null;
   }
 
@@ -22,10 +23,12 @@ function PackingStateWarning({ order }: PackingStateWarningProps) {
     >
       <AlertTriangle className="h-12 w-12 shrink-0 text-red-600" strokeWidth={2.5} />
       <div>
-        <p className="text-xl font-bold text-red-700">Objednávka není ve stavu „Balí se"</p>
-        <p className="text-sm text-red-600">
-          Tuto objednávku nezpracovávejte, dokud nebude ve správném stavu.
-        </p>
+        {order.eligibility.warningTitle && (
+          <p className="text-xl font-bold text-red-700">{order.eligibility.warningTitle}</p>
+        )}
+        {order.eligibility.warningBody && (
+          <p className="text-sm text-red-600">{order.eligibility.warningBody}</p>
+        )}
       </div>
     </div>
   );
