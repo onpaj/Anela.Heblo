@@ -82,4 +82,26 @@ describe("ShoptetCustomerCard", () => {
     render(<ShoptetCustomerCard conversationId="c1" />, { wrapper });
     expect(screen.getByText("CZ, Praha, 12000, Ulice 5")).toBeInTheDocument();
   });
+
+  it("renders no customer section when contactInfo.customer is null", () => {
+    mockedHook.mockReturnValue({
+      data: { success: true, contactInfo: { customer: null, recentOrders: [], cartUpdatedAt: null } },
+      isLoading: false,
+    });
+    render(<ShoptetCustomerCard conversationId="c1" />, { wrapper });
+    expect(screen.queryByText("Shoptet Zákazník")).not.toBeInTheDocument();
+  });
+
+  it("still renders cart section when customer is null but cartUpdatedAt is set", () => {
+    mockedHook.mockReturnValue({
+      data: {
+        success: true,
+        contactInfo: { customer: null, recentOrders: [], cartUpdatedAt: "2026-04-15T12:00:00" },
+      },
+      isLoading: false,
+    });
+    render(<ShoptetCustomerCard conversationId="c1" />, { wrapper });
+    expect(screen.queryByText("Shoptet Zákazník")).not.toBeInTheDocument();
+    expect(screen.getByText("Shoptet Košík")).toBeInTheDocument();
+  });
 });

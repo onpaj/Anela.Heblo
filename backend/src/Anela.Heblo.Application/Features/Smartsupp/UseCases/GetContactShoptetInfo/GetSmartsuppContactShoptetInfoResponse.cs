@@ -5,7 +5,7 @@ namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.GetContactShoptetI
 
 public class GetSmartsuppContactShoptetInfoResponse : BaseResponse
 {
-    public ShoptetContactInfoDto? ContactInfo { get; set; }
+    public ShoptetContactInfoDto? ContactInfo { get; init; }
 
     public GetSmartsuppContactShoptetInfoResponse() { }
     public GetSmartsuppContactShoptetInfoResponse(ErrorCodes errorCode) : base(errorCode) { }

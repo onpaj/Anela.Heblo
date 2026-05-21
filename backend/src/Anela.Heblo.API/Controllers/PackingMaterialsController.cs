@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetDailyConsump
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialLogs;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.ProcessDailyConsumption;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdateAllocation;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterialQuantity;
 using Anela.Heblo.API.Infrastructure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -56,6 +57,9 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(UpdatePackingMaterialResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UpdatePackingMaterialResponse>> UpdatePackingMaterial(
         int id,
         [FromBody] UpdatePackingMaterialRequest request,
@@ -72,10 +76,15 @@ public class PackingMaterialsController : BaseApiController
         }
 
         var response = await _mediator.Send(request, cancellationToken);
-        return Ok(response);
+        if (response.Success) return Ok(response);
+        if (response.ErrorCode == ErrorCodes.ResourceNotFound) return NotFound(new { error = response.Error });
+        return BadRequest(new { error = response.Error });
     }
 
     [HttpPost("{id}/quantity")]
+    [ProducesResponseType(typeof(UpdatePackingMaterialQuantityResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UpdatePackingMaterialQuantityResponse>> UpdatePackingMaterialQuantity(
         int id,
         [FromBody] UpdateQuantityRequest request,
@@ -94,17 +103,24 @@ public class PackingMaterialsController : BaseApiController
         };
 
         var response = await _mediator.Send(quantityRequest, cancellationToken);
-        return Ok(response);
+        if (response.Success) return Ok(response);
+        if (response.ErrorCode == ErrorCodes.ResourceNotFound) return NotFound(new { error = response.Error });
+        return BadRequest(new { error = response.Error });
     }
 
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DeletePackingMaterial(
         int id,
         CancellationToken cancellationToken = default)
     {
         var request = new DeletePackingMaterialRequest { Id = id };
-        await _mediator.Send(request, cancellationToken);
-        return NoContent();
+        var response = await _mediator.Send(request, cancellationToken);
+        if (response.Success) return NoContent();
+        if (response.ErrorCode == ErrorCodes.ResourceNotFound) return NotFound(new { error = response.Error });
+        return BadRequest(new { error = response.Error });
     }
 
     [HttpPost("process-daily-consumption")]
@@ -140,6 +156,9 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpGet("{id}/logs")]
+    [ProducesResponseType(typeof(GetPackingMaterialLogsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<GetPackingMaterialLogsResponse>> GetPackingMaterialLogs(
         int id,
         [FromQuery] int days = 60,
@@ -152,7 +171,9 @@ public class PackingMaterialsController : BaseApiController
         };
 
         var response = await _mediator.Send(request, cancellationToken);
-        return Ok(response);
+        if (response.Success) return Ok(response);
+        if (response.ErrorCode == ErrorCodes.ResourceNotFound) return NotFound(new { error = response.Error });
+        return BadRequest(new { error = response.Error });
     }
 
     [HttpGet("{id}/allocations")]

@@ -47,14 +47,14 @@ describe('Sidebar navigation', () => {
   });
 
   // Finance is role-gated (requires finance_reader role) and won't appear with empty roles mock.
-  // Instead we assert ordering relative to "Automatizace" which is always visible.
-  it('"Anela" group appears before other groups like Automatizace', () => {
+  // Instead we assert ordering relative to "Administrace" which is always visible.
+  it('"Anela" group appears before other groups like Administrace', () => {
     renderSidebar();
     const buttons = screen.getAllByRole('button');
     const anelaIdx = buttons.findIndex(b => b.textContent?.includes('Anela'));
-    const automatizaceIdx = buttons.findIndex(b => b.textContent?.includes('Automatizace'));
+    const administraceIdx = buttons.findIndex(b => b.textContent?.includes('Administrace'));
     expect(anelaIdx).toBeGreaterThanOrEqual(0);
-    expect(automatizaceIdx).toBeGreaterThanOrEqual(0);
-    expect(anelaIdx).toBeLessThan(automatizaceIdx);
+    expect(administraceIdx).toBeGreaterThanOrEqual(0);
+    expect(anelaIdx).toBeLessThan(administraceIdx);
   });
 });

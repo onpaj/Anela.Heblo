@@ -688,6 +688,28 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.ToTable("InvoiceDqtResults", "public");
                 });
 
+            modelBuilder.Entity("Anela.Heblo.Domain.Features.FeatureFlags.FeatureFlagOverride", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("FeatureFlagOverrides", "public");
+                });
+
             modelBuilder.Entity("Anela.Heblo.Domain.Features.GridLayouts.GridLayout", b =>
                 {
                     b.Property<int>("Id")

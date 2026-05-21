@@ -2,26 +2,26 @@ namespace Anela.Heblo.Application.Features.Smartsupp.Contracts;
 
 public class ShoptetContactInfoDto
 {
-    public required ShoptetCustomerSnapshotDto Customer { get; set; }
-    public List<ShoptetOrderSnapshotDto> RecentOrders { get; set; } = new();
-    public DateTime? CartUpdatedAt { get; set; }
+    public ShoptetCustomerSnapshotDto? Customer { get; init; }
+    public List<ShoptetOrderSnapshotDto> RecentOrders { get; init; } = new();
+    public DateTime? CartUpdatedAt { get; init; }
 }
 
 public class ShoptetCustomerSnapshotDto
 {
-    public string? FullName { get; set; }
-    public string? Email { get; set; }
-    public string? CustomerGroup { get; set; }
-    public string? PriceList { get; set; }
-    public string? DefaultShippingAddress { get; set; }
+    public string? FullName { get; init; }
+    public string? Email { get; init; }
+    public string? CustomerGroup { get; init; }
+    public string? PriceList { get; init; }
+    public string? DefaultShippingAddress { get; init; }
 }
 
 public class ShoptetOrderSnapshotDto
 {
-    public required string Code { get; set; }
-    public string? StatusName { get; set; }
-    public decimal? TotalWithVat { get; set; }
-    public string? CurrencyCode { get; set; }
-    public DateTime? OrderDate { get; set; }
-    public string? AdminUrl { get; set; }
+    public required string Code { get; init; }
+    public string? StatusName { get; init; }
+    public decimal? TotalWithVat { get; init; }
+    public string? CurrencyCode { get; init; }
+    public DateTime? OrderDate { get; init; }
+    public string? AdminUrl { get; init; }
 }

@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.FeatureFlags;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Domain.Features.DataQuality;
@@ -85,6 +86,7 @@ public class ApplicationDbContext : DbContext
     // Packing Materials module
     public DbSet<PackingMaterial> PackingMaterials { get; set; } = null!;
     public DbSet<PackingMaterialLog> PackingMaterialLogs { get; set; } = null!;
+    public DbSet<PackingMaterialDailyRun> PackingMaterialDailyRuns { get; set; } = null!;
 
     // Carrier Cooling module
     public DbSet<CarrierCoolingSetting> CarrierCoolingSettings { get; set; } = null!;
@@ -145,11 +147,18 @@ public class ApplicationDbContext : DbContext
     public DbSet<Lot> Lots { get; set; } = null!;
     public DbSet<Ean> Eans { get; set; } = null!;
 
+    // Feature Flags module
+    public DbSet<FeatureFlagOverride> FeatureFlagOverrides { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.HasPostgresExtension("vector");
+        // Only set up PostgreSQL extensions if using PostgreSQL provider
+        if (Database.IsNpgsql())
+        {
+            modelBuilder.HasPostgresExtension("vector");
+        }
 
         // Apply configurations from current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);

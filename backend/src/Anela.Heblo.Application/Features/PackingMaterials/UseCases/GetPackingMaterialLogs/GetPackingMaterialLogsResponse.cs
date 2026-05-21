@@ -7,4 +7,5 @@ public class GetPackingMaterialLogsResponse : BaseResponse
 {
     public PackingMaterialDto Material { get; set; } = null!;
     public IEnumerable<PackingMaterialLogDto> Logs { get; set; } = new List<PackingMaterialLogDto>();
+    public string? Error { get; set; }
 }

@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using Anela.Heblo.Domain.Features.PackingMaterials;
-using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 
 namespace Anela.Heblo.Tests.Features.PackingMaterials;
 
@@ -8,6 +7,8 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
 {
     private List<PackingMaterial> _materials = new();
     private readonly Dictionary<DateOnly, bool> _dailyProcessingStatus = new();
+    private Exception? _saveChangesException;
+
     public List<PackingMaterial> UpdatedMaterials { get; } = new();
     public IReadOnlyList<PackingMaterial> Materials => _materials;
     public bool GetAllAsyncWasCalled { get; private set; }
@@ -22,6 +23,11 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
         _dailyProcessingStatus[date] = hasRun;
     }
 
+    public void SetSaveChangesException(Exception ex)
+    {
+        _saveChangesException = ex;
+    }
+
     public Task<IEnumerable<PackingMaterial>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         GetAllAsyncWasCalled = true;
@@ -34,20 +40,33 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
         return Task.FromResult(material);
     }
 
-    public Task<IEnumerable<PackingMaterial>> GetAllWithLogsAsync(CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult<IEnumerable<PackingMaterial>>(_materials);
-    }
-
-    public Task<PackingMaterial?> GetByIdWithLogsAsync(int id, CancellationToken cancellationToken = default)
-    {
-        var material = _materials.FirstOrDefault(m => m.Id == id);
-        return Task.FromResult(material);
-    }
-
     public Task<IEnumerable<PackingMaterialLog>> GetRecentLogsAsync(int packingMaterialId, DateTime fromDate, CancellationToken cancellationToken = default)
     {
         return Task.FromResult<IEnumerable<PackingMaterialLog>>(new List<PackingMaterialLog>());
+    }
+
+    public Dictionary<int, List<PackingMaterialLog>> RecentLogsByMaterial { get; } = new();
+
+    public Task<IReadOnlyDictionary<int, IReadOnlyList<PackingMaterialLog>>> GetRecentLogsForMaterialsAsync(
+        IEnumerable<int> packingMaterialIds,
+        DateTime fromDate,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = packingMaterialIds.ToHashSet();
+        var dict = new Dictionary<int, IReadOnlyList<PackingMaterialLog>>();
+        foreach (var kvp in RecentLogsByMaterial)
+        {
+            if (!ids.Contains(kvp.Key)) continue;
+            var filtered = kvp.Value
+                .Where(l => l.CreatedAt >= fromDate)
+                .OrderByDescending(l => l.CreatedAt)
+                .ToList();
+            if (filtered.Count > 0)
+            {
+                dict[kvp.Key] = filtered;
+            }
+        }
+        return Task.FromResult<IReadOnlyDictionary<int, IReadOnlyList<PackingMaterialLog>>>(dict);
     }
 
     public Task<bool> HasDailyProcessingBeenRunAsync(DateOnly date, CancellationToken cancellationToken = default)
@@ -100,6 +119,8 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        if (_saveChangesException != null)
+            throw _saveChangesException;
         return Task.FromResult(0);
     }
 
@@ -132,6 +153,7 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
 
     public List<PackingMaterialConsumption> AddedConsumptionRows { get; } = new();
     public Dictionary<DateOnly, List<PackingMaterialConsumption>> ConsumptionRowsByDate { get; } = new();
+    public List<PackingMaterialDailyRun> AddedDailyRuns { get; } = new();
 
     public Task<IEnumerable<PackingMaterial>> GetAllWithAllocationsAsync(CancellationToken cancellationToken = default)
         => Task.FromResult<IEnumerable<PackingMaterial>>(_materials);
@@ -147,4 +169,10 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
 
     public Task<IEnumerable<PackingMaterialConsumption>> GetConsumptionsByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
         => Task.FromResult<IEnumerable<PackingMaterialConsumption>>(ConsumptionRowsByDate.TryGetValue(date, out var rows) ? rows : new List<PackingMaterialConsumption>());
+
+    public Task AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default)
+    {
+        AddedDailyRuns.Add(run);
+        return Task.CompletedTask;
+    }
 }

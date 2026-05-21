@@ -14,33 +14,40 @@ function ShoptetCustomerCard({ conversationId }: ShoptetCustomerCardProps) {
 
   const { customer, recentOrders, cartUpdatedAt } = data.contactInfo;
 
+  const hasCustomer = customer != null;
+  const hasOrders = recentOrders.length > 0;
+
+  if (!hasCustomer && !hasOrders && !cartUpdatedAt) return null;
+
   return (
     <>
-      <Section title="Shoptet Zákazník">
-        <div className="space-y-1">
-          {customer.fullName && (
-            <div className="text-sm font-semibold text-gray-900">{customer.fullName}</div>
-          )}
-          {customer.email && (
-            <div className="text-xs text-gray-500">{customer.email}</div>
-          )}
-          {customer.customerGroup && (
-            <div className="text-xs text-gray-700">
-              <span className="text-gray-400">Skupina: </span>{customer.customerGroup}
-            </div>
-          )}
-          {customer.priceList && (
-            <div className="text-xs text-gray-700">
-              <span className="text-gray-400">Ceník: </span>{customer.priceList}
-            </div>
-          )}
-          {customer.defaultShippingAddress && (
-            <div className="text-xs text-gray-600 mt-1">{customer.defaultShippingAddress}</div>
-          )}
-        </div>
-      </Section>
+      {hasCustomer && (
+        <Section title="Shoptet Zákazník">
+          <div className="space-y-1">
+            {customer.fullName && (
+              <div className="text-sm font-semibold text-gray-900">{customer.fullName}</div>
+            )}
+            {customer.email && (
+              <div className="text-xs text-gray-500">{customer.email}</div>
+            )}
+            {customer.customerGroup && (
+              <div className="text-xs text-gray-700">
+                <span className="text-gray-400">Skupina: </span>{customer.customerGroup}
+              </div>
+            )}
+            {customer.priceList && (
+              <div className="text-xs text-gray-700">
+                <span className="text-gray-400">Ceník: </span>{customer.priceList}
+              </div>
+            )}
+            {customer.defaultShippingAddress && (
+              <div className="text-xs text-gray-600 mt-1">{customer.defaultShippingAddress}</div>
+            )}
+          </div>
+        </Section>
+      )}
 
-      {cartUpdatedAt && (
+      {cartUpdatedAt != null && (
         <Section title="Shoptet Košík">
           <div className="text-xs text-gray-500">
             Aktualizován: {new Date(cartUpdatedAt).toLocaleDateString("cs-CZ")}
@@ -48,7 +55,7 @@ function ShoptetCustomerCard({ conversationId }: ShoptetCustomerCardProps) {
         </Section>
       )}
 
-      {recentOrders.length > 0 && (
+      {hasOrders && (
         <Section title="Poslední objednávky">
           <div className="space-y-2">
             {recentOrders.map((order) => (

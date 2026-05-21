@@ -18,6 +18,10 @@ public class GraphPlannerService : IMeetingTaskExporter
     private readonly string _planId;
     private readonly string? _bucketId;
 
+    // Single-flight delegated-token cache, scoped to one /submit request (service is Scoped).
+    // Prevents MSAL's internal retry loop from firing once per approved task when consent is missing.
+    private Task<string>? _delegatedTokenTask;
+
     public GraphPlannerService(
         ITokenAcquisition tokenAcquisition,
         IHttpClientFactory httpClientFactory,
@@ -144,7 +148,12 @@ public class GraphPlannerService : IMeetingTaskExporter
         }
     }
 
-    private async Task<string> GetDelegatedTokenAsync()
+    private Task<string> GetDelegatedTokenAsync()
+    {
+        return _delegatedTokenTask ??= AcquireDelegatedTokenAsync();
+    }
+
+    private async Task<string> AcquireDelegatedTokenAsync()
     {
         try
         {

@@ -18,6 +18,7 @@ using Anela.Heblo.API.Extensions;
 using Anela.Heblo.API.MCP;
 using Anela.Heblo.API.Webhooks.Smartsupp;
 using Anela.Heblo.Application;
+using Anela.Heblo.Application.Features.FeatureFlags;
 using Anela.Heblo.Application.Features.Photobank;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 using Anela.Heblo.Domain.Features.Invoices;
@@ -123,6 +124,8 @@ public partial class Program
         builder.Services.AddOpenApiDocument();
 
         var app = builder.Build();
+
+        await app.InitializeFeatureFlagsAsync();
 
         // Initialize tile registry with all registered tiles
         app.InitializeTileRegistry();

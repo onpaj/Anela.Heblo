@@ -33,6 +33,7 @@ import BackgroundTasks from "./components/pages/automation/BackgroundTasks";
 import MeetingTasksPage from "./components/pages/automation/MeetingTasksPage";
 import MeetingTaskDetailPage from "./components/pages/automation/MeetingTaskDetailPage";
 import OrgChartPage from "./pages/OrgChartPage";
+import FeatureFlagsAdminPage from "./pages/FeatureFlagsAdminPage";
 import InvoiceClassificationPage from "./pages/InvoiceClassification/InvoiceClassificationPage";
 import PackingMaterialsPage from "./pages/PackingMaterialsPage";
 import StockOperationsPage from "./pages/StockOperationsPage";
@@ -66,6 +67,8 @@ import { ChangelogProvider } from "./contexts/ChangelogContext";
 import { GlobalLoadingIndicator } from "./components/GlobalLoadingIndicator";
 import { AppInitializer } from "./components/AppInitializer";
 import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog";
+import { FeatureFlagProvider } from "./features/feature-flags/FeatureFlagProvider";
+import { OpenFeatureProvider } from "@openfeature/react-sdk";
 import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
 import TerminalLayout from "./components/terminal/TerminalLayout";
 import TerminalHome from "./components/terminal/TerminalHome";
@@ -334,6 +337,7 @@ function App() {
   }
 
   return (
+    <OpenFeatureProvider>
     <QueryClientProvider client={queryClient}>
       <LoadingProvider>
         <ToastProvider>
@@ -350,6 +354,7 @@ function App() {
                   }}
                 >
                   <AuthGuard>
+                    <FeatureFlagProvider>
                     <Routes>
                       {/* Mobile terminal — no sidebar, no topbar */}
                       <Route path="/terminal" element={<TerminalLayout />}>
@@ -421,8 +426,10 @@ function App() {
                         <Route path="/marketing/feedback" element={<MarketingFeedbackPage />} />
                         <Route path="/articles" element={<ArticlesPage />} />
                         <Route path="/automation/data-quality" element={<DataQualityPage />} />
+                        <Route path="/admin/feature-flags" element={<FeatureFlagsAdminPage />} />
                       </Route>
                     </Routes>
+                    </FeatureFlagProvider>
                   </AuthGuard>
                 </Router>
               </MsalProvider>
@@ -437,6 +444,7 @@ function App() {
         </ToastProvider>
       </LoadingProvider>
     </QueryClientProvider>
+    </OpenFeatureProvider>
   );
 }
 
