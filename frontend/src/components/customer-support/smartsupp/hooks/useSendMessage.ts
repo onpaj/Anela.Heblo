@@ -31,7 +31,7 @@ interface UseSendMessageResult {
   clearSent: () => void;
 }
 
-type SendMessageContext = { previous?: GetConversationResponse };
+type SendMessageContext = { previous?: GetConversationResponse; optimisticId?: string };
 
 export function useSendMessage(conversationId: string | null): UseSendMessageResult {
   const queryClient = useQueryClient();
@@ -69,8 +69,9 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
       const previous = queryClient.getQueryData<GetConversationResponse>(
         SMARTSUPP_QUERY_KEYS.conversation(conversationId),
       );
+      const optimisticId = `optimistic-${Date.now()}`;
       const optimisticMsg: MessageDto = {
-        id: `optimistic-${Date.now()}`,
+        id: optimisticId,
         authorType: "agent",
         content,
         createdAt: new Date().toISOString(),
@@ -81,21 +82,28 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
         SMARTSUPP_QUERY_KEYS.conversation(conversationId),
         (old) => (old ? { ...old, messages: [...old.messages, optimisticMsg] } : old),
       );
-      return { previous };
+      return { previous, optimisticId };
     },
-    onSuccess: (data) => {
-      if (!conversationId) return;
+    onSuccess: (data, _variables, context) => {
+      const optimisticId = context?.optimisticId;
+      if (!conversationId || !optimisticId) return;
       queryClient.setQueryData<GetConversationResponse>(
         SMARTSUPP_QUERY_KEYS.conversation(conversationId),
         (current) => {
           if (!current) return current;
+          if (!data.messageId) {
+            return {
+              ...current,
+              messages: current.messages.filter((m) => m.id !== optimisticId),
+            };
+          }
           return {
             ...current,
             messages: current.messages.map((m) =>
-              m.id.startsWith("optimistic-")
+              m.id === optimisticId
                 ? {
                     ...m,
-                    id: data.messageId ?? m.id,
+                    id: data.messageId!,
                     createdAt: data.createdAt ?? m.createdAt,
                     deliveryStatus: "sent",
                   }
