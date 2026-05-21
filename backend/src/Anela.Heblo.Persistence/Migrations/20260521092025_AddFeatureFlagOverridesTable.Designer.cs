@@ -3,6 +3,7 @@ using System;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Anela.Heblo.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260521092025_AddFeatureFlagOverridesTable")]
+    partial class AddFeatureFlagOverridesTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3180,30 +3183,9 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<string>("VariablesJson")
                         .HasColumnType("text");
 
-                    b.Property<string>("VisitorBrowser")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("VisitorBrowserVersion")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<string>("VisitorId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime?>("VisitorInfoFetchedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("VisitorOs")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("VisitorUserAgent")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("VisitorVisitsCount")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

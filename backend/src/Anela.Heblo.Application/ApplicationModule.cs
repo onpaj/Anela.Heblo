@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.TimePeriods;
+using Anela.Heblo.Application.Features.FeatureFlags;
 using Anela.Heblo.Application.Features.Configuration;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Application.Features.Analytics;
@@ -101,6 +102,8 @@ public static class ApplicationModule
         services.AddSmartsuppModule(configuration);
         services.AddInventoryModule();
         // services.AddOrdersModule();
+
+        services.AddFeatureFlagsModule(configuration);
 
         return services;
     }

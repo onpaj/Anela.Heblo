@@ -2737,6 +2737,215 @@ export class ApiClient {
         return Promise.resolve<ReprintExpeditionListResponse>(null as any);
     }
 
+    featureFlags_Get(): Promise<EvaluateFlagsForClientResponse> {
+        let url_ = this.baseUrl + "/api/feature-flags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processFeatureFlags_Get(_response);
+        });
+    }
+
+    protected processFeatureFlags_Get(response: Response): Promise<EvaluateFlagsForClientResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = EvaluateFlagsForClientResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<EvaluateFlagsForClientResponse>(null as any);
+    }
+
+    featureFlags_GetAdmin(): Promise<ListFlagsResponse> {
+        let url_ = this.baseUrl + "/api/feature-flags/admin";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processFeatureFlags_GetAdmin(_response);
+        });
+    }
+
+    protected processFeatureFlags_GetAdmin(response: Response): Promise<ListFlagsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListFlagsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ListFlagsResponse>(null as any);
+    }
+
+    featureFlags_Put(key: string, body: UpsertFlagOverrideBodyDto): Promise<UpsertFlagOverrideResponse> {
+        let url_ = this.baseUrl + "/api/feature-flags/admin/{key}";
+        if (key === undefined || key === null)
+            throw new Error("The parameter 'key' must be defined.");
+        url_ = url_.replace("{key}", encodeURIComponent("" + key));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processFeatureFlags_Put(_response);
+        });
+    }
+
+    protected processFeatureFlags_Put(response: Response): Promise<UpsertFlagOverrideResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpsertFlagOverrideResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = UpsertFlagOverrideResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpsertFlagOverrideResponse>(null as any);
+    }
+
+    featureFlags_Delete(key: string): Promise<ClearFlagOverrideResponse> {
+        let url_ = this.baseUrl + "/api/feature-flags/admin/{key}";
+        if (key === undefined || key === null)
+            throw new Error("The parameter 'key' must be defined.");
+        url_ = url_.replace("{key}", encodeURIComponent("" + key));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processFeatureFlags_Delete(_response);
+        });
+    }
+
+    protected processFeatureFlags_Delete(response: Response): Promise<ClearFlagOverrideResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ClearFlagOverrideResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ClearFlagOverrideResponse.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 403) {
+            return response.text().then((_responseText) => {
+            let result403: any = null;
+            let resultData403 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result403 = ProblemDetails.fromJS(resultData403);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result403);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ClearFlagOverrideResponse>(null as any);
+    }
+
     fileStorage_DownloadFromUrl(request: DownloadFromUrlRequest): Promise<DownloadFromUrlResponse> {
         let url_ = this.baseUrl + "/api/FileStorage/download";
         url_ = url_.replace(/[?&]$/, "");
@@ -16572,6 +16781,242 @@ export class ReprintExpeditionListRequest implements IReprintExpeditionListReque
 
 export interface IReprintExpeditionListRequest {
     blobPath?: string;
+}
+
+export class EvaluateFlagsForClientResponse extends BaseResponse implements IEvaluateFlagsForClientResponse {
+    flags?: { [key: string]: boolean; };
+
+    constructor(data?: IEvaluateFlagsForClientResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (_data["flags"]) {
+                this.flags = {} as any;
+                for (let key in _data["flags"]) {
+                    if (_data["flags"].hasOwnProperty(key))
+                        (<any>this.flags)![key] = _data["flags"][key];
+                }
+            }
+        }
+    }
+
+    static override fromJS(data: any): EvaluateFlagsForClientResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new EvaluateFlagsForClientResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (this.flags) {
+            data["flags"] = {};
+            for (let key in this.flags) {
+                if (this.flags.hasOwnProperty(key))
+                    (<any>data["flags"])[key] = (<any>this.flags)[key];
+            }
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IEvaluateFlagsForClientResponse extends IBaseResponse {
+    flags?: { [key: string]: boolean; };
+}
+
+export class ListFlagsResponse extends BaseResponse implements IListFlagsResponse {
+    flags?: FlagStatusDto[];
+
+    constructor(data?: IListFlagsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["flags"])) {
+                this.flags = [] as any;
+                for (let item of _data["flags"])
+                    this.flags!.push(FlagStatusDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): ListFlagsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListFlagsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.flags)) {
+            data["flags"] = [];
+            for (let item of this.flags)
+                data["flags"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListFlagsResponse extends IBaseResponse {
+    flags?: FlagStatusDto[];
+}
+
+export class FlagStatusDto implements IFlagStatusDto {
+    key?: string;
+    description?: string;
+    currentValue?: boolean;
+    isOverridden?: boolean;
+    defaultValue?: boolean;
+    updatedBy?: string | undefined;
+    updatedAt?: Date | undefined;
+
+    constructor(data?: IFlagStatusDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.key = _data["key"];
+            this.description = _data["description"];
+            this.currentValue = _data["currentValue"];
+            this.isOverridden = _data["isOverridden"];
+            this.defaultValue = _data["defaultValue"];
+            this.updatedBy = _data["updatedBy"];
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): FlagStatusDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new FlagStatusDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["key"] = this.key;
+        data["description"] = this.description;
+        data["currentValue"] = this.currentValue;
+        data["isOverridden"] = this.isOverridden;
+        data["defaultValue"] = this.defaultValue;
+        data["updatedBy"] = this.updatedBy;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IFlagStatusDto {
+    key?: string;
+    description?: string;
+    currentValue?: boolean;
+    isOverridden?: boolean;
+    defaultValue?: boolean;
+    updatedBy?: string | undefined;
+    updatedAt?: Date | undefined;
+}
+
+export class UpsertFlagOverrideResponse extends BaseResponse implements IUpsertFlagOverrideResponse {
+
+    constructor(data?: IUpsertFlagOverrideResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): UpsertFlagOverrideResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpsertFlagOverrideResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpsertFlagOverrideResponse extends IBaseResponse {
+}
+
+export class UpsertFlagOverrideBodyDto implements IUpsertFlagOverrideBodyDto {
+    isEnabled?: boolean;
+
+    constructor(data?: IUpsertFlagOverrideBodyDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.isEnabled = _data["isEnabled"];
+        }
+    }
+
+    static fromJS(data: any): UpsertFlagOverrideBodyDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpsertFlagOverrideBodyDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["isEnabled"] = this.isEnabled;
+        return data;
+    }
+}
+
+export interface IUpsertFlagOverrideBodyDto {
+    isEnabled?: boolean;
+}
+
+export class ClearFlagOverrideResponse extends BaseResponse implements IClearFlagOverrideResponse {
+
+    constructor(data?: IClearFlagOverrideResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): ClearFlagOverrideResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ClearFlagOverrideResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IClearFlagOverrideResponse extends IBaseResponse {
 }
 
 export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFromUrlResponse {

@@ -1,5 +1,7 @@
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.FeatureFlags;
+using Anela.Heblo.Persistence.FeatureFlags;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
@@ -156,6 +158,9 @@ public static class PersistenceModule
 
         // Data Quality repositories
         services.AddScoped<IDqtRunRepository, DqtRunRepository>();
+
+        // Feature Flags repositories
+        services.AddScoped<IFeatureFlagOverrideRepository, FeatureFlagOverrideRepository>();
 
         return services;
     }
