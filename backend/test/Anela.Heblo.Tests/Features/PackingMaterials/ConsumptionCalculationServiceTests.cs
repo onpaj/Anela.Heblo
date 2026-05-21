@@ -314,7 +314,7 @@ public class ConsumptionCalculationServiceTests
         // Arrange — no materials configured at all (FR-4)
         var date = new DateOnly(2025, 6, 15);
         var materialRepo = new MockPackingMaterialRepository(); // no materials
-        var invoiceRepo = new MockIssuedInvoiceRepository();
+        var invoiceRepo = new MockInvoiceConsumptionSource();
 
         var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
 
@@ -341,7 +341,7 @@ public class ConsumptionCalculationServiceTests
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { material });
         materialRepo.SetHasDailyProcessingBeenRun(date, true); // simulate existing daily run
-        var invoiceRepo = new MockIssuedInvoiceRepository();
+        var invoiceRepo = new MockInvoiceConsumptionSource();
 
         var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
 
@@ -367,7 +367,7 @@ public class ConsumptionCalculationServiceTests
         var material = new PackingMaterial("Cards", 1m, ConsumptionType.PerDay, 8000m);
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { material });
-        var invoiceRepo = new MockIssuedInvoiceRepository();
+        var invoiceRepo = new MockInvoiceConsumptionSource();
 
         // Set up a non-duplicate DbUpdateException (no inner PostgresException)
         var unrelatedEx = new Microsoft.EntityFrameworkCore.DbUpdateException("some other db error", new Exception("inner"));
