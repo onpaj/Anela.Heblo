@@ -1,10 +1,9 @@
-using Anela.Heblo.Application.Features.Packaging.UseCases.PrepareOrderLabel;
+using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
 using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.GetShipmentLabelPdf;
 using Anela.Heblo.Application.Shared;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json.Serialization;
 
 namespace Anela.Heblo.API.Controllers;
 
@@ -21,22 +20,15 @@ public class PackagingController : BaseApiController
     }
 
     /// <summary>
-    /// Ensures a printable label exists for the order:
-    /// checks eligibility, returns existing labels if present (unless forceRecreate),
-    /// otherwise creates a shipment and polls until labels are ready.
+    /// Scans an order: returns order info, eligibility, and creates/fetches a shipment in one call.
+    /// Ineligible orders return success: true with eligibility.isEligible: false.
     /// </summary>
-    [HttpPost("orders/{orderCode}/label")]
-    public async Task<ActionResult<PrepareOrderLabelResponse>> PrepareLabel(
+    [HttpPost("orders/{orderCode}/scan")]
+    public async Task<ActionResult<ScanPackingOrderResponse>> ScanOrder(
         [FromRoute] string orderCode,
-        [FromBody] PrepareOrderLabelBody body,
         CancellationToken cancellationToken)
     {
-        var response = await _mediator.Send(new PrepareOrderLabelRequest
-        {
-            OrderCode = orderCode,
-            ForceRecreate = body.ForceRecreate,
-        }, cancellationToken);
-
+        var response = await _mediator.Send(new ScanPackingOrderRequest { OrderCode = orderCode }, cancellationToken);
         return HandleResponse(response);
     }
 
@@ -66,10 +58,4 @@ public class PackagingController : BaseApiController
 
         return File(response.PdfStream!, "application/pdf");
     }
-}
-
-public class PrepareOrderLabelBody
-{
-    [JsonPropertyName("forceRecreate")]
-    public bool ForceRecreate { get; set; }
 }

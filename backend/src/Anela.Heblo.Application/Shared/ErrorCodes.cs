@@ -314,10 +314,6 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     LotHasEans = 2806,
 
-    // Packaging module errors (30XX)
-    [HttpStatusCode(HttpStatusCode.Conflict)]
-    OrderNotInPackingState = 3001,
-
     // WeatherForecast module errors (29XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     WeatherForecastUnavailable = 2901,
@@ -339,6 +335,14 @@ public enum ErrorCodes
     ShipmentLabelNotReady = 2908,
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     ShipmentOrderWeightUnavailable = 2909,
+
+    // Packaging module errors (30XX)
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    OrderNotInPackingState = 3001,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    ShipmentDeleteFailed = 3002,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    NoShipmentToReset = 3003,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

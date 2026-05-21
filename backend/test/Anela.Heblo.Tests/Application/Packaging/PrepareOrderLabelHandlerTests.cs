@@ -1,6 +1,5 @@
-using Anela.Heblo.Application.Features.Packaging.UseCases.PrepareOrderLabel;
+using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
 using Anela.Heblo.Application.Features.ShipmentLabels;
-using Anela.Heblo.Application.Features.ShipmentLabels.Contracts;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared;
 using FluentAssertions;
@@ -10,7 +9,7 @@ using Moq;
 
 namespace Anela.Heblo.Tests.Application.Packaging;
 
-public class PrepareOrderLabelHandlerTests
+public class ScanPackingOrderHandlerTests
 {
     private readonly Mock<IShipmentClient> _shipmentClient = new();
     private readonly Mock<IPackingOrderClient> _orderClient = new();
@@ -28,7 +27,7 @@ public class PrepareOrderLabelHandlerTests
         PackingStateId = 26,
     };
 
-    private PrepareOrderLabelHandler CreateHandler(
+    private ScanPackingOrderHandler CreateHandler(
         ShipmentLabelsSettings? labelSettings = null,
         ShoptetOrdersSettings? orderSettings = null) =>
         new(
@@ -36,7 +35,7 @@ public class PrepareOrderLabelHandlerTests
             _orderClient.Object,
             Options.Create(labelSettings ?? DefaultLabelSettings),
             Options.Create(orderSettings ?? DefaultOrderSettings),
-            new Mock<ILogger<PrepareOrderLabelHandler>>().Object);
+            new Mock<ILogger<ScanPackingOrderHandler>>().Object);
 
     private static PackingOrder EligibleOrder(params (string name, int qty, int weightGrams)[] items) =>
         new()
@@ -51,20 +50,23 @@ public class PrepareOrderLabelHandlerTests
             }).ToList(),
         };
 
-    // Test 1: Order in wrong state → eligibility rejection
+    // Test 1: Order in wrong state → ineligible response (success: true, isEligible: false)
     [Fact]
-    public async Task Handle_OrderNotInPackingState_ReturnsError_AndNeverCallsShipmentClient()
+    public async Task Handle_OrderNotInPackingState_ReturnsSuccessWithIneligibleOrder_AndNeverCallsShipmentClient()
     {
         _orderClient
             .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PackingOrder { Code = "0001234", StatusId = 99 });
 
         var response = await CreateHandler().Handle(
-            new PrepareOrderLabelRequest { OrderCode = "0001234", ForceRecreate = false },
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
             CancellationToken.None);
 
-        response.Success.Should().BeFalse();
-        response.ErrorCode.Should().Be(ErrorCodes.OrderNotInPackingState);
+        response.Success.Should().BeTrue();
+        response.Order.Should().NotBeNull();
+        response.Order!.Eligibility.IsEligible.Should().BeFalse();
+        response.Order.Eligibility.WarningTitle.Should().NotBeNullOrEmpty();
+        response.Shipment.Should().BeNull();
 
         _shipmentClient.Verify(
             c => c.GetLabelsByOrderCodeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
@@ -74,13 +76,14 @@ public class PrepareOrderLabelHandlerTests
             Times.Never);
     }
 
-    // Test 2: Labels already exist + ForceRecreate = false → return existing without creating
+    // Test 2: Labels already exist → return existing shipment without creating
     [Fact]
-    public async Task Handle_LabelsExist_ForceRecreateFalse_ReturnsExistingShipmentFound()
+    public async Task Handle_LabelsExist_ReturnsExistingShipmentWithAlreadyExistedTrue()
     {
+        var shipmentGuid = Guid.NewGuid();
         var existingLabel = new ShipmentLabel
         {
-            ShipmentGuid = Guid.NewGuid(),
+            ShipmentGuid = shipmentGuid,
             OrderCode = "0001234",
             PackageName = "P1",
             LabelUrl = "https://example.com/label.pdf",
@@ -95,60 +98,22 @@ public class PrepareOrderLabelHandlerTests
             .ReturnsAsync([existingLabel]);
 
         var response = await CreateHandler().Handle(
-            new PrepareOrderLabelRequest { OrderCode = "0001234", ForceRecreate = false },
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
             CancellationToken.None);
 
         response.Success.Should().BeTrue();
-        response.ExistingShipmentFound.Should().BeTrue();
-        response.Labels.Should().HaveCount(1);
+        response.Order!.Eligibility.IsEligible.Should().BeTrue();
+        response.Shipment.Should().NotBeNull();
+        response.Shipment!.AlreadyExisted.Should().BeTrue();
+        response.Shipment.ShipmentGuid.Should().Be(shipmentGuid);
+        response.Shipment.Packages.Should().HaveCount(1);
 
         _shipmentClient.Verify(
             c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
-    // Test 3: Labels exist + ForceRecreate = true → creates new shipment, ExistingShipmentFound = false
-    [Fact]
-    public async Task Handle_LabelsExist_ForceRecreateTrue_CreatesNewShipment()
-    {
-        var shipmentGuid = Guid.NewGuid();
-        var callCount = 0;
-
-        _orderClient
-            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
-
-        _shipmentClient
-            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() =>
-            {
-                callCount++;
-                if (callCount == 1)
-                    return [new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1" }];
-                return [new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://new.com/label.pdf" }];
-            });
-
-        _shipmentClient
-            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync([new ShippingOption { CarrierCode = "PPL", Name = "PPL" }]);
-
-        _shipmentClient
-            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
-
-        var response = await CreateHandler().Handle(
-            new PrepareOrderLabelRequest { OrderCode = "0001234", ForceRecreate = true },
-            CancellationToken.None);
-
-        response.Success.Should().BeTrue();
-        response.ExistingShipmentFound.Should().BeFalse();
-
-        _shipmentClient.Verify(
-            c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    // Test 4: All items have WeightGrams = 0 → weight unavailable
+    // Test 3: All items have WeightGrams = 0 → weight unavailable error
     [Fact]
     public async Task Handle_AllItemsHaveZeroWeight_ReturnsShipmentOrderWeightUnavailable()
     {
@@ -161,14 +126,14 @@ public class PrepareOrderLabelHandlerTests
             .ReturnsAsync([]);
 
         var response = await CreateHandler().Handle(
-            new PrepareOrderLabelRequest { OrderCode = "0001234", ForceRecreate = false },
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
             CancellationToken.None);
 
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(ErrorCodes.ShipmentOrderWeightUnavailable);
     }
 
-    // Test 5: No shipping options returned → carrier not resolved
+    // Test 4: No shipping options returned → carrier not resolved error
     [Fact]
     public async Task Handle_NoShippingOptions_ReturnsShipmentCarrierNotResolved()
     {
@@ -185,14 +150,14 @@ public class PrepareOrderLabelHandlerTests
             .ReturnsAsync([]);
 
         var response = await CreateHandler().Handle(
-            new PrepareOrderLabelRequest { OrderCode = "0001234", ForceRecreate = false },
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
             CancellationToken.None);
 
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(ErrorCodes.ShipmentCarrierNotResolved);
     }
 
-    // Test 6: CreateShipmentAsync throws HttpRequestException → creation failed
+    // Test 5: CreateShipmentAsync throws → creation failed error
     [Fact]
     public async Task Handle_CreateShipmentThrows_ReturnsShipmentCreationFailed()
     {
@@ -213,36 +178,27 @@ public class PrepareOrderLabelHandlerTests
             .ThrowsAsync(new HttpRequestException("Shipment API unavailable"));
 
         var response = await CreateHandler().Handle(
-            new PrepareOrderLabelRequest { OrderCode = "0001234", ForceRecreate = false },
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
             CancellationToken.None);
 
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(ErrorCodes.ShipmentCreationFailed);
     }
 
-    // Test 7: First poll returns no labels, second poll (after 3s delay) returns label with LabelUrl → LabelReady = true
+    // Test 6: Eligible order, no existing shipment → creates new shipment, AlreadyExisted = false
     [Fact]
-    public async Task Handle_FirstPollEmpty_SecondPollHasLabelUrl_ReturnsLabelReady()
+    public async Task Handle_NoExistingShipment_CreatesNewShipmentWithAlreadyExistedFalse()
     {
         var shipmentGuid = Guid.NewGuid();
-        var callCount = 0;
 
         _orderClient
             .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
             .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
 
         _shipmentClient
-            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(() =>
-            {
-                callCount++;
-                return callCount switch
-                {
-                    1 => Array.Empty<ShipmentLabel>(),
-                    2 => [new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1" }],
-                    _ => [new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://example.com/label.pdf" }],
-                };
-            });
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([])
+            .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1" }]);
 
         _shipmentClient
             .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
@@ -253,12 +209,17 @@ public class PrepareOrderLabelHandlerTests
             .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
 
         var response = await CreateHandler().Handle(
-            new PrepareOrderLabelRequest { OrderCode = "0001234", ForceRecreate = false },
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
             CancellationToken.None);
 
         response.Success.Should().BeTrue();
-        response.LabelReady.Should().BeTrue();
-        response.Labels.Should().NotBeEmpty();
-        response.Labels[0].LabelUrl.Should().Be("https://example.com/label.pdf");
+        response.Order!.Eligibility.IsEligible.Should().BeTrue();
+        response.Shipment.Should().NotBeNull();
+        response.Shipment!.AlreadyExisted.Should().BeFalse();
+        response.Shipment.ShipmentGuid.Should().Be(shipmentGuid);
+
+        _shipmentClient.Verify(
+            c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }
