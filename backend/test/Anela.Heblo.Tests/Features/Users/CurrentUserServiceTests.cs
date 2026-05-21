@@ -70,6 +70,44 @@ public class CurrentUserServiceTests
     }
 
     [Fact]
+    public void GetCurrentUser_WhenOnlyPreferredUsername_ReturnsItAsEmail()
+    {
+        // Entra ID access tokens omit the `email` claim by default and put the
+        // user's email/UPN in `preferred_username`. Without this fallback,
+        // production code reading currentUser.Email gets null.
+        var principal = Authenticated(new Claim("preferred_username", "ondra@anela.cz"));
+        var service = CreateService(principal);
+
+        var user = service.GetCurrentUser();
+
+        Assert.Equal("ondra@anela.cz", user.Email);
+    }
+
+    [Fact]
+    public void GetCurrentUser_WhenOnlyUpn_ReturnsItAsEmail()
+    {
+        var principal = Authenticated(new Claim("upn", "ondra@anela.cz"));
+        var service = CreateService(principal);
+
+        var user = service.GetCurrentUser();
+
+        Assert.Equal("ondra@anela.cz", user.Email);
+    }
+
+    [Fact]
+    public void GetCurrentUser_PrefersEmailOverPreferredUsername()
+    {
+        var principal = Authenticated(
+            new Claim(ClaimTypes.Email, "real@anela.cz"),
+            new Claim("preferred_username", "upn@anela.cz"));
+        var service = CreateService(principal);
+
+        var user = service.GetCurrentUser();
+
+        Assert.Equal("real@anela.cz", user.Email);
+    }
+
+    [Fact]
     public void GetCurrentUser_WhenUnauthenticated_ReturnsAnonymous()
     {
         var principal = new ClaimsPrincipal(new ClaimsIdentity());
