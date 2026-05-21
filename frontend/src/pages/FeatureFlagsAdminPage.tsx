@@ -9,6 +9,7 @@ const FeatureFlagsAdminPage: React.FC = () => {
   const { data: flags, isLoading, error } = useFeatureFlagsAdmin();
   const upsert = useUpsertFlagOverride();
   const clear = useClearFlagOverride();
+  const isBusy = upsert.isPending || clear.isPending;
 
   if (isLoading) return <div className="p-8 text-gray-500">Loading flags...</div>;
   if (error) return <div className="p-8 text-red-600">Failed to load feature flags.</div>;
@@ -54,7 +55,7 @@ const FeatureFlagsAdminPage: React.FC = () => {
                 onClick={() =>
                   upsert.mutate({ key: flag.key!, isEnabled: !flag.currentValue })
                 }
-                disabled={upsert.isPending}
+                disabled={isBusy}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
                   flag.currentValue ? "bg-indigo-600" : "bg-gray-200"
                 }`}
@@ -70,7 +71,7 @@ const FeatureFlagsAdminPage: React.FC = () => {
               {flag.isOverridden && (
                 <button
                   onClick={() => clear.mutate(flag.key!)}
-                  disabled={clear.isPending}
+                  disabled={isBusy}
                   className="text-xs text-gray-500 hover:text-red-600 underline"
                 >
                   Reset
