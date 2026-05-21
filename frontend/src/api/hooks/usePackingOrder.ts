@@ -10,16 +10,21 @@ export interface PackingOrderItem {
   setName: string | null;
 }
 
+export interface PackingEligibility {
+  isEligible: boolean;
+  warningTitle: string | null;
+  warningBody: string | null;
+}
+
 export interface PackingOrder {
   code: string;
   customerName: string;
   shippingMethodName: string;
   cooling: Cooling;
   isCooled: boolean;
-  statusId: number;
-  isInPackingState: boolean;
   customerNote: string | null;
   eshopNote: string | null;
+  eligibility: PackingEligibility;
   items: PackingOrderItem[];
 }
 
