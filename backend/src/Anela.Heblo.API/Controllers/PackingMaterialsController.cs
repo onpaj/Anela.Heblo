@@ -8,6 +8,7 @@ using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetDailyConsump
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialLogs;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.ProcessDailyConsumption;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdateAllocation;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterialQuantity;
 using Anela.Heblo.API.Infrastructure;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -81,6 +82,9 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpPost("{id}/quantity")]
+    [ProducesResponseType(typeof(UpdatePackingMaterialQuantityResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UpdatePackingMaterialQuantityResponse>> UpdatePackingMaterialQuantity(
         int id,
         [FromBody] UpdateQuantityRequest request,
@@ -99,7 +103,9 @@ public class PackingMaterialsController : BaseApiController
         };
 
         var response = await _mediator.Send(quantityRequest, cancellationToken);
-        return Ok(response);
+        if (response.Success) return Ok(response);
+        if (response.ErrorCode == ErrorCodes.ResourceNotFound) return NotFound(new { error = response.Error });
+        return BadRequest(new { error = response.Error });
     }
 
     [HttpDelete("{id}")]
