@@ -482,6 +482,18 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         public int? Visits { get; set; }
     }
 
+    private sealed class SmartsuppAgentsApiResponse
+    {
+        public List<SmartsuppAgentApiItem>? Items { get; set; }
+    }
+
+    private sealed class SmartsuppAgentApiItem
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public string? Email { get; set; }
+    }
+
     private sealed class SendMessageApiRequest
     {
         public SendMessageApiContent Content { get; init; } = null!;
@@ -498,6 +510,36 @@ public class SmartsuppApiClient : ISmartsuppApiClient
     {
         public string? Id { get; set; }
         public DateTime CreatedAt { get; set; }
+    }
+
+    public async Task<IReadOnlyList<SmartsuppAgentData>> GetAgentsAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(_options.ApiToken))
+            throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
+
+        return await _pipeline.ExecuteAsync(async ct =>
+        {
+            var client = _httpClientFactory.CreateClient("Smartsupp");
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{_options.BaseUrl}agents");
+            request.Headers.Add("Authorization", $"Bearer {_options.ApiToken}");
+
+            var response = await client.SendAsync(request, ct);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Smartsupp get agents failed {Status}: {Body}", response.StatusCode, errorBody);
+                throw new HttpRequestException($"Smartsupp API {(int)response.StatusCode}", null, response.StatusCode);
+            }
+
+            var raw = await response.Content.ReadAsStringAsync(ct);
+            var result = JsonSerializer.Deserialize<SmartsuppAgentsApiResponse>(raw, JsonOptions);
+
+            return (result?.Items ?? [])
+                .Where(a => a.Id is not null)
+                .Select(a => new SmartsuppAgentData { Id = a.Id!, Name = a.Name, Email = a.Email })
+                .ToList();
+        }, cancellationToken);
     }
 
     public async Task<SmartsuppSentMessageData> SendMessageAsync(

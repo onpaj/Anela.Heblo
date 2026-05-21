@@ -83,6 +83,26 @@ automatic-reply paths).
 
 ---
 
+### GET /agents
+
+Returns the list of agents configured in the Smartsupp account.
+
+**Status:** Endpoint shape assumed from Smartsupp REST API patterns — verify on first call.
+
+**Response (assumed):**
+```json
+{
+  "items": [
+    { "id": "12", "name": "Ondra Pajgrt", "email": "ondra@anela.cz" }
+  ]
+}
+```
+
+Used by `SmartsuppAgentCache` to build an `agentId → displayName` lookup at runtime (lazy, cached 1 h).
+Not polled on startup — first request to `GetConversation` triggers the fetch.
+
+---
+
 ## 4. Known quirks
 
 - `created_at` is returned as UTC ISO 8601 but `DateTime` deserialized without `DateTimeKind.Utc` — normalised to `DateTimeKind.Unspecified` via `DateTime.SpecifyKind` in `SmartsuppApiClient` to match the pattern used for all other date fields.

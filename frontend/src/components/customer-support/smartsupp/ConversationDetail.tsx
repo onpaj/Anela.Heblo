@@ -59,6 +59,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
   const { data, isLoading } = useSmartsuppConversation(conversationId);
   const bottomRef = useRef<HTMLDivElement>(null);
   const messages = data?.messages ?? [];
+  const agentNames = data?.agentNames ?? {};
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -92,7 +93,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
         </div>
         <div className="ml-auto flex items-center gap-2">
           {conversation.assignedAgentIds.map((id) => (
-            <AgentBadge key={id} agentId={id} name={id} />
+            <AgentBadge key={id} agentId={id} name={agentNames[id] ?? id} />
           ))}
           {onOpenContactDetails && (
             <button
@@ -119,7 +120,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
           <div key={g.day}>
             <DaySeparator date={g.items[0].createdAt} />
             {g.items.map((m) => (
-              <MessageBubble key={m.id} message={m} />
+              <MessageBubble key={m.id} message={m} agentNames={agentNames} />
             ))}
           </div>
         ))}

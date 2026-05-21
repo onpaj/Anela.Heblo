@@ -12,7 +12,7 @@ public class SendMessageHandler : IRequestHandler<SendMessageRequest, SendMessag
     private readonly ISmartsuppRepository _repository;
     private readonly ISmartsuppApiClient _apiClient;
     private readonly ICurrentUserService _currentUserService;
-    private readonly SmartsuppSendMessageOptions _options;
+    private readonly IOptions<SmartsuppSendMessageOptions> _options;
     private readonly ILogger<SendMessageHandler> _logger;
 
     public SendMessageHandler(
@@ -25,7 +25,7 @@ public class SendMessageHandler : IRequestHandler<SendMessageRequest, SendMessag
         _repository = repository;
         _apiClient = apiClient;
         _currentUserService = currentUserService;
-        _options = options.Value;
+        _options = options;
         _logger = logger;
     }
 
@@ -39,11 +39,10 @@ public class SendMessageHandler : IRequestHandler<SendMessageRequest, SendMessag
 
         var currentUser = _currentUserService.GetCurrentUser();
         if (string.IsNullOrWhiteSpace(currentUser.Email)
-            || !_options.AgentMap.TryGetValue(currentUser.Email, out var agentId)
-            || string.IsNullOrWhiteSpace(agentId))
+            || !_options.Value.AgentMap.TryGetValue(currentUser.Email, out var agentId))
         {
             _logger.LogWarning(
-                "Smartsupp send blocked: no agent_id mapping for {Email}. Add an entry to Smartsupp:AgentMap.",
+                "Smartsupp send blocked: no agent mapping found for {Email}.",
                 currentUser.Email);
             return new SendMessageResponse(ErrorCodes.SmartsuppAgentMappingNotFound);
         }

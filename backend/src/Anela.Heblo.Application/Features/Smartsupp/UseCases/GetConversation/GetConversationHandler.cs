@@ -8,10 +8,12 @@ namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 public class GetConversationHandler : IRequestHandler<GetConversationRequest, GetConversationResponse>
 {
     private readonly ISmartsuppRepository _repository;
+    private readonly ISmartsuppAgentCache _agentCache;
 
-    public GetConversationHandler(ISmartsuppRepository repository)
+    public GetConversationHandler(ISmartsuppRepository repository, ISmartsuppAgentCache agentCache)
     {
         _repository = repository;
+        _agentCache = agentCache;
     }
 
     public async Task<GetConversationResponse> Handle(GetConversationRequest request, CancellationToken cancellationToken)
@@ -25,10 +27,13 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
             ? await _repository.ListConversationsForContactAsync(conversation.ContactId, conversation.Id, cancellationToken)
             : [];
 
+        var agentNames = await _agentCache.GetAgentNamesAsync(cancellationToken);
+
         return new GetConversationResponse
         {
             Conversation = MapConversationDto(conversation, otherConversations),
             Messages = conversation.Messages.Select(MapMessageDto).ToList(),
+            AgentNames = new Dictionary<string, string>(agentNames),
         };
     }
 

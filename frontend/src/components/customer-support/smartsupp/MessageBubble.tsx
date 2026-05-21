@@ -5,6 +5,7 @@ import MessageDeliveryIcon from "./MessageDeliveryIcon";
 
 interface MessageBubbleProps {
   message: MessageDto;
+  agentNames?: Record<string, string>;
 }
 
 function formatTime(dateStr: string): string {
@@ -19,7 +20,7 @@ function formatResponseTime(seconds: number): string {
   return `Odpověď za ${hours} h`;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, agentNames }) => {
   const authorType = message.authorType.toLowerCase();
   const isVisitor = authorType === "visitor" || authorType === "contact";
   const isBot = authorType === "bot";
@@ -50,7 +51,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     <div className={`flex flex-col ${isVisitor ? "items-start" : "items-end"} mb-2`}>
       {!isVisitor && (message.agentId || message.authorName) && (
         <div className="mb-1">
-          <AgentBadge agentId={message.agentId} name={message.authorName} />
+          <AgentBadge agentId={message.agentId} name={message.authorName} agentNames={agentNames} />
         </div>
       )}
       <div

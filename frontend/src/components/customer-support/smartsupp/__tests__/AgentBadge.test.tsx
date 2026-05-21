@@ -20,6 +20,18 @@ describe("AgentBadge", () => {
     expect(screen.queryByText("?")).not.toBeInTheDocument();
   });
 
+  it("resolves name from agentNames when name prop is null", () => {
+    render(<AgentBadge agentId="12" name={null} agentNames={{ "12": "Ondra" }} />);
+    expect(screen.getByText("Ondra")).toBeInTheDocument();
+    expect(screen.queryByText("Agent")).not.toBeInTheDocument();
+  });
+
+  it("prefers explicit name prop over agentNames lookup", () => {
+    render(<AgentBadge agentId="12" name="Jana" agentNames={{ "12": "Ondra" }} />);
+    expect(screen.getByText("Jana")).toBeInTheDocument();
+    expect(screen.queryByText("Ondra")).not.toBeInTheDocument();
+  });
+
   it("renders ? initials and Agent label when both name and agentId are absent", () => {
     render(<AgentBadge agentId={null} name={null} />);
     expect(screen.getByText("?")).toBeInTheDocument();

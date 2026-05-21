@@ -23,7 +23,7 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
         var query = _db.SmartsuppConversations
             .AsNoTracking()
             .Where(c => c.Status == status)
-            .OrderByDescending(c => c.LastMessageAt);
+            .OrderByDescending(c => c.LastMessageAt ?? c.UpdatedAt);
 
         var total = await query.CountAsync(cancellationToken);
         var items = await query
