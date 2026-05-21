@@ -132,4 +132,91 @@ describe("useSendMessage", () => {
     await waitFor(() => expect(result.current.isPending).toBe(true));
     resolvePromise({ ok: true, status: 200, json: async () => ({ success: true }) });
   });
+
+  it("shows optimistic message with pending delivery status while request is in flight", async () => {
+    let resolvePromise!: (v: unknown) => void;
+    (getAuthenticatedApiClient as jest.Mock).mockReturnValue({
+      baseUrl: "http://api.test",
+      http: {
+        fetch: () => new Promise((res) => { resolvePromise = res; }),
+      },
+    });
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    queryClient.setQueryData(["smartsupp", "conversation", "conv1"], {
+      success: true,
+      messages: [],
+    });
+
+    function seededWrapper({ children }: { children: React.ReactNode }) {
+      return React.createElement(QueryClientProvider, { client: queryClient }, children);
+    }
+
+    const { result } = renderHook(() => useSendMessage("conv1"), { wrapper: seededWrapper });
+    act(() => result.current.send("Ahoj"));
+
+    await waitFor(() => {
+      const cached = queryClient.getQueryData<{ messages: Array<{ id: string; deliveryStatus?: string; content?: string }> }>(
+        ["smartsupp", "conversation", "conv1"],
+      );
+      expect(cached?.messages).toHaveLength(1);
+    });
+
+    const cached = queryClient.getQueryData<{ messages: Array<{ id: string; deliveryStatus?: string; content?: string }> }>(
+      ["smartsupp", "conversation", "conv1"],
+    );
+    expect(cached?.messages[0].id).toMatch(/^optimistic-/);
+    expect(cached?.messages[0].deliveryStatus).toBe("pending");
+    expect(cached?.messages[0].content).toBe("Ahoj");
+
+    // resolve so the hook can settle and avoid act() warnings
+    resolvePromise({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true, messageId: "ms999", createdAt: "2026-05-20T10:00:00Z" }),
+    });
+  });
+
+  it("replaces optimistic message with real messageId and sent delivery status on success", async () => {
+    setApiResponse(200, { success: true, messageId: "ms-real-123", createdAt: "2026-05-20T10:00:00Z" });
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    queryClient.setQueryData(["smartsupp", "conversation", "conv1"], {
+      success: true,
+      messages: [
+        {
+          id: "existing-1",
+          authorType: "contact",
+          content: "Původní zpráva",
+          createdAt: "2026-01-01T00:00:00Z",
+          isFirstReply: false,
+        },
+      ],
+    });
+
+    function seededWrapper({ children }: { children: React.ReactNode }) {
+      return React.createElement(QueryClientProvider, { client: queryClient }, children);
+    }
+
+    const { result } = renderHook(() => useSendMessage("conv1"), { wrapper: seededWrapper });
+    act(() => result.current.send("Nová zpráva"));
+
+    await waitFor(() => expect(result.current.justSent).toBe(true));
+
+    const cached = queryClient.getQueryData<{
+      messages: Array<{ id: string; content?: string | null; deliveryStatus?: string | null }>;
+    }>(["smartsupp", "conversation", "conv1"]);
+
+    expect(cached?.messages).toHaveLength(2);
+    const sentMessage = cached?.messages.find((m) => m.id === "ms-real-123");
+    expect(sentMessage).toMatchObject({
+      content: "Nová zpráva",
+      deliveryStatus: "sent",
+    });
+    expect(cached?.messages.some((m) => m.id.startsWith("optimistic-"))).toBe(false);
+  });
 });

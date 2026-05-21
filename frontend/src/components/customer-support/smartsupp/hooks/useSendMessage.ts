@@ -36,7 +36,7 @@ type SendMessageContext = { previous?: GetConversationResponse };
 export function useSendMessage(conversationId: string | null): UseSendMessageResult {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation<void, Error, string, SendMessageContext>({
+  const mutation = useMutation<SendMessageApiResponse, Error, string, SendMessageContext>({
     mutationFn: async (content) => {
       if (!conversationId) {
         throw new Error("Není vybrána konverzace.");
@@ -58,6 +58,8 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
       if (!data.success) {
         throw new Error(messageForSendError(data?.errorCode));
       }
+
+      return data;
     },
     onMutate: async (content) => {
       if (!conversationId) return {};
@@ -73,6 +75,7 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
         content,
         createdAt: new Date().toISOString(),
         isFirstReply: false,
+        deliveryStatus: "pending",
       };
       queryClient.setQueryData<GetConversationResponse>(
         SMARTSUPP_QUERY_KEYS.conversation(conversationId),
@@ -80,19 +83,34 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
       );
       return { previous };
     },
+    onSuccess: (data) => {
+      if (!conversationId) return;
+      queryClient.setQueryData<GetConversationResponse>(
+        SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+        (current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            messages: current.messages.map((m) =>
+              m.id.startsWith("optimistic-")
+                ? {
+                    ...m,
+                    id: data.messageId ?? m.id,
+                    createdAt: data.createdAt ?? m.createdAt,
+                    deliveryStatus: "sent",
+                  }
+                : m,
+            ),
+          };
+        },
+      );
+    },
     onError: (_err, _content, context) => {
       if (context?.previous !== undefined && conversationId) {
         queryClient.setQueryData(
           SMARTSUPP_QUERY_KEYS.conversation(conversationId),
           context.previous,
         );
-      }
-    },
-    onSettled: () => {
-      if (conversationId) {
-        queryClient.invalidateQueries({
-          queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
-        });
       }
     },
   });
