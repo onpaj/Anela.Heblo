@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { ScanLine, Loader2 } from 'lucide-react';
 import ScanInput from '../terminal/ScanInput';
-import { usePackingOrder, PackingOrderNotFoundError } from '../../api/hooks/usePackingOrder';
+import { useScanPackingOrder } from '../../api/hooks/useScanPackingOrder';
+import type { PackingOrder } from '../../api/hooks/useScanPackingOrder';
 import PackingOrderMeta from './PackingOrderMeta';
 import PackingCoolingIndicator from './PackingCoolingIndicator';
 import PackingStateWarning from './PackingStateWarning';
@@ -17,16 +18,22 @@ function CenteredMessage({ children }: { children: ReactNode }) {
   );
 }
 
+const ORDER_NOT_FOUND_MESSAGE = 'Objednávka nebyla nalezena.';
+
+function isOrderNotFoundError(error: Error): boolean {
+  return error.message === ORDER_NOT_FOUND_MESSAGE;
+}
+
 function BaleniPacking() {
-  const [scannedCode, setScannedCode] = useState<string | null>(null);
-  const { data, isLoading, isError, error, refetch } = usePackingOrder(scannedCode);
+  const mutation = useScanPackingOrder();
+
+  const data: PackingOrder | undefined = mutation.data?.order;
+  const isLoading = mutation.isPending;
+  const isError = mutation.isError;
+  const error = mutation.error;
 
   const handleScan = (value: string) => {
-    if (value === scannedCode) {
-      void refetch();
-    } else {
-      setScannedCode(value);
-    }
+    mutation.mutate(value);
   };
 
   const renderBody = () => {
@@ -38,8 +45,8 @@ function BaleniPacking() {
         </CenteredMessage>
       );
     }
-    if (isError) {
-      const notFound = error instanceof PackingOrderNotFoundError;
+    if (isError && error) {
+      const notFound = isOrderNotFoundError(error);
       return (
         <CenteredMessage>
           <p className="text-base font-semibold text-neutral-slate">

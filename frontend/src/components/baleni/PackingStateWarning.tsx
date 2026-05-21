@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react';
-import type { PackingOrder } from '../../api/hooks/usePackingOrder';
+import type { PackingOrder } from '../../api/hooks/useScanPackingOrder';
 
 interface PackingStateWarningProps {
   order: PackingOrder;

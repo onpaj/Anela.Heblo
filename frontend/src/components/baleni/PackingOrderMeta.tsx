@@ -1,4 +1,4 @@
-import type { PackingOrder } from '../../api/hooks/usePackingOrder';
+import type { PackingOrder } from '../../api/hooks/useScanPackingOrder';
 
 interface PackingOrderMetaProps {
   order: PackingOrder;

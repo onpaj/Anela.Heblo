@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import PackingItems, { PHOTO_ITEM_LIMIT } from '../PackingItems';
-import type { PackingOrderItem } from '../../../api/hooks/usePackingOrder';
+import type { PackingOrderItem } from '../../../api/hooks/useScanPackingOrder';
 
 const makeItems = (count: number): PackingOrderItem[] =>
   Array.from({ length: count }, (_, i) => ({

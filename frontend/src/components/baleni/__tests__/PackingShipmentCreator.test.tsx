@@ -1,10 +1,10 @@
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import PackingShipmentCreator from '../PackingShipmentCreator'
-import { usePrepareOrderLabel } from '../../../api/hooks/usePrepareOrderLabel'
 
-jest.mock('../../../api/hooks/usePrepareOrderLabel', () => ({
-  usePrepareOrderLabel: jest.fn(),
+jest.mock('@tanstack/react-query', () => ({
+  ...jest.requireActual('@tanstack/react-query'),
+  useMutation: jest.fn(),
 }))
 jest.mock('../PackingLabelPrinter', () => ({
   __esModule: true,
@@ -14,7 +14,8 @@ jest.mock('../PackingLabelPrinter', () => ({
   ),
 }))
 
-const mockUsePrepareOrderLabel = usePrepareOrderLabel as jest.Mock
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { useMutation } = require('@tanstack/react-query') as { useMutation: jest.Mock }
 
 const idleMutation = {
   mutate: jest.fn(),
@@ -28,7 +29,7 @@ const idleMutation = {
 
 beforeEach(() => {
   jest.clearAllMocks()
-  mockUsePrepareOrderLabel.mockReturnValue({ ...idleMutation })
+  useMutation.mockReturnValue({ ...idleMutation })
 })
 
 describe('PackingShipmentCreator', () => {
@@ -39,7 +40,7 @@ describe('PackingShipmentCreator', () => {
 
   it('clicking Vytvořit zásilku calls mutate with forceRecreate=false', () => {
     const mutate = jest.fn()
-    mockUsePrepareOrderLabel.mockReturnValue({ ...idleMutation, mutate })
+    useMutation.mockReturnValue({ ...idleMutation, mutate })
     render(<PackingShipmentCreator orderCode="0001234" />)
 
     fireEvent.click(screen.getByRole('button', { name: /Vytvořit zásilku/i }))
@@ -48,13 +49,13 @@ describe('PackingShipmentCreator', () => {
   })
 
   it('shows spinner while creating', () => {
-    mockUsePrepareOrderLabel.mockReturnValue({ ...idleMutation, isPending: true })
+    useMutation.mockReturnValue({ ...idleMutation, isPending: true })
     render(<PackingShipmentCreator orderCode="0001234" />)
     expect(screen.getByTestId('shipment-creating-spinner')).toBeInTheDocument()
   })
 
   it('shows PackingLabelPrinter when label is ready', () => {
-    mockUsePrepareOrderLabel.mockReturnValue({
+    useMutation.mockReturnValue({
       ...idleMutation,
       isSuccess: true,
       data: {
@@ -67,8 +68,8 @@ describe('PackingShipmentCreator', () => {
     expect(screen.getByTestId('packing-label-printer')).toBeInTheDocument()
   })
 
-  it('shows Zkusit znovu button when labelReady is false', () => {
-    mockUsePrepareOrderLabel.mockReturnValue({
+  it('shows Zkusit znovu button when labelReady is false and labels are empty', () => {
+    useMutation.mockReturnValue({
       ...idleMutation,
       isSuccess: true,
       data: { labelReady: false, labels: [], existingShipmentFound: false },
@@ -77,8 +78,58 @@ describe('PackingShipmentCreator', () => {
     expect(screen.getByRole('button', { name: /Zkusit znovu/i })).toBeInTheDocument()
   })
 
+  it('clicking Zkusit znovu calls mutate with forceRecreate=false', () => {
+    const mutate = jest.fn()
+    useMutation.mockReturnValue({
+      ...idleMutation,
+      isSuccess: true,
+      data: { labelReady: false, labels: [], existingShipmentFound: false },
+      mutate,
+    })
+    render(<PackingShipmentCreator orderCode="0001234" />)
+    fireEvent.click(screen.getByRole('button', { name: /Zkusit znovu/i }))
+    expect(mutate).toHaveBeenCalledWith({ orderCode: '0001234', forceRecreate: false })
+  })
+
+  it('shows PackingLabelPrinter directly when labelReady is false but labels have shipment data', () => {
+    useMutation.mockReturnValue({
+      ...idleMutation,
+      isSuccess: true,
+      data: {
+        labelReady: false,
+        labels: [{ shipmentGuid: 'g1', packageName: 'P1', labelUrl: null }],
+        existingShipmentFound: false,
+      },
+    })
+    render(<PackingShipmentCreator orderCode="0001234" />)
+    expect(screen.getByTestId('packing-label-printer')).toBeInTheDocument()
+  })
+
+  it('shows PackingLabelPrinter when retry returns existingShipmentFound=true', () => {
+    const mutate = jest.fn()
+    useMutation.mockReturnValue({
+      ...idleMutation,
+      isSuccess: true,
+      data: { labelReady: false, labels: [], existingShipmentFound: false },
+      mutate,
+    })
+    const { rerender } = render(<PackingShipmentCreator orderCode="0001234" />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Zkusit znovu/i }))
+
+    useMutation.mockReturnValue({
+      ...idleMutation,
+      isSuccess: true,
+      data: { existingShipmentFound: true, labelReady: false, labels: [{ shipmentGuid: 'g1', packageName: 'P1' }] },
+      mutate,
+    })
+    rerender(<PackingShipmentCreator orderCode="0001234" />)
+
+    expect(screen.getByTestId('packing-label-printer')).toBeInTheDocument()
+  })
+
   it('shows existing shipment warning and reuse / create-new buttons', () => {
-    mockUsePrepareOrderLabel.mockReturnValue({
+    useMutation.mockReturnValue({
       ...idleMutation,
       isSuccess: true,
       data: {
@@ -94,7 +145,7 @@ describe('PackingShipmentCreator', () => {
   })
 
   it('clicking Použít existující renders label printer', () => {
-    mockUsePrepareOrderLabel.mockReturnValue({
+    useMutation.mockReturnValue({
       ...idleMutation,
       isSuccess: true,
       data: {
@@ -110,7 +161,7 @@ describe('PackingShipmentCreator', () => {
 
   it('clicking Vytvořit novou calls mutate with forceRecreate=true', () => {
     const mutate = jest.fn()
-    mockUsePrepareOrderLabel.mockReturnValue({
+    useMutation.mockReturnValue({
       ...idleMutation,
       isSuccess: true,
       data: {
@@ -126,7 +177,7 @@ describe('PackingShipmentCreator', () => {
   })
 
   it('shows error banner on mutation error', () => {
-    mockUsePrepareOrderLabel.mockReturnValue({
+    useMutation.mockReturnValue({
       ...idleMutation,
       isError: true,
       error: new Error('Shoptet nemohl vytvořit zásilku — zkuste znovu'),

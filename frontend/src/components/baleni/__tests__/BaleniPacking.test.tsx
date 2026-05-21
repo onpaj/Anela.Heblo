@@ -1,11 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import BaleniPacking from '../BaleniPacking';
-import { usePackingOrder, PackingOrderNotFoundError } from '../../../api/hooks/usePackingOrder';
+import { useScanPackingOrder } from '../../../api/hooks/useScanPackingOrder';
 
-jest.mock('../../../api/hooks/usePackingOrder', () => ({
-  ...jest.requireActual('../../../api/hooks/usePackingOrder'),
-  usePackingOrder: jest.fn(),
+jest.mock('../../../api/hooks/useScanPackingOrder', () => ({
+  ...jest.requireActual('../../../api/hooks/useScanPackingOrder'),
+  useScanPackingOrder: jest.fn(),
 }));
 
 jest.mock('../PackingShipmentCreator', () => ({
@@ -15,20 +15,21 @@ jest.mock('../PackingShipmentCreator', () => ({
   ),
 }));
 
-const mockHook = usePackingOrder as jest.Mock;
+const mockHook = useScanPackingOrder as jest.Mock;
 
-const baseResult = {
-  data: undefined,
-  isLoading: false,
+const idleMutation = {
+  mutate: jest.fn(),
+  isPending: false,
+  isSuccess: false,
   isError: false,
+  data: undefined,
   error: null,
-  refetch: jest.fn(),
 };
 
 beforeEach(() => {
   jest.useFakeTimers();
   mockHook.mockReset();
-  mockHook.mockReturnValue(baseResult);
+  mockHook.mockReturnValue({ ...idleMutation });
 });
 
 afterEach(() => {
@@ -44,18 +45,21 @@ describe('BaleniPacking', () => {
 
   it('renders the order panel when data is loaded', () => {
     mockHook.mockReturnValue({
-      ...baseResult,
+      ...idleMutation,
+      isSuccess: true,
       data: {
-        code: '250001',
-        customerName: 'Jan Novák',
-        shippingMethodName: 'PPL (do ruky)',
-        cooling: 'None',
-        isCooled: false,
-        statusId: 26,
-        isInPackingState: true,
-        customerNote: null,
-        eshopNote: null,
-        items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
+        order: {
+          code: '250001',
+          customerName: 'Jan Novák',
+          shippingMethodName: 'PPL (do ruky)',
+          cooling: 'None',
+          isCooled: false,
+          customerNote: null,
+          eshopNote: null,
+          eligibility: { isEligible: true, warningTitle: null, warningBody: null },
+          items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
+        },
+        shipment: null,
       },
     });
 
@@ -66,18 +70,21 @@ describe('BaleniPacking', () => {
 
   it('renders customer and internal notes when present', () => {
     mockHook.mockReturnValue({
-      ...baseResult,
+      ...idleMutation,
+      isSuccess: true,
       data: {
-        code: '250001',
-        customerName: 'Jan Novák',
-        shippingMethodName: 'PPL (do ruky)',
-        cooling: 'L2',
-        isCooled: true,
-        statusId: 26,
-        isInPackingState: true,
-        customerNote: 'Zabalit jako dárek',
-        eshopNote: 'Stálý zákazník',
-        items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
+        order: {
+          code: '250001',
+          customerName: 'Jan Novák',
+          shippingMethodName: 'PPL (do ruky)',
+          cooling: 'L2',
+          isCooled: true,
+          customerNote: 'Zabalit jako dárek',
+          eshopNote: 'Stálý zákazník',
+          eligibility: { isEligible: true, warningTitle: null, warningBody: null },
+          items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
+        },
+        shipment: null,
       },
     });
 
@@ -87,20 +94,27 @@ describe('BaleniPacking', () => {
     expect(screen.getByText('Chlazení L2')).toBeInTheDocument();
   });
 
-  it('shows a danger warning when the order is not in the packing state', () => {
+  it('shows a danger warning when the order is not eligible', () => {
     mockHook.mockReturnValue({
-      ...baseResult,
+      ...idleMutation,
+      isSuccess: true,
       data: {
-        code: '250001',
-        customerName: 'Jan Novák',
-        shippingMethodName: 'PPL (do ruky)',
-        cooling: 'None',
-        isCooled: false,
-        statusId: 5,
-        isInPackingState: false,
-        customerNote: null,
-        eshopNote: null,
-        items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
+        order: {
+          code: '250001',
+          customerName: 'Jan Novák',
+          shippingMethodName: 'PPL (do ruky)',
+          cooling: 'None',
+          isCooled: false,
+          customerNote: null,
+          eshopNote: null,
+          eligibility: {
+            isEligible: false,
+            warningTitle: 'Nelze balit',
+            warningBody: 'Objednávka není ve stavu balení.',
+          },
+          items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
+        },
+        shipment: null,
       },
     });
 
@@ -108,20 +122,23 @@ describe('BaleniPacking', () => {
     expect(screen.getByTestId('packing-state-warning')).toBeInTheDocument();
   });
 
-  it('does not show the danger warning when the order is in the packing state', () => {
+  it('does not show the danger warning when the order is eligible', () => {
     mockHook.mockReturnValue({
-      ...baseResult,
+      ...idleMutation,
+      isSuccess: true,
       data: {
-        code: '250001',
-        customerName: 'Jan Novák',
-        shippingMethodName: 'PPL (do ruky)',
-        cooling: 'None',
-        isCooled: false,
-        statusId: 26,
-        isInPackingState: true,
-        customerNote: null,
-        eshopNote: null,
-        items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
+        order: {
+          code: '250001',
+          customerName: 'Jan Novák',
+          shippingMethodName: 'PPL (do ruky)',
+          cooling: 'None',
+          isCooled: false,
+          customerNote: null,
+          eshopNote: null,
+          eligibility: { isEligible: true, warningTitle: null, warningBody: null },
+          items: [{ name: 'Krém', quantity: 2, imageUrl: null, setName: null }],
+        },
+        shipment: null,
       },
     });
 
@@ -131,9 +148,9 @@ describe('BaleniPacking', () => {
 
   it('shows a not-found message for an unknown order', () => {
     mockHook.mockReturnValue({
-      ...baseResult,
+      ...idleMutation,
       isError: true,
-      error: new PackingOrderNotFoundError('999999'),
+      error: new Error('Objednávka nebyla nalezena.'),
     });
 
     render(<BaleniPacking />);
@@ -142,7 +159,7 @@ describe('BaleniPacking', () => {
 
   it('shows a generic error message for other failures', () => {
     mockHook.mockReturnValue({
-      ...baseResult,
+      ...idleMutation,
       isError: true,
       error: new Error('network down'),
     });
@@ -151,43 +168,49 @@ describe('BaleniPacking', () => {
     expect(screen.getByText('Nepodařilo se načíst objednávku')).toBeInTheDocument();
   });
 
-  it('updates the scanned code when the scan input submits', () => {
-    render(<BaleniPacking />);
-    const input = screen.getByRole('textbox') as HTMLInputElement;
-    fireEvent.change(input, { target: { value: '250001' } });
-    fireEvent.submit(input.closest('form')!);
-    expect(mockHook).toHaveBeenLastCalledWith('250001');
-  });
-
-  it('refetches instead of changing state when the same code is scanned twice', () => {
-    const refetch = jest.fn();
-    mockHook.mockReturnValue({ ...baseResult, refetch });
+  it('calls mutate when the scan input submits', () => {
+    const mutate = jest.fn();
+    mockHook.mockReturnValue({ ...idleMutation, mutate });
 
     render(<BaleniPacking />);
     const input = screen.getByRole('textbox') as HTMLInputElement;
-
     fireEvent.change(input, { target: { value: '250001' } });
     fireEvent.submit(input.closest('form')!);
-    fireEvent.change(input, { target: { value: '250001' } });
-    fireEvent.submit(input.closest('form')!);
-
-    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(mutate).toHaveBeenLastCalledWith('250001');
   });
 
-  it('mounts PackingShipmentCreator when order is in packing state', () => {
+  it('calls mutate again when the same code is scanned twice', () => {
+    const mutate = jest.fn();
+    mockHook.mockReturnValue({ ...idleMutation, mutate });
+
+    render(<BaleniPacking />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: '250001' } });
+    fireEvent.submit(input.closest('form')!);
+    fireEvent.change(input, { target: { value: '250001' } });
+    fireEvent.submit(input.closest('form')!);
+
+    expect(mutate).toHaveBeenCalledTimes(2);
+  });
+
+  it('mounts PackingShipmentCreator when order is eligible', () => {
     mockHook.mockReturnValue({
-      ...baseResult,
+      ...idleMutation,
+      isSuccess: true,
       data: {
-        code: '250001',
-        customerName: 'Jan Novák',
-        shippingMethodName: 'PPL',
-        cooling: 'None',
-        isCooled: false,
-        statusId: 26,
-        isInPackingState: true,
-        customerNote: null,
-        eshopNote: null,
-        items: [],
+        order: {
+          code: '250001',
+          customerName: 'Jan Novák',
+          shippingMethodName: 'PPL',
+          cooling: 'None',
+          isCooled: false,
+          customerNote: null,
+          eshopNote: null,
+          eligibility: { isEligible: true, warningTitle: null, warningBody: null },
+          items: [],
+        },
+        shipment: null,
       },
     });
 
@@ -199,20 +222,27 @@ describe('BaleniPacking', () => {
     );
   });
 
-  it('does not mount PackingShipmentCreator when order is not in packing state', () => {
+  it('does not mount PackingShipmentCreator when order is not eligible', () => {
     mockHook.mockReturnValue({
-      ...baseResult,
+      ...idleMutation,
+      isSuccess: true,
       data: {
-        code: '250001',
-        customerName: 'Jan Novák',
-        shippingMethodName: 'PPL',
-        cooling: 'None',
-        isCooled: false,
-        statusId: 5,
-        isInPackingState: false,
-        customerNote: null,
-        eshopNote: null,
-        items: [],
+        order: {
+          code: '250001',
+          customerName: 'Jan Novák',
+          shippingMethodName: 'PPL',
+          cooling: 'None',
+          isCooled: false,
+          customerNote: null,
+          eshopNote: null,
+          eligibility: {
+            isEligible: false,
+            warningTitle: 'Nelze balit',
+            warningBody: null,
+          },
+          items: [],
+        },
+        shipment: null,
       },
     });
 
