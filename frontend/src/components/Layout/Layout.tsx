@@ -19,8 +19,11 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
     location.pathname === "/dashboard" ||
     location.pathname === "/customer/smartsupp";
 
+  // Pages that manage their own internal scroll — no padding wrapper, main is overflow-hidden
+  const isFullHeightPage = location.pathname === "/customer/smartsupp";
+
   return (
-    <div className="h-screen bg-gray-50 flex flex-col">
+    <div className="h-[calc(100vh-1.5rem)] bg-gray-50 flex flex-col overflow-hidden">
       {/* TopBar for mobile menu */}
       <TopBar onMenuClick={() => setSidebarOpen(true)} />
 
@@ -35,15 +38,19 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
 
       {/* Main content */}
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 ${sidebarCollapsed ? "md:pl-16" : "md:pl-64"} pt-16 md:pt-0`}
+        className={`flex-1 min-h-0 flex flex-col transition-all duration-300 ${sidebarCollapsed ? "md:pl-16" : "md:pl-64"} pt-16 md:pt-0`}
       >
         {!hideMobileNotice && <MobileNotice />}
 
         {/* Page content */}
-        <main className="flex-1 relative overflow-auto">
-          <div className="p-3 md:p-4 bg-gray-50 min-h-full flex flex-col">
-            <div className="w-full flex-1 flex flex-col min-h-0">{children}</div>
-          </div>
+        <main className={`flex-1 relative ${isFullHeightPage ? "overflow-hidden flex flex-col" : "overflow-auto"}`}>
+          {isFullHeightPage ? (
+            children
+          ) : (
+            <div className="p-3 md:p-4 bg-gray-50 min-h-full flex flex-col">
+              <div className="w-full flex-1 flex flex-col min-h-0">{children}</div>
+            </div>
+          )}
         </main>
       </div>
 

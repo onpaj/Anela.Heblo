@@ -68,7 +68,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
   const grouped = groupByDay(messages);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-3">
         {onBack && (
           <button
@@ -108,7 +108,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
         {isLoading && (
           <div className="text-sm text-gray-400 text-center py-8">Načítání zpráv...</div>
         )}

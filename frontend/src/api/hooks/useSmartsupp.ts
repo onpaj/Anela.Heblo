@@ -135,7 +135,7 @@ export interface ShoptetOrderSnapshotDto {
 }
 
 export interface ShoptetContactInfoDto {
-  customer: ShoptetCustomerSnapshotDto;
+  customer?: ShoptetCustomerSnapshotDto | null;
   recentOrders: ShoptetOrderSnapshotDto[];
   cartUpdatedAt?: string | null;
 }

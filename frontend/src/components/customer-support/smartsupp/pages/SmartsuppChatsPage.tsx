@@ -53,7 +53,7 @@ const SmartsuppChatsPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       <div
         className={`${mobileView !== "list" ? "hidden md:flex" : "flex"} items-center justify-end px-4 py-2 border-b border-gray-200 bg-white`}
       >
@@ -67,7 +67,7 @@ const SmartsuppChatsPage: React.FC = () => {
         </button>
       </div>
 
-      <div className="flex flex-1 overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="flex flex-1 overflow-hidden bg-white">
         <div
           className={`${mobileView === "list" ? "flex" : "hidden"} ${listPanelOpen ? "md:flex" : "md:hidden"} flex-col w-full md:w-96 flex-shrink-0 overflow-hidden`}
         >

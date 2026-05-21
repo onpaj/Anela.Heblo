@@ -31,12 +31,12 @@ interface UseSendMessageResult {
   clearSent: () => void;
 }
 
-type SendMessageContext = { previous?: GetConversationResponse };
+type SendMessageContext = { previous?: GetConversationResponse; optimisticId?: string };
 
 export function useSendMessage(conversationId: string | null): UseSendMessageResult {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation<void, Error, string, SendMessageContext>({
+  const mutation = useMutation<SendMessageApiResponse, Error, string, SendMessageContext>({
     mutationFn: async (content) => {
       if (!conversationId) {
         throw new Error("Není vybrána konverzace.");
@@ -58,6 +58,8 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
       if (!data.success) {
         throw new Error(messageForSendError(data?.errorCode));
       }
+
+      return data;
     },
     onMutate: async (content) => {
       if (!conversationId) return {};
@@ -67,18 +69,49 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
       const previous = queryClient.getQueryData<GetConversationResponse>(
         SMARTSUPP_QUERY_KEYS.conversation(conversationId),
       );
+      const optimisticId = `optimistic-${Date.now()}`;
       const optimisticMsg: MessageDto = {
-        id: `optimistic-${Date.now()}`,
+        id: optimisticId,
         authorType: "agent",
         content,
         createdAt: new Date().toISOString(),
         isFirstReply: false,
+        deliveryStatus: "pending",
       };
       queryClient.setQueryData<GetConversationResponse>(
         SMARTSUPP_QUERY_KEYS.conversation(conversationId),
         (old) => (old ? { ...old, messages: [...old.messages, optimisticMsg] } : old),
       );
-      return { previous };
+      return { previous, optimisticId };
+    },
+    onSuccess: (data, _variables, context) => {
+      const optimisticId = context?.optimisticId;
+      if (!conversationId || !optimisticId) return;
+      queryClient.setQueryData<GetConversationResponse>(
+        SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+        (current) => {
+          if (!current) return current;
+          if (!data.messageId) {
+            return {
+              ...current,
+              messages: current.messages.filter((m) => m.id !== optimisticId),
+            };
+          }
+          return {
+            ...current,
+            messages: current.messages.map((m) =>
+              m.id === optimisticId
+                ? {
+                    ...m,
+                    id: data.messageId!,
+                    createdAt: data.createdAt ?? m.createdAt,
+                    deliveryStatus: "sent",
+                  }
+                : m,
+            ),
+          };
+        },
+      );
     },
     onError: (_err, _content, context) => {
       if (context?.previous !== undefined && conversationId) {
@@ -86,13 +119,6 @@ export function useSendMessage(conversationId: string | null): UseSendMessageRes
           SMARTSUPP_QUERY_KEYS.conversation(conversationId),
           context.previous,
         );
-      }
-    },
-    onSettled: () => {
-      if (conversationId) {
-        queryClient.invalidateQueries({
-          queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
-        });
       }
     },
   });
