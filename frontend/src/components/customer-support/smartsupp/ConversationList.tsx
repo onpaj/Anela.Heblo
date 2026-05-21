@@ -45,14 +45,20 @@ const ConversationList: React.FC<ConversationListProps> = ({
       {!isLoading && conversations.length === 0 && (
         <div className="p-4 text-sm text-gray-400 text-center">Žádné konverzace</div>
       )}
-      {conversations.map((c) => (
-        <ConversationListItem
-          key={c.id}
-          conversation={c}
-          isSelected={c.id === selectedId}
-          onClick={() => onSelect(c.id)}
-        />
-      ))}
+      {[...conversations]
+        .sort((a, b) => {
+          const aTime = a.lastMessageAt ?? a.createdAt;
+          const bTime = b.lastMessageAt ?? b.createdAt;
+          return bTime < aTime ? -1 : bTime > aTime ? 1 : 0;
+        })
+        .map((c) => (
+          <ConversationListItem
+            key={c.id}
+            conversation={c}
+            isSelected={c.id === selectedId}
+            onClick={() => onSelect(c.id)}
+          />
+        ))}
     </div>
   </div>
 );

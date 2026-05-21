@@ -20,7 +20,7 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
     location.pathname === "/customer/smartsupp";
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* TopBar for mobile menu */}
       <TopBar onMenuClick={() => setSidebarOpen(true)} />
 
