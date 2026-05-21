@@ -109,13 +109,18 @@ public class PackingMaterialsController : BaseApiController
     }
 
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DeletePackingMaterial(
         int id,
         CancellationToken cancellationToken = default)
     {
         var request = new DeletePackingMaterialRequest { Id = id };
-        await _mediator.Send(request, cancellationToken);
-        return NoContent();
+        var response = await _mediator.Send(request, cancellationToken);
+        if (response.Success) return NoContent();
+        if (response.ErrorCode == ErrorCodes.ResourceNotFound) return NotFound(new { error = response.Error });
+        return BadRequest(new { error = response.Error });
     }
 
     [HttpPost("process-daily-consumption")]

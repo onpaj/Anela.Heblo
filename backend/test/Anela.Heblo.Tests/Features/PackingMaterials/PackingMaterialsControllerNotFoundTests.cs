@@ -1,5 +1,6 @@
 using Anela.Heblo.API.Controllers;
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeletePackingMaterial;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialLogs;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterialQuantity;
 using Anela.Heblo.Application.Shared;
@@ -100,5 +101,43 @@ public class PackingMaterialsControllerNotFoundTests
         // Assert
         var notFoundResult = result.Result.Should().BeOfType<NotFoundObjectResult>().Subject;
         notFoundResult.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task DeletePackingMaterial_Returns404_WhenHandlerReturnsResourceNotFound()
+    {
+        // Arrange
+        var notFound = new DeletePackingMaterialResponse
+        {
+            Success = false,
+            ErrorCode = ErrorCodes.ResourceNotFound,
+            Error = "Packing material with ID 99 not found."
+        };
+        _mediator
+            .Setup(m => m.Send(It.IsAny<DeletePackingMaterialRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(notFound);
+
+        // Act
+        var result = await _controller.DeletePackingMaterial(99, CancellationToken.None);
+
+        // Assert
+        var notFoundResult = result.Should().BeOfType<NotFoundObjectResult>().Subject;
+        notFoundResult.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task DeletePackingMaterial_Returns204_WhenHandlerReturnsSuccess()
+    {
+        // Arrange
+        var ok = new DeletePackingMaterialResponse();
+        _mediator
+            .Setup(m => m.Send(It.IsAny<DeletePackingMaterialRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ok);
+
+        // Act
+        var result = await _controller.DeletePackingMaterial(1, CancellationToken.None);
+
+        // Assert
+        result.Should().BeOfType<NoContentResult>();
     }
 }

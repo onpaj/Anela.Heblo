@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.DeletePackingMaterial;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialLogs;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterial;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterialQuantity;
@@ -182,5 +183,42 @@ public class PackingMaterialCrudHandlerTests
         Assert.NotNull(response.Material);
         Assert.Equal(1, response.Material.Id);
         Assert.Empty(response.Logs);
+    }
+
+    // ---- DeletePackingMaterial ----
+
+    [Fact]
+    public async Task DeletePackingMaterial_ReturnsNotFoundResponse_WhenMaterialDoesNotExist()
+    {
+        // Arrange
+        var repo = BuildRepo();
+        var handler = new DeletePackingMaterialHandler(repo);
+
+        // Act
+        var response = await handler.Handle(new DeletePackingMaterialRequest { Id = 99 }, CancellationToken.None);
+
+        // Assert
+        Assert.False(response.Success);
+        Assert.Equal(ErrorCodes.ResourceNotFound, response.ErrorCode);
+        Assert.NotNull(response.Error);
+        Assert.Contains("99", response.Error!);
+    }
+
+    [Fact]
+    public async Task DeletePackingMaterial_DeletesAndReturnsSuccess_WhenMaterialExists()
+    {
+        // Arrange
+        var material = MakeMaterial(1);
+        var repo = BuildRepo(material);
+        var handler = new DeletePackingMaterialHandler(repo);
+
+        // Act
+        var response = await handler.Handle(new DeletePackingMaterialRequest { Id = 1 }, CancellationToken.None);
+
+        // Assert
+        Assert.True(response.Success);
+        Assert.Null(response.ErrorCode);
+        Assert.Null(response.Error);
+        Assert.Empty(repo.Materials);
     }
 }
