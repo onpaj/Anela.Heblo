@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using OpenFeature;
 using OpenFeature.Constant;
 using OpenFeature.Model;
@@ -17,6 +18,7 @@ internal sealed class HebloFeatureProvider : FeatureProvider
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IMemoryCache _cache;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<HebloFeatureProvider> _logger;
 
     internal const string CacheKey = "feature_flag_overrides";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
@@ -24,11 +26,13 @@ internal sealed class HebloFeatureProvider : FeatureProvider
     public HebloFeatureProvider(
         IServiceScopeFactory scopeFactory,
         IMemoryCache cache,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger<HebloFeatureProvider> logger)
     {
         _scopeFactory = scopeFactory;
         _cache = cache;
         _configuration = configuration;
+        _logger = logger;
     }
 
     public override Metadata GetMetadata() => new("Heblo.FeatureManagement");
@@ -53,6 +57,7 @@ internal sealed class HebloFeatureProvider : FeatureProvider
         }
         catch (Exception ex)
         {
+            _logger.LogWarning(ex, "Feature flag resolution failed for key {FlagKey}; using default {DefaultValue}", flagKey, defaultValue);
             return new ResolutionDetails<bool>(
                 flagKey,
                 defaultValue,
@@ -83,11 +88,23 @@ internal sealed class HebloFeatureProvider : FeatureProvider
         => throw new NotImplementedException("Structure flags not supported in v1.");
 
     private async Task<Dictionary<string, bool>> GetOverridesAsync(CancellationToken ct)
-        => await _cache.GetOrCreateAsync(CacheKey, async entry =>
+    {
+        ct.ThrowIfCancellationRequested();
+
+        try
         {
-            entry.AbsoluteExpirationRelativeToNow = CacheTtl;
-            using var scope = _scopeFactory.CreateScope();
-            var repo = scope.ServiceProvider.GetRequiredService<IFeatureFlagOverrideRepository>();
-            return await repo.GetAllAsDictionaryAsync(ct);
-        }) ?? [];
+            return await _cache.GetOrCreateAsync(CacheKey, async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = CacheTtl;
+                using var scope = _scopeFactory.CreateScope();
+                var repo = scope.ServiceProvider.GetRequiredService<IFeatureFlagOverrideRepository>();
+                return await repo.GetAllAsDictionaryAsync(ct);
+            }) ?? [];
+        }
+        catch (OperationCanceledException)
+        {
+            _cache.Remove(CacheKey);
+            throw;
+        }
+    }
 }

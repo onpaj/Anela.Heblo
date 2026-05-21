@@ -10,7 +10,7 @@ internal sealed class FeatureFlagChecker : IFeatureFlagChecker
 
     public Task<bool> IsEnabledAsync(string key, CancellationToken ct = default)
     {
-        var def = FeatureFlagRegistry.All.FirstOrDefault(d => d.Key == key);
+        FeatureFlagRegistry.ByKey.TryGetValue(key, out var def);
         return _client.GetBooleanValueAsync(key, def?.DefaultValue ?? false, cancellationToken: ct);
     }
 

@@ -20,4 +20,7 @@ public static class FeatureFlagRegistry
             Description: "Controls whether background data refresh is enabled. Disable in test environments.",
             DefaultValue: true),
     ];
+
+    public static readonly IReadOnlyDictionary<string, FeatureFlagDefinition> ByKey =
+        All.ToDictionary(d => d.Key, StringComparer.Ordinal);
 }

@@ -14,8 +14,10 @@ public static class FeatureFlagsModule
         IConfiguration configuration)
     {
         services.AddMemoryCache();
+        // Enables IFeatureManager for [FeatureGate] attribute support on controllers.
         services.AddFeatureManagement(configuration.GetSection("FeatureManagement"));
         services.AddSingleton<HebloFeatureProvider>();
+        // Re-created per scope to allow future per-request EvaluationContext injection.
         services.AddScoped<IFeatureClient>(_ => Api.Instance.GetClient());
         services.AddScoped<IFeatureFlagChecker, FeatureFlagChecker>();
         return services;
