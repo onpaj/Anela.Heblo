@@ -24,13 +24,23 @@ jest.mock('../../../api/hooks/useResetOrderShipment', () => ({
 
 const newShipment: ScanShipment = {
   shipmentGuid: 'guid-new',
-  packages: [{ name: 'PKG-1' }],
+  packages: [{
+    name: 'PKG-1',
+    trackingNumber: null,
+    labelUrl: 'https://carrier.example.com/new.pdf',
+    labelZpl: null,
+  }],
   alreadyExisted: false,
 };
 
 const existingShipment: ScanShipment = {
   shipmentGuid: 'guid-existing',
-  packages: [{ name: 'PKG-1' }],
+  packages: [{
+    name: 'PKG-1',
+    trackingNumber: null,
+    labelUrl: 'https://carrier.example.com/existing.pdf',
+    labelZpl: null,
+  }],
   alreadyExisted: true,
 };
 
