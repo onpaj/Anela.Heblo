@@ -15,4 +15,5 @@ public class UpdatePackingMaterialRequest : IRequest<UpdatePackingMaterialRespon
 public class UpdatePackingMaterialResponse : BaseResponse
 {
     public PackingMaterialDto Material { get; set; } = null!;
+    public string? Error { get; set; }
 }
