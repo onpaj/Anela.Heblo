@@ -86,6 +86,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Manufacture",
             },
             Allowlist: LogisticsAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "PackingMaterials -> Invoices",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.PackingMaterials",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Invoices",
+                "Anela.Heblo.Application.Features.Invoices",
+                "Anela.Heblo.Persistence.Invoices",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
     };
 
     [Theory]

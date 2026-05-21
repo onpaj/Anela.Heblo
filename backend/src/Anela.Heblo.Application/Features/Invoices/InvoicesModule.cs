@@ -5,6 +5,7 @@ using Anela.Heblo.Persistence.Features.Invoices;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure;
 using Anela.Heblo.Application.Features.Invoices.Infrastructure.Transformations;
 using Anela.Heblo.Application.Features.Invoices.Services;
+using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 
 namespace Anela.Heblo.Application.Features.Invoices;
 
@@ -17,6 +18,11 @@ public static class InvoicesModule
     {
         // Register repositories
         services.AddScoped<IIssuedInvoiceRepository, IssuedInvoiceRepository>();
+
+        // Cross-module contract: Invoices implements PackingMaterials' IInvoiceConsumptionSource
+        // via an adapter. DI registration owned by provider (Invoices), not consumer
+        // (PackingMaterials) — keeps the dependency direction inverted properly.
+        services.AddScoped<IInvoiceConsumptionSource, InvoiceConsumptionSourceAdapter>();
 
         // Register services
         services.AddScoped<IInvoiceImportService, InvoiceImportService>();
