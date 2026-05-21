@@ -1,5 +1,6 @@
 using Anela.Heblo.API.Controllers;
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialLogs;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterialQuantity;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
@@ -73,6 +74,28 @@ public class PackingMaterialsControllerNotFoundTests
 
         // Act
         var result = await _controller.UpdatePackingMaterialQuantity(99, body, CancellationToken.None);
+
+        // Assert
+        var notFoundResult = result.Result.Should().BeOfType<NotFoundObjectResult>().Subject;
+        notFoundResult.StatusCode.Should().Be(404);
+    }
+
+    [Fact]
+    public async Task GetPackingMaterialLogs_Returns404_WhenHandlerReturnsResourceNotFound()
+    {
+        // Arrange
+        var notFound = new GetPackingMaterialLogsResponse
+        {
+            Success = false,
+            ErrorCode = ErrorCodes.ResourceNotFound,
+            Error = "Packing material with ID 99 not found."
+        };
+        _mediator
+            .Setup(m => m.Send(It.IsAny<GetPackingMaterialLogsRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(notFound);
+
+        // Act
+        var result = await _controller.GetPackingMaterialLogs(99, 60, CancellationToken.None);
 
         // Assert
         var notFoundResult = result.Result.Should().BeOfType<NotFoundObjectResult>().Subject;

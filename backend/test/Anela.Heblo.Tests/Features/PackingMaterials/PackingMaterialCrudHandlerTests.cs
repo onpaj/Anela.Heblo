@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Features.PackingMaterials.UseCases.GetPackingMaterialLogs;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterial;
 using Anela.Heblo.Application.Features.PackingMaterials.UseCases.UpdatePackingMaterialQuantity;
 using Anela.Heblo.Application.Shared;
@@ -134,5 +135,52 @@ public class PackingMaterialCrudHandlerTests
         Assert.NotNull(response.Material);
         Assert.Equal(1, response.Material.Id);
         Assert.Single(repo.UpdatedMaterials);
+    }
+
+    // ---- GetPackingMaterialLogs ----
+
+    [Fact]
+    public async Task GetPackingMaterialLogs_ReturnsNotFoundResponse_WhenMaterialDoesNotExist()
+    {
+        // Arrange
+        var repo = BuildRepo();
+        var handler = new GetPackingMaterialLogsHandler(repo);
+
+        // Act
+        var response = await handler.Handle(new GetPackingMaterialLogsRequest
+        {
+            PackingMaterialId = 99,
+            Days = 30
+        }, CancellationToken.None);
+
+        // Assert
+        Assert.False(response.Success);
+        Assert.Equal(ErrorCodes.ResourceNotFound, response.ErrorCode);
+        Assert.NotNull(response.Error);
+        Assert.Contains("99", response.Error!);
+    }
+
+    [Fact]
+    public async Task GetPackingMaterialLogs_ReturnsSuccess_WhenMaterialExists()
+    {
+        // Arrange
+        var material = MakeMaterial(1);
+        var repo = BuildRepo(material);
+        var handler = new GetPackingMaterialLogsHandler(repo);
+
+        // Act
+        var response = await handler.Handle(new GetPackingMaterialLogsRequest
+        {
+            PackingMaterialId = 1,
+            Days = 30
+        }, CancellationToken.None);
+
+        // Assert
+        Assert.True(response.Success);
+        Assert.Null(response.ErrorCode);
+        Assert.Null(response.Error);
+        Assert.NotNull(response.Material);
+        Assert.Equal(1, response.Material.Id);
+        Assert.Empty(response.Logs);
     }
 }
