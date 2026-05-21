@@ -7,8 +7,7 @@ interface AgentBadgeProps {
   showInitials?: boolean;
 }
 
-function getInitials(name?: string | null): string {
-  if (!name) return "?";
+function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
   return parts.length >= 2
     ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
@@ -17,8 +16,14 @@ function getInitials(name?: string | null): string {
 
 const AgentBadge: React.FC<AgentBadgeProps> = ({ agentId, name, showInitials = true }) => {
   const color = getAgentColor(agentId);
-  const initials = getInitials(name);
-  const label = name ?? initials;
+  const trimmedName = name?.trim();
+  const hasName = !!trimmedName;
+  const initials = hasName
+    ? getInitials(trimmedName!)
+    : agentId
+        ? agentId.slice(0, 2).toUpperCase()
+        : "?";
+  const label = hasName ? trimmedName! : "Agent";
 
   return (
     <span
