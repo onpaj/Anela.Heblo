@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.FeatureFlags.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.FeatureManagement;
 using OpenFeature;
 
 namespace Anela.Heblo.Application.Features.FeatureFlags;
@@ -13,6 +14,7 @@ public static class FeatureFlagsModule
         IConfiguration configuration)
     {
         services.AddMemoryCache();
+        services.AddFeatureManagement(configuration.GetSection("FeatureManagement"));
         services.AddSingleton<HebloFeatureProvider>();
         services.AddScoped<IFeatureClient>(_ => Api.Instance.GetClient());
         services.AddScoped<IFeatureFlagChecker, FeatureFlagChecker>();
