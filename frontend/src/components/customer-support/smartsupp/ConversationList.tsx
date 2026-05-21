@@ -38,7 +38,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
       </div>
     </div>
 
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto min-h-0">
       {isLoading && (
         <div className="p-4 text-sm text-gray-400 text-center">Načítání...</div>
       )}

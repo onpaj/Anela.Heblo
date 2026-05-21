@@ -53,7 +53,7 @@ const SmartsuppChatsPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       <div
         className={`${mobileView !== "list" ? "hidden md:flex" : "flex"} items-center justify-end px-4 py-2 border-b border-gray-200 bg-white`}
       >
