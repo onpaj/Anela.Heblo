@@ -128,6 +128,7 @@ public class GetSmartsuppContactShoptetInfoHandlerTests
 
         result.Success.Should().BeTrue();
         result.ContactInfo.Should().BeNull();
+        _customerClient.Verify(c => c.GetCustomerByGuidAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
