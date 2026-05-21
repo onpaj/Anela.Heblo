@@ -9,9 +9,8 @@ export const printLabelPdf = (orderCode: string, label: ShipmentLabelDto): void 
   const apiClient = getAuthenticatedApiClient(false);
   const baseUrl = (apiClient as any).baseUrl as string;
   const url =
-    `${baseUrl}/api/shipment-labels/pdf` +
-    `?orderCode=${encodeURIComponent(orderCode)}` +
-    `&shipmentGuid=${encodeURIComponent(label.shipmentGuid)}` +
+    `${baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/label/pdf` +
+    `?shipmentGuid=${encodeURIComponent(label.shipmentGuid)}` +
     `&packageName=${encodeURIComponent(label.packageName)}`;
 
   void fetch(url)
