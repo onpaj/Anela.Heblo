@@ -56,7 +56,7 @@ public class GetPackingMaterialsListHandler : IRequestHandler<GetPackingMaterial
                 Name = material.Name,
                 ConsumptionRate = material.ConsumptionRate,
                 ConsumptionType = material.ConsumptionType,
-                ConsumptionTypeText = GetConsumptionTypeText(material.ConsumptionType),
+                ConsumptionTypeText = PackingMaterialsTextHelper.ConsumptionTypeText(material.ConsumptionType),
                 CurrentQuantity = material.CurrentQuantity,
                 ForecastedDays = displayForecast,
                 CreatedAt = material.CreatedAt,
@@ -73,12 +73,4 @@ public class GetPackingMaterialsListHandler : IRequestHandler<GetPackingMaterial
             Materials = materialDtos
         };
     }
-
-    private static string GetConsumptionTypeText(ConsumptionType type) => type switch
-    {
-        ConsumptionType.PerOrder => "za zakázku",
-        ConsumptionType.PerProduct => "za produkt",
-        ConsumptionType.PerDay => "za den",
-        _ => type.ToString()
-    };
 }

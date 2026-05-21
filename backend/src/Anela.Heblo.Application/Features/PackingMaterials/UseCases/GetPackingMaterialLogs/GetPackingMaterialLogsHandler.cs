@@ -39,7 +39,7 @@ public class GetPackingMaterialLogsHandler : IRequestHandler<GetPackingMaterialL
             Name = material.Name,
             ConsumptionRate = material.ConsumptionRate,
             ConsumptionType = material.ConsumptionType,
-            ConsumptionTypeText = GetConsumptionTypeText(material.ConsumptionType),
+            ConsumptionTypeText = PackingMaterialsTextHelper.ConsumptionTypeText(material.ConsumptionType),
             CurrentQuantity = material.CurrentQuantity,
             CreatedAt = material.CreatedAt,
             UpdatedAt = material.UpdatedAt
@@ -65,14 +65,6 @@ public class GetPackingMaterialLogsHandler : IRequestHandler<GetPackingMaterialL
             Logs = logDtos
         };
     }
-
-    private static string GetConsumptionTypeText(ConsumptionType type) => type switch
-    {
-        ConsumptionType.PerOrder => "za zakázku",
-        ConsumptionType.PerProduct => "za produkt",
-        ConsumptionType.PerDay => "za den",
-        _ => type.ToString()
-    };
 
     private static string GetLogTypeText(LogEntryType type) => type switch
     {
