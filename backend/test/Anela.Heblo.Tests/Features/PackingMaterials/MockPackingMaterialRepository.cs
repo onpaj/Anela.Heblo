@@ -50,6 +50,30 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
         return Task.FromResult<IEnumerable<PackingMaterialLog>>(new List<PackingMaterialLog>());
     }
 
+    public Dictionary<int, List<PackingMaterialLog>> RecentLogsByMaterial { get; } = new();
+
+    public Task<IReadOnlyDictionary<int, IReadOnlyList<PackingMaterialLog>>> GetRecentLogsForMaterialsAsync(
+        IEnumerable<int> packingMaterialIds,
+        DateTime fromDate,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = packingMaterialIds.ToHashSet();
+        var dict = new Dictionary<int, IReadOnlyList<PackingMaterialLog>>();
+        foreach (var kvp in RecentLogsByMaterial)
+        {
+            if (!ids.Contains(kvp.Key)) continue;
+            var filtered = kvp.Value
+                .Where(l => l.CreatedAt >= fromDate)
+                .OrderByDescending(l => l.CreatedAt)
+                .ToList();
+            if (filtered.Count > 0)
+            {
+                dict[kvp.Key] = filtered;
+            }
+        }
+        return Task.FromResult<IReadOnlyDictionary<int, IReadOnlyList<PackingMaterialLog>>>(dict);
+    }
+
     public Task<bool> HasDailyProcessingBeenRunAsync(DateOnly date, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(_dailyProcessingStatus.TryGetValue(date, out var hasRun) && hasRun);

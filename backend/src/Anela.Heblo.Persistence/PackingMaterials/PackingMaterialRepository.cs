@@ -31,6 +31,29 @@ public class PackingMaterialRepository : BaseRepository<PackingMaterial, int>, I
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyDictionary<int, IReadOnlyList<PackingMaterialLog>>> GetRecentLogsForMaterialsAsync(
+        IEnumerable<int> packingMaterialIds,
+        DateTime fromDate,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = packingMaterialIds as IReadOnlyCollection<int> ?? packingMaterialIds.ToArray();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<int, IReadOnlyList<PackingMaterialLog>>();
+        }
+
+        var logs = await Context.Set<PackingMaterialLog>()
+            .Where(log => ids.Contains(log.PackingMaterialId) && log.CreatedAt >= fromDate)
+            .OrderByDescending(log => log.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return logs
+            .GroupBy(log => log.PackingMaterialId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<PackingMaterialLog>)g.ToList());
+    }
+
     public async Task<bool> HasDailyProcessingBeenRunAsync(DateOnly date, CancellationToken cancellationToken = default)
     {
         return await Context.Set<PackingMaterialLog>()
