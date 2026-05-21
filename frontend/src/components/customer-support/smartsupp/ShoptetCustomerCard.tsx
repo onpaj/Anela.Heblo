@@ -16,9 +16,8 @@ function ShoptetCustomerCard({ conversationId }: ShoptetCustomerCardProps) {
 
   const hasCustomer = customer != null;
   const hasOrders = recentOrders.length > 0;
-  const hasCart = !!cartUpdatedAt;
 
-  if (!hasCustomer && !hasOrders && !hasCart) return null;
+  if (!hasCustomer && !hasOrders && !cartUpdatedAt) return null;
 
   return (
     <>
@@ -48,10 +47,10 @@ function ShoptetCustomerCard({ conversationId }: ShoptetCustomerCardProps) {
         </Section>
       )}
 
-      {hasCart && (
+      {cartUpdatedAt != null && (
         <Section title="Shoptet Košík">
           <div className="text-xs text-gray-500">
-            Aktualizován: {new Date(cartUpdatedAt!).toLocaleDateString("cs-CZ")}
+            Aktualizován: {new Date(cartUpdatedAt).toLocaleDateString("cs-CZ")}
           </div>
         </Section>
       )}
