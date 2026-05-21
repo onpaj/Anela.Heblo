@@ -87,13 +87,13 @@ automatic-reply paths).
 
 Returns the list of agents configured in the Smartsupp account.
 
-**Status:** Endpoint shape assumed from Smartsupp REST API patterns — verify on first call.
+**Status:** Verified 2026-05-21 against live account.
 
-**Response (assumed):**
+**Response:**
 ```json
 {
-  "items": [
-    { "id": "12", "name": "Ondra Pajgrt", "email": "ondra@anela.cz" }
+  "agents": [
+    { "id": "1257997", "name": "Ondra Pajgrt", "email": "ondra@anela.cz", "avatar": "...", "role": "admin", "status": "offline", "active": true }
   ]
 }
 ```

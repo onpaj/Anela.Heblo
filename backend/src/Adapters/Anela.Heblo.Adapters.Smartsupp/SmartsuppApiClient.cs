@@ -484,7 +484,7 @@ public class SmartsuppApiClient : ISmartsuppApiClient
 
     private sealed class SmartsuppAgentsApiResponse
     {
-        public List<SmartsuppAgentApiItem>? Items { get; set; }
+        public List<SmartsuppAgentApiItem>? Agents { get; set; }
     }
 
     private sealed class SmartsuppAgentApiItem
@@ -535,7 +535,7 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             var raw = await response.Content.ReadAsStringAsync(ct);
             var result = JsonSerializer.Deserialize<SmartsuppAgentsApiResponse>(raw, JsonOptions);
 
-            return (result?.Items ?? [])
+            return (result?.Agents ?? [])
                 .Where(a => a.Id is not null)
                 .Select(a => new SmartsuppAgentData { Id = a.Id!, Name = a.Name, Email = a.Email })
                 .ToList();
