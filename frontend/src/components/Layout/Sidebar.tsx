@@ -292,7 +292,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     {
       id: "automatizace",
-      name: "Automatizace",
+      name: "Administrace",
       icon: Bot,
       type: "section" as const,
       items: [
@@ -321,6 +321,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "data-quality",
           name: "Kvalita dat",
           href: "/automation/data-quality",
+        },
+        {
+          id: "feature-flags",
+          name: "Feature Flags",
+          href: "/admin/feature-flags",
         },
       ],
     },
