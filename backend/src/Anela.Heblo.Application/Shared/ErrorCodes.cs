@@ -314,6 +314,10 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     LotHasEans = 2806,
 
+    // Packaging module errors (30XX)
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    OrderNotInPackingState = 3001,
+
     // WeatherForecast module errors (29XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     WeatherForecastUnavailable = 2901,
