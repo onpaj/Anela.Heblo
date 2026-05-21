@@ -7,6 +7,7 @@ using Anela.Heblo.Application.Features.MeetingTasks.Services;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
 using Moq;
 using Xunit;
@@ -350,6 +351,81 @@ public class GraphPlannerServiceTests
         result.Success.Should().BeTrue("task was already created before the patch failed");
         result.ExternalTaskId.Should().Be("t1");
         result.Error.Should().BeNull();
+    }
+
+    // ─── Delegated-token caching ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task ExportTaskAsync_DelegatedToken_AcquiredOncePerService()
+    {
+        // Service is registered Scoped — one instance per /submit request handles N tasks.
+        // The delegated OBO token must be reused, not re-acquired for each ExportTaskAsync call.
+        var tokenAcquisition = new Mock<ITokenAcquisition>();
+        tokenAcquisition
+            .Setup(t => t.GetAccessTokenForUserAsync(
+                It.IsAny<IEnumerable<string>>(), null, null, null, null))
+            .ReturnsAsync("delegated-token");
+
+        var recordingHandler = new RecordingHandler(_ => new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = new StringContent("""{"id":"t1"}""", Encoding.UTF8, "application/json")
+        });
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient("MicrosoftGraph")).Returns(new HttpClient(recordingHandler));
+
+        var service = new GraphPlannerService(
+            tokenAcquisition.Object,
+            factory.Object,
+            Options.Create(new MeetingTasksOptions { PlannerPlanId = "plan-1" }),
+            NullLogger<GraphPlannerService>.Instance);
+
+        await service.ExportTaskAsync("user-a", "T1", "", null);
+        await service.ExportTaskAsync("user-b", "T2", "", null);
+        await service.ExportTaskAsync("user-c", "T3", "", null);
+
+        tokenAcquisition.Verify(
+            t => t.GetAccessTokenForUserAsync(
+                It.IsAny<IEnumerable<string>>(), null, null, null, null),
+            Times.Once,
+            "delegated token must be cached across ExportTaskAsync calls within one request");
+    }
+
+    [Fact]
+    public async Task ExportTaskAsync_DelegatedTokenUiRequired_CachedAndDoesNotRetry()
+    {
+        // When MSAL throws MsalUiRequiredException (e.g. AADSTS65001 consent missing),
+        // subsequent ExportTaskAsync calls in the same request must short-circuit
+        // without calling MSAL again — preventing N×6 MSAL retry traces.
+        var tokenAcquisition = new Mock<ITokenAcquisition>();
+        tokenAcquisition
+            .Setup(t => t.GetAccessTokenForUserAsync(
+                It.IsAny<IEnumerable<string>>(), null, null, null, null))
+            .ThrowsAsync(new MsalUiRequiredException("invalid_grant", "consent required"));
+
+        var factory = new Mock<IHttpClientFactory>();
+        factory.Setup(f => f.CreateClient("MicrosoftGraph")).Returns(new HttpClient(new RecordingHandler(_ =>
+            throw new InvalidOperationException("Graph must not be called when token acquisition failed"))));
+
+        var service = new GraphPlannerService(
+            tokenAcquisition.Object,
+            factory.Object,
+            Options.Create(new MeetingTasksOptions { PlannerPlanId = "plan-1" }),
+            NullLogger<GraphPlannerService>.Instance);
+
+        var first = await service.ExportTaskAsync("user-a", "T1", "", null);
+        var second = await service.ExportTaskAsync("user-b", "T2", "", null);
+        var third = await service.ExportTaskAsync("user-c", "T3", "", null);
+
+        first.Success.Should().BeFalse();
+        second.Success.Should().BeFalse();
+        third.Success.Should().BeFalse();
+        first.Error.Should().Contain("Microsoft 365 consent required");
+
+        tokenAcquisition.Verify(
+            t => t.GetAccessTokenForUserAsync(
+                It.IsAny<IEnumerable<string>>(), null, null, null, null),
+            Times.Once,
+            "MSAL must be called once; cached exception is rethrown for subsequent tasks");
     }
 
     // ─── Recording infrastructure ─────────────────────────────────────────────

@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.MeetingTasks.UseCases.SubmitToTodo;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.MeetingTasks;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
@@ -355,5 +356,65 @@ public class SubmitToTodoHandlerTests
 
         result.SuccessCount.Should().Be(1);
         result.FailedCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_LogsWarning_WhenAnyTaskFailed()
+    {
+        // Information traces are dropped in PROD by CostOptimizedTelemetryProcessor — failures
+        // must escalate to Warning so they remain visible in App Insights.
+        var task = NewTask(ProposedTaskStatus.Approved, assigneeEmail: "ghost@anela.cz", title: "Spook");
+        var transcript = NewTranscript(task);
+
+        _repo.Setup(r => r.GetByIdAsync(transcript.Id, It.IsAny<CancellationToken>())).ReturnsAsync(transcript);
+        _taskExporter.Setup(t => t.ResolveUserIdByEmailAsync("ghost@anela.cz", It.IsAny<CancellationToken>())).ReturnsAsync((string?)null);
+
+        var logger = new Mock<ILogger<SubmitToTodoHandler>>();
+        var handler = new SubmitToTodoHandler(_repo.Object, _taskExporter.Object, _guard.Object, logger.Object);
+
+        await handler.Handle(new SubmitToTodoRequest { TranscriptId = transcript.Id }, CancellationToken.None);
+
+        logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Exported") && v.ToString()!.Contains("failed")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_LogsInformation_WhenAllTasksSucceeded()
+    {
+        var task = NewTask(ProposedTaskStatus.Approved, assigneeEmail: "ok@anela.cz", title: "OK");
+        var transcript = NewTranscript(task);
+
+        _repo.Setup(r => r.GetByIdAsync(transcript.Id, It.IsAny<CancellationToken>())).ReturnsAsync(transcript);
+        _taskExporter.Setup(t => t.ResolveUserIdByEmailAsync("ok@anela.cz", It.IsAny<CancellationToken>())).ReturnsAsync("u");
+        _taskExporter.Setup(t => t.ExportTaskAsync("u", "OK", "desc", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MeetingTaskExportResult(true, "ext-1", null));
+
+        var logger = new Mock<ILogger<SubmitToTodoHandler>>();
+        var handler = new SubmitToTodoHandler(_repo.Object, _taskExporter.Object, _guard.Object, logger.Object);
+
+        await handler.Handle(new SubmitToTodoRequest { TranscriptId = transcript.Id }, CancellationToken.None);
+
+        logger.Verify(
+            l => l.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Exported") && v.ToString()!.Contains("failed")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+        logger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("Exported") && v.ToString()!.Contains("failed")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
     }
 }

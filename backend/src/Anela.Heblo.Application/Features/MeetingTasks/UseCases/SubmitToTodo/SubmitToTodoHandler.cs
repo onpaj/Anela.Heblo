@@ -101,9 +101,20 @@ public class SubmitToTodoHandler : IRequestHandler<SubmitToTodoRequest, SubmitTo
 
         await _repository.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation(
-            "Exported {SuccessCount} Planner tasks for transcript {Id}, {FailedCount} failed",
-            response.SuccessCount, transcript.Id, response.FailedCount);
+        // Warning when anything failed — Information is dropped by CostOptimizedTelemetryProcessor
+        // in Production, which previously hid silent consent failures from telemetry.
+        if (response.FailedCount > 0)
+        {
+            _logger.LogWarning(
+                "Exported {SuccessCount} Planner tasks for transcript {Id}, {FailedCount} failed",
+                response.SuccessCount, transcript.Id, response.FailedCount);
+        }
+        else
+        {
+            _logger.LogInformation(
+                "Exported {SuccessCount} Planner tasks for transcript {Id}, {FailedCount} failed",
+                response.SuccessCount, transcript.Id, response.FailedCount);
+        }
 
         return response;
     }
