@@ -34,17 +34,6 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
         return Task.FromResult(material);
     }
 
-    public Task<IEnumerable<PackingMaterial>> GetAllWithLogsAsync(CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult<IEnumerable<PackingMaterial>>(_materials);
-    }
-
-    public Task<PackingMaterial?> GetByIdWithLogsAsync(int id, CancellationToken cancellationToken = default)
-    {
-        var material = _materials.FirstOrDefault(m => m.Id == id);
-        return Task.FromResult(material);
-    }
-
     public Task<IEnumerable<PackingMaterialLog>> GetRecentLogsAsync(int packingMaterialId, DateTime fromDate, CancellationToken cancellationToken = default)
     {
         return Task.FromResult<IEnumerable<PackingMaterialLog>>(new List<PackingMaterialLog>());

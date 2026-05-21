@@ -101,12 +101,6 @@ public class PackingMaterialsListQueryCountTests : IDisposable
         public Task<PackingMaterial?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
             => _inner.GetByIdAsync(id, cancellationToken);
 
-        public Task<IEnumerable<PackingMaterial>> GetAllWithLogsAsync(CancellationToken cancellationToken = default)
-            => _inner.GetAllWithLogsAsync(cancellationToken);
-
-        public Task<PackingMaterial?> GetByIdWithLogsAsync(int id, CancellationToken cancellationToken = default)
-            => _inner.GetByIdWithLogsAsync(id, cancellationToken);
-
         public Task<IEnumerable<PackingMaterialLog>> GetRecentLogsAsync(int packingMaterialId, DateTime fromDate, CancellationToken cancellationToken = default)
             => _inner.GetRecentLogsAsync(packingMaterialId, fromDate, cancellationToken);
 

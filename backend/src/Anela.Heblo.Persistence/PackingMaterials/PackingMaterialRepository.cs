@@ -11,18 +11,6 @@ public class PackingMaterialRepository : BaseRepository<PackingMaterial, int>, I
     {
     }
 
-    public async Task<IEnumerable<PackingMaterial>> GetAllWithLogsAsync(CancellationToken cancellationToken = default)
-    {
-        // For now, return materials without logs since we removed the navigation property
-        // We'll load logs separately when needed
-        return await DbSet.ToListAsync(cancellationToken);
-    }
-
-    public async Task<PackingMaterial?> GetByIdWithLogsAsync(int id, CancellationToken cancellationToken = default)
-    {
-        return await DbSet.FirstOrDefaultAsync(pm => pm.Id == id, cancellationToken);
-    }
-
     public async Task<IEnumerable<PackingMaterialLog>> GetRecentLogsAsync(int packingMaterialId, DateTime fromDate, CancellationToken cancellationToken = default)
     {
         return await Context.Set<PackingMaterialLog>()
