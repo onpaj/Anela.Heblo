@@ -1,13 +1,25 @@
+import { getAuthenticatedApiClient } from '../../api/client';
 import { ShipmentLabelDto } from '../../api/generated/api-client';
+
+interface ApiClientWithInternals {
+  baseUrl: string;
+  http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
+}
+
+const buildProxyUrl = (orderCode: string, packageName: string): string => {
+  const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
+  return `${apiClient.baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/packages/${encodeURIComponent(packageName)}/label.pdf`;
+};
 
 const openInNewTab = (url: string): void => {
   window.open(url, '_blank', 'noopener,noreferrer');
 };
 
 const silentPrintViaBlob = async (url: string): Promise<boolean> => {
+  const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
   let response: Response;
   try {
-    response = await fetch(url);
+    response = await apiClient.http.fetch(url);
   } catch {
     return false;
   }
@@ -20,18 +32,22 @@ const silentPrintViaBlob = async (url: string): Promise<boolean> => {
   iframe.src = blobUrl;
   iframe.onload = () => {
     iframe.contentWindow?.print();
-    document.body.removeChild(iframe);
-    URL.revokeObjectURL(blobUrl);
+    // Keep iframe attached until print dialog closes; revoke blob URL after a delay
+    // so the browser can still resolve it while the print preview is open.
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+      URL.revokeObjectURL(blobUrl);
+    }, 60_000);
   };
   document.body.appendChild(iframe);
   return true;
 };
 
-export const printLabelPdf = (_orderCode: string, label: ShipmentLabelDto): void => {
-  const labelUrl = label.labelUrl;
-  if (!labelUrl) return;
+export const printLabelPdf = (orderCode: string, label: ShipmentLabelDto): void => {
+  if (!label.packageName) return;
+  const proxyUrl = buildProxyUrl(orderCode, label.packageName);
 
-  void silentPrintViaBlob(labelUrl).then((printed) => {
-    if (!printed) openInNewTab(labelUrl);
+  void silentPrintViaBlob(proxyUrl).then((printed) => {
+    if (!printed) openInNewTab(proxyUrl);
   });
 };

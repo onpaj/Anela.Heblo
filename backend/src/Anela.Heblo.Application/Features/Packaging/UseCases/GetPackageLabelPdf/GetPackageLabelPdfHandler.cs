@@ -1,0 +1,68 @@
+using Anela.Heblo.Application.Features.ShipmentLabels;
+using Anela.Heblo.Application.Shared;
+using MediatR;
+using Microsoft.Extensions.Logging;
+
+namespace Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
+
+public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfRequest, GetPackageLabelPdfResponse>
+{
+    public const string HttpClientName = "ShipmentLabelDownloader";
+
+    private readonly IShipmentClient _shipmentClient;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<GetPackageLabelPdfHandler> _logger;
+
+    public GetPackageLabelPdfHandler(
+        IShipmentClient shipmentClient,
+        IHttpClientFactory httpClientFactory,
+        ILogger<GetPackageLabelPdfHandler> logger)
+    {
+        _shipmentClient = shipmentClient;
+        _httpClientFactory = httpClientFactory;
+        _logger = logger;
+    }
+
+    public async Task<GetPackageLabelPdfResponse> Handle(GetPackageLabelPdfRequest request, CancellationToken ct)
+    {
+        var labels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
+        var label = labels.FirstOrDefault(l => l.PackageName == request.PackageName);
+
+        if (label is null || string.IsNullOrWhiteSpace(label.LabelUrl))
+        {
+            return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelNotFound);
+        }
+
+        var http = _httpClientFactory.CreateClient(HttpClientName);
+
+        HttpResponseMessage carrierResponse;
+        try
+        {
+            carrierResponse = await http.GetAsync(label.LabelUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to download label PDF for order {OrderCode} package {PackageName} from {LabelUrl}",
+                request.OrderCode, request.PackageName, label.LabelUrl);
+            return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelDownloadFailed);
+        }
+
+        if (!carrierResponse.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Carrier returned {StatusCode} for label PDF (order {OrderCode}, package {PackageName})",
+                (int)carrierResponse.StatusCode, request.OrderCode, request.PackageName);
+            carrierResponse.Dispose();
+            return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelDownloadFailed);
+        }
+
+        var contentType = carrierResponse.Content.Headers.ContentType?.MediaType ?? "application/pdf";
+        var stream = await carrierResponse.Content.ReadAsStreamAsync(ct);
+
+        return new GetPackageLabelPdfResponse
+        {
+            Content = stream,
+            ContentType = contentType,
+            FileName = $"{request.OrderCode}-{request.PackageName}.pdf",
+        };
+    }
+}

@@ -341,6 +341,10 @@ public enum ErrorCodes
     ShipmentCancelFailed = 3002,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     NoShipmentToReset = 3003,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PackageLabelNotFound = 3004,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    PackageLabelDownloadFailed = 3005,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
