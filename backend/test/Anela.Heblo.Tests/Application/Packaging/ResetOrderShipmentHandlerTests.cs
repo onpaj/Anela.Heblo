@@ -42,13 +42,18 @@ public class ResetOrderShipmentHandlerTests
             }).ToList(),
         };
 
-    private static ShipmentLabel MakeLabel(Guid shipmentGuid, string packageName = "P1") =>
+    private static ShipmentLabel MakeLabel(
+        Guid shipmentGuid,
+        string packageName = "P1",
+        string? labelUrl = "https://example.com/label.pdf",
+        string? labelZpl = null) =>
         new()
         {
             ShipmentGuid = shipmentGuid,
             OrderCode = "0001234",
             PackageName = packageName,
-            LabelUrl = "https://example.com/label.pdf",
+            LabelUrl = labelUrl,
+            LabelZpl = labelZpl,
         };
 
     // Test 1: No existing shipment → NoShipmentToReset, DeleteShipmentAsync never called
@@ -123,7 +128,7 @@ public class ResetOrderShipmentHandlerTests
         _shipmentClient
             .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
             .ReturnsAsync([MakeLabel(oldGuid)])
-            .ReturnsAsync([MakeLabel(newGuid, "NEW-P1")]);
+            .ReturnsAsync([MakeLabel(newGuid, "NEW-P1", "https://carrier.example.com/new-label.pdf", "^XA-NEW^XZ")]);
 
         var response = await CreateHandler().Handle(
             new ResetOrderShipmentRequest { OrderCode = "0001234" },
@@ -141,6 +146,9 @@ public class ResetOrderShipmentHandlerTests
         _shipmentClient.Verify(
             c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
             Times.Once);
+
+        response.Shipment.Packages[0].LabelUrl.Should().Be("https://carrier.example.com/new-label.pdf");
+        response.Shipment.Packages[0].LabelZpl.Should().Be("^XA-NEW^XZ");
     }
 
     // Test 4: CreateShipmentAsync throws after successful delete → ShipmentCreationFailed

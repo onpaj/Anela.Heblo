@@ -85,7 +85,12 @@ public class ResetOrderShipmentHandler : IRequestHandler<ResetOrderShipmentReque
 
         var newLabels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
         var packages = newLabels.Count > 0
-            ? newLabels.Select(l => new ResetShipmentPackage { Name = l.PackageName }).ToList()
+            ? newLabels.Select(l => new ResetShipmentPackage
+            {
+                Name = l.PackageName,
+                LabelUrl = l.LabelUrl,
+                LabelZpl = l.LabelZpl,
+            }).ToList()
             : [new ResetShipmentPackage { Name = "PKG-1" }];
 
         return new ResetOrderShipmentResponse(new ResetShipmentData

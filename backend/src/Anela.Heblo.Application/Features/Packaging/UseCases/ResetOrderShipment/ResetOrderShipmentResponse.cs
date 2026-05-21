@@ -23,4 +23,6 @@ public class ResetShipmentData
 public class ResetShipmentPackage
 {
     public string Name { get; set; } = null!;
+    public string? LabelUrl { get; set; }
+    public string? LabelZpl { get; set; }
 }
