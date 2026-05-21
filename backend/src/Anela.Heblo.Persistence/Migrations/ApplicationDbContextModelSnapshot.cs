@@ -3180,9 +3180,30 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<string>("VariablesJson")
                         .HasColumnType("text");
 
+                    b.Property<string>("VisitorBrowser")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("VisitorBrowserVersion")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("VisitorId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("VisitorInfoFetchedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("VisitorOs")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("VisitorUserAgent")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("VisitorVisitsCount")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

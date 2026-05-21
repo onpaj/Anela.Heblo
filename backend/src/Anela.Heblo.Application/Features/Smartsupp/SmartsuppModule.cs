@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.SendMessage;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations.Validators;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
@@ -23,9 +24,16 @@ public static class SmartsuppModule
         services.AddOptions<SmartsuppDraftReplyOptions>()
             .Bind(configuration.GetSection(SmartsuppDraftReplyOptions.SectionName));
 
+        services.AddOptions<SmartsuppSendMessageOptions>()
+            .Bind(configuration.GetSection(SmartsuppSendMessageOptions.SectionName));
+
         services.AddScoped<IValidator<ListConversationsRequest>, ListConversationsValidator>();
         services.AddScoped<IPipelineBehavior<ListConversationsRequest, ListConversationsResponse>,
             ValidationBehavior<ListConversationsRequest, ListConversationsResponse>>();
+
+        services.AddScoped<IValidator<SendMessageRequest>, SendMessageValidator>();
+        services.AddScoped<IPipelineBehavior<SendMessageRequest, SendMessageResponse>,
+            ValidationBehavior<SendMessageRequest, SendMessageResponse>>();
 
         // Conversation reactions
         services.AddScoped<ISmartsuppWebhookReaction, ConversationOpenedReaction>();

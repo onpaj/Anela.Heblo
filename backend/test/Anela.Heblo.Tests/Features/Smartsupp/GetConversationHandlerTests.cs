@@ -55,4 +55,112 @@ public class GetConversationHandlerTests
         result.Success.Should().BeFalse();
         result.ErrorCode.Should().Be(ErrorCodes.SmartsuppConversationNotFound);
     }
+
+    [Fact]
+    public async Task Handle_PopulatesContactFields_WhenContactIsLoaded()
+    {
+        // Arrange
+        var conversation = new SmartsuppConversation
+        {
+            Id = "c1",
+            ContactId = "contact-1",
+            ContactName = "Jana",
+            Status = SmartsuppConversationStatus.Open,
+            LocationIp = "1.2.3.4",
+            VariablesJson = """{"shoptet_shop":"anela","cart_value":"250"}""",
+            Messages = new List<SmartsuppMessage>(),
+            Contact = new SmartsuppContact
+            {
+                Id = "contact-1",
+                Name = "Jana",
+                Phone = "+420 600 123 456",
+                Note = "VIP zákazník",
+                TagsJson = """["vip","stala"]""",
+                PropertiesJson = """{"shoptet_guid":"abc-123","membership":"gold"}""",
+            },
+        };
+        _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
+        _repo.Setup(r => r.ListConversationsForContactAsync("contact-1", "c1", default))
+             .ReturnsAsync(new List<SmartsuppConversation>());
+
+        var handler = new GetConversationHandler(_repo.Object);
+
+        // Act
+        var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        var dto = result.Conversation!;
+        dto.ContactPhone.Should().Be("+420 600 123 456");
+        dto.ContactNote.Should().Be("VIP zákazník");
+        dto.ContactTags.Should().BeEquivalentTo(new[] { "vip", "stala" });
+        dto.ContactProperties.Should().ContainKey("shoptet_guid").WhoseValue.Should().Be("abc-123");
+        dto.ContactProperties.Should().ContainKey("membership").WhoseValue.Should().Be("gold");
+        dto.LocationIp.Should().Be("1.2.3.4");
+        dto.Variables.Should().ContainKey("shoptet_shop").WhoseValue.Should().Be("anela");
+        dto.Variables.Should().ContainKey("cart_value").WhoseValue.Should().Be("250");
+    }
+
+    [Fact]
+    public async Task Handle_PopulatesOtherConversations_WhenContactHasSiblings()
+    {
+        // Arrange
+        var sibling = new SmartsuppConversation
+        {
+            Id = "c2",
+            Status = SmartsuppConversationStatus.Resolved,
+            IsUnread = false,
+            LastMessageAt = new DateTime(2026, 5, 10, 10, 0, 0, DateTimeKind.Unspecified),
+            LastMessagePreview = "Děkuji",
+            CreatedAt = new DateTime(2026, 5, 10, 9, 0, 0, DateTimeKind.Unspecified),
+            UpdatedAt = new DateTime(2026, 5, 10, 10, 0, 0, DateTimeKind.Unspecified),
+            SyncedAt = new DateTime(2026, 5, 10, 10, 0, 0, DateTimeKind.Unspecified),
+        };
+        var conversation = new SmartsuppConversation
+        {
+            Id = "c1",
+            ContactId = "contact-1",
+            Status = SmartsuppConversationStatus.Open,
+            Messages = new List<SmartsuppMessage>(),
+            Contact = new SmartsuppContact { Id = "contact-1" },
+        };
+        _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
+        _repo.Setup(r => r.ListConversationsForContactAsync("contact-1", "c1", default))
+             .ReturnsAsync(new List<SmartsuppConversation> { sibling });
+
+        var handler = new GetConversationHandler(_repo.Object);
+
+        // Act
+        var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
+
+        // Assert
+        result.Conversation!.OtherConversations.Should().HaveCount(1);
+        var other = result.Conversation.OtherConversations[0];
+        other.Id.Should().Be("c2");
+        other.Status.Should().Be("Resolved");
+        other.LastMessagePreview.Should().Be("Děkuji");
+        other.IsUnread.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_Variables_EmptyOnInvalidJson()
+    {
+        // Arrange
+        var conversation = new SmartsuppConversation
+        {
+            Id = "c1",
+            Status = SmartsuppConversationStatus.Open,
+            VariablesJson = "not-valid-json",
+            Messages = new List<SmartsuppMessage>(),
+        };
+        _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
+        var handler = new GetConversationHandler(_repo.Object);
+
+        // Act
+        var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
+
+        // Assert — must not throw; Variables must be empty
+        result.Success.Should().BeTrue();
+        result.Conversation!.Variables.Should().BeEmpty();
+    }
 }

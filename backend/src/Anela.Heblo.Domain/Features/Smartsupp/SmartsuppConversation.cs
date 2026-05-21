@@ -36,5 +36,11 @@ public class SmartsuppConversation
     public string? AssignedAgentIdsJson { get; set; }
     public string? Channel { get; set; }
     public DateTime? LastClosedAt { get; set; }
+    public string? VisitorUserAgent { get; set; }
+    public string? VisitorOs { get; set; }
+    public string? VisitorBrowser { get; set; }
+    public string? VisitorBrowserVersion { get; set; }
+    public int? VisitorVisitsCount { get; set; }
+    public DateTime? VisitorInfoFetchedAt { get; set; }
     public List<SmartsuppMessage> Messages { get; set; } = new();
 }

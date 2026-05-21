@@ -9950,6 +9950,153 @@ export class ApiClient {
         return Promise.resolve<GenerateDraftReplyResponse>(null as any);
     }
 
+    smartsupp_GetShoptetInfo(id: string): Promise<GetSmartsuppContactShoptetInfoResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations/{id}/shoptet-info";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_GetShoptetInfo(_response);
+        });
+    }
+
+    protected processSmartsupp_GetShoptetInfo(response: Response): Promise<GetSmartsuppContactShoptetInfoResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetSmartsuppContactShoptetInfoResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetSmartsuppContactShoptetInfoResponse>(null as any);
+    }
+
+    smartsupp_GetVisitorInfo(id: string): Promise<GetVisitorInfoResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations/{id}/visitor-info";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_GetVisitorInfo(_response);
+        });
+    }
+
+    protected processSmartsupp_GetVisitorInfo(response: Response): Promise<GetVisitorInfoResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetVisitorInfoResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetVisitorInfoResponse>(null as any);
+    }
+
+    smartsupp_SendMessage(conversationId: string, body: SendMessageBody): Promise<SendMessageResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations/{conversationId}/messages";
+        if (conversationId === undefined || conversationId === null)
+            throw new Error("The parameter 'conversationId' must be defined.");
+        url_ = url_.replace("{conversationId}", encodeURIComponent("" + conversationId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_SendMessage(_response);
+        });
+    }
+
+    protected processSmartsupp_SendMessage(response: Response): Promise<SendMessageResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SendMessageResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 503) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SendMessageResponse>(null as any);
+    }
+
     smartsuppWebhookAudit_List(from: Date | null | undefined, to: Date | null | undefined, eventName: string | null | undefined, signatureStatus: SmartsuppWebhookSignatureStatus | null | undefined, processingStatus: SmartsuppWebhookProcessingStatus | null | undefined, skip: number | undefined, take: number | undefined): Promise<ListWebhookAuditResponse> {
         let url_ = this.baseUrl + "/api/admin/smartsupp/webhooks?";
         if (from !== undefined && from !== null)
@@ -11383,6 +11530,10 @@ export enum ErrorCodes {
     SmartsuppConversationNotFound = "SmartsuppConversationNotFound",
     SmartsuppDraftReplyAiUnavailable = "SmartsuppDraftReplyAiUnavailable",
     SmartsuppConversationEmpty = "SmartsuppConversationEmpty",
+    SmartsuppShoptetCustomerNotFound = "SmartsuppShoptetCustomerNotFound",
+    SmartsuppVisitorNotFound = "SmartsuppVisitorNotFound",
+    SmartsuppSendMessageUnavailable = "SmartsuppSendMessageUnavailable",
+    SmartsuppAgentMappingNotFound = "SmartsuppAgentMappingNotFound",
     LotNotFound = "LotNotFound",
     EanNotFound = "EanNotFound",
     LotAlreadyExists = "LotAlreadyExists",
@@ -33069,6 +33220,13 @@ export class ConversationDto implements IConversationDto {
     locationCity?: string | undefined;
     locationCode?: string | undefined;
     tags?: string[];
+    contactPhone?: string | undefined;
+    contactNote?: string | undefined;
+    contactTags?: string[];
+    contactProperties?: { [key: string]: string; };
+    locationIp?: string | undefined;
+    variables?: { [key: string]: string; };
+    otherConversations?: ConversationSummaryDto[];
 
     constructor(data?: IConversationDto) {
         if (data) {
@@ -33113,6 +33271,33 @@ export class ConversationDto implements IConversationDto {
                 this.tags = [] as any;
                 for (let item of _data["tags"])
                     this.tags!.push(item);
+            }
+            this.contactPhone = _data["contactPhone"];
+            this.contactNote = _data["contactNote"];
+            if (Array.isArray(_data["contactTags"])) {
+                this.contactTags = [] as any;
+                for (let item of _data["contactTags"])
+                    this.contactTags!.push(item);
+            }
+            if (_data["contactProperties"]) {
+                this.contactProperties = {} as any;
+                for (let key in _data["contactProperties"]) {
+                    if (_data["contactProperties"].hasOwnProperty(key))
+                        (<any>this.contactProperties)![key] = _data["contactProperties"][key];
+                }
+            }
+            this.locationIp = _data["locationIp"];
+            if (_data["variables"]) {
+                this.variables = {} as any;
+                for (let key in _data["variables"]) {
+                    if (_data["variables"].hasOwnProperty(key))
+                        (<any>this.variables)![key] = _data["variables"][key];
+                }
+            }
+            if (Array.isArray(_data["otherConversations"])) {
+                this.otherConversations = [] as any;
+                for (let item of _data["otherConversations"])
+                    this.otherConversations!.push(ConversationSummaryDto.fromJS(item));
             }
         }
     }
@@ -33159,6 +33344,33 @@ export class ConversationDto implements IConversationDto {
             for (let item of this.tags)
                 data["tags"].push(item);
         }
+        data["contactPhone"] = this.contactPhone;
+        data["contactNote"] = this.contactNote;
+        if (Array.isArray(this.contactTags)) {
+            data["contactTags"] = [];
+            for (let item of this.contactTags)
+                data["contactTags"].push(item);
+        }
+        if (this.contactProperties) {
+            data["contactProperties"] = {};
+            for (let key in this.contactProperties) {
+                if (this.contactProperties.hasOwnProperty(key))
+                    (<any>data["contactProperties"])[key] = (<any>this.contactProperties)[key];
+            }
+        }
+        data["locationIp"] = this.locationIp;
+        if (this.variables) {
+            data["variables"] = {};
+            for (let key in this.variables) {
+                if (this.variables.hasOwnProperty(key))
+                    (<any>data["variables"])[key] = (<any>this.variables)[key];
+            }
+        }
+        if (Array.isArray(this.otherConversations)) {
+            data["otherConversations"] = [];
+            for (let item of this.otherConversations)
+                data["otherConversations"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -33189,6 +33401,65 @@ export interface IConversationDto {
     locationCity?: string | undefined;
     locationCode?: string | undefined;
     tags?: string[];
+    contactPhone?: string | undefined;
+    contactNote?: string | undefined;
+    contactTags?: string[];
+    contactProperties?: { [key: string]: string; };
+    locationIp?: string | undefined;
+    variables?: { [key: string]: string; };
+    otherConversations?: ConversationSummaryDto[];
+}
+
+export class ConversationSummaryDto implements IConversationSummaryDto {
+    id?: string;
+    status?: string;
+    lastMessageAt?: Date | undefined;
+    lastMessagePreview?: string | undefined;
+    isUnread?: boolean;
+
+    constructor(data?: IConversationSummaryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.status = _data["status"];
+            this.lastMessageAt = _data["lastMessageAt"] ? new Date(_data["lastMessageAt"].toString()) : <any>undefined;
+            this.lastMessagePreview = _data["lastMessagePreview"];
+            this.isUnread = _data["isUnread"];
+        }
+    }
+
+    static fromJS(data: any): ConversationSummaryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ConversationSummaryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["status"] = this.status;
+        data["lastMessageAt"] = this.lastMessageAt ? this.lastMessageAt.toISOString() : <any>undefined;
+        data["lastMessagePreview"] = this.lastMessagePreview;
+        data["isUnread"] = this.isUnread;
+        return data;
+    }
+}
+
+export interface IConversationSummaryDto {
+    id?: string;
+    status?: string;
+    lastMessageAt?: Date | undefined;
+    lastMessagePreview?: string | undefined;
+    isUnread?: boolean;
 }
 
 export class GetConversationResponse extends BaseResponse implements IGetConversationResponse {
@@ -33447,6 +33718,409 @@ export class GenerateDraftReplyBody implements IGenerateDraftReplyBody {
 
 export interface IGenerateDraftReplyBody {
     topic?: string | undefined;
+}
+
+export class GetSmartsuppContactShoptetInfoResponse extends BaseResponse implements IGetSmartsuppContactShoptetInfoResponse {
+    contactInfo?: ShoptetContactInfoDto | undefined;
+
+    constructor(data?: IGetSmartsuppContactShoptetInfoResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.contactInfo = _data["contactInfo"] ? ShoptetContactInfoDto.fromJS(_data["contactInfo"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetSmartsuppContactShoptetInfoResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetSmartsuppContactShoptetInfoResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["contactInfo"] = this.contactInfo ? this.contactInfo.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetSmartsuppContactShoptetInfoResponse extends IBaseResponse {
+    contactInfo?: ShoptetContactInfoDto | undefined;
+}
+
+export class ShoptetContactInfoDto implements IShoptetContactInfoDto {
+    customer?: ShoptetCustomerSnapshotDto;
+    recentOrders?: ShoptetOrderSnapshotDto[];
+    cartUpdatedAt?: Date | undefined;
+
+    constructor(data?: IShoptetContactInfoDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.customer = _data["customer"] ? ShoptetCustomerSnapshotDto.fromJS(_data["customer"]) : <any>undefined;
+            if (Array.isArray(_data["recentOrders"])) {
+                this.recentOrders = [] as any;
+                for (let item of _data["recentOrders"])
+                    this.recentOrders!.push(ShoptetOrderSnapshotDto.fromJS(item));
+            }
+            this.cartUpdatedAt = _data["cartUpdatedAt"] ? new Date(_data["cartUpdatedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): ShoptetContactInfoDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ShoptetContactInfoDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["customer"] = this.customer ? this.customer.toJSON() : <any>undefined;
+        if (Array.isArray(this.recentOrders)) {
+            data["recentOrders"] = [];
+            for (let item of this.recentOrders)
+                data["recentOrders"].push(item.toJSON());
+        }
+        data["cartUpdatedAt"] = this.cartUpdatedAt ? this.cartUpdatedAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IShoptetContactInfoDto {
+    customer?: ShoptetCustomerSnapshotDto;
+    recentOrders?: ShoptetOrderSnapshotDto[];
+    cartUpdatedAt?: Date | undefined;
+}
+
+export class ShoptetCustomerSnapshotDto implements IShoptetCustomerSnapshotDto {
+    fullName?: string | undefined;
+    email?: string | undefined;
+    customerGroup?: string | undefined;
+    priceList?: string | undefined;
+    defaultShippingAddress?: string | undefined;
+
+    constructor(data?: IShoptetCustomerSnapshotDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.fullName = _data["fullName"];
+            this.email = _data["email"];
+            this.customerGroup = _data["customerGroup"];
+            this.priceList = _data["priceList"];
+            this.defaultShippingAddress = _data["defaultShippingAddress"];
+        }
+    }
+
+    static fromJS(data: any): ShoptetCustomerSnapshotDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ShoptetCustomerSnapshotDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["fullName"] = this.fullName;
+        data["email"] = this.email;
+        data["customerGroup"] = this.customerGroup;
+        data["priceList"] = this.priceList;
+        data["defaultShippingAddress"] = this.defaultShippingAddress;
+        return data;
+    }
+}
+
+export interface IShoptetCustomerSnapshotDto {
+    fullName?: string | undefined;
+    email?: string | undefined;
+    customerGroup?: string | undefined;
+    priceList?: string | undefined;
+    defaultShippingAddress?: string | undefined;
+}
+
+export class ShoptetOrderSnapshotDto implements IShoptetOrderSnapshotDto {
+    code?: string;
+    statusName?: string | undefined;
+    totalWithVat?: number | undefined;
+    currencyCode?: string | undefined;
+    orderDate?: Date | undefined;
+    adminUrl?: string | undefined;
+
+    constructor(data?: IShoptetOrderSnapshotDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.statusName = _data["statusName"];
+            this.totalWithVat = _data["totalWithVat"];
+            this.currencyCode = _data["currencyCode"];
+            this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
+            this.adminUrl = _data["adminUrl"];
+        }
+    }
+
+    static fromJS(data: any): ShoptetOrderSnapshotDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new ShoptetOrderSnapshotDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["statusName"] = this.statusName;
+        data["totalWithVat"] = this.totalWithVat;
+        data["currencyCode"] = this.currencyCode;
+        data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
+        data["adminUrl"] = this.adminUrl;
+        return data;
+    }
+}
+
+export interface IShoptetOrderSnapshotDto {
+    code?: string;
+    statusName?: string | undefined;
+    totalWithVat?: number | undefined;
+    currencyCode?: string | undefined;
+    orderDate?: Date | undefined;
+    adminUrl?: string | undefined;
+}
+
+export class GetVisitorInfoResponse extends BaseResponse implements IGetVisitorInfoResponse {
+    visitorInfo?: VisitorInfoDto | undefined;
+
+    constructor(data?: IGetVisitorInfoResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.visitorInfo = _data["visitorInfo"] ? VisitorInfoDto.fromJS(_data["visitorInfo"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetVisitorInfoResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetVisitorInfoResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["visitorInfo"] = this.visitorInfo ? this.visitorInfo.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetVisitorInfoResponse extends IBaseResponse {
+    visitorInfo?: VisitorInfoDto | undefined;
+}
+
+export class VisitorInfoDto implements IVisitorInfoDto {
+    os?: string | undefined;
+    browser?: string | undefined;
+    browserVersion?: string | undefined;
+    userAgent?: string | undefined;
+    visitsCount?: number | undefined;
+    chatsCount?: number;
+    pages?: VisitorPageDto[];
+
+    constructor(data?: IVisitorInfoDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.os = _data["os"];
+            this.browser = _data["browser"];
+            this.browserVersion = _data["browserVersion"];
+            this.userAgent = _data["userAgent"];
+            this.visitsCount = _data["visitsCount"];
+            this.chatsCount = _data["chatsCount"];
+            if (Array.isArray(_data["pages"])) {
+                this.pages = [] as any;
+                for (let item of _data["pages"])
+                    this.pages!.push(VisitorPageDto.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): VisitorInfoDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new VisitorInfoDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["os"] = this.os;
+        data["browser"] = this.browser;
+        data["browserVersion"] = this.browserVersion;
+        data["userAgent"] = this.userAgent;
+        data["visitsCount"] = this.visitsCount;
+        data["chatsCount"] = this.chatsCount;
+        if (Array.isArray(this.pages)) {
+            data["pages"] = [];
+            for (let item of this.pages)
+                data["pages"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IVisitorInfoDto {
+    os?: string | undefined;
+    browser?: string | undefined;
+    browserVersion?: string | undefined;
+    userAgent?: string | undefined;
+    visitsCount?: number | undefined;
+    chatsCount?: number;
+    pages?: VisitorPageDto[];
+}
+
+export class VisitorPageDto implements IVisitorPageDto {
+    url?: string;
+
+    constructor(data?: IVisitorPageDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.url = _data["url"];
+        }
+    }
+
+    static fromJS(data: any): VisitorPageDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new VisitorPageDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["url"] = this.url;
+        return data;
+    }
+}
+
+export interface IVisitorPageDto {
+    url?: string;
+}
+
+export class SendMessageResponse extends BaseResponse implements ISendMessageResponse {
+    messageId?: string;
+    createdAt?: Date;
+
+    constructor(data?: ISendMessageResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.messageId = _data["messageId"];
+            this.createdAt = _data["createdAt"] ? new Date(_data["createdAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): SendMessageResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SendMessageResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["messageId"] = this.messageId;
+        data["createdAt"] = this.createdAt ? this.createdAt.toISOString() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISendMessageResponse extends IBaseResponse {
+    messageId?: string;
+    createdAt?: Date;
+}
+
+export class SendMessageBody implements ISendMessageBody {
+    content?: string;
+
+    constructor(data?: ISendMessageBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.content = _data["content"];
+        }
+    }
+
+    static fromJS(data: any): SendMessageBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new SendMessageBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["content"] = this.content;
+        return data;
+    }
+}
+
+export interface ISendMessageBody {
+    content?: string;
 }
 
 export class ListWebhookAuditResponse extends BaseResponse implements IListWebhookAuditResponse {

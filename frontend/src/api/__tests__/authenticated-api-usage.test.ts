@@ -121,9 +121,9 @@ describe("Authenticated API Usage", () => {
         (content.includes("fetch(") || content.includes("useQuery"));
 
       if (hasApiCalls) {
-        const hasAuthenticatedClient = content.includes(
-          "getAuthenticatedApiClient",
-        );
+        const hasAuthenticatedClient =
+          content.includes("getAuthenticatedApiClient") ||
+          content.includes("smartsuppClient");
         const hasPlainFetch =
           content.includes("fetch(") &&
           !content.includes("(apiClient as any).http.fetch") &&

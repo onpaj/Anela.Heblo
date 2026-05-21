@@ -68,6 +68,15 @@ public class OrderSummary
     [JsonPropertyName("paymentMethod")]
     public OrderPaymentMethodSummary? PaymentMethod { get; set; }
 
+    [JsonPropertyName("customerGuid")]
+    public string? CustomerGuid { get; set; }
+
+    [JsonPropertyName("adminUrl")]
+    public string? AdminUrl { get; set; }
+
+    [JsonPropertyName("price")]
+    public OrderPriceSummary? Price { get; set; }
+
     /// <summary>
     /// Populated only when the request included ?include=notes.
     /// Contains eshopRemark (internal staff note), customerRemark, trackingNumber, etc.
@@ -138,4 +147,18 @@ public class OrderNotes
 
     [JsonPropertyName("trackingUrl")]
     public string? TrackingUrl { get; set; }
+}
+
+public class OrderPriceSummary
+{
+    [JsonPropertyName("withVat")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? WithVat { get; set; }
+
+    [JsonPropertyName("withoutVat")]
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public decimal? WithoutVat { get; set; }
+
+    [JsonPropertyName("currencyCode")]
+    public string? CurrencyCode { get; set; }
 }

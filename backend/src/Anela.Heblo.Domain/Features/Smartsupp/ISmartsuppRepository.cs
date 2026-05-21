@@ -34,6 +34,11 @@ public interface ISmartsuppRepository
     Task<List<OpenConversationRef>> ListOpenConversationRefsAsync(
         CancellationToken cancellationToken);
 
+    Task<List<SmartsuppConversation>> ListConversationsForContactAsync(
+        string contactId,
+        string excludeConversationId,
+        CancellationToken cancellationToken);
+
     Task MarkConversationResolvedAsync(
         string conversationId,
         DateTime finishedAt,
@@ -47,4 +52,14 @@ public interface ISmartsuppRepository
         CancellationToken cancellationToken);
 
     Task SaveChangesAsync(CancellationToken cancellationToken);
+
+    Task UpdateVisitorCacheAsync(
+        string conversationId,
+        string? userAgent,
+        string? os,
+        string? browser,
+        string? browserVersion,
+        int? visitsCount,
+        DateTime fetchedAt,
+        CancellationToken cancellationToken);
 }

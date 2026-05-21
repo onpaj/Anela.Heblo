@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ChatComposer from "../ChatComposer";
 import * as draftReplyHook from "../hooks/useGenerateDraftReply";
+import * as sendMessageHook from "../hooks/useSendMessage";
 
 const generate = jest.fn();
 const reset = jest.fn();
@@ -17,14 +18,31 @@ function mockHook(overrides: Partial<ReturnType<typeof draftReplyHook.useGenerat
   });
 }
 
+const sendFn = jest.fn();
+const clearSent = jest.fn();
+
+function mockSendHook(overrides: Partial<ReturnType<typeof sendMessageHook.useSendMessage>>) {
+  jest.spyOn(sendMessageHook, "useSendMessage").mockReturnValue({
+    send: sendFn,
+    isPending: false,
+    error: null,
+    justSent: false,
+    clearSent,
+    ...overrides,
+  });
+}
+
 beforeEach(() => {
   generate.mockReset();
   reset.mockReset();
+  sendFn.mockReset();
+  clearSent.mockReset();
   jest.restoreAllMocks();
+  mockSendHook({}); // default: idle, non-pending, no error
 });
 
 describe("ChatComposer", () => {
-  it("renders an empty textarea and a disabled Send button", () => {
+  it("renders an empty textarea and a disabled Send button when draft is empty", () => {
     mockHook({});
     render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" />);
     const textarea = screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement;
@@ -142,5 +160,61 @@ describe("ChatComposer", () => {
     mockHook({ result: { answer: "AI odpověď", sources: [] } });
     render(<ChatComposer conversationId="c1" lastContactMessage="Hi" onDraftChange={onDraftChange} />);
     await waitFor(() => expect(onDraftChange).toHaveBeenCalledWith("AI odpověď"));
+  });
+
+  it("enables Send button when draft is non-empty", () => {
+    mockHook({});
+    mockSendHook({});
+    render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" />);
+    fireEvent.change(screen.getByPlaceholderText(/napište odpověď/i), {
+      target: { value: "Odpověď" },
+    });
+    expect(screen.getByRole("button", { name: /odeslat/i })).not.toBeDisabled();
+  });
+
+  it("calls send with the draft content when Send is clicked", () => {
+    mockHook({});
+    mockSendHook({});
+    render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" />);
+    fireEvent.change(screen.getByPlaceholderText(/napište odpověď/i), {
+      target: { value: "Odpověď zákazníkovi" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /odeslat/i }));
+    expect(sendFn).toHaveBeenCalledWith("Odpověď zákazníkovi");
+  });
+
+  it("disables Send button and shows sending state while isPending", () => {
+    mockHook({});
+    mockSendHook({ isPending: true });
+    render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" initialDraft="Text" />);
+    const btn = screen.getByRole("button", { name: /odeslat|odesílám/i });
+    expect(btn).toBeDisabled();
+  });
+
+  it("shows send error message when useSendMessage returns an error", () => {
+    mockHook({});
+    mockSendHook({ error: "Odeslání zprávy selhalo. Zkuste to prosím znovu." });
+    render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" />);
+    expect(screen.getByText("Odeslání zprávy selhalo. Zkuste to prosím znovu.")).toBeInTheDocument();
+  });
+
+  it("clears draft and calls onDraftChange after successful send", async () => {
+    const onDraftChange = jest.fn();
+    mockHook({});
+    mockSendHook({ justSent: true, clearSent });
+    render(
+      <ChatComposer
+        conversationId="c1"
+        lastContactMessage="Dobrý den"
+        initialDraft="Text k odeslání"
+        onDraftChange={onDraftChange}
+      />,
+    );
+    await waitFor(() => {
+      const textarea = screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement;
+      expect(textarea.value).toBe("");
+    });
+    expect(onDraftChange).toHaveBeenLastCalledWith("");
+    expect(clearSent).toHaveBeenCalled();
   });
 });
