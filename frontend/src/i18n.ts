@@ -259,7 +259,6 @@ const resources = {
         // ShipmentLabels module errors
         ShipmentLabelsNoShipmentFound: "Zásilka k objednávce nebyla nalezena.",
         ShipmentLabelsNotGenerated: "Štítky zásilek nebyly dosud vygenerovány.",
-        ShipmentLabelPdfNotFound: "PDF štítek zásilky nebyl nalezen.",
         ShipmentAlreadyExists: "Zásilka pro tuto objednávku již existuje.",
         ShipmentCarrierNotResolved: "Nepodařilo se určit dopravce pro objednávku.",
         ShipmentCreationFailed: "Vytvoření zásilky se nezdařilo.",
