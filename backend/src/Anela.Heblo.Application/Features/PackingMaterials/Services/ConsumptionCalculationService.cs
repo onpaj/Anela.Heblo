@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Invoices;
+using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using Microsoft.Extensions.Logging;
@@ -8,16 +8,16 @@ namespace Anela.Heblo.Application.Features.PackingMaterials.Services;
 public class ConsumptionCalculationService : IConsumptionCalculationService
 {
     private readonly IPackingMaterialRepository _repository;
-    private readonly IIssuedInvoiceRepository _invoiceRepository;
+    private readonly IInvoiceConsumptionSource _invoiceSource;
     private readonly ILogger<ConsumptionCalculationService> _logger;
 
     public ConsumptionCalculationService(
         IPackingMaterialRepository repository,
-        IIssuedInvoiceRepository invoiceRepository,
+        IInvoiceConsumptionSource invoiceSource,
         ILogger<ConsumptionCalculationService> logger)
     {
         _repository = repository;
-        _invoiceRepository = invoiceRepository;
+        _invoiceSource = invoiceSource;
         _logger = logger;
     }
 
@@ -34,7 +34,7 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
         _logger.LogInformation("Starting daily consumption processing for {Date}", processingDate);
 
         var materials = (await _repository.GetAllWithAllocationsAsync(cancellationToken)).ToList();
-        var invoices = (await _invoiceRepository.GetHeadersByDateAsync(processingDate, cancellationToken)).ToList();
+        var invoices = await _invoiceSource.GetHeadersByDateAsync(processingDate, cancellationToken);
 
         var allFactRows = new List<PackingMaterialConsumption>();
         var decrementByMaterial = new Dictionary<PackingMaterial, decimal>();
@@ -93,7 +93,7 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
 
     private static List<PackingMaterialConsumption> BuildFactRows(
         PackingMaterial material,
-        List<IssuedInvoice> invoices,
+        IReadOnlyList<InvoiceConsumptionHeader> invoices,
         DateOnly date)
     {
         return material.ConsumptionType switch

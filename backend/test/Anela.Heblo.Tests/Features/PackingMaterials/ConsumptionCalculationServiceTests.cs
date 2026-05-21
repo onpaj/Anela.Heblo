@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Application.Features.PackingMaterials.Services;
-using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using Microsoft.Extensions.Logging;
@@ -16,22 +16,17 @@ public class ConsumptionCalculationServiceTests
         _mockLogger = new MockLogger<ConsumptionCalculationService>();
     }
 
-    private static IssuedInvoice MakeInvoice(string id, DateOnly date, int itemsCount)
+    private static InvoiceConsumptionHeader MakeHeader(string id, int itemsCount)
     {
-        return new IssuedInvoice
-        {
-            Id = id,
-            InvoiceDate = date.ToDateTime(TimeOnly.MinValue),
-            ItemsCount = itemsCount
-        };
+        return new InvoiceConsumptionHeader(id, itemsCount);
     }
 
     private static ConsumptionCalculationService BuildService(
         MockPackingMaterialRepository materialRepo,
-        MockIssuedInvoiceRepository invoiceRepo,
+        MockInvoiceConsumptionSource invoiceSource,
         ILogger<ConsumptionCalculationService> logger)
     {
-        return new ConsumptionCalculationService(materialRepo, invoiceRepo, logger);
+        return new ConsumptionCalculationService(materialRepo, invoiceSource, logger);
     }
 
     [Fact]
@@ -42,9 +37,9 @@ public class ConsumptionCalculationServiceTests
         var material = new PackingMaterial("Tape", 3m, ConsumptionType.PerDay, 100m);
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { material });
-        var invoiceRepo = new MockIssuedInvoiceRepository();
+        var invoiceSource = new MockInvoiceConsumptionSource();
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
@@ -69,14 +64,14 @@ public class ConsumptionCalculationServiceTests
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { material });
 
-        var invoiceRepo = new MockIssuedInvoiceRepository();
-        invoiceRepo.SetInvoices(new[]
+        var invoiceSource = new MockInvoiceConsumptionSource();
+        invoiceSource.SetHeaders(date, new[]
         {
-            MakeInvoice("INV-1", date, itemsCount: 3),
-            MakeInvoice("INV-2", date, itemsCount: 5)
+            MakeHeader("INV-1", itemsCount: 3),
+            MakeHeader("INV-2", itemsCount: 5)
         });
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
@@ -111,14 +106,14 @@ public class ConsumptionCalculationServiceTests
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { material });
 
-        var invoiceRepo = new MockIssuedInvoiceRepository();
-        invoiceRepo.SetInvoices(new[]
+        var invoiceSource = new MockInvoiceConsumptionSource();
+        invoiceSource.SetHeaders(date, new[]
         {
-            MakeInvoice("INV-A", date, itemsCount: 3),
-            MakeInvoice("INV-B", date, itemsCount: 5)
+            MakeHeader("INV-A", itemsCount: 3),
+            MakeHeader("INV-B", itemsCount: 5)
         });
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
@@ -150,9 +145,9 @@ public class ConsumptionCalculationServiceTests
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { material });
         materialRepo.SetHasDailyProcessingBeenRun(date, true);
-        var invoiceRepo = new MockIssuedInvoiceRepository();
+        var invoiceSource = new MockInvoiceConsumptionSource();
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
@@ -171,9 +166,9 @@ public class ConsumptionCalculationServiceTests
         var material = new PackingMaterial("Cards", 1m, ConsumptionType.PerOrder, 8000m);
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { material });
-        var invoiceRepo = new MockIssuedInvoiceRepository();
+        var invoiceSource = new MockInvoiceConsumptionSource();
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
@@ -206,9 +201,9 @@ public class ConsumptionCalculationServiceTests
 
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { perDayMaterial, perOrderMaterial });
-        var invoiceRepo = new MockIssuedInvoiceRepository(); // no invoices
+        var invoiceSource = new MockInvoiceConsumptionSource(); // no invoices
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
@@ -242,8 +237,8 @@ public class ConsumptionCalculationServiceTests
     {
         // Arrange
         var materialRepo = new MockPackingMaterialRepository();
-        var invoiceRepo = new MockIssuedInvoiceRepository();
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var invoiceSource = new MockInvoiceConsumptionSource();
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
         var date = DateOnly.FromDateTime(DateTime.Today);
         materialRepo.SetHasDailyProcessingBeenRun(date, true);
 
@@ -267,15 +262,15 @@ public class ConsumptionCalculationServiceTests
         var materialRepo = new MockPackingMaterialRepository();
         materialRepo.SetMaterials(new[] { perDayMaterial, perOrderMaterial, perProductMaterial });
 
-        var invoiceRepo = new MockIssuedInvoiceRepository();
-        invoiceRepo.SetInvoices(new[]
+        var invoiceSource = new MockInvoiceConsumptionSource();
+        invoiceSource.SetHeaders(date, new[]
         {
-            MakeInvoice("INV-1", date, itemsCount: 4),
-            MakeInvoice("INV-2", date, itemsCount: 6),
-            MakeInvoice("INV-3", date, itemsCount: 0)
+            MakeHeader("INV-1", itemsCount: 4),
+            MakeHeader("INV-2", itemsCount: 6),
+            MakeHeader("INV-3", itemsCount: 0)
         });
 
-        var service = BuildService(materialRepo, invoiceRepo, _mockLogger);
+        var service = BuildService(materialRepo, invoiceSource, _mockLogger);
 
         // Act
         var result = await service.ProcessDailyConsumptionAsync(date);
