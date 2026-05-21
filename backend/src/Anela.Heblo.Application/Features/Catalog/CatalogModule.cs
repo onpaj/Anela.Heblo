@@ -63,15 +63,6 @@ public static class CatalogModule
         services.AddScoped<IEshopStockDomainService, EshopStockDomainService>();
         services.AddTransient<IProductCatalogQueryService, ProductCatalogQueryService>();
 
-        // Configure feature flags from configuration
-        services.Configure<CatalogFeatureFlags>(options =>
-        {
-            // Default values - can be overridden by configuration
-            options.IsTransportBoxTrackingEnabled = false;
-            options.IsStockTakingEnabled = false;
-            options.IsBackgroundRefreshEnabled = true;
-        });
-
         // Background refresh services are now handled by centralized BackgroundRefreshSchedulerService
         // Old CatalogRefreshBackgroundService is replaced by individual refresh tasks
 
