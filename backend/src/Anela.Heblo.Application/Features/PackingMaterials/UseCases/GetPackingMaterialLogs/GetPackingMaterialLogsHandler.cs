@@ -19,7 +19,7 @@ public class GetPackingMaterialLogsHandler : IRequestHandler<GetPackingMaterialL
         GetPackingMaterialLogsRequest request,
         CancellationToken cancellationToken)
     {
-        var material = await _repository.GetByIdWithLogsAsync(request.PackingMaterialId, cancellationToken);
+        var material = await _repository.GetByIdAsync(request.PackingMaterialId, cancellationToken);
         if (material == null)
         {
             return new GetPackingMaterialLogsResponse
