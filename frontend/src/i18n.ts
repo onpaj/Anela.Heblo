@@ -266,6 +266,9 @@ const resources = {
         ShipmentLabelNotReady: "Štítek zásilky ještě není připraven.",
         ShipmentOrderWeightUnavailable: "Hmotnost objednávky není dostupná.",
 
+        // Packaging module errors
+        OrderNotInPackingState: "Objednávka není ve stavu Balí se — zásilku nelze vytvořit.",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",
