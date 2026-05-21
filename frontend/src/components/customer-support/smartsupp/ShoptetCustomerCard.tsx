@@ -14,41 +14,49 @@ function ShoptetCustomerCard({ conversationId }: ShoptetCustomerCardProps) {
 
   const { customer, recentOrders, cartUpdatedAt } = data.contactInfo;
 
+  const hasCustomer = customer != null;
+  const hasOrders = recentOrders.length > 0;
+  const hasCart = !!cartUpdatedAt;
+
+  if (!hasCustomer && !hasOrders && !hasCart) return null;
+
   return (
     <>
-      <Section title="Shoptet Zákazník">
-        <div className="space-y-1">
-          {customer.fullName && (
-            <div className="text-sm font-semibold text-gray-900">{customer.fullName}</div>
-          )}
-          {customer.email && (
-            <div className="text-xs text-gray-500">{customer.email}</div>
-          )}
-          {customer.customerGroup && (
-            <div className="text-xs text-gray-700">
-              <span className="text-gray-400">Skupina: </span>{customer.customerGroup}
-            </div>
-          )}
-          {customer.priceList && (
-            <div className="text-xs text-gray-700">
-              <span className="text-gray-400">Ceník: </span>{customer.priceList}
-            </div>
-          )}
-          {customer.defaultShippingAddress && (
-            <div className="text-xs text-gray-600 mt-1">{customer.defaultShippingAddress}</div>
-          )}
-        </div>
-      </Section>
-
-      {cartUpdatedAt && (
-        <Section title="Shoptet Košík">
-          <div className="text-xs text-gray-500">
-            Aktualizován: {new Date(cartUpdatedAt).toLocaleDateString("cs-CZ")}
+      {hasCustomer && (
+        <Section title="Shoptet Zákazník">
+          <div className="space-y-1">
+            {customer.fullName && (
+              <div className="text-sm font-semibold text-gray-900">{customer.fullName}</div>
+            )}
+            {customer.email && (
+              <div className="text-xs text-gray-500">{customer.email}</div>
+            )}
+            {customer.customerGroup && (
+              <div className="text-xs text-gray-700">
+                <span className="text-gray-400">Skupina: </span>{customer.customerGroup}
+              </div>
+            )}
+            {customer.priceList && (
+              <div className="text-xs text-gray-700">
+                <span className="text-gray-400">Ceník: </span>{customer.priceList}
+              </div>
+            )}
+            {customer.defaultShippingAddress && (
+              <div className="text-xs text-gray-600 mt-1">{customer.defaultShippingAddress}</div>
+            )}
           </div>
         </Section>
       )}
 
-      {recentOrders.length > 0 && (
+      {hasCart && (
+        <Section title="Shoptet Košík">
+          <div className="text-xs text-gray-500">
+            Aktualizován: {new Date(cartUpdatedAt!).toLocaleDateString("cs-CZ")}
+          </div>
+        </Section>
+      )}
+
+      {hasOrders && (
         <Section title="Poslední objednávky">
           <div className="space-y-2">
             {recentOrders.map((order) => (
