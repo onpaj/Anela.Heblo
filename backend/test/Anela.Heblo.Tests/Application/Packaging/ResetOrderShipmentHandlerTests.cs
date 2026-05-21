@@ -56,9 +56,9 @@ public class ResetOrderShipmentHandlerTests
             LabelZpl = labelZpl,
         };
 
-    // Test 1: No existing shipment → NoShipmentToReset, DeleteShipmentAsync never called
+    // Test 1: No existing shipment → NoShipmentToReset, CancelShipmentAsync never called
     [Fact]
-    public async Task Handle_NoExistingShipment_ReturnsNoShipmentToReset_AndNeverCallsDelete()
+    public async Task Handle_NoExistingShipment_ReturnsNoShipmentToReset_AndNeverCallsCancel()
     {
         _shipmentClient
             .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
@@ -72,13 +72,13 @@ public class ResetOrderShipmentHandlerTests
         response.ErrorCode.Should().Be(ErrorCodes.NoShipmentToReset);
 
         _shipmentClient.Verify(
-            c => c.DeleteShipmentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            c => c.CancelShipmentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
-    // Test 2: DeleteShipmentAsync throws → ShipmentDeleteFailed
+    // Test 2: CancelShipmentAsync throws → ShipmentCancelFailed
     [Fact]
-    public async Task Handle_DeleteThrows_ReturnsShipmentDeleteFailed()
+    public async Task Handle_CancelThrows_ReturnsShipmentCancelFailed()
     {
         var shipmentGuid = Guid.NewGuid();
 
@@ -87,20 +87,20 @@ public class ResetOrderShipmentHandlerTests
             .ReturnsAsync([MakeLabel(shipmentGuid)]);
 
         _shipmentClient
-            .Setup(c => c.DeleteShipmentAsync(shipmentGuid, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("Delete failed"));
+            .Setup(c => c.CancelShipmentAsync(shipmentGuid, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Cancel failed"));
 
         var response = await CreateHandler().Handle(
             new ResetOrderShipmentRequest { OrderCode = "0001234" },
             CancellationToken.None);
 
         response.Success.Should().BeFalse();
-        response.ErrorCode.Should().Be(ErrorCodes.ShipmentDeleteFailed);
+        response.ErrorCode.Should().Be(ErrorCodes.ShipmentCancelFailed);
     }
 
-    // Test 3: Happy path — deletes old shipment, creates new one, returns new shipment data
+    // Test 3: Happy path — cancels old shipment, creates new one, returns new shipment data
     [Fact]
-    public async Task Handle_HappyPath_DeletesOldAndCreatesNewShipment()
+    public async Task Handle_HappyPath_CancelsOldAndCreatesNewShipment()
     {
         var oldGuid = Guid.NewGuid();
         var newGuid = Guid.NewGuid();
@@ -110,7 +110,7 @@ public class ResetOrderShipmentHandlerTests
             .ReturnsAsync([MakeLabel(oldGuid)]);
 
         _shipmentClient
-            .Setup(c => c.DeleteShipmentAsync(oldGuid, It.IsAny<CancellationToken>()))
+            .Setup(c => c.CancelShipmentAsync(oldGuid, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         _orderClient
@@ -141,7 +141,7 @@ public class ResetOrderShipmentHandlerTests
         response.Shipment.Packages[0].Name.Should().Be("NEW-P1");
 
         _shipmentClient.Verify(
-            c => c.DeleteShipmentAsync(oldGuid, It.IsAny<CancellationToken>()),
+            c => c.CancelShipmentAsync(oldGuid, It.IsAny<CancellationToken>()),
             Times.Once);
         _shipmentClient.Verify(
             c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
@@ -151,9 +151,9 @@ public class ResetOrderShipmentHandlerTests
         response.Shipment.Packages[0].LabelZpl.Should().Be("^XA-NEW^XZ");
     }
 
-    // Test 4: CreateShipmentAsync throws after successful delete → ShipmentCreationFailed
+    // Test 4: CreateShipmentAsync throws after successful cancel → ShipmentCreationFailed
     [Fact]
-    public async Task Handle_CreateThrowsAfterSuccessfulDelete_ReturnsShipmentCreationFailed()
+    public async Task Handle_CreateThrowsAfterSuccessfulCancel_ReturnsShipmentCreationFailed()
     {
         var oldGuid = Guid.NewGuid();
 
@@ -162,7 +162,7 @@ public class ResetOrderShipmentHandlerTests
             .ReturnsAsync([MakeLabel(oldGuid)]);
 
         _shipmentClient
-            .Setup(c => c.DeleteShipmentAsync(oldGuid, It.IsAny<CancellationToken>()))
+            .Setup(c => c.CancelShipmentAsync(oldGuid, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         _orderClient
@@ -185,13 +185,13 @@ public class ResetOrderShipmentHandlerTests
         response.ErrorCode.Should().Be(ErrorCodes.ShipmentCreationFailed);
 
         _shipmentClient.Verify(
-            c => c.DeleteShipmentAsync(oldGuid, It.IsAny<CancellationToken>()),
+            c => c.CancelShipmentAsync(oldGuid, It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
-    // Test 5: Zero item weight after delete → ShipmentOrderWeightUnavailable
+    // Test 5: Zero item weight after cancel → ShipmentOrderWeightUnavailable
     [Fact]
-    public async Task Handle_ZeroWeightAfterDelete_ReturnsShipmentOrderWeightUnavailable()
+    public async Task Handle_ZeroWeightAfterCancel_ReturnsShipmentOrderWeightUnavailable()
     {
         var oldGuid = Guid.NewGuid();
 
@@ -200,7 +200,7 @@ public class ResetOrderShipmentHandlerTests
             .ReturnsAsync([MakeLabel(oldGuid)]);
 
         _shipmentClient
-            .Setup(c => c.DeleteShipmentAsync(oldGuid, It.IsAny<CancellationToken>()))
+            .Setup(c => c.CancelShipmentAsync(oldGuid, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         _orderClient
@@ -217,5 +217,48 @@ public class ResetOrderShipmentHandlerTests
         _shipmentClient.Verify(
             c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    // Test 6: Cancel returns silently (404 treated as success inside client) → handler still creates replacement
+    [Fact]
+    public async Task Handle_CancelReturnsSilently_ProceedsToCreate()
+    {
+        var oldGuid = Guid.NewGuid();
+        var newGuid = Guid.NewGuid();
+
+        _shipmentClient
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([MakeLabel(oldGuid)])
+            .ReturnsAsync([MakeLabel(newGuid, "NEW-P1")]);
+
+        _shipmentClient
+            .Setup(c => c.CancelShipmentAsync(oldGuid, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
+
+        _shipmentClient
+            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShippingOption { CarrierCode = "PPL", Name = "PPL" }]);
+
+        _shipmentClient
+            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CreatedShipment { ShipmentGuid = newGuid });
+
+        var response = await CreateHandler().Handle(
+            new ResetOrderShipmentRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        response.Shipment!.ShipmentGuid.Should().Be(newGuid);
+
+        _shipmentClient.Verify(
+            c => c.CancelShipmentAsync(oldGuid, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _shipmentClient.Verify(
+            c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

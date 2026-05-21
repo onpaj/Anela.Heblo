@@ -150,15 +150,20 @@ public class ShoptetShipmentClient : IShipmentClient
         };
     }
 
-    public async Task DeleteShipmentAsync(Guid shipmentGuid, CancellationToken ct = default)
+    public async Task CancelShipmentAsync(Guid shipmentGuid, CancellationToken ct = default)
     {
-        var response = await _http.DeleteAsync($"/api/shipments/{shipmentGuid}", ct);
+        var response = await _http.PostAsync($"/api/shipments/{shipmentGuid}/cancel-request", content: null, ct);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return;
+        }
 
         if (!response.IsSuccessStatusCode)
         {
             var content = await response.Content.ReadAsStringAsync(ct);
             throw new HttpRequestException(
-                $"Shoptet DELETE /api/shipments/{shipmentGuid} failed ({response.StatusCode}): {content}");
+                $"Shoptet POST /api/shipments/{shipmentGuid}/cancel-request failed ({response.StatusCode}): {content}");
         }
     }
 }

@@ -8,5 +8,5 @@ public interface IShipmentClient
 
     Task<CreatedShipment> CreateShipmentAsync(CreateShipmentCommand command, CancellationToken ct = default);
 
-    Task DeleteShipmentAsync(Guid shipmentGuid, CancellationToken ct = default);
+    Task CancelShipmentAsync(Guid shipmentGuid, CancellationToken ct = default);
 }

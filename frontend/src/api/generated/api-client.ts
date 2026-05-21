@@ -11364,7 +11364,7 @@ export enum ErrorCodes {
     ShipmentLabelNotReady = "ShipmentLabelNotReady",
     ShipmentOrderWeightUnavailable = "ShipmentOrderWeightUnavailable",
     OrderNotInPackingState = "OrderNotInPackingState",
-    ShipmentDeleteFailed = "ShipmentDeleteFailed",
+    ShipmentCancelFailed = "ShipmentCancelFailed",
     NoShipmentToReset = "NoShipmentToReset",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",

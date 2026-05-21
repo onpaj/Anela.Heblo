@@ -338,7 +338,7 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.Conflict)]
     OrderNotInPackingState = 3001,
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
-    ShipmentDeleteFailed = 3002,
+    ShipmentCancelFailed = 3002,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     NoShipmentToReset = 3003,
 

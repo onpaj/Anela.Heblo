@@ -9,7 +9,7 @@ interface ApiClientWithInternals {
 
 const RESET_ERROR_MESSAGES: Partial<Record<string, string>> = {
   NoShipmentToReset: 'Žádná zásilka k invalidaci.',
-  ShipmentDeleteFailed: 'Shoptet nemohl smazat zásilku.',
+  ShipmentCancelFailed: 'Shoptet nemohl zrušit zásilku.',
   ShipmentCreationFailed: 'Shoptet nemohl vytvořit novou zásilku.',
   ShipmentCarrierNotResolved: 'Dopravce se nepodařilo určit.',
   ShipmentOrderWeightUnavailable: 'Nelze zjistit hmotnost objednávky.',

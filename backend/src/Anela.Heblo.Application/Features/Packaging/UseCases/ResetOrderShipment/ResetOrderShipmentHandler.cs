@@ -36,13 +36,13 @@ public class ResetOrderShipmentHandler : IRequestHandler<ResetOrderShipmentReque
 
         try
         {
-            await _shipmentClient.DeleteShipmentAsync(shipmentGuid, ct);
+            await _shipmentClient.CancelShipmentAsync(shipmentGuid, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete shipment {ShipmentGuid} for order {OrderCode}",
+            _logger.LogError(ex, "Failed to cancel shipment {ShipmentGuid} for order {OrderCode}",
                 shipmentGuid, request.OrderCode);
-            return new ResetOrderShipmentResponse(ErrorCodes.ShipmentDeleteFailed);
+            return new ResetOrderShipmentResponse(ErrorCodes.ShipmentCancelFailed);
         }
 
         var order = await _orderClient.GetPackingOrderAsync(request.OrderCode, ct);

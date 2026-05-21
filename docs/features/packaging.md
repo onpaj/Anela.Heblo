@@ -86,7 +86,7 @@ Error codes: `ShoptetOrderNotFound`, `ShipmentOrderWeightUnavailable`, `Shipment
 
 ### POST /api/packaging/orders/{orderCode}/shipment/reset
 
-No request body required. Deletes the existing Shoptet shipment, then creates a new one.
+No request body required. **Cancels** the existing Shoptet shipment via `POST /api/shipments/{guid}/cancel-request`, then creates a new one immediately (cancellation is async at the carrier).
 
 **Success response:**
 ```json
@@ -99,7 +99,7 @@ No request body required. Deletes the existing Shoptet shipment, then creates a 
 }
 ```
 
-Error codes: `NoShipmentToReset` (HTTP 409), `ShipmentDeleteFailed` (HTTP 503), `ShipmentCreationFailed`, `ShipmentCarrierNotResolved`, `ShipmentOrderWeightUnavailable`, `ShoptetOrderNotFound`.
+Error codes: `NoShipmentToReset` (HTTP 409), `ShipmentCancelFailed` (HTTP 503), `ShipmentCreationFailed`, `ShipmentCarrierNotResolved`, `ShipmentOrderWeightUnavailable`, `ShoptetOrderNotFound`.
 
 ---
 
@@ -111,7 +111,7 @@ Unchanged PDF proxy. Returns `application/pdf`. Used by `printLabelPdf.ts` via i
 
 See `docs/integrations/shoptet-api.md` §11 for shipment endpoints. Constraints:
 - **No sandbox** — every API call hits the live store.
-- Endpoints used: `GET /api/shipments?orderCode=...`, `GET /api/shipments/order/{code}/shipping-options`, `POST /api/shipments`, `DELETE /api/shipments/{shipmentGuid}`.
+- Endpoints used: `GET /api/shipments?orderCode=...`, `GET /api/shipments/order/{code}/shipping-options`, `POST /api/shipments`, `POST /api/shipments/{shipmentGuid}/cancel-request`.
 - Carrier code is resolved via shipping-options (`shippingId` cast to string).
 - Label URL latency: Balíkobot may take a few seconds. The scan endpoint does NOT wait for label URL readiness; `printLabelPdf` fetches on demand.
 
@@ -131,7 +131,7 @@ See `docs/integrations/shoptet-api.md` §11 for shipment endpoints. Constraints:
 | Weight data missing | `ShipmentOrderWeightUnavailable` (422) | Error banner |
 | Carrier not resolved | `ShipmentCarrierNotResolved` (422) | Error banner |
 | Shipment creation fails | `ShipmentCreationFailed` (503) | Error banner |
-| Shipment delete fails | `ShipmentDeleteFailed` (503) | Error banner (reset path) |
+| Shipment cancel fails | `ShipmentCancelFailed` (503) | Error banner (reset path) |
 | No shipment to reset | `NoShipmentToReset` (409) | Error banner (reset path) |
 | Label PDF not ready | HTTP 404 from label/pdf proxy | printLabelPdf silently fails (kiosk retry) |
 
