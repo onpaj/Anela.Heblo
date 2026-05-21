@@ -248,3 +248,7 @@ When module A needs **read-only access** to data in module B, the dependency mus
 - [FastEndpoints Documentation](https://fast-endpoints.com/)
 - [Domain-Driven Design](https://martinfowler.com/tags/domain%20driven%20design.html)
 - [Feature Folders](https://scottsauber.com/2016/04/25/feature-folder-structure-in-asp-net-core/)
+
+## Feature Flags
+
+Use `IFeatureFlagChecker` for all flag evaluation in business code — never call OpenFeature SDK directly. Always use `FeatureFlagKeys` constants (never raw strings). See [docs/development/feature-flags.md](../development/feature-flags.md) for the full guide.
