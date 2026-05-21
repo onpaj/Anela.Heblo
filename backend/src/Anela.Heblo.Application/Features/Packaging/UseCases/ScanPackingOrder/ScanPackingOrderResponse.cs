@@ -53,4 +53,7 @@ public class ScanShipmentData
 public class ScanShipmentPackage
 {
     public string Name { get; set; } = null!;
+    public string? TrackingNumber { get; set; }
+    public string? LabelUrl { get; set; }
+    public string? LabelZpl { get; set; }
 }

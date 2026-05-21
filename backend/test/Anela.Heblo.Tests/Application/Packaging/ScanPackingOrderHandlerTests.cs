@@ -103,6 +103,7 @@ public class ScanPackingOrderHandlerTests
             OrderCode = "0001234",
             PackageName = "P1",
             LabelUrl = "https://example.com/label.pdf",
+            LabelZpl = "^XA...^XZ",
         };
 
         _orderClient
@@ -123,6 +124,9 @@ public class ScanPackingOrderHandlerTests
         response.Shipment!.AlreadyExisted.Should().BeTrue();
         response.Shipment.ShipmentGuid.Should().Be(shipmentGuid);
         response.Shipment.Packages.Should().HaveCount(1);
+        response.Shipment.Packages[0].Name.Should().Be("P1");
+        response.Shipment.Packages[0].LabelUrl.Should().Be("https://example.com/label.pdf");
+        response.Shipment.Packages[0].LabelZpl.Should().Be("^XA...^XZ");
 
         _shipmentClient.Verify(
             c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
@@ -214,7 +218,7 @@ public class ScanPackingOrderHandlerTests
         _shipmentClient
             .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
             .ReturnsAsync([])
-            .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1" }]);
+            .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://carrier.example.com/new-label.pdf" }]);
 
         _shipmentClient
             .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
@@ -237,5 +241,8 @@ public class ScanPackingOrderHandlerTests
         _shipmentClient.Verify(
             c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
             Times.Once);
+
+        response.Shipment.Packages[0].LabelUrl.Should().Be("https://carrier.example.com/new-label.pdf");
+        response.Shipment.Packages[0].LabelZpl.Should().BeNull();
     }
 }

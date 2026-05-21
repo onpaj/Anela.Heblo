@@ -64,7 +64,13 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             {
                 ShipmentGuid = existingLabels[0].ShipmentGuid,
                 Packages = existingLabels
-                    .Select(l => new ScanShipmentPackage { Name = l.PackageName })
+                    .Select(l => new ScanShipmentPackage
+                    {
+                        Name = l.PackageName,
+                        TrackingNumber = l.TrackingNumber,
+                        LabelUrl = l.LabelUrl,
+                        LabelZpl = l.LabelZpl,
+                    })
                     .ToList(),
                 AlreadyExisted = true,
             };
@@ -105,10 +111,16 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             return new ScanPackingOrderResponse(ErrorCodes.ShipmentCreationFailed);
         }
 
-        // Single fetch for package names — no label-URL polling (FE fetches PDF via /label/pdf proxy)
+        // Single fetch for package names + carrier label URLs (FE prints directly from the CDN).
         var newLabels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
         var packages = newLabels.Count > 0
-            ? newLabels.Select(l => new ScanShipmentPackage { Name = l.PackageName }).ToList()
+            ? newLabels.Select(l => new ScanShipmentPackage
+            {
+                Name = l.PackageName,
+                TrackingNumber = l.TrackingNumber,
+                LabelUrl = l.LabelUrl,
+                LabelZpl = l.LabelZpl,
+            }).ToList()
             : [new ScanShipmentPackage { Name = "PKG-1" }];
 
         return new ScanPackingOrderResponse(orderData, new ScanShipmentData
