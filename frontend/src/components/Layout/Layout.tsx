@@ -23,7 +23,7 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
   const isFullHeightPage = location.pathname === "/customer/smartsupp";
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-1.5rem)] bg-gray-50 flex flex-col overflow-hidden">
       {/* TopBar for mobile menu */}
       <TopBar onMenuClick={() => setSidebarOpen(true)} />
 
@@ -38,7 +38,7 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
 
       {/* Main content */}
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 ${sidebarCollapsed ? "md:pl-16" : "md:pl-64"} pt-16 md:pt-0`}
+        className={`flex-1 min-h-0 flex flex-col transition-all duration-300 ${sidebarCollapsed ? "md:pl-16" : "md:pl-64"} pt-16 md:pt-0`}
       >
         {!hideMobileNotice && <MobileNotice />}
 

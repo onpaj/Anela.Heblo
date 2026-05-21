@@ -67,7 +67,7 @@ const SmartsuppChatsPage: React.FC = () => {
         </button>
       </div>
 
-      <div className="flex flex-1 overflow-hidden bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="flex flex-1 overflow-hidden bg-white">
         <div
           className={`${mobileView === "list" ? "flex" : "hidden"} ${listPanelOpen ? "md:flex" : "md:hidden"} flex-col w-full md:w-96 flex-shrink-0 overflow-hidden`}
         >
