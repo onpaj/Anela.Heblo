@@ -14,6 +14,7 @@ namespace Anela.Heblo.API.Controllers;
 [ApiController]
 [Route("api/feature-flags")]
 [Authorize]
+[ProducesResponseType(StatusCodes.Status401Unauthorized)]
 public class FeatureFlagsController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -28,19 +29,24 @@ public class FeatureFlagsController : BaseApiController
     [HttpGet("admin")]
     [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
     [ProducesResponseType(typeof(ListFlagsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ListFlagsResponse>> GetAdmin(CancellationToken ct)
         => HandleResponse(await _mediator.Send(new ListFlagsRequest(), ct));
 
     [HttpPut("admin/{key}")]
     [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
     [ProducesResponseType(typeof(UpsertFlagOverrideResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(UpsertFlagOverrideResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<UpsertFlagOverrideResponse>> Put(
         string key,
         [FromBody] UpsertFlagOverrideBodyDto body,
         CancellationToken ct)
     {
-        var updatedBy = User.Identity?.Name ?? "unknown";
+        var name = User.Identity?.Name;
+        if (name is null)
+            Logger.LogWarning("UpsertFlagOverride: User.Identity.Name resolved to null for authenticated request");
+        var updatedBy = name ?? "unknown";
         return HandleResponse(await _mediator.Send(new UpsertFlagOverrideRequest
         {
             Key = key,
@@ -52,7 +58,8 @@ public class FeatureFlagsController : BaseApiController
     [HttpDelete("admin/{key}")]
     [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
     [ProducesResponseType(typeof(ClearFlagOverrideResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ClearFlagOverrideResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ClearFlagOverrideResponse>> Delete(string key, CancellationToken ct)
         => HandleResponse(await _mediator.Send(new ClearFlagOverrideRequest { Key = key }, ct));
 }

@@ -5,9 +5,9 @@ namespace Anela.Heblo.Application.Features.FeatureFlags.UseCases.UpsertFlagOverr
 
 public class UpsertFlagOverrideRequest : IRequest<UpsertFlagOverrideResponse>
 {
-    public string Key { get; set; } = "";
-    public bool IsEnabled { get; set; }
-    public string UpdatedBy { get; set; } = "";
+    public string Key { get; init; } = "";
+    public bool IsEnabled { get; init; }
+    public string UpdatedBy { get; init; } = "";
 }
 
 public class UpsertFlagOverrideResponse : BaseResponse
