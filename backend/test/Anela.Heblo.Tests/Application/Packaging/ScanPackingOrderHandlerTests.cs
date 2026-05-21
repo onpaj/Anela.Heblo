@@ -50,7 +50,23 @@ public class ScanPackingOrderHandlerTests
             }).ToList(),
         };
 
-    // Test 1: Order in wrong state → ineligible response (success: true, isEligible: false)
+    // Test 1: Order not found → ErrorCodes.ShoptetOrderNotFound
+    [Fact]
+    public async Task Handle_OrderNotFound_ReturnsShoptetOrderNotFound()
+    {
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PackingOrder?)null);
+
+        var response = await CreateHandler().Handle(
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.ShoptetOrderNotFound);
+    }
+
+    // Test 2: Order in wrong state → ineligible response (success: true, isEligible: false)
     [Fact]
     public async Task Handle_OrderNotInPackingState_ReturnsSuccessWithIneligibleOrder_AndNeverCallsShipmentClient()
     {
