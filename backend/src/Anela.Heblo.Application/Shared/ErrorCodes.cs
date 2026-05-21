@@ -297,6 +297,8 @@ public enum ErrorCodes
     SmartsuppVisitorNotFound = 2705,
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     SmartsuppSendMessageUnavailable = 2706,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    SmartsuppAgentMappingNotFound = 2707,
 
     // Inventory module errors (28XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

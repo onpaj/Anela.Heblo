@@ -22,7 +22,7 @@ function formatMessage(
  * Gets a localized error message for an error code
  */
 export function getErrorMessage(
-  errorCode: ErrorCodes,
+  errorCode: ErrorCodes | keyof typeof ErrorCodes,
   params?: Record<string, string>,
 ): string {
   // Special handling for Exception error code
@@ -34,14 +34,13 @@ export function getErrorMessage(
     return `Chyba ${params.exceptionType}\n${params.message}`;
   }
 
-  // Get ErrorCode enum name for translation key using Object.entries for reverse mapping
-  let enumName: string | undefined;
-  for (const [key, value] of Object.entries(ErrorCodes)) {
-    if (value === errorCode) {
-      enumName = key;
-      break;
-    }
-  }
+  // ErrorCodes is a string enum mirroring the backend names, so the wire value
+  // IS the translation key suffix. Any unknown value (e.g. legacy numeric codes
+  // from older callers) falls through to the "unknown code" branch.
+  const enumName =
+    typeof errorCode === "string" && (errorCode as string) in ErrorCodes
+      ? (errorCode as string)
+      : undefined;
 
   if (!enumName) {
     return `Nastala chyba (neznámý kód: ${errorCode})`;

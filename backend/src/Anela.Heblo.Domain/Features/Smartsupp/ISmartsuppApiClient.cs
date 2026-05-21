@@ -26,7 +26,7 @@ public interface ISmartsuppApiClient
     Task<SmartsuppSentMessageData> SendMessageAsync(
         string conversationId,
         string content,
-        string? agentName,
+        string? agentId,
         CancellationToken cancellationToken);
 }
 

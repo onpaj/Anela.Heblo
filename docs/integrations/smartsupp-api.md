@@ -40,24 +40,34 @@ Response: `{ items: MessageObject[], total: int }`
 
 **Send a message in a conversation on behalf of an agent.**
 
-> ⚠️ **UNVERIFIED** — This shape was inferred from the Smartsupp API reference and implemented speculatively.
-> Verify against https://docs.smartsupp.com/rest-api on the first staging deployment.
-> Update this document once confirmed.
+**Verified production behavior (2026-05-21):** Including the `agent` block triggers
+`sub_type=agent` on Smartsupp's side and makes `agent_id` mandatory. Smartsupp returns:
 
-**Request body (assumed):**
+```
+HTTP 422 Unprocessable Entity
+{"code":"invalid_parameters","message":"Property agent_id is required when sub_type is \"agent\""}
+```
+
+We send **`agent_id` only — never the `agent` block**. The recipient sees the
+sender name resolved from the Smartsupp agent profile.
+
+**Request body:**
 ```json
 {
   "content": {
     "type": "text",
     "text": "Message content here"
   },
-  "agent": {
-    "name": "Ondřej"
-  }
+  "agent_id": "<smartsupp_agent_id>"
 }
 ```
 
-The `agent` field is optional. If omitted, the message is sent without an agent name.
+`SmartsuppApiClient.SendMessageAsync` accepts `agentId` as a parameter. The
+`SendMessageHandler` resolves it from `SmartsuppSendMessageOptions.AgentMap`
+(keyed by Heblo user email). Users missing from the map cannot send messages
+and receive `SmartsuppAgentMappingNotFound`. When `agentId` is null, the
+message is attributed to the API token's default sender (used by future
+automatic-reply paths).
 
 **Response (assumed):**
 ```json
@@ -67,8 +77,9 @@ The `agent` field is optional. If omitted, the message is sent without an agent 
 }
 ```
 
-**Success:** 2xx  
-**Failure codes observed:** TBD (verify on staging)
+**Success:** 2xx
+**Failure codes observed:**
+- `422` `invalid_parameters` — `agent` block sent without `agent_id` (see above)
 
 ---
 
