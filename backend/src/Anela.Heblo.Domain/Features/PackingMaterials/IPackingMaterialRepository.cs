@@ -12,4 +12,5 @@ public interface IPackingMaterialRepository : IRepository<PackingMaterial, int>
     Task<PackingMaterial?> GetByIdWithAllocationsAsync(int id, CancellationToken cancellationToken = default);
     Task AddConsumptionRowsAsync(IEnumerable<PackingMaterialConsumption> rows, CancellationToken cancellationToken = default);
     Task<IEnumerable<PackingMaterialConsumption>> GetConsumptionsByDateAsync(DateOnly date, CancellationToken cancellationToken = default);
+    Task AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default);
 }
