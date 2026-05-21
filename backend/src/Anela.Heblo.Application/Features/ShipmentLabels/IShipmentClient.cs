@@ -7,4 +7,6 @@ public interface IShipmentClient
     Task<IReadOnlyList<ShippingOption>> GetShippingOptionsAsync(string orderCode, CancellationToken ct = default);
 
     Task<CreatedShipment> CreateShipmentAsync(CreateShipmentCommand command, CancellationToken ct = default);
+
+    Task DeleteShipmentAsync(Guid shipmentGuid, CancellationToken ct = default);
 }

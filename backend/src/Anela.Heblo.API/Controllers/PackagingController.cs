@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
 using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.GetShipmentLabelPdf;
 using Anela.Heblo.Application.Shared;
@@ -29,6 +30,18 @@ public class PackagingController : BaseApiController
         CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(new ScanPackingOrderRequest { OrderCode = orderCode }, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    /// <summary>
+    /// Resets an order shipment: deletes the existing shipment and creates a new one.
+    /// </summary>
+    [HttpPost("orders/{orderCode}/shipment/reset")]
+    public async Task<ActionResult<ResetOrderShipmentResponse>> ResetShipment(
+        [FromRoute] string orderCode,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(new ResetOrderShipmentRequest { OrderCode = orderCode }, cancellationToken);
         return HandleResponse(response);
     }
 

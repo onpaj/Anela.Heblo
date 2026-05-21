@@ -149,4 +149,16 @@ public class ShoptetShipmentClient : IShipmentClient
             Status = null,
         };
     }
+
+    public async Task DeleteShipmentAsync(Guid shipmentGuid, CancellationToken ct = default)
+    {
+        var response = await _http.DeleteAsync($"/api/shipments/{shipmentGuid}", ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException(
+                $"Shoptet DELETE /api/shipments/{shipmentGuid} failed ({response.StatusCode}): {content}");
+        }
+    }
 }
