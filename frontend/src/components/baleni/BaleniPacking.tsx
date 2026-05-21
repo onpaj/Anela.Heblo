@@ -85,7 +85,7 @@ function BaleniPacking() {
       {data && (
         <PackingOrderNotes customerNote={data.customerNote} eshopNote={data.eshopNote} />
       )}
-      {data && data.isInPackingState && (
+      {data && data.eligibility.isEligible && (
         <PackingShipmentCreator orderCode={data.code} />
       )}
       {data && (
