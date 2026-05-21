@@ -442,7 +442,6 @@ export const QUERY_KEYS = {
   manufacturedProductInventory: ["manufactured-product-inventory"] as const,
   meetingTasks: ["meetingTasks"] as const,
   packingOrder: ["packingOrder"] as const,
-  shipmentLabels: ["shipmentLabels"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,
