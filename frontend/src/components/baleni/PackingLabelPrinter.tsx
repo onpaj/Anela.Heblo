@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useShipmentLabels } from '../../api/hooks/useShipmentLabels';
 import { printLabelPdf } from './printLabelPdf';
+import type { ShipmentLabelDto } from '../../api/generated/api-client';
 
 interface PackingLabelPrinterProps {
   orderCode: string;
+  labels: ShipmentLabelDto[];
 }
 
-function PackingLabelPrinter({ orderCode }: PackingLabelPrinterProps) {
-  const { data: labels, isError, error } = useShipmentLabels(orderCode, true);
+function PackingLabelPrinter({ orderCode, labels }: PackingLabelPrinterProps) {
   const [printedCount, setPrintedCount] = useState(0);
 
   useEffect(() => {
@@ -15,24 +15,13 @@ function PackingLabelPrinter({ orderCode }: PackingLabelPrinterProps) {
   }, [orderCode]);
 
   useEffect(() => {
-    if (labels && labels.length > 0 && printedCount === 0) {
+    if (labels.length > 0 && printedCount === 0) {
       printLabelPdf(orderCode, labels[0]);
       setPrintedCount(1);
     }
   }, [labels, orderCode, printedCount]);
 
-  if (isError && error) {
-    return (
-      <div
-        data-testid="label-print-error"
-        className="rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700"
-      >
-        {(error as Error).message}
-      </div>
-    );
-  }
-
-  if (!labels || printedCount === 0 || printedCount >= labels.length) {
+  if (labels.length === 0 || printedCount === 0 || printedCount >= labels.length) {
     return null;
   }
 
