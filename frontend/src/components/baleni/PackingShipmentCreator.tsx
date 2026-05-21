@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { getAuthenticatedApiClient } from '../../api/client';
 import { ErrorCodes, ShipmentLabelDto } from '../../api/generated/api-client';
+import type { ScanShipment } from '../../api/hooks/useScanPackingOrder';
 import PackingLabelPrinter from './PackingLabelPrinter';
 
 interface ApiClientWithInternals {
@@ -63,6 +64,8 @@ const usePrepareOrderLabel = () =>
 
 interface PackingShipmentCreatorProps {
   orderCode: string;
+  // Passed from BaleniPacking scan result; Task 6 will wire this into the label flow
+  scanShipment?: ScanShipment | null;
 }
 
 function PackingShipmentCreator({ orderCode }: PackingShipmentCreatorProps) {
