@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
 using Anela.Heblo.Application.Features.ShoptetCustomers;
-using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.Smartsupp.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
@@ -12,20 +11,15 @@ namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.GetContactShoptetI
 public class GetSmartsuppContactShoptetInfoHandler
     : IRequestHandler<GetSmartsuppContactShoptetInfoRequest, GetSmartsuppContactShoptetInfoResponse>
 {
-    private const int RecentOrdersLimit = 5;
-
     private readonly ISmartsuppRepository _repo;
     private readonly IShoptetCustomerClient _customerClient;
-    private readonly IEshopOrderClient _orderClient;
 
     public GetSmartsuppContactShoptetInfoHandler(
         ISmartsuppRepository repo,
-        IShoptetCustomerClient customerClient,
-        IEshopOrderClient orderClient)
+        IShoptetCustomerClient customerClient)
     {
         _repo = repo;
         _customerClient = customerClient;
-        _orderClient = orderClient;
     }
 
     public async Task<GetSmartsuppContactShoptetInfoResponse> Handle(
@@ -41,33 +35,15 @@ public class GetSmartsuppContactShoptetInfoHandler
         variables.TryGetValue("shoptet_guid", out var shoptetGuid);
         variables.TryGetValue("shoptet_cart_updated_at", out var cartStr);
 
-        // Resolution order: shoptet_user_guid → shoptet_guid → email (first match wins)
         ShoptetCustomerInfoDto? customer = null;
-        List<EshopOrderInfo>? preloadedOrders = null;
 
         if (!string.IsNullOrWhiteSpace(userGuid))
-        {
             customer = await _customerClient.GetCustomerByGuidAsync(userGuid, cancellationToken);
-        }
         else if (!string.IsNullOrWhiteSpace(shoptetGuid))
-        {
             customer = await _customerClient.GetCustomerByGuidAsync(shoptetGuid, cancellationToken);
-        }
-        else if (!string.IsNullOrWhiteSpace(conversation.ContactEmail))
-        {
-            preloadedOrders = await _orderClient.GetRecentOrdersByEmailAsync(
-                conversation.ContactEmail, RecentOrdersLimit, cancellationToken);
-            var firstGuid = preloadedOrders.FirstOrDefault()?.CustomerGuid;
-            if (!string.IsNullOrWhiteSpace(firstGuid))
-                customer = await _customerClient.GetCustomerByGuidAsync(firstGuid, cancellationToken);
-        }
 
         if (customer is null)
-            return new GetSmartsuppContactShoptetInfoResponse(ErrorCodes.SmartsuppShoptetCustomerNotFound);
-
-        var lookupEmail = customer.Email ?? conversation.ContactEmail ?? string.Empty;
-        var orders = preloadedOrders ?? await _orderClient.GetRecentOrdersByEmailAsync(lookupEmail, RecentOrdersLimit, cancellationToken);
-        var statusNames = await _orderClient.GetOrderStatusNamesAsync(cancellationToken);
+            return new GetSmartsuppContactShoptetInfoResponse { ContactInfo = null };
 
         DateTime? cartUpdatedAt = null;
         if (!string.IsNullOrWhiteSpace(cartStr) &&
@@ -87,15 +63,7 @@ public class GetSmartsuppContactShoptetInfoHandler
                     PriceList = customer.PriceList,
                     DefaultShippingAddress = customer.DefaultShippingAddress,
                 },
-                RecentOrders = orders.Select(o => new ShoptetOrderSnapshotDto
-                {
-                    Code = o.Code,
-                    StatusName = statusNames.TryGetValue(o.StatusId, out var name) ? name : o.StatusId.ToString(),
-                    TotalWithVat = o.TotalWithVat,
-                    CurrencyCode = o.CurrencyCode,
-                    OrderDate = o.OrderDate,
-                    AdminUrl = o.AdminUrl,
-                }).ToList(),
+                RecentOrders = new(),
                 CartUpdatedAt = cartUpdatedAt,
             },
         };

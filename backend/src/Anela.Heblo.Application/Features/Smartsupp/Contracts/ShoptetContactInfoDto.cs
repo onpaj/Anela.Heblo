@@ -2,7 +2,7 @@ namespace Anela.Heblo.Application.Features.Smartsupp.Contracts;
 
 public class ShoptetContactInfoDto
 {
-    public required ShoptetCustomerSnapshotDto Customer { get; set; }
+    public ShoptetCustomerSnapshotDto? Customer { get; set; }
     public List<ShoptetOrderSnapshotDto> RecentOrders { get; set; } = new();
     public DateTime? CartUpdatedAt { get; set; }
 }
