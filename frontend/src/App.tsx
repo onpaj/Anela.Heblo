@@ -66,6 +66,8 @@ import { ChangelogProvider } from "./contexts/ChangelogContext";
 import { GlobalLoadingIndicator } from "./components/GlobalLoadingIndicator";
 import { AppInitializer } from "./components/AppInitializer";
 import { ChangelogToaster, ChangelogModalContainer } from "./features/changelog";
+import { FeatureFlagProvider } from "./features/feature-flags/FeatureFlagProvider";
+import { OpenFeatureProvider } from "@openfeature/react-sdk";
 import LeafletGeneratorPage from "./features/leaflet-generator/LeafletGeneratorPage";
 import TerminalLayout from "./components/terminal/TerminalLayout";
 import TerminalHome from "./components/terminal/TerminalHome";
@@ -334,6 +336,8 @@ function App() {
   }
 
   return (
+    <OpenFeatureProvider>
+      <FeatureFlagProvider>
     <QueryClientProvider client={queryClient}>
       <LoadingProvider>
         <ToastProvider>
@@ -437,6 +441,8 @@ function App() {
         </ToastProvider>
       </LoadingProvider>
     </QueryClientProvider>
+      </FeatureFlagProvider>
+    </OpenFeatureProvider>
   );
 }
 
