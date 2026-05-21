@@ -2737,6 +2737,166 @@ export class ApiClient {
         return Promise.resolve<ReprintExpeditionListResponse>(null as any);
     }
 
+    featureFlags_Get(): Promise<EvaluateFlagsForClientResponse> {
+        let url_ = this.baseUrl + "/api/feature-flags";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processFeatureFlags_Get(_response);
+        });
+    }
+
+    protected processFeatureFlags_Get(response: Response): Promise<EvaluateFlagsForClientResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = EvaluateFlagsForClientResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<EvaluateFlagsForClientResponse>(null as any);
+    }
+
+    featureFlags_GetAdmin(): Promise<ListFlagsResponse> {
+        let url_ = this.baseUrl + "/api/feature-flags/admin";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processFeatureFlags_GetAdmin(_response);
+        });
+    }
+
+    protected processFeatureFlags_GetAdmin(response: Response): Promise<ListFlagsResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ListFlagsResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ListFlagsResponse>(null as any);
+    }
+
+    featureFlags_Put(key: string, body: UpsertFlagOverrideBodyDto): Promise<UpsertFlagOverrideResponse> {
+        let url_ = this.baseUrl + "/api/feature-flags/admin/{key}";
+        if (key === undefined || key === null)
+            throw new Error("The parameter 'key' must be defined.");
+        url_ = url_.replace("{key}", encodeURIComponent("" + key));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processFeatureFlags_Put(_response);
+        });
+    }
+
+    protected processFeatureFlags_Put(response: Response): Promise<UpsertFlagOverrideResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpsertFlagOverrideResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpsertFlagOverrideResponse>(null as any);
+    }
+
+    featureFlags_Delete(key: string): Promise<ClearFlagOverrideResponse> {
+        let url_ = this.baseUrl + "/api/feature-flags/admin/{key}";
+        if (key === undefined || key === null)
+            throw new Error("The parameter 'key' must be defined.");
+        url_ = url_.replace("{key}", encodeURIComponent("" + key));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processFeatureFlags_Delete(_response);
+        });
+    }
+
+    protected processFeatureFlags_Delete(response: Response): Promise<ClearFlagOverrideResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ClearFlagOverrideResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ClearFlagOverrideResponse>(null as any);
+    }
+
     fileStorage_DownloadFromUrl(request: DownloadFromUrlRequest): Promise<DownloadFromUrlResponse> {
         let url_ = this.baseUrl + "/api/FileStorage/download";
         url_ = url_.replace(/[?&]$/, "");
@@ -9741,34 +9901,48 @@ export class ApiClient {
         return Promise.resolve<GenerateDraftReplyResponse>(null as any);
     }
 
-    smartsupp_RunSync(request: RunManualSyncRequest | undefined): Promise<RunManualSyncResponse> {
-        let url_ = this.baseUrl + "/api/smartsupp/sync";
+    smartsuppWebhookAudit_List(from: Date | null | undefined, to: Date | null | undefined, eventName: string | null | undefined, signatureStatus: SmartsuppWebhookSignatureStatus | null | undefined, processingStatus: SmartsuppWebhookProcessingStatus | null | undefined, skip: number | undefined, take: number | undefined): Promise<ListWebhookAuditResponse> {
+        let url_ = this.baseUrl + "/api/admin/smartsupp/webhooks?";
+        if (from !== undefined && from !== null)
+            url_ += "from=" + encodeURIComponent(from ? "" + from.toISOString() : "") + "&";
+        if (to !== undefined && to !== null)
+            url_ += "to=" + encodeURIComponent(to ? "" + to.toISOString() : "") + "&";
+        if (eventName !== undefined && eventName !== null)
+            url_ += "eventName=" + encodeURIComponent("" + eventName) + "&";
+        if (signatureStatus !== undefined && signatureStatus !== null)
+            url_ += "signatureStatus=" + encodeURIComponent("" + signatureStatus) + "&";
+        if (processingStatus !== undefined && processingStatus !== null)
+            url_ += "processingStatus=" + encodeURIComponent("" + processingStatus) + "&";
+        if (skip === null)
+            throw new Error("The parameter 'skip' cannot be null.");
+        else if (skip !== undefined)
+            url_ += "skip=" + encodeURIComponent("" + skip) + "&";
+        if (take === null)
+            throw new Error("The parameter 'take' cannot be null.");
+        else if (take !== undefined)
+            url_ += "take=" + encodeURIComponent("" + take) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
-        const content_ = JSON.stringify(request);
-
         let options_: RequestInit = {
-            body: content_,
-            method: "POST",
+            method: "GET",
             headers: {
-                "Content-Type": "application/json",
                 "Accept": "application/json"
             }
         };
 
         return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processSmartsupp_RunSync(_response);
+            return this.processSmartsuppWebhookAudit_List(_response);
         });
     }
 
-    protected processSmartsupp_RunSync(response: Response): Promise<RunManualSyncResponse> {
+    protected processSmartsuppWebhookAudit_List(response: Response): Promise<ListWebhookAuditResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = RunManualSyncResponse.fromJS(resultData200);
+            result200 = ListWebhookAuditResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -9776,7 +9950,95 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<RunManualSyncResponse>(null as any);
+        return Promise.resolve<ListWebhookAuditResponse>(null as any);
+    }
+
+    smartsuppWebhookAudit_Get(id: string): Promise<GetWebhookAuditEntryResponse> {
+        let url_ = this.baseUrl + "/api/admin/smartsupp/webhooks/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsuppWebhookAudit_Get(_response);
+        });
+    }
+
+    protected processSmartsuppWebhookAudit_Get(response: Response): Promise<GetWebhookAuditEntryResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetWebhookAuditEntryResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetWebhookAuditEntryResponse>(null as any);
+    }
+
+    smartsuppWebhookAudit_Replay(id: string): Promise<ReplayWebhookEventResponse> {
+        let url_ = this.baseUrl + "/api/admin/smartsupp/webhooks/{id}/replay";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsuppWebhookAudit_Replay(_response);
+        });
+    }
+
+    protected processSmartsuppWebhookAudit_Replay(response: Response): Promise<ReplayWebhookEventResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ReplayWebhookEventResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReplayWebhookEventResponse>(null as any);
     }
 
     smartsuppWebhook_Receive(): Promise<FileResponse> {
@@ -16319,6 +16581,242 @@ export class ReprintExpeditionListRequest implements IReprintExpeditionListReque
 
 export interface IReprintExpeditionListRequest {
     blobPath?: string;
+}
+
+export class EvaluateFlagsForClientResponse extends BaseResponse implements IEvaluateFlagsForClientResponse {
+    flags?: { [key: string]: boolean; };
+
+    constructor(data?: IEvaluateFlagsForClientResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (_data["flags"]) {
+                this.flags = {} as any;
+                for (let key in _data["flags"]) {
+                    if (_data["flags"].hasOwnProperty(key))
+                        (<any>this.flags)![key] = _data["flags"][key];
+                }
+            }
+        }
+    }
+
+    static override fromJS(data: any): EvaluateFlagsForClientResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new EvaluateFlagsForClientResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (this.flags) {
+            data["flags"] = {};
+            for (let key in this.flags) {
+                if (this.flags.hasOwnProperty(key))
+                    (<any>data["flags"])[key] = (<any>this.flags)[key];
+            }
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IEvaluateFlagsForClientResponse extends IBaseResponse {
+    flags?: { [key: string]: boolean; };
+}
+
+export class ListFlagsResponse extends BaseResponse implements IListFlagsResponse {
+    flags?: FlagStatusDto[];
+
+    constructor(data?: IListFlagsResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["flags"])) {
+                this.flags = [] as any;
+                for (let item of _data["flags"])
+                    this.flags!.push(FlagStatusDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): ListFlagsResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListFlagsResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.flags)) {
+            data["flags"] = [];
+            for (let item of this.flags)
+                data["flags"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IListFlagsResponse extends IBaseResponse {
+    flags?: FlagStatusDto[];
+}
+
+export class FlagStatusDto implements IFlagStatusDto {
+    key?: string;
+    description?: string;
+    currentValue?: boolean;
+    isOverridden?: boolean;
+    defaultValue?: boolean;
+    updatedBy?: string | undefined;
+    updatedAt?: Date | undefined;
+
+    constructor(data?: IFlagStatusDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.key = _data["key"];
+            this.description = _data["description"];
+            this.currentValue = _data["currentValue"];
+            this.isOverridden = _data["isOverridden"];
+            this.defaultValue = _data["defaultValue"];
+            this.updatedBy = _data["updatedBy"];
+            this.updatedAt = _data["updatedAt"] ? new Date(_data["updatedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static fromJS(data: any): FlagStatusDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new FlagStatusDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["key"] = this.key;
+        data["description"] = this.description;
+        data["currentValue"] = this.currentValue;
+        data["isOverridden"] = this.isOverridden;
+        data["defaultValue"] = this.defaultValue;
+        data["updatedBy"] = this.updatedBy;
+        data["updatedAt"] = this.updatedAt ? this.updatedAt.toISOString() : <any>undefined;
+        return data;
+    }
+}
+
+export interface IFlagStatusDto {
+    key?: string;
+    description?: string;
+    currentValue?: boolean;
+    isOverridden?: boolean;
+    defaultValue?: boolean;
+    updatedBy?: string | undefined;
+    updatedAt?: Date | undefined;
+}
+
+export class UpsertFlagOverrideResponse extends BaseResponse implements IUpsertFlagOverrideResponse {
+
+    constructor(data?: IUpsertFlagOverrideResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): UpsertFlagOverrideResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpsertFlagOverrideResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpsertFlagOverrideResponse extends IBaseResponse {
+}
+
+export class UpsertFlagOverrideBodyDto implements IUpsertFlagOverrideBodyDto {
+    isEnabled?: boolean;
+
+    constructor(data?: IUpsertFlagOverrideBodyDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.isEnabled = _data["isEnabled"];
+        }
+    }
+
+    static fromJS(data: any): UpsertFlagOverrideBodyDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpsertFlagOverrideBodyDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["isEnabled"] = this.isEnabled;
+        return data;
+    }
+}
+
+export interface IUpsertFlagOverrideBodyDto {
+    isEnabled?: boolean;
+}
+
+export class ClearFlagOverrideResponse extends BaseResponse implements IClearFlagOverrideResponse {
+
+    constructor(data?: IClearFlagOverrideResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): ClearFlagOverrideResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ClearFlagOverrideResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IClearFlagOverrideResponse extends IBaseResponse {
 }
 
 export class DownloadFromUrlResponse extends BaseResponse implements IDownloadFromUrlResponse {
@@ -32902,63 +33400,74 @@ export interface IGenerateDraftReplyBody {
     topic?: string | undefined;
 }
 
-export class RunManualSyncResponse extends BaseResponse implements IRunManualSyncResponse {
-    conversationsProcessed?: number;
-    messagesProcessed?: number;
-    conversationsReconciled?: number;
-    conversationsClosedRemotely?: number;
-    startedAt?: Date;
-    completedAt?: Date;
+export class ListWebhookAuditResponse extends BaseResponse implements IListWebhookAuditResponse {
+    items?: WebhookAuditSummaryDto[];
+    total?: number;
+    skip?: number;
+    pageSize?: number;
 
-    constructor(data?: IRunManualSyncResponse) {
+    constructor(data?: IListWebhookAuditResponse) {
         super(data);
     }
 
     override init(_data?: any) {
         super.init(_data);
         if (_data) {
-            this.conversationsProcessed = _data["conversationsProcessed"];
-            this.messagesProcessed = _data["messagesProcessed"];
-            this.conversationsReconciled = _data["conversationsReconciled"];
-            this.conversationsClosedRemotely = _data["conversationsClosedRemotely"];
-            this.startedAt = _data["startedAt"] ? new Date(_data["startedAt"].toString()) : <any>undefined;
-            this.completedAt = _data["completedAt"] ? new Date(_data["completedAt"].toString()) : <any>undefined;
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(WebhookAuditSummaryDto.fromJS(item));
+            }
+            this.total = _data["total"];
+            this.skip = _data["skip"];
+            this.pageSize = _data["pageSize"];
         }
     }
 
-    static override fromJS(data: any): RunManualSyncResponse {
+    static override fromJS(data: any): ListWebhookAuditResponse {
         data = typeof data === 'object' ? data : {};
-        let result = new RunManualSyncResponse();
+        let result = new ListWebhookAuditResponse();
         result.init(data);
         return result;
     }
 
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["conversationsProcessed"] = this.conversationsProcessed;
-        data["messagesProcessed"] = this.messagesProcessed;
-        data["conversationsReconciled"] = this.conversationsReconciled;
-        data["conversationsClosedRemotely"] = this.conversationsClosedRemotely;
-        data["startedAt"] = this.startedAt ? this.startedAt.toISOString() : <any>undefined;
-        data["completedAt"] = this.completedAt ? this.completedAt.toISOString() : <any>undefined;
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["total"] = this.total;
+        data["skip"] = this.skip;
+        data["pageSize"] = this.pageSize;
         super.toJSON(data);
         return data;
     }
 }
 
-export interface IRunManualSyncResponse extends IBaseResponse {
-    conversationsProcessed?: number;
-    messagesProcessed?: number;
-    conversationsReconciled?: number;
-    conversationsClosedRemotely?: number;
-    startedAt?: Date;
-    completedAt?: Date;
+export interface IListWebhookAuditResponse extends IBaseResponse {
+    items?: WebhookAuditSummaryDto[];
+    total?: number;
+    skip?: number;
+    pageSize?: number;
 }
 
-export class RunManualSyncRequest implements IRunManualSyncRequest {
-    since?: Date | undefined;
+export class WebhookAuditSummaryDto implements IWebhookAuditSummaryDto {
+    id?: string;
+    receivedAt?: Date;
+    eventName?: string | undefined;
+    accountId?: string | undefined;
+    appId?: string | undefined;
+    signatureStatus?: SmartsuppWebhookSignatureStatus;
+    processingStatus?: SmartsuppWebhookProcessingStatus;
+    bodySizeBytes?: number;
+    processingDurationMs?: number;
+    replayCount?: number;
+    lastReplayedAt?: Date | undefined;
+    processedAt?: Date | undefined;
 
-    constructor(data?: IRunManualSyncRequest) {
+    constructor(data?: IWebhookAuditSummaryDto) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -32969,26 +33478,251 @@ export class RunManualSyncRequest implements IRunManualSyncRequest {
 
     init(_data?: any) {
         if (_data) {
-            this.since = _data["since"] ? new Date(_data["since"].toString()) : <any>undefined;
+            this.id = _data["id"];
+            this.receivedAt = _data["receivedAt"] ? new Date(_data["receivedAt"].toString()) : <any>undefined;
+            this.eventName = _data["eventName"];
+            this.accountId = _data["accountId"];
+            this.appId = _data["appId"];
+            this.signatureStatus = _data["signatureStatus"];
+            this.processingStatus = _data["processingStatus"];
+            this.bodySizeBytes = _data["bodySizeBytes"];
+            this.processingDurationMs = _data["processingDurationMs"];
+            this.replayCount = _data["replayCount"];
+            this.lastReplayedAt = _data["lastReplayedAt"] ? new Date(_data["lastReplayedAt"].toString()) : <any>undefined;
+            this.processedAt = _data["processedAt"] ? new Date(_data["processedAt"].toString()) : <any>undefined;
         }
     }
 
-    static fromJS(data: any): RunManualSyncRequest {
+    static fromJS(data: any): WebhookAuditSummaryDto {
         data = typeof data === 'object' ? data : {};
-        let result = new RunManualSyncRequest();
+        let result = new WebhookAuditSummaryDto();
         result.init(data);
         return result;
     }
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["since"] = this.since ? this.since.toISOString() : <any>undefined;
+        data["id"] = this.id;
+        data["receivedAt"] = this.receivedAt ? this.receivedAt.toISOString() : <any>undefined;
+        data["eventName"] = this.eventName;
+        data["accountId"] = this.accountId;
+        data["appId"] = this.appId;
+        data["signatureStatus"] = this.signatureStatus;
+        data["processingStatus"] = this.processingStatus;
+        data["bodySizeBytes"] = this.bodySizeBytes;
+        data["processingDurationMs"] = this.processingDurationMs;
+        data["replayCount"] = this.replayCount;
+        data["lastReplayedAt"] = this.lastReplayedAt ? this.lastReplayedAt.toISOString() : <any>undefined;
+        data["processedAt"] = this.processedAt ? this.processedAt.toISOString() : <any>undefined;
         return data;
     }
 }
 
-export interface IRunManualSyncRequest {
-    since?: Date | undefined;
+export interface IWebhookAuditSummaryDto {
+    id?: string;
+    receivedAt?: Date;
+    eventName?: string | undefined;
+    accountId?: string | undefined;
+    appId?: string | undefined;
+    signatureStatus?: SmartsuppWebhookSignatureStatus;
+    processingStatus?: SmartsuppWebhookProcessingStatus;
+    bodySizeBytes?: number;
+    processingDurationMs?: number;
+    replayCount?: number;
+    lastReplayedAt?: Date | undefined;
+    processedAt?: Date | undefined;
+}
+
+export enum SmartsuppWebhookSignatureStatus {
+    Valid = "Valid",
+    Missing = "Missing",
+    Mismatch = "Mismatch",
+    AppIdMismatch = "AppIdMismatch",
+}
+
+export enum SmartsuppWebhookProcessingStatus {
+    NotProcessed = "NotProcessed",
+    MalformedJson = "MalformedJson",
+    Success = "Success",
+    HandlerException = "HandlerException",
+}
+
+export class GetWebhookAuditEntryResponse extends BaseResponse implements IGetWebhookAuditEntryResponse {
+    entry?: WebhookAuditEntryDto | undefined;
+
+    constructor(data?: IGetWebhookAuditEntryResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.entry = _data["entry"] ? WebhookAuditEntryDto.fromJS(_data["entry"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): GetWebhookAuditEntryResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetWebhookAuditEntryResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["entry"] = this.entry ? this.entry.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetWebhookAuditEntryResponse extends IBaseResponse {
+    entry?: WebhookAuditEntryDto | undefined;
+}
+
+export class WebhookAuditEntryDto implements IWebhookAuditEntryDto {
+    id?: string;
+    receivedAt?: Date;
+    remoteIp?: string;
+    signatureHeader?: string | undefined;
+    signatureStatus?: SmartsuppWebhookSignatureStatus;
+    headersJson?: string;
+    rawBody?: string;
+    bodySizeBytes?: number;
+    eventName?: string | undefined;
+    accountId?: string | undefined;
+    appId?: string | undefined;
+    eventTimestamp?: Date | undefined;
+    processingStatus?: SmartsuppWebhookProcessingStatus;
+    processingError?: string | undefined;
+    processingDurationMs?: number;
+    processedAt?: Date | undefined;
+    replayCount?: number;
+    lastReplayedAt?: Date | undefined;
+    lastReplayedBy?: string | undefined;
+
+    constructor(data?: IWebhookAuditEntryDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.receivedAt = _data["receivedAt"] ? new Date(_data["receivedAt"].toString()) : <any>undefined;
+            this.remoteIp = _data["remoteIp"];
+            this.signatureHeader = _data["signatureHeader"];
+            this.signatureStatus = _data["signatureStatus"];
+            this.headersJson = _data["headersJson"];
+            this.rawBody = _data["rawBody"];
+            this.bodySizeBytes = _data["bodySizeBytes"];
+            this.eventName = _data["eventName"];
+            this.accountId = _data["accountId"];
+            this.appId = _data["appId"];
+            this.eventTimestamp = _data["eventTimestamp"] ? new Date(_data["eventTimestamp"].toString()) : <any>undefined;
+            this.processingStatus = _data["processingStatus"];
+            this.processingError = _data["processingError"];
+            this.processingDurationMs = _data["processingDurationMs"];
+            this.processedAt = _data["processedAt"] ? new Date(_data["processedAt"].toString()) : <any>undefined;
+            this.replayCount = _data["replayCount"];
+            this.lastReplayedAt = _data["lastReplayedAt"] ? new Date(_data["lastReplayedAt"].toString()) : <any>undefined;
+            this.lastReplayedBy = _data["lastReplayedBy"];
+        }
+    }
+
+    static fromJS(data: any): WebhookAuditEntryDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new WebhookAuditEntryDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["receivedAt"] = this.receivedAt ? this.receivedAt.toISOString() : <any>undefined;
+        data["remoteIp"] = this.remoteIp;
+        data["signatureHeader"] = this.signatureHeader;
+        data["signatureStatus"] = this.signatureStatus;
+        data["headersJson"] = this.headersJson;
+        data["rawBody"] = this.rawBody;
+        data["bodySizeBytes"] = this.bodySizeBytes;
+        data["eventName"] = this.eventName;
+        data["accountId"] = this.accountId;
+        data["appId"] = this.appId;
+        data["eventTimestamp"] = this.eventTimestamp ? this.eventTimestamp.toISOString() : <any>undefined;
+        data["processingStatus"] = this.processingStatus;
+        data["processingError"] = this.processingError;
+        data["processingDurationMs"] = this.processingDurationMs;
+        data["processedAt"] = this.processedAt ? this.processedAt.toISOString() : <any>undefined;
+        data["replayCount"] = this.replayCount;
+        data["lastReplayedAt"] = this.lastReplayedAt ? this.lastReplayedAt.toISOString() : <any>undefined;
+        data["lastReplayedBy"] = this.lastReplayedBy;
+        return data;
+    }
+}
+
+export interface IWebhookAuditEntryDto {
+    id?: string;
+    receivedAt?: Date;
+    remoteIp?: string;
+    signatureHeader?: string | undefined;
+    signatureStatus?: SmartsuppWebhookSignatureStatus;
+    headersJson?: string;
+    rawBody?: string;
+    bodySizeBytes?: number;
+    eventName?: string | undefined;
+    accountId?: string | undefined;
+    appId?: string | undefined;
+    eventTimestamp?: Date | undefined;
+    processingStatus?: SmartsuppWebhookProcessingStatus;
+    processingError?: string | undefined;
+    processingDurationMs?: number;
+    processedAt?: Date | undefined;
+    replayCount?: number;
+    lastReplayedAt?: Date | undefined;
+    lastReplayedBy?: string | undefined;
+}
+
+export class ReplayWebhookEventResponse extends BaseResponse implements IReplayWebhookEventResponse {
+    replayCount?: number;
+    lastReplayedAt?: Date | undefined;
+
+    constructor(data?: IReplayWebhookEventResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.replayCount = _data["replayCount"];
+            this.lastReplayedAt = _data["lastReplayedAt"] ? new Date(_data["lastReplayedAt"].toString()) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): ReplayWebhookEventResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReplayWebhookEventResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["replayCount"] = this.replayCount;
+        data["lastReplayedAt"] = this.lastReplayedAt ? this.lastReplayedAt.toISOString() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IReplayWebhookEventResponse extends IBaseResponse {
+    replayCount?: number;
+    lastReplayedAt?: Date | undefined;
 }
 
 export class SubmitStockTakingResponse extends BaseResponse implements ISubmitStockTakingResponse {
