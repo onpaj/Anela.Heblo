@@ -27,8 +27,14 @@ public class CurrentUserService : ICurrentUserService
                  ?? user?.FindFirst("sub")?.Value
                  ?? user?.FindFirst("oid")?.Value;
 
+        // Entra ID access tokens omit the `email` claim by default; the user's
+        // email/UPN lives in `preferred_username` (and sometimes `upn`).
+        // ClaimTypes.Upn covers the legacy JwtSecurityTokenHandler claim remap.
         var email = user?.FindFirst(ClaimTypes.Email)?.Value
-                    ?? user?.FindFirst("email")?.Value;
+                    ?? user?.FindFirst("email")?.Value
+                    ?? user?.FindFirst("preferred_username")?.Value
+                    ?? user?.FindFirst(ClaimTypes.Upn)?.Value
+                    ?? user?.FindFirst("upn")?.Value;
 
         return new CurrentUser(
             Id: id,
