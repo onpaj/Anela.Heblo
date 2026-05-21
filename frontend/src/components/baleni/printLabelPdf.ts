@@ -1,36 +1,37 @@
 import { ShipmentLabelDto } from '../../api/generated/api-client';
-import { getAuthenticatedApiClient } from '../../api/client';
 
-export const printLabelPdf = (orderCode: string, label: ShipmentLabelDto): void => {
-  if (!label.shipmentGuid || !label.packageName) {
-    throw new Error('Invalid label: missing shipmentGuid or packageName');
+const openInNewTab = (url: string): void => {
+  window.open(url, '_blank', 'noopener,noreferrer');
+};
+
+const silentPrintViaBlob = async (url: string): Promise<boolean> => {
+  let response: Response;
+  try {
+    response = await fetch(url);
+  } catch {
+    return false;
   }
+  if (!response.ok) return false;
 
-  const apiClient = getAuthenticatedApiClient(false);
-  const baseUrl = (apiClient as any).baseUrl as string;
-  const url =
-    `${baseUrl}/api/packaging/orders/${encodeURIComponent(orderCode)}/label/pdf` +
-    `?shipmentGuid=${encodeURIComponent(label.shipmentGuid)}` +
-    `&packageName=${encodeURIComponent(label.packageName)}`;
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = blobUrl;
+  iframe.onload = () => {
+    iframe.contentWindow?.print();
+    document.body.removeChild(iframe);
+    URL.revokeObjectURL(blobUrl);
+  };
+  document.body.appendChild(iframe);
+  return true;
+};
 
-  void fetch(url)
-    .then(res => {
-      if (!res.ok) throw new Error(`Label PDF unavailable: ${res.status}`);
-      return res.blob();
-    })
-    .then(blob => {
-      const blobUrl = URL.createObjectURL(blob);
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = blobUrl;
-      iframe.onload = () => {
-        iframe.contentWindow?.print();
-        document.body.removeChild(iframe);
-        URL.revokeObjectURL(blobUrl);
-      };
-      document.body.appendChild(iframe);
-    })
-    .catch(() => {
-      // silently ignore — the print simply won't fire if the PDF is unavailable
-    });
+export const printLabelPdf = (_orderCode: string, label: ShipmentLabelDto): void => {
+  const labelUrl = label.labelUrl;
+  if (!labelUrl) return;
+
+  void silentPrintViaBlob(labelUrl).then((printed) => {
+    if (!printed) openInNewTab(labelUrl);
+  });
 };

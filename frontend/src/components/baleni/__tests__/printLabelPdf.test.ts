@@ -1,57 +1,61 @@
 import { printLabelPdf } from '../printLabelPdf';
-import * as clientModule from '../../../api/client';
+import type { ShipmentLabelDto } from '../../../api/generated/api-client';
 
-jest.mock('../../../api/client', () => ({
-  getAuthenticatedApiClient: jest.fn(),
-}));
+const flushAsync = () => new Promise(resolve => setTimeout(resolve, 0));
 
-const mockGetAuthenticatedApiClient =
-  clientModule.getAuthenticatedApiClient as jest.MockedFunction<
-    typeof clientModule.getAuthenticatedApiClient
-  >;
+const labelWithUrl: ShipmentLabelDto = {
+  shipmentGuid: 'abc-guid-123',
+  packageName: 'Zásilka 1',
+  labelUrl: 'https://carrier.example.com/label.pdf',
+} as ShipmentLabelDto;
+
+const labelWithoutUrl: ShipmentLabelDto = {
+  shipmentGuid: 'abc-guid-123',
+  packageName: 'Zásilka 1',
+} as ShipmentLabelDto;
+
+let originalOpen: typeof window.open;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockGetAuthenticatedApiClient.mockReturnValue({
-    baseUrl: 'http://localhost:5001',
-  } as any);
   URL.createObjectURL = jest.fn().mockReturnValue('blob:test-url');
   URL.revokeObjectURL = jest.fn();
+  originalOpen = window.open;
+  window.open = jest.fn() as unknown as typeof window.open;
 });
 
-const successFetch = () => {
-  global.fetch = jest.fn().mockResolvedValue({
-    ok: true,
-    blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
-  });
-};
+afterEach(() => {
+  window.open = originalOpen;
+});
 
 describe('printLabelPdf', () => {
-  it('fetches the PDF from the correct same-origin URL', async () => {
-    successFetch();
+  it('fetches the carrier CDN URL directly (no /api/... proxy)', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+    });
     jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
 
-    printLabelPdf('250001', { shipmentGuid: 'abc-guid-123', packageName: 'Zásilka 1' });
-    await new Promise(resolve => setTimeout(resolve, 0));
+    printLabelPdf('250001', labelWithUrl);
+    await flushAsync();
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/http:\/\/localhost:5001\/api\/shipment-labels\/pdf/)
-    );
-    const url = (global.fetch as jest.Mock).mock.calls[0][0] as string;
-    expect(url).toContain('orderCode=250001');
-    expect(url).toContain('shipmentGuid=abc-guid-123');
-    expect(url).toContain('packageName=Z%C3%A1silka%201');
+    expect(global.fetch).toHaveBeenCalledWith('https://carrier.example.com/label.pdf');
+    expect(window.open).not.toHaveBeenCalled();
 
     jest.restoreAllMocks();
   });
 
-  it('creates a hidden iframe with a blob URL and appends it', async () => {
-    successFetch();
+  it('mounts a hidden iframe with the blob URL, calls print, removes iframe, revokes blob URL', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+    });
     const createElementSpy = jest.spyOn(document, 'createElement');
     const appendChildSpy = jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+    const removeChildSpy = jest.spyOn(document.body, 'removeChild').mockImplementation(() => null as any);
 
-    printLabelPdf('250001', { shipmentGuid: 'abc-guid-123', packageName: 'Zásilka 1' });
-    await new Promise(resolve => setTimeout(resolve, 0));
+    printLabelPdf('250001', labelWithUrl);
+    await flushAsync();
 
     const iframe = createElementSpy.mock.results[createElementSpy.mock.results.length - 1]
       .value as HTMLIFrameElement;
@@ -59,53 +63,65 @@ describe('printLabelPdf', () => {
     expect(iframe.src).toBe('blob:test-url');
     expect(appendChildSpy).toHaveBeenCalledWith(iframe);
 
-    createElementSpy.mockRestore();
-    appendChildSpy.mockRestore();
-  });
-
-  it('calls contentWindow.print(), removes iframe, and revokes blob URL on load', async () => {
-    successFetch();
-    const createElementSpy = jest.spyOn(document, 'createElement');
-    const appendChildSpy = jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
-    const removeChildSpy = jest.spyOn(document.body, 'removeChild').mockImplementation(() => null as any);
-
-    printLabelPdf('250001', { shipmentGuid: 'abc-guid-123', packageName: 'Zásilka 1' });
-    await new Promise(resolve => setTimeout(resolve, 0));
-
-    const iframe = createElementSpy.mock.results[createElementSpy.mock.results.length - 1]
-      .value as HTMLIFrameElement;
     const printMock = jest.fn();
     Object.defineProperty(iframe, 'contentWindow', {
       value: { print: printMock },
       configurable: true,
     });
-
     iframe.onload!(new Event('load'));
 
     expect(printMock).toHaveBeenCalledTimes(1);
     expect(removeChildSpy).toHaveBeenCalledWith(iframe);
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test-url');
 
-    createElementSpy.mockRestore();
-    appendChildSpy.mockRestore();
-    removeChildSpy.mockRestore();
+    jest.restoreAllMocks();
   });
 
-  it('does not create an iframe when the PDF fetch returns a non-ok status', async () => {
+  it('falls back to window.open when fetch throws (CORS)', async () => {
+    global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    const appendChildSpy = jest.spyOn(document.body, 'appendChild');
+
+    printLabelPdf('250001', labelWithUrl);
+    await flushAsync();
+
+    expect(appendChildSpy).not.toHaveBeenCalled();
+    expect(window.open).toHaveBeenCalledWith(
+      'https://carrier.example.com/label.pdf',
+      '_blank',
+      'noopener,noreferrer',
+    );
+
+    appendChildSpy.mockRestore();
+  });
+
+  it('falls back to window.open when fetch returns non-ok', async () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 404 });
     const appendChildSpy = jest.spyOn(document.body, 'appendChild');
 
-    printLabelPdf('250001', { shipmentGuid: 'abc-guid-123', packageName: 'Zásilka 1' });
-    await new Promise(resolve => setTimeout(resolve, 0));
+    printLabelPdf('250001', labelWithUrl);
+    await flushAsync();
 
     expect(appendChildSpy).not.toHaveBeenCalled();
+    expect(window.open).toHaveBeenCalledWith(
+      'https://carrier.example.com/label.pdf',
+      '_blank',
+      'noopener,noreferrer',
+    );
 
     appendChildSpy.mockRestore();
   });
 
-  it('throws synchronously when shipmentGuid is missing', () => {
-    expect(() =>
-      printLabelPdf('250001', { packageName: 'Zásilka 1' })
-    ).toThrow('Invalid label: missing shipmentGuid or packageName');
+  it('is a no-op when labelUrl is missing', async () => {
+    global.fetch = jest.fn();
+    const appendChildSpy = jest.spyOn(document.body, 'appendChild');
+
+    printLabelPdf('250001', labelWithoutUrl);
+    await flushAsync();
+
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(appendChildSpy).not.toHaveBeenCalled();
+    expect(window.open).not.toHaveBeenCalled();
+
+    appendChildSpy.mockRestore();
   });
 });
