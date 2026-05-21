@@ -1,189 +1,93 @@
-import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
-import PackingShipmentCreator from '../PackingShipmentCreator'
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import PackingShipmentCreator from '../PackingShipmentCreator';
+import type { ScanShipment } from '../../../api/hooks/useScanPackingOrder';
 
-jest.mock('@tanstack/react-query', () => ({
-  ...jest.requireActual('@tanstack/react-query'),
-  useMutation: jest.fn(),
-}))
 jest.mock('../PackingLabelPrinter', () => ({
   __esModule: true,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  default: (props: any) => (
-    <div data-testid="packing-label-printer" data-order-code={props.orderCode} />
+  default: ({ labels }: { labels: unknown[] }) => (
+    <div data-testid="label-printer">{labels.length} labels</div>
   ),
-}))
+}));
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { useMutation } = require('@tanstack/react-query') as { useMutation: jest.Mock }
-
-const idleMutation = {
-  mutate: jest.fn(),
+const mockResetMutate = jest.fn();
+let mockResetState = {
+  mutate: mockResetMutate,
   isPending: false,
-  isSuccess: false,
   isError: false,
-  data: undefined,
-  error: null,
-  reset: jest.fn(),
-}
+  error: null as Error | null,
+};
 
-beforeEach(() => {
-  jest.clearAllMocks()
-  useMutation.mockReturnValue({ ...idleMutation })
-})
+jest.mock('../../../api/hooks/useResetOrderShipment', () => ({
+  useResetOrderShipment: () => mockResetState,
+}));
+
+const newShipment: ScanShipment = {
+  shipmentGuid: 'guid-new',
+  packages: [{ name: 'PKG-1' }],
+  alreadyExisted: false,
+};
+
+const existingShipment: ScanShipment = {
+  shipmentGuid: 'guid-existing',
+  packages: [{ name: 'PKG-1' }],
+  alreadyExisted: true,
+};
 
 describe('PackingShipmentCreator', () => {
-  it('shows Vytvořit zásilku button in idle state', () => {
-    render(<PackingShipmentCreator orderCode="0001234" />)
-    expect(screen.getByRole('button', { name: /Vytvořit zásilku/i })).toBeInTheDocument()
-  })
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockResetState = { mutate: mockResetMutate, isPending: false, isError: false, error: null };
+  });
 
-  it('clicking Vytvořit zásilku calls mutate with forceRecreate=false', () => {
-    const mutate = jest.fn()
-    useMutation.mockReturnValue({ ...idleMutation, mutate })
-    render(<PackingShipmentCreator orderCode="0001234" />)
+  it('renders nothing when scanShipment is null', () => {
+    const { container } = render(
+      <PackingShipmentCreator orderCode="ORD001" scanShipment={null} />
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: /Vytvořit zásilku/i }))
+  it('shows PackingLabelPrinter immediately when shipment is new', () => {
+    render(<PackingShipmentCreator orderCode="ORD001" scanShipment={newShipment} />);
+    expect(screen.getByTestId('label-printer')).toBeInTheDocument();
+  });
 
-    expect(mutate).toHaveBeenCalledWith({ orderCode: '0001234', forceRecreate: false })
-  })
+  it('shows dialog when shipment already existed', () => {
+    render(<PackingShipmentCreator orderCode="ORD001" scanShipment={existingShipment} />);
+    expect(screen.queryByTestId('label-printer')).not.toBeInTheDocument();
+    expect(screen.getByText(/existující zásilku/i)).toBeInTheDocument();
+    expect(screen.getByText(/novou zásilku/i)).toBeInTheDocument();
+  });
 
-  it('shows spinner while creating', () => {
-    useMutation.mockReturnValue({ ...idleMutation, isPending: true })
-    render(<PackingShipmentCreator orderCode="0001234" />)
-    expect(screen.getByTestId('shipment-creating-spinner')).toBeInTheDocument()
-  })
+  it('clicking reprint shows PackingLabelPrinter and hides dialog buttons', () => {
+    render(<PackingShipmentCreator orderCode="ORD001" scanShipment={existingShipment} />);
+    const reprintBtn = screen.getByRole('button', { name: /Použít existující zásilku/i });
+    fireEvent.click(reprintBtn);
+    expect(screen.getByTestId('label-printer')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
 
-  it('shows PackingLabelPrinter when label is ready', () => {
-    useMutation.mockReturnValue({
-      ...idleMutation,
-      isSuccess: true,
-      data: {
-        labelReady: true,
-        labels: [{ packageName: 'P1', labelUrl: 'https://x.com' }],
-        existingShipmentFound: false,
-      },
-    })
-    render(<PackingShipmentCreator orderCode="0001234" />)
-    expect(screen.getByTestId('packing-label-printer')).toBeInTheDocument()
-  })
+  it('clicking invalidate calls resetMutation.mutate with orderCode', () => {
+    render(<PackingShipmentCreator orderCode="ORD001" scanShipment={existingShipment} />);
+    const newBtn = screen.getByRole('button', { name: /Vytvořit novou zásilku/i });
+    fireEvent.click(newBtn);
+    expect(mockResetMutate).toHaveBeenCalledWith('ORD001', expect.any(Object));
+  });
 
-  it('shows Zkusit znovu button when labelReady is false and labels are empty', () => {
-    useMutation.mockReturnValue({
-      ...idleMutation,
-      isSuccess: true,
-      data: { labelReady: false, labels: [], existingShipmentFound: false },
-    })
-    render(<PackingShipmentCreator orderCode="0001234" />)
-    expect(screen.getByRole('button', { name: /Zkusit znovu/i })).toBeInTheDocument()
-  })
+  it('shows spinner while resetMutation is pending', () => {
+    mockResetState = { ...mockResetState, isPending: true };
+    render(<PackingShipmentCreator orderCode="ORD001" scanShipment={existingShipment} />);
+    expect(screen.getByTestId('shipment-creating-spinner')).toBeInTheDocument();
+  });
 
-  it('clicking Zkusit znovu calls mutate with forceRecreate=false', () => {
-    const mutate = jest.fn()
-    useMutation.mockReturnValue({
-      ...idleMutation,
-      isSuccess: true,
-      data: { labelReady: false, labels: [], existingShipmentFound: false },
-      mutate,
-    })
-    render(<PackingShipmentCreator orderCode="0001234" />)
-    fireEvent.click(screen.getByRole('button', { name: /Zkusit znovu/i }))
-    expect(mutate).toHaveBeenCalledWith({ orderCode: '0001234', forceRecreate: false })
-  })
-
-  it('shows PackingLabelPrinter directly when labelReady is false but labels have shipment data', () => {
-    useMutation.mockReturnValue({
-      ...idleMutation,
-      isSuccess: true,
-      data: {
-        labelReady: false,
-        labels: [{ shipmentGuid: 'g1', packageName: 'P1', labelUrl: null }],
-        existingShipmentFound: false,
-      },
-    })
-    render(<PackingShipmentCreator orderCode="0001234" />)
-    expect(screen.getByTestId('packing-label-printer')).toBeInTheDocument()
-  })
-
-  it('shows PackingLabelPrinter when retry returns existingShipmentFound=true', () => {
-    const mutate = jest.fn()
-    useMutation.mockReturnValue({
-      ...idleMutation,
-      isSuccess: true,
-      data: { labelReady: false, labels: [], existingShipmentFound: false },
-      mutate,
-    })
-    const { rerender } = render(<PackingShipmentCreator orderCode="0001234" />)
-
-    fireEvent.click(screen.getByRole('button', { name: /Zkusit znovu/i }))
-
-    useMutation.mockReturnValue({
-      ...idleMutation,
-      isSuccess: true,
-      data: { existingShipmentFound: true, labelReady: false, labels: [{ shipmentGuid: 'g1', packageName: 'P1' }] },
-      mutate,
-    })
-    rerender(<PackingShipmentCreator orderCode="0001234" />)
-
-    expect(screen.getByTestId('packing-label-printer')).toBeInTheDocument()
-  })
-
-  it('shows existing shipment warning and reuse / create-new buttons', () => {
-    useMutation.mockReturnValue({
-      ...idleMutation,
-      isSuccess: true,
-      data: {
-        labelReady: true,
-        labels: [{ packageName: 'P1', labelUrl: 'https://x.com/old.pdf' }],
-        existingShipmentFound: true,
-      },
-    })
-    render(<PackingShipmentCreator orderCode="0001234" />)
-    expect(screen.getByText(/Zásilka již existuje/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Použít existující/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Vytvořit novou/i })).toBeInTheDocument()
-  })
-
-  it('clicking Použít existující renders label printer', () => {
-    useMutation.mockReturnValue({
-      ...idleMutation,
-      isSuccess: true,
-      data: {
-        labelReady: true,
-        labels: [{ shipmentGuid: 'g1', packageName: 'P1', labelUrl: 'https://x.com/old.pdf' }],
-        existingShipmentFound: true,
-      },
-    })
-    render(<PackingShipmentCreator orderCode="0001234" />)
-    fireEvent.click(screen.getByRole('button', { name: /Použít existující/i }))
-    expect(screen.getByTestId('packing-label-printer')).toBeInTheDocument()
-  })
-
-  it('clicking Vytvořit novou calls mutate with forceRecreate=true', () => {
-    const mutate = jest.fn()
-    useMutation.mockReturnValue({
-      ...idleMutation,
-      isSuccess: true,
-      data: {
-        labelReady: true,
-        labels: [{ packageName: 'P1', labelUrl: 'https://x.com/old.pdf' }],
-        existingShipmentFound: true,
-      },
-      mutate,
-    })
-    render(<PackingShipmentCreator orderCode="0001234" />)
-    fireEvent.click(screen.getByRole('button', { name: /Vytvořit novou/i }))
-    expect(mutate).toHaveBeenCalledWith({ orderCode: '0001234', forceRecreate: true })
-  })
-
-  it('shows error banner on mutation error', () => {
-    useMutation.mockReturnValue({
-      ...idleMutation,
+  it('shows error banner when resetMutation errors', () => {
+    mockResetState = {
+      ...mockResetState,
       isError: true,
-      error: new Error('Shoptet nemohl vytvořit zásilku — zkuste znovu'),
-    })
-    render(<PackingShipmentCreator orderCode="0001234" />)
-    expect(screen.getByTestId('shipment-error-banner')).toBeInTheDocument()
-    expect(screen.getByText(/Shoptet nemohl vytvořit zásilku/i)).toBeInTheDocument()
-  })
-})
+      error: new Error('Shoptet nemohl vytvořit novou zásilku.'),
+    };
+    render(<PackingShipmentCreator orderCode="ORD001" scanShipment={existingShipment} />);
+    expect(screen.getByTestId('shipment-error-banner')).toBeInTheDocument();
+    expect(screen.getByText(/Shoptet nemohl vytvořit novou zásilku/i)).toBeInTheDocument();
+  });
+});
