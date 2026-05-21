@@ -267,6 +267,10 @@ const resources = {
 
         // Packaging module errors
         OrderNotInPackingState: "Objednávka není ve stavu Balí se — zásilku nelze vytvořit.",
+        ShipmentCancelFailed: "Zrušení zásilky u dopravce se nezdařilo.",
+        NoShipmentToReset: "K této objednávce neexistuje žádná zásilka, kterou by bylo možné resetovat.",
+        PackageLabelNotFound: "Štítek pro tento balík nebyl nalezen.",
+        PackageLabelDownloadFailed: "Stažení PDF štítku od dopravce se nezdařilo.",
 
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
