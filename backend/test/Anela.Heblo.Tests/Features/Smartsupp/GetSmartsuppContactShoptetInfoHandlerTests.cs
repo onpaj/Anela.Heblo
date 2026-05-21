@@ -1,4 +1,3 @@
-using System.Globalization;
 using Anela.Heblo.Application.Features.ShoptetCustomers;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetContactShoptetInfo;
 using Anela.Heblo.Application.Shared;
@@ -80,6 +79,8 @@ public class GetSmartsuppContactShoptetInfoHandlerTests
             CancellationToken.None);
 
         result.Success.Should().BeTrue();
+        result.ContactInfo!.Customer!.FullName.Should().Be("Jana Nováková");
+        result.ContactInfo.RecentOrders.Should().BeEmpty();
         _customerClient.Verify(c => c.GetCustomerByGuidAsync("guid-abc", It.IsAny<CancellationToken>()), Times.Once);
     }
 

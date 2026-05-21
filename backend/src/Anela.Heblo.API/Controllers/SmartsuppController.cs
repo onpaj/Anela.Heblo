@@ -63,6 +63,10 @@ public class SmartsuppController : BaseApiController
         return HandleResponse(result);
     }
 
+    /// <remarks>
+    /// Returns 404 only when the Smartsupp conversation itself is not found.
+    /// A missing Shoptet customer returns 200 with a null contactInfo payload.
+    /// </remarks>
     [HttpGet("conversations/{id}/shoptet-info")]
     [ProducesResponseType(typeof(GetSmartsuppContactShoptetInfoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

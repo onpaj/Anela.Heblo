@@ -63,7 +63,7 @@ public class GetSmartsuppContactShoptetInfoHandler
                     PriceList = customer.PriceList,
                     DefaultShippingAddress = customer.DefaultShippingAddress,
                 },
-                RecentOrders = new(),
+                RecentOrders = new(), // TODO: restore when a guid-based order-lookup path is available; email fallback was removed (see docs/integrations/shoptet-api.md:155-170)
                 CartUpdatedAt = cartUpdatedAt,
             },
         };
