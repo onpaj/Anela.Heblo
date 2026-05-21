@@ -338,7 +338,6 @@ function App() {
 
   return (
     <OpenFeatureProvider>
-      <FeatureFlagProvider>
     <QueryClientProvider client={queryClient}>
       <LoadingProvider>
         <ToastProvider>
@@ -355,6 +354,7 @@ function App() {
                   }}
                 >
                   <AuthGuard>
+                    <FeatureFlagProvider>
                     <Routes>
                       {/* Mobile terminal — no sidebar, no topbar */}
                       <Route path="/terminal" element={<TerminalLayout />}>
@@ -429,6 +429,7 @@ function App() {
                         <Route path="/admin/feature-flags" element={<FeatureFlagsAdminPage />} />
                       </Route>
                     </Routes>
+                    </FeatureFlagProvider>
                   </AuthGuard>
                 </Router>
               </MsalProvider>
@@ -443,7 +444,6 @@ function App() {
         </ToastProvider>
       </LoadingProvider>
     </QueryClientProvider>
-      </FeatureFlagProvider>
     </OpenFeatureProvider>
   );
 }

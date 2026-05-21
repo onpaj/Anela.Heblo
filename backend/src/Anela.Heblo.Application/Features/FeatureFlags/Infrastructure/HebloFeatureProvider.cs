@@ -91,20 +91,12 @@ internal sealed class HebloFeatureProvider : FeatureProvider
     {
         ct.ThrowIfCancellationRequested();
 
-        try
+        return await _cache.GetOrCreateAsync(CacheKey, async entry =>
         {
-            return await _cache.GetOrCreateAsync(CacheKey, async entry =>
-            {
-                entry.AbsoluteExpirationRelativeToNow = CacheTtl;
-                using var scope = _scopeFactory.CreateScope();
-                var repo = scope.ServiceProvider.GetRequiredService<IFeatureFlagOverrideRepository>();
-                return await repo.GetAllAsDictionaryAsync(ct);
-            }) ?? [];
-        }
-        catch (OperationCanceledException)
-        {
-            _cache.Remove(CacheKey);
-            throw;
-        }
+            entry.AbsoluteExpirationRelativeToNow = CacheTtl;
+            using var scope = _scopeFactory.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<IFeatureFlagOverrideRepository>();
+            return await repo.GetAllAsDictionaryAsync(ct);
+        }) ?? [];
     }
 }
