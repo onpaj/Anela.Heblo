@@ -33,6 +33,7 @@ import BackgroundTasks from "./components/pages/automation/BackgroundTasks";
 import MeetingTasksPage from "./components/pages/automation/MeetingTasksPage";
 import MeetingTaskDetailPage from "./components/pages/automation/MeetingTaskDetailPage";
 import OrgChartPage from "./pages/OrgChartPage";
+import FeatureFlagsAdminPage from "./pages/FeatureFlagsAdminPage";
 import InvoiceClassificationPage from "./pages/InvoiceClassification/InvoiceClassificationPage";
 import PackingMaterialsPage from "./pages/PackingMaterialsPage";
 import StockOperationsPage from "./pages/StockOperationsPage";
@@ -425,6 +426,7 @@ function App() {
                         <Route path="/marketing/feedback" element={<MarketingFeedbackPage />} />
                         <Route path="/articles" element={<ArticlesPage />} />
                         <Route path="/automation/data-quality" element={<DataQualityPage />} />
+                        <Route path="/admin/feature-flags" element={<FeatureFlagsAdminPage />} />
                       </Route>
                     </Routes>
                   </AuthGuard>
