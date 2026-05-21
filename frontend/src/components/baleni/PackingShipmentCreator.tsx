@@ -1,37 +1,20 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { useCreateShipment, CreateShipmentResult } from '../../api/hooks/useCreateShipment';
-import { useShipmentLabels } from '../../api/hooks/useShipmentLabels';
+import { usePrepareOrderLabel } from '../../api/hooks/usePrepareOrderLabel';
 import PackingLabelPrinter from './PackingLabelPrinter';
-import type { ShipmentLabelDto } from '../../api/generated/api-client';
 
 interface PackingShipmentCreatorProps {
   orderCode: string;
 }
 
 function PackingShipmentCreator({ orderCode }: PackingShipmentCreatorProps) {
-  const mutation = useCreateShipment();
-  const [reuseExisting, setReuseExisting] = useState(false);
+  const mutation = usePrepareOrderLabel();
+  const [useExisting, setUseExisting] = useState(false);
 
-  // useShipmentLabels with enabled=false — only used for its refetch on the retry path
-  const labelsQuery = useShipmentLabels(orderCode, false);
-
-  const handleCreate = (forceCreate: boolean) => {
-    setReuseExisting(false);
-    mutation.mutate({ orderCode, forceCreate });
+  const handleCreate = (forceRecreate: boolean) => {
+    setUseExisting(false);
+    mutation.mutate({ orderCode, forceRecreate });
   };
-
-  const handleUseExisting = (_existingLabels: ShipmentLabelDto[]) => {
-    setReuseExisting(true);
-  };
-
-  const handleRetry = () => {
-    void labelsQuery.refetch();
-  };
-
-  if (reuseExisting) {
-    return <PackingLabelPrinter orderCode={orderCode} />;
-  }
 
   if (mutation.isPending) {
     return (
@@ -59,9 +42,12 @@ function PackingShipmentCreator({ orderCode }: PackingShipmentCreatorProps) {
     );
   }
 
-  const result: CreateShipmentResult | undefined = mutation.data;
+  const result = mutation.data;
 
   if (result?.existingShipmentFound) {
+    if (useExisting) {
+      return <PackingLabelPrinter orderCode={orderCode} labels={result.labels} />;
+    }
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm font-semibold text-amber-700">
@@ -70,7 +56,7 @@ function PackingShipmentCreator({ orderCode }: PackingShipmentCreatorProps) {
         <div className="flex gap-3">
           <button
             className="rounded-lg border border-neutral-300 bg-white px-5 py-3 text-sm font-medium shadow"
-            onClick={() => handleUseExisting(result.labels)}
+            onClick={() => setUseExisting(true)}
           >
             Použít existující
           </button>
@@ -86,17 +72,14 @@ function PackingShipmentCreator({ orderCode }: PackingShipmentCreatorProps) {
   }
 
   if (result?.labelReady && result.labels.length > 0) {
-    return <PackingLabelPrinter orderCode={orderCode} />;
+    return <PackingLabelPrinter orderCode={orderCode} labels={result.labels} />;
   }
 
   if (result && !result.labelReady) {
-    if (labelsQuery.data && labelsQuery.data.length > 0) {
-      return <PackingLabelPrinter orderCode={orderCode} />;
-    }
     return (
       <button
         className="rounded-lg border border-neutral-300 bg-white px-5 py-3 text-sm font-medium shadow"
-        onClick={handleRetry}
+        onClick={() => handleCreate(false)}
       >
         Zkusit znovu
       </button>
