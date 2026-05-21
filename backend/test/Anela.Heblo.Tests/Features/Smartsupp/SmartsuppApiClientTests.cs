@@ -15,7 +15,9 @@ namespace Anela.Heblo.Tests.Features.Smartsupp;
 
 public class SmartsuppApiClientTests
 {
-    private static SmartsuppApiClient CreateClient(HttpMessageHandler handler, ResiliencePipeline? pipeline = null)
+    private static SmartsuppApiClient CreateClient(
+        HttpMessageHandler handler,
+        ResiliencePipeline? pipeline = null)
     {
         var factory = new Mock<IHttpClientFactory>();
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.smartsupp.com/v2/") };
@@ -347,11 +349,75 @@ public class SmartsuppApiClientTests
         var client = CreateClient(handler.Object);
 
         // Act
-        var result = await client.SendMessageAsync("conv123", "Dobrý den!", "Ondřej", CancellationToken.None);
+        var result = await client.SendMessageAsync("conv123", "Dobrý den!", "agt-ondra", CancellationToken.None);
 
         // Assert
         result.Id.Should().Be("msNewMessage123");
         result.CreatedAt.Should().Be(new DateTime(2026, 5, 20, 10, 0, 0));
+    }
+
+    [Fact]
+    public async Task SendMessageAsync_SendsAgentId_AndNeverIncludesAgentBlock()
+    {
+        // Regression: Smartsupp returns 422 "agent_id is required when sub_type is \"agent\""
+        // if we include the `agent` block. We send agent_id only (the agent name is
+        // resolved by Smartsupp from the agent profile).
+        string? capturedBody = null;
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            {
+                capturedBody = await req.Content!.ReadAsStringAsync();
+            })
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(new { id = "m1", created_at = "2026-05-20T10:00:00Z" }),
+                    Encoding.UTF8,
+                    "application/json"),
+            });
+
+        var client = CreateClient(handler.Object);
+
+        await client.SendMessageAsync("conv123", "Ahoj", "agt-123", CancellationToken.None);
+
+        capturedBody.Should().NotBeNull();
+        capturedBody.Should().Contain("\"agent_id\":\"agt-123\"");
+        capturedBody.Should().NotContain("\"agent\":");
+        capturedBody.Should().NotContain("\"name\":");
+    }
+
+    [Fact]
+    public async Task SendMessageAsync_OmitsAgentId_WhenCallerPassesNull()
+    {
+        string? capturedBody = null;
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            {
+                capturedBody = await req.Content!.ReadAsStringAsync();
+            })
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(new { id = "m1", created_at = "2026-05-20T10:00:00Z" }),
+                    Encoding.UTF8,
+                    "application/json"),
+            });
+
+        var client = CreateClient(handler.Object);
+
+        await client.SendMessageAsync("conv123", "Ahoj", null, CancellationToken.None);
+
+        capturedBody.Should().NotBeNull();
+        capturedBody.Should().NotContain("agent_id");
+        capturedBody.Should().NotContain("\"agent\":");
     }
 
     [Fact]
@@ -366,7 +432,7 @@ public class SmartsuppApiClientTests
 
         var client = CreateClient(handler.Object, ResiliencePipeline.Empty);
 
-        var act = () => client.SendMessageAsync("conv123", "Text", null, CancellationToken.None);
+        var act = () => client.SendMessageAsync("conv123", "Text", "agt-1", CancellationToken.None);
 
         await act.Should().ThrowAsync<HttpRequestException>();
     }

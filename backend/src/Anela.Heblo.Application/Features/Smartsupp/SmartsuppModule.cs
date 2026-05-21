@@ -24,6 +24,9 @@ public static class SmartsuppModule
         services.AddOptions<SmartsuppDraftReplyOptions>()
             .Bind(configuration.GetSection(SmartsuppDraftReplyOptions.SectionName));
 
+        services.AddOptions<SmartsuppSendMessageOptions>()
+            .Bind(configuration.GetSection(SmartsuppSendMessageOptions.SectionName));
+
         services.AddScoped<IValidator<ListConversationsRequest>, ListConversationsValidator>();
         services.AddScoped<IPipelineBehavior<ListConversationsRequest, ListConversationsResponse>,
             ValidationBehavior<ListConversationsRequest, ListConversationsResponse>>();

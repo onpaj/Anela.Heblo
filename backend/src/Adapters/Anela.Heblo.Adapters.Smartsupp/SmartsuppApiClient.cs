@@ -485,18 +485,13 @@ public class SmartsuppApiClient : ISmartsuppApiClient
     private sealed class SendMessageApiRequest
     {
         public SendMessageApiContent Content { get; init; } = null!;
-        public SendMessageApiAgent? Agent { get; init; }
+        public string? AgentId { get; init; }
     }
 
     private sealed class SendMessageApiContent
     {
         public string Type { get; init; } = "text";
         public string Text { get; init; } = null!;
-    }
-
-    private sealed class SendMessageApiAgent
-    {
-        public string? Name { get; init; }
     }
 
     private sealed class SendMessageApiResponse
@@ -508,16 +503,21 @@ public class SmartsuppApiClient : ISmartsuppApiClient
     public async Task<SmartsuppSentMessageData> SendMessageAsync(
         string conversationId,
         string content,
-        string? agentName,
+        string? agentId,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(_options.ApiToken))
             throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
 
+        // Agent attribution: when agentId is provided, Smartsupp records the message
+        // as sent by that agent (and renders their profile name to the customer).
+        // When null, the message is attributed to the API token's default sender.
+        // Do NOT include an `agent` block; doing so triggers sub_type=agent and 422
+        // ("agent_id is required when sub_type is \"agent\"") even if agent_id is set.
         var body = new SendMessageApiRequest
         {
             Content = new SendMessageApiContent { Text = content },
-            Agent = agentName is not null ? new SendMessageApiAgent { Name = agentName } : null,
+            AgentId = string.IsNullOrWhiteSpace(agentId) ? null : agentId,
         };
 
         var json = JsonSerializer.Serialize(body, JsonOptions);
