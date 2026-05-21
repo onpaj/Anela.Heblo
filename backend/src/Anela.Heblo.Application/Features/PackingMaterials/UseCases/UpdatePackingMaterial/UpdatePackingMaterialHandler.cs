@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using MediatR;
@@ -21,7 +22,12 @@ public class UpdatePackingMaterialHandler : IRequestHandler<UpdatePackingMateria
         var material = await _repository.GetByIdAsync(request.Id, cancellationToken);
         if (material == null)
         {
-            throw new ArgumentException($"PackingMaterial with ID {request.Id} not found");
+            return new UpdatePackingMaterialResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.ResourceNotFound,
+                Error = $"Packing material with ID {request.Id} not found."
+            };
         }
 
         material.UpdateMaterial(request.Name, request.ConsumptionRate, request.ConsumptionType);
@@ -36,7 +42,7 @@ public class UpdatePackingMaterialHandler : IRequestHandler<UpdatePackingMateria
             ConsumptionType = material.ConsumptionType,
             ConsumptionTypeText = GetConsumptionTypeText(material.ConsumptionType),
             CurrentQuantity = material.CurrentQuantity,
-            ForecastedDays = null, // Would need to recalculate
+            ForecastedDays = null,
             CreatedAt = material.CreatedAt,
             UpdatedAt = material.UpdatedAt
         };

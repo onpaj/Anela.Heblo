@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using Anela.Heblo.Domain.Features.Users;
@@ -26,7 +27,12 @@ public class UpdatePackingMaterialQuantityHandler : IRequestHandler<UpdatePackin
         var material = await _repository.GetByIdAsync(request.Id, cancellationToken);
         if (material == null)
         {
-            throw new ArgumentException($"PackingMaterial with ID {request.Id} not found");
+            return new UpdatePackingMaterialQuantityResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.ResourceNotFound,
+                Error = $"Packing material with ID {request.Id} not found."
+            };
         }
 
         var currentUser = _currentUserService.GetCurrentUser();
@@ -35,7 +41,6 @@ public class UpdatePackingMaterialQuantityHandler : IRequestHandler<UpdatePackin
         await _repository.UpdateAsync(material, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
-        // Recalculate forecast with updated data
         var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
         var recentLogs = await _repository.GetRecentLogsAsync(material.Id, oneMonthAgo, cancellationToken);
         var forecastedDays = material.CalculateForecastedDays(recentLogs.ToList());

@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using MediatR;
@@ -21,7 +22,12 @@ public class GetPackingMaterialLogsHandler : IRequestHandler<GetPackingMaterialL
         var material = await _repository.GetByIdWithLogsAsync(request.PackingMaterialId, cancellationToken);
         if (material == null)
         {
-            throw new InvalidOperationException($"Packing material with ID {request.PackingMaterialId} not found.");
+            return new GetPackingMaterialLogsResponse
+            {
+                Success = false,
+                ErrorCode = ErrorCodes.ResourceNotFound,
+                Error = $"Packing material with ID {request.PackingMaterialId} not found."
+            };
         }
 
         var fromDate = DateTime.UtcNow.AddDays(-request.Days);
