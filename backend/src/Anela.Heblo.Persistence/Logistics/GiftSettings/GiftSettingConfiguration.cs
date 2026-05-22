@@ -23,7 +23,8 @@ public class GiftSettingConfiguration : IEntityTypeConfiguration<GiftSetting>
             .IsRequired()
             .HasMaxLength(50);
 
-        builder.Property(e => e.ModifiedAt);
+        builder.Property(e => e.ModifiedAt)
+            .HasColumnType("timestamp with time zone");
 
         builder.Property(e => e.ModifiedBy).HasMaxLength(256);
     }

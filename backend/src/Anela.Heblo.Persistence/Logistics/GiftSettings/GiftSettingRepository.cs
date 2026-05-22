@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Persistence.Logistics.GiftSettings;
 
-public class GiftSettingRepository : IGiftSettingRepository
+public sealed class GiftSettingRepository : IGiftSettingRepository
 {
     private readonly ApplicationDbContext _context;
 
