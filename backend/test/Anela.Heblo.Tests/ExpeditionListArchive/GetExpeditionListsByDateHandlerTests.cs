@@ -45,6 +45,8 @@ public class GetExpeditionListsByDateHandlerTests
         Assert.Equal("picking-list-001.pdf", result.Items[0].FileName);
         Assert.Equal($"{date}/picking-list-001.pdf", result.Items[0].BlobPath);
         Assert.Equal(512000, result.Items[0].ContentLength);
+        Assert.Equal("picking-list-001", result.Items[0].ListId);
+        Assert.Equal("picking-list-002", result.Items[1].ListId);
     }
 
     [Fact]

@@ -55,6 +55,12 @@ public class ExpeditionProtocolDocument : IDocument
             page.Margin(1f, Unit.Centimetre);
             page.DefaultTextStyle(x => x.FontSize(8));
 
+            if (!string.IsNullOrWhiteSpace(_data.ListId))
+            {
+                page.Header().AlignRight().Text($"ID: {_data.ListId}")
+                    .FontSize(7).FontColor(Colors.Grey.Darken1);
+            }
+
             page.Content().Column(col =>
             {
                 // Title

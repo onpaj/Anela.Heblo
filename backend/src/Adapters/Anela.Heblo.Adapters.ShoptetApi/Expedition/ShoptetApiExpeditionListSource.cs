@@ -128,14 +128,17 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                     locationByCode,
                     coolingByCode);
 
+                var fileName = $"{timestamp}_{method.Name}_{batchIndex}.pdf";
+                var listId = Path.GetFileNameWithoutExtension(fileName);
+
                 var data = new ExpeditionProtocolData
                 {
                     CarrierDisplayName = carrierDisplayName,
+                    ListId = listId,
                     Orders = batch,
                 };
 
                 var pdfBytes = _generateDocument(data);
-                var fileName = $"{timestamp}_{method.Name}_{batchIndex}.pdf";
                 var filePath = Path.Combine(Path.GetTempPath(), fileName);
                 await File.WriteAllBytesAsync(filePath, pdfBytes, cancellationToken);
                 exportedFiles.Add(filePath);
