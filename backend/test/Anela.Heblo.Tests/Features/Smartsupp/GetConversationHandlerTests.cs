@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Smartsupp;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
@@ -10,6 +11,14 @@ namespace Anela.Heblo.Tests.Features.Smartsupp;
 public class GetConversationHandlerTests
 {
     private readonly Mock<ISmartsuppRepository> _repo = new();
+    private readonly Mock<ISmartsuppAgentCache> _agentCache = new();
+
+    public GetConversationHandlerTests()
+    {
+        _agentCache
+            .Setup(c => c.GetAgentNamesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, string>());
+    }
 
     [Fact]
     public async Task Handle_ReturnsConversationWithMessages_WhenFound()
@@ -27,7 +36,7 @@ public class GetConversationHandlerTests
         };
         _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
 
-        var handler = new GetConversationHandler(_repo.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object);
         var request = new GetConversationRequest { Id = "c1" };
 
         // Act
@@ -46,7 +55,7 @@ public class GetConversationHandlerTests
     {
         // Arrange
         _repo.Setup(r => r.GetConversationAsync("missing", default)).ReturnsAsync((SmartsuppConversation?)null);
-        var handler = new GetConversationHandler(_repo.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "missing" }, CancellationToken.None);
@@ -83,7 +92,7 @@ public class GetConversationHandlerTests
         _repo.Setup(r => r.ListConversationsForContactAsync("contact-1", "c1", default))
              .ReturnsAsync(new List<SmartsuppConversation>());
 
-        var handler = new GetConversationHandler(_repo.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
@@ -128,7 +137,7 @@ public class GetConversationHandlerTests
         _repo.Setup(r => r.ListConversationsForContactAsync("contact-1", "c1", default))
              .ReturnsAsync(new List<SmartsuppConversation> { sibling });
 
-        var handler = new GetConversationHandler(_repo.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
@@ -143,6 +152,30 @@ public class GetConversationHandlerTests
     }
 
     [Fact]
+    public async Task Handle_PopulatesAgentNames_FromCache()
+    {
+        // Arrange
+        var cache = new Mock<ISmartsuppAgentCache>();
+        cache.Setup(c => c.GetAgentNamesAsync(It.IsAny<CancellationToken>()))
+             .ReturnsAsync(new Dictionary<string, string> { { "12", "Ondra" }, { "11", "Jana" } });
+        var conversation = new SmartsuppConversation
+        {
+            Id = "c1",
+            Status = SmartsuppConversationStatus.Open,
+            Messages = new List<SmartsuppMessage>(),
+        };
+        _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
+        var handler = new GetConversationHandler(_repo.Object, cache.Object);
+
+        // Act
+        var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);
+
+        // Assert
+        result.AgentNames.Should().ContainKey("12").WhoseValue.Should().Be("Ondra");
+        result.AgentNames.Should().ContainKey("11").WhoseValue.Should().Be("Jana");
+    }
+
+    [Fact]
     public async Task Handle_Variables_EmptyOnInvalidJson()
     {
         // Arrange
@@ -154,7 +187,7 @@ public class GetConversationHandlerTests
             Messages = new List<SmartsuppMessage>(),
         };
         _repo.Setup(r => r.GetConversationAsync("c1", default)).ReturnsAsync(conversation);
-        var handler = new GetConversationHandler(_repo.Object);
+        var handler = new GetConversationHandler(_repo.Object, _agentCache.Object);
 
         // Act
         var result = await handler.Handle(new GetConversationRequest { Id = "c1" }, CancellationToken.None);

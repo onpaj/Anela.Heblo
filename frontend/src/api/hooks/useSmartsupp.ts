@@ -72,6 +72,7 @@ export interface GetConversationResponse {
   success: boolean;
   conversation?: ConversationDto | null;
   messages: MessageDto[];
+  agentNames: Record<string, string>;
 }
 
 
@@ -98,8 +99,8 @@ export function useSmartsuppConversations(status: "Open" | "Resolved" = "Open") 
       const response = await apiFetch(apiClient, `${baseUrl}/api/smartsupp/conversations?status=${status}&page=1&pageSize=100`);
       return response.json() as Promise<ListConversationsResponse>;
     },
-    refetchInterval: 60_000,
-    staleTime: 30_000,
+    refetchInterval: 10_000,
+    staleTime: 10_000,
   });
 }
 

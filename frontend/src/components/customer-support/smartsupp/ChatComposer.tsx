@@ -92,6 +92,13 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
     send(draft);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   const isBusy = isLoading || isSending;
 
   return (
@@ -137,6 +144,7 @@ function ChatComposer({ conversationId, lastContactMessage, initialDraft, onDraf
             value={draft}
             disabled={isBusy}
             onChange={(e) => handleDraftChange(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={isLoading ? "Generuji návrh odpovědi…" : "Napište odpověď..."}
             rows={isExpanded ? 14 : 5}
             className="w-full resize-none rounded-md border border-gray-200 py-2 pl-3 pr-9 text-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-50"

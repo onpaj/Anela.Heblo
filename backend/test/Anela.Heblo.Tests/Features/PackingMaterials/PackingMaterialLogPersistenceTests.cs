@@ -105,7 +105,7 @@ public class PackingMaterialLogPersistenceTests : IDisposable
         var repository = new PackingMaterialRepository(_context);
 
         // Create a mock invoice repository (no invoices needed for PerDay consumption)
-        var invoiceRepository = new MockIssuedInvoiceRepository();
+        var invoiceRepository = new MockInvoiceConsumptionSource();
 
         // Create a mock logger
         var logger = new MockLogger<ConsumptionCalculationService>();
