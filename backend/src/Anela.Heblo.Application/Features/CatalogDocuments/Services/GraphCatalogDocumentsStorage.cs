@@ -3,6 +3,7 @@ using System.Text.Json;
 using Anela.Heblo.Application.Common.Graph;
 using Anela.Heblo.Application.Features.CatalogDocuments.Contracts;
 using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
 
 namespace Anela.Heblo.Application.Features.CatalogDocuments.Services;
@@ -14,6 +15,10 @@ public class GraphCatalogDocumentsStorage : ICatalogDocumentsStorage
     private readonly ILogger<GraphCatalogDocumentsStorage> _logger;
 
     private const long UploadSessionThresholdBytes = 4 * 1024 * 1024; // 4 MB
+    private const string DelegatedUploadScope = "https://graph.microsoft.com/Files.ReadWrite.All";
+
+    // Single-flight delegated-token cache (service is Scoped — one instance per request).
+    private Task<string>? _delegatedTokenTask;
 
     public GraphCatalogDocumentsStorage(
         ITokenAcquisition tokenAcquisition,
@@ -124,7 +129,7 @@ public class GraphCatalogDocumentsStorage : ICatalogDocumentsStorage
         _logger.LogDebug("Uploading {Filename} ({SizeBytes} bytes) to folder {FolderId} on drive {DriveId}",
             filename, sizeBytes, folderId, driveId);
 
-        var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphApiHelpers.GraphScope);
+        var token = await GetDelegatedTokenAsync();
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
         if (sizeBytes <= UploadSessionThresholdBytes)
@@ -219,5 +224,35 @@ public class GraphCatalogDocumentsStorage : ICatalogDocumentsStorage
         }
 
         return uploadedName;
+    }
+
+    private async Task<string> GetDelegatedTokenAsync()
+    {
+        var t = _delegatedTokenTask ??= AcquireDelegatedTokenAsync();
+        try
+        {
+            return await t;
+        }
+        catch
+        {
+            if (_delegatedTokenTask == t) _delegatedTokenTask = null;
+            throw;
+        }
+    }
+
+    private async Task<string> AcquireDelegatedTokenAsync()
+    {
+        try
+        {
+            return await _tokenAcquisition.GetAccessTokenForUserAsync(new[] { DelegatedUploadScope });
+        }
+        catch (MsalUiRequiredException ex)
+        {
+            _logger.LogError(ex,
+                "User consent required for Graph scope {Scope}. Grant admin consent in Azure Portal.",
+                DelegatedUploadScope);
+            throw new InvalidOperationException(
+                $"Microsoft 365 consent required for scope {DelegatedUploadScope}. An admin must grant consent in Azure Portal.", ex);
+        }
     }
 }
