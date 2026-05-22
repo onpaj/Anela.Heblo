@@ -99,7 +99,7 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             };
         }).ToList();
 
-        var deliveryAddress = detail.DeliveryAddress;
+        var deliveryAddress = detail.DeliveryAddress ?? detail.BillingAddress;
         var shippingStreet = deliveryAddress is null
             ? null
             : CombineStreetAndHouseNumber(deliveryAddress.Street, deliveryAddress.HouseNumber);
