@@ -36,7 +36,8 @@ public class MockAuthenticationHandler : AuthenticationHandler<MockAuthenticatio
             new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.HebloUser), // Base role for application access
             new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.SuperUser),
             new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.MeetingManager),
-new Claim("scp", "access_as_user"), // Scopes
+            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.CatalogManager),
+            new Claim("scp", "access_as_user"), // Scopes
             // Add permission claims for testing
             new Claim("permission", "FinancialOverview.View")
         };
