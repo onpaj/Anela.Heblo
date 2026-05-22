@@ -11,20 +11,20 @@ public class ProductAttributesFlexiDto
     public int ProductId { get; set; }
 
     [JsonProperty("cenikkod")]
-    public string ProductCode { get; set; }
+    public required string ProductCode { get; set; }
 
     [JsonProperty("atributid")]
     public int AttributeId { get; set; }
 
     [JsonProperty("atributkod")]
-    public string AttributeCode { get; set; }
+    public required string AttributeCode { get; set; }
 
     [JsonProperty("hodnota")]
-    public string Value { get; set; }
+    public required string Value { get; set; }
 
     [JsonProperty("SkupinaZboziId")]
     public int ProductTypeId { get; set; }
 
     [JsonProperty("SkupinaZbozi")]
-    public string ProductType { get; set; }
+    public required string ProductType { get; set; }
 }

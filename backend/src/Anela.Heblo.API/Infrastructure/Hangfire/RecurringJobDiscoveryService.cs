@@ -135,6 +135,9 @@ public class RecurringJobDiscoveryService : IHostedService
             jobName,
             job => job.ExecuteAsync(default),
             cronExpression,
-            TimeZoneInfo.FindSystemTimeZoneById(timeZoneId));
+            new RecurringJobOptions
+            {
+                TimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId)
+            });
     }
 }

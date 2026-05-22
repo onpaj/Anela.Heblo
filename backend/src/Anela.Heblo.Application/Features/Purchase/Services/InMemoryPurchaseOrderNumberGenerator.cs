@@ -4,8 +4,6 @@ namespace Anela.Heblo.Application.Features.Purchase.Services;
 
 public class InMemoryPurchaseOrderNumberGenerator : IPurchaseOrderNumberGenerator
 {
-    private static long _counter = 0;
-
     public async Task<string> GenerateOrderNumberAsync(DateTime orderDate, CancellationToken cancellationToken = default)
     {
         var year = orderDate.Year;

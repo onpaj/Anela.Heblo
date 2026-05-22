@@ -6,17 +6,17 @@ namespace Anela.Heblo.Adapters.Flexi.Purchase;
 public class PurchaseHistoryFlexiDto
 {
     [JsonProperty("Nazev")]
-    public string ProductName { get; set; }
+    public required string ProductName { get; set; }
 
     [JsonProperty("Kod")]
-    public string ProductCode { get; set; }
+    public required string ProductCode { get; set; }
 
     [JsonProperty("Datum")]
     [JsonConverter(typeof(UnspecifiedDateTimeConverter))]
     public DateTime Date { get; set; }
 
     [JsonProperty("CisloDokladu")]
-    public string PurchaseDocumentNo { get; set; }
+    public required string PurchaseDocumentNo { get; set; }
 
     [JsonProperty("Mnozstvi")]
     public double Amount { get; set; }
@@ -28,7 +28,7 @@ public class PurchaseHistoryFlexiDto
     public decimal Price { get; set; }
 
     [JsonProperty("Firma")]
-    public string CompanyName { get; set; }
+    public required string CompanyName { get; set; }
 
     [JsonProperty("FirmaId")]
     public int? CompanyId { get; set; }
