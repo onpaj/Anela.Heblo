@@ -35,7 +35,7 @@ function PackingShipmentDoneView({ order, shipment, onReprint }: PackingShipment
         <h2 className="text-3xl font-bold text-neutral-slate">Zakázka byla vyexpedována</h2>
       </div>
 
-      <dl className="flex flex-col gap-4">
+      <dl className="grid grid-cols-2 gap-x-8 gap-y-4">
         <div className="flex flex-col gap-1">
           <dt className="text-sm text-neutral-gray">Číslo objednávky</dt>
           <dd className="text-base text-neutral-slate font-medium">{order.code}</dd>
