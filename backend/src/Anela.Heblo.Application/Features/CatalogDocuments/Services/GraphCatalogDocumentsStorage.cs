@@ -246,6 +246,14 @@ public class GraphCatalogDocumentsStorage : ICatalogDocumentsStorage
         {
             return await _tokenAcquisition.GetAccessTokenForUserAsync(new[] { DelegatedUploadScope });
         }
+        catch (MicrosoftIdentityWebChallengeUserException ex)
+        {
+            _logger.LogError(ex.MsalUiRequiredException,
+                "User consent required for Graph scope {Scope}. Grant admin consent in Azure Portal.",
+                DelegatedUploadScope);
+            throw new InvalidOperationException(
+                $"Microsoft 365 consent required for scope {DelegatedUploadScope}. An admin must grant consent in Azure Portal.", ex);
+        }
         catch (MsalUiRequiredException ex)
         {
             _logger.LogError(ex,
