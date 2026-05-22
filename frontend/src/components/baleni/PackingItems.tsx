@@ -1,5 +1,5 @@
 import { ImageOff } from 'lucide-react';
-import type { PackingOrderItem } from '../../api/hooks/usePackingOrder';
+import type { PackingOrderItem } from '../../api/hooks/useScanPackingOrder';
 
 /** Above this item count, photos are dropped and a dense list is shown instead. */
 export const PHOTO_ITEM_LIMIT = 8;

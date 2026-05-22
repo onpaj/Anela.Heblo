@@ -14,6 +14,14 @@ public class ShoptetShipmentClient : IShipmentClient
         PropertyNameCaseInsensitive = true,
     };
 
+    private static readonly HashSet<string> DeadStatuses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "canceled",
+        "cancel_requested",
+        "deleted",
+        "request_failed",
+    };
+
     public ShoptetShipmentClient(HttpClient http)
     {
         _http = http;
@@ -44,6 +52,7 @@ public class ShoptetShipmentClient : IShipmentClient
         var items = data?.Data?.Items ?? [];
 
         return items
+            .Where(s => s.Status is null || !DeadStatuses.Contains(s.Status))
             .SelectMany(shipment => (shipment.Packages ?? [])
                 .Select(pkg => new ShipmentLabel
                 {
@@ -148,5 +157,22 @@ public class ShoptetShipmentClient : IShipmentClient
             ShipmentGuid = result?.Data?.Guid ?? Guid.Empty,
             Status = null,
         };
+    }
+
+    public async Task CancelShipmentAsync(Guid shipmentGuid, CancellationToken ct = default)
+    {
+        var response = await _http.PostAsync($"/api/shipments/{shipmentGuid}/cancel-request", content: null, ct);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException(
+                $"Shoptet POST /api/shipments/{shipmentGuid}/cancel-request failed ({response.StatusCode}): {content}");
+        }
     }
 }

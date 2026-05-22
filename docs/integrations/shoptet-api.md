@@ -1155,3 +1155,54 @@ After a successful `201` response, the shipment is in `requested` status. The la
 #### Test store limitation
 
 The staging store (780175 / `api.myshoptet.com` with token `Shoptet:ApiToken`) has **no Balikobot carriers configured** (`GET /api/shipments/carriers` returns `[]`). All `POST /api/shipments` calls in the test store will return `errorCode: invalid-request-data, instance: integration-call`. Integration tests for shipment creation must run against the production store or a store with Balikobot configured.
+
+---
+
+### 11.10 POST /api/shipments/{guid}/cancel-request — Cancel Shipment
+
+> **Probed 2026-05-21** against the official OpenAPI spec (`https://api.docs.shoptet.com/_bundle/Shoptet%20API/openapi.json`).
+
+Requests cancellation of an existing shipment. Forwarded to the carrier asynchronously — the API accepts the request immediately and the carrier processes the actual cancellation in the background.
+
+> **⚠️ Common mistake — there is NO `DELETE /api/shipments/{guid}` endpoint.** Calling `DELETE` returns `404` / `405`. The only documented cancellation mechanism is this `POST .../cancel-request`. Anela hit this bug prior to 2026-05-21 in `ShoptetShipmentClient.DeleteShipmentAsync` — `ResetOrderShipmentHandler` consistently failed with `ShipmentDeleteFailed` because the underlying DELETE never succeeded.
+
+#### Path parameter
+
+| Parameter | Type | Description |
+|---|---|---|
+| `guid` | string (UUID) | Shipment GUID returned by `POST /api/shipments` |
+
+#### Request body
+
+**None.** No body, no query params.
+
+#### Response (202 Accepted)
+
+Empty body. Cancellation has been accepted for forwarding to the carrier — it is NOT yet final.
+
+#### Error codes
+
+| HTTP | errorCode | instance | Meaning |
+|---|---|---|---|
+| 404 | `shipment-not-found` | `payload` | Shipment GUID does not exist (already removed / never created). Treat as idempotent success. |
+| 422 | `invalid-request-data` | `integration-call` | Carrier rejected the cancellation request (e.g. shipment already in transit). |
+
+#### Final-state semantics
+
+`202` does NOT mean the shipment is cancelled — only that the request was accepted. Poll `GET /api/shipments/{guid}` to observe the actual lifecycle:
+
+```
+requested → cancel_requested → canceled → deleted
+created   → cancel_requested → canceled
+in_transit → (cancellation may be rejected by carrier with 422)
+```
+
+#### Anela usage pattern (Balení reset flow)
+
+`ResetOrderShipmentHandler` fires `POST .../cancel-request` and **immediately** calls `POST /api/shipments` to create a replacement — it does **not** poll for the cancel to complete. Trade-off:
+
+- Operator experience is fast (single confirm-then-print cycle on the kiosk).
+- The old shipment may briefly co-exist with the new one in `requested` state at the carrier.
+- A `404` from cancel-request is treated as success — the shipment is already gone, no further action needed.
+
+`ShoptetShipmentClient.CancelShipmentAsync` returns silently on `404` and throws `HttpRequestException` on any other non-2xx status.

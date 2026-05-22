@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Common.Behaviors;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
 using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.CreateOrderShipment;
 using Anela.Heblo.Application.Features.ShipmentLabels.UseCases.GetOrderShipmentLabels;
 using Anela.Heblo.Application.Features.ShipmentLabels.Validators;
@@ -27,6 +28,13 @@ public static class ShipmentLabelsModule
         services.AddScoped<
             IPipelineBehavior<CreateOrderShipmentRequest, CreateOrderShipmentResponse>,
             ValidationBehavior<CreateOrderShipmentRequest, CreateOrderShipmentResponse>>();
+
+        // Named HttpClient used by GetPackageLabelPdfHandler to stream carrier-CDN PDFs
+        // through our own origin so the SPA can silent-print without CORS errors.
+        services.AddHttpClient(GetPackageLabelPdfHandler.HttpClientName, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
 
         return services;
     }

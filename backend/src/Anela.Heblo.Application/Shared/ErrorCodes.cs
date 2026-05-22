@@ -323,8 +323,6 @@ public enum ErrorCodes
     ShipmentLabelsNoShipmentFound = 2902,
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     ShipmentLabelsNotGenerated = 2903,
-    [HttpStatusCode(HttpStatusCode.NotFound)]
-    ShipmentLabelPdfNotFound = 2904,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     ShipmentAlreadyExists = 2905,
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
@@ -335,6 +333,18 @@ public enum ErrorCodes
     ShipmentLabelNotReady = 2908,
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     ShipmentOrderWeightUnavailable = 2909,
+
+    // Packaging module errors (30XX)
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    OrderNotInPackingState = 3001,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    ShipmentCancelFailed = 3002,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    NoShipmentToReset = 3003,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PackageLabelNotFound = 3004,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    PackageLabelDownloadFailed = 3005,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

@@ -104,7 +104,7 @@ public class PackingMaterialLogPersistenceTests : IDisposable
         // Create a REAL repository backed by the InMemory context (NOT a mock)
         var repository = new PackingMaterialRepository(_context);
 
-        // Create a mock invoice repository (no invoices needed for PerDay consumption)
+        // Create a mock invoice consumption source (no invoices needed for PerDay consumption)
         var invoiceRepository = new MockInvoiceConsumptionSource();
 
         // Create a mock logger
