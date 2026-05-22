@@ -2714,9 +2714,6 @@ namespace Anela.Heblo.Persistence.Migrations
                     b.Property<int>("PackingMaterialId")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("PackingMaterialId1")
-                        .HasColumnType("integer");
-
                     b.Property<string>("UserId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -2728,8 +2725,6 @@ namespace Anela.Heblo.Persistence.Migrations
 
                     b.HasIndex("PackingMaterialId")
                         .HasDatabaseName("IX_PackingMaterialLogs_PackingMaterialId");
-
-                    b.HasIndex("PackingMaterialId1");
 
                     b.HasIndex("PackingMaterialId", "Date")
                         .HasDatabaseName("IX_PackingMaterialLogs_MaterialId_Date");
@@ -3788,14 +3783,10 @@ namespace Anela.Heblo.Persistence.Migrations
             modelBuilder.Entity("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterialLog", b =>
                 {
                     b.HasOne("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", null)
-                        .WithMany()
+                        .WithMany("Logs")
                         .HasForeignKey("PackingMaterialId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Anela.Heblo.Domain.Features.PackingMaterials.PackingMaterial", null)
-                        .WithMany("Logs")
-                        .HasForeignKey("PackingMaterialId1");
                 });
 
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Photobank.PhotoTag", b =>

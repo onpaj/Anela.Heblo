@@ -83,19 +83,19 @@ function GiftsTab() {
       {/* Text */}
       <div>
         <label htmlFor="gift-text" className="block text-sm font-medium text-gray-700 mb-1">
-          Text badge (max 30 znaků)
+          Text badge (max 50 znaků)
         </label>
         <input
           id="gift-text"
           type="text"
-          maxLength={30}
+          maxLength={50}
           value={text}
           onChange={(e) => setText(e.target.value)}
           disabled={!isEnabled}
           placeholder="DÁREK ZDARMA"
           className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-400"
         />
-        <p className="mt-1 text-xs text-gray-400">{text.length} / 30</p>
+        <p className="mt-1 text-xs text-gray-400">{text.length} / 50</p>
       </div>
 
       {/* Save button */}
