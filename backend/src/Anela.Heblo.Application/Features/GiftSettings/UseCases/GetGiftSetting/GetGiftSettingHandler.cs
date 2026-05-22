@@ -4,7 +4,7 @@ using MediatR;
 
 namespace Anela.Heblo.Application.Features.GiftSettings.UseCases.GetGiftSetting;
 
-public class GetGiftSettingHandler : IRequestHandler<GetGiftSettingQuery, GiftSettingDto>
+public sealed class GetGiftSettingHandler : IRequestHandler<GetGiftSettingQuery, GiftSettingDto>
 {
     private readonly IGiftSettingRepository _repository;
 

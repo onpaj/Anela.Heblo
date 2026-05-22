@@ -1,6 +1,6 @@
 namespace Anela.Heblo.Application.Features.GiftSettings.Dto;
 
-public class GiftSettingDto
+public sealed class GiftSettingDto
 {
     public bool IsEnabled { get; set; }
     public decimal ThresholdCzk { get; set; }

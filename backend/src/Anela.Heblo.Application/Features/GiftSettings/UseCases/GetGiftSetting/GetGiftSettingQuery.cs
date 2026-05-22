@@ -3,6 +3,6 @@ using MediatR;
 
 namespace Anela.Heblo.Application.Features.GiftSettings.UseCases.GetGiftSetting;
 
-public class GetGiftSettingQuery : IRequest<GiftSettingDto>
+public sealed class GetGiftSettingQuery : IRequest<GiftSettingDto>
 {
 }
