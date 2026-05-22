@@ -31,6 +31,14 @@ public class ExpeditionProtocolDocument : IDocument
 
     private static readonly byte[] FrostIconBytes = GenerateFrostIcon();
 
+    // Gift badge layout constants (same values as frost badge)
+    private const float GiftIconSize = 12f;
+    private const float GiftBadgePadding = 3f;
+    private const float GiftBadgeBorderThickness = 1.5f;
+    private const float GiftBadgePaddingLeft = 4f;
+
+    private static readonly byte[] GiftIconBytes = GenerateGiftIcon();
+
     private readonly ExpeditionProtocolData _data;
     public ExpeditionProtocolDocument(ExpeditionProtocolData data)
     {
@@ -109,6 +117,22 @@ public class ExpeditionProtocolDocument : IDocument
                             row.AutoItem().Width(FrostIconSize).Height(FrostIconSize).Image(FrostIconBytes).FitArea();
                             row.AutoItem().PaddingLeft(3).AlignMiddle()
                                 .Text("CHLAZENÁ ZÁSILKA")
+                                .Bold().FontSize(10).FontColor(Colors.Black);
+                        });
+                }
+
+                if (!string.IsNullOrEmpty(order.GiftBadgeText))
+                {
+                    headingRow.AutoItem()
+                        .PaddingLeft(GiftBadgePaddingLeft)
+                        .Border(GiftBadgeBorderThickness)
+                        .BorderColor(Colors.Black)
+                        .Padding(GiftBadgePadding)
+                        .Row(row =>
+                        {
+                            row.AutoItem().Width(GiftIconSize).Height(GiftIconSize).Image(GiftIconBytes).FitArea();
+                            row.AutoItem().PaddingLeft(3).AlignMiddle()
+                                .Text(order.GiftBadgeText)
                                 .Bold().FontSize(10).FontColor(Colors.Black);
                         });
                 }
@@ -367,6 +391,44 @@ public class ExpeditionProtocolDocument : IDocument
                 canvas.DrawLine(bx, by, bx + (float)(Math.Cos(rightAngle) * branchLen), by + (float)(Math.Sin(rightAngle) * branchLen), paint);
             }
         }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
+    }
+
+    private static byte[] GenerateGiftIcon()
+    {
+        const int size = 64;
+        using var bitmap = new SKBitmap(size, size);
+        using var canvas = new SKCanvas(bitmap);
+        canvas.Clear(SKColors.Transparent);
+
+        using var paint = new SKPaint
+        {
+            Color = SKColors.Black,
+            StrokeWidth = 4f,
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeCap = SKStrokeCap.Round,
+        };
+
+        float cx = size / 2f;
+
+        // Box body
+        canvas.DrawRect(6, 30, 52, 28, paint);
+        // Lid
+        canvas.DrawRect(4, 20, 56, 12, paint);
+        // Ribbon — vertical through center
+        canvas.DrawLine(cx, 20, cx, 58, paint);
+        // Ribbon — horizontal on lid
+        canvas.DrawLine(4, 26, 60, 26, paint);
+        // Bow — left loop
+        canvas.DrawLine(cx, 20, cx - 14, 6, paint);
+        canvas.DrawLine(cx - 14, 6, cx - 2, 16, paint);
+        // Bow — right loop
+        canvas.DrawLine(cx, 20, cx + 14, 6, paint);
+        canvas.DrawLine(cx + 14, 6, cx + 2, 16, paint);
 
         using var image = SKImage.FromBitmap(bitmap);
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);

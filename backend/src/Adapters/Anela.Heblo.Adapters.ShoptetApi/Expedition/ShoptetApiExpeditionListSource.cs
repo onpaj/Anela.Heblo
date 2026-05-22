@@ -4,6 +4,7 @@ using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 using Anela.Heblo.Xcc;
 
@@ -20,6 +21,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
     private readonly TimeProvider _timeProvider;
     private readonly ICatalogRepository _catalog;
     private readonly ICarrierCoolingRepository _carrierCooling;
+    private readonly IGiftSettingRepository _giftSettings;
     private readonly Func<ExpeditionProtocolData, byte[]> _generateDocument;
 
     public ShoptetApiExpeditionListSource(
@@ -27,12 +29,14 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         TimeProvider timeProvider,
         ICatalogRepository catalog,
         ICarrierCoolingRepository carrierCooling,
+        IGiftSettingRepository giftSettings,
         Func<ExpeditionProtocolData, byte[]>? generateDocument = null)
     {
         _client = (ShoptetOrderClient)client;
         _timeProvider = timeProvider;
         _catalog = catalog;
         _carrierCooling = carrierCooling;
+        _giftSettings = giftSettings;
         _generateDocument = generateDocument ?? ExpeditionProtocolDocument.Generate;
     }
 
@@ -49,7 +53,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             ? new HashSet<Carriers>(request.Carriers)
             : null;
 
-        var ordersByMethod = new Dictionary<ShippingMethod, List<(string Code, string ShippingGuid)>>();
+        var ordersByMethod = new Dictionary<ShippingMethod, List<(string Code, string ShippingGuid, decimal? TotalWithVat, string? CurrencyCode)>>();
         foreach (var order in allOrders)
         {
             var shippingGuid = order.Shipping?.Guid;
@@ -60,11 +64,11 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
 
             if (!ordersByMethod.TryGetValue(method, out var list))
             {
-                list = new List<(string, string)>();
+                list = new List<(string, string, decimal?, string?)>();
                 ordersByMethod[method] = list;
             }
 
-            list.Add((order.Code, shippingGuid));
+            list.Add((order.Code, shippingGuid, order.Price?.WithVat, order.Price?.CurrencyCode));
         }
 
         var exportedFiles = new List<string>();
@@ -77,6 +81,9 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             s => (s.Carrier, s.DeliveryHandling),
             s => s.Cooling);
 
+        // Load gift setting once for the entire run
+        var giftSetting = await _giftSettings.GetAsync(cancellationToken);
+
         foreach (var (method, orders) in ordersByMethod)
         {
             var sorted = orders;
@@ -88,11 +95,12 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             //    This ensures batches are split based on how much content fits on a printed page,
             //    rather than by an arbitrary order count.
             var allExpeditionOrders = new List<ExpeditionOrder>();
-            foreach (var (code, shippingGuid) in sorted)
+            foreach (var (code, shippingGuid, totalWithVat, currencyCode) in sorted)
             {
                 var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
                 var expeditionOrder = MapToExpeditionOrder(detail);
                 expeditionOrder.CarrierCooling = ResolveCarrierCooling(shippingGuid, coolingMatrix);
+                expeditionOrder.GiftBadgeText = ResolveGiftBadge(totalWithVat, currencyCode, giftSetting);
                 allExpeditionOrders.Add(expeditionOrder);
                 processedCodes.Add(code);
             }
@@ -111,6 +119,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                 var stockByCode = new Dictionary<string, decimal>();
                 var locationByCode = new Dictionary<string, string>();
                 var coolingByCode = new Dictionary<string, Cooling>();
+                var priceByCode = new Dictionary<string, decimal>();
                 foreach (var productCode in productCodes)
                 {
                     var entry = await _catalog.GetByIdAsync(productCode, cancellationToken);
@@ -120,13 +129,16 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                         if (!string.IsNullOrEmpty(entry.Location))
                             locationByCode[productCode] = entry.Location;
                         coolingByCode[productCode] = entry.Properties.Cooling;
+                        if (entry.PriceWithVat is > 0)
+                            priceByCode[productCode] = entry.PriceWithVat.Value;
                     }
                 }
                 ApplyEnrichment(
                     batch.SelectMany(o => o.Items),
                     stockByCode,
                     locationByCode,
-                    coolingByCode);
+                    coolingByCode,
+                    priceByCode);
 
                 var fileName = $"{timestamp}_{method.Name}_{batchIndex}.pdf";
                 var listId = Path.GetFileNameWithoutExtension(fileName);
@@ -233,7 +245,8 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         IEnumerable<ExpeditionOrderItem> items,
         Dictionary<string, decimal> stockByCode,
         Dictionary<string, string> locationByCode,
-        Dictionary<string, Cooling> coolingByCode)
+        Dictionary<string, Cooling> coolingByCode,
+        Dictionary<string, decimal>? priceByCode = null)
     {
         foreach (var item in items)
         {
@@ -243,6 +256,8 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                 item.WarehousePosition = location;
             if (coolingByCode.TryGetValue(item.ProductCode, out var cooling))
                 item.Cooling = cooling;
+            if (item.UnitPrice == 0m && priceByCode != null && priceByCode.TryGetValue(item.ProductCode, out var price))
+                item.UnitPrice = price;
         }
     }
 
@@ -260,6 +275,17 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         return matrix.TryGetValue((method.Carrier, handling.Value), out var cooling)
             ? cooling
             : Cooling.None;
+    }
+
+    internal static string? ResolveGiftBadge(
+        decimal? totalWithVat,
+        string? currencyCode,
+        GiftSetting setting)
+    {
+        if (!setting.IsEnabled) return null;
+        if (!string.Equals(currencyCode, "CZK", StringComparison.OrdinalIgnoreCase)) return null;
+        if (totalWithVat is null || totalWithVat < setting.ThresholdCzk) return null;
+        return setting.Text;
     }
 
     internal static List<ExpeditionOrderItem> MapOrderItems(Model.ExpeditionOrderDetail detail)

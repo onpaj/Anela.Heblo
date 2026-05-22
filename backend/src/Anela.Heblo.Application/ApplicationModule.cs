@@ -31,6 +31,7 @@ using Anela.Heblo.Application.Features.Manufacture;
 using Anela.Heblo.Application.Features.OrgChart;
 using Anela.Heblo.Application.Features.PackingMaterials;
 using Anela.Heblo.Application.Features.CarrierCooling;
+using Anela.Heblo.Application.Features.GiftSettings;
 using Anela.Heblo.Application.Features.WeatherForecast;
 using Anela.Heblo.Application.Features.DataQuality;
 using Anela.Heblo.Application.Features.Photobank;
@@ -97,6 +98,7 @@ public static class ApplicationModule
         services.AddGridLayoutsModule();
         services.AddMarketingInvoicesModule();
         services.AddCarrierCoolingModule();
+        services.AddGiftSettingsModule();
         services.AddWeatherForecastModule();
         services.AddDataQualityModule();
         services.AddPhotobankModule(configuration);
