@@ -215,6 +215,16 @@ namespace Anela.Heblo.Application.Features.Photobank
                 .AnyAsync(pt => pt.PhotoId == photoId && pt.TagId == tagId, cancellationToken);
         }
 
+        public async Task RemoveRuleTagsAsync(string? scopeToTagName, CancellationToken cancellationToken)
+        {
+            var query = _context.PhotoTags.Where(pt => pt.Source == PhotoTagSource.Rule);
+            if (scopeToTagName != null)
+                query = query.Where(pt => pt.Tag.Name == scopeToTagName);
+
+            var ruleTags = await query.ToListAsync(cancellationToken);
+            _context.PhotoTags.RemoveRange(ruleTags);
+        }
+
         // Roots
 
         public async Task<List<PhotobankIndexRoot>> GetRootsAsync(CancellationToken cancellationToken)

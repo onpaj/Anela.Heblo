@@ -38,6 +38,7 @@ namespace Anela.Heblo.Domain.Features.Photobank
         Task AddPhotoTagAsync(PhotoTag photoTag, CancellationToken cancellationToken);
         Task RemovePhotoTagAsync(int photoId, int tagId, CancellationToken cancellationToken);
         Task<bool> PhotoTagExistsAsync(int photoId, int tagId, CancellationToken cancellationToken);
+        Task RemoveRuleTagsAsync(string? scopeToTagName, CancellationToken cancellationToken);
 
         // Roots
         Task<List<PhotobankIndexRoot>> GetRootsAsync(CancellationToken cancellationToken);
