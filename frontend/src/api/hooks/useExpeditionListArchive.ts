@@ -6,6 +6,7 @@ import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 export interface ExpeditionListItemDto {
   blobPath: string;
   fileName: string;
+  listId: string;
   createdOn: string | null;
   contentLength: number | null;
 }

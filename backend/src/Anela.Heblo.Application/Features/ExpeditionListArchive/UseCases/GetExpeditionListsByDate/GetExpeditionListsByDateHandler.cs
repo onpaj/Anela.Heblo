@@ -32,6 +32,7 @@ public class GetExpeditionListsByDateHandler : IRequestHandler<GetExpeditionList
             {
                 BlobPath = b.Name,
                 FileName = b.FileName,
+                ListId = Path.GetFileNameWithoutExtension(b.FileName),
                 CreatedOn = b.CreatedOn,
                 ContentLength = b.ContentLength
             })
