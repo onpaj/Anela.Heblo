@@ -52,9 +52,9 @@ export interface UploadPifDocumentParams {
 
 // Single cast boundary for the private ApiClient internals
 function apiFetch(path: string, init?: RequestInit): Promise<Response> {
-  const client = getAuthenticatedApiClient();
-  const baseUrl = (client as any).baseUrl as string;
-  return (client as any).http.fetch(`${baseUrl}${path}`, init) as Promise<Response>;
+  const apiClient = getAuthenticatedApiClient();
+  const baseUrl = (apiClient as any).baseUrl as string;
+  return (apiClient as any).http.fetch(`${baseUrl}${path}`, init) as Promise<Response>;
 }
 
 const catalogDocumentsKeys = {
