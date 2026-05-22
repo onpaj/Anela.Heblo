@@ -99,6 +99,11 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             };
         }).ToList();
 
+        var deliveryAddress = detail.DeliveryAddress;
+        var shippingStreet = deliveryAddress is null
+            ? null
+            : CombineStreetAndHouseNumber(deliveryAddress.Street, deliveryAddress.HouseNumber);
+
         return new PackingOrder
         {
             Code = order.Code,
@@ -109,7 +114,24 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             StatusId = statusId,
             CustomerNote = string.IsNullOrWhiteSpace(order.CustomerRemark) ? null : order.CustomerRemark,
             EshopNote = string.IsNullOrWhiteSpace(order.EshopRemark) ? null : order.EshopRemark,
+            ShippingStreet = shippingStreet,
+            ShippingCity = deliveryAddress?.City,
+            ShippingZip = deliveryAddress?.Zip,
             Items = items,
         };
+    }
+
+    private static string? CombineStreetAndHouseNumber(string? street, string? houseNumber)
+    {
+        var hasStreet = !string.IsNullOrWhiteSpace(street);
+        var hasHouseNumber = !string.IsNullOrWhiteSpace(houseNumber);
+
+        if (hasStreet && hasHouseNumber)
+            return $"{street} {houseNumber}".Trim();
+        if (hasStreet)
+            return street!.Trim();
+        if (hasHouseNumber)
+            return houseNumber!.Trim();
+        return null;
     }
 }

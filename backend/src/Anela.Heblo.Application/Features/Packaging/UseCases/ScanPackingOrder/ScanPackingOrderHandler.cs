@@ -48,6 +48,7 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             IsCooled = order.IsCooled,
             CustomerNote = order.CustomerNote,
             EshopNote = order.EshopNote,
+            ShippingAddress = BuildShippingAddress(order),
             Items = order.Items,
             Eligibility = new ScanOrderEligibility
             {
@@ -134,6 +135,23 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             Packages = packages,
             AlreadyExisted = false,
         });
+    }
+
+    private static ShippingAddress? BuildShippingAddress(PackingOrder order)
+    {
+        var street = string.IsNullOrWhiteSpace(order.ShippingStreet) ? null : order.ShippingStreet.Trim();
+        var city = string.IsNullOrWhiteSpace(order.ShippingCity) ? null : order.ShippingCity.Trim();
+        var zip = string.IsNullOrWhiteSpace(order.ShippingZip) ? null : order.ShippingZip.Trim();
+
+        if (street is null && city is null && zip is null)
+            return null;
+
+        return new ShippingAddress
+        {
+            Street = street,
+            City = city,
+            Zip = zip,
+        };
     }
 
     private async Task TryMarkAsPackedAsync(string orderCode, CancellationToken ct)

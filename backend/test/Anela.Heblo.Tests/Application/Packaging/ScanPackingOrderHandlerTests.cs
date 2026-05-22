@@ -214,9 +214,14 @@ public class ScanPackingOrderHandlerTests
     {
         var shipmentGuid = Guid.NewGuid();
 
+        var orderWithAddress = EligibleOrder(("P001", 1, 400));
+        orderWithAddress.ShippingStreet = "Hlavní 123";
+        orderWithAddress.ShippingCity = "Praha";
+        orderWithAddress.ShippingZip = "110 00";
+
         _orderClient
             .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
+            .ReturnsAsync(orderWithAddress);
 
         _shipmentClient
             .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
@@ -247,6 +252,34 @@ public class ScanPackingOrderHandlerTests
 
         response.Shipment.Packages[0].LabelUrl.Should().Be("https://carrier.example.com/new-label.pdf");
         response.Shipment.Packages[0].LabelZpl.Should().BeNull();
+
+        response.Order!.ShippingAddress.Should().NotBeNull();
+        response.Order.ShippingAddress!.Street.Should().Be("Hlavní 123");
+        response.Order.ShippingAddress.City.Should().Be("Praha");
+        response.Order.ShippingAddress.Zip.Should().Be("110 00");
+    }
+
+    // Shipping address: when source has no address, response.Order.ShippingAddress is null
+    [Fact]
+    public async Task Handle_OrderWithoutShippingAddress_ReturnsNullShippingAddress()
+    {
+        var shipmentGuid = Guid.NewGuid();
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
+
+        _shipmentClient
+            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://example.com/label.pdf" }]);
+
+        var response = await CreateHandler().Handle(
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        response.Order.Should().NotBeNull();
+        response.Order!.ShippingAddress.Should().BeNull();
     }
 
     // Status update: called with PackedStateId when existing shipment found

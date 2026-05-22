@@ -32,8 +32,16 @@ public class ScanOrderData
     public bool IsCooled { get; set; }
     public string? CustomerNote { get; set; }
     public string? EshopNote { get; set; }
+    public ShippingAddress? ShippingAddress { get; set; }
     public ScanOrderEligibility Eligibility { get; set; } = null!;
     public List<PackingOrderItem> Items { get; set; } = [];
+}
+
+public class ShippingAddress
+{
+    public string? Street { get; set; }
+    public string? City { get; set; }
+    public string? Zip { get; set; }
 }
 
 public class ScanOrderEligibility
