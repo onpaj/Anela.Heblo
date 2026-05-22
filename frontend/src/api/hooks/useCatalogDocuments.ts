@@ -50,6 +50,13 @@ export interface UploadPifDocumentParams {
   file: File;
 }
 
+// Single cast boundary for the private ApiClient internals
+function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const client = getAuthenticatedApiClient();
+  const baseUrl = (client as any).baseUrl as string;
+  return (client as any).http.fetch(`${baseUrl}${path}`, init) as Promise<Response>;
+}
+
 const catalogDocumentsKeys = {
   materialDocuments: (productCode: string) =>
     [...QUERY_KEYS.catalogDocuments, 'materials', productCode] as const,
@@ -63,13 +70,11 @@ export function useMaterialDocuments(productCode: string) {
   return useQuery({
     queryKey: catalogDocumentsKeys.materialDocuments(productCode),
     queryFn: async (): Promise<ListCatalogDocumentsResponse> => {
-      const apiClient = getAuthenticatedApiClient();
-      const fullUrl = `${(apiClient as any).baseUrl}/api/catalog-documents/materials/${encodeURIComponent(productCode)}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const response = await apiFetch(
+        `/api/catalog-documents/materials/${encodeURIComponent(productCode)}`,
+        { method: 'GET', headers: { Accept: 'application/json' } },
+      );
+      if (!response.ok) throw new Error(`Failed to fetch material documents for ${productCode}: ${response.status}`);
       return response.json();
     },
     staleTime: 30_000,
@@ -81,13 +86,11 @@ export function usePifDocuments(productCode: string) {
   return useQuery({
     queryKey: catalogDocumentsKeys.pifDocuments(productCode),
     queryFn: async (): Promise<ListCatalogDocumentsResponse> => {
-      const apiClient = getAuthenticatedApiClient();
-      const fullUrl = `${(apiClient as any).baseUrl}/api/catalog-documents/pif/${encodeURIComponent(productCode)}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const response = await apiFetch(
+        `/api/catalog-documents/pif/${encodeURIComponent(productCode)}`,
+        { method: 'GET', headers: { Accept: 'application/json' } },
+      );
+      if (!response.ok) throw new Error(`Failed to fetch PIF documents for ${productCode}: ${response.status}`);
       return response.json();
     },
     staleTime: 30_000,
@@ -99,13 +102,11 @@ export function useMaterialDocumentTypes() {
   return useQuery({
     queryKey: catalogDocumentsKeys.materialDocumentTypes(),
     queryFn: async (): Promise<GetMaterialDocumentTypesResponse> => {
-      const apiClient = getAuthenticatedApiClient();
-      const fullUrl = `${(apiClient as any).baseUrl}/api/catalog-documents/material-document-types`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const response = await apiFetch(
+        '/api/catalog-documents/material-document-types',
+        { method: 'GET', headers: { Accept: 'application/json' } },
+      );
+      if (!response.ok) throw new Error(`Failed to fetch material document types: ${response.status}`);
       return response.json();
     },
     staleTime: 5 * 60 * 1000,
@@ -116,19 +117,17 @@ export function useUploadMaterialDocument() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: UploadMaterialDocumentParams): Promise<UploadDocumentResponse> => {
-      const apiClient = getAuthenticatedApiClient();
-      const fullUrl = `${(apiClient as any).baseUrl}/api/catalog-documents/materials/${encodeURIComponent(params.productCode)}`;
       const formData = new FormData();
       formData.append('file', params.file);
       formData.append('documentTypeCode', params.documentTypeCode);
       formData.append('lot', params.lot);
       formData.append('commonName', params.commonName);
       formData.append('uploadAsIs', String(params.uploadAsIs));
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'POST',
-        body: formData,
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const response = await apiFetch(
+        `/api/catalog-documents/materials/${encodeURIComponent(params.productCode)}`,
+        { method: 'POST', body: formData },
+      );
+      if (!response.ok) throw new Error(`Failed to upload material document for ${params.productCode}: ${response.status}`);
       return response.json();
     },
     retry: 0,
@@ -144,15 +143,13 @@ export function useUploadPifDocument() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: UploadPifDocumentParams): Promise<UploadDocumentResponse> => {
-      const apiClient = getAuthenticatedApiClient();
-      const fullUrl = `${(apiClient as any).baseUrl}/api/catalog-documents/pif/${encodeURIComponent(params.productCode)}`;
       const formData = new FormData();
       formData.append('file', params.file);
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'POST',
-        body: formData,
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const response = await apiFetch(
+        `/api/catalog-documents/pif/${encodeURIComponent(params.productCode)}`,
+        { method: 'POST', body: formData },
+      );
+      if (!response.ok) throw new Error(`Failed to upload PIF document for ${params.productCode}: ${response.status}`);
       return response.json();
     },
     retry: 0,
