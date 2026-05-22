@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Photobank.Contracts;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Microsoft.Identity.Client;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
@@ -420,28 +421,5 @@ namespace Anela.Heblo.API.Controllers
 
             return new FileStreamResult(rawThumbnail.Content, rawThumbnail.ContentType);
         }
-    }
-
-    public class AddPhotoTagBody
-    {
-        public string TagName { get; set; } = null!;
-    }
-
-    public class CreateTagBody
-    {
-        public string Name { get; set; } = string.Empty;
-    }
-
-    public class BulkAddPhotoTagBody
-    {
-        public List<string>? Tags { get; set; }
-        public string? Search { get; set; }
-        public string TagName { get; set; } = null!;
-    }
-
-    public class BulkAddPhotoTagByIdsBody
-    {
-        public List<int> PhotoIds { get; set; } = [];
-        public string TagName { get; set; } = null!;
     }
 }
