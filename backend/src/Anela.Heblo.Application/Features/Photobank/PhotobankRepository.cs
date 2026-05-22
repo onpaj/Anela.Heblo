@@ -175,6 +175,29 @@ namespace Anela.Heblo.Application.Features.Photobank
             return tag;
         }
 
+        public async Task<IReadOnlyDictionary<string, int>> GetOrCreateTagsAsync(
+            IReadOnlyCollection<string> normalizedNames, CancellationToken cancellationToken)
+        {
+            var tagsByName = await _context.PhotobankTags
+                .Where(t => normalizedNames.Contains(t.Name))
+                .ToDictionaryAsync(t => t.Name, cancellationToken);
+
+            var newTagsCreated = false;
+            foreach (var name in normalizedNames.Where(n => !tagsByName.ContainsKey(n)))
+            {
+                var newTag = new Tag { Name = name };
+                _context.PhotobankTags.Add(newTag);
+                tagsByName[name] = newTag;
+                newTagsCreated = true;
+            }
+
+            // Flush new Tag inserts so they receive DB-assigned IDs before use.
+            if (newTagsCreated)
+                await _context.SaveChangesAsync(cancellationToken);
+
+            return tagsByName.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Id);
+        }
+
         public async Task<Tag?> GetTagByIdAsync(int id, CancellationToken cancellationToken)
         {
             return await _context.PhotobankTags

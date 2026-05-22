@@ -173,4 +173,41 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
         rows.Should().ContainSingle();
         rows[0].Source.Should().Be(PhotoTagSource.Rule);
     }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetOrCreateTagsAsync_returnsExistingIds_andCreatesMissing()
+    {
+        // Arrange
+        _context.PhotobankTags.Add(new Tag { Id = 10, Name = "products" });
+        await _context.SaveChangesAsync(CancellationToken.None);
+
+        // Act — "products" exists, "events" is new
+        var map = await _repository.GetOrCreateTagsAsync(new[] { "products", "events" }, CancellationToken.None);
+
+        // Assert
+        map.Should().ContainKey("products").WhoseValue.Should().Be(10);
+        map.Should().ContainKey("events");
+        map["events"].Should().BeGreaterThan(0); // DB-assigned id
+
+        var persisted = await _context.PhotobankTags.ToListAsync(CancellationToken.None);
+        persisted.Select(t => t.Name).Should().BeEquivalentTo(new[] { "products", "events" });
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetOrCreateTagsAsync_allExisting_returnsIdsWithoutCreating()
+    {
+        // Arrange
+        _context.PhotobankTags.AddRange(
+            new Tag { Id = 10, Name = "products" },
+            new Tag { Id = 11, Name = "events" });
+        await _context.SaveChangesAsync(CancellationToken.None);
+
+        // Act
+        var map = await _repository.GetOrCreateTagsAsync(new[] { "products", "events" }, CancellationToken.None);
+
+        // Assert
+        map["products"].Should().Be(10);
+        map["events"].Should().Be(11);
+        (await _context.PhotobankTags.CountAsync(CancellationToken.None)).Should().Be(2);
+    }
 }
