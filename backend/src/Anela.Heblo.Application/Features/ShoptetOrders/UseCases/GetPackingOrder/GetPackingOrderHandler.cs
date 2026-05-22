@@ -36,6 +36,8 @@ public class GetPackingOrderHandler : IRequestHandler<GetPackingOrderRequest, Ge
                     new Dictionary<string, string> { { "orderCode", request.Code } });
             }
 
+            var isEligible = order.StatusId == _settings.Value.PackingStateId;
+
             return new GetPackingOrderResponse
             {
                 Code = order.Code,
@@ -43,8 +45,12 @@ public class GetPackingOrderHandler : IRequestHandler<GetPackingOrderRequest, Ge
                 ShippingMethodName = order.ShippingMethodName,
                 Cooling = order.Cooling,
                 IsCooled = order.IsCooled,
-                StatusId = order.StatusId,
-                IsInPackingState = order.StatusId == _settings.Value.PackingStateId,
+                Eligibility = new PackingEligibility
+                {
+                    IsEligible = isEligible,
+                    WarningTitle = isEligible ? null : "Objednávka není ve stavu „Balí se“",
+                    WarningBody = isEligible ? null : "Tuto objednávku nezpracovávejte, dokud nebude ve správném stavu.",
+                },
                 CustomerNote = order.CustomerNote,
                 EshopNote = order.EshopNote,
                 Items = order.Items,

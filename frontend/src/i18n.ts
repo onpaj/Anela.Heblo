@@ -259,12 +259,18 @@ const resources = {
         // ShipmentLabels module errors
         ShipmentLabelsNoShipmentFound: "Zásilka k objednávce nebyla nalezena.",
         ShipmentLabelsNotGenerated: "Štítky zásilek nebyly dosud vygenerovány.",
-        ShipmentLabelPdfNotFound: "PDF štítek zásilky nebyl nalezen.",
         ShipmentAlreadyExists: "Zásilka pro tuto objednávku již existuje.",
         ShipmentCarrierNotResolved: "Nepodařilo se určit dopravce pro objednávku.",
         ShipmentCreationFailed: "Vytvoření zásilky se nezdařilo.",
         ShipmentLabelNotReady: "Štítek zásilky ještě není připraven.",
         ShipmentOrderWeightUnavailable: "Hmotnost objednávky není dostupná.",
+
+        // Packaging module errors
+        OrderNotInPackingState: "Objednávka není ve stavu Balí se — zásilku nelze vytvořit.",
+        ShipmentCancelFailed: "Zrušení zásilky u dopravce se nezdařilo.",
+        NoShipmentToReset: "K této objednávce neexistuje žádná zásilka, kterou by bylo možné resetovat.",
+        PackageLabelNotFound: "Štítek pro tento balík nebyl nalezen.",
+        PackageLabelDownloadFailed: "Stažení PDF štítku od dopravce se nezdařilo.",
 
         // CatalogDocuments module errors
         CatalogDocumentInvalidTypeCode: "Neplatný kód typu dokumentu katalogu.",

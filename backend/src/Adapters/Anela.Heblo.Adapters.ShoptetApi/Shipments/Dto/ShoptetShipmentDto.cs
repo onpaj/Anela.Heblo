@@ -10,6 +10,9 @@ public class ShoptetShipmentDto
     [JsonPropertyName("orderCode")]
     public string? OrderCode { get; set; }
 
+    [JsonPropertyName("status")]
+    public string? Status { get; set; }
+
     [JsonPropertyName("packages")]
     public List<ShoptetPackageDto>? Packages { get; set; }
 }
