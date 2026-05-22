@@ -136,6 +136,11 @@ namespace Anela.Heblo.Application.Features.Photobank
             return new PhotoLocator(projection.DriveId, projection.SharePointFileId, projection.ModifiedAt);
         }
 
+        public async Task<List<Photo>> GetAllPhotosAsync(CancellationToken cancellationToken)
+        {
+            return await _context.Photos.ToListAsync(cancellationToken);
+        }
+
         // Tags
 
         public async Task<IReadOnlyList<TagCount>> GetTagsWithCountsAsync(CancellationToken cancellationToken)

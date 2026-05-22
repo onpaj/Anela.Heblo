@@ -25,6 +25,8 @@ namespace Anela.Heblo.Domain.Features.Photobank
 
         Task<PhotoLocator?> GetLocatorAsync(int id, CancellationToken cancellationToken);
 
+        Task<List<Photo>> GetAllPhotosAsync(CancellationToken cancellationToken);
+
         // Tags
         Task<IReadOnlyList<TagCount>> GetTagsWithCountsAsync(CancellationToken cancellationToken);
         Task<Tag?> GetOrCreateTagAsync(string normalizedName, CancellationToken cancellationToken);
