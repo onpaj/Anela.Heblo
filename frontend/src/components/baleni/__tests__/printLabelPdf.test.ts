@@ -238,4 +238,76 @@ describe('printLabelPdf', () => {
     );
     expect(onAfterPrint).toHaveBeenCalledTimes(1);
   });
+
+  it('invokes onAfterPrint via the 60s safety net when afterprint never fires, and only once even if afterprint fires later', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+    });
+    const createElementSpy = jest.spyOn(document, 'createElement');
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+    jest.spyOn(document.body, 'removeChild').mockImplementation(() => null as any);
+    const setTimeoutSpy = jest.spyOn(window, 'setTimeout');
+
+    const onAfterPrint = jest.fn();
+    printLabelPdf('250001', labelWithPackage, onAfterPrint);
+    await flushAsync();
+
+    const iframe = createElementSpy.mock.results[createElementSpy.mock.results.length - 1]
+      .value as HTMLIFrameElement;
+
+    const printMock = jest.fn();
+    const addEventListener = jest.fn();
+    const removeEventListener = jest.fn();
+    Object.defineProperty(iframe, 'contentWindow', {
+      value: { print: printMock, addEventListener, removeEventListener },
+      configurable: true,
+    });
+
+    iframe.onload!(new Event('load'));
+
+    // print() was called but the browser never fires afterprint.
+    expect(printMock).toHaveBeenCalledTimes(1);
+    expect(onAfterPrint).not.toHaveBeenCalled();
+
+    // Fire the 60s cleanup callback — safety net should invoke onAfterPrint.
+    const cleanupCall = setTimeoutSpy.mock.calls.find(([, delay]) => delay && delay >= 1000);
+    expect(cleanupCall).toBeDefined();
+    const cleanupFn = cleanupCall![0] as () => void;
+    cleanupFn();
+
+    expect(onAfterPrint).toHaveBeenCalledTimes(1);
+
+    // If afterprint fires LATER (after the safety net already fired), do not double-invoke.
+    const handler = addEventListener.mock.calls[0][1] as () => void;
+    handler();
+
+    expect(onAfterPrint).toHaveBeenCalledTimes(1);
+
+    jest.restoreAllMocks();
+  });
+
+  it('falls back to window.open and fires onAfterPrint when post-fetch processing throws', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      blob: async () => {
+        throw new Error('blob extraction failed');
+      },
+    });
+    const appendChildSpy = jest.spyOn(document.body, 'appendChild');
+    const onAfterPrint = jest.fn();
+
+    printLabelPdf('250001', labelWithPackage, onAfterPrint);
+    await flushAsync();
+
+    expect(appendChildSpy).not.toHaveBeenCalled();
+    expect(window.open).toHaveBeenCalledWith(
+      expectedProxyUrl,
+      '_blank',
+      'noopener,noreferrer',
+    );
+    expect(onAfterPrint).toHaveBeenCalledTimes(1);
+
+    appendChildSpy.mockRestore();
+  });
 });

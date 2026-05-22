@@ -25,28 +25,41 @@ const silentPrintViaBlob = async (url: string, onAfterPrint?: () => void): Promi
   }
   if (!response.ok) return false;
 
-  const blob = await response.blob();
-  const blobUrl = URL.createObjectURL(blob);
-  const iframe = document.createElement('iframe');
-  iframe.style.display = 'none';
-  iframe.src = blobUrl;
-  iframe.onload = () => {
-    const win = iframe.contentWindow;
-    const handler = () => {
-      win?.removeEventListener('afterprint', handler);
-      onAfterPrint?.();
+  try {
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = blobUrl;
+    let called = false;
+    iframe.onload = () => {
+      const win = iframe.contentWindow;
+      const handler = () => {
+        win?.removeEventListener('afterprint', handler);
+        if (called) return;
+        called = true;
+        onAfterPrint?.();
+      };
+      win?.addEventListener('afterprint', handler);
+      win?.print();
+      // Keep iframe attached until print dialog closes; revoke blob URL after a delay
+      // so the browser can still resolve it while the print preview is open.
+      // Safety net: if `afterprint` never fires (tab closed, browser quirk),
+      // invoke the callback here so consumers aren't stuck.
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+        URL.revokeObjectURL(blobUrl);
+        if (!called) {
+          called = true;
+          onAfterPrint?.();
+        }
+      }, 60_000);
     };
-    win?.addEventListener('afterprint', handler);
-    win?.print();
-    // Keep iframe attached until print dialog closes; revoke blob URL after a delay
-    // so the browser can still resolve it while the print preview is open.
-    setTimeout(() => {
-      document.body.removeChild(iframe);
-      URL.revokeObjectURL(blobUrl);
-    }, 60_000);
-  };
-  document.body.appendChild(iframe);
-  return true;
+    document.body.appendChild(iframe);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export const printLabelPdf = (
