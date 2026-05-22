@@ -116,10 +116,6 @@ public static class AuthenticationExtensions
             options.AddPolicy(AuthorizationConstants.Policies.MarketingReader, policy =>
                 policy.RequireAuthenticatedUser()
                       .RequireRole(AuthorizationConstants.Roles.MarketingReader));
-
-            options.AddPolicy(AuthorizationConstants.Policies.CatalogDocumentsUpload, policy =>
-                policy.RequireAuthenticatedUser()
-                      .RequireRole(AuthorizationConstants.Roles.CatalogManager));
         });
     }
 }
