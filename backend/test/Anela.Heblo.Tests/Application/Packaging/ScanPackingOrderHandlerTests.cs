@@ -422,6 +422,10 @@ public class ScanPackingOrderHandlerTests
             .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PackingOrder { Code = "0001234", StatusId = 99 });
 
+        _shipmentClient
+            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
         await CreateHandler().Handle(
             new ScanPackingOrderRequest { OrderCode = "0001234" },
             CancellationToken.None);
