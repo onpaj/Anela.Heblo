@@ -94,6 +94,7 @@ public class ListMaterialDocumentsHandlerTests
         // Assert
         result.FolderStatus.Should().Be(FolderStatus.MultipleMatches);
         result.Files.Should().BeEmpty();
+        result.Success.Should().BeTrue();
     }
 
     [Fact]
