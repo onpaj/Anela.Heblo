@@ -122,9 +122,6 @@ public class PackingMaterialsListQueryCountTests : IDisposable
         public Task<IEnumerable<PackingMaterialConsumption>> GetConsumptionsByDateAsync(DateOnly date, CancellationToken cancellationToken = default)
             => _inner.GetConsumptionsByDateAsync(date, cancellationToken);
 
-        public Task AddDailyRunAsync(PackingMaterialDailyRun run, CancellationToken cancellationToken = default)
-            => _inner.AddDailyRunAsync(run, cancellationToken);
-
         public Task<PackingMaterial> AddAsync(PackingMaterial entity, CancellationToken cancellationToken = default)
             => _inner.AddAsync(entity, cancellationToken);
 
