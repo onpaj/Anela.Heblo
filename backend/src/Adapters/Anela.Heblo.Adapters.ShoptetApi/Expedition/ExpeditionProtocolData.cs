@@ -18,6 +18,7 @@ public class ExpeditionOrder
     public string? EshopRemark { get; set; }
     public List<ExpeditionOrderItem> Items { get; set; } = new();
     public Cooling CarrierCooling { get; set; } = Cooling.None;
+    public string? GiftBadgeText { get; set; }
 
     public bool IsCooled => Items.Any(i => i.Cooling != Cooling.None && i.Cooling <= CarrierCooling);
 }

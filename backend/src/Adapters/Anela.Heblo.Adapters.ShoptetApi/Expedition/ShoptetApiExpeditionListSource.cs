@@ -49,7 +49,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             ? new HashSet<Carriers>(request.Carriers)
             : null;
 
-        var ordersByMethod = new Dictionary<ShippingMethod, List<(string Code, string ShippingGuid)>>();
+        var ordersByMethod = new Dictionary<ShippingMethod, List<(string Code, string ShippingGuid, decimal? TotalWithVat, string? CurrencyCode)>>();
         foreach (var order in allOrders)
         {
             var shippingGuid = order.Shipping?.Guid;
@@ -60,11 +60,11 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
 
             if (!ordersByMethod.TryGetValue(method, out var list))
             {
-                list = new List<(string, string)>();
+                list = new List<(string, string, decimal?, string?)>();
                 ordersByMethod[method] = list;
             }
 
-            list.Add((order.Code, shippingGuid));
+            list.Add((order.Code, shippingGuid, order.Price?.WithVat, order.Price?.CurrencyCode));
         }
 
         var exportedFiles = new List<string>();
@@ -88,7 +88,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             //    This ensures batches are split based on how much content fits on a printed page,
             //    rather than by an arbitrary order count.
             var allExpeditionOrders = new List<ExpeditionOrder>();
-            foreach (var (code, shippingGuid) in sorted)
+            foreach (var (code, shippingGuid, totalWithVat, currencyCode) in sorted)
             {
                 var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
                 var expeditionOrder = MapToExpeditionOrder(detail);
