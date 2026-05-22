@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Anela.Heblo.Application.Features.Photobank
 {
@@ -67,14 +68,21 @@ namespace Anela.Heblo.Application.Features.Photobank
             if (withoutTags)
                 query = query.Where(p => !p.Tags.Any());
 
-            var total = await query.CountAsync(cancellationToken);
-            var items = await query
-                .OrderByDescending(p => p.ModifiedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
+            try
+            {
+                var total = await query.CountAsync(cancellationToken);
+                var items = await query
+                    .OrderByDescending(p => p.ModifiedAt)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync(cancellationToken);
 
-            return (items, total);
+                return (items, total);
+            }
+            catch (PostgresException ex) when (useRegex && ex.SqlState == "2201B")
+            {
+                throw new InvalidPhotoSearchPatternException(search ?? string.Empty);
+            }
         }
 
         public async Task<int> CountFilteredPhotosAsync(
