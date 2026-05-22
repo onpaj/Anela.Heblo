@@ -517,6 +517,8 @@ public class GetMarginReportHandlerTests
     {
         await Task.Yield(); // Make it async
         throw exception;
-        yield break; // This will never be reached but is required for the compiler
+#pragma warning disable CS0162 // Unreachable code: yield break is required to make this an iterator
+        yield break;
+#pragma warning restore CS0162
     }
 }
