@@ -444,6 +444,7 @@ export const QUERY_KEYS = {
   packingOrder: ["packingOrder"] as const,
   shipmentLabels: ["shipmentLabels"] as const,
   featureFlags: ["feature-flags"] as const,
+  catalogDocuments: ["catalog-documents"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

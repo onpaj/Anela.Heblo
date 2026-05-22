@@ -1,152 +1,216 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import PackingLabelPrinter from '../PackingLabelPrinter';
-import * as useShipmentLabelsModule from '../../../api/hooks/useShipmentLabels';
-import * as printLabelPdfModule from '../printLabelPdf';
-
-jest.mock('../../../api/hooks/useShipmentLabels', () => ({
-  useShipmentLabels: jest.fn(),
-}));
+import { printLabelPdf } from '../printLabelPdf';
+import type { PackingOrder, ScanShipment } from '../../../api/hooks/useScanPackingOrder';
 
 jest.mock('../printLabelPdf', () => ({
   printLabelPdf: jest.fn(),
 }));
 
-const mockUseShipmentLabels =
-  useShipmentLabelsModule.useShipmentLabels as jest.MockedFunction<
-    typeof useShipmentLabelsModule.useShipmentLabels
-  >;
-const mockPrintLabelPdf = printLabelPdfModule.printLabelPdf as jest.MockedFunction<
-  typeof printLabelPdfModule.printLabelPdf
->;
+jest.mock('../PackingShipmentDoneView', () => ({
+  __esModule: true,
+  default: ({ onReprint }: { onReprint: () => void }) => (
+    <div data-testid="done-view">
+      <button data-testid="reprint" onClick={onReprint}>R</button>
+    </div>
+  ),
+}));
 
-const baseQueryResult = {
-  data: undefined,
-  isLoading: false,
-  isSuccess: false,
-  isError: false,
-  error: null,
-} as any;
+const mockPrintLabelPdf = printLabelPdf as jest.MockedFunction<typeof printLabelPdf>;
 
-const label1 = { shipmentGuid: 'guid-1', packageName: 'Zásilka 1', labelUrl: 'https://x.com/1.pdf' };
-const label2 = { shipmentGuid: 'guid-1', packageName: 'Zásilka 2', labelUrl: 'https://x.com/2.pdf' };
-const label3 = { shipmentGuid: 'guid-1', packageName: 'Zásilka 3', labelUrl: 'https://x.com/3.pdf' };
+const makeOrder = (code: string): PackingOrder => ({
+  code,
+  customerName: 'X',
+  shippingMethodName: 'Y',
+  cooling: 'None',
+  isCooled: false,
+  customerNote: null,
+  eshopNote: null,
+  eligibility: { isEligible: true, warningTitle: null, warningBody: null },
+  items: [],
+  shippingAddress: null,
+});
+
+const makeShipment = (packages: ScanShipment['packages']): ScanShipment => ({
+  shipmentGuid: 'guid-1',
+  packages,
+  alreadyExisted: false,
+});
+
+const pkg1 = { name: 'PKG-1', trackingNumber: null, labelUrl: 'https://x.com/1.pdf', labelZpl: null };
+const pkg2 = { name: 'PKG-2', trackingNumber: null, labelUrl: 'https://x.com/2.pdf', labelZpl: null };
+const pkg3 = { name: 'PKG-3', trackingNumber: null, labelUrl: 'https://x.com/3.pdf', labelZpl: null };
+
+const expectedLabel = (shipmentGuid: string, packageName: string, labelUrl: string) => ({
+  shipmentGuid,
+  packageName,
+  labelUrl,
+  labelZpl: undefined,
+});
+
+function fireAck(callIndex: number): void {
+  const cb = mockPrintLabelPdf.mock.calls[callIndex][2];
+  expect(typeof cb).toBe('function');
+  act(() => {
+    cb?.();
+  });
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
 describe('PackingLabelPrinter', () => {
-  it('renders nothing while loading', () => {
-    mockUseShipmentLabels.mockReturnValue({ ...baseQueryResult, isLoading: true });
-    const { container } = render(<PackingLabelPrinter orderCode="250001" />);
+  it('renders nothing when shipment has no packages', () => {
+    const { container } = render(
+      <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([])} />
+    );
     expect(container).toBeEmptyDOMElement();
-  });
-
-  it('auto-prints the first label when labels load', () => {
-    mockUseShipmentLabels.mockReturnValue({
-      ...baseQueryResult,
-      isSuccess: true,
-      data: [label1],
-    });
-
-    render(<PackingLabelPrinter orderCode="250001" />);
-
-    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(1);
-    expect(mockPrintLabelPdf).toHaveBeenCalledWith('250001', label1);
-  });
-
-  it('renders nothing visible after auto-printing the only label', () => {
-    mockUseShipmentLabels.mockReturnValue({
-      ...baseQueryResult,
-      isSuccess: true,
-      data: [label1],
-    });
-
-    const { container } = render(<PackingLabelPrinter orderCode="250001" />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('shows confirmation button for each label after the first', () => {
-    mockUseShipmentLabels.mockReturnValue({
-      ...baseQueryResult,
-      isSuccess: true,
-      data: [label1, label2, label3],
-    });
-
-    render(<PackingLabelPrinter orderCode="250001" />);
-
-    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(1);
-    expect(mockPrintLabelPdf).toHaveBeenCalledWith('250001', label1);
-    expect(screen.getByTestId('print-next-label-button')).toHaveTextContent(
-      'Vytisknout štítek 2/3'
-    );
-  });
-
-  it('prints the next label and updates the button when tapped', () => {
-    mockUseShipmentLabels.mockReturnValue({
-      ...baseQueryResult,
-      isSuccess: true,
-      data: [label1, label2, label3],
-    });
-
-    render(<PackingLabelPrinter orderCode="250001" />);
-
-    fireEvent.click(screen.getByTestId('print-next-label-button'));
-
-    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(2);
-    expect(mockPrintLabelPdf).toHaveBeenNthCalledWith(2, '250001', label2);
-    expect(screen.getByTestId('print-next-label-button')).toHaveTextContent(
-      'Vytisknout štítek 3/3'
-    );
-  });
-
-  it('hides the button after all labels are printed', () => {
-    mockUseShipmentLabels.mockReturnValue({
-      ...baseQueryResult,
-      isSuccess: true,
-      data: [label1, label2],
-    });
-
-    render(<PackingLabelPrinter orderCode="250001" />);
-    fireEvent.click(screen.getByTestId('print-next-label-button'));
-
-    expect(screen.queryByTestId('print-next-label-button')).not.toBeInTheDocument();
-  });
-
-  it('shows an error banner when the hook reports an error', () => {
-    mockUseShipmentLabels.mockReturnValue({
-      ...baseQueryResult,
-      isError: true,
-      error: new Error('Štítky zatím nebyly vygenerovány'),
-    });
-
-    render(<PackingLabelPrinter orderCode="250001" />);
-
-    expect(screen.getByTestId('label-print-error')).toHaveTextContent(
-      'Štítky zatím nebyly vygenerovány'
-    );
     expect(mockPrintLabelPdf).not.toHaveBeenCalled();
   });
 
-  it('resets printedCount when the orderCode changes', () => {
-    mockUseShipmentLabels.mockReturnValue({
-      ...baseQueryResult,
-      isSuccess: true,
-      data: [label1, label2],
-    });
+  it('auto-prints first label on mount with an onAfterPrint callback', () => {
+    render(
+      <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />
+    );
 
-    const { rerender } = render(<PackingLabelPrinter orderCode="250001" />);
-
-    // After first render: auto-printed label1, button shows "2/2"
     expect(mockPrintLabelPdf).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId('print-next-label-button')).toHaveTextContent('2/2');
+    expect(mockPrintLabelPdf).toHaveBeenCalledWith(
+      '250001',
+      expectedLabel('guid-1', 'PKG-1', 'https://x.com/1.pdf'),
+      expect.any(Function)
+    );
+  });
 
-    // New scan
-    rerender(<PackingLabelPrinter orderCode="250002" />);
+  it('does NOT show done view until the last label\'s afterprint callback fires (single label)', () => {
+    render(
+      <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />
+    );
 
-    // auto-prints the first label of the new order
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+
+    fireAck(0);
+
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+  });
+
+  it('multi label: each button click prints next label with its own callback; done view appears only after the LAST callback fires', () => {
+    render(
+      <PackingLabelPrinter
+        order={makeOrder('250001')}
+        shipment={makeShipment([pkg1, pkg2])}
+      />
+    );
+
+    // After mount: label1 auto-printed, button for 2/2 visible
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('print-next-label-button')).toHaveTextContent('Vytisknout štítek 2/2');
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+
+    // Fire first ack -> still no done view (1 of 2 labels printed; need to print 2nd)
+    fireAck(0);
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+    expect(screen.getByTestId('print-next-label-button')).toBeInTheDocument();
+
+    // Click button to print second label
+    fireEvent.click(screen.getByTestId('print-next-label-button'));
     expect(mockPrintLabelPdf).toHaveBeenCalledTimes(2);
-    expect(mockPrintLabelPdf).toHaveBeenLastCalledWith('250002', label1);
+    expect(mockPrintLabelPdf).toHaveBeenNthCalledWith(
+      2,
+      '250001',
+      expectedLabel('guid-1', 'PKG-2', 'https://x.com/2.pdf'),
+      expect.any(Function)
+    );
+
+    // printedCount=2, ack=1 → render rule #3 fires (null), button gone but no done view yet
+    expect(screen.queryByTestId('print-next-label-button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+
+    // Fire 2nd ack -> done view appears
+    fireAck(1);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+  });
+
+  it('three labels: button cycles through and done view shows only after final ack', () => {
+    render(
+      <PackingLabelPrinter
+        order={makeOrder('250001')}
+        shipment={makeShipment([pkg1, pkg2, pkg3])}
+      />
+    );
+
+    expect(screen.getByTestId('print-next-label-button')).toHaveTextContent('Vytisknout štítek 2/3');
+    fireAck(0);
+
+    fireEvent.click(screen.getByTestId('print-next-label-button'));
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(2);
+    expect(mockPrintLabelPdf).toHaveBeenNthCalledWith(
+      2,
+      '250001',
+      expectedLabel('guid-1', 'PKG-2', 'https://x.com/2.pdf'),
+      expect.any(Function)
+    );
+    expect(screen.getByTestId('print-next-label-button')).toHaveTextContent('Vytisknout štítek 3/3');
+    fireAck(1);
+
+    fireEvent.click(screen.getByTestId('print-next-label-button'));
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(3);
+    expect(mockPrintLabelPdf).toHaveBeenNthCalledWith(
+      3,
+      '250001',
+      expectedLabel('guid-1', 'PKG-3', 'https://x.com/3.pdf'),
+      expect.any(Function)
+    );
+
+    // All printed but final ack pending → null
+    expect(screen.queryByTestId('print-next-label-button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+
+    fireAck(2);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+  });
+
+  it('clicking reprint in done view resets state and re-prints from label 0', () => {
+    render(
+      <PackingLabelPrinter order={makeOrder('250001')} shipment={makeShipment([pkg1])} />
+    );
+
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(1);
+    fireAck(0);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('reprint'));
+
+    // After reprint click: effect re-fires, prints label[0] again
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(2);
+    expect(mockPrintLabelPdf).toHaveBeenNthCalledWith(
+      2,
+      '250001',
+      expectedLabel('guid-1', 'PKG-1', 'https://x.com/1.pdf'),
+      expect.any(Function)
+    );
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
+  });
+
+  it('resets state when order.code changes', () => {
+    const shipment = makeShipment([pkg1]);
+    const { rerender } = render(
+      <PackingLabelPrinter order={makeOrder('250001')} shipment={shipment} />
+    );
+
+    fireAck(0);
+    expect(screen.getByTestId('done-view')).toBeInTheDocument();
+
+    rerender(<PackingLabelPrinter order={makeOrder('250002')} shipment={shipment} />);
+
+    // Counters reset; auto-prints labels[0] of new order
+    expect(mockPrintLabelPdf).toHaveBeenCalledTimes(2);
+    expect(mockPrintLabelPdf).toHaveBeenLastCalledWith(
+      '250002',
+      expectedLabel('guid-1', 'PKG-1', 'https://x.com/1.pdf'),
+      expect.any(Function)
+    );
+    expect(screen.queryByTestId('done-view')).not.toBeInTheDocument();
   });
 });

@@ -16,6 +16,7 @@ using Anela.Heblo.Application.Features.InvoiceClassification;
 using Anela.Heblo.Application.Features.Invoices;
 using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionListArchive;
+using Anela.Heblo.Application.Features.CatalogDocuments;
 using Anela.Heblo.Application.Features.KnowledgeBase;
 using Anela.Heblo.Application.Features.Article;
 using Anela.Heblo.Application.Features.Leaflet;
@@ -87,6 +88,7 @@ public static class ApplicationModule
         services.AddPackingMaterialsModule();
         services.AddInvoicesModule();
         services.AddKnowledgeBaseModule(configuration);
+        services.AddCatalogDocumentsModule(configuration);
         services.AddLeafletModule(configuration);
         services.AddArticleModule(configuration);
         services.AddExpeditionListModule(configuration);

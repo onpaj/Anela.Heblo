@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   useBackgroundTasks,
   useForceRefreshTask,
+  useRunHydrationTier,
 } from "../api/hooks/useBackgroundRefresh";
 import { RefreshTaskDto } from "../api/generated/api-client";
 import {
@@ -18,8 +19,10 @@ import TaskHistoryModal from "./TaskHistoryModal";
 const BackgroundTasksCard: React.FC = () => {
   const { data: tasks, isLoading, error } = useBackgroundTasks();
   const forceRefreshMutation = useForceRefreshTask();
+  const runHydrationTierMutation = useRunHydrationTier();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [refreshingTaskId, setRefreshingTaskId] = useState<string | null>(null);
+  const [runningTier, setRunningTier] = useState<number | null>(null);
 
   // Group tasks by HydrationTier - must be called before any early returns
   const groupedTasks = React.useMemo(() => {
@@ -81,6 +84,17 @@ const BackgroundTasksCard: React.FC = () => {
       console.error("Failed to force refresh task:", error);
     } finally {
       setRefreshingTaskId(null);
+    }
+  };
+
+  const handleRunTier = async (tier: number) => {
+    setRunningTier(tier);
+    try {
+      await runHydrationTierMutation.mutateAsync(tier);
+    } catch (error) {
+      console.error(`Failed to run hydration tier ${tier}:`, error);
+    } finally {
+      setRunningTier(null);
     }
   };
 
@@ -271,13 +285,39 @@ const BackgroundTasksCard: React.FC = () => {
                   {/* Tier Header Row */}
                   <tr className="bg-gray-50 border-t-2 border-gray-300">
                     <td colSpan={6} className="px-4 py-3">
-                      <div className="flex items-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTierBadgeColor(tier)}`}>
-                          Tier {tier}
-                        </span>
-                        <span className="ml-3 text-sm text-gray-600">
-                          {tasksInTier.length} {tasksInTier.length === 1 ? 'task' : 'tasků'}
-                        </span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTierBadgeColor(tier)}`}>
+                            Tier {tier}
+                          </span>
+                          <span className="ml-3 text-sm text-gray-600">
+                            {tasksInTier.length} {tasksInTier.length === 1 ? 'task' : 'tasků'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleRunTier(tier)}
+                          disabled={runningTier !== null || refreshingTaskId !== null}
+                          className={`inline-flex items-center px-3 py-1.5 border rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+                            runningTier === tier
+                              ? "border-indigo-300 text-indigo-700 bg-indigo-50 cursor-not-allowed"
+                              : runningTier !== null || refreshingTaskId !== null
+                                ? "border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed"
+                                : "border-indigo-300 text-indigo-700 bg-white hover:bg-indigo-50"
+                          }`}
+                          title={`Spustit všechny tasky v tier ${tier} v pořadí`}
+                        >
+                          {runningTier === tier ? (
+                            <>
+                              <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                              Spouští tier...
+                            </>
+                          ) : (
+                            <>
+                              <PlayCircle className="w-3 h-3 mr-1" />
+                              Spustit tier
+                            </>
+                          )}
+                        </button>
                       </div>
                     </td>
                   </tr>

@@ -22,4 +22,10 @@ public class ShoptetOrdersSettings
     /// The Balení packing screen warns the operator when a scanned order is in any other state.
     /// </summary>
     public int PackingStateId { get; set; } = 26;
+
+    /// <summary>
+    /// Shoptet order status ID assigned after the operator successfully scans and packs an order.
+    /// Defaults to 52 ("Zabaleno").
+    /// </summary>
+    public int PackedStateId { get; set; } = 52;
 }
