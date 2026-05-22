@@ -28,6 +28,8 @@ public interface ISmartsuppApiClient
         string content,
         string? agentId,
         CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<SmartsuppAgentData>> GetAgentsAsync(CancellationToken cancellationToken);
 }
 
 public class SmartsuppSearchResult
@@ -133,4 +135,11 @@ public class SmartsuppSentMessageData
 {
     public string Id { get; set; } = null!;
     public DateTime CreatedAt { get; set; }
+}
+
+public class SmartsuppAgentData
+{
+    public string Id { get; set; } = null!;
+    public string? Name { get; set; }
+    public string? Email { get; set; }
 }

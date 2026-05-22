@@ -47,8 +47,8 @@ const ConversationList: React.FC<ConversationListProps> = ({
       )}
       {[...conversations]
         .sort((a, b) => {
-          const aTime = a.lastMessageAt ?? a.createdAt;
-          const bTime = b.lastMessageAt ?? b.createdAt;
+          const aTime = a.lastMessageAt ?? a.updatedAt;
+          const bTime = b.lastMessageAt ?? b.updatedAt;
           return bTime < aTime ? -1 : bTime > aTime ? 1 : 0;
         })
         .map((c) => (
