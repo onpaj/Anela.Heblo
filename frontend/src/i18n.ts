@@ -222,6 +222,10 @@ const resources = {
         BulkTagInvalidRequest: "Neplatný požadavek pro hromadné tagování.",
         PhotobankTagNotFound: "Tag fotobanka nebyl nalezen.",
         PhotobankInvalidRegexPattern: "Neplatný regulární výraz.",
+        PhotobankThumbnailNotFound: "Náhled fotky nebyl nalezen.",
+        PhotobankThumbnailThrottled: "Služba náhledů je přetížena. Zkuste to prosím znovu.",
+        PhotobankThumbnailAuthUnavailable: "Autentizační služba náhledů je nedostupná.",
+        PhotobankThumbnailUpstream: "Chyba vzdálené služby náhledů.",
 
         // Smartsupp module errors
         SmartsuppConversationNotFound: "Konverzace Smartsupp nebyla nalezena",
