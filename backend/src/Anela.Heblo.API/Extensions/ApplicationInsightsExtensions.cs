@@ -48,8 +48,7 @@ public static class ApplicationInsightsExtensions
             RequestCollectionOptions =
             {
                 InjectResponseHeaders = false,
-                TrackExceptions = true,
-                EnableW3CDistributedTracing = true
+                TrackExceptions = true
             }
         };
 
