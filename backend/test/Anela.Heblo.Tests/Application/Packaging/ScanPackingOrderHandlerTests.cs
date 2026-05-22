@@ -214,14 +214,22 @@ public class ScanPackingOrderHandlerTests
     {
         var shipmentGuid = Guid.NewGuid();
 
-        var orderWithAddress = EligibleOrder(("P001", 1, 400));
-        orderWithAddress.ShippingStreet = "Hlavní 123";
-        orderWithAddress.ShippingCity = "Praha";
-        orderWithAddress.ShippingZip = "110 00";
+        var order = new PackingOrder
+        {
+            Code = "0001234",
+            StatusId = 26,
+            Items = new List<PackingOrderItem>
+            {
+                new() { Name = "P001", Quantity = 1, WeightGrams = 400 },
+            },
+            ShippingStreet = "Hlavní 123",
+            ShippingCity = "Praha",
+            ShippingZip = "110 00",
+        };
 
         _orderClient
             .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(orderWithAddress);
+            .ReturnsAsync(order);
 
         _shipmentClient
             .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))

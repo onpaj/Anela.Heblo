@@ -115,11 +115,14 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
             CustomerNote = string.IsNullOrWhiteSpace(order.CustomerRemark) ? null : order.CustomerRemark,
             EshopNote = string.IsNullOrWhiteSpace(order.EshopRemark) ? null : order.EshopRemark,
             ShippingStreet = shippingStreet,
-            ShippingCity = deliveryAddress?.City,
-            ShippingZip = deliveryAddress?.Zip,
+            ShippingCity = NormalizeAddressField(deliveryAddress?.City),
+            ShippingZip = NormalizeAddressField(deliveryAddress?.Zip),
             Items = items,
         };
     }
+
+    private static string? NormalizeAddressField(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static string? CombineStreetAndHouseNumber(string? street, string? houseNumber)
     {

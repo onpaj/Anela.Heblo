@@ -139,9 +139,9 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
 
     private static ShippingAddress? BuildShippingAddress(PackingOrder order)
     {
-        var street = string.IsNullOrWhiteSpace(order.ShippingStreet) ? null : order.ShippingStreet.Trim();
-        var city = string.IsNullOrWhiteSpace(order.ShippingCity) ? null : order.ShippingCity.Trim();
-        var zip = string.IsNullOrWhiteSpace(order.ShippingZip) ? null : order.ShippingZip.Trim();
+        var street = string.IsNullOrEmpty(order.ShippingStreet) ? null : order.ShippingStreet;
+        var city = string.IsNullOrEmpty(order.ShippingCity) ? null : order.ShippingCity;
+        var zip = string.IsNullOrEmpty(order.ShippingZip) ? null : order.ShippingZip;
 
         if (street is null && city is null && zip is null)
             return null;
