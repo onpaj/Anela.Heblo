@@ -19,6 +19,7 @@ using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.Journal;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
+using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
@@ -90,6 +91,9 @@ public class ApplicationDbContext : DbContext
 
     // Carrier Cooling module
     public DbSet<CarrierCoolingSetting> CarrierCoolingSettings { get; set; } = null!;
+
+    // Gift Settings module
+    public DbSet<GiftSetting> GiftSettings { get; set; } = null!;
 
     // Background Jobs module
     public DbSet<RecurringJobConfiguration> RecurringJobConfigurations { get; set; } = null!;

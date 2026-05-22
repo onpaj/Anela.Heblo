@@ -6,6 +6,7 @@ import {
   BookOpen,
   ArrowRight,
   Beaker,
+  FolderOpen,
 } from "lucide-react";
 import { CatalogItemDto, ProductType } from "../../../api/hooks/useCatalog";
 import { SearchJournalEntryDto } from "../../../api/generated/api-client";
@@ -15,12 +16,14 @@ import MarginsTab from "./tabs/MarginsTab/MarginsTab";
 import JournalTab from "./tabs/JournalTab";
 import UsageTab from "./tabs/UsageTab";
 import CompositionTab from "./tabs/CompositionTab";
+import MaterialDocumentsTab from "./tabs/MaterialDocumentsTab";
+import PifDocumentsTab from "./tabs/PifDocumentsTab";
 
 interface CatalogDetailTabsProps {
   item: CatalogItemDto;
-  activeTab: "basic" | "history" | "margins" | "composition" | "journal" | "usage";
+  activeTab: "basic" | "history" | "margins" | "composition" | "journal" | "usage" | "documents" | "pif";
   onTabChange: (
-    tab: "basic" | "history" | "margins" | "composition" | "journal" | "usage",
+    tab: "basic" | "history" | "margins" | "composition" | "journal" | "usage" | "documents" | "pif",
   ) => void;
   detailData: any;
   isLoading: boolean;
@@ -135,6 +138,37 @@ const CatalogDetailTabs: React.FC<CatalogDetailTabsProps> = ({
             <span>Použití</span>
           </button>
         )}
+
+        {/* Dokumenty tab - pouze pro Material */}
+        {item?.type === ProductType.Material && (
+          <button
+            onClick={() => onTabChange("documents")}
+            className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
+              activeTab === "documents"
+                ? "border-indigo-500 text-indigo-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <FolderOpen className="h-4 w-4" />
+            <span>Dokumenty</span>
+          </button>
+        )}
+
+        {/* PIF tab - pouze pro Product a SemiProduct */}
+        {(item?.type === ProductType.Product ||
+          item?.type === ProductType.SemiProduct) && (
+          <button
+            onClick={() => onTabChange("pif")}
+            className={`px-4 py-2 text-sm font-medium flex items-center space-x-2 border-b-2 transition-colors ${
+              activeTab === "pif"
+                ? "border-indigo-500 text-indigo-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            <FolderOpen className="h-4 w-4" />
+            <span>PIF</span>
+          </button>
+        )}
       </div>
 
       {/* Tab Content */}
@@ -163,6 +197,10 @@ const CatalogDetailTabs: React.FC<CatalogDetailTabsProps> = ({
           <CompositionTab productCode={item.productCode || ""} />
         ) : activeTab === "usage" ? (
           <UsageTab productCode={item.productCode || ""} />
+        ) : activeTab === "documents" ? (
+          <MaterialDocumentsTab productCode={item.productCode || ""} />
+        ) : activeTab === "pif" ? (
+          <PifDocumentsTab productCode={item.productCode || ""} />
         ) : (
           <JournalTab
             productCode={item.productCode || ""}

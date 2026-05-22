@@ -1,116 +1,149 @@
-import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
-import { useCreateShipment, CreateShipmentResult } from '../../api/hooks/useCreateShipment';
-import { useShipmentLabels } from '../../api/hooks/useShipmentLabels';
+import { useEffect, useState } from 'react';
+import { useResetOrderShipment } from '../../api/hooks/useResetOrderShipment';
+import type { PackingOrder, ScanShipment } from '../../api/hooks/useScanPackingOrder';
 import PackingLabelPrinter from './PackingLabelPrinter';
-import type { ShipmentLabelDto } from '../../api/generated/api-client';
+import PackingShipmentDoneView from './PackingShipmentDoneView';
 
 interface PackingShipmentCreatorProps {
-  orderCode: string;
+  order: PackingOrder;
+  scanShipment: ScanShipment | null;
+  onDoneStateChange?: (isDone: boolean) => void;
 }
 
-function PackingShipmentCreator({ orderCode }: PackingShipmentCreatorProps) {
-  const mutation = useCreateShipment();
-  const [reuseExisting, setReuseExisting] = useState(false);
+function PackingShipmentCreator({ order, scanShipment, onDoneStateChange }: PackingShipmentCreatorProps) {
+  const [showDialog, setShowDialog] = useState(false);
+  const [shipmentForPrint, setShipmentForPrint] = useState<ScanShipment | null>(null);
+  const [printerIsDone, setPrinterIsDone] = useState(false);
+  const resetMutation = useResetOrderShipment();
 
-  // useShipmentLabels with enabled=false — only used for its refetch on the retry path
-  const labelsQuery = useShipmentLabels(orderCode, false);
+  const isEligible = order.eligibility.isEligible;
+  const showsNonEligibleReview =
+    scanShipment !== null && !isEligible && shipmentForPrint === null;
+  const isShowingDoneView = showsNonEligibleReview || printerIsDone;
 
-  const handleCreate = (forceCreate: boolean) => {
-    setReuseExisting(false);
-    mutation.mutate({ orderCode, forceCreate });
-  };
+  useEffect(() => {
+    setPrinterIsDone(false);
+    setShowDialog(false);
+    setShipmentForPrint(null);
+    if (!scanShipment) return;
+    if (!isEligible) return;
+    if (scanShipment.alreadyExisted) {
+      setShowDialog(true);
+    } else {
+      setShipmentForPrint(scanShipment);
+    }
+  }, [scanShipment, isEligible]);
 
-  const handleUseExisting = (_existingLabels: ShipmentLabelDto[]) => {
-    setReuseExisting(true);
-  };
+  useEffect(() => {
+    onDoneStateChange?.(isShowingDoneView);
+  }, [isShowingDoneView, onDoneStateChange]);
 
-  const handleRetry = () => {
-    void labelsQuery.refetch();
-  };
-
-  if (reuseExisting) {
-    return <PackingLabelPrinter orderCode={orderCode} />;
+  function handleReprint() {
+    setShowDialog(false);
+    setShipmentForPrint(scanShipment!);
   }
 
-  if (mutation.isPending) {
+  function handleInvalidateAndNew() {
+    setShowDialog(false);
+    resetMutation.mutate(order.code, {
+      onSuccess: (newShipment) => {
+        setShipmentForPrint(newShipment);
+      },
+    });
+  }
+
+  function handleNonEligibleReprint() {
+    if (scanShipment) {
+      setShipmentForPrint(scanShipment);
+    }
+  }
+
+  if (shipmentForPrint) {
     return (
-      <div data-testid="shipment-creating-spinner" className="flex items-center gap-2 text-neutral-gray">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        <span>Vytvářím zásilku…</span>
-      </div>
+      <PackingLabelPrinter
+        order={order}
+        shipment={shipmentForPrint}
+        onDoneStateChange={setPrinterIsDone}
+      />
     );
   }
 
-  if (mutation.isError) {
+  if (showsNonEligibleReview && scanShipment) {
+    return (
+      <PackingShipmentDoneView
+        order={order}
+        shipment={scanShipment}
+        onReprint={handleNonEligibleReprint}
+      />
+    );
+  }
+
+  if (resetMutation.isPending) {
     return (
       <div
-        data-testid="shipment-error-banner"
-        className="rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700"
+        data-testid="shipment-creating-spinner"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
       >
-        {mutation.error?.message ?? 'Zásilku se nepodařilo vytvořit'}
-        <button
-          className="ml-4 underline"
-          onClick={() => mutation.reset()}
-        >
-          Zpět
-        </button>
-      </div>
-    );
-  }
-
-  const result: CreateShipmentResult | undefined = mutation.data;
-
-  if (result?.existingShipmentFound) {
-    return (
-      <div className="flex flex-col gap-3">
-        <p className="text-sm font-semibold text-amber-700">
-          Zásilka již existuje pro tuto objednávku.
-        </p>
-        <div className="flex gap-3">
-          <button
-            className="rounded-lg border border-neutral-300 bg-white px-5 py-3 text-sm font-medium shadow"
-            onClick={() => handleUseExisting(result.labels)}
-          >
-            Použít existující
-          </button>
-          <button
-            className="rounded-lg bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow active:scale-95"
-            onClick={() => handleCreate(true)}
-          >
-            Vytvořit novou
-          </button>
+        <div className="flex w-full max-w-md flex-col items-center gap-6 rounded-2xl bg-white p-10 shadow-2xl">
+          <p className="text-2xl font-bold text-neutral-slate">Vytvářím novou zásilku…</p>
+          <div className="relative h-4 w-full overflow-hidden rounded-full bg-neutral-200">
+            <div
+              className="absolute h-full rounded-full bg-primary-blue"
+              style={{ animation: 'indeterminate-progress 1.5s ease-in-out infinite' }}
+            />
+          </div>
+          <p className="text-sm text-neutral-gray">Prosím čekejte</p>
         </div>
       </div>
     );
   }
 
-  if (result?.labelReady && result.labels.length > 0) {
-    return <PackingLabelPrinter orderCode={orderCode} />;
-  }
-
-  if (result && !result.labelReady) {
-    if (labelsQuery.data && labelsQuery.data.length > 0) {
-      return <PackingLabelPrinter orderCode={orderCode} />;
-    }
+  if (resetMutation.isError) {
     return (
-      <button
-        className="rounded-lg border border-neutral-300 bg-white px-5 py-3 text-sm font-medium shadow"
-        onClick={handleRetry}
+      <div
+        data-testid="shipment-error-banner"
+        className="rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700"
       >
-        Zkusit znovu
-      </button>
+        {resetMutation.error?.message ?? 'Zásilku se nepodařilo vytvořit'}
+      </div>
     );
   }
 
-  return (
-    <button
-      className="rounded-lg bg-brand-600 px-6 py-4 text-lg font-semibold text-white shadow active:scale-95"
-      onClick={() => handleCreate(false)}
-    >
-      Vytvořit zásilku
-    </button>
-  );
+  if (showDialog) {
+    return (
+      <div
+        data-testid="existing-shipment-modal"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
+      >
+        <div className="flex w-full max-w-sm flex-col gap-6 rounded-2xl bg-white p-8 shadow-2xl">
+          <p className="text-center text-2xl font-bold text-amber-700">
+            Zásilka pro tuto objednávku již existuje.
+          </p>
+          <div className="flex flex-col gap-4">
+            <button
+              className="w-full rounded-xl border-2 border-neutral-300 bg-white py-5 text-lg font-semibold shadow active:scale-95"
+              onClick={handleReprint}
+            >
+              Použít existující zásilku
+              {scanShipment && (
+                <span className="block text-sm font-normal text-neutral-gray">
+                  {scanShipment.packages.map((p) => p.trackingNumber ?? p.name).join(', ')}
+                </span>
+              )}
+            </button>
+            <button
+              className="w-full rounded-xl bg-primary-blue py-5 text-lg font-semibold text-white shadow active:scale-95"
+              onClick={handleInvalidateAndNew}
+            >
+              Vytvořit novou zásilku
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export default PackingShipmentCreator;

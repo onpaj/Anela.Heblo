@@ -7464,6 +7464,124 @@ export class ApiClient {
         return Promise.resolve<OrgChartResponse>(null as any);
     }
 
+    packaging_ScanOrder(orderCode: string): Promise<ScanPackingOrderResponse> {
+        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/scan";
+        if (orderCode === undefined || orderCode === null)
+            throw new Error("The parameter 'orderCode' must be defined.");
+        url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_ScanOrder(_response);
+        });
+    }
+
+    protected processPackaging_ScanOrder(response: Response): Promise<ScanPackingOrderResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ScanPackingOrderResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ScanPackingOrderResponse>(null as any);
+    }
+
+    packaging_ResetShipment(orderCode: string): Promise<ResetOrderShipmentResponse> {
+        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/shipment/reset";
+        if (orderCode === undefined || orderCode === null)
+            throw new Error("The parameter 'orderCode' must be defined.");
+        url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_ResetShipment(_response);
+        });
+    }
+
+    protected processPackaging_ResetShipment(response: Response): Promise<ResetOrderShipmentResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ResetOrderShipmentResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ResetOrderShipmentResponse>(null as any);
+    }
+
+    packaging_GetPackageLabelPdf(orderCode: string, packageName: string): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/packages/{packageName}/label.pdf";
+        if (orderCode === undefined || orderCode === null)
+            throw new Error("The parameter 'orderCode' must be defined.");
+        url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
+        if (packageName === undefined || packageName === null)
+            throw new Error("The parameter 'packageName' must be defined.");
+        url_ = url_.replace("{packageName}", encodeURIComponent("" + packageName));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_GetPackageLabelPdf(_response);
+        });
+    }
+
+    protected processPackaging_GetPackageLabelPdf(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
     packingMaterials_GetPackingMaterials(): Promise<GetPackingMaterialsListResponse> {
         let url_ = this.baseUrl + "/api/packing-materials";
         url_ = url_.replace(/[?&]$/, "");
@@ -7569,6 +7687,20 @@ export class ApiClient {
             result200 = UpdatePackingMaterialResponse.fromJS(resultData200);
             return result200;
             });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -7577,7 +7709,7 @@ export class ApiClient {
         return Promise.resolve<UpdatePackingMaterialResponse>(null as any);
     }
 
-    packingMaterials_DeletePackingMaterial(id: number): Promise<FileResponse> {
+    packingMaterials_DeletePackingMaterial(id: number): Promise<void> {
         let url_ = this.baseUrl + "/api/packing-materials/{id}";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -7587,7 +7719,6 @@ export class ApiClient {
         let options_: RequestInit = {
             method: "DELETE",
             headers: {
-                "Accept": "application/octet-stream"
             }
         };
 
@@ -7596,26 +7727,33 @@ export class ApiClient {
         });
     }
 
-    protected processPackingMaterials_DeletePackingMaterial(response: Response): Promise<FileResponse> {
+    protected processPackingMaterials_DeletePackingMaterial(response: Response): Promise<void> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<FileResponse>(null as any);
+        return Promise.resolve<void>(null as any);
     }
 
     packingMaterials_UpdatePackingMaterialQuantity(id: number, request: UpdateQuantityRequest): Promise<UpdatePackingMaterialQuantityResponse> {
@@ -7650,6 +7788,20 @@ export class ApiClient {
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result200 = UpdatePackingMaterialQuantityResponse.fromJS(resultData200);
             return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -7776,6 +7928,20 @@ export class ApiClient {
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result200 = GetPackingMaterialLogsResponse.fromJS(resultData200);
             return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -9666,56 +9832,6 @@ export class ApiClient {
         return Promise.resolve<CreateOrderShipmentResponse>(null as any);
     }
 
-    shipmentLabels_GetLabelPdf(orderCode: string | undefined, shipmentGuid: string | undefined, packageName: string | undefined): Promise<FileResponse> {
-        let url_ = this.baseUrl + "/api/shipment-labels/pdf?";
-        if (orderCode === null)
-            throw new Error("The parameter 'orderCode' cannot be null.");
-        else if (orderCode !== undefined)
-            url_ += "orderCode=" + encodeURIComponent("" + orderCode) + "&";
-        if (shipmentGuid === null)
-            throw new Error("The parameter 'shipmentGuid' cannot be null.");
-        else if (shipmentGuid !== undefined)
-            url_ += "shipmentGuid=" + encodeURIComponent("" + shipmentGuid) + "&";
-        if (packageName === null)
-            throw new Error("The parameter 'packageName' cannot be null.");
-        else if (packageName !== undefined)
-            url_ += "packageName=" + encodeURIComponent("" + packageName) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/octet-stream"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processShipmentLabels_GetLabelPdf(_response);
-        });
-    }
-
-    protected processShipmentLabels_GetLabelPdf(response: Response): Promise<FileResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<FileResponse>(null as any);
-    }
-
     shoptetOrders_BlockOrder(code: string, body: BlockOrderRequest): Promise<BlockOrderProcessingResponse> {
         let url_ = this.baseUrl + "/api/shoptet-orders/{code}/block";
         if (code === undefined || code === null)
@@ -11543,12 +11659,16 @@ export enum ErrorCodes {
     WeatherForecastUnavailable = "WeatherForecastUnavailable",
     ShipmentLabelsNoShipmentFound = "ShipmentLabelsNoShipmentFound",
     ShipmentLabelsNotGenerated = "ShipmentLabelsNotGenerated",
-    ShipmentLabelPdfNotFound = "ShipmentLabelPdfNotFound",
     ShipmentAlreadyExists = "ShipmentAlreadyExists",
     ShipmentCarrierNotResolved = "ShipmentCarrierNotResolved",
     ShipmentCreationFailed = "ShipmentCreationFailed",
     ShipmentLabelNotReady = "ShipmentLabelNotReady",
     ShipmentOrderWeightUnavailable = "ShipmentOrderWeightUnavailable",
+    OrderNotInPackingState = "OrderNotInPackingState",
+    ShipmentCancelFailed = "ShipmentCancelFailed",
+    NoShipmentToReset = "NoShipmentToReset",
+    PackageLabelNotFound = "PackageLabelNotFound",
+    PackageLabelDownloadFailed = "PackageLabelDownloadFailed",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -28502,6 +28622,440 @@ export interface IEmployeeDto {
     url?: string | undefined;
 }
 
+export class ScanPackingOrderResponse extends BaseResponse implements IScanPackingOrderResponse {
+    order?: ScanOrderData | undefined;
+    shipment?: ScanShipmentData | undefined;
+
+    constructor(data?: IScanPackingOrderResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.order = _data["order"] ? ScanOrderData.fromJS(_data["order"]) : <any>undefined;
+            this.shipment = _data["shipment"] ? ScanShipmentData.fromJS(_data["shipment"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): ScanPackingOrderResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ScanPackingOrderResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["order"] = this.order ? this.order.toJSON() : <any>undefined;
+        data["shipment"] = this.shipment ? this.shipment.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IScanPackingOrderResponse extends IBaseResponse {
+    order?: ScanOrderData | undefined;
+    shipment?: ScanShipmentData | undefined;
+}
+
+export class ScanOrderData implements IScanOrderData {
+    code?: string;
+    customerName?: string;
+    shippingMethodName?: string;
+    cooling?: Cooling;
+    isCooled?: boolean;
+    customerNote?: string | undefined;
+    eshopNote?: string | undefined;
+    eligibility?: ScanOrderEligibility;
+    items?: PackingOrderItem[];
+
+    constructor(data?: IScanOrderData) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.customerName = _data["customerName"];
+            this.shippingMethodName = _data["shippingMethodName"];
+            this.cooling = _data["cooling"];
+            this.isCooled = _data["isCooled"];
+            this.customerNote = _data["customerNote"];
+            this.eshopNote = _data["eshopNote"];
+            this.eligibility = _data["eligibility"] ? ScanOrderEligibility.fromJS(_data["eligibility"]) : <any>undefined;
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(PackingOrderItem.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): ScanOrderData {
+        data = typeof data === 'object' ? data : {};
+        let result = new ScanOrderData();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["customerName"] = this.customerName;
+        data["shippingMethodName"] = this.shippingMethodName;
+        data["cooling"] = this.cooling;
+        data["isCooled"] = this.isCooled;
+        data["customerNote"] = this.customerNote;
+        data["eshopNote"] = this.eshopNote;
+        data["eligibility"] = this.eligibility ? this.eligibility.toJSON() : <any>undefined;
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IScanOrderData {
+    code?: string;
+    customerName?: string;
+    shippingMethodName?: string;
+    cooling?: Cooling;
+    isCooled?: boolean;
+    customerNote?: string | undefined;
+    eshopNote?: string | undefined;
+    eligibility?: ScanOrderEligibility;
+    items?: PackingOrderItem[];
+}
+
+export class ScanOrderEligibility implements IScanOrderEligibility {
+    isEligible?: boolean;
+    warningTitle?: string | undefined;
+    warningBody?: string | undefined;
+
+    constructor(data?: IScanOrderEligibility) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.isEligible = _data["isEligible"];
+            this.warningTitle = _data["warningTitle"];
+            this.warningBody = _data["warningBody"];
+        }
+    }
+
+    static fromJS(data: any): ScanOrderEligibility {
+        data = typeof data === 'object' ? data : {};
+        let result = new ScanOrderEligibility();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["isEligible"] = this.isEligible;
+        data["warningTitle"] = this.warningTitle;
+        data["warningBody"] = this.warningBody;
+        return data;
+    }
+}
+
+export interface IScanOrderEligibility {
+    isEligible?: boolean;
+    warningTitle?: string | undefined;
+    warningBody?: string | undefined;
+}
+
+export class PackingOrderItem implements IPackingOrderItem {
+    name?: string;
+    quantity?: number;
+    imageUrl?: string | undefined;
+    setName?: string | undefined;
+    weightGrams?: number;
+
+    constructor(data?: IPackingOrderItem) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.quantity = _data["quantity"];
+            this.imageUrl = _data["imageUrl"];
+            this.setName = _data["setName"];
+            this.weightGrams = _data["weightGrams"];
+        }
+    }
+
+    static fromJS(data: any): PackingOrderItem {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackingOrderItem();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["quantity"] = this.quantity;
+        data["imageUrl"] = this.imageUrl;
+        data["setName"] = this.setName;
+        data["weightGrams"] = this.weightGrams;
+        return data;
+    }
+}
+
+export interface IPackingOrderItem {
+    name?: string;
+    quantity?: number;
+    imageUrl?: string | undefined;
+    setName?: string | undefined;
+    weightGrams?: number;
+}
+
+export class ScanShipmentData implements IScanShipmentData {
+    shipmentGuid?: string;
+    packages?: ScanShipmentPackage[];
+    alreadyExisted?: boolean;
+
+    constructor(data?: IScanShipmentData) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.shipmentGuid = _data["shipmentGuid"];
+            if (Array.isArray(_data["packages"])) {
+                this.packages = [] as any;
+                for (let item of _data["packages"])
+                    this.packages!.push(ScanShipmentPackage.fromJS(item));
+            }
+            this.alreadyExisted = _data["alreadyExisted"];
+        }
+    }
+
+    static fromJS(data: any): ScanShipmentData {
+        data = typeof data === 'object' ? data : {};
+        let result = new ScanShipmentData();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["shipmentGuid"] = this.shipmentGuid;
+        if (Array.isArray(this.packages)) {
+            data["packages"] = [];
+            for (let item of this.packages)
+                data["packages"].push(item.toJSON());
+        }
+        data["alreadyExisted"] = this.alreadyExisted;
+        return data;
+    }
+}
+
+export interface IScanShipmentData {
+    shipmentGuid?: string;
+    packages?: ScanShipmentPackage[];
+    alreadyExisted?: boolean;
+}
+
+export class ScanShipmentPackage implements IScanShipmentPackage {
+    name?: string;
+    trackingNumber?: string | undefined;
+    labelUrl?: string | undefined;
+    labelZpl?: string | undefined;
+
+    constructor(data?: IScanShipmentPackage) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.trackingNumber = _data["trackingNumber"];
+            this.labelUrl = _data["labelUrl"];
+            this.labelZpl = _data["labelZpl"];
+        }
+    }
+
+    static fromJS(data: any): ScanShipmentPackage {
+        data = typeof data === 'object' ? data : {};
+        let result = new ScanShipmentPackage();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["trackingNumber"] = this.trackingNumber;
+        data["labelUrl"] = this.labelUrl;
+        data["labelZpl"] = this.labelZpl;
+        return data;
+    }
+}
+
+export interface IScanShipmentPackage {
+    name?: string;
+    trackingNumber?: string | undefined;
+    labelUrl?: string | undefined;
+    labelZpl?: string | undefined;
+}
+
+export class ResetOrderShipmentResponse extends BaseResponse implements IResetOrderShipmentResponse {
+    shipment?: ResetShipmentData | undefined;
+
+    constructor(data?: IResetOrderShipmentResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.shipment = _data["shipment"] ? ResetShipmentData.fromJS(_data["shipment"]) : <any>undefined;
+        }
+    }
+
+    static override fromJS(data: any): ResetOrderShipmentResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ResetOrderShipmentResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["shipment"] = this.shipment ? this.shipment.toJSON() : <any>undefined;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IResetOrderShipmentResponse extends IBaseResponse {
+    shipment?: ResetShipmentData | undefined;
+}
+
+export class ResetShipmentData implements IResetShipmentData {
+    shipmentGuid?: string;
+    packages?: ResetShipmentPackage[];
+
+    constructor(data?: IResetShipmentData) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.shipmentGuid = _data["shipmentGuid"];
+            if (Array.isArray(_data["packages"])) {
+                this.packages = [] as any;
+                for (let item of _data["packages"])
+                    this.packages!.push(ResetShipmentPackage.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): ResetShipmentData {
+        data = typeof data === 'object' ? data : {};
+        let result = new ResetShipmentData();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["shipmentGuid"] = this.shipmentGuid;
+        if (Array.isArray(this.packages)) {
+            data["packages"] = [];
+            for (let item of this.packages)
+                data["packages"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IResetShipmentData {
+    shipmentGuid?: string;
+    packages?: ResetShipmentPackage[];
+}
+
+export class ResetShipmentPackage implements IResetShipmentPackage {
+    name?: string;
+    labelUrl?: string | undefined;
+    labelZpl?: string | undefined;
+
+    constructor(data?: IResetShipmentPackage) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.labelUrl = _data["labelUrl"];
+            this.labelZpl = _data["labelZpl"];
+        }
+    }
+
+    static fromJS(data: any): ResetShipmentPackage {
+        data = typeof data === 'object' ? data : {};
+        let result = new ResetShipmentPackage();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["labelUrl"] = this.labelUrl;
+        data["labelZpl"] = this.labelZpl;
+        return data;
+    }
+}
+
+export interface IResetShipmentPackage {
+    name?: string;
+    labelUrl?: string | undefined;
+    labelZpl?: string | undefined;
+}
+
 export class GetPackingMaterialsListResponse extends BaseResponse implements IGetPackingMaterialsListResponse {
     materials?: PackingMaterialDto[];
 
@@ -28704,6 +29258,7 @@ export interface ICreatePackingMaterialRequest {
 
 export class UpdatePackingMaterialResponse extends BaseResponse implements IUpdatePackingMaterialResponse {
     material?: PackingMaterialDto;
+    error?: string | undefined;
 
     constructor(data?: IUpdatePackingMaterialResponse) {
         super(data);
@@ -28713,6 +29268,7 @@ export class UpdatePackingMaterialResponse extends BaseResponse implements IUpda
         super.init(_data);
         if (_data) {
             this.material = _data["material"] ? PackingMaterialDto.fromJS(_data["material"]) : <any>undefined;
+            this.error = _data["error"];
         }
     }
 
@@ -28726,6 +29282,7 @@ export class UpdatePackingMaterialResponse extends BaseResponse implements IUpda
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["material"] = this.material ? this.material.toJSON() : <any>undefined;
+        data["error"] = this.error;
         super.toJSON(data);
         return data;
     }
@@ -28733,6 +29290,7 @@ export class UpdatePackingMaterialResponse extends BaseResponse implements IUpda
 
 export interface IUpdatePackingMaterialResponse extends IBaseResponse {
     material?: PackingMaterialDto;
+    error?: string | undefined;
 }
 
 export class UpdatePackingMaterialRequest implements IUpdatePackingMaterialRequest {
@@ -28785,6 +29343,7 @@ export interface IUpdatePackingMaterialRequest {
 
 export class UpdatePackingMaterialQuantityResponse extends BaseResponse implements IUpdatePackingMaterialQuantityResponse {
     material?: PackingMaterialDto;
+    error?: string | undefined;
 
     constructor(data?: IUpdatePackingMaterialQuantityResponse) {
         super(data);
@@ -28794,6 +29353,7 @@ export class UpdatePackingMaterialQuantityResponse extends BaseResponse implemen
         super.init(_data);
         if (_data) {
             this.material = _data["material"] ? PackingMaterialDto.fromJS(_data["material"]) : <any>undefined;
+            this.error = _data["error"];
         }
     }
 
@@ -28807,6 +29367,7 @@ export class UpdatePackingMaterialQuantityResponse extends BaseResponse implemen
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["material"] = this.material ? this.material.toJSON() : <any>undefined;
+        data["error"] = this.error;
         super.toJSON(data);
         return data;
     }
@@ -28814,6 +29375,7 @@ export class UpdatePackingMaterialQuantityResponse extends BaseResponse implemen
 
 export interface IUpdatePackingMaterialQuantityResponse extends IBaseResponse {
     material?: PackingMaterialDto;
+    error?: string | undefined;
 }
 
 export class UpdateQuantityRequest implements IUpdateQuantityRequest {
@@ -29093,6 +29655,7 @@ export interface IConsumptionDetailDto {
 export class GetPackingMaterialLogsResponse extends BaseResponse implements IGetPackingMaterialLogsResponse {
     material?: PackingMaterialDto;
     logs?: PackingMaterialLogDto[];
+    error?: string | undefined;
 
     constructor(data?: IGetPackingMaterialLogsResponse) {
         super(data);
@@ -29107,6 +29670,7 @@ export class GetPackingMaterialLogsResponse extends BaseResponse implements IGet
                 for (let item of _data["logs"])
                     this.logs!.push(PackingMaterialLogDto.fromJS(item));
             }
+            this.error = _data["error"];
         }
     }
 
@@ -29125,6 +29689,7 @@ export class GetPackingMaterialLogsResponse extends BaseResponse implements IGet
             for (let item of this.logs)
                 data["logs"].push(item.toJSON());
         }
+        data["error"] = this.error;
         super.toJSON(data);
         return data;
     }
@@ -29133,6 +29698,7 @@ export class GetPackingMaterialLogsResponse extends BaseResponse implements IGet
 export interface IGetPackingMaterialLogsResponse extends IBaseResponse {
     material?: PackingMaterialDto;
     logs?: PackingMaterialLogDto[];
+    error?: string | undefined;
 }
 
 export class PackingMaterialLogDto implements IPackingMaterialLogDto {
@@ -33018,8 +33584,7 @@ export class GetPackingOrderResponse extends BaseResponse implements IGetPacking
     shippingMethodName?: string;
     cooling?: Cooling;
     isCooled?: boolean;
-    statusId?: number;
-    isInPackingState?: boolean;
+    eligibility?: PackingEligibility;
     customerNote?: string | undefined;
     eshopNote?: string | undefined;
     items?: PackingOrderItem[];
@@ -33036,8 +33601,7 @@ export class GetPackingOrderResponse extends BaseResponse implements IGetPacking
             this.shippingMethodName = _data["shippingMethodName"];
             this.cooling = _data["cooling"];
             this.isCooled = _data["isCooled"];
-            this.statusId = _data["statusId"];
-            this.isInPackingState = _data["isInPackingState"];
+            this.eligibility = _data["eligibility"] ? PackingEligibility.fromJS(_data["eligibility"]) : <any>undefined;
             this.customerNote = _data["customerNote"];
             this.eshopNote = _data["eshopNote"];
             if (Array.isArray(_data["items"])) {
@@ -33062,8 +33626,7 @@ export class GetPackingOrderResponse extends BaseResponse implements IGetPacking
         data["shippingMethodName"] = this.shippingMethodName;
         data["cooling"] = this.cooling;
         data["isCooled"] = this.isCooled;
-        data["statusId"] = this.statusId;
-        data["isInPackingState"] = this.isInPackingState;
+        data["eligibility"] = this.eligibility ? this.eligibility.toJSON() : <any>undefined;
         data["customerNote"] = this.customerNote;
         data["eshopNote"] = this.eshopNote;
         if (Array.isArray(this.items)) {
@@ -33082,21 +33645,18 @@ export interface IGetPackingOrderResponse extends IBaseResponse {
     shippingMethodName?: string;
     cooling?: Cooling;
     isCooled?: boolean;
-    statusId?: number;
-    isInPackingState?: boolean;
+    eligibility?: PackingEligibility;
     customerNote?: string | undefined;
     eshopNote?: string | undefined;
     items?: PackingOrderItem[];
 }
 
-export class PackingOrderItem implements IPackingOrderItem {
-    name?: string;
-    quantity?: number;
-    imageUrl?: string | undefined;
-    setName?: string | undefined;
-    weightGrams?: number;
+export class PackingEligibility implements IPackingEligibility {
+    isEligible?: boolean;
+    warningTitle?: string | undefined;
+    warningBody?: string | undefined;
 
-    constructor(data?: IPackingOrderItem) {
+    constructor(data?: IPackingEligibility) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -33107,38 +33667,32 @@ export class PackingOrderItem implements IPackingOrderItem {
 
     init(_data?: any) {
         if (_data) {
-            this.name = _data["name"];
-            this.quantity = _data["quantity"];
-            this.imageUrl = _data["imageUrl"];
-            this.setName = _data["setName"];
-            this.weightGrams = _data["weightGrams"];
+            this.isEligible = _data["isEligible"];
+            this.warningTitle = _data["warningTitle"];
+            this.warningBody = _data["warningBody"];
         }
     }
 
-    static fromJS(data: any): PackingOrderItem {
+    static fromJS(data: any): PackingEligibility {
         data = typeof data === 'object' ? data : {};
-        let result = new PackingOrderItem();
+        let result = new PackingEligibility();
         result.init(data);
         return result;
     }
 
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        data["name"] = this.name;
-        data["quantity"] = this.quantity;
-        data["imageUrl"] = this.imageUrl;
-        data["setName"] = this.setName;
-        data["weightGrams"] = this.weightGrams;
+        data["isEligible"] = this.isEligible;
+        data["warningTitle"] = this.warningTitle;
+        data["warningBody"] = this.warningBody;
         return data;
     }
 }
 
-export interface IPackingOrderItem {
-    name?: string;
-    quantity?: number;
-    imageUrl?: string | undefined;
-    setName?: string | undefined;
-    weightGrams?: number;
+export interface IPackingEligibility {
+    isEligible?: boolean;
+    warningTitle?: string | undefined;
+    warningBody?: string | undefined;
 }
 
 export class ListConversationsResponse extends BaseResponse implements IListConversationsResponse {
@@ -33465,6 +34019,7 @@ export interface IConversationSummaryDto {
 export class GetConversationResponse extends BaseResponse implements IGetConversationResponse {
     conversation?: ConversationDto | undefined;
     messages?: MessageDto[];
+    agentNames?: { [key: string]: string; };
 
     constructor(data?: IGetConversationResponse) {
         super(data);
@@ -33478,6 +34033,13 @@ export class GetConversationResponse extends BaseResponse implements IGetConvers
                 this.messages = [] as any;
                 for (let item of _data["messages"])
                     this.messages!.push(MessageDto.fromJS(item));
+            }
+            if (_data["agentNames"]) {
+                this.agentNames = {} as any;
+                for (let key in _data["agentNames"]) {
+                    if (_data["agentNames"].hasOwnProperty(key))
+                        (<any>this.agentNames)![key] = _data["agentNames"][key];
+                }
             }
         }
     }
@@ -33497,6 +34059,13 @@ export class GetConversationResponse extends BaseResponse implements IGetConvers
             for (let item of this.messages)
                 data["messages"].push(item.toJSON());
         }
+        if (this.agentNames) {
+            data["agentNames"] = {};
+            for (let key in this.agentNames) {
+                if (this.agentNames.hasOwnProperty(key))
+                    (<any>data["agentNames"])[key] = (<any>this.agentNames)[key];
+            }
+        }
         super.toJSON(data);
         return data;
     }
@@ -33505,6 +34074,7 @@ export class GetConversationResponse extends BaseResponse implements IGetConvers
 export interface IGetConversationResponse extends IBaseResponse {
     conversation?: ConversationDto | undefined;
     messages?: MessageDto[];
+    agentNames?: { [key: string]: string; };
 }
 
 export class MessageDto implements IMessageDto {
@@ -33754,7 +34324,7 @@ export interface IGetSmartsuppContactShoptetInfoResponse extends IBaseResponse {
 }
 
 export class ShoptetContactInfoDto implements IShoptetContactInfoDto {
-    customer?: ShoptetCustomerSnapshotDto;
+    customer?: ShoptetCustomerSnapshotDto | undefined;
     recentOrders?: ShoptetOrderSnapshotDto[];
     cartUpdatedAt?: Date | undefined;
 
@@ -33800,7 +34370,7 @@ export class ShoptetContactInfoDto implements IShoptetContactInfoDto {
 }
 
 export interface IShoptetContactInfoDto {
-    customer?: ShoptetCustomerSnapshotDto;
+    customer?: ShoptetCustomerSnapshotDto | undefined;
     recentOrders?: ShoptetOrderSnapshotDto[];
     cartUpdatedAt?: Date | undefined;
 }

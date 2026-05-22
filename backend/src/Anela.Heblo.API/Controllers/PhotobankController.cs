@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Photobank.Contracts;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Application.Features.Photobank.UseCases.GetThumbnail;
 using Anela.Heblo.Application.Shared;
@@ -400,28 +401,5 @@ namespace Anela.Heblo.API.Controllers
                     return StatusCode(StatusCodes.Status502BadGateway);
             }
         }
-    }
-
-    public class AddPhotoTagBody
-    {
-        public string TagName { get; set; } = null!;
-    }
-
-    public class CreateTagBody
-    {
-        public string Name { get; set; } = string.Empty;
-    }
-
-    public class BulkAddPhotoTagBody
-    {
-        public List<string>? Tags { get; set; }
-        public string? Search { get; set; }
-        public string TagName { get; set; } = null!;
-    }
-
-    public class BulkAddPhotoTagByIdsBody
-    {
-        public List<int> PhotoIds { get; set; } = [];
-        public string TagName { get; set; } = null!;
     }
 }

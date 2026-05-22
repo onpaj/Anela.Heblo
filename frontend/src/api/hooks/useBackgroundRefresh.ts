@@ -189,3 +189,40 @@ export const useForceRefreshTask = () => {
     },
   });
 };
+
+/**
+ * Run all enabled tasks in a hydration tier sequentially
+ */
+const runHydrationTier = async (tier: number): Promise<void> => {
+  const apiClient = await getAuthenticatedApiClient();
+  const relativeUrl = `/api/backgroundrefresh/tiers/${tier}/run`;
+  const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
+
+  const response = await (apiClient as any).http.fetch(fullUrl, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || `Failed to run hydration tier ${tier}: ${response.status}`);
+  }
+};
+
+/**
+ * Hook to manually run all tasks in a hydration tier
+ */
+export const useRunHydrationTier = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: runHydrationTier,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.backgroundRefresh,
+      });
+    },
+  });
+};
