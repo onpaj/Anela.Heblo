@@ -229,6 +229,7 @@ const ExpeditionListArchivePage: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Soubor</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nahráno</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Velikost</th>
@@ -238,6 +239,9 @@ const ExpeditionListArchivePage: React.FC = () => {
                 <tbody className="bg-white divide-y divide-gray-100">
                   {itemsData.items.map((item) => (
                     <tr key={item.blobPath} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm font-mono text-gray-700 whitespace-nowrap">
+                        {item.listId}
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900 flex items-center gap-2">
                         <FileText size={16} className="text-red-400 flex-shrink-0" />
                         {item.fileName}

@@ -50,6 +50,7 @@ public class ExpeditionProtocolDocumentTests
         new()
         {
             CarrierDisplayName = "PPL (do ruky)",
+            ListId = "20260522-143012_PPL_0",
             Orders = new List<ExpeditionOrder>
             {
                 new()
@@ -515,6 +516,32 @@ public class ExpeditionProtocolDocumentTests
                 },
             },
         };
+
+        var act = () => ExpeditionProtocolDocument.Generate(data);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Generate_WithListId_DoesNotThrow()
+    {
+        // Setting ListId enables the page header. Visual inspection lives in
+        // Generate_SampleData_SavesToDiskForVisualInspection (which sets ListId on BuildSampleData).
+        var data = BuildData();
+        data.ListId = "20260522-143012_DPD_0";
+
+        var act = () => ExpeditionProtocolDocument.Generate(data);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Generate_WithEmptyListId_DoesNotThrow()
+    {
+        // Empty ListId must skip the header without error (back-compat for callers
+        // that have not been updated to provide an id).
+        var data = BuildData();
+        data.ListId = string.Empty;
 
         var act = () => ExpeditionProtocolDocument.Generate(data);
 

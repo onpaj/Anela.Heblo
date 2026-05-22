@@ -5,6 +5,7 @@ namespace Anela.Heblo.Adapters.ShoptetApi.Expedition;
 public class ExpeditionProtocolData
 {
     public string CarrierDisplayName { get; set; } = null!;
+    public string ListId { get; set; } = string.Empty;
     public List<ExpeditionOrder> Orders { get; set; } = new();
 }
 

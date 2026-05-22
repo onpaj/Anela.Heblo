@@ -5,9 +5,13 @@ import { useMockAuth, shouldUseMockAuth } from "../../auth/mockAuth";
 
 interface UserProfileProps {
   compact?: boolean;
+  menuPosition?: "above" | "below";
 }
 
-const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
+const UserProfile: React.FC<UserProfileProps> = ({
+  compact = false,
+  menuPosition = "above",
+}) => {
   // Use mock auth in development if enabled
   const realAuth = useAuth();
   const mockAuth = useMockAuth();
@@ -101,7 +105,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
 
         {/* Compact User Menu */}
         {showMenu && (
-          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-primary-white border border-border-light rounded-xl shadow-hover py-1 min-w-48 z-50">
+          <div
+            className={`absolute left-1/2 transform -translate-x-1/2 bg-primary-white border border-border-light rounded-xl shadow-hover py-1 min-w-48 z-50 ${
+              menuPosition === "below"
+                ? "top-full mt-2"
+                : "bottom-full mb-2"
+            }`}
+          >
             <div className="px-4 py-2 border-b border-gray-100">
               <p className="text-sm font-medium text-neutral-slate">
                 {userInfo?.name}
@@ -160,14 +170,26 @@ const UserProfile: React.FC<UserProfileProps> = ({ compact = false }) => {
         </div>
         <ChevronUp
           className={`h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-transform ${
-            showMenu ? "rotate-180" : ""
+            menuPosition === "below"
+              ? showMenu
+                ? ""
+                : "rotate-180"
+              : showMenu
+                ? "rotate-180"
+                : ""
           }`}
         />
       </button>
 
       {/* User Menu */}
       {showMenu && (
-        <div className="absolute bottom-full left-0 right-0 mb-2 bg-primary-white border border-border-light rounded-xl shadow-hover py-1 z-50">
+        <div
+          className={`absolute left-0 right-0 bg-primary-white border border-border-light rounded-xl shadow-hover py-1 z-50 ${
+            menuPosition === "below"
+              ? "top-full mt-2"
+              : "bottom-full mb-2"
+          }`}
+        >
           <div className="px-4 py-2 border-b border-gray-100">
             <p className="text-sm font-medium text-neutral-slate">
               {userInfo?.name}
