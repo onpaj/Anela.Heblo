@@ -15,7 +15,7 @@ const openInNewTab = (url: string): void => {
   window.open(url, '_blank', 'noopener,noreferrer');
 };
 
-const silentPrintViaBlob = async (url: string): Promise<boolean> => {
+const silentPrintViaBlob = async (url: string, onAfterPrint?: () => void): Promise<boolean> => {
   const apiClient = getAuthenticatedApiClient(false) as unknown as ApiClientWithInternals;
   let response: Response;
   try {
@@ -31,7 +31,13 @@ const silentPrintViaBlob = async (url: string): Promise<boolean> => {
   iframe.style.display = 'none';
   iframe.src = blobUrl;
   iframe.onload = () => {
-    iframe.contentWindow?.print();
+    const win = iframe.contentWindow;
+    const handler = () => {
+      win?.removeEventListener('afterprint', handler);
+      onAfterPrint?.();
+    };
+    win?.addEventListener('afterprint', handler);
+    win?.print();
     // Keep iframe attached until print dialog closes; revoke blob URL after a delay
     // so the browser can still resolve it while the print preview is open.
     setTimeout(() => {
@@ -43,11 +49,18 @@ const silentPrintViaBlob = async (url: string): Promise<boolean> => {
   return true;
 };
 
-export const printLabelPdf = (orderCode: string, label: ShipmentLabelDto): void => {
+export const printLabelPdf = (
+  orderCode: string,
+  label: ShipmentLabelDto,
+  onAfterPrint?: () => void,
+): void => {
   if (!label.packageName) return;
   const proxyUrl = buildProxyUrl(orderCode, label.packageName);
 
-  void silentPrintViaBlob(proxyUrl).then((printed) => {
-    if (!printed) openInNewTab(proxyUrl);
+  void silentPrintViaBlob(proxyUrl, onAfterPrint).then((printed) => {
+    if (!printed) {
+      openInNewTab(proxyUrl);
+      onAfterPrint?.();
+    }
   });
 };

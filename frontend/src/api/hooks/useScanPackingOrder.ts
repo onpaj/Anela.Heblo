@@ -21,11 +21,18 @@ export interface PackingEligibility {
   warningBody: string | null;
 }
 
+export interface ShippingAddress {
+  street: string | null;
+  city: string | null;
+  zip: string | null;
+}
+
 // Shaped to match usePackingOrder's PackingOrder so existing sub-components work unchanged
 export interface PackingOrder {
   code: string;
   customerName: string;
   shippingMethodName: string;
+  shippingAddress: ShippingAddress | null;
   cooling: Cooling;
   isCooled: boolean;
   customerNote: string | null;

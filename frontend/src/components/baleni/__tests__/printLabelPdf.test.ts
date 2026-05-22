@@ -84,7 +84,7 @@ describe('printLabelPdf', () => {
 
     const printMock = jest.fn();
     Object.defineProperty(iframe, 'contentWindow', {
-      value: { print: printMock },
+      value: { print: printMock, addEventListener: jest.fn(), removeEventListener: jest.fn() },
       configurable: true,
     });
     iframe.onload!(new Event('load'));
@@ -153,5 +153,89 @@ describe('printLabelPdf', () => {
     expect(window.open).not.toHaveBeenCalled();
 
     appendChildSpy.mockRestore();
+  });
+
+  it('does not invoke onAfterPrint when packageName is missing (no-op)', async () => {
+    const onAfterPrint = jest.fn();
+
+    printLabelPdf('250001', labelWithoutPackage, onAfterPrint);
+    await flushAsync();
+
+    expect(onAfterPrint).not.toHaveBeenCalled();
+  });
+
+  it('registers an afterprint listener and invokes onAfterPrint exactly once on afterprint', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+    });
+    const createElementSpy = jest.spyOn(document, 'createElement');
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+
+    const onAfterPrint = jest.fn();
+    printLabelPdf('250001', labelWithPackage, onAfterPrint);
+    await flushAsync();
+
+    const iframe = createElementSpy.mock.results[createElementSpy.mock.results.length - 1]
+      .value as HTMLIFrameElement;
+
+    const printMock = jest.fn();
+    const addEventListener = jest.fn();
+    const removeEventListener = jest.fn();
+    Object.defineProperty(iframe, 'contentWindow', {
+      value: { print: printMock, addEventListener, removeEventListener },
+      configurable: true,
+    });
+
+    iframe.onload!(new Event('load'));
+
+    // The afterprint listener should be registered BEFORE print() is called.
+    expect(addEventListener).toHaveBeenCalledTimes(1);
+    expect(addEventListener.mock.calls[0][0]).toBe('afterprint');
+    expect(printMock).toHaveBeenCalledTimes(1);
+    expect(addEventListener.mock.invocationCallOrder[0])
+      .toBeLessThan(printMock.mock.invocationCallOrder[0]);
+
+    // onAfterPrint should not fire until the browser triggers afterprint.
+    expect(onAfterPrint).not.toHaveBeenCalled();
+
+    // Trigger the captured handler — should fire callback and self-remove.
+    const handler = addEventListener.mock.calls[0][1] as () => void;
+    handler();
+
+    expect(onAfterPrint).toHaveBeenCalledTimes(1);
+    expect(removeEventListener).toHaveBeenCalledWith('afterprint', handler);
+
+    jest.restoreAllMocks();
+  });
+
+  it('invokes onAfterPrint immediately when fetch fails (fallback path)', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    const onAfterPrint = jest.fn();
+
+    printLabelPdf('250001', labelWithPackage, onAfterPrint);
+    await flushAsync();
+
+    expect(window.open).toHaveBeenCalledWith(
+      expectedProxyUrl,
+      '_blank',
+      'noopener,noreferrer',
+    );
+    expect(onAfterPrint).toHaveBeenCalledTimes(1);
+  });
+
+  it('invokes onAfterPrint immediately when fetch returns non-ok (fallback path)', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404 });
+    const onAfterPrint = jest.fn();
+
+    printLabelPdf('250001', labelWithPackage, onAfterPrint);
+    await flushAsync();
+
+    expect(window.open).toHaveBeenCalledWith(
+      expectedProxyUrl,
+      '_blank',
+      'noopener,noreferrer',
+    );
+    expect(onAfterPrint).toHaveBeenCalledTimes(1);
   });
 });
