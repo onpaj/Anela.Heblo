@@ -222,7 +222,7 @@ describe('BaleniPacking', () => {
     );
   });
 
-  it('does not mount PackingShipmentCreator when order is not eligible', () => {
+  it('mounts PackingShipmentCreator even when order is not eligible (so a review of an already-packed order can be shown)', () => {
     mockHook.mockReturnValue({
       ...idleMutation,
       isSuccess: true,
@@ -247,6 +247,6 @@ describe('BaleniPacking', () => {
     });
 
     render(<BaleniPacking />);
-    expect(screen.queryByTestId('packing-shipment-creator')).not.toBeInTheDocument();
+    expect(screen.getByTestId('packing-shipment-creator')).toBeInTheDocument();
   });
 });

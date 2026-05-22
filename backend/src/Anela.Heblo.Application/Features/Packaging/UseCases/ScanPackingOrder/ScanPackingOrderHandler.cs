@@ -58,13 +58,9 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             },
         };
 
-        if (!isEligible)
-            return new ScanPackingOrderResponse(orderData);
-
         var existingLabels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
-        if (existingLabels.Count > 0)
-        {
-            var existingShipment = new ScanShipmentData
+        ScanShipmentData? existingShipment = existingLabels.Count > 0
+            ? new ScanShipmentData
             {
                 ShipmentGuid = existingLabels[0].ShipmentGuid,
                 Packages = existingLabels
@@ -77,7 +73,20 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
                     })
                     .ToList(),
                 AlreadyExisted = true,
-            };
+            }
+            : null;
+
+        if (!isEligible)
+        {
+            // Already-packed order rescanned for review: include shipment if it exists.
+            // Don't mark-as-packed; the order has already moved past the packing state.
+            return existingShipment is null
+                ? new ScanPackingOrderResponse(orderData)
+                : new ScanPackingOrderResponse(orderData, existingShipment);
+        }
+
+        if (existingShipment is not null)
+        {
             await TryMarkAsPackedAsync(request.OrderCode, ct);
             return new ScanPackingOrderResponse(orderData, existingShipment);
         }

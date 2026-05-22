@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ScanLine, Loader2 } from 'lucide-react';
 import ScanInput from '../terminal/ScanInput';
 import { useScanPackingOrder } from '../../api/hooks/useScanPackingOrder';
@@ -24,7 +24,14 @@ function isOrderNotFoundError(error: Error): boolean {
   return error.message === ORDER_NOT_FOUND_MESSAGE;
 }
 
-function renderOrderBody(order: PackingOrder, shipment: ScanShipment | null) {
+interface OrderBodyProps {
+  order: PackingOrder;
+  shipment: ScanShipment | null;
+  isShowingDoneView: boolean;
+  onDoneStateChange: (isDone: boolean) => void;
+}
+
+function OrderBody({ order, shipment, isShowingDoneView, onDoneStateChange }: OrderBodyProps) {
   return (
     <>
       <PackingStateWarning order={order} />
@@ -37,19 +44,26 @@ function renderOrderBody(order: PackingOrder, shipment: ScanShipment | null) {
         </div>
       </div>
       <PackingOrderNotes customerNote={order.customerNote} eshopNote={order.eshopNote} />
-      {order.eligibility.isEligible && (
-        <PackingShipmentCreator order={order} scanShipment={shipment} />
+      <PackingShipmentCreator
+        order={order}
+        scanShipment={shipment}
+        onDoneStateChange={onDoneStateChange}
+      />
+      {!isShowingDoneView && (
+        <>
+          <p className="text-xs uppercase tracking-wide text-neutral-gray">
+            Položky ({order.items.length})
+          </p>
+          <PackingItems items={order.items} />
+        </>
       )}
-      <p className="text-xs uppercase tracking-wide text-neutral-gray">
-        Položky ({order.items.length})
-      </p>
-      <PackingItems items={order.items} />
     </>
   );
 }
 
 function BaleniPacking() {
   const scanMutation = useScanPackingOrder();
+  const [isShowingDoneView, setIsShowingDoneView] = useState(false);
 
   const handleScan = (value: string) => {
     scanMutation.mutate(value);
@@ -78,7 +92,14 @@ function BaleniPacking() {
     }
 
     if (scanMutation.data) {
-      return renderOrderBody(scanMutation.data.order, scanMutation.data.shipment);
+      return (
+        <OrderBody
+          order={scanMutation.data.order}
+          shipment={scanMutation.data.shipment}
+          isShowingDoneView={isShowingDoneView}
+          onDoneStateChange={setIsShowingDoneView}
+        />
+      );
     }
 
     return (

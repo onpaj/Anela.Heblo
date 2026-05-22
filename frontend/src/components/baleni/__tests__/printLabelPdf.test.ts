@@ -287,6 +287,41 @@ describe('printLabelPdf', () => {
     jest.restoreAllMocks();
   });
 
+  it('invokes onAfterPrint when window regains focus after print() (fast path)', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['%PDF'], { type: 'application/pdf' }),
+    });
+    const createElementSpy = jest.spyOn(document, 'createElement');
+    jest.spyOn(document.body, 'appendChild').mockImplementation(() => null as any);
+
+    const onAfterPrint = jest.fn();
+    printLabelPdf('250001', labelWithPackage, onAfterPrint);
+    await flushAsync();
+
+    const iframe = createElementSpy.mock.results[createElementSpy.mock.results.length - 1]
+      .value as HTMLIFrameElement;
+    Object.defineProperty(iframe, 'contentWindow', {
+      value: { print: jest.fn(), addEventListener: jest.fn(), removeEventListener: jest.fn() },
+      configurable: true,
+    });
+
+    iframe.onload!(new Event('load'));
+
+    expect(onAfterPrint).not.toHaveBeenCalled();
+
+    // Browser closes the print dialog → focus returns to the main window.
+    window.dispatchEvent(new Event('focus'));
+
+    expect(onAfterPrint).toHaveBeenCalledTimes(1);
+
+    // Re-firing focus (e.g., user clicks back into the page) must not double-call.
+    window.dispatchEvent(new Event('focus'));
+    expect(onAfterPrint).toHaveBeenCalledTimes(1);
+
+    jest.restoreAllMocks();
+  });
+
   it('falls back to window.open and fires onAfterPrint when post-fetch processing throws', async () => {
     fetchMock.mockResolvedValue({
       ok: true,

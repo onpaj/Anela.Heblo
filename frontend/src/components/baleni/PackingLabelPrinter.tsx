@@ -7,6 +7,7 @@ import PackingShipmentDoneView from './PackingShipmentDoneView';
 interface PackingLabelPrinterProps {
   order: PackingOrder;
   shipment: ScanShipment;
+  onDoneStateChange?: (isDone: boolean) => void;
 }
 
 function toLabels(shipment: ScanShipment): ShipmentLabelDto[] {
@@ -21,16 +22,21 @@ function toLabels(shipment: ScanShipment): ShipmentLabelDto[] {
   );
 }
 
-function PackingLabelPrinter({ order, shipment }: PackingLabelPrinterProps) {
+function PackingLabelPrinter({ order, shipment, onDoneStateChange }: PackingLabelPrinterProps) {
   const [printedCount, setPrintedCount] = useState(0);
   const [acknowledgedCount, setAcknowledgedCount] = useState(0);
 
   const labels = useMemo(() => toLabels(shipment), [shipment]);
+  const isDone = labels.length > 0 && acknowledgedCount >= labels.length;
 
   useEffect(() => {
     setPrintedCount(0);
     setAcknowledgedCount(0);
   }, [order.code]);
+
+  useEffect(() => {
+    onDoneStateChange?.(isDone);
+  }, [isDone, onDoneStateChange]);
 
   useEffect(() => {
     if (labels.length > 0 && printedCount === 0) {
@@ -50,7 +56,7 @@ function PackingLabelPrinter({ order, shipment }: PackingLabelPrinterProps) {
     return null;
   }
 
-  if (acknowledgedCount >= labels.length) {
+  if (isDone) {
     return (
       <PackingShipmentDoneView
         order={order}

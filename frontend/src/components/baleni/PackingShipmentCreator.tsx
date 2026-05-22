@@ -2,27 +2,41 @@ import { useEffect, useState } from 'react';
 import { useResetOrderShipment } from '../../api/hooks/useResetOrderShipment';
 import type { PackingOrder, ScanShipment } from '../../api/hooks/useScanPackingOrder';
 import PackingLabelPrinter from './PackingLabelPrinter';
+import PackingShipmentDoneView from './PackingShipmentDoneView';
 
 interface PackingShipmentCreatorProps {
   order: PackingOrder;
   scanShipment: ScanShipment | null;
+  onDoneStateChange?: (isDone: boolean) => void;
 }
 
-function PackingShipmentCreator({ order, scanShipment }: PackingShipmentCreatorProps) {
+function PackingShipmentCreator({ order, scanShipment, onDoneStateChange }: PackingShipmentCreatorProps) {
   const [showDialog, setShowDialog] = useState(false);
   const [shipmentForPrint, setShipmentForPrint] = useState<ScanShipment | null>(null);
+  const [printerIsDone, setPrinterIsDone] = useState(false);
   const resetMutation = useResetOrderShipment();
 
+  const isEligible = order.eligibility.isEligible;
+  const showsNonEligibleReview =
+    scanShipment !== null && !isEligible && shipmentForPrint === null;
+  const isShowingDoneView = showsNonEligibleReview || printerIsDone;
+
   useEffect(() => {
-    if (!scanShipment) return;
+    setPrinterIsDone(false);
     setShowDialog(false);
     setShipmentForPrint(null);
+    if (!scanShipment) return;
+    if (!isEligible) return;
     if (scanShipment.alreadyExisted) {
       setShowDialog(true);
     } else {
       setShipmentForPrint(scanShipment);
     }
-  }, [scanShipment]);
+  }, [scanShipment, isEligible]);
+
+  useEffect(() => {
+    onDoneStateChange?.(isShowingDoneView);
+  }, [isShowingDoneView, onDoneStateChange]);
 
   function handleReprint() {
     setShowDialog(false);
@@ -38,8 +52,30 @@ function PackingShipmentCreator({ order, scanShipment }: PackingShipmentCreatorP
     });
   }
 
+  function handleNonEligibleReprint() {
+    if (scanShipment) {
+      setShipmentForPrint(scanShipment);
+    }
+  }
+
   if (shipmentForPrint) {
-    return <PackingLabelPrinter order={order} shipment={shipmentForPrint} />;
+    return (
+      <PackingLabelPrinter
+        order={order}
+        shipment={shipmentForPrint}
+        onDoneStateChange={setPrinterIsDone}
+      />
+    );
+  }
+
+  if (showsNonEligibleReview && scanShipment) {
+    return (
+      <PackingShipmentDoneView
+        order={order}
+        shipment={scanShipment}
+        onReprint={handleNonEligibleReprint}
+      />
+    );
   }
 
   if (resetMutation.isPending) {

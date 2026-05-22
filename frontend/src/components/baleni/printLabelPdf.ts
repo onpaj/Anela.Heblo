@@ -34,25 +34,29 @@ const silentPrintViaBlob = async (url: string, onAfterPrint?: () => void): Promi
     let called = false;
     iframe.onload = () => {
       const win = iframe.contentWindow;
-      const handler = () => {
-        win?.removeEventListener('afterprint', handler);
+      const fire = () => {
         if (called) return;
         called = true;
+        win?.removeEventListener('afterprint', afterprintHandler);
+        window.removeEventListener('focus', focusHandler);
         onAfterPrint?.();
       };
-      win?.addEventListener('afterprint', handler);
+      // Primary signal: focus returns to the main window once the print dialog closes
+      // (the scanner input refocuses, which fires window 'focus'). This is the most
+      // reliable cross-browser cue. `afterprint` is kept as a backup since some
+      // browsers/drivers don't fire it for iframe-printed PDFs.
+      const afterprintHandler = () => fire();
+      const focusHandler = () => fire();
+      win?.addEventListener('afterprint', afterprintHandler);
+      window.addEventListener('focus', focusHandler);
       win?.print();
       // Keep iframe attached until print dialog closes; revoke blob URL after a delay
-      // so the browser can still resolve it while the print preview is open.
-      // Safety net: if `afterprint` never fires (tab closed, browser quirk),
-      // invoke the callback here so consumers aren't stuck.
+      // so the browser can still resolve it while the print preview is open. The 60s
+      // timeout doubles as a last-resort safety net for `onAfterPrint`.
       setTimeout(() => {
         document.body.removeChild(iframe);
         URL.revokeObjectURL(blobUrl);
-        if (!called) {
-          called = true;
-          onAfterPrint?.();
-        }
+        fire();
       }, 60_000);
     };
     document.body.appendChild(iframe);
