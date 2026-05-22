@@ -138,7 +138,7 @@ export default function MaterialUploadDialog({ isOpen, productCode, onClose, onS
             </>
           )}
 
-          {uploadMutation.isError && (
+          {(uploadMutation.isError || uploadMutation.data?.success === false) && (
             <p className="text-sm text-red-600">Nahrání selhalo. Zkuste to znovu.</p>
           )}
 
@@ -152,7 +152,7 @@ export default function MaterialUploadDialog({ isOpen, productCode, onClose, onS
             </button>
             <button
               type="submit"
-              disabled={!selectedFile || uploadMutation.isPending}
+              disabled={!selectedFile || uploadMutation.isPending || (!uploadAsIs && (!documentTypeCode || (selectedType?.lotRequired && !lot.trim())))}
               className="px-4 py-2 text-sm text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
             >
               {uploadMutation.isPending ? 'Nahrávám…' : 'Nahrát'}
