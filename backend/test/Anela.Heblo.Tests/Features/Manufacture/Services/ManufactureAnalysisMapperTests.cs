@@ -1,21 +1,13 @@
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
-using FluentAssertions;
-using FluentAssertions;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog;
-using FluentAssertions;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using FluentAssertions;
 using Microsoft.Extensions.Options;
-using FluentAssertions;
 using Moq;
-using FluentAssertions;
 using Xunit;
-using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Features.Manufacture.Services;
 
