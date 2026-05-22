@@ -15,6 +15,11 @@ export default function PifUploadDialog({ isOpen, productCode, onClose, onSucces
 
   if (!isOpen) return null;
 
+  function resetForm() {
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedFile) return;
@@ -23,6 +28,7 @@ export default function PifUploadDialog({ isOpen, productCode, onClose, onSucces
       {
         onSuccess: (data) => {
           if (data.success) {
+            resetForm();
             onSuccess?.();
             onClose();
           }

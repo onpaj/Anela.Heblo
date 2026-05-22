@@ -11,7 +11,9 @@ public static class CatalogDocumentsModule
         this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions<CatalogDocumentsOptions>()
-            .Bind(configuration.GetSection(CatalogDocumentsOptions.SectionName));
+            .Bind(configuration.GetSection(CatalogDocumentsOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         var options = new CatalogDocumentsOptions();
         configuration.GetSection(CatalogDocumentsOptions.SectionName).Bind(options);

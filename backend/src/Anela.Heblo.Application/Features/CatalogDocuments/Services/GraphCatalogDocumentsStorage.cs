@@ -35,19 +35,30 @@ public class GraphCatalogDocumentsStorage : ICatalogDocumentsStorage
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
         var encodedPath = GraphApiHelpers.EncodePath(basePath.TrimStart('/'));
-        var url = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:/children";
+        var firstUrl = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/root:/{encodedPath}:/children";
 
-        var request = GraphApiHelpers.CreateRequest(HttpMethod.Get, url, token);
-        var response = await client.SendAsync(request, ct);
+        var firstRequest = GraphApiHelpers.CreateRequest(HttpMethod.Get, firstUrl, token);
+        var firstResponse = await client.SendAsync(firstRequest, ct);
 
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        if (firstResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
             return new FolderSearchResult { Status = FolderStatus.NotFound };
 
-        await GraphApiHelpers.EnsureSuccessAsync(response, $"listing children of {basePath}", ct);
+        await GraphApiHelpers.EnsureSuccessAsync(firstResponse, $"listing children of {basePath}", ct);
+        var firstCollection = await GraphApiHelpers.DeserializeAsync<CatalogGraphDriveItemCollection>(firstResponse, ct);
 
-        var collection = await GraphApiHelpers.DeserializeAsync<CatalogGraphDriveItemCollection>(response, ct);
+        var allFolderItems = new List<CatalogGraphDriveItem>(firstCollection.Value);
+        var nextLink = firstCollection.NextLink;
+        while (nextLink != null)
+        {
+            var pageRequest = GraphApiHelpers.CreateRequest(HttpMethod.Get, nextLink, token);
+            var pageResponse = await client.SendAsync(pageRequest, ct);
+            await GraphApiHelpers.EnsureSuccessAsync(pageResponse, $"listing children of {basePath}", ct);
+            var page = await GraphApiHelpers.DeserializeAsync<CatalogGraphDriveItemCollection>(pageResponse, ct);
+            allFolderItems.AddRange(page.Value);
+            nextLink = page.NextLink;
+        }
 
-        var matches = collection.Value
+        var matches = allFolderItems
             .Where(i => i.Folder is not null && i.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
@@ -81,14 +92,19 @@ public class GraphCatalogDocumentsStorage : ICatalogDocumentsStorage
         var token = await _tokenAcquisition.GetAccessTokenForAppAsync(GraphApiHelpers.GraphScope);
         using var client = _httpClientFactory.CreateClient("MicrosoftGraph");
 
-        var url = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{folderId}/children";
-        var request = GraphApiHelpers.CreateRequest(HttpMethod.Get, url, token);
-        var response = await client.SendAsync(request, ct);
-        await GraphApiHelpers.EnsureSuccessAsync(response, $"listing files in folder {folderId}", ct);
+        var allFileItems = new List<CatalogGraphDriveItem>();
+        string? nextLink = $"{GraphApiHelpers.GraphBaseUrl}/drives/{Uri.EscapeDataString(driveId)}/items/{folderId}/children";
+        while (nextLink != null)
+        {
+            var request = GraphApiHelpers.CreateRequest(HttpMethod.Get, nextLink, token);
+            var response = await client.SendAsync(request, ct);
+            await GraphApiHelpers.EnsureSuccessAsync(response, $"listing files in folder {folderId}", ct);
+            var collection = await GraphApiHelpers.DeserializeAsync<CatalogGraphDriveItemCollection>(response, ct);
+            allFileItems.AddRange(collection.Value);
+            nextLink = collection.NextLink;
+        }
 
-        var collection = await GraphApiHelpers.DeserializeAsync<CatalogGraphDriveItemCollection>(response, ct);
-
-        return collection.Value
+        return allFileItems
             .Where(i => i.File is not null)
             .Select(i => new CatalogDocumentDto
             {
@@ -168,11 +184,18 @@ public class GraphCatalogDocumentsStorage : ICatalogDocumentsStorage
 
         while (offset < sizeBytes)
         {
-            var bytesRead = await content.ReadAsync(buffer, ct);
-            if (bytesRead == 0) break;
+            // Fill the buffer fully before sending: Graph API requires intermediate chunks to be a multiple of 320 KiB.
+            int totalRead = 0;
+            while (totalRead < chunkSize)
+            {
+                int read = await content.ReadAsync(buffer.AsMemory(totalRead), ct);
+                if (read == 0) break;
+                totalRead += read;
+            }
+            if (totalRead == 0) break;
 
-            var chunkContent = new ByteArrayContent(buffer, 0, bytesRead);
-            chunkContent.Headers.ContentRange = new System.Net.Http.Headers.ContentRangeHeaderValue(offset, offset + bytesRead - 1, sizeBytes);
+            var chunkContent = new ByteArrayContent(buffer, 0, totalRead);
+            chunkContent.Headers.ContentRange = new System.Net.Http.Headers.ContentRangeHeaderValue(offset, offset + totalRead - 1, sizeBytes);
             chunkContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
 
             var chunkRequest = new HttpRequestMessage(HttpMethod.Put, session.UploadUrl)
@@ -192,7 +215,7 @@ public class GraphCatalogDocumentsStorage : ICatalogDocumentsStorage
                 await GraphApiHelpers.EnsureSuccessAsync(chunkResponse, $"uploading chunk at offset {offset}", ct);
             }
 
-            offset += bytesRead;
+            offset += totalRead;
         }
 
         return uploadedName;

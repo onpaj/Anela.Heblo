@@ -42,6 +42,9 @@ internal class CatalogGraphDriveItemCollection
 {
     [JsonPropertyName("value")]
     public List<CatalogGraphDriveItem> Value { get; set; } = [];
+
+    [JsonPropertyName("@odata.nextLink")]
+    public string? NextLink { get; set; }
 }
 
 internal class CatalogGraphUploadSession

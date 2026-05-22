@@ -33,6 +33,15 @@ export default function MaterialUploadDialog({ isOpen, productCode, onClose, onS
     }
   }
 
+  function resetForm() {
+    setSelectedFile(null);
+    setDocumentTypeCode('');
+    setLot('');
+    setCommonName('');
+    setUploadAsIs(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedFile) return;
@@ -41,6 +50,7 @@ export default function MaterialUploadDialog({ isOpen, productCode, onClose, onS
       {
         onSuccess: (data) => {
           if (data.success) {
+            resetForm();
             onSuccess?.();
             onClose();
           }
