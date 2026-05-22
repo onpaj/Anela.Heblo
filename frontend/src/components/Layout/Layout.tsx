@@ -23,7 +23,7 @@ const Layout: React.FC<LayoutProps> = ({ children, statusBar }) => {
   const isFullHeightPage = location.pathname === "/customer/smartsupp";
 
   return (
-    <div className="h-[calc(100vh-1.5rem)] bg-gray-50 flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-2rem)] md:h-[calc(100vh-1.5rem)] bg-gray-50 flex flex-col overflow-hidden">
       {/* TopBar for mobile menu */}
       <TopBar onMenuClick={() => setSidebarOpen(true)} />
 
