@@ -150,4 +150,27 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
         // Assert
         occupied.Should().BeEquivalentTo(new HashSet<(int, int)> { (1, 10) });
     }
+
+    [Fact]
+    public async System.Threading.Tasks.Task AddPhotoTagsAsync_stagesRows_persistedAfterSave()
+    {
+        // Arrange
+        _context.Photos.Add(new Photo { Id = 1, SharePointFileId = "sp-1", FileName = "a.jpg", FolderPath = "P", ModifiedAt = DateTime.UtcNow });
+        _context.PhotobankTags.Add(new Tag { Id = 10, Name = "products" });
+        await _context.SaveChangesAsync(CancellationToken.None);
+
+        var toAdd = new List<PhotoTag>
+        {
+            new() { PhotoId = 1, TagId = 10, Source = PhotoTagSource.Rule, CreatedAt = DateTime.UtcNow },
+        };
+
+        // Act
+        await _repository.AddPhotoTagsAsync(toAdd, CancellationToken.None);
+        await _context.SaveChangesAsync(CancellationToken.None); // primitive does not save
+
+        // Assert
+        var rows = await _context.PhotoTags.ToListAsync(CancellationToken.None);
+        rows.Should().ContainSingle();
+        rows[0].Source.Should().Be(PhotoTagSource.Rule);
+    }
 }

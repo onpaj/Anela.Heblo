@@ -201,6 +201,12 @@ namespace Anela.Heblo.Application.Features.Photobank
             return Task.CompletedTask;
         }
 
+        public Task AddPhotoTagsAsync(IEnumerable<PhotoTag> photoTags, CancellationToken cancellationToken)
+        {
+            _context.PhotoTags.AddRange(photoTags);
+            return Task.CompletedTask;
+        }
+
         public async Task RemovePhotoTagAsync(int photoId, int tagId, CancellationToken cancellationToken)
         {
             var photoTag = await _context.PhotoTags
