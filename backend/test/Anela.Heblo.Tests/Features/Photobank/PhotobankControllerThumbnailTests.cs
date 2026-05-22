@@ -1,35 +1,26 @@
 using Anela.Heblo.API.Controllers;
 using Anela.Heblo.Application.Features.Photobank.Services;
-using Anela.Heblo.Domain.Features.Photobank;
+using Anela.Heblo.Application.Features.Photobank.UseCases.GetThumbnail;
+using Anela.Heblo.Application.Shared;
 using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Identity.Client;
 using Moq;
 using System.Security.Claims;
+using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Photobank;
 
 public sealed class PhotobankControllerThumbnailTests
 {
-    private readonly Mock<IMediator> _mediatorMock;
-    private readonly Mock<IPhotobankRepository> _repositoryMock;
-    private readonly Mock<IPhotobankGraphService> _graphServiceMock;
+    private readonly Mock<IMediator> _mediatorMock = new();
     private readonly PhotobankController _controller;
 
     public PhotobankControllerThumbnailTests()
     {
-        _mediatorMock = new Mock<IMediator>();
-        _repositoryMock = new Mock<IPhotobankRepository>();
-        _graphServiceMock = new Mock<IPhotobankGraphService>();
-
-        _controller = new PhotobankController(
-            _mediatorMock.Object,
-            _repositoryMock.Object,
-            _graphServiceMock.Object);
-
+        _controller = new PhotobankController(_mediatorMock.Object);
         SetupHttpContext();
     }
 
@@ -48,13 +39,16 @@ public sealed class PhotobankControllerThumbnailTests
         _controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
     }
 
+    private void SetupResponse(GetThumbnailResponse response) =>
+        _mediatorMock
+            .Setup(m => m.Send(It.IsAny<GetThumbnailRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
+
     [Fact]
-    public async Task GetThumbnail_ReturnsNotFound_WhenPhotoNotInDatabase()
+    public async Task GetThumbnail_ReturnsNotFound_WhenResponseNotFound()
     {
         // Arrange
-        _repositoryMock
-            .Setup(r => r.GetLocatorAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PhotoLocator?)null);
+        SetupResponse(new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailNotFound));
 
         // Act
         var result = await _controller.GetThumbnail(1, ThumbnailSize.Medium);
@@ -64,39 +58,10 @@ public sealed class PhotobankControllerThumbnailTests
     }
 
     [Fact]
-    public async Task GetThumbnail_ReturnsNotFound_WhenGraphReturnsNullThumbnail()
+    public async Task GetThumbnail_Returns503WithRetryAfter_WhenThrottledWithHint()
     {
         // Arrange
-        var locator = new PhotoLocator("driveId", "fileId", DateTime.UtcNow);
-
-        _repositoryMock
-            .Setup(r => r.GetLocatorAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(locator);
-
-        _graphServiceMock
-            .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((GraphThumbnail?)null);
-
-        // Act
-        var result = await _controller.GetThumbnail(1, ThumbnailSize.Medium);
-
-        // Assert
-        result.Should().BeOfType<NotFoundResult>();
-    }
-
-    [Fact]
-    public async Task GetThumbnail_Returns503WithRetryAfter_WhenGraphThrottles()
-    {
-        // Arrange
-        var locator = new PhotoLocator("driveId", "fileId", DateTime.UtcNow);
-
-        _repositoryMock
-            .Setup(r => r.GetLocatorAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(locator);
-
-        _graphServiceMock
-            .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new GraphThrottledException(TimeSpan.FromSeconds(29.3)));
+        SetupResponse(new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailThrottled) { RetryAfterSeconds = 30 });
 
         // Act
         var result = await _controller.GetThumbnail(1, ThumbnailSize.Medium);
@@ -108,18 +73,10 @@ public sealed class PhotobankControllerThumbnailTests
     }
 
     [Fact]
-    public async Task GetThumbnail_Returns503WithoutRetryAfter_WhenThrottledWithNullRetryAfter()
+    public async Task GetThumbnail_Returns503WithoutRetryAfter_WhenThrottledWithoutHint()
     {
         // Arrange
-        var locator = new PhotoLocator("driveId", "fileId", DateTime.UtcNow);
-
-        _repositoryMock
-            .Setup(r => r.GetLocatorAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(locator);
-
-        _graphServiceMock
-            .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new GraphThrottledException(null));
+        SetupResponse(new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailThrottled) { RetryAfterSeconds = null });
 
         // Act
         var result = await _controller.GetThumbnail(1, ThumbnailSize.Medium);
@@ -131,18 +88,25 @@ public sealed class PhotobankControllerThumbnailTests
     }
 
     [Fact]
-    public async Task GetThumbnail_Returns502_WhenGraphThrowsHttpRequestException()
+    public async Task GetThumbnail_Returns503_WhenAuthUnavailable()
     {
         // Arrange
-        var locator = new PhotoLocator("driveId", "fileId", DateTime.UtcNow);
+        SetupResponse(new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailAuthUnavailable));
 
-        _repositoryMock
-            .Setup(r => r.GetLocatorAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(locator);
+        // Act
+        var result = await _controller.GetThumbnail(1, ThumbnailSize.Medium);
 
-        _graphServiceMock
-            .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("upstream error"));
+        // Assert
+        var statusResult = result.Should().BeOfType<StatusCodeResult>().Subject;
+        statusResult.StatusCode.Should().Be(StatusCodes.Status503ServiceUnavailable);
+        _controller.Response.Headers.ContainsKey("Retry-After").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetThumbnail_Returns502_WhenUpstreamError()
+    {
+        // Arrange
+        SetupResponse(new GetThumbnailResponse(ErrorCodes.PhotobankThumbnailUpstream));
 
         // Act
         var result = await _controller.GetThumbnail(1, ThumbnailSize.Medium);
@@ -153,43 +117,11 @@ public sealed class PhotobankControllerThumbnailTests
     }
 
     [Fact]
-    public async Task GetThumbnail_Returns503_WhenTokenAcquisitionFails()
-    {
-        // Arrange
-        var locator = new PhotoLocator("driveId", "fileId", DateTime.UtcNow);
-
-        _repositoryMock
-            .Setup(r => r.GetLocatorAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(locator);
-
-        _graphServiceMock
-            .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new MsalServiceException("invalid_client", "AADSTS7000215: Invalid client secret"));
-
-        // Act
-        var result = await _controller.GetThumbnail(1, ThumbnailSize.Medium);
-
-        // Assert
-        var statusResult = result.Should().BeOfType<StatusCodeResult>().Subject;
-        statusResult.StatusCode.Should().Be(StatusCodes.Status503ServiceUnavailable);
-    }
-
-    [Fact]
     public async Task GetThumbnail_Returns200WithCacheHeaders_WhenSuccessful()
     {
         // Arrange
-        var locator = new PhotoLocator("driveId", "fileId", DateTime.UtcNow);
-        var imageBytes = new byte[] { 1, 2, 3, 4, 5 };
-        var stream = new MemoryStream(imageBytes);
-        var thumbnail = new GraphThumbnail(stream, "image/jpeg", null);
-
-        _repositoryMock
-            .Setup(r => r.GetLocatorAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(locator);
-
-        _graphServiceMock
-            .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(thumbnail);
+        var stream = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
+        SetupResponse(new GetThumbnailResponse { Content = stream, ContentType = "image/jpeg", ContentLength = null });
 
         // Act
         var result = await _controller.GetThumbnail(1, ThumbnailSize.Medium);
@@ -205,17 +137,8 @@ public sealed class PhotobankControllerThumbnailTests
     public async Task GetThumbnail_ForwardsContentLength_WhenAvailable()
     {
         // Arrange
-        var locator = new PhotoLocator("driveId", "fileId", DateTime.UtcNow);
         var stream = new MemoryStream(new byte[] { 1, 2, 3 });
-        var thumbnail = new GraphThumbnail(stream, "image/jpeg", 12345L);
-
-        _repositoryMock
-            .Setup(r => r.GetLocatorAsync(1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(locator);
-
-        _graphServiceMock
-            .Setup(g => g.GetThumbnailAsync(locator.DriveId, locator.SharePointFileId, ThumbnailSize.Medium, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(thumbnail);
+        SetupResponse(new GetThumbnailResponse { Content = stream, ContentType = "image/jpeg", ContentLength = 12345L });
 
         // Act
         var result = await _controller.GetThumbnail(1, ThumbnailSize.Medium);
