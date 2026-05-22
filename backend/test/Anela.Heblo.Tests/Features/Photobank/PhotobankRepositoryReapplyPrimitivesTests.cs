@@ -107,4 +107,47 @@ public class PhotobankRepositoryReapplyPrimitivesTests : IDisposable
         _context.ChangeTracker.Entries<PhotoTag>()
             .Should().Contain(e => e.State == Microsoft.EntityFrameworkCore.EntityState.Deleted);
     }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetOccupiedTagPairsAsync_unscoped_returnsOnlyNonRulePairs()
+    {
+        // Arrange
+        _context.Photos.Add(new Photo { Id = 1, SharePointFileId = "sp-1", FileName = "a.jpg", FolderPath = "P", ModifiedAt = DateTime.UtcNow });
+        _context.PhotobankTags.AddRange(
+            new Tag { Id = 10, Name = "products" },
+            new Tag { Id = 11, Name = "aitag" },
+            new Tag { Id = 12, Name = "ruletag" });
+        _context.PhotoTags.AddRange(
+            new PhotoTag { PhotoId = 1, TagId = 10, Source = PhotoTagSource.Manual, CreatedAt = DateTime.UtcNow },
+            new PhotoTag { PhotoId = 1, TagId = 11, Source = PhotoTagSource.AI, CreatedAt = DateTime.UtcNow },
+            new PhotoTag { PhotoId = 1, TagId = 12, Source = PhotoTagSource.Rule, CreatedAt = DateTime.UtcNow });
+        await _context.SaveChangesAsync(CancellationToken.None);
+
+        // Act
+        var occupied = await _repository.GetOccupiedTagPairsAsync(null, CancellationToken.None);
+
+        // Assert
+        occupied.Should().BeEquivalentTo(new HashSet<(int, int)> { (1, 10), (1, 11) });
+        occupied.Should().NotContain((1, 12)); // Rule pair excluded
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetOccupiedTagPairsAsync_scoped_filtersByTagName()
+    {
+        // Arrange
+        _context.Photos.Add(new Photo { Id = 1, SharePointFileId = "sp-1", FileName = "a.jpg", FolderPath = "P", ModifiedAt = DateTime.UtcNow });
+        _context.PhotobankTags.AddRange(
+            new Tag { Id = 10, Name = "products" },
+            new Tag { Id = 11, Name = "events" });
+        _context.PhotoTags.AddRange(
+            new PhotoTag { PhotoId = 1, TagId = 10, Source = PhotoTagSource.Manual, CreatedAt = DateTime.UtcNow },
+            new PhotoTag { PhotoId = 1, TagId = 11, Source = PhotoTagSource.Manual, CreatedAt = DateTime.UtcNow });
+        await _context.SaveChangesAsync(CancellationToken.None);
+
+        // Act
+        var occupied = await _repository.GetOccupiedTagPairsAsync("products", CancellationToken.None);
+
+        // Assert
+        occupied.Should().BeEquivalentTo(new HashSet<(int, int)> { (1, 10) });
+    }
 }

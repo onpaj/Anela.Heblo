@@ -225,6 +225,20 @@ namespace Anela.Heblo.Application.Features.Photobank
             _context.PhotoTags.RemoveRange(ruleTags);
         }
 
+        public async Task<HashSet<(int PhotoId, int TagId)>> GetOccupiedTagPairsAsync(
+            string? scopeToTagName, CancellationToken cancellationToken)
+        {
+            var query = _context.PhotoTags.Where(pt => pt.Source != PhotoTagSource.Rule);
+            if (scopeToTagName != null)
+                query = query.Where(pt => pt.Tag.Name == scopeToTagName);
+
+            var pairs = await query
+                .Select(pt => new { pt.PhotoId, pt.TagId })
+                .ToListAsync(cancellationToken);
+
+            return pairs.Select(x => (x.PhotoId, x.TagId)).ToHashSet();
+        }
+
         // Roots
 
         public async Task<List<PhotobankIndexRoot>> GetRootsAsync(CancellationToken cancellationToken)
