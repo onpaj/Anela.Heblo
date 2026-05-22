@@ -336,6 +336,20 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
     ShipmentOrderWeightUnavailable = 2909,
 
+    // CatalogDocuments module errors (30XX)
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    CatalogDocumentInvalidTypeCode = 3001,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    CatalogDocumentLotRequired = 3002,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    CatalogDocumentFolderNotFound = 3003,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    CatalogDocumentFolderMultipleMatches = 3004,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    CatalogDocumentFileMissing = 3005,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    CatalogDocumentGraphError = 3006,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,
