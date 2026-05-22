@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import { useResetOrderShipment } from '../../api/hooks/useResetOrderShipment';
 import type { ScanShipment } from '../../api/hooks/useScanPackingOrder';
 import type { ShipmentLabelDto } from '../../api/generated/api-client';
@@ -58,9 +57,20 @@ function PackingShipmentCreator({ orderCode, scanShipment }: PackingShipmentCrea
 
   if (resetMutation.isPending) {
     return (
-      <div data-testid="shipment-creating-spinner" className="flex items-center gap-2 text-neutral-gray">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        <span>Vytvářím novou zásilku…</span>
+      <div
+        data-testid="shipment-creating-spinner"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
+      >
+        <div className="flex w-full max-w-md flex-col items-center gap-6 rounded-2xl bg-white p-10 shadow-2xl">
+          <p className="text-2xl font-bold text-neutral-slate">Vytvářím novou zásilku…</p>
+          <div className="relative h-4 w-full overflow-hidden rounded-full bg-neutral-200">
+            <div
+              className="absolute h-full rounded-full bg-primary-blue"
+              style={{ animation: 'indeterminate-progress 1.5s ease-in-out infinite' }}
+            />
+          </div>
+          <p className="text-sm text-neutral-gray">Prosím čekejte</p>
+        </div>
       </div>
     );
   }
