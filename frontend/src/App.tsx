@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from "react-router-dom";
 import { MsalProvider } from "@azure/msal-react";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -53,7 +53,7 @@ import IssuedInvoicesPage from "./pages/customer/IssuedInvoicesPage";
 import DataQualityPage from "./pages/customer/DataQualityPage";
 import BankStatementsOverviewPage from "./pages/customer/BankStatementsOverviewPage";
 import SmartsuppChatsPage from "./components/customer-support/smartsupp/pages/SmartsuppChatsPage";
-import CoolingPage from "./pages/customer/CoolingPage";
+import ExpeditionSettingsPage from "./pages/customer/ExpeditionSettingsPage";
 import { setGlobalTokenProvider, setGlobalAuthRedirectHandler, clearTokenCache, TokenResult } from "./api/client";
 import { UserStorage } from "./auth/userStorage";
 import { apiRequest } from "./auth/msalConfig";
@@ -417,7 +417,8 @@ function App() {
                         <Route path="/customer/issued-invoices" element={<IssuedInvoicesPage />} />
                         <Route path="/customer/bank-statements-overview" element={<BankStatementsOverviewPage />} />
                         <Route path="/customer/smartsupp" element={<SmartsuppChatsPage />} />
-                        <Route path="/customer/cooling" element={<CoolingPage />} />
+                        <Route path="/customer/expedition-settings" element={<ExpeditionSettingsPage />} />
+                        <Route path="/customer/cooling" element={<Navigate to="/customer/expedition-settings?tab=cooling" replace />} />
                         <Route path="/orgchart" element={<OrgChartPage />} />
                         <Route path="/stock-up-operations" element={<StockOperationsPage />} />
                         <Route path="/recurring-jobs" element={<RecurringJobsPage />} />
