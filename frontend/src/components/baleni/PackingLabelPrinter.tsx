@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { printLabelPdf } from './printLabelPdf';
 import type { PackingOrder, ScanShipment } from '../../api/hooks/useScanPackingOrder';
 import type { ShipmentLabelDto } from '../../api/generated/api-client';
@@ -25,7 +25,7 @@ function PackingLabelPrinter({ order, shipment }: PackingLabelPrinterProps) {
   const [printedCount, setPrintedCount] = useState(0);
   const [acknowledgedCount, setAcknowledgedCount] = useState(0);
 
-  const labels = toLabels(shipment);
+  const labels = useMemo(() => toLabels(shipment), [shipment]);
 
   useEffect(() => {
     setPrintedCount(0);
