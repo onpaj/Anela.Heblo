@@ -4,6 +4,7 @@ using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 using Anela.Heblo.Xcc;
 
@@ -20,6 +21,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
     private readonly TimeProvider _timeProvider;
     private readonly ICatalogRepository _catalog;
     private readonly ICarrierCoolingRepository _carrierCooling;
+    private readonly IGiftSettingRepository _giftSettings;
     private readonly Func<ExpeditionProtocolData, byte[]> _generateDocument;
 
     public ShoptetApiExpeditionListSource(
@@ -27,12 +29,14 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         TimeProvider timeProvider,
         ICatalogRepository catalog,
         ICarrierCoolingRepository carrierCooling,
+        IGiftSettingRepository giftSettings,
         Func<ExpeditionProtocolData, byte[]>? generateDocument = null)
     {
         _client = (ShoptetOrderClient)client;
         _timeProvider = timeProvider;
         _catalog = catalog;
         _carrierCooling = carrierCooling;
+        _giftSettings = giftSettings;
         _generateDocument = generateDocument ?? ExpeditionProtocolDocument.Generate;
     }
 
@@ -77,6 +81,9 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
             s => (s.Carrier, s.DeliveryHandling),
             s => s.Cooling);
 
+        // Load gift setting once for the entire run
+        var giftSetting = await _giftSettings.GetAsync(cancellationToken);
+
         foreach (var (method, orders) in ordersByMethod)
         {
             var sorted = orders;
@@ -93,6 +100,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                 var detail = await _client.GetExpeditionOrderDetailAsync(code, cancellationToken);
                 var expeditionOrder = MapToExpeditionOrder(detail);
                 expeditionOrder.CarrierCooling = ResolveCarrierCooling(shippingGuid, coolingMatrix);
+                expeditionOrder.GiftBadgeText = ResolveGiftBadge(totalWithVat, currencyCode, giftSetting);
                 allExpeditionOrders.Add(expeditionOrder);
                 processedCodes.Add(code);
             }
@@ -257,6 +265,17 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         return matrix.TryGetValue((method.Carrier, handling.Value), out var cooling)
             ? cooling
             : Cooling.None;
+    }
+
+    internal static string? ResolveGiftBadge(
+        decimal? totalWithVat,
+        string? currencyCode,
+        GiftSetting setting)
+    {
+        if (!setting.IsEnabled) return null;
+        if (!string.Equals(currencyCode, "CZK", StringComparison.OrdinalIgnoreCase)) return null;
+        if (totalWithVat is null || totalWithVat < setting.ThresholdCzk) return null;
+        return setting.Text;
     }
 
     internal static List<ExpeditionOrderItem> MapOrderItems(Model.ExpeditionOrderDetail detail)

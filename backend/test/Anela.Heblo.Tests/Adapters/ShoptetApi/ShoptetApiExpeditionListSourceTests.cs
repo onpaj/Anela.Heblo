@@ -7,6 +7,7 @@ using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Orders.Model;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 using FluentAssertions;
 using Moq;
@@ -98,10 +99,12 @@ public class ShoptetApiExpeditionListSourceTests
     private static ShoptetApiExpeditionListSource BuildSource(
         ShoptetOrderClient client,
         ICarrierCoolingRepository? carrierCooling = null,
+        IGiftSettingRepository? giftSettings = null,
         Func<ExpeditionProtocolData, byte[]>? generateDocument = null)
     {
         var coolingRepo = carrierCooling ?? BuildEmptyCoolingRepo();
-        return new ShoptetApiExpeditionListSource(client, TimeProvider.System, new Mock<ICatalogRepository>().Object, coolingRepo, generateDocument);
+        var giftRepo = giftSettings ?? BuildGiftRepo();
+        return new ShoptetApiExpeditionListSource(client, TimeProvider.System, new Mock<ICatalogRepository>().Object, coolingRepo, giftRepo, generateDocument);
     }
 
     private static ICarrierCoolingRepository BuildEmptyCoolingRepo()
@@ -109,6 +112,17 @@ public class ShoptetApiExpeditionListSourceTests
         var mock = new Mock<ICarrierCoolingRepository>();
         mock.Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<CarrierCoolingSetting>());
+        return mock.Object;
+    }
+
+    private static IGiftSettingRepository BuildGiftRepo(
+        bool isEnabled = false, decimal threshold = 0, string text = "")
+    {
+        var setting = isEnabled
+            ? new GiftSetting(isEnabled, threshold, text, "test")
+            : GiftSetting.CreateDefault();
+        var mock = new Mock<IGiftSettingRepository>();
+        mock.Setup(r => r.GetAsync(It.IsAny<CancellationToken>())).ReturnsAsync(setting);
         return mock.Object;
     }
 
@@ -641,7 +655,7 @@ public class ShoptetApiExpeditionListSourceTests
                 Properties = new CatalogProperties { Cooling = Cooling.L1 },
             });
 
-        var source = new ShoptetApiExpeditionListSource(client, TimeProvider.System, catalogMock.Object, BuildEmptyCoolingRepo());
+        var source = new ShoptetApiExpeditionListSource(client, TimeProvider.System, catalogMock.Object, BuildEmptyCoolingRepo(), BuildGiftRepo());
 
         // Act
         var result = await source.CreatePickingList(DefaultRequest(), null);
@@ -779,7 +793,7 @@ public class ShoptetApiExpeditionListSourceTests
             });
 
         var capturedOrders = new List<ExpeditionOrder>();
-        var source = BuildSource(client, coolingMock.Object, data =>
+        var source = BuildSource(client, coolingMock.Object, generateDocument: data =>
         {
             capturedOrders.AddRange(data.Orders);
             return Array.Empty<byte>();
@@ -917,6 +931,132 @@ public class ShoptetApiExpeditionListSourceTests
 
         capturedData.Should().ContainSingle()
             .Which.CarrierDisplayName.Should().Be("Zásilkovna Z-Point");
+    }
+
+    // ─── ResolveGiftBadge ─────────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData(false, 1000, "GIFT", 1500d, "CZK", null)]   // disabled → no badge
+    [InlineData(true, 1000, "GIFT", 999d, "CZK", null)]     // below threshold → no badge
+    [InlineData(true, 1000, "GIFT", null, "CZK", null)]     // null total → no badge
+    [InlineData(true, 1000, "GIFT", 1500d, "EUR", null)]    // non-CZK → no badge
+    [InlineData(true, 1000, "GIFT", 1000d, "CZK", "GIFT")]  // at threshold → badge
+    [InlineData(true, 1000, "GIFT", 1001d, "CZK", "GIFT")]  // above threshold → badge
+    public void ResolveGiftBadge_ReturnsExpected(
+        bool isEnabled, double threshold, string text,
+        double? totalRaw, string currency, string? expected)
+    {
+        var setting = isEnabled
+            ? new GiftSetting(isEnabled, (decimal)threshold, text, "test")
+            : GiftSetting.CreateDefault();
+        decimal? total = totalRaw.HasValue ? (decimal)totalRaw.Value : null;
+
+        var result = ShoptetApiExpeditionListSource.ResolveGiftBadge(total, currency, setting);
+
+        result.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task CreatePickingList_AssignsGiftBadge_WhenOrderEligible()
+    {
+        var listResp = new OrderListResponse
+        {
+            Data = new OrderListData
+            {
+                Paginator = new Paginator { PageCount = 1 },
+                Orders = new List<OrderSummary>
+                {
+                    new()
+                    {
+                        Code = "Z001",
+                        Shipping = new OrderShippingSummary { Guid = ZasilkovnaDoRukyGuid },
+                        Price = new OrderPriceSummary { WithVat = 2000m, CurrencyCode = "CZK" },
+                    },
+                },
+            },
+        };
+
+        var capturedData = new List<ExpeditionProtocolData>();
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?")) return Json(listResp);
+            return Json(DetailFor("Z001"));
+        });
+
+        var giftRepo = BuildGiftRepo(isEnabled: true, threshold: 1500m, text: "DÁREK");
+
+        var source = BuildSource(client, giftSettings: giftRepo,
+            generateDocument: data => { capturedData.Add(data); return Array.Empty<byte>(); });
+
+        await source.CreatePickingList(DefaultRequest(), null);
+
+        capturedData.Should().HaveCount(1);
+        capturedData[0].Orders.Should().HaveCount(1);
+        capturedData[0].Orders[0].GiftBadgeText.Should().Be("DÁREK");
+    }
+
+    [Fact]
+    public async Task CreatePickingList_NoGiftBadge_ForNonCzkOrder()
+    {
+        var listResp = new OrderListResponse
+        {
+            Data = new OrderListData
+            {
+                Paginator = new Paginator { PageCount = 1 },
+                Orders = new List<OrderSummary>
+                {
+                    new()
+                    {
+                        Code = "Z001",
+                        Shipping = new OrderShippingSummary { Guid = ZasilkovnaDoRukyGuid },
+                        Price = new OrderPriceSummary { WithVat = 5000m, CurrencyCode = "EUR" },
+                    },
+                },
+            },
+        };
+
+        var capturedData = new List<ExpeditionProtocolData>();
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?")) return Json(listResp);
+            return Json(DetailFor("Z001"));
+        });
+
+        var source = BuildSource(client,
+            giftSettings: BuildGiftRepo(isEnabled: true, threshold: 1500m, text: "DÁREK"),
+            generateDocument: data => { capturedData.Add(data); return Array.Empty<byte>(); });
+
+        await source.CreatePickingList(DefaultRequest(), null);
+
+        capturedData[0].Orders[0].GiftBadgeText.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CreatePickingList_LoadsGiftSettingOnce_AcrossMultipleBatches()
+    {
+        // 3 orders → greedy batcher splits into 2 batches (Z001 has 10 items, exceeds maxItems on add of Z002)
+        var listResp = SinglePageList(
+            ("Z001", ZasilkovnaDoRukyGuid),
+            ("Z002", ZasilkovnaDoRukyGuid),
+            ("Z003", ZasilkovnaDoRukyGuid));
+
+        var client = BuildClient(req =>
+        {
+            if (req.RequestUri!.PathAndQuery.StartsWith("/api/orders?")) return Json(listResp);
+            var code = req.RequestUri.Segments.Last();
+            return Json(DetailFor(code, itemCount: code == "Z001" ? 10 : 1));
+        });
+
+        var giftRepoMock = new Mock<IGiftSettingRepository>();
+        giftRepoMock.Setup(r => r.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GiftSetting.CreateDefault());
+
+        var source = BuildSource(client, giftSettings: giftRepoMock.Object,
+            generateDocument: _ => Array.Empty<byte>());
+
+        await source.CreatePickingList(DefaultRequest(), null);
+
+        giftRepoMock.Verify(r => r.GetAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }
 
