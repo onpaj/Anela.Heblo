@@ -10,8 +10,8 @@ jest.mock('../../../api/hooks/useScanPackingOrder', () => ({
 
 jest.mock('../PackingShipmentCreator', () => ({
   __esModule: true,
-  default: ({ orderCode }: { orderCode: string }) => (
-    <div data-testid="packing-shipment-creator" data-order-code={orderCode} />
+  default: ({ order }: { order: { code: string } }) => (
+    <div data-testid="packing-shipment-creator" data-order-code={order.code} />
   ),
 }));
 

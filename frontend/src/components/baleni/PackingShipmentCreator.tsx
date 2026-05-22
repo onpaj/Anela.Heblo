@@ -1,58 +1,45 @@
 import { useEffect, useState } from 'react';
 import { useResetOrderShipment } from '../../api/hooks/useResetOrderShipment';
-import type { ScanShipment } from '../../api/hooks/useScanPackingOrder';
-import type { ShipmentLabelDto } from '../../api/generated/api-client';
+import type { PackingOrder, ScanShipment } from '../../api/hooks/useScanPackingOrder';
 import PackingLabelPrinter from './PackingLabelPrinter';
 
 interface PackingShipmentCreatorProps {
-  orderCode: string;
+  order: PackingOrder;
   scanShipment: ScanShipment | null;
 }
 
-function toLabels(shipment: ScanShipment): ShipmentLabelDto[] {
-  return shipment.packages.map(
-    (pkg) =>
-      ({
-        shipmentGuid: shipment.shipmentGuid,
-        packageName: pkg.name,
-        labelUrl: pkg.labelUrl ?? undefined,
-        labelZpl: pkg.labelZpl ?? undefined,
-      }) as ShipmentLabelDto
-  );
-}
-
-function PackingShipmentCreator({ orderCode, scanShipment }: PackingShipmentCreatorProps) {
+function PackingShipmentCreator({ order, scanShipment }: PackingShipmentCreatorProps) {
   const [showDialog, setShowDialog] = useState(false);
-  const [labelsForPrint, setLabelsForPrint] = useState<ShipmentLabelDto[] | null>(null);
+  const [shipmentForPrint, setShipmentForPrint] = useState<ScanShipment | null>(null);
   const resetMutation = useResetOrderShipment();
 
   useEffect(() => {
     if (!scanShipment) return;
     setShowDialog(false);
-    setLabelsForPrint(null);
+    setShipmentForPrint(null);
     if (scanShipment.alreadyExisted) {
       setShowDialog(true);
     } else {
-      setLabelsForPrint(toLabels(scanShipment));
+      setShipmentForPrint(scanShipment);
     }
   }, [scanShipment]);
 
   function handleReprint() {
     setShowDialog(false);
-    setLabelsForPrint(toLabels(scanShipment!));
+    setShipmentForPrint(scanShipment!);
   }
 
   function handleInvalidateAndNew() {
     setShowDialog(false);
-    resetMutation.mutate(orderCode, {
+    resetMutation.mutate(order.code, {
       onSuccess: (newShipment) => {
-        setLabelsForPrint(toLabels(newShipment));
+        setShipmentForPrint(newShipment);
       },
     });
   }
 
-  if (labelsForPrint) {
-    return <PackingLabelPrinter orderCode={orderCode} labels={labelsForPrint} />;
+  if (shipmentForPrint) {
+    return <PackingLabelPrinter order={order} shipment={shipmentForPrint} />;
   }
 
   if (resetMutation.isPending) {

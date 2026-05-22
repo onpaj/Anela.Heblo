@@ -1,12 +1,14 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import PackingShipmentCreator from '../PackingShipmentCreator';
-import type { ScanShipment } from '../../../api/hooks/useScanPackingOrder';
+import type { PackingOrder, ScanShipment } from '../../../api/hooks/useScanPackingOrder';
 
 jest.mock('../PackingLabelPrinter', () => ({
   __esModule: true,
-  default: ({ labels }: { labels: unknown[] }) => (
-    <div data-testid="label-printer">{labels.length} labels</div>
+  default: ({ order, shipment }: { order: { code: string }; shipment: { packages: unknown[] } }) => (
+    <div data-testid="label-printer">
+      {order.code}:{shipment.packages.length} labels
+    </div>
   ),
 }));
 
@@ -21,6 +23,19 @@ let mockResetState = {
 jest.mock('../../../api/hooks/useResetOrderShipment', () => ({
   useResetOrderShipment: () => mockResetState,
 }));
+
+const someOrder: PackingOrder = {
+  code: 'ORD001',
+  customerName: 'X',
+  shippingMethodName: 'Y',
+  cooling: 'None',
+  isCooled: false,
+  customerNote: null,
+  eshopNote: null,
+  eligibility: { isEligible: true, warningTitle: null, warningBody: null },
+  items: [],
+  shippingAddress: null,
+};
 
 const newShipment: ScanShipment = {
   shipmentGuid: 'guid-new',
@@ -52,25 +67,25 @@ describe('PackingShipmentCreator', () => {
 
   it('renders nothing when scanShipment is null', () => {
     const { container } = render(
-      <PackingShipmentCreator orderCode="ORD001" scanShipment={null} />
+      <PackingShipmentCreator order={someOrder} scanShipment={null} />
     );
     expect(container).toBeEmptyDOMElement();
   });
 
   it('shows PackingLabelPrinter immediately when shipment is new', () => {
-    render(<PackingShipmentCreator orderCode="ORD001" scanShipment={newShipment} />);
+    render(<PackingShipmentCreator order={someOrder} scanShipment={newShipment} />);
     expect(screen.getByTestId('label-printer')).toBeInTheDocument();
   });
 
   it('shows dialog when shipment already existed', () => {
-    render(<PackingShipmentCreator orderCode="ORD001" scanShipment={existingShipment} />);
+    render(<PackingShipmentCreator order={someOrder} scanShipment={existingShipment} />);
     expect(screen.queryByTestId('label-printer')).not.toBeInTheDocument();
     expect(screen.getByText(/existující zásilku/i)).toBeInTheDocument();
     expect(screen.getByText(/novou zásilku/i)).toBeInTheDocument();
   });
 
   it('clicking reprint shows PackingLabelPrinter and hides dialog buttons', () => {
-    render(<PackingShipmentCreator orderCode="ORD001" scanShipment={existingShipment} />);
+    render(<PackingShipmentCreator order={someOrder} scanShipment={existingShipment} />);
     const reprintBtn = screen.getByRole('button', { name: /Použít existující zásilku/i });
     fireEvent.click(reprintBtn);
     expect(screen.getByTestId('label-printer')).toBeInTheDocument();
@@ -78,7 +93,7 @@ describe('PackingShipmentCreator', () => {
   });
 
   it('clicking invalidate calls resetMutation.mutate with orderCode', () => {
-    render(<PackingShipmentCreator orderCode="ORD001" scanShipment={existingShipment} />);
+    render(<PackingShipmentCreator order={someOrder} scanShipment={existingShipment} />);
     const newBtn = screen.getByRole('button', { name: /Vytvořit novou zásilku/i });
     fireEvent.click(newBtn);
     expect(mockResetMutate).toHaveBeenCalledWith('ORD001', expect.any(Object));
@@ -86,7 +101,7 @@ describe('PackingShipmentCreator', () => {
 
   it('shows spinner while resetMutation is pending', () => {
     mockResetState = { ...mockResetState, isPending: true };
-    render(<PackingShipmentCreator orderCode="ORD001" scanShipment={existingShipment} />);
+    render(<PackingShipmentCreator order={someOrder} scanShipment={existingShipment} />);
     expect(screen.getByTestId('shipment-creating-spinner')).toBeInTheDocument();
   });
 
@@ -96,7 +111,7 @@ describe('PackingShipmentCreator', () => {
       isError: true,
       error: new Error('Shoptet nemohl vytvořit novou zásilku.'),
     };
-    render(<PackingShipmentCreator orderCode="ORD001" scanShipment={existingShipment} />);
+    render(<PackingShipmentCreator order={someOrder} scanShipment={existingShipment} />);
     expect(screen.getByTestId('shipment-error-banner')).toBeInTheDocument();
     expect(screen.getByText(/Shoptet nemohl vytvořit novou zásilku/i)).toBeInTheDocument();
   });

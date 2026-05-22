@@ -1,27 +1,66 @@
 import { useEffect, useState } from 'react';
 import { printLabelPdf } from './printLabelPdf';
+import type { PackingOrder, ScanShipment } from '../../api/hooks/useScanPackingOrder';
 import type { ShipmentLabelDto } from '../../api/generated/api-client';
+import PackingShipmentDoneView from './PackingShipmentDoneView';
 
 interface PackingLabelPrinterProps {
-  orderCode: string;
-  labels: ShipmentLabelDto[];
+  order: PackingOrder;
+  shipment: ScanShipment;
 }
 
-function PackingLabelPrinter({ orderCode, labels }: PackingLabelPrinterProps) {
+function toLabels(shipment: ScanShipment): ShipmentLabelDto[] {
+  return shipment.packages.map(
+    (pkg) =>
+      ({
+        shipmentGuid: shipment.shipmentGuid,
+        packageName: pkg.name,
+        labelUrl: pkg.labelUrl ?? undefined,
+        labelZpl: pkg.labelZpl ?? undefined,
+      }) as ShipmentLabelDto
+  );
+}
+
+function PackingLabelPrinter({ order, shipment }: PackingLabelPrinterProps) {
   const [printedCount, setPrintedCount] = useState(0);
+  const [acknowledgedCount, setAcknowledgedCount] = useState(0);
+
+  const labels = toLabels(shipment);
 
   useEffect(() => {
     setPrintedCount(0);
-  }, [orderCode]);
+    setAcknowledgedCount(0);
+  }, [order.code]);
 
   useEffect(() => {
     if (labels.length > 0 && printedCount === 0) {
-      printLabelPdf(orderCode, labels[0]);
+      printLabelPdf(order.code, labels[0], () =>
+        setAcknowledgedCount((c) => c + 1)
+      );
       setPrintedCount(1);
     }
-  }, [labels, orderCode, printedCount]);
+  }, [labels, order.code, printedCount]);
 
-  if (labels.length === 0 || printedCount === 0 || printedCount >= labels.length) {
+  function handleReprint() {
+    setPrintedCount(0);
+    setAcknowledgedCount(0);
+  }
+
+  if (labels.length === 0) {
+    return null;
+  }
+
+  if (acknowledgedCount >= labels.length) {
+    return (
+      <PackingShipmentDoneView
+        order={order}
+        shipment={shipment}
+        onReprint={handleReprint}
+      />
+    );
+  }
+
+  if (printedCount === 0 || printedCount >= labels.length) {
     return null;
   }
 
@@ -32,7 +71,9 @@ function PackingLabelPrinter({ orderCode, labels }: PackingLabelPrinterProps) {
       data-testid="print-next-label-button"
       className="rounded-lg bg-brand-600 px-6 py-4 text-lg font-semibold text-white shadow active:scale-95"
       onClick={() => {
-        printLabelPdf(orderCode, labels[printedCount]);
+        printLabelPdf(order.code, labels[printedCount], () =>
+          setAcknowledgedCount((c) => c + 1)
+        );
         setPrintedCount((c) => c + 1);
       }}
     >

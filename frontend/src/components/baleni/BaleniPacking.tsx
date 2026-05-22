@@ -38,7 +38,7 @@ function renderOrderBody(order: PackingOrder, shipment: ScanShipment | null) {
       </div>
       <PackingOrderNotes customerNote={order.customerNote} eshopNote={order.eshopNote} />
       {order.eligibility.isEligible && (
-        <PackingShipmentCreator orderCode={order.code} scanShipment={shipment} />
+        <PackingShipmentCreator order={order} scanShipment={shipment} />
       )}
       <p className="text-xs uppercase tracking-wide text-neutral-gray">
         Položky ({order.items.length})
