@@ -11,6 +11,7 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
 {
     private readonly IShipmentClient _shipmentClient;
     private readonly IPackingOrderClient _orderClient;
+    private readonly IEshopOrderClient _eshopOrderClient;
     private readonly ShipmentLabelsSettings _shipmentSettings;
     private readonly ShoptetOrdersSettings _orderSettings;
     private readonly ILogger<ScanPackingOrderHandler> _logger;
@@ -18,12 +19,14 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
     public ScanPackingOrderHandler(
         IShipmentClient shipmentClient,
         IPackingOrderClient orderClient,
+        IEshopOrderClient eshopOrderClient,
         IOptions<ShipmentLabelsSettings> shipmentSettings,
         IOptions<ShoptetOrdersSettings> orderSettings,
         ILogger<ScanPackingOrderHandler> logger)
     {
         _shipmentClient = shipmentClient;
         _orderClient = orderClient;
+        _eshopOrderClient = eshopOrderClient;
         _shipmentSettings = shipmentSettings.Value;
         _orderSettings = orderSettings.Value;
         _logger = logger;
@@ -74,6 +77,7 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
                     .ToList(),
                 AlreadyExisted = true,
             };
+            await TryMarkAsPackedAsync(request.OrderCode, ct);
             return new ScanPackingOrderResponse(orderData, existingShipment);
         }
 
@@ -123,11 +127,25 @@ public class ScanPackingOrderHandler : IRequestHandler<ScanPackingOrderRequest, 
             }).ToList()
             : [new ScanShipmentPackage { Name = "PKG-1" }];
 
+        await TryMarkAsPackedAsync(request.OrderCode, ct);
         return new ScanPackingOrderResponse(orderData, new ScanShipmentData
         {
             ShipmentGuid = createdShipment.ShipmentGuid,
             Packages = packages,
             AlreadyExisted = false,
         });
+    }
+
+    private async Task TryMarkAsPackedAsync(string orderCode, CancellationToken ct)
+    {
+        try
+        {
+            await _eshopOrderClient.UpdateStatusAsync(orderCode, _orderSettings.PackedStateId, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to update order {OrderCode} to packed status {StatusId}",
+                orderCode, _orderSettings.PackedStateId);
+        }
     }
 }

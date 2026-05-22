@@ -13,6 +13,7 @@ public class ScanPackingOrderHandlerTests
 {
     private readonly Mock<IShipmentClient> _shipmentClient = new();
     private readonly Mock<IPackingOrderClient> _orderClient = new();
+    private readonly Mock<IEshopOrderClient> _eshopOrderClient = new();
 
     private static readonly ShipmentLabelsSettings DefaultLabelSettings = new()
     {
@@ -25,6 +26,7 @@ public class ScanPackingOrderHandlerTests
     private static readonly ShoptetOrdersSettings DefaultOrderSettings = new()
     {
         PackingStateId = 26,
+        PackedStateId = 52,
     };
 
     private ScanPackingOrderHandler CreateHandler(
@@ -33,6 +35,7 @@ public class ScanPackingOrderHandlerTests
         new(
             _shipmentClient.Object,
             _orderClient.Object,
+            _eshopOrderClient.Object,
             Options.Create(labelSettings ?? DefaultLabelSettings),
             Options.Create(orderSettings ?? DefaultOrderSettings),
             new Mock<ILogger<ScanPackingOrderHandler>>().Object);
@@ -244,5 +247,105 @@ public class ScanPackingOrderHandlerTests
 
         response.Shipment.Packages[0].LabelUrl.Should().Be("https://carrier.example.com/new-label.pdf");
         response.Shipment.Packages[0].LabelZpl.Should().BeNull();
+    }
+
+    // Status update: called with PackedStateId when existing shipment found
+    [Fact]
+    public async Task Handle_LabelsExist_UpdatesOrderStatusToPacked()
+    {
+        var shipmentGuid = Guid.NewGuid();
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
+
+        _shipmentClient
+            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://example.com/label.pdf" }]);
+
+        var response = await CreateHandler().Handle(
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        _eshopOrderClient.Verify(
+            c => c.UpdateStatusAsync("0001234", 52, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    // Status update: called with PackedStateId when new shipment is created
+    [Fact]
+    public async Task Handle_NewShipmentCreated_UpdatesOrderStatusToPacked()
+    {
+        var shipmentGuid = Guid.NewGuid();
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
+
+        _shipmentClient
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([])
+            .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://carrier.example.com/new-label.pdf" }]);
+
+        _shipmentClient
+            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShippingOption { CarrierCode = "PPL", Name = "PPL" }]);
+
+        _shipmentClient
+            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CreatedShipment { ShipmentGuid = shipmentGuid });
+
+        var response = await CreateHandler().Handle(
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        _eshopOrderClient.Verify(
+            c => c.UpdateStatusAsync("0001234", 52, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    // Status update: failure is non-fatal — scan still returns success
+    [Fact]
+    public async Task Handle_StatusUpdateFails_StillReturnsSuccessfulScanResponse()
+    {
+        var shipmentGuid = Guid.NewGuid();
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
+
+        _shipmentClient
+            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = "0001234", PackageName = "P1", LabelUrl = "https://example.com/label.pdf" }]);
+
+        _eshopOrderClient
+            .Setup(c => c.UpdateStatusAsync("0001234", It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Shoptet status update failed"));
+
+        var response = await CreateHandler().Handle(
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        response.Shipment.Should().NotBeNull();
+    }
+
+    // Status update: NOT called when order is ineligible
+    [Fact]
+    public async Task Handle_OrderNotInPackingState_DoesNotUpdateStatus()
+    {
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PackingOrder { Code = "0001234", StatusId = 99 });
+
+        await CreateHandler().Handle(
+            new ScanPackingOrderRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        _eshopOrderClient.Verify(
+            c => c.UpdateStatusAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }
