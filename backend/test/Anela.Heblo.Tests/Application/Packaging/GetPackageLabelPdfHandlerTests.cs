@@ -28,7 +28,7 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     private GetPackageLabelPdfHandler CreateHandler() =>
-        new(_shipmentClient.Object, _httpClientFactory.Object, new Mock<ILogger<GetPackageLabelPdfHandler>>().Object);
+        new(_shipmentClient.Object, _httpClientFactory.Object, new Mock<ILogger<GetPackageLabelPdfHandler>>().Object, TimeSpan.Zero);
 
     private static GetPackageLabelPdfRequest Request() => new()
     {
@@ -137,6 +137,29 @@ public class GetPackageLabelPdfHandlerTests
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
         response.ErrorCode.Should().Be(ErrorCodes.PackageLabelDownloadFailed);
+    }
+
+    [Fact]
+    public async Task Handle_LabelUrlInitiallyNullThenAvailableOnRetry_ReturnsPdf()
+    {
+        var shipmentGuid = Guid.NewGuid();
+        _shipmentClient
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync(OrderCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = OrderCode, PackageName = PackageName, LabelUrl = null }])
+            .ReturnsAsync([new ShipmentLabel { ShipmentGuid = shipmentGuid, OrderCode = OrderCode, PackageName = PackageName, LabelUrl = LabelUrl }]);
+
+        var pdfBytes = Encoding.UTF8.GetBytes("%PDF-1.4 fake");
+        var pdfResponse = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(pdfBytes),
+        };
+        pdfResponse.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+        SetupHttpResponse(pdfResponse);
+
+        var response = await CreateHandler().Handle(Request(), CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        response.FileName.Should().Be($"{OrderCode}-{PackageName}.pdf");
     }
 
     [Fact]

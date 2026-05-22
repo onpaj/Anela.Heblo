@@ -13,20 +13,37 @@ public class GetPackageLabelPdfHandler : IRequestHandler<GetPackageLabelPdfReque
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<GetPackageLabelPdfHandler> _logger;
 
+    private const int LabelReadinessRetries = 5;
+    private readonly TimeSpan _labelReadinessDelay;
+
     public GetPackageLabelPdfHandler(
         IShipmentClient shipmentClient,
         IHttpClientFactory httpClientFactory,
-        ILogger<GetPackageLabelPdfHandler> logger)
+        ILogger<GetPackageLabelPdfHandler> logger,
+        TimeSpan? labelReadinessDelay = null)
     {
         _shipmentClient = shipmentClient;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _labelReadinessDelay = labelReadinessDelay ?? TimeSpan.FromSeconds(1);
     }
 
     public async Task<GetPackageLabelPdfResponse> Handle(GetPackageLabelPdfRequest request, CancellationToken ct)
     {
         var labels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
         var label = labels.FirstOrDefault(l => l.PackageName == request.PackageName);
+
+        if (label is null)
+            return new GetPackageLabelPdfResponse(ErrorCodes.PackageLabelNotFound);
+
+        // Carrier label generation may be briefly async after shipment creation — poll until ready.
+        for (var attempt = 0; attempt < LabelReadinessRetries && string.IsNullOrWhiteSpace(label.LabelUrl); attempt++)
+        {
+            await Task.Delay(_labelReadinessDelay, ct);
+            labels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
+            label = labels.FirstOrDefault(l => l.PackageName == request.PackageName);
+            if (label is null) break;
+        }
 
         if (label is null || string.IsNullOrWhiteSpace(label.LabelUrl))
         {

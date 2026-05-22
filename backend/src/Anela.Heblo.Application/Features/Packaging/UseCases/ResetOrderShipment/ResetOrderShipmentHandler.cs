@@ -90,8 +90,11 @@ public class ResetOrderShipmentHandler : IRequestHandler<ResetOrderShipmentReque
         }
 
         var newLabels = await _shipmentClient.GetLabelsByOrderCodeAsync(request.OrderCode, ct);
-        var packages = newLabels.Count > 0
-            ? newLabels.Select(l => new ResetShipmentPackage
+        var createdPackages = newLabels
+            .Where(l => l.ShipmentGuid == createdShipment.ShipmentGuid)
+            .ToList();
+        var packages = createdPackages.Count > 0
+            ? createdPackages.Select(l => new ResetShipmentPackage
             {
                 Name = l.PackageName,
                 LabelUrl = l.LabelUrl,

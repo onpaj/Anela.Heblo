@@ -328,6 +328,45 @@ public class ResetOrderShipmentHandlerTests
             Times.Never);
     }
 
+    // Test: eventual consistency — second GetLabelsByOrderCodeAsync returns both old and new labels;
+    // handler must filter by new shipment GUID so only the new package appears in the response
+    [Fact]
+    public async Task Handle_EventualConsistency_SecondCallReturnsBothOldAndNew_OnlyNewPackagesInResponse()
+    {
+        var oldGuid = Guid.NewGuid();
+        var newGuid = Guid.NewGuid();
+
+        _shipmentClient
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([MakeLabel(oldGuid, "OLD-P1")])
+            .ReturnsAsync([MakeLabel(oldGuid, "OLD-P1"), MakeLabel(newGuid, "NEW-P1", "https://carrier.example.com/new.pdf")]);
+
+        _shipmentClient
+            .Setup(c => c.CancelShipmentAsync(oldGuid, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
+
+        _shipmentClient
+            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShippingOption { CarrierCode = "PPL", Name = "PPL" }]);
+
+        _shipmentClient
+            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CreatedShipment { ShipmentGuid = newGuid });
+
+        var response = await CreateHandler().Handle(
+            new ResetOrderShipmentRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        response.Shipment!.Packages.Should().HaveCount(1);
+        response.Shipment.Packages[0].Name.Should().Be("NEW-P1");
+        response.Shipment.Packages[0].LabelUrl.Should().Be("https://carrier.example.com/new.pdf");
+    }
+
     // Test 6: Cancel returns silently (404 treated as success inside client) → handler still creates replacement
     [Fact]
     public async Task Handle_CancelReturnsSilently_ProceedsToCreate()
