@@ -139,7 +139,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
   return (
     <div
-      className={`fixed bottom-0 bg-gray-100 border-t border-gray-200 text-xs text-gray-600 px-4 py-1 z-10 transition-all duration-300 h-6 ${
+      className={`fixed bottom-0 bg-gray-100 border-t border-gray-200 text-xs text-gray-600 px-4 z-10 transition-all duration-300 ${
+        isMobile ? "py-1.5 min-h-8" : "py-1 h-6"
+      } ${
         isMobile
           ? "left-0 right-0"
           : sidebarCollapsed
@@ -148,7 +150,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       } ${className}`}
     >
       <div
-        className={`flex items-center space-x-1 ${isMobile ? "justify-between" : "justify-end"}`}
+        className={`flex items-center ${isMobile ? "gap-1.5 flex-wrap justify-between" : "space-x-1 justify-end"}`}
       >
         {isMobile ? (
           <>
