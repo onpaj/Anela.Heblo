@@ -119,6 +119,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                 var stockByCode = new Dictionary<string, decimal>();
                 var locationByCode = new Dictionary<string, string>();
                 var coolingByCode = new Dictionary<string, Cooling>();
+                var priceByCode = new Dictionary<string, decimal>();
                 foreach (var productCode in productCodes)
                 {
                     var entry = await _catalog.GetByIdAsync(productCode, cancellationToken);
@@ -128,13 +129,16 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                         if (!string.IsNullOrEmpty(entry.Location))
                             locationByCode[productCode] = entry.Location;
                         coolingByCode[productCode] = entry.Properties.Cooling;
+                        if (entry.PriceWithVat is > 0)
+                            priceByCode[productCode] = entry.PriceWithVat.Value;
                     }
                 }
                 ApplyEnrichment(
                     batch.SelectMany(o => o.Items),
                     stockByCode,
                     locationByCode,
-                    coolingByCode);
+                    coolingByCode,
+                    priceByCode);
 
                 var fileName = $"{timestamp}_{method.Name}_{batchIndex}.pdf";
                 var listId = Path.GetFileNameWithoutExtension(fileName);
@@ -241,7 +245,8 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         IEnumerable<ExpeditionOrderItem> items,
         Dictionary<string, decimal> stockByCode,
         Dictionary<string, string> locationByCode,
-        Dictionary<string, Cooling> coolingByCode)
+        Dictionary<string, Cooling> coolingByCode,
+        Dictionary<string, decimal>? priceByCode = null)
     {
         foreach (var item in items)
         {
@@ -251,6 +256,8 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                 item.WarehousePosition = location;
             if (coolingByCode.TryGetValue(item.ProductCode, out var cooling))
                 item.Cooling = cooling;
+            if (item.UnitPrice == 0m && priceByCode != null && priceByCode.TryGetValue(item.ProductCode, out var price))
+                item.UnitPrice = price;
         }
     }
 

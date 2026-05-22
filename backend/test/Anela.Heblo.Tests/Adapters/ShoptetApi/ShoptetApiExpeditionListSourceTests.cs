@@ -717,6 +717,86 @@ public class ShoptetApiExpeditionListSourceTests
         item.Cooling.Should().Be(Cooling.None);
     }
 
+    [Fact]
+    public void ApplyEnrichment_SetsCatalogPrice_WhenOrderPriceIsZero()
+    {
+        // Arrange
+        var item = new ExpeditionOrderItem
+        {
+            ProductCode = "P001",
+            Name = "Test",
+            Variant = string.Empty,
+            WarehousePosition = "A1",
+            Quantity = 1,
+            UnitPrice = 0m,
+        };
+        var priceByCode = new Dictionary<string, decimal> { ["P001"] = 290m };
+
+        // Act
+        ShoptetApiExpeditionListSource.ApplyEnrichment(
+            new[] { item },
+            stockByCode: new Dictionary<string, decimal>(),
+            locationByCode: new Dictionary<string, string>(),
+            coolingByCode: new Dictionary<string, Cooling>(),
+            priceByCode: priceByCode);
+
+        // Assert
+        item.UnitPrice.Should().Be(290m);
+    }
+
+    [Fact]
+    public void ApplyEnrichment_KeepsOrderPrice_WhenOrderPriceIsNonZero()
+    {
+        // Arrange
+        var item = new ExpeditionOrderItem
+        {
+            ProductCode = "P001",
+            Name = "Test",
+            Variant = string.Empty,
+            WarehousePosition = "A1",
+            Quantity = 1,
+            UnitPrice = 340m,
+        };
+        var priceByCode = new Dictionary<string, decimal> { ["P001"] = 290m };
+
+        // Act
+        ShoptetApiExpeditionListSource.ApplyEnrichment(
+            new[] { item },
+            stockByCode: new Dictionary<string, decimal>(),
+            locationByCode: new Dictionary<string, string>(),
+            coolingByCode: new Dictionary<string, Cooling>(),
+            priceByCode: priceByCode);
+
+        // Assert
+        item.UnitPrice.Should().Be(340m);
+    }
+
+    [Fact]
+    public void ApplyEnrichment_LeavesZeroPrice_WhenNeitherOrderNorCatalogHasPrice()
+    {
+        // Arrange
+        var item = new ExpeditionOrderItem
+        {
+            ProductCode = "P001",
+            Name = "Test",
+            Variant = string.Empty,
+            WarehousePosition = "A1",
+            Quantity = 1,
+            UnitPrice = 0m,
+        };
+
+        // Act
+        ShoptetApiExpeditionListSource.ApplyEnrichment(
+            new[] { item },
+            stockByCode: new Dictionary<string, decimal>(),
+            locationByCode: new Dictionary<string, string>(),
+            coolingByCode: new Dictionary<string, Cooling>(),
+            priceByCode: new Dictionary<string, decimal>());
+
+        // Assert
+        item.UnitPrice.Should().Be(0m);
+    }
+
     // ─── ResolveCarrierCooling ────────────────────────────────────────────────────
 
     [Fact]
