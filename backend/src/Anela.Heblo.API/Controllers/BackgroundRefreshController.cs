@@ -79,6 +79,42 @@ public class BackgroundRefreshController : ControllerBase
         }
     }
 
+    [HttpPost("tiers/{tier}/run")]
+    public async Task<ActionResult> RunHydrationTier(int tier, CancellationToken cancellationToken)
+    {
+        var tasksInTier = _taskRegistry.GetRegisteredTasks()
+            .Where(t => t.HydrationTier == tier && t.Enabled)
+            .OrderBy(t => t.TaskId)
+            .ToList();
+
+        if (tasksInTier.Count == 0)
+        {
+            return NotFound(new { Error = $"No enabled tasks found for tier {tier}" });
+        }
+
+        _logger.LogInformation("Manual hydration of tier {Tier} requested ({TaskCount} tasks)", tier, tasksInTier.Count);
+
+        try
+        {
+            foreach (var task in tasksInTier)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await _taskRegistry.ForceRefreshAsync(task.TaskId, cancellationToken);
+            }
+
+            return Ok(new { Message = $"Tier {tier} hydration completed ({tasksInTier.Count} tasks)" });
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(499, new { Error = "Hydration was cancelled" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Manual hydration of tier {Tier} failed", tier);
+            return StatusCode(500, new { Error = "An unexpected error occurred during tier hydration" });
+        }
+    }
+
     [HttpGet("tasks/{taskId}/status")]
     public ActionResult<RefreshTaskStatusDto> GetTaskStatus(string taskId)
     {

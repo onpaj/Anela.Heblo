@@ -346,6 +346,20 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     PackageLabelDownloadFailed = 3005,
 
+    // CatalogDocuments module errors (31XX)
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    CatalogDocumentInvalidTypeCode = 3101,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    CatalogDocumentLotRequired = 3102,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    CatalogDocumentFolderNotFound = 3103,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    CatalogDocumentFolderMultipleMatches = 3104,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    CatalogDocumentFileMissing = 3105,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    CatalogDocumentGraphError = 3106,
+
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     ExternalServiceError = 9001,

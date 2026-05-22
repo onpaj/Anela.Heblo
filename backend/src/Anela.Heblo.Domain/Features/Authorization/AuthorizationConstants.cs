@@ -65,5 +65,6 @@ public static class AuthorizationConstants
         /// Policy required for generating leaflets and articles
         /// </summary>
         public const string MarketingReader = "MarketingReader";
+
     }
 }

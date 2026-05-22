@@ -272,6 +272,14 @@ const resources = {
         PackageLabelNotFound: "Štítek pro tento balík nebyl nalezen.",
         PackageLabelDownloadFailed: "Stažení PDF štítku od dopravce se nezdařilo.",
 
+        // CatalogDocuments module errors
+        CatalogDocumentInvalidTypeCode: "Neplatný kód typu dokumentu katalogu.",
+        CatalogDocumentLotRequired: "Pro tento typ dokumentu je vyžadována šarže.",
+        CatalogDocumentFolderNotFound: "Složka dokumentů katalogu nebyla nalezena.",
+        CatalogDocumentFolderMultipleMatches: "Nalezeno více odpovídajících složek dokumentů katalogu.",
+        CatalogDocumentFileMissing: "Soubor dokumentu katalogu chybí.",
+        CatalogDocumentGraphError: "Chyba přístupu k úložišti dokumentů katalogu.",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",

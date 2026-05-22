@@ -46,7 +46,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({
   defaultTab = "basic",
 }) => {
   const [activeTab, setActiveTab] = useState<
-    "basic" | "history" | "margins" | "composition" | "journal" | "usage"
+    "basic" | "history" | "margins" | "composition" | "journal" | "usage" | "documents" | "pif"
   >(defaultTab as any);
   const [activeChartTab, setActiveChartTab] = useState<"input" | "output">(
     "output",
