@@ -283,6 +283,14 @@ public enum ErrorCodes
     PhotobankTagNotFound = 2608,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     PhotobankInvalidRegexPattern = 2609,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotobankThumbnailNotFound = 2610,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    PhotobankThumbnailThrottled = 2611,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    PhotobankThumbnailAuthUnavailable = 2612,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    PhotobankThumbnailUpstream = 2613,
 
     // Smartsupp module errors (27XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

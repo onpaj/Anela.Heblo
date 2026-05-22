@@ -1,10 +1,10 @@
 using System.Collections.Generic;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.Photobank.Contracts;
 using Anela.Heblo.Application.Features.Photobank.Services;
-using Microsoft.Identity.Client;
+using Anela.Heblo.Application.Features.Photobank.UseCases.GetThumbnail;
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddPhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRoot;
 using Anela.Heblo.Application.Features.Photobank.UseCases.AddRule;
@@ -23,7 +23,6 @@ using Anela.Heblo.Application.Features.Photobank.UseCases.RemovePhotoTag;
 using Anela.Heblo.Application.Features.Photobank.UseCases.RetagPhotos;
 using Anela.Heblo.Application.Features.Photobank.UseCases.UpdateRule;
 using Anela.Heblo.Domain.Features.Authorization;
-using Anela.Heblo.Domain.Features.Photobank;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -37,17 +36,10 @@ namespace Anela.Heblo.API.Controllers
     public class PhotobankController : BaseApiController
     {
         private readonly IMediator _mediator;
-        private readonly IPhotobankRepository _photobankRepository;
-        private readonly IPhotobankGraphService _photobankGraphService;
 
-        public PhotobankController(
-            IMediator mediator,
-            IPhotobankRepository photobankRepository,
-            IPhotobankGraphService photobankGraphService)
+        public PhotobankController(IMediator mediator)
         {
             _mediator = mediator;
-            _photobankRepository = photobankRepository;
-            _photobankGraphService = photobankGraphService;
         }
 
         /// <summary>
@@ -377,49 +369,37 @@ namespace Anela.Heblo.API.Controllers
             ThumbnailSize size,
             CancellationToken cancellationToken = default)
         {
-            var locator = await _photobankRepository.GetLocatorAsync(id, cancellationToken);
-            if (locator is null)
-            {
-                return NotFound();
-            }
+            var response = await _mediator.Send(
+                new GetThumbnailRequest { Id = id, Size = size }, cancellationToken);
 
-            GraphThumbnail? rawThumbnail;
-            try
+            if (response.Success)
             {
-                rawThumbnail = await _photobankGraphService.GetThumbnailAsync(
-                    locator.DriveId, locator.SharePointFileId, size, cancellationToken);
-            }
-            catch (GraphThrottledException ex)
-            {
-                Logger.LogWarning("Microsoft Graph thumbnail request throttled for photo {PhotoId}. RetryAfter: {RetryAfter}",
-                    id, ex.RetryAfter);
-                if (ex.RetryAfter.HasValue)
+                Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+                if (response.ContentLength.HasValue)
                 {
-                    Response.Headers["Retry-After"] = ((long)Math.Ceiling(ex.RetryAfter.Value.TotalSeconds)).ToString();
+                    Response.ContentLength = response.ContentLength;
                 }
-                return StatusCode(StatusCodes.Status503ServiceUnavailable);
-            }
-            catch (HttpRequestException ex)
-            {
-                Logger.LogWarning(ex, "Upstream HTTP error fetching thumbnail for photo {PhotoId}", id);
-                return StatusCode(StatusCodes.Status502BadGateway);
-            }
-            catch (MsalException ex)
-            {
-                Logger.LogError(ex, "Token acquisition failed for thumbnail {PhotoId}. MSAL error: {ErrorCode}", id, ex.ErrorCode);
-                return StatusCode(StatusCodes.Status503ServiceUnavailable);
+
+                return new FileStreamResult(response.Content!, response.ContentType!);
             }
 
-            if (rawThumbnail is null)
+            switch (response.ErrorCode)
             {
-                return NotFound();
+                case ErrorCodes.PhotobankThumbnailNotFound:
+                    return NotFound();
+                case ErrorCodes.PhotobankThumbnailThrottled:
+                    if (response.RetryAfterSeconds.HasValue)
+                    {
+                        Response.Headers["Retry-After"] = response.RetryAfterSeconds.Value.ToString();
+                    }
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable);
+                case ErrorCodes.PhotobankThumbnailAuthUnavailable:
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable);
+                case ErrorCodes.PhotobankThumbnailUpstream:
+                    return StatusCode(StatusCodes.Status502BadGateway);
+                default:
+                    return StatusCode(StatusCodes.Status502BadGateway);
             }
-
-            Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
-            if (rawThumbnail.ContentLength.HasValue)
-                Response.ContentLength = rawThumbnail.ContentLength;
-
-            return new FileStreamResult(rawThumbnail.Content, rawThumbnail.ContentType);
         }
     }
 }
