@@ -14,6 +14,14 @@ public class ShoptetShipmentClient : IShipmentClient
         PropertyNameCaseInsensitive = true,
     };
 
+    private static readonly HashSet<string> DeadStatuses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "canceled",
+        "cancel_requested",
+        "deleted",
+        "request_failed",
+    };
+
     public ShoptetShipmentClient(HttpClient http)
     {
         _http = http;
@@ -44,6 +52,7 @@ public class ShoptetShipmentClient : IShipmentClient
         var items = data?.Data?.Items ?? [];
 
         return items
+            .Where(s => s.Status is null || !DeadStatuses.Contains(s.Status))
             .SelectMany(shipment => (shipment.Packages ?? [])
                 .Select(pkg => new ShipmentLabel
                 {

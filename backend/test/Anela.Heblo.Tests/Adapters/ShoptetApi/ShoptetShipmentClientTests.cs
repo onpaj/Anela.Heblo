@@ -120,6 +120,56 @@ public class ShoptetShipmentClientTests
         result[2].ShipmentGuid.Should().Be(guid2);
     }
 
+    [Theory]
+    [InlineData("canceled")]
+    [InlineData("cancel_requested")]
+    [InlineData("deleted")]
+    [InlineData("request_failed")]
+    [InlineData("CANCELED")]
+    public async Task GetLabelsByOrderCodeAsync_ExcludesDeadStatusShipments(string deadStatus)
+    {
+        // Arrange — two shipments: one dead (e.g. canceled), one active (created)
+        var activeGuid = Guid.NewGuid();
+        var client = BuildClient(_ => Json(new
+        {
+            data = new
+            {
+                items = new[]
+                {
+                    new
+                    {
+                        guid = Guid.NewGuid(),
+                        orderCode = "0001234",
+                        status = deadStatus,
+                        packages = new[]
+                        {
+                            new { name = "Old", labelUrl = "https://x.com/old.pdf", labelZpl = (string?)null, trackingNumber = (string?)null, trackingUrl = (string?)null },
+                        },
+                    },
+                    new
+                    {
+                        guid = activeGuid,
+                        orderCode = "0001234",
+                        status = "created",
+                        packages = new[]
+                        {
+                            new { name = "New", labelUrl = "https://x.com/new.pdf", labelZpl = (string?)null, trackingNumber = (string?)null, trackingUrl = (string?)null },
+                        },
+                    },
+                },
+            },
+            errors = Array.Empty<object>(),
+        }));
+
+        // Act
+        var result = await client.GetLabelsByOrderCodeAsync("0001234");
+
+        // Assert
+        result.Should().HaveCount(1);
+        result[0].ShipmentGuid.Should().Be(activeGuid);
+        result[0].PackageName.Should().Be("New");
+    }
+
     [Fact]
     public async Task GetLabelsByOrderCodeAsync_WithEmptyItems_ReturnsEmptyList()
     {

@@ -219,6 +219,115 @@ public class ResetOrderShipmentHandlerTests
             Times.Never);
     }
 
+    // Test 7: Multiple distinct shipment GUIDs → each is cancelled before creating replacement
+    [Fact]
+    public async Task Handle_MultipleShipments_CancelsAllBeforeCreating()
+    {
+        var guid1 = Guid.NewGuid();
+        var guid2 = Guid.NewGuid();
+        var newGuid = Guid.NewGuid();
+
+        _shipmentClient
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([MakeLabel(guid1, "P1"), MakeLabel(guid2, "P2")])
+            .ReturnsAsync([MakeLabel(newGuid, "NEW-P1")]);
+
+        _shipmentClient
+            .Setup(c => c.CancelShipmentAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
+
+        _shipmentClient
+            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShippingOption { CarrierCode = "PPL", Name = "PPL" }]);
+
+        _shipmentClient
+            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CreatedShipment { ShipmentGuid = newGuid });
+
+        var response = await CreateHandler().Handle(
+            new ResetOrderShipmentRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+
+        _shipmentClient.Verify(c => c.CancelShipmentAsync(guid1, It.IsAny<CancellationToken>()), Times.Once);
+        _shipmentClient.Verify(c => c.CancelShipmentAsync(guid2, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // Test 8: Two labels sharing the same shipment GUID → cancel called only once
+    [Fact]
+    public async Task Handle_MultipleLabelsWithSameShipmentGuid_CancelsOnlyOnce()
+    {
+        var sharedGuid = Guid.NewGuid();
+        var newGuid = Guid.NewGuid();
+
+        _shipmentClient
+            .SetupSequence(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([MakeLabel(sharedGuid, "P1"), MakeLabel(sharedGuid, "P2")])
+            .ReturnsAsync([MakeLabel(newGuid, "NEW-P1")]);
+
+        _shipmentClient
+            .Setup(c => c.CancelShipmentAsync(sharedGuid, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _orderClient
+            .Setup(c => c.GetPackingOrderAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(EligibleOrder(("P001", 1, 400)));
+
+        _shipmentClient
+            .Setup(c => c.GetShippingOptionsAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new ShippingOption { CarrierCode = "PPL", Name = "PPL" }]);
+
+        _shipmentClient
+            .Setup(c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CreatedShipment { ShipmentGuid = newGuid });
+
+        var response = await CreateHandler().Handle(
+            new ResetOrderShipmentRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+
+        _shipmentClient.Verify(
+            c => c.CancelShipmentAsync(sharedGuid, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    // Test 9: Second of two cancels fails → ShipmentCancelFailed, no replacement created
+    [Fact]
+    public async Task Handle_SecondOfTwoCancelsFails_ReturnsShipmentCancelFailed()
+    {
+        var guid1 = Guid.NewGuid();
+        var guid2 = Guid.NewGuid();
+
+        _shipmentClient
+            .Setup(c => c.GetLabelsByOrderCodeAsync("0001234", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([MakeLabel(guid1, "P1"), MakeLabel(guid2, "P2")]);
+
+        _shipmentClient
+            .Setup(c => c.CancelShipmentAsync(guid1, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _shipmentClient
+            .Setup(c => c.CancelShipmentAsync(guid2, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Cancel failed"));
+
+        var response = await CreateHandler().Handle(
+            new ResetOrderShipmentRequest { OrderCode = "0001234" },
+            CancellationToken.None);
+
+        response.Success.Should().BeFalse();
+        response.ErrorCode.Should().Be(ErrorCodes.ShipmentCancelFailed);
+
+        _shipmentClient.Verify(
+            c => c.CreateShipmentAsync(It.IsAny<CreateShipmentCommand>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
     // Test 6: Cancel returns silently (404 treated as success inside client) → handler still creates replacement
     [Fact]
     public async Task Handle_CancelReturnsSilently_ProceedsToCreate()

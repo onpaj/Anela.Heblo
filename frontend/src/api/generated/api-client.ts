@@ -7538,6 +7538,50 @@ export class ApiClient {
         return Promise.resolve<ResetOrderShipmentResponse>(null as any);
     }
 
+    packaging_GetPackageLabelPdf(orderCode: string, packageName: string): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/packaging/orders/{orderCode}/packages/{packageName}/label.pdf";
+        if (orderCode === undefined || orderCode === null)
+            throw new Error("The parameter 'orderCode' must be defined.");
+        url_ = url_.replace("{orderCode}", encodeURIComponent("" + orderCode));
+        if (packageName === undefined || packageName === null)
+            throw new Error("The parameter 'packageName' must be defined.");
+        url_ = url_.replace("{packageName}", encodeURIComponent("" + packageName));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_GetPackageLabelPdf(_response);
+        });
+    }
+
+    protected processPackaging_GetPackageLabelPdf(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
     packingMaterials_GetPackingMaterials(): Promise<GetPackingMaterialsListResponse> {
         let url_ = this.baseUrl + "/api/packing-materials";
         url_ = url_.replace(/[?&]$/, "");
@@ -7643,6 +7687,20 @@ export class ApiClient {
             result200 = UpdatePackingMaterialResponse.fromJS(resultData200);
             return result200;
             });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -7651,7 +7709,7 @@ export class ApiClient {
         return Promise.resolve<UpdatePackingMaterialResponse>(null as any);
     }
 
-    packingMaterials_DeletePackingMaterial(id: number): Promise<FileResponse> {
+    packingMaterials_DeletePackingMaterial(id: number): Promise<void> {
         let url_ = this.baseUrl + "/api/packing-materials/{id}";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -7661,7 +7719,6 @@ export class ApiClient {
         let options_: RequestInit = {
             method: "DELETE",
             headers: {
-                "Accept": "application/octet-stream"
             }
         };
 
@@ -7670,26 +7727,33 @@ export class ApiClient {
         });
     }
 
-    protected processPackingMaterials_DeletePackingMaterial(response: Response): Promise<FileResponse> {
+    protected processPackingMaterials_DeletePackingMaterial(response: Response): Promise<void> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        if (status === 204) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<FileResponse>(null as any);
+        return Promise.resolve<void>(null as any);
     }
 
     packingMaterials_UpdatePackingMaterialQuantity(id: number, request: UpdateQuantityRequest): Promise<UpdatePackingMaterialQuantityResponse> {
@@ -7724,6 +7788,20 @@ export class ApiClient {
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result200 = UpdatePackingMaterialQuantityResponse.fromJS(resultData200);
             return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -7850,6 +7928,20 @@ export class ApiClient {
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
             result200 = GetPackingMaterialLogsResponse.fromJS(resultData200);
             return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
             });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
@@ -11575,6 +11667,8 @@ export enum ErrorCodes {
     OrderNotInPackingState = "OrderNotInPackingState",
     ShipmentCancelFailed = "ShipmentCancelFailed",
     NoShipmentToReset = "NoShipmentToReset",
+    PackageLabelNotFound = "PackageLabelNotFound",
+    PackageLabelDownloadFailed = "PackageLabelDownloadFailed",
     ExternalServiceError = "ExternalServiceError",
     FlexiApiError = "FlexiApiError",
     ShoptetApiError = "ShoptetApiError",
@@ -29164,6 +29258,7 @@ export interface ICreatePackingMaterialRequest {
 
 export class UpdatePackingMaterialResponse extends BaseResponse implements IUpdatePackingMaterialResponse {
     material?: PackingMaterialDto;
+    error?: string | undefined;
 
     constructor(data?: IUpdatePackingMaterialResponse) {
         super(data);
@@ -29173,6 +29268,7 @@ export class UpdatePackingMaterialResponse extends BaseResponse implements IUpda
         super.init(_data);
         if (_data) {
             this.material = _data["material"] ? PackingMaterialDto.fromJS(_data["material"]) : <any>undefined;
+            this.error = _data["error"];
         }
     }
 
@@ -29186,6 +29282,7 @@ export class UpdatePackingMaterialResponse extends BaseResponse implements IUpda
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["material"] = this.material ? this.material.toJSON() : <any>undefined;
+        data["error"] = this.error;
         super.toJSON(data);
         return data;
     }
@@ -29193,6 +29290,7 @@ export class UpdatePackingMaterialResponse extends BaseResponse implements IUpda
 
 export interface IUpdatePackingMaterialResponse extends IBaseResponse {
     material?: PackingMaterialDto;
+    error?: string | undefined;
 }
 
 export class UpdatePackingMaterialRequest implements IUpdatePackingMaterialRequest {
@@ -29245,6 +29343,7 @@ export interface IUpdatePackingMaterialRequest {
 
 export class UpdatePackingMaterialQuantityResponse extends BaseResponse implements IUpdatePackingMaterialQuantityResponse {
     material?: PackingMaterialDto;
+    error?: string | undefined;
 
     constructor(data?: IUpdatePackingMaterialQuantityResponse) {
         super(data);
@@ -29254,6 +29353,7 @@ export class UpdatePackingMaterialQuantityResponse extends BaseResponse implemen
         super.init(_data);
         if (_data) {
             this.material = _data["material"] ? PackingMaterialDto.fromJS(_data["material"]) : <any>undefined;
+            this.error = _data["error"];
         }
     }
 
@@ -29267,6 +29367,7 @@ export class UpdatePackingMaterialQuantityResponse extends BaseResponse implemen
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["material"] = this.material ? this.material.toJSON() : <any>undefined;
+        data["error"] = this.error;
         super.toJSON(data);
         return data;
     }
@@ -29274,6 +29375,7 @@ export class UpdatePackingMaterialQuantityResponse extends BaseResponse implemen
 
 export interface IUpdatePackingMaterialQuantityResponse extends IBaseResponse {
     material?: PackingMaterialDto;
+    error?: string | undefined;
 }
 
 export class UpdateQuantityRequest implements IUpdateQuantityRequest {
@@ -29553,6 +29655,7 @@ export interface IConsumptionDetailDto {
 export class GetPackingMaterialLogsResponse extends BaseResponse implements IGetPackingMaterialLogsResponse {
     material?: PackingMaterialDto;
     logs?: PackingMaterialLogDto[];
+    error?: string | undefined;
 
     constructor(data?: IGetPackingMaterialLogsResponse) {
         super(data);
@@ -29567,6 +29670,7 @@ export class GetPackingMaterialLogsResponse extends BaseResponse implements IGet
                 for (let item of _data["logs"])
                     this.logs!.push(PackingMaterialLogDto.fromJS(item));
             }
+            this.error = _data["error"];
         }
     }
 
@@ -29585,6 +29689,7 @@ export class GetPackingMaterialLogsResponse extends BaseResponse implements IGet
             for (let item of this.logs)
                 data["logs"].push(item.toJSON());
         }
+        data["error"] = this.error;
         super.toJSON(data);
         return data;
     }
@@ -29593,6 +29698,7 @@ export class GetPackingMaterialLogsResponse extends BaseResponse implements IGet
 export interface IGetPackingMaterialLogsResponse extends IBaseResponse {
     material?: PackingMaterialDto;
     logs?: PackingMaterialLogDto[];
+    error?: string | undefined;
 }
 
 export class PackingMaterialLogDto implements IPackingMaterialLogDto {
@@ -33913,6 +34019,7 @@ export interface IConversationSummaryDto {
 export class GetConversationResponse extends BaseResponse implements IGetConversationResponse {
     conversation?: ConversationDto | undefined;
     messages?: MessageDto[];
+    agentNames?: { [key: string]: string; };
 
     constructor(data?: IGetConversationResponse) {
         super(data);
@@ -33926,6 +34033,13 @@ export class GetConversationResponse extends BaseResponse implements IGetConvers
                 this.messages = [] as any;
                 for (let item of _data["messages"])
                     this.messages!.push(MessageDto.fromJS(item));
+            }
+            if (_data["agentNames"]) {
+                this.agentNames = {} as any;
+                for (let key in _data["agentNames"]) {
+                    if (_data["agentNames"].hasOwnProperty(key))
+                        (<any>this.agentNames)![key] = _data["agentNames"][key];
+                }
             }
         }
     }
@@ -33945,6 +34059,13 @@ export class GetConversationResponse extends BaseResponse implements IGetConvers
             for (let item of this.messages)
                 data["messages"].push(item.toJSON());
         }
+        if (this.agentNames) {
+            data["agentNames"] = {};
+            for (let key in this.agentNames) {
+                if (this.agentNames.hasOwnProperty(key))
+                    (<any>data["agentNames"])[key] = (<any>this.agentNames)[key];
+            }
+        }
         super.toJSON(data);
         return data;
     }
@@ -33953,6 +34074,7 @@ export class GetConversationResponse extends BaseResponse implements IGetConvers
 export interface IGetConversationResponse extends IBaseResponse {
     conversation?: ConversationDto | undefined;
     messages?: MessageDto[];
+    agentNames?: { [key: string]: string; };
 }
 
 export class MessageDto implements IMessageDto {
@@ -34202,7 +34324,7 @@ export interface IGetSmartsuppContactShoptetInfoResponse extends IBaseResponse {
 }
 
 export class ShoptetContactInfoDto implements IShoptetContactInfoDto {
-    customer?: ShoptetCustomerSnapshotDto;
+    customer?: ShoptetCustomerSnapshotDto | undefined;
     recentOrders?: ShoptetOrderSnapshotDto[];
     cartUpdatedAt?: Date | undefined;
 
@@ -34248,7 +34370,7 @@ export class ShoptetContactInfoDto implements IShoptetContactInfoDto {
 }
 
 export interface IShoptetContactInfoDto {
-    customer?: ShoptetCustomerSnapshotDto;
+    customer?: ShoptetCustomerSnapshotDto | undefined;
     recentOrders?: ShoptetOrderSnapshotDto[];
     cartUpdatedAt?: Date | undefined;
 }
