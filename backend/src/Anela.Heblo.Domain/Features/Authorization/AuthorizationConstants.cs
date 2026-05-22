@@ -65,5 +65,10 @@ public static class AuthorizationConstants
         /// Policy required for generating leaflets and articles
         /// </summary>
         public const string MarketingReader = "MarketingReader";
+
+        /// <summary>
+        /// Policy required for uploading catalog documents to SharePoint
+        /// </summary>
+        public const string CatalogDocumentsUpload = "CatalogDocumentsUpload";
     }
 }

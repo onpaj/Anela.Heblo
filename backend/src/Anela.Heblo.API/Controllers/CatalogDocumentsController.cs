@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.CatalogDocuments.UseCases.ListMaterialDoc
 using Anela.Heblo.Application.Features.CatalogDocuments.UseCases.ListPifDocuments;
 using Anela.Heblo.Application.Features.CatalogDocuments.UseCases.UploadMaterialDocument;
 using Anela.Heblo.Application.Features.CatalogDocuments.UseCases.UploadPifDocument;
+using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -46,10 +47,11 @@ public class CatalogDocumentsController : BaseApiController
     }
 
     [HttpPost("materials/{productCode}")]
+    [Authorize(Policy = AuthorizationConstants.Policies.CatalogDocumentsUpload)]
     [RequestSizeLimit(50 * 1024 * 1024)] // 50 MB
     public async Task<ActionResult<UploadDocumentResponse>> UploadMaterialDocument(
         string productCode,
-        IFormFile file,
+        IFormFile? file,
         [FromForm] string documentTypeCode = "",
         [FromForm] string lot = "",
         [FromForm] string commonName = "",
@@ -59,13 +61,14 @@ public class CatalogDocumentsController : BaseApiController
         if (file is null || file.Length == 0)
             return BadRequest("File is required.");
 
+        await using var stream = file.OpenReadStream();
         var result = await _mediator.Send(new UploadMaterialDocumentRequest
         {
             ProductCode = productCode,
             OriginalFilename = file.FileName,
             ContentType = file.ContentType,
             SizeBytes = file.Length,
-            FileStream = file.OpenReadStream(),
+            FileStream = stream,
             DocumentTypeCode = documentTypeCode,
             Lot = lot,
             CommonName = string.IsNullOrWhiteSpace(commonName) ? Path.GetFileNameWithoutExtension(file.FileName) : commonName,
@@ -76,22 +79,24 @@ public class CatalogDocumentsController : BaseApiController
     }
 
     [HttpPost("pif/{productCode}")]
+    [Authorize(Policy = AuthorizationConstants.Policies.CatalogDocumentsUpload)]
     [RequestSizeLimit(50 * 1024 * 1024)] // 50 MB
     public async Task<ActionResult<UploadDocumentResponse>> UploadPifDocument(
         string productCode,
-        IFormFile file,
+        IFormFile? file,
         CancellationToken ct = default)
     {
         if (file is null || file.Length == 0)
             return BadRequest("File is required.");
 
+        await using var stream = file.OpenReadStream();
         var result = await _mediator.Send(new UploadPifDocumentRequest
         {
             ProductCode = productCode,
             OriginalFilename = file.FileName,
             ContentType = file.ContentType,
             SizeBytes = file.Length,
-            FileStream = file.OpenReadStream(),
+            FileStream = stream,
         }, ct);
 
         return HandleResponse(result);
