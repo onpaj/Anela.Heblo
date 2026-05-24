@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Purchase;
 
-public class UpdatePurchaseOrderHandlerTests
+public sealed class UpdatePurchaseOrderHandlerTests
 {
     private readonly Mock<ILogger<UpdatePurchaseOrderHandler>> _loggerMock;
     private readonly Mock<IPurchaseOrderRepository> _repositoryMock;
@@ -111,9 +111,8 @@ public class UpdatePurchaseOrderHandlerTests
         response.Lines.Should().HaveCount(2);
         response.Lines.Should().OnlyContain(line => !string.IsNullOrEmpty(line.MaterialName));
 
-        // KEY ASSERTION: Verify that GetByIdAsync was called exactly 2 times (once for UpdateLine, once for AddLine)
-        // With the current dead code in MapToResponseAsync, it will be called 3 times (2 in Handle + 1 in MapToResponseAsync)
-        // This test should FAIL initially to prove the dead call exists
+        // Catalog must not be queried during response mapping — only during line updates/adds in Handle.
+        // 1 per request line (1 update + 1 add).
         _catalogRepositoryMock.Verify(
             x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Exactly(2),
