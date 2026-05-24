@@ -107,7 +107,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
 
             _logger.LogInformation("Purchase order {OrderNumber} updated successfully", purchaseOrder.OrderNumber);
 
-            return await MapToResponseAsync(purchaseOrder, request.SupplierId, cancellationToken);
+            return MapToResponse(purchaseOrder, request.SupplierId);
         }
         catch (InvalidOperationException ex)
         {
@@ -118,16 +118,12 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
     }
 
 
-    private async Task<UpdatePurchaseOrderResponse> MapToResponseAsync(PurchaseOrder purchaseOrder, long supplierId, CancellationToken cancellationToken)
+    private UpdatePurchaseOrderResponse MapToResponse(PurchaseOrder purchaseOrder, long supplierId)
     {
         var lines = new List<PurchaseOrderLineDto>();
 
         foreach (var line in purchaseOrder.Lines)
         {
-            // Try to get material name from catalog
-            var material = await _catalogRepository.GetByIdAsync(line.MaterialId, cancellationToken);
-            var materialName = material?.ProductName ?? "Unknown Material";
-
             lines.Add(new PurchaseOrderLineDto
             {
                 Id = line.Id,
