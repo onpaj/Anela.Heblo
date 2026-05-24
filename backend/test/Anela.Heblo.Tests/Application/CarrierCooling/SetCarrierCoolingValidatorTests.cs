@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.CarrierCooling.UseCases.SetCarrierCooling;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Domain.Shared;
 using FluentValidation.TestHelper;
 using Moq;
 using Xunit;

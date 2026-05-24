@@ -5,6 +5,8 @@ using Anela.Heblo.API.Extensions;
 using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -41,6 +43,18 @@ public class ShoptetIntegrationTestFixture
         });
         services.AddScoped<IPrintQueueSink, FileSystemPrintQueueSink>();
         services.AddSingleton(new Mock<ICatalogRepository>().Object);
+
+        var carrierCoolingMock = new Mock<ICarrierCoolingRepository>();
+        carrierCoolingMock
+            .Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CarrierCoolingSetting>());
+        services.AddSingleton(carrierCoolingMock.Object);
+
+        var giftSettingMock = new Mock<IGiftSettingRepository>();
+        giftSettingMock
+            .Setup(x => x.GetAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GiftSetting.CreateDefault());
+        services.AddSingleton(giftSettingMock.Object);
 
         ServiceProvider = services.BuildServiceProvider();
     }

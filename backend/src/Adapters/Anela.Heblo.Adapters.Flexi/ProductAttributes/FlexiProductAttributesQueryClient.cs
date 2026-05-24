@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
+using Anela.Heblo.Domain.Shared;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
 using Rem.FlexiBeeSDK.Client.Clients.ReceivedInvoices;
