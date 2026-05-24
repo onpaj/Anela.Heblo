@@ -22,16 +22,13 @@ public class ShoptetApiPackingOrderClient : IPackingOrderClient
     private readonly int _defaultItemWeightGrams;
 
     public ShoptetApiPackingOrderClient(
-        IEshopOrderClient orderClient,
+        ShoptetOrderClient orderClient,
         ICatalogRepository catalog,
         ICarrierCoolingRepository carrierCooling,
         ILogger<ShoptetApiPackingOrderClient> logger,
         IOptions<ShoptetApiSettings> settings)
     {
-        _orderClient = orderClient as ShoptetOrderClient
-            ?? throw new InvalidOperationException(
-                $"{nameof(IEshopOrderClient)} must be {nameof(ShoptetOrderClient)} " +
-                $"but got {orderClient.GetType().Name}.");
+        _orderClient = orderClient;
         _catalog = catalog;
         _carrierCooling = carrierCooling;
         _logger = logger;
