@@ -449,4 +449,74 @@ public class WriteArticleStepTests
         userMessage.Should().NotContain("[Tone note");
         userMessage.Should().NotContain("{tone_note_line}");
     }
+
+    [Fact]
+    public async Task ExecuteAsync_RecorderPayload_IncludesScopeAndHasLanguageNoteFlag()
+    {
+        ArticleGenerationStep? recordedStep = null;
+        var repo = new Mock<IArticleRepository>();
+        repo.Setup(r => r.AddStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>()))
+            .Callback<ArticleGenerationStep, CancellationToken>((s, _) => recordedStep = s)
+            .Returns(Task.CompletedTask);
+        repo.Setup(r => r.UpdateStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var step = new WriteArticleStep(
+            _chat.Object,
+            Options.Create(_options),
+            NullLogger<WriteArticleStep>.Instance,
+            new PipelineStepRecorder(repo.Object));
+
+        var context = CreateContext();
+        context.Article.Scope = "deep-dive";
+        context.Article.LanguageNote = "krátké věty";
+
+        await step.ExecuteAsync(context, default);
+
+        recordedStep.Should().NotBeNull();
+        var payload = recordedStep!.InputJson ?? "";
+        payload.Should().Contain("\"scope\":\"deep-dive\"");
+        payload.Should().Contain("\"hasLanguageNote\":true");
+        payload.Should().NotContain("krátké věty"); // raw note text MUST NOT appear in payload
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_RecorderPayload_HasLanguageNoteFalseWhenAbsent()
+    {
+        ArticleGenerationStep? recordedStep = null;
+        var repo = new Mock<IArticleRepository>();
+        repo.Setup(r => r.AddStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>()))
+            .Callback<ArticleGenerationStep, CancellationToken>((s, _) => recordedStep = s)
+            .Returns(Task.CompletedTask);
+        repo.Setup(r => r.UpdateStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var step = new WriteArticleStep(
+            _chat.Object,
+            Options.Create(_options),
+            NullLogger<WriteArticleStep>.Instance,
+            new PipelineStepRecorder(repo.Object));
+
+        var context = CreateContext();
+        context.Article.Scope = "overview";
+        context.Article.LanguageNote = "   ";
+
+        await step.ExecuteAsync(context, default);
+
+        recordedStep!.InputJson.Should().Contain("\"hasLanguageNote\":false");
+    }
 }

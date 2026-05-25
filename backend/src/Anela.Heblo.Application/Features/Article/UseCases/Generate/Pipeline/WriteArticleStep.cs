@@ -38,7 +38,14 @@ public class WriteArticleStep
             "WriteArticle",
             5,
             _options.DefaultModel,
-            new { topic = context.Article.Topic, factCount = context.Facts.Count, styleGuideLength = context.StyleGuideText?.Length },
+            new
+            {
+                topic = context.Article.Topic,
+                factCount = context.Facts.Count,
+                styleGuideLength = context.StyleGuideText?.Length,
+                scope = context.Article.Scope,
+                hasLanguageNote = !string.IsNullOrWhiteSpace(context.Article.LanguageNote)
+            },
             async (token) =>
             {
                 var article = context.Article;
