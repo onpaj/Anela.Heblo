@@ -2,6 +2,8 @@ using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Packaging;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -14,6 +16,8 @@ public class ScanPackingOrderHandlerTests
     private readonly Mock<IShipmentClient> _shipmentClient = new();
     private readonly Mock<IPackingOrderClient> _orderClient = new();
     private readonly Mock<IEshopOrderClient> _eshopOrderClient = new();
+    private readonly Mock<IPackageRepository> _packageRepository = new();
+    private readonly Mock<ICurrentUserService> _currentUserService = new();
 
     private static readonly ShipmentLabelsSettings DefaultLabelSettings = new()
     {
@@ -31,14 +35,20 @@ public class ScanPackingOrderHandlerTests
 
     private ScanPackingOrderHandler CreateHandler(
         ShipmentLabelsSettings? labelSettings = null,
-        ShoptetOrdersSettings? orderSettings = null) =>
-        new(
+        ShoptetOrdersSettings? orderSettings = null)
+    {
+        _currentUserService.Setup(c => c.GetCurrentUser())
+            .Returns(new CurrentUser("uid-1", "Operator", "op@example.com", IsAuthenticated: true));
+        return new(
             _shipmentClient.Object,
             _orderClient.Object,
             _eshopOrderClient.Object,
             Options.Create(labelSettings ?? DefaultLabelSettings),
             Options.Create(orderSettings ?? DefaultOrderSettings),
-            new Mock<ILogger<ScanPackingOrderHandler>>().Object);
+            new Mock<ILogger<ScanPackingOrderHandler>>().Object,
+            _packageRepository.Object,
+            _currentUserService.Object);
+    }
 
     private static PackingOrder EligibleOrder(params (string name, int qty, int weightGrams)[] items) =>
         new()
