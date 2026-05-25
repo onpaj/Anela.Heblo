@@ -41,16 +41,16 @@ public class PackageRepository : IPackageRepository
 
         q = (sortBy.ToLowerInvariant(), sortDescending) switch
         {
-            ("ordercode",        true)  => q.OrderByDescending(p => p.OrderCode),
-            ("ordercode",        false) => q.OrderBy(p => p.OrderCode),
-            ("customername",     true)  => q.OrderByDescending(p => p.CustomerName),
-            ("customername",     false) => q.OrderBy(p => p.CustomerName),
-            ("packagenumber",    true)  => q.OrderByDescending(p => p.PackageNumber),
-            ("packagenumber",    false) => q.OrderBy(p => p.PackageNumber),
-            ("shippingprovider", true)  => q.OrderByDescending(p => p.ShippingProviderName ?? p.ShippingProviderCode),
+            ("ordercode", true) => q.OrderByDescending(p => p.OrderCode),
+            ("ordercode", false) => q.OrderBy(p => p.OrderCode),
+            ("customername", true) => q.OrderByDescending(p => p.CustomerName),
+            ("customername", false) => q.OrderBy(p => p.CustomerName),
+            ("packagenumber", true) => q.OrderByDescending(p => p.PackageNumber),
+            ("packagenumber", false) => q.OrderBy(p => p.PackageNumber),
+            ("shippingprovider", true) => q.OrderByDescending(p => p.ShippingProviderName ?? p.ShippingProviderCode),
             ("shippingprovider", false) => q.OrderBy(p => p.ShippingProviderName ?? p.ShippingProviderCode),
-            (_,                  true)  => q.OrderByDescending(p => p.PackedAt),
-            (_,                  false) => q.OrderBy(p => p.PackedAt),
+            (_, true) => q.OrderByDescending(p => p.PackedAt),
+            (_, false) => q.OrderBy(p => p.PackedAt),
         };
 
         var items = await q.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
