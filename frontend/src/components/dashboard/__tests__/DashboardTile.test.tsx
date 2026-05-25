@@ -16,6 +16,11 @@ jest.mock('../tiles', () => ({
   ),
 }));
 
+const mockTrackEvent = jest.fn();
+jest.mock('../../../telemetry/useTelemetry', () => ({
+  useTelemetry: () => ({ trackEvent: mockTrackEvent }),
+}));
+
 const mockTile: DashboardTileType = {
   tileId: 'test-tile-123',
   title: 'Test Tile',
@@ -37,6 +42,17 @@ const renderWithDndContext = (component: React.ReactElement) => {
 };
 
 describe('DashboardTile', () => {
+  afterEach(() => { mockTrackEvent.mockClear(); });
+
+  it('calls trackEvent with DashboardTileClicked when tile is clicked', () => {
+    renderWithDndContext(<DashboardTile tile={mockTile} />);
+
+    const tileElement = screen.getByTestId('dashboard-tile-test-tile-123');
+    tileElement.click();
+
+    expect(mockTrackEvent).toHaveBeenCalledWith('DashboardTileClicked', { tileId: 'test-tile-123' });
+  });
+
   it('should render tile with correct testid', () => {
     renderWithDndContext(<DashboardTile tile={mockTile} />);
     
