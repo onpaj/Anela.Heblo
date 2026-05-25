@@ -9,7 +9,7 @@ using DomainArticle = Anela.Heblo.Domain.Features.Article.Article;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
-public class GatherContextStep : IArticlePipelineStep
+public class GatherContextStep
 {
     private readonly IMediator _mediator;
     private readonly IWebSearchClient _webSearch;
