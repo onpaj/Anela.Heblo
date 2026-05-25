@@ -367,5 +367,15 @@ public class MarketingInvoiceImportServiceTests
         _mockRepository.Verify(
             x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
             Times.Never);
+        _mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("TX-WS-001") &&
+                    v.ToString()!.Contains("TestPlatform")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
     }
 }
