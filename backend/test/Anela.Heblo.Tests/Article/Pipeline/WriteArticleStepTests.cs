@@ -397,4 +397,56 @@ public class WriteArticleStepTests
         var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
         userMessage.Should().Be("Note: ");
     }
+
+    [Fact]
+    public async Task ExecuteAsync_DefaultTemplate_WithScopeAndLanguageNote_RendersBoth()
+    {
+        // Use the default template (do not override _options.WriteArticleSystemPromptTemplate)
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.Scope = "deep-dive";
+        context.Article.LanguageNote = "krátké věty";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Contain("Rozsah: deep-dive");
+        userMessage.Should().Contain("Tonalita: krátké věty");
+        userMessage.Should().NotContain("{scope}");
+        userMessage.Should().NotContain("{tone_note_line}");
+        userMessage.Should().NotContain("{language_note}");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_DefaultTemplate_WithoutLanguageNote_OmitsTonalitaLine()
+    {
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.Scope = "overview";
+        context.Article.LanguageNote = null;
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Contain("Rozsah: overview");
+        userMessage.Should().NotContain("Tonalita");
+        userMessage.Should().NotContain("[Tone note");
+        userMessage.Should().NotContain("{tone_note_line}");
+    }
 }
