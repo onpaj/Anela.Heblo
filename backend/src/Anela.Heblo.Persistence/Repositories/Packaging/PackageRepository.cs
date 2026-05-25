@@ -35,11 +35,11 @@ public class PackageRepository : IPackageRepository
         if (fromDate.HasValue)
             q = q.Where(p => p.PackedAt >= new DateTimeOffset(DateTime.SpecifyKind(fromDate.Value, DateTimeKind.Utc)));
         if (toDate.HasValue)
-            q = q.Where(p => p.PackedAt <= new DateTimeOffset(DateTime.SpecifyKind(toDate.Value, DateTimeKind.Utc)));
+            q = q.Where(p => p.PackedAt < new DateTimeOffset(DateTime.SpecifyKind(toDate.Value.Date.AddDays(1), DateTimeKind.Utc)));
 
         var total = await q.CountAsync(cancellationToken);
 
-        q = (sortBy.ToLowerInvariant(), sortDescending) switch
+        q = ((sortBy ?? string.Empty).ToLowerInvariant(), sortDescending) switch
         {
             ("ordercode", true) => q.OrderByDescending(p => p.OrderCode),
             ("ordercode", false) => q.OrderBy(p => p.OrderCode),
