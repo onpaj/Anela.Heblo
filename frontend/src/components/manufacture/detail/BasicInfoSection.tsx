@@ -9,6 +9,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import ResponsiblePersonCombobox from "../../common/ResponsiblePersonCombobox";
+import { useConfigurationQuery } from "../../../api/hooks/useConfiguration";
 import { ManufactureType } from "../../../api/generated/api-client";
 
 interface BasicInfoSectionProps {
@@ -52,6 +53,9 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   shouldTruncateText,
   truncateText,
 }) => {
+  const { data: appConfig } = useConfigurationQuery();
+  const manufactureGroupId = appConfig?.manufactureGroupId ?? "";
+
   const flexiDocs = [
     { label: 'Výdej materiálu (polotovar)', value: order.docMaterialIssueForSemiProduct, date: order.docMaterialIssueForSemiProductDate, hideForSinglePhase: true },
     { label: 'Příjem polotovaru', value: order.docSemiProductReceipt, date: order.docSemiProductReceiptDate, hideForSinglePhase: true },
@@ -74,6 +78,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           {canEditFields ? (
             <div className="w-48">
               <ResponsiblePersonCombobox
+                groupId={manufactureGroupId}
                 value={editableResponsiblePerson}
                 onChange={(value) => onResponsiblePersonChange(value)}
                 placeholder="Vyberte..."
