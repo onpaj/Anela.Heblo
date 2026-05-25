@@ -353,6 +353,8 @@ public enum ErrorCodes
     PackageLabelNotFound = 3004,
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
     PackageLabelDownloadFailed = 3005,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PackageNotFound = 3006,
 
     // CatalogDocuments module errors (31XX)
     [HttpStatusCode(HttpStatusCode.BadRequest)]
