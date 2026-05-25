@@ -36,6 +36,15 @@ public class MarketingInvoiceImportService : IMarketingInvoiceImportService
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(transaction.Currency))
+                {
+                    _logger.LogWarning(
+                        "Marketing transaction {TransactionId} for {Platform} has empty Currency — skipping",
+                        transaction.TransactionId, source.Platform);
+                    result.Failed++;
+                    continue;
+                }
+
                 if (stagedIds.Contains(transaction.TransactionId))
                 {
                     _logger.LogDebug(
@@ -60,9 +69,12 @@ public class MarketingInvoiceImportService : IMarketingInvoiceImportService
                     TransactionId = transaction.TransactionId,
                     Platform = source.Platform,
                     Amount = transaction.Amount,
+                    Currency = transaction.Currency,
                     TransactionDate = transaction.TransactionDate,
                     ImportedAt = DateTime.UtcNow,
                     IsSynced = false,
+                    Description = transaction.Description,
+                    RawData = transaction.RawData,
                 };
 
                 await _repository.AddAsync(entity, ct);

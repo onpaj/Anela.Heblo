@@ -54,6 +54,21 @@ public class ImportedMarketingTransactionConfiguration : IEntityTypeConfiguratio
             .HasColumnName("ErrorMessage")
             .HasColumnType("text");
 
+        builder.Property(e => e.Currency)
+            .IsRequired()
+            .HasMaxLength(3)
+            .HasColumnName("Currency")
+            .HasColumnType("character varying(3)");
+
+        builder.Property(e => e.Description)
+            .HasMaxLength(500)
+            .HasColumnName("Description")
+            .HasColumnType("character varying(500)");
+
+        builder.Property(e => e.RawData)
+            .HasColumnName("RawData")
+            .HasColumnType("text");
+
         builder.HasIndex(e => new { e.Platform, e.TransactionId })
             .IsUnique()
             .HasDatabaseName("IX_ImportedMarketingTransactions_Platform_TransactionId");
