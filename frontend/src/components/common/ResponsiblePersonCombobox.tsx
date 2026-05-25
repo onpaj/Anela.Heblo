@@ -45,10 +45,10 @@ const ResponsiblePersonCombobox: React.FC<ResponsiblePersonComboboxProps> = ({
   const options = useMemo((): ResponsiblePersonSelectOption[] => {
     const members = response?.members || [];
     const memberOptions: ResponsiblePersonSelectOption[] = members.map((member) => ({
-      value: member.displayName,
-      label: `${member.displayName} (${member.email})`,
-      displayName: member.displayName,
-      email: member.email,
+      value: member.displayName ?? '',
+      label: `${member.displayName ?? ''} (${member.email ?? ''})`,
+      displayName: member.displayName ?? '',
+      email: member.email ?? '',
     }));
 
     // If manual entry is allowed and there's an input value that doesn't match any member

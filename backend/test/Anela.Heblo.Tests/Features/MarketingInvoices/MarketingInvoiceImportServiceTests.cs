@@ -22,7 +22,6 @@ public class MarketingInvoiceImportServiceTests
         _mockSource.Setup(x => x.Platform).Returns("TestPlatform");
 
         _service = new MarketingInvoiceImportService(
-            _mockSource.Object,
             _mockRepository.Object,
             _mockLogger.Object);
     }
@@ -53,7 +52,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(1);
 
         // Act
-        var result = await _service.ImportAsync(from, to);
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
 
         // Assert
         Assert.Equal(2, result.Imported);
@@ -78,12 +77,11 @@ public class MarketingInvoiceImportServiceTests
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync(transactions);
 
-        // Already exists in DB
         _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", "TX-001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
         // Act
-        var result = await _service.ImportAsync(from, to);
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
 
         // Assert
         Assert.Equal(0, result.Imported);
@@ -112,18 +110,16 @@ public class MarketingInvoiceImportServiceTests
         _mockRepository.Setup(x => x.ExistsAsync("TestPlatform", It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        // First transaction succeeds
         _mockRepository.Setup(x => x.AddAsync(It.Is<ImportedMarketingTransaction>(t => t.TransactionId == "TX-001"), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
-        // Second transaction throws on AddAsync
         _mockRepository.Setup(x => x.AddAsync(It.Is<ImportedMarketingTransaction>(t => t.TransactionId == "TX-002"), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("DB write failed"));
 
         // Act
-        var result = await _service.ImportAsync(from, to);
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
 
         // Assert
         Assert.Equal(1, result.Imported);
@@ -158,7 +154,7 @@ public class MarketingInvoiceImportServiceTests
             .ThrowsAsync(new InvalidOperationException("flush failed"));
 
         // Act
-        var result = await _service.ImportAsync(from, to);
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
 
         // Assert
         Assert.Equal(0, result.Imported);
@@ -178,7 +174,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(new List<MarketingTransaction>());
 
         // Act
-        var result = await _service.ImportAsync(from, to);
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
 
         // Assert
         Assert.Equal(0, result.Imported);
@@ -216,7 +212,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(1);
 
         // Act
-        var result = await _service.ImportAsync(from, to);
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
 
         // Assert
         Assert.Equal(1, result.Imported);

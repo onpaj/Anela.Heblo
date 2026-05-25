@@ -63,6 +63,19 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services.GiftPackageManufactureService -> Anela.Heblo.Domain.Features.Manufacture.ProductPart",
     };
 
+    // Allowlist for Purchase → Catalog. Each entry needs a comment with the justification.
+    // Entries should be removed as the underlying violations are fixed.
+    private static readonly HashSet<string> PurchaseAllowlist = new(StringComparer.Ordinal)
+    {
+        // Pre-existing dependency: RecalculatePurchasePriceHandler consumes IProductPriceErpClient,
+        // which currently lives in Anela.Heblo.Domain.Features.Catalog.Price. IProductPriceErpClient
+        // is an ERP integration boundary (not a domain repository); decoupling it requires a
+        // separate Purchase-owned contract (e.g., IPurchasePriceRecalculator) and is out of scope
+        // for the 2026-05-24 Purchase ↔ Catalog decoupling. Track separately and remove this entry
+        // when IProductPriceErpClient is lifted behind a Purchase-owned contract.
+        "Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice.RecalculatePurchasePriceHandler -> Anela.Heblo.Domain.Features.Catalog.Price.IProductPriceErpClient",
+    };
+
     public static TheoryData<ModuleBoundaryRule> Rules() => new()
     {
         new ModuleBoundaryRule(
@@ -97,6 +110,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Invoices",
             },
             Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "Purchase -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Purchase",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: PurchaseAllowlist),
     };
 
     [Theory]

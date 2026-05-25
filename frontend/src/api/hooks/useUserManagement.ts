@@ -1,18 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
+import type { GetGroupMembersResponse } from '../generated/api-client';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
-
-export interface UserDto {
-  id: string;
-  displayName: string;
-  email: string;
-}
-
-export interface GetGroupMembersResponse {
-  success: boolean;
-  errorCode?: number;
-  params?: Record<string, string>;
-  members: UserDto[];
-}
 
 export const useResponsiblePersonsQuery = (groupId: string) => {
   return useQuery({

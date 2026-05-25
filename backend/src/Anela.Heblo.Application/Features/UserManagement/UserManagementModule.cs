@@ -22,6 +22,10 @@ public static class UserManagementModule
         }
         else
         {
+            // Register the named "MicrosoftGraph" HttpClient for IHttpClientFactory.
+            // Matches the shared "MicrosoftGraph" named client used by Marketing/MeetingTasks/CatalogDocuments/KnowledgeBase/Photobank modules.
+            services.AddHttpClient("MicrosoftGraph");
+
             // Register real GraphService for production authentication
             services.AddScoped<IGraphService, GraphService>();
 
