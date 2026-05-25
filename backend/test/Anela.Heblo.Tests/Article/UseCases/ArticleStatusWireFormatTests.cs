@@ -11,12 +11,13 @@ public class ArticleStatusWireFormatTests
 {
     private static readonly JsonSerializerOptions ApiJsonOptions = new()
     {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new JsonStringEnumConverter() },
     };
 
     [Theory]
-    [InlineData(ArticleStatus.Generated, "\"Status\":\"Generated\"")]
-    [InlineData(ArticleStatus.Queued, "\"Status\":\"Queued\"")]
+    [InlineData(ArticleStatus.Generated, "\"status\":\"Generated\"")]
+    [InlineData(ArticleStatus.Queued, "\"status\":\"Queued\"")]
     public void GetArticleResponse_SerializesStatusAsEnumName(ArticleStatus status, string expectedFragment)
     {
         var response = new GetArticleResponse { Status = status };
@@ -27,8 +28,8 @@ public class ArticleStatusWireFormatTests
     }
 
     [Theory]
-    [InlineData(ArticleStatus.Generated, "\"Status\":\"Generated\"")]
-    [InlineData(ArticleStatus.Queued, "\"Status\":\"Queued\"")]
+    [InlineData(ArticleStatus.Generated, "\"status\":\"Generated\"")]
+    [InlineData(ArticleStatus.Queued, "\"status\":\"Queued\"")]
     public void ArticleListItemDto_SerializesStatusAsEnumName(ArticleStatus status, string expectedFragment)
     {
         var item = new ArticleListItemDto { Status = status };
