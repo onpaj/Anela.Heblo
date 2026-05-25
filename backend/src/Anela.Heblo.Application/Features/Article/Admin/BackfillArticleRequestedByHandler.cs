@@ -92,7 +92,10 @@ public sealed class BackfillArticleRequestedByHandler
             }
 
             var match = matches[0];
-            row.RequestedBy = match.Id;
+            if (!request.DryRun)
+            {
+                row.RequestedBy = match.Id;
+            }
             anyResolved = true;
             response.Resolved++;
             _logger.LogInformation(

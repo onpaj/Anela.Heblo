@@ -145,6 +145,8 @@ public class BackfillArticleRequestedByHandlerTests
 
         response.Resolved.Should().Be(1);
         response.WasDryRun.Should().BeTrue();
+        // Dry-run must not mutate entities — entity state unchanged
+        row.RequestedBy.Should().Be("Jan Novák");
         _repository.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
