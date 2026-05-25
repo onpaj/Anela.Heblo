@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Application.Features.Article.Contracts;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Shared.WebSearch;
 using Anela.Heblo.Domain.Features.Article;
@@ -13,7 +13,7 @@ public class GatherContextStep : IArticlePipelineStep
 {
     private readonly IMediator _mediator;
     private readonly IWebSearchClient _webSearch;
-    private readonly IOneDriveService _oneDrive;
+    private readonly IArticleStyleGuideSource _styleGuideSource;
     private readonly ArticleOptions _options;
     private readonly ILogger<GatherContextStep> _logger;
     private readonly PipelineStepRecorder _recorder;
@@ -21,14 +21,14 @@ public class GatherContextStep : IArticlePipelineStep
     public GatherContextStep(
         IMediator mediator,
         IWebSearchClient webSearch,
-        IOneDriveService oneDrive,
+        IArticleStyleGuideSource styleGuideSource,
         IOptions<ArticleOptions> options,
         ILogger<GatherContextStep> logger,
         PipelineStepRecorder recorder)
     {
         _mediator = mediator;
         _webSearch = webSearch;
-        _oneDrive = oneDrive;
+        _styleGuideSource = styleGuideSource;
         _options = options.Value;
         _logger = logger;
         _recorder = recorder;
@@ -144,7 +144,7 @@ public class GatherContextStep : IArticlePipelineStep
     {
         try
         {
-            return await _oneDrive.DownloadFileTextByPathAsync(
+            return await _styleGuideSource.DownloadStyleGuideTextAsync(
                 article.StyleGuideDriveId!,
                 article.StyleGuideItemPath!,
                 ct);

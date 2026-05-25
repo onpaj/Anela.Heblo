@@ -44,6 +44,21 @@ public class ModuleBoundariesTests
         "Anela.Heblo.Application.Features.Leaflet.Infrastructure.Jobs.LeafletIngestionJob -> Anela.Heblo.Application.Features.KnowledgeBase.Services.OneDriveFile",
     };
 
+    // Allowlist for Article → KnowledgeBase. Each entry needs a comment with the justification.
+    // Entries should be removed as the underlying violations are fixed.
+    private static readonly HashSet<string> ArticleAllowlist = new(StringComparer.Ordinal)
+    {
+        // Pre-existing dependency: GatherContextStep dispatches SearchDocumentsRequest via MediatR
+        // to obtain knowledge-base snippets during article generation. Lifting this behind a
+        // consumer-owned contract (e.g. IArticleKnowledgeSearch) is out of scope for the
+        // 2026-05-25 Article ↔ KnowledgeBase style-guide decoupling and is tracked as a follow-up.
+        // Remove these three entries when SearchDocumentsRequest is replaced by an Article-owned
+        // contract.
+        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.SearchDocumentsRequest",
+        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.SearchDocumentsResponse",
+        "Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline.GatherContextStep -> Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments.ChunkResult",
+    };
+
     // Allowlist for Logistics → Manufacture. Each entry needs a comment with the justification.
     // Entries should be removed as the underlying violations are fixed.
     private static readonly HashSet<string> LogisticsAllowlist = new(StringComparer.Ordinal)
@@ -88,6 +103,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.KnowledgeBase",
             },
             Allowlist: LeafletAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "Article -> KnowledgeBase",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Article",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.KnowledgeBase",
+                "Anela.Heblo.Application.Features.KnowledgeBase",
+                "Anela.Heblo.Persistence.KnowledgeBase",
+            },
+            Allowlist: ArticleAllowlist),
 
         new ModuleBoundaryRule(
             Name: "Logistics -> Manufacture",
