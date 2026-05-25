@@ -48,9 +48,9 @@ public class ListArticlesHandlerTests
         response.Items.Should().HaveCount(2);
         response.Items[0].Topic.Should().Be("Topic 1");
         response.Items[0].Title.Should().Be("Title 1");
-        response.Items[0].Status.Should().Be(nameof(ArticleStatus.Generated));
+        response.Items[0].Status.Should().Be(ArticleStatus.Generated);
         response.Items[1].Topic.Should().Be("Topic 2");
-        response.Items[1].Status.Should().Be(nameof(ArticleStatus.Queued));
+        response.Items[1].Status.Should().Be(ArticleStatus.Queued);
         response.TotalCount.Should().Be(42);
         response.Page.Should().Be(2);
         response.PageSize.Should().Be(10);
