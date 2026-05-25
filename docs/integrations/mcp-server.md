@@ -1,6 +1,6 @@
 # MCP Server
 
-The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, and perform batch calculations.
+The application exposes MCP tools for AI assistants to query catalog data, manufacturing orders, perform batch calculations, and user-directory lookups.
 
 ## Available Tools
 
@@ -13,17 +13,19 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `GetProductUsage` — product usage in compositions
 - `GetWarehouseStatistics` — warehouse statistics
 
-**Manufacture Orders (4)**
+**Manufacture Orders (3)**
 - `GetManufactureOrders` — list manufacture orders with filtering
 - `GetManufactureOrder` — single manufacture order details
 - `GetCalendarView` — calendar view of manufacture orders
-- `GetResponsiblePersons` — responsible persons from Entra ID
 
 **Manufacture Batch (4)**
 - `GetBatchTemplate` — batch template for product
 - `CalculateBatchBySize` — calculate batch by desired size
 - `CalculateBatchByIngredient` — calculate batch by ingredient quantity
 - `CalculateBatchPlan` — batch plan for multiple products
+
+**User Management (1)**
+- `GetGroupMembers` — Entra ID group members by group ID
 
 **Knowledge Base (2)**
 - `SearchKnowledgeBase` — semantic search over ingested documents, returns ranked chunks with source references
