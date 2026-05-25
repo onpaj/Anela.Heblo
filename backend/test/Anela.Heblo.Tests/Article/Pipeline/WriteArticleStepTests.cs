@@ -220,4 +220,92 @@ public class WriteArticleStepTests
         context.GeneratedHtml.Should().NotContain("<script>");
         context.GeneratedHtml.Should().Contain("&lt;script&gt;");
     }
+
+    [Fact]
+    public async Task ExecuteAsync_LanguageNotePresent_PromptContainsTonalitaLine()
+    {
+        _options.WriteArticleSystemPromptTemplate = "{tone_note_line}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.LanguageNote = "krátké věty, bez žargonu";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("Tonalita: krátké věty, bez žargonu");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_LanguageNoteNull_ToneLineIsEmpty()
+    {
+        _options.WriteArticleSystemPromptTemplate = "{tone_note_line}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.LanguageNote = null;
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_LanguageNoteEmpty_ToneLineIsEmpty()
+    {
+        _options.WriteArticleSystemPromptTemplate = "{tone_note_line}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.LanguageNote = "";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_LanguageNoteWhitespace_ToneLineIsEmpty()
+    {
+        _options.WriteArticleSystemPromptTemplate = "{tone_note_line}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.LanguageNote = "   ";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("");
+    }
 }
