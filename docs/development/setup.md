@@ -399,6 +399,10 @@ REACT_APP_REDIRECT_URI=http://localhost:3000
 REACT_APP_API_BASE_URL=https://localhost:5001
 ```
 
+### Application Insights (optional)
+
+Set `REACT_APP_AI_CONNECTION_STRING` in `frontend/.env` to the connection string from the Azure Application Insights resource. Leave it empty (the default) for local development — the SDK runs in NoOp mode and no telemetry is sent.
+
 ### E2E Tests (`.env.test` - gitignored)
 
 ```bash

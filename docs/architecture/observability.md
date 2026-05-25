@@ -36,7 +36,7 @@ Tento dokument definuje kompletní observability strategii pro Anela Heblo aplik
 | **Structured Logging** | Microsoft.Extensions.Logging with AI sink | ✅ Implemented |
 | **Business Event Tracking** | Custom telemetry service | ✅ Implemented |
 | **Azure Monitor** | Infrastructure monitoring | ⏳ Planned |
-| **Frontend Monitoring** | React error tracking | ⏳ Planned |
+| **Frontend Monitoring** | React analytics via Application Insights JS SDK | ✅ Implemented |
 | **Alerting** | Teams/Email notifications | ⏳ Not configured |
 
 ## Cost-Optimized Application Insights
@@ -421,7 +421,9 @@ az webapp config appsettings set \
 #### 3. Set Up Alerts
 Use Azure Portal or ARM templates to configure alerts based on the alert matrix above.
 
-### Frontend Setup (Planned)
+### Frontend Setup (✅ Implemented)
+
+See [docs/features/usage-analytics.md](../features/usage-analytics.md) for the full event catalogue and KQL starter queries.
 
 #### 1. Application Insights JavaScript SDK
 ```typescript
