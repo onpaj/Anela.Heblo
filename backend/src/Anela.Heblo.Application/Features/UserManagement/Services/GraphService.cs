@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Client;
+using System.Net.Http;
 
 namespace Anela.Heblo.Application.Features.UserManagement.Services;
 
@@ -16,16 +17,19 @@ public class GraphService : IGraphService
     private readonly ITokenAcquisition _tokenAcquisition;
     private readonly IMemoryCache _cache;
     private readonly ILogger<GraphService> _logger;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly TimeSpan _cacheExpiration = TimeSpan.FromMinutes(20);
 
     public GraphService(
         ITokenAcquisition tokenAcquisition,
         IMemoryCache cache,
-        ILogger<GraphService> logger)
+        ILogger<GraphService> logger,
+        IHttpClientFactory httpClientFactory)
     {
         _tokenAcquisition = tokenAcquisition;
         _cache = cache;
         _logger = logger;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken = default)
@@ -80,15 +84,18 @@ public class GraphService : IGraphService
                 return new List<UserDto>();
             }
 
-            // Get group members from Microsoft Graph
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
+            // Get group members from Microsoft Graph.
+            // Matches the shared "MicrosoftGraph" named client used by Marketing/MeetingTasks/CatalogDocuments/KnowledgeBase/Photobank modules.
+            var httpClient = _httpClientFactory.CreateClient("MicrosoftGraph");
 
             var requestUrl = $"https://graph.microsoft.com/v1.0/groups/{groupId}/members?$select=id,displayName,mail,userPrincipalName";
             _logger.LogInformation("Making MS Graph API request to: {RequestUrl}", requestUrl);
 
+            using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", graphToken);
+
             var apiCallStart = DateTime.UtcNow;
-            var response = await httpClient.GetAsync(requestUrl, cancellationToken);
+            var response = await httpClient.SendAsync(request, cancellationToken);
             var apiCallDuration = DateTime.UtcNow - apiCallStart;
 
             _logger.LogInformation("MS Graph API call completed in {Duration}ms with status: {StatusCode}",
