@@ -2,38 +2,32 @@
 UserManagement
 
 ## Finding
-`GraphService.GetGroupMembersAsync` instantiates a raw `HttpClient` via `using var httpClient = new HttpClient()` on every call (`backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs`, line 84).
+`GraphService.GetGroupMembersAsync` catches every possible exception — `MsalException`, `ODataError`, `UnauthorizedAccessException`, and a final catch-all `Exception` — and returns an empty `List<UserDto>` in every failure path, without re-throwing (`backend/src/Anela.Heblo.Application/Features/UserManagement/Services/GraphService.cs`, lines 72–185).
 
-Although `using` disposes the client after each call, this pattern:
-- Bypasses connection pooling managed by `IHttpClientFactory` — a new TCP socket is opened and closed per Graph call.
-- Ignores DNS TTL caching — DNS entries for `graph.microsoft.com` are not refreshed correctly when sockets are disposed and recreated.
-- Is the primary cause of socket exhaustion under load in .NET applications, as documented in [Microsoft's guidance](https://learn.microsoft.com/en-us/dotnet/fundamentals/networking/http/httpclient-guidelines).
+Because `GetGroupMembersAsync` never throws, the try/catch in `GetGroupMembersHandler.Handle` (lines 19–43) can never reach its `catch` branch. The handler therefore always constructs `GetGroupMembersResponse { Success = true }` — even when the Graph API is down, the token cannot be acquired, or the group does not exist.
 
-The 20-minute in-memory cache partially mitigates the frequency of calls, but does not eliminate the risk.
+The result is that:
+- The `Success` field in `GetGroupMembersResponse` is effectively dead code — it will never be `false` at runtime.
+- Callers (the controller and the frontend) cannot distinguish "the group has no members" from "the Graph call failed."
+- The frontend's `success: true` check provides no actual signal, and users see an empty dropdown with no indication of a backend failure.
 
 ## Why it matters
-Each cache miss (every 20 minutes, or on first startup) opens a new socket. Under concurrent requests this can multiply quickly. The Microsoft Graph endpoint also enforces connection limits — exhausted sockets result in `SocketException` or throttling, silently returning empty member lists (see related issue on silent failure).
+This is a violation of the "fail fast" principle and breaks the contract expressed by the `Success` field. Silent failures are harder to diagnose in production and mask real errors (expired credentials, misconfigured group IDs, Graph API outages). The existing `Success`/`ErrorCode` response shape was designed to surface these failures — it just never gets populated.
 
 ## Suggested fix
-Inject `IHttpClientFactory` into `GraphService` and replace the inline instantiation:
+Remove the catch-all swallowing in `GraphService` and let exceptions propagate to the handler, which already has the right structure to set `Success = false`. Keep only the catches that represent expected, non-exceptional conditions (e.g. an empty group), and re-throw everything else:
 
 ```csharp
-// Constructor
-public GraphService(ITokenAcquisition tokenAcquisition, IMemoryCache cache,
-    ILogger<GraphService> logger, IHttpClientFactory httpClientFactory)
+// GraphService: only handle the "group not found" gracefully — let auth failures throw
+if (!response.IsSuccessStatusCode)
 {
-    _httpClientFactory = httpClientFactory;
-    // ...
+    var content = await response.Content.ReadAsStringAsync(cancellationToken);
+    _logger.LogError("Graph API failed: {Status} {Content}", response.StatusCode, content);
+    throw new ExternalServiceException($"Microsoft Graph returned {response.StatusCode}");
 }
-
-// In GetGroupMembersAsync — replace lines 84–85:
-using var httpClient = _httpClientFactory.CreateClient("MicrosoftGraph");
 ```
 
-Register a named client in `UserManagementModule.AddUserManagement`:
-```csharp
-services.AddHttpClient("MicrosoftGraph");
-```
+The handler's existing `catch (Exception ex)` block will then correctly set `Success = false` and a meaningful `ErrorCode`, which the frontend can surface to the user.
 
 ---
 _Filed by daily arch-review routine on 2026-05-24._
