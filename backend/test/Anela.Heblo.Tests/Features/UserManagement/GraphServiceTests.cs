@@ -1,4 +1,7 @@
+using System.Net;
+using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using Anela.Heblo.Application.Features.UserManagement.Services;
+using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -9,6 +12,34 @@ namespace Anela.Heblo.Tests.Features.UserManagement;
 
 public class GraphServiceTests
 {
+    private const string MicrosoftGraphClientName = "MicrosoftGraph";
+
+    private const string SampleGraphResponse = """
+{
+  "value": [
+    {
+      "@odata.type": "#microsoft.graph.user",
+      "id": "11111111-1111-1111-1111-111111111111",
+      "displayName": "Alice Example",
+      "mail": "alice@example.com",
+      "userPrincipalName": "alice@example.com"
+    },
+    {
+      "@odata.type": "#microsoft.graph.user",
+      "id": "22222222-2222-2222-2222-222222222222",
+      "displayName": "Bob Example",
+      "mail": null,
+      "userPrincipalName": "bob@example.com"
+    },
+    {
+      "@odata.type": "#microsoft.graph.group",
+      "id": "33333333-3333-3333-3333-333333333333",
+      "displayName": "Nested Group"
+    }
+  ]
+}
+""";
+
     [Fact]
     public void Constructor_AcceptsIHttpClientFactory_AsFourthParameter()
     {
@@ -23,5 +54,54 @@ public class GraphServiceTests
 
         // Assert
         service.Should().NotBeNull();
+    }
+
+    private static GraphService BuildService(
+        HttpMessageHandler handler,
+        out Mock<IHttpClientFactory> factoryMock,
+        out Mock<ITokenAcquisition> tokenMock,
+        out IMemoryCache cache)
+    {
+        factoryMock = new Mock<IHttpClientFactory>();
+        factoryMock
+            .Setup(f => f.CreateClient(MicrosoftGraphClientName))
+            .Returns(() => new HttpClient(handler, disposeHandler: false));
+
+        tokenMock = new Mock<ITokenAcquisition>();
+        tokenMock
+            .Setup(t => t.GetAccessTokenForAppAsync(
+                "https://graph.microsoft.com/.default",
+                It.IsAny<string?>(),
+                It.IsAny<TokenAcquisitionOptions?>()))
+            .ReturnsAsync("test-token");
+
+        cache = new MemoryCache(new MemoryCacheOptions());
+        var logger = Mock.Of<ILogger<GraphService>>();
+
+        return new GraphService(tokenMock.Object, cache, logger, factoryMock.Object);
+    }
+
+    [Fact]
+    public async Task GetGroupMembersAsync_CacheMiss_InvokesFactory_AndReturnsParsedUsers()
+    {
+        // Arrange
+        var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, SampleGraphResponse);
+        var service = BuildService(handler, out var factoryMock, out _, out _);
+
+        // Act
+        var result = await service.GetGroupMembersAsync("group-1");
+
+        // Assert
+        factoryMock.Verify(f => f.CreateClient(MicrosoftGraphClientName), Times.Once);
+        result.Should().HaveCount(2);
+        result[0].Id.Should().Be("11111111-1111-1111-1111-111111111111");
+        result[0].DisplayName.Should().Be("Alice Example");
+        result[0].Email.Should().Be("alice@example.com");
+        result[1].Id.Should().Be("22222222-2222-2222-2222-222222222222");
+        result[1].Email.Should().Be("bob@example.com");
+
+        handler.LastRequestUri!.ToString()
+            .Should().Be("https://graph.microsoft.com/v1.0/groups/group-1/members?$select=id,displayName,mail,userPrincipalName");
+        handler.LastMethod.Should().Be(HttpMethod.Get);
     }
 }
