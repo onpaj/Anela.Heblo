@@ -72,7 +72,7 @@ public class GetPackagesHandlerTests
         };
 
         // Act
-        await sut.Handle(request, CancellationToken.None);
+        var response = await sut.Handle(request, CancellationToken.None);
 
         // Assert
         repo.Verify(r => r.GetPaginatedAsync(
@@ -81,6 +81,9 @@ public class GetPackagesHandlerTests
             3, 10,
             "CustomerName", false,
             It.IsAny<CancellationToken>()), Times.Once);
+        response.Success.Should().BeTrue();
+        response.Items.Should().BeEmpty();
+        response.TotalCount.Should().Be(0);
     }
 
     [Fact]
