@@ -308,4 +308,49 @@ public class WriteArticleStepTests
         var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
         userMessage.Should().Be("");
     }
+
+    [Fact]
+    public async Task ExecuteAsync_ScopePlaceholder_IsReplacedWithRawScopeValue()
+    {
+        _options.WriteArticleSystemPromptTemplate = "Scope: {scope}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.Scope = "deep-dive";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("Scope: deep-dive");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_TemplateWithoutScopeToken_NoOp()
+    {
+        _options.WriteArticleSystemPromptTemplate = "Téma: {topic}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext("Sun Care");
+        context.Article.Scope = "deep-dive";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("Téma: Sun Care");
+        userMessage.Should().NotContain("deep-dive");
+    }
 }
