@@ -1,6 +1,9 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { PackageDto } from "../../../../api/hooks/usePackages";
+import { usePackagesQuery, useDeletePackageMutation } from "../../../../api/hooks/usePackages";
+import { printLabelPdf } from "../../../../components/baleni/printLabelPdf";
+import { ZasilkyPage } from "../ZasilkyPage";
 
 const mockShowSuccess = jest.fn();
 const mockShowError = jest.fn();
@@ -18,10 +21,6 @@ jest.mock("../../../../api/hooks/usePackages", () => ({
 jest.mock("../../../../components/baleni/printLabelPdf", () => ({
   printLabelPdf: jest.fn(),
 }));
-
-import { usePackagesQuery, useDeletePackageMutation } from "../../../../api/hooks/usePackages";
-import { printLabelPdf } from "../../../../components/baleni/printLabelPdf";
-import { ZasilkyPage } from "../ZasilkyPage";
 
 const mockUsePackagesQuery = usePackagesQuery as jest.Mock;
 const mockUseDeletePackageMutation = useDeletePackageMutation as jest.Mock;

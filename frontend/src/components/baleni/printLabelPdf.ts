@@ -1,5 +1,4 @@
 import { getAuthenticatedApiClient } from '../../api/client';
-import { ShipmentLabelDto } from '../../api/generated/api-client';
 
 interface ApiClientWithInternals {
   baseUrl: string;
@@ -66,9 +65,13 @@ const silentPrintViaBlob = async (url: string, onAfterPrint?: () => void): Promi
   }
 };
 
+export interface PrintLabelOptions {
+  packageName?: string;
+}
+
 export const printLabelPdf = (
   orderCode: string,
-  label: ShipmentLabelDto,
+  label: PrintLabelOptions,
   onAfterPrint?: () => void,
 ): void => {
   if (!label.packageName) return;
