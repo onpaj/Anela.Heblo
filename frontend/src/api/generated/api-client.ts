@@ -12740,7 +12740,9 @@ export enum BankStatementDateType {
 }
 
 export class GenerateArticleResponse extends BaseResponse implements IGenerateArticleResponse {
-    articleId?: string;
+    articleId?: string | undefined;
+    hangfireJobId?: string | undefined;
+    status?: ArticleStatus;
 
     constructor(data?: IGenerateArticleResponse) {
         super(data);
@@ -12750,6 +12752,8 @@ export class GenerateArticleResponse extends BaseResponse implements IGenerateAr
         super.init(_data);
         if (_data) {
             this.articleId = _data["articleId"];
+            this.hangfireJobId = _data["hangfireJobId"];
+            this.status = _data["status"];
         }
     }
 
@@ -12763,13 +12767,25 @@ export class GenerateArticleResponse extends BaseResponse implements IGenerateAr
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["articleId"] = this.articleId;
+        data["hangfireJobId"] = this.hangfireJobId;
+        data["status"] = this.status;
         super.toJSON(data);
         return data;
     }
 }
 
 export interface IGenerateArticleResponse extends IBaseResponse {
-    articleId?: string;
+    articleId?: string | undefined;
+    hangfireJobId?: string | undefined;
+    status?: ArticleStatus;
+}
+
+export enum ArticleStatus {
+    Queued = "Queued",
+    Researching = "Researching",
+    Writing = "Writing",
+    Generated = "Generated",
+    Failed = "Failed",
 }
 
 export class GenerateArticleRequest implements IGenerateArticleRequest {
@@ -13241,14 +13257,6 @@ export interface IArticleListItemDto {
     status?: string;
     createdAt?: Date;
     generatedAt?: Date | undefined;
-}
-
-export enum ArticleStatus {
-    Queued = "Queued",
-    Researching = "Researching",
-    Writing = "Writing",
-    Generated = "Generated",
-    Failed = "Failed",
 }
 
 export class SubmitArticleFeedbackResponse extends BaseResponse implements ISubmitArticleFeedbackResponse {
