@@ -60,9 +60,12 @@ public class MarketingInvoiceImportService
                     TransactionId = transaction.TransactionId,
                     Platform = source.Platform,
                     Amount = transaction.Amount,
+                    Currency = transaction.Currency,
                     TransactionDate = transaction.TransactionDate,
                     ImportedAt = DateTime.UtcNow,
                     IsSynced = false,
+                    Description = transaction.Description,
+                    RawData = transaction.RawData,
                 };
 
                 await _repository.AddAsync(entity, ct);

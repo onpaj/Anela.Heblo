@@ -221,4 +221,56 @@ public class MarketingInvoiceImportServiceTests
         _mockRepository.Verify(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()), Times.Once);
         _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task ImportAsync_NewTransaction_PersistsCurrencyDescriptionAndRawData()
+    {
+        // Arrange
+        var from = new DateTime(2026, 4, 1);
+        var to = new DateTime(2026, 4, 2);
+
+        var transactions = new List<MarketingTransaction>
+        {
+            new()
+            {
+                TransactionId = "TX-EUR-001",
+                Platform = "TestPlatform",
+                Amount = 123.45m,
+                TransactionDate = from,
+                Description = "campaign X",
+                Currency = "EUR",
+                RawData = "{\"foo\":1}",
+            },
+        };
+
+        _mockSource
+            .Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transactions);
+
+        _mockRepository
+            .Setup(x => x.ExistsAsync("TestPlatform", "TX-EUR-001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        ImportedMarketingTransaction? captured = null;
+        _mockRepository
+            .Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
+            .Callback<ImportedMarketingTransaction, CancellationToken>((entity, _) => captured = entity)
+            .Returns(Task.CompletedTask);
+
+        _mockRepository
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
+
+        // Assert
+        Assert.Equal(1, result.Imported);
+        Assert.Equal(0, result.Skipped);
+        Assert.Equal(0, result.Failed);
+        Assert.NotNull(captured);
+        Assert.Equal("EUR", captured!.Currency);
+        Assert.Equal("campaign X", captured.Description);
+        Assert.Equal("{\"foo\":1}", captured.RawData);
+    }
 }
