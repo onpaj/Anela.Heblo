@@ -7,6 +7,7 @@ using Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetManufactureDifficultySettings;
@@ -39,6 +40,9 @@ public static class CatalogModule
         // Register default implementations - tests can override these
         services.AddTransient<ICatalogRepository, CatalogRepository>();
         services.AddTransient<IManufactureDifficultyRepository, ManufactureDifficultyRepository>();
+
+        // Register adapter to expose catalog services to Purchase module
+        services.AddScoped<IMaterialCatalogService, PurchaseMaterialCatalogAdapter>();
 
         // Register cost repositories
         services.AddTransient<IMaterialCostProvider, ManufactureBasedMaterialCostProvider>(); // Product type-based: manufacture history for Set/Product/SemiProduct, purchase price for others

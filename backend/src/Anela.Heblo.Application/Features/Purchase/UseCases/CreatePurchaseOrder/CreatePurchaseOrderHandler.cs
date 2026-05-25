@@ -1,7 +1,6 @@
 using Anela.Heblo.Application.Common.Extensions;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -14,7 +13,7 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
     private readonly ILogger<CreatePurchaseOrderHandler> _logger;
     private readonly IPurchaseOrderRepository _repository;
     private readonly IPurchaseOrderNumberGenerator _orderNumberGenerator;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IMaterialCatalogService _materialCatalog;
     private readonly ICurrentUserService _currentUserService;
     private readonly ISupplierRepository _supplierRepository;
 
@@ -22,14 +21,14 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
         ILogger<CreatePurchaseOrderHandler> logger,
         IPurchaseOrderRepository repository,
         IPurchaseOrderNumberGenerator orderNumberGenerator,
-        ICatalogRepository catalogRepository,
+        IMaterialCatalogService materialCatalog,
         ICurrentUserService currentUserService,
         ISupplierRepository supplierRepository)
     {
         _logger = logger;
         _repository = repository;
         _orderNumberGenerator = orderNumberGenerator;
-        _catalogRepository = catalogRepository;
+        _materialCatalog = materialCatalog;
         _currentUserService = currentUserService;
         _supplierRepository = supplierRepository;
     }
@@ -76,7 +75,7 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
             foreach (var lineRequest in request.Lines)
             {
                 // Look up material by ProductCode in catalog to get ProductName
-                var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
+                var material = await _materialCatalog.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
                 var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
 
                 if (material == null)

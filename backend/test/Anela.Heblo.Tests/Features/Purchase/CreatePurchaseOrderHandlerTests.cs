@@ -1,7 +1,7 @@
 using Anela.Heblo.Application.Features.Purchase;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;
 using Anela.Heblo.Domain.Features.Purchase;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -15,7 +15,7 @@ public class CreatePurchaseOrderHandlerTests
     private readonly Mock<ILogger<CreatePurchaseOrderHandler>> _loggerMock;
     private readonly Mock<IPurchaseOrderRepository> _repositoryMock;
     private readonly Mock<IPurchaseOrderNumberGenerator> _orderNumberGeneratorMock;
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IMaterialCatalogService> _materialCatalogMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<ISupplierRepository> _supplierRepositoryMock;
     private readonly CreatePurchaseOrderHandler _handler;
@@ -35,7 +35,7 @@ public class CreatePurchaseOrderHandlerTests
         _loggerMock = new Mock<ILogger<CreatePurchaseOrderHandler>>();
         _repositoryMock = new Mock<IPurchaseOrderRepository>();
         _orderNumberGeneratorMock = new Mock<IPurchaseOrderNumberGenerator>();
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _materialCatalogMock = new Mock<IMaterialCatalogService>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _supplierRepositoryMock = new Mock<ISupplierRepository>();
 
@@ -51,7 +51,7 @@ public class CreatePurchaseOrderHandlerTests
             _loggerMock.Object,
             _repositoryMock.Object,
             _orderNumberGeneratorMock.Object,
-            _catalogRepositoryMock.Object,
+            _materialCatalogMock.Object,
             _currentUserServiceMock.Object,
             _supplierRepositoryMock.Object);
     }

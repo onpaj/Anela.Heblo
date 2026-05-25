@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;
@@ -12,20 +11,20 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
 {
     private readonly ILogger<UpdatePurchaseOrderHandler> _logger;
     private readonly IPurchaseOrderRepository _repository;
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IMaterialCatalogService _materialCatalog;
     private readonly ICurrentUserService _currentUserService;
     private readonly ISupplierRepository _supplierRepository;
 
     public UpdatePurchaseOrderHandler(
         ILogger<UpdatePurchaseOrderHandler> logger,
         IPurchaseOrderRepository repository,
-        ICatalogRepository catalogRepository,
+        IMaterialCatalogService materialCatalog,
         ICurrentUserService currentUserService,
         ISupplierRepository supplierRepository)
     {
         _logger = logger;
         _repository = repository;
-        _catalogRepository = catalogRepository;
+        _materialCatalog = materialCatalog;
         _currentUserService = currentUserService;
         _supplierRepository = supplierRepository;
     }
@@ -72,14 +71,25 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
                 purchaseOrder.RemoveLine(lineId);
             }
 
+            // Batch-fetch every material referenced by the incoming request lines.
+            // Replaces the previous per-line GetByIdAsync calls (N+1).
+            var requestMaterialIds = request.Lines
+                .Select(l => l.MaterialId)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct()
+                .ToList();
+            var materialLookup = requestMaterialIds.Count > 0
+                ? await _materialCatalog.GetByIdsAsync(requestMaterialIds, cancellationToken)
+                : (IReadOnlyDictionary<string, MaterialInfo>)new Dictionary<string, MaterialInfo>();
+
             foreach (var lineRequest in request.Lines)
             {
+                var materialName = materialLookup.TryGetValue(lineRequest.MaterialId, out var material)
+                    ? material.ProductName
+                    : lineRequest.Name ?? "Unknown Material";
+
                 if (lineRequest.Id.HasValue)
                 {
-                    // Get material name from catalog if available
-                    var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
-                    var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
-
                     purchaseOrder.UpdateLine(
                         lineRequest.Id.Value,
                         materialName,
@@ -89,10 +99,6 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
                 }
                 else
                 {
-                    // Get material name from catalog if available
-                    var material = await _catalogRepository.GetByIdAsync(lineRequest.MaterialId, cancellationToken);
-                    var materialName = material?.ProductName ?? lineRequest.Name ?? "Unknown Material";
-
                     purchaseOrder.AddLine(
                         lineRequest.MaterialId,
                         materialName,
@@ -117,8 +123,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
         }
     }
 
-
-    private UpdatePurchaseOrderResponse MapToResponse(PurchaseOrder purchaseOrder, long supplierId)
+    private static UpdatePurchaseOrderResponse MapToResponse(PurchaseOrder purchaseOrder, long supplierId)
     {
         var lines = new List<PurchaseOrderLineDto>();
 
@@ -128,7 +133,7 @@ public class UpdatePurchaseOrderHandler : IRequestHandler<UpdatePurchaseOrderReq
             {
                 Id = line.Id,
                 MaterialId = line.MaterialId,
-                Code = line.MaterialId, // Code is same as MaterialId
+                Code = line.MaterialId,
                 MaterialName = line.MaterialName,
                 Quantity = line.Quantity,
                 UnitPrice = line.UnitPrice,

@@ -1,11 +1,8 @@
-using Anela.Heblo.Application.Features.Purchase;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.Services;
 using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
-using Anela.Heblo.Domain.Features.Catalog.Sales;
-using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Xcc;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -15,25 +12,63 @@ namespace Anela.Heblo.Tests.Features.Purchase;
 
 public class GetPurchaseStockAnalysisHandlerTests
 {
-    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
+    private readonly Mock<IMaterialCatalogService> _materialCatalogMock;
     private readonly Mock<IStockSeverityCalculator> _stockSeverityCalculatorMock;
     private readonly Mock<ILogger<GetPurchaseStockAnalysisHandler>> _loggerMock;
     private readonly GetPurchaseStockAnalysisHandler _handler;
 
     public GetPurchaseStockAnalysisHandlerTests()
     {
-        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _materialCatalogMock = new Mock<IMaterialCatalogService>();
         _stockSeverityCalculatorMock = new Mock<IStockSeverityCalculator>();
         _loggerMock = new Mock<ILogger<GetPurchaseStockAnalysisHandler>>();
-        _handler = new GetPurchaseStockAnalysisHandler(_catalogRepositoryMock.Object, _stockSeverityCalculatorMock.Object, _loggerMock.Object);
+        _handler = new GetPurchaseStockAnalysisHandler(_materialCatalogMock.Object, _stockSeverityCalculatorMock.Object, _loggerMock.Object);
+    }
+
+    private static MaterialStockSnapshot MakeSnapshot(
+        string productCode,
+        string productName,
+        MaterialProductType type,
+        decimal available = 0m,
+        decimal ordered = 0m,
+        decimal stockMinSetup = 0m,
+        int optimalStockDaysSetup = 0,
+        string? supplierName = null,
+        string minimalOrderQuantity = "",
+        double consumptionInPeriod = 0,
+        MaterialPurchaseSnapshot? lastPurchase = null)
+    {
+        var effective = available + ordered;
+        return new MaterialStockSnapshot
+        {
+            ProductCode = productCode,
+            ProductName = productName,
+            ProductNameNormalized = productName.NormalizeForSearch(),
+            ProductType = type,
+            SupplierName = supplierName,
+            MinimalOrderQuantity = minimalOrderQuantity,
+            IsMinStockConfigured = stockMinSetup > 0,
+            IsOptimalStockConfigured = optimalStockDaysSetup > 0,
+            Stock = new MaterialStockLevels
+            {
+                Available = available,
+                Ordered = ordered,
+                EffectiveStock = effective,
+            },
+            StockMinSetup = stockMinSetup,
+            OptimalStockDaysSetup = optimalStockDaysSetup,
+            ConsumptionInPeriod = consumptionInPeriod,
+            LastPurchase = lastPurchase,
+        };
     }
 
     [Fact]
     public async Task Handle_ValidRequest_ReturnsAnalysisResponse()
     {
-        var catalogItems = CreateTestCatalogItems();
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogItems);
+        var snapshots = CreateTestSnapshots();
+        _materialCatalogMock
+            .Setup(x => x.GetStockAnalysisSnapshotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshots);
 
         _stockSeverityCalculatorMock.Setup(x => x.DetermineStockSeverity(
             It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<bool>()))
@@ -61,9 +96,10 @@ public class GetPurchaseStockAnalysisHandlerTests
     [Fact]
     public async Task Handle_FilterByCriticalStatus_ReturnsOnlyCriticalItems()
     {
-        var catalogItems = CreateTestCatalogItems();
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogItems);
+        var snapshots = CreateTestSnapshots();
+        _materialCatalogMock
+            .Setup(x => x.GetStockAnalysisSnapshotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshots);
 
         var request = new GetPurchaseStockAnalysisRequest
         {
@@ -81,9 +117,10 @@ public class GetPurchaseStockAnalysisHandlerTests
     [Fact]
     public async Task Handle_OnlyConfiguredFilter_ReturnsOnlyConfiguredItems()
     {
-        var catalogItems = CreateTestCatalogItems();
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogItems);
+        var snapshots = CreateTestSnapshots();
+        _materialCatalogMock
+            .Setup(x => x.GetStockAnalysisSnapshotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshots);
 
         var request = new GetPurchaseStockAnalysisRequest
         {
@@ -101,9 +138,10 @@ public class GetPurchaseStockAnalysisHandlerTests
     [Fact]
     public async Task Handle_SearchTerm_FiltersItemsBySearchTerm()
     {
-        var catalogItems = CreateTestCatalogItems();
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogItems);
+        var snapshots = CreateTestSnapshots();
+        _materialCatalogMock
+            .Setup(x => x.GetStockAnalysisSnapshotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshots);
 
         var request = new GetPurchaseStockAnalysisRequest
         {
@@ -140,9 +178,10 @@ public class GetPurchaseStockAnalysisHandlerTests
     [Fact]
     public async Task Handle_Pagination_ReturnsCorrectPage()
     {
-        var catalogItems = CreateManyTestCatalogItems(25);
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogItems);
+        var snapshots = CreateManyTestSnapshots(25);
+        _materialCatalogMock
+            .Setup(x => x.GetStockAnalysisSnapshotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshots);
 
         var request = new GetPurchaseStockAnalysisRequest
         {
@@ -161,9 +200,10 @@ public class GetPurchaseStockAnalysisHandlerTests
     [Fact]
     public async Task Handle_SortByStockEfficiency_ReturnsSortedItems()
     {
-        var catalogItems = CreateTestCatalogItems();
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogItems);
+        var snapshots = CreateTestSnapshots();
+        _materialCatalogMock
+            .Setup(x => x.GetStockAnalysisSnapshotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshots);
 
         var request = new GetPurchaseStockAnalysisRequest
         {
@@ -183,29 +223,23 @@ public class GetPurchaseStockAnalysisHandlerTests
     [Fact]
     public async Task Handle_WithOrderedStock_PopulatesEffectiveStockCorrectly()
     {
-        var catalogItems = new List<CatalogAggregate>
+        var snapshots = new List<MaterialStockSnapshot>
         {
-            new CatalogAggregate
-            {
-                ProductCode = "MAT001",
-                ProductName = "Material with Ordered Stock",
-                Type = ProductType.Material,
-                Stock = new StockData
-                {
-                    Erp = 50,
-                    Eshop = 0,
-                    Transport = 0,
-                    Reserve = 0,
-                    Ordered = 100
-                },
-                Properties = new CatalogProperties { StockMinSetup = 20, OptimalStockDaysSetup = 30 },
-                SupplierName = "Supplier A",
-                MinimalOrderQuantity = "100"
-            }
+            MakeSnapshot(
+                "MAT001",
+                "Material with Ordered Stock",
+                MaterialProductType.Material,
+                available: 50m,
+                ordered: 100m,
+                stockMinSetup: 20m,
+                optimalStockDaysSetup: 30,
+                supplierName: "Supplier A",
+                minimalOrderQuantity: "100")
         };
 
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogItems);
+        _materialCatalogMock
+            .Setup(x => x.GetStockAnalysisSnapshotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshots);
 
         _stockSeverityCalculatorMock.Setup(x => x.DetermineStockSeverity(
             It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<bool>()))
@@ -231,29 +265,23 @@ public class GetPurchaseStockAnalysisHandlerTests
     [Fact]
     public async Task Handle_WithoutOrderedStock_PopulatesEffectiveStockAsAvailable()
     {
-        var catalogItems = new List<CatalogAggregate>
+        var snapshots = new List<MaterialStockSnapshot>
         {
-            new CatalogAggregate
-            {
-                ProductCode = "MAT002",
-                ProductName = "Material without Ordered Stock",
-                Type = ProductType.Material,
-                Stock = new StockData
-                {
-                    Erp = 75,
-                    Eshop = 0,
-                    Transport = 0,
-                    Reserve = 0,
-                    Ordered = 0
-                },
-                Properties = new CatalogProperties { StockMinSetup = 20, OptimalStockDaysSetup = 30 },
-                SupplierName = "Supplier B",
-                MinimalOrderQuantity = "50"
-            }
+            MakeSnapshot(
+                "MAT002",
+                "Material without Ordered Stock",
+                MaterialProductType.Material,
+                available: 75m,
+                ordered: 0m,
+                stockMinSetup: 20m,
+                optimalStockDaysSetup: 30,
+                supplierName: "Supplier B",
+                minimalOrderQuantity: "50")
         };
 
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogItems);
+        _materialCatalogMock
+            .Setup(x => x.GetStockAnalysisSnapshotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshots);
 
         _stockSeverityCalculatorMock.Setup(x => x.DetermineStockSeverity(
             It.IsAny<double>(), It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>(), It.IsAny<bool>()))
@@ -276,61 +304,13 @@ public class GetPurchaseStockAnalysisHandlerTests
         item.EffectiveStock.Should().Be(75);
     }
 
-    private List<CatalogAggregate> CreateTestCatalogItems()
-    {
-        return new List<CatalogAggregate>
-        {
-            new CatalogAggregate
-            {
-                ProductCode = "MAT001",
-                ProductName = "Material 1",
-                Type = ProductType.Material,
-                Stock = new StockData { Erp = 10, Eshop = 0, Transport = 0, Reserve = 0 },
-                Properties = new CatalogProperties { StockMinSetup = 50, OptimalStockDaysSetup = 30 },
-                SupplierName = "Supplier A",
-                MinimalOrderQuantity = "100",
-                PurchaseHistory = new List<CatalogPurchaseRecord>
-                {
-                    new CatalogPurchaseRecord
-                    {
-                        Date = DateTime.UtcNow.AddDays(-30),
-                        SupplierName = "Supplier A",
-                        Amount = 100,
-                        PricePerPiece = 10,
-                        PriceTotal = 1000
-                    }
-                }
-            },
-            new CatalogAggregate
-            {
-                ProductCode = "GOD001",
-                ProductName = "Goods 1",
-                Type = ProductType.Goods,
-                Stock = new StockData { Erp = 100, Eshop = 0, Transport = 0, Reserve = 0 },
-                Properties = new CatalogProperties { StockMinSetup = 20, OptimalStockDaysSetup = 14 },
-                SupplierName = "Supplier B" ,
-                MinimalOrderQuantity = "50",
-                SalesHistory = new List<CatalogSaleRecord>
-                {
-                    new CatalogSaleRecord
-                    {
-                        Date = DateTime.UtcNow.AddDays(-7),
-                        AmountB2B = 5,
-                        AmountB2C = 10,
-                        SumB2B = 500,
-                        SumB2C = 1000
-                    }
-                }
-            }
-        };
-    }
-
     [Fact]
     public async Task Handle_ExportTrue_BypassesPaginationAndReturnsAllFilteredItems()
     {
-        var catalogItems = CreateManyTestCatalogItems(25);
-        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(catalogItems);
+        var snapshots = CreateManyTestSnapshots(25);
+        _materialCatalogMock
+            .Setup(x => x.GetStockAnalysisSnapshotsAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(snapshots);
 
         var request = new GetPurchaseStockAnalysisRequest
         {
@@ -346,26 +326,55 @@ public class GetPurchaseStockAnalysisHandlerTests
         response.TotalCount.Should().Be(25);
     }
 
-    private List<CatalogAggregate> CreateManyTestCatalogItems(int count)
+    private List<MaterialStockSnapshot> CreateTestSnapshots()
     {
-        var items = new List<CatalogAggregate>();
+        return new List<MaterialStockSnapshot>
+        {
+            MakeSnapshot(
+                "MAT001",
+                "Material 1",
+                MaterialProductType.Material,
+                available: 10m,
+                stockMinSetup: 50m,
+                optimalStockDaysSetup: 30,
+                supplierName: "Supplier A",
+                minimalOrderQuantity: "100",
+                lastPurchase: new MaterialPurchaseSnapshot
+                {
+                    Date = DateTime.UtcNow.AddDays(-30),
+                    SupplierName = "Supplier A",
+                    Amount = 100m,
+                    UnitPrice = 10m,
+                    TotalPrice = 1000m,
+                }),
+            MakeSnapshot(
+                "GOD001",
+                "Goods 1",
+                MaterialProductType.Goods,
+                available: 100m,
+                stockMinSetup: 20m,
+                optimalStockDaysSetup: 14,
+                supplierName: "Supplier B",
+                minimalOrderQuantity: "50",
+                consumptionInPeriod: 15)
+        };
+    }
+
+    private List<MaterialStockSnapshot> CreateManyTestSnapshots(int count)
+    {
+        var items = new List<MaterialStockSnapshot>();
 
         for (int i = 0; i < count; i++)
         {
-            items.Add(new CatalogAggregate
-            {
-                ProductCode = $"MAT{i:D3}",
-                ProductName = $"Material {i}",
-                Type = i % 2 == 0 ? ProductType.Material : ProductType.Goods,
-                Stock = new StockData { Erp = i * 10, Eshop = 0, Transport = 0, Reserve = 0 },
-                Properties = new CatalogProperties
-                {
-                    StockMinSetup = i * 5,
-                    OptimalStockDaysSetup = i % 3 == 0 ? 0 : 30
-                },
-                SupplierName = $"Supplier {i}",
-                MinimalOrderQuantity = (i * 10).ToString()
-            });
+            items.Add(MakeSnapshot(
+                productCode: $"MAT{i:D3}",
+                productName: $"Material {i}",
+                type: i % 2 == 0 ? MaterialProductType.Material : MaterialProductType.Goods,
+                available: i * 10m,
+                stockMinSetup: i * 5m,
+                optimalStockDaysSetup: i % 3 == 0 ? 0 : 30,
+                supplierName: $"Supplier {i}",
+                minimalOrderQuantity: (i * 10).ToString()));
         }
 
         return items;
