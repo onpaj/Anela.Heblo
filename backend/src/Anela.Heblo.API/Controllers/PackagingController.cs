@@ -1,4 +1,6 @@
+using Anela.Heblo.Application.Features.Packaging.UseCases.DeletePackage;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackageLabelPdf;
+using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ResetOrderShipment;
 using Anela.Heblo.Application.Features.Packaging.UseCases.ScanPackingOrder;
 using MediatR;
@@ -70,5 +72,23 @@ public class PackagingController : BaseApiController
 
         Response.Headers.CacheControl = "no-store";
         return File(response.Content, response.ContentType, response.FileName);
+    }
+
+    [HttpGet("packages")]
+    public async Task<ActionResult<GetPackagesResponse>> GetPackages(
+        [FromQuery] GetPackagesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    [HttpDelete("packages/{id:int}")]
+    public async Task<ActionResult<DeletePackageResponse>> DeletePackage(
+        [FromRoute] int id,
+        CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(new DeletePackageRequest { Id = id }, cancellationToken);
+        return HandleResponse(response);
     }
 }
