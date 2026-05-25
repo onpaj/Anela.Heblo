@@ -15,7 +15,6 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, int>, IPurc
         string? status,
         DateTime? fromDate,
         DateTime? toDate,
-        int? supplierId,
         bool? activeOrdersOnly,
         int pageNumber,
         int pageSize,
@@ -45,12 +44,6 @@ public class PurchaseOrderRepository : BaseRepository<PurchaseOrder, int>, IPurc
         if (toDate.HasValue)
         {
             query = query.Where(x => x.OrderDate <= toDate.Value);
-        }
-
-        if (supplierId.HasValue)
-        {
-            // Note: SupplierId filtering is disabled as we now use SupplierName
-            // In future, implement supplier name filtering if needed
         }
 
         if (activeOrdersOnly.HasValue && activeOrdersOnly.Value)
