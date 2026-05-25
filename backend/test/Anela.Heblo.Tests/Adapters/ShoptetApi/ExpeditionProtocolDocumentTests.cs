@@ -1,5 +1,5 @@
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
-using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using QuestPDF.Infrastructure;
 

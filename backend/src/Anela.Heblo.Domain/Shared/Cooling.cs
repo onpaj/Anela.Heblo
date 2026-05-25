@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Domain.Features.Catalog;
+namespace Anela.Heblo.Domain.Shared;
 
 public enum Cooling
 {

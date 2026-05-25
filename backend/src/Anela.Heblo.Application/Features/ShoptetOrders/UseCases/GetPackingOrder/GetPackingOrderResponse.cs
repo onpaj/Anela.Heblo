@@ -1,5 +1,5 @@
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Shared;
 
 namespace Anela.Heblo.Application.Features.ShoptetOrders.UseCases.GetPackingOrder;
 

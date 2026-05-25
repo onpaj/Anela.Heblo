@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.CarrierCooling.Contracts;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Domain.Shared;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.CarrierCooling.UseCases.GetCarrierCoolingMatrix;
