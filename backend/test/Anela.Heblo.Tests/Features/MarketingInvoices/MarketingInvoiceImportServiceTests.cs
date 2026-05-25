@@ -364,5 +364,8 @@ public class MarketingInvoiceImportServiceTests
         _mockRepository.Verify(
             x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()),
             Times.Never);
+        _mockRepository.Verify(
+            x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }
