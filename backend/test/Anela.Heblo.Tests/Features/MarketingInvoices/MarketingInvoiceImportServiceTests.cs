@@ -221,4 +221,161 @@ public class MarketingInvoiceImportServiceTests
         _mockRepository.Verify(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()), Times.Once);
         _mockRepository.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task ImportAsync_NewTransaction_PersistsCurrencyDescriptionAndRawData()
+    {
+        // Arrange
+        var from = new DateTime(2026, 4, 1);
+        var to = new DateTime(2026, 4, 2);
+
+        var transactions = new List<MarketingTransaction>
+        {
+            new()
+            {
+                TransactionId = "TX-EUR-001",
+                Platform = "TestPlatform",
+                Amount = 123.45m,
+                TransactionDate = from,
+                Description = "campaign X",
+                Currency = "EUR",
+                RawData = "{\"foo\":1}",
+            },
+        };
+
+        _mockSource
+            .Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transactions);
+
+        _mockRepository
+            .Setup(x => x.ExistsAsync("TestPlatform", "TX-EUR-001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+
+        ImportedMarketingTransaction? captured = null;
+        _mockRepository
+            .Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
+            .Callback<ImportedMarketingTransaction, CancellationToken>((entity, _) => captured = entity)
+            .Returns(Task.CompletedTask);
+
+        _mockRepository
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        // Act
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
+
+        // Assert
+        Assert.Equal(1, result.Imported);
+        Assert.Equal(0, result.Skipped);
+        Assert.Equal(0, result.Failed);
+        Assert.NotNull(captured);
+        Assert.Equal("EUR", captured!.Currency);
+        Assert.Equal("campaign X", captured.Description);
+        Assert.Equal("{\"foo\":1}", captured.RawData);
+    }
+
+    [Fact]
+    public async Task ImportAsync_EmptyCurrency_Skips_CountsFailed_DoesNotCallExistsOrAdd()
+    {
+        // Arrange
+        var from = new DateTime(2026, 4, 1);
+        var to = new DateTime(2026, 4, 2);
+
+        var transactions = new List<MarketingTransaction>
+        {
+            new()
+            {
+                TransactionId = "TX-BAD-001",
+                Platform = "TestPlatform",
+                Amount = 100m,
+                TransactionDate = from,
+                Description = "missing currency",
+                Currency = "",
+            },
+        };
+
+        _mockSource
+            .Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transactions);
+
+        // Act
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
+
+        // Assert
+        Assert.Equal(0, result.Imported);
+        Assert.Equal(0, result.Skipped);
+        Assert.Equal(1, result.Failed);
+        _mockRepository.Verify(
+            x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _mockRepository.Verify(
+            x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _mockRepository.Verify(
+            x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        _mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("TX-BAD-001") &&
+                    v.ToString()!.Contains("TestPlatform")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ImportAsync_WhitespaceCurrency_TreatedAsEmpty_CountsFailed()
+    {
+        // Arrange
+        var from = new DateTime(2026, 4, 1);
+        var to = new DateTime(2026, 4, 2);
+
+        var transactions = new List<MarketingTransaction>
+        {
+            new()
+            {
+                TransactionId = "TX-WS-001",
+                Platform = "TestPlatform",
+                Amount = 50m,
+                TransactionDate = from,
+                Description = "whitespace currency",
+                Currency = "   ",
+            },
+        };
+
+        _mockSource
+            .Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(transactions);
+
+        // Act
+        var result = await _service.ImportAsync(_mockSource.Object, from, to);
+
+        // Assert
+        Assert.Equal(0, result.Imported);
+        Assert.Equal(0, result.Skipped);
+        Assert.Equal(1, result.Failed);
+        _mockRepository.Verify(
+            x => x.ExistsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _mockRepository.Verify(
+            x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _mockRepository.Verify(
+            x => x.SaveChangesAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
+        _mockLogger.Verify(
+            l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) =>
+                    v.ToString()!.Contains("TX-WS-001") &&
+                    v.ToString()!.Contains("TestPlatform")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
 }
