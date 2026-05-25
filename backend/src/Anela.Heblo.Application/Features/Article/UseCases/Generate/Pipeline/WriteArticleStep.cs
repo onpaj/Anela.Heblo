@@ -104,7 +104,7 @@ public class WriteArticleStep
         var article = context.Article;
         var factsText = BuildFactsList(context.Facts);
 
-        return _options.WriteArticleSystemPromptTemplate
+        return _options.WriteArticleUserPromptTemplate
             .Replace("{topic}", article.Topic)
             .Replace("{audience}", article.Audience ?? "obecné publikum")
             .Replace("{length}", article.Length)

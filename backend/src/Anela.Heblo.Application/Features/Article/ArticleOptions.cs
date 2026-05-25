@@ -53,7 +53,7 @@ public sealed class ArticleOptions
         Fakta:
         """;
 
-    public string WriteArticleSystemPromptTemplate { get; set; } =
+    public string WriteArticleUserPromptTemplate { get; set; } =
         """
         Napiš článek na téma {topic} pro publikum {audience}.
         Délka: {length}. Úhel pohledu: {angle}.
