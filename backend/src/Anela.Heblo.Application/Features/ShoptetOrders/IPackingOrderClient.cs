@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Shared;
 
 namespace Anela.Heblo.Application.Features.ShoptetOrders;
 

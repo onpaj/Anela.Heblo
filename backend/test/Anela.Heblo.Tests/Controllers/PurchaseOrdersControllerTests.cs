@@ -89,6 +89,23 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
     }
 
     [Fact]
+    public async Task GetPurchaseOrders_WithLegacySupplierIdQueryString_IsSilentlyIgnored()
+    {
+        var baseline = await _client.GetAsync("/api/purchase-orders");
+        baseline.StatusCode.Should().Be(HttpStatusCode.OK);
+        var baselineContent = await baseline.Content.ReadFromJsonAsync<GetPurchaseOrdersResponse>();
+        baselineContent.Should().NotBeNull();
+
+        var withLegacyParam = await _client.GetAsync("/api/purchase-orders?SupplierId=99");
+        withLegacyParam.StatusCode.Should().Be(HttpStatusCode.OK);
+        var legacyContent = await withLegacyParam.Content.ReadFromJsonAsync<GetPurchaseOrdersResponse>();
+        legacyContent.Should().NotBeNull();
+
+        legacyContent!.TotalCount.Should().Be(baselineContent!.TotalCount);
+        legacyContent.Orders.Should().HaveCount(baselineContent.Orders.Count);
+    }
+
+    [Fact]
     public async Task CreatePurchaseOrder_WithValidData_ShouldReturnCreated()
     {
         var request = new CreatePurchaseOrderRequest

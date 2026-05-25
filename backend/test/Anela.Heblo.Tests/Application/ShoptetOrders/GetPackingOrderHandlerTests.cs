@@ -1,7 +1,7 @@
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.ShoptetOrders.UseCases.GetPackingOrder;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;

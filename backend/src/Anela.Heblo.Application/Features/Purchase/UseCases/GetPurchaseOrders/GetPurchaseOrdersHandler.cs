@@ -28,7 +28,6 @@ public class GetPurchaseOrdersHandler : IRequestHandler<GetPurchaseOrdersRequest
             request.Status,
             request.FromDate,
             request.ToDate,
-            request.SupplierId,
             request.ActiveOrdersOnly,
             request.PageNumber,
             request.PageSize,

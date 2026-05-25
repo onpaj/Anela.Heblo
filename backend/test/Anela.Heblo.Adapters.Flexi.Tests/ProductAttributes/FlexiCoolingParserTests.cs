@@ -1,6 +1,7 @@
 using Anela.Heblo.Adapters.Flexi.ProductAttributes;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
+using Anela.Heblo.Domain.Shared;
 using FluentAssertions;
 
 namespace Anela.Heblo.Adapters.Flexi.Tests.ProductAttributes;

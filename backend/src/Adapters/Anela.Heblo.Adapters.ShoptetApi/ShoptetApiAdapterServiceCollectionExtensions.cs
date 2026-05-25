@@ -34,12 +34,13 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
         services.AddOptions<ShoptetApiSettings>()
             .Bind(configuration.GetSection(ShoptetApiSettings.ConfigurationKey));
 
-        services.AddHttpClient<IEshopOrderClient, ShoptetOrderClient>((sp, client) =>
+        services.AddHttpClient<ShoptetOrderClient>((sp, client) =>
         {
             var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
             client.BaseAddress = new Uri(settings.BaseUrl);
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
         });
+        services.AddTransient<IEshopOrderClient>(sp => sp.GetRequiredService<ShoptetOrderClient>());
 
         services.AddHttpClient<IEshopStockClient, ShoptetStockClient>((sp, client) =>
         {
