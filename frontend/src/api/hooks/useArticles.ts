@@ -257,34 +257,48 @@ export const useArticleFeedbackListQuery = (params: ArticleFeedbackListParams = 
   return useQuery({
     queryKey: articleKeys.feedbackList(params),
     queryFn: async (): Promise<ArticleFeedbackListResponse> => {
-      const apiClient = getAuthenticatedApiClient();
-      const searchParams = new URLSearchParams();
-
-      if (params.hasFeedback !== undefined)
-        searchParams.append('hasFeedback', params.hasFeedback.toString());
-      if (params.requestedBy) searchParams.append('requestedBy', params.requestedBy);
-      if (params.sortBy) searchParams.append('sortBy', params.sortBy);
-      if (params.descending !== undefined)
-        searchParams.append('descending', params.descending.toString());
-      if (params.page !== undefined)
-        searchParams.append('page', params.page.toString());
-      if (params.pageSize !== undefined)
-        searchParams.append('pageSize', params.pageSize.toString());
-
-      const query = searchParams.toString();
-      const relativeUrl = `/api/articles/feedback/list${query ? `?${query}` : ''}`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch article feedback list: ${response.status}`);
-      }
-
-      return response.json();
+      const client = getAuthenticatedApiClient();
+      const data = await client.articles_FeedbackList(
+        params.hasFeedback ?? null,
+        params.requestedBy ?? null,
+        params.sortBy,
+        params.descending,
+        params.page,
+        params.pageSize,
+      );
+      return {
+        articles: (data.items ?? []).map((item) => ({
+          id: item.id ?? '',
+          topic: item.topic ?? '',
+          title: item.title ?? null,
+          requestedBy: item.requestedBy ?? '',
+          generatedAt: item.createdAt?.toISOString() ?? null,
+          precisionScore: item.precisionScore ?? null,
+          styleScore: item.styleScore ?? null,
+          // Backend list endpoint never emits a per-item feedback comment
+          // (only the boolean hasComment), so projecting null here is exact
+          // behavior preservation, not data loss.
+          feedbackComment: null,
+          hasFeedback: item.hasComment ?? false,
+        })),
+        totalCount: data.totalCount ?? 0,
+        page: data.page ?? params.page ?? 1,
+        pageSize: data.pageSize ?? params.pageSize ?? 20,
+        totalPages: data.totalPages ?? 0,
+        stats: data.stats
+          ? {
+              totalArticles: data.stats.totalArticles ?? 0,
+              totalWithFeedback: data.stats.totalWithFeedback ?? 0,
+              avgPrecisionScore: data.stats.avgPrecisionScore ?? null,
+              avgStyleScore: data.stats.avgStyleScore ?? null,
+            }
+          : {
+              totalArticles: 0,
+              totalWithFeedback: 0,
+              avgPrecisionScore: null,
+              avgStyleScore: null,
+            },
+      };
     },
     staleTime: 30_000,
     gcTime: 5 * 60 * 1000,
