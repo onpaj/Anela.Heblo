@@ -79,7 +79,7 @@ export const usePackagesQuery = (request: GetPackagesRequest) =>
 
       return response.json() as Promise<GetPackagesResponse>;
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 30,
   });
 
 export const useDeletePackageMutation = () => {
