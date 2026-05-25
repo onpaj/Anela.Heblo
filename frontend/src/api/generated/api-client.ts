@@ -7905,6 +7905,105 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
+    packaging_GetPackages(orderCode: string | null | undefined, customerName: string | null | undefined, packageNumber: string | null | undefined, shippingProviderCode: string | null | undefined, fromDate: Date | null | undefined, toDate: Date | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | undefined, sortDescending: boolean | undefined): Promise<GetPackagesResponse> {
+        let url_ = this.baseUrl + "/api/packaging/packages?";
+        if (orderCode !== undefined && orderCode !== null)
+            url_ += "OrderCode=" + encodeURIComponent("" + orderCode) + "&";
+        if (customerName !== undefined && customerName !== null)
+            url_ += "CustomerName=" + encodeURIComponent("" + customerName) + "&";
+        if (packageNumber !== undefined && packageNumber !== null)
+            url_ += "PackageNumber=" + encodeURIComponent("" + packageNumber) + "&";
+        if (shippingProviderCode !== undefined && shippingProviderCode !== null)
+            url_ += "ShippingProviderCode=" + encodeURIComponent("" + shippingProviderCode) + "&";
+        if (fromDate !== undefined && fromDate !== null)
+            url_ += "FromDate=" + encodeURIComponent(fromDate ? "" + fromDate.toISOString() : "") + "&";
+        if (toDate !== undefined && toDate !== null)
+            url_ += "ToDate=" + encodeURIComponent(toDate ? "" + toDate.toISOString() : "") + "&";
+        if (pageNumber === null)
+            throw new Error("The parameter 'pageNumber' cannot be null.");
+        else if (pageNumber !== undefined)
+            url_ += "PageNumber=" + encodeURIComponent("" + pageNumber) + "&";
+        if (pageSize === null)
+            throw new Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "PageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (sortBy === null)
+            throw new Error("The parameter 'sortBy' cannot be null.");
+        else if (sortBy !== undefined)
+            url_ += "SortBy=" + encodeURIComponent("" + sortBy) + "&";
+        if (sortDescending === null)
+            throw new Error("The parameter 'sortDescending' cannot be null.");
+        else if (sortDescending !== undefined)
+            url_ += "SortDescending=" + encodeURIComponent("" + sortDescending) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_GetPackages(_response);
+        });
+    }
+
+    protected processPackaging_GetPackages(response: Response): Promise<GetPackagesResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetPackagesResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetPackagesResponse>(null as any);
+    }
+
+    packaging_DeletePackage(id: number): Promise<DeletePackageResponse> {
+        let url_ = this.baseUrl + "/api/packaging/packages/{id}";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "DELETE",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processPackaging_DeletePackage(_response);
+        });
+    }
+
+    protected processPackaging_DeletePackage(response: Response): Promise<DeletePackageResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DeletePackageResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<DeletePackageResponse>(null as any);
+    }
+
     packingMaterials_GetPackingMaterials(): Promise<GetPackingMaterialsListResponse> {
         let url_ = this.baseUrl + "/api/packing-materials";
         url_ = url_.replace(/[?&]$/, "");
@@ -11994,6 +12093,7 @@ export enum ErrorCodes {
     NoShipmentToReset = "NoShipmentToReset",
     PackageLabelNotFound = "PackageLabelNotFound",
     PackageLabelDownloadFailed = "PackageLabelDownloadFailed",
+    PackageNotFound = "PackageNotFound",
     CatalogDocumentInvalidTypeCode = "CatalogDocumentInvalidTypeCode",
     CatalogDocumentLotRequired = "CatalogDocumentLotRequired",
     CatalogDocumentFolderNotFound = "CatalogDocumentFolderNotFound",
@@ -29710,6 +29810,160 @@ export interface IResetShipmentPackage {
     name?: string;
     labelUrl?: string | undefined;
     labelZpl?: string | undefined;
+}
+
+export class GetPackagesResponse extends BaseResponse implements IGetPackagesResponse {
+    items?: PackageDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+
+    constructor(data?: IGetPackagesResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["items"])) {
+                this.items = [] as any;
+                for (let item of _data["items"])
+                    this.items!.push(PackageDto.fromJS(item));
+            }
+            this.totalCount = _data["totalCount"];
+            this.pageNumber = _data["pageNumber"];
+            this.pageSize = _data["pageSize"];
+        }
+    }
+
+    static override fromJS(data: any): GetPackagesResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetPackagesResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.items)) {
+            data["items"] = [];
+            for (let item of this.items)
+                data["items"].push(item.toJSON());
+        }
+        data["totalCount"] = this.totalCount;
+        data["pageNumber"] = this.pageNumber;
+        data["pageSize"] = this.pageSize;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetPackagesResponse extends IBaseResponse {
+    items?: PackageDto[];
+    totalCount?: number;
+    pageNumber?: number;
+    pageSize?: number;
+}
+
+export class PackageDto implements IPackageDto {
+    id?: number;
+    orderCode?: string;
+    customerName?: string;
+    packageNumber?: string;
+    trackingNumber?: string | undefined;
+    shippingProviderCode?: string;
+    shippingProviderName?: string | undefined;
+    packedAt?: Date;
+    packedBy?: string | undefined;
+
+    constructor(data?: IPackageDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.orderCode = _data["orderCode"];
+            this.customerName = _data["customerName"];
+            this.packageNumber = _data["packageNumber"];
+            this.trackingNumber = _data["trackingNumber"];
+            this.shippingProviderCode = _data["shippingProviderCode"];
+            this.shippingProviderName = _data["shippingProviderName"];
+            this.packedAt = _data["packedAt"] ? new Date(_data["packedAt"].toString()) : <any>undefined;
+            this.packedBy = _data["packedBy"];
+        }
+    }
+
+    static fromJS(data: any): PackageDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new PackageDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["orderCode"] = this.orderCode;
+        data["customerName"] = this.customerName;
+        data["packageNumber"] = this.packageNumber;
+        data["trackingNumber"] = this.trackingNumber;
+        data["shippingProviderCode"] = this.shippingProviderCode;
+        data["shippingProviderName"] = this.shippingProviderName;
+        data["packedAt"] = this.packedAt ? this.packedAt.toISOString() : <any>undefined;
+        data["packedBy"] = this.packedBy;
+        return data;
+    }
+}
+
+export interface IPackageDto {
+    id?: number;
+    orderCode?: string;
+    customerName?: string;
+    packageNumber?: string;
+    trackingNumber?: string | undefined;
+    shippingProviderCode?: string;
+    shippingProviderName?: string | undefined;
+    packedAt?: Date;
+    packedBy?: string | undefined;
+}
+
+export class DeletePackageResponse extends BaseResponse implements IDeletePackageResponse {
+    deleted?: boolean;
+
+    constructor(data?: IDeletePackageResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.deleted = _data["deleted"];
+        }
+    }
+
+    static override fromJS(data: any): DeletePackageResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DeletePackageResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["deleted"] = this.deleted;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDeletePackageResponse extends IBaseResponse {
+    deleted?: boolean;
 }
 
 export class GetPackingMaterialsListResponse extends BaseResponse implements IGetPackingMaterialsListResponse {
