@@ -9,6 +9,7 @@ export interface Config {
   useMockAuth: boolean;
   azureClientId: string;
   azureAuthority: string;
+  aiConnectionString: string;
 }
 
 let cachedConfig: Config | null = null;
@@ -102,6 +103,7 @@ export const loadConfig = (): Config => {
     useMockAuth: shouldUseMock,
     azureClientId: process.env.REACT_APP_AZURE_CLIENT_ID || "",
     azureAuthority: process.env.REACT_APP_AZURE_AUTHORITY || "",
+    aiConnectionString: process.env.REACT_APP_AI_CONNECTION_STRING || "",
   };
 
   // Log final configuration
@@ -110,6 +112,7 @@ export const loadConfig = (): Config => {
     useMockAuth: cachedConfig.useMockAuth,
     azureClientId: cachedConfig.azureClientId ? "[SET]" : "[NOT SET]",
     azureAuthority: cachedConfig.azureAuthority ? "[SET]" : "[NOT SET]",
+    aiConnectionString: cachedConfig.aiConnectionString ? "[SET]" : "[NOT SET]",
   });
 
   if (cachedConfig.useMockAuth) {

@@ -4,12 +4,14 @@ import {
   useUpsertFlagOverride,
   useClearFlagOverride,
 } from "../api/hooks/useFeatureFlagsAdmin";
+import { useTelemetry } from "../telemetry/useTelemetry";
 
 const FeatureFlagsAdminPage: React.FC = () => {
   const { data: flags, isLoading, error } = useFeatureFlagsAdmin();
   const upsert = useUpsertFlagOverride();
   const clear = useClearFlagOverride();
   const isBusy = upsert.isPending || clear.isPending;
+  const { trackEvent } = useTelemetry();
 
   if (isLoading) return <div className="p-8 text-gray-500">Loading flags...</div>;
   if (error) return <div className="p-8 text-red-600">Failed to load feature flags.</div>;
@@ -52,9 +54,14 @@ const FeatureFlagsAdminPage: React.FC = () => {
 
             <div className="flex items-center gap-3 shrink-0">
               <button
-                onClick={() =>
-                  upsert.mutate({ key: flag.key!, isEnabled: !flag.currentValue })
-                }
+                onClick={() => {
+                  const newEnabled = !flag.currentValue;
+                  trackEvent('FeatureFlagToggled', {
+                    flagKey: flag.key ?? '',
+                    enabled: String(newEnabled),
+                  });
+                  upsert.mutate({ key: flag.key!, isEnabled: newEnabled });
+                }}
                 disabled={isBusy}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
                   flag.currentValue ? "bg-indigo-600" : "bg-gray-200"

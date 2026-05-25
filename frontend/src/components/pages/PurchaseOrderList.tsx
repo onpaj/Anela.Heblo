@@ -20,6 +20,7 @@ import {
 import PurchaseOrderDetail from "./PurchaseOrderDetail";
 import PurchaseOrderForm from "./PurchaseOrderForm";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useTelemetry } from "../../telemetry/useTelemetry";
 
 // Status labels mapping
 const statusLabels: Record<string, string> = {
@@ -88,6 +89,8 @@ const PurchaseOrderList: React.FC = () => {
     error,
     refetch,
   } = usePurchaseOrdersQuery(request);
+
+  const { trackEvent } = useTelemetry();
 
   const orders = data?.orders || [];
   const totalCount = data?.totalCount || 0;
@@ -199,10 +202,8 @@ const PurchaseOrderList: React.FC = () => {
   };
 
   const handleCreateSuccess = (orderId: number) => {
-    // Refresh the list
+    trackEvent('PurchaseOrderSubmitted', { orderId: String(orderId) });
     refetch();
-    // Optionally open the detail of the newly created order
-    console.log("Order created successfully:", orderId);
   };
 
   // Sortable header component

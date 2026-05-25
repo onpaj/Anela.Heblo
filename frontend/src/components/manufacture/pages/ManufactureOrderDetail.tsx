@@ -44,6 +44,7 @@ import NotesTabContent from "../detail/NotesTabContent";
 import DetailActionButtons from "../detail/DetailActionButtons";
 import ConfirmationDialogs from "../detail/ConfirmationDialogs";
 import ConditionsReadingsSection from "../detail/ConditionsReadingsSection";
+import { useTelemetry } from '../../../telemetry/useTelemetry';
 
 interface ManufactureOrderDetailProps {
   orderId?: number;
@@ -62,6 +63,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { trackEvent } = useTelemetry();
   
   // Determine if this is modal mode or page mode
   const isModalMode = propOrderId !== undefined;
@@ -423,10 +425,12 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
 
     try {
       const result = await duplicateOrderMutation.mutateAsync(orderId);
-      
+
       if (result.id) {
+        trackEvent('ManufactureOrderCreated', { productCode: order?.semiProduct?.productCode ?? '' });
+
         const newOrderUrl = `/manufacturing/orders/${result.id}`;
-        
+
         if (onEdit && onClose) {
           onEdit(result.id);
         } else {
