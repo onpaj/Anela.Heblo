@@ -43,7 +43,7 @@ public sealed class GenerateArticleHandler : IRequestHandler<GenerateArticleRequ
             StyleGuideDriveId = request.StyleGuideDriveId,
             StyleGuideItemPath = request.StyleGuideItemPath,
             Status = ArticleStatus.Queued,
-            RequestedBy = currentUser.IsAuthenticated ? currentUser.Name : null,
+            RequestedBy = currentUser.IsAuthenticated ? currentUser.GetIdentifier() : null,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
