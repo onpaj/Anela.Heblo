@@ -44,7 +44,7 @@ describe('useResponsiblePersonsQuery', () => {
     it('should show loading state initially', () => {
         (global.fetch as jest.Mock).mockImplementation(() => new Promise(() => {})); // Never resolves
 
-        const { result } = renderHook(() => useResponsiblePersonsQuery(), {
+        const { result } = renderHook(() => useResponsiblePersonsQuery('test-group-id'), {
             wrapper: createWrapper(),
         });
 
@@ -59,7 +59,7 @@ describe('useResponsiblePersonsQuery', () => {
             json: () => Promise.resolve({ success: true, members: [] })
         });
 
-        const { result } = renderHook(() => useResponsiblePersonsQuery(), {
+        const { result } = renderHook(() => useResponsiblePersonsQuery('test-group-id'), {
             wrapper: createWrapper(),
         });
 
@@ -74,7 +74,7 @@ describe('useResponsiblePersonsQuery', () => {
             json: () => Promise.resolve({ success: true, members: [] })
         });
 
-        const { result } = renderHook(() => useResponsiblePersonsQuery(), {
+        const { result } = renderHook(() => useResponsiblePersonsQuery('test-group-id'), {
             wrapper: createWrapper(),
         });
 
@@ -91,7 +91,7 @@ describe('useResponsiblePersonsQuery', () => {
             json: () => Promise.resolve({ success: true, members: [] })
         });
 
-        const { unmount } = renderHook(() => useResponsiblePersonsQuery(), {
+        const { unmount } = renderHook(() => useResponsiblePersonsQuery('test-group-id'), {
             wrapper: createWrapper(),
         });
 

@@ -10,6 +10,7 @@ import { ManufactureOrderState, ProductType } from "../../../api/generated/api-c
 import { GetManufactureOrdersRequest } from "../../../api/hooks/useManufactureOrders";
 import CatalogAutocomplete from "../../common/CatalogAutocomplete";
 import ResponsiblePersonCombobox from "../../common/ResponsiblePersonCombobox";
+import { useConfigurationQuery } from "../../../api/hooks/useConfiguration";
 
 interface ManufactureOrderFiltersProps {
   onFiltersChange: (filters: GetManufactureOrdersRequest) => void;
@@ -21,6 +22,8 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
   onApplyFilters,
 }) => {
   const { t } = useTranslation();
+  const { data: appConfig } = useConfigurationQuery();
+  const manufactureGroupId = appConfig?.manufactureGroupId ?? "";
 
   // Helper function to get translated state label
   const getStateLabel = (state: ManufactureOrderState): string => {
@@ -292,6 +295,7 @@ const ManufactureOrderFilters: React.FC<ManufactureOrderFiltersProps> = ({
                 Odpovědná osoba
               </label>
               <ResponsiblePersonCombobox
+                groupId={manufactureGroupId}
                 value={responsiblePersonInput}
                 onChange={(value) => setResponsiblePersonInput(value || "")}
                 placeholder="Odpovědná osoba"

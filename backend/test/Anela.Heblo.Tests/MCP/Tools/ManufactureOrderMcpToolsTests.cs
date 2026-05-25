@@ -3,7 +3,6 @@ using Anela.Heblo.API.MCP.Tools;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrders;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureOrder;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetCalendarView;
-using Anela.Heblo.Application.Features.UserManagement.UseCases.GetGroupMembers;
 using MediatR;
 using ModelContextProtocol;
 using Moq;
@@ -161,52 +160,5 @@ public class ManufactureOrderMcpToolsTests
         );
 
         Assert.Contains("ManufacturingDataNotAvailable", exception.Message);
-    }
-
-    [Fact]
-    public async Task GetResponsiblePersons_ShouldMapParametersCorrectly()
-    {
-        // Arrange
-        var expectedResponse = new GetGroupMembersResponse { Success = true };
-
-        _mediatorMock
-            .Setup(m => m.Send(It.IsAny<GetGroupMembersRequest>(), default))
-            .ReturnsAsync(expectedResponse);
-
-        // Act
-        var jsonResult = await _tools.GetResponsiblePersons("group-id-123");
-
-        // Assert
-        _mediatorMock.Verify(m => m.Send(
-            It.Is<GetGroupMembersRequest>(req => req.GroupId == "group-id-123"),
-            default
-        ), Times.Once);
-
-        var deserialized = JsonSerializer.Deserialize<GetGroupMembersResponse>(jsonResult);
-        Assert.NotNull(deserialized);
-        Assert.True(deserialized.Success);
-    }
-
-    [Fact]
-    public async Task GetResponsiblePersons_ShouldThrowMcpException_WhenExternalServiceFails()
-    {
-        // Arrange
-        var errorResponse = new GetGroupMembersResponse
-        {
-            Success = false,
-            ErrorCode = Anela.Heblo.Application.Shared.ErrorCodes.ExternalServiceError,
-            Params = new Dictionary<string, string> { { "GroupId", "group-id-999" } }
-        };
-
-        _mediatorMock
-            .Setup(m => m.Send(It.IsAny<GetGroupMembersRequest>(), default))
-            .ReturnsAsync(errorResponse);
-
-        // Act & Assert
-        var exception = await Assert.ThrowsAsync<McpException>(
-            () => _tools.GetResponsiblePersons("group-id-999")
-        );
-
-        Assert.Contains("ExternalServiceError", exception.Message);
     }
 }

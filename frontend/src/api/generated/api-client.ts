@@ -6622,40 +6622,6 @@ export class ApiClient {
         return Promise.resolve<DuplicateManufactureOrderResponse>(null as any);
     }
 
-    manufactureOrder_GetResponsiblePersons(): Promise<GetGroupMembersResponse> {
-        let url_ = this.baseUrl + "/api/ManufactureOrder/responsible-persons";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "GET",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processManufactureOrder_GetResponsiblePersons(_response);
-        });
-    }
-
-    protected processManufactureOrder_GetResponsiblePersons(response: Response): Promise<GetGroupMembersResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = GetGroupMembersResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<GetGroupMembersResponse>(null as any);
-    }
-
     manufactureOrder_ResolveManualAction(id: number, request: ResolveManualActionRequest): Promise<ResolveManualActionResponse> {
         let url_ = this.baseUrl + "/api/ManufactureOrder/{id}/resolve-manual-action";
         if (id === undefined || id === null)
@@ -11417,6 +11383,58 @@ export class ApiClient {
         return Promise.resolve<OpenOrResumeBoxByCodeResponse>(null as any);
     }
 
+    userManagement_GetGroupMembers(groupId: string | undefined): Promise<GetGroupMembersResponse> {
+        let url_ = this.baseUrl + "/api/UserManagement/group-members?";
+        if (groupId === null)
+            throw new Error("The parameter 'groupId' cannot be null.");
+        else if (groupId !== undefined)
+            url_ += "groupId=" + encodeURIComponent("" + groupId) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processUserManagement_GetGroupMembers(_response);
+        });
+    }
+
+    protected processUserManagement_GetGroupMembers(response: Response): Promise<GetGroupMembersResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = GetGroupMembersResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 401) {
+            return response.text().then((_responseText) => {
+            let result401: any = null;
+            let resultData401 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result401 = ProblemDetails.fromJS(resultData401);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result401);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<GetGroupMembersResponse>(null as any);
+    }
+
     weatherForecast_Get(): Promise<GetWeatherForecastResponse> {
         let url_ = this.baseUrl + "/api/weather-forecast";
         url_ = url_.replace(/[?&]$/, "");
@@ -16130,6 +16148,7 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
     environment?: string;
     useMockAuth?: boolean;
     timestamp?: Date;
+    manufactureGroupId?: string | undefined;
 
     constructor(data?: IGetConfigurationResponse) {
         super(data);
@@ -16142,6 +16161,7 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
             this.environment = _data["environment"];
             this.useMockAuth = _data["useMockAuth"];
             this.timestamp = _data["timestamp"] ? new Date(_data["timestamp"].toString()) : <any>undefined;
+            this.manufactureGroupId = _data["manufactureGroupId"];
         }
     }
 
@@ -16158,6 +16178,7 @@ export class GetConfigurationResponse extends BaseResponse implements IGetConfig
         data["environment"] = this.environment;
         data["useMockAuth"] = this.useMockAuth;
         data["timestamp"] = this.timestamp ? this.timestamp.toISOString() : <any>undefined;
+        data["manufactureGroupId"] = this.manufactureGroupId;
         super.toJSON(data);
         return data;
     }
@@ -16168,6 +16189,7 @@ export interface IGetConfigurationResponse extends IBaseResponse {
     environment?: string;
     useMockAuth?: boolean;
     timestamp?: Date;
+    manufactureGroupId?: string | undefined;
 }
 
 export class DashboardTileDto implements IDashboardTileDto {
@@ -26221,91 +26243,6 @@ export class DuplicateManufactureOrderResponse extends BaseResponse implements I
 export interface IDuplicateManufactureOrderResponse extends IBaseResponse {
     id?: number;
     orderNumber?: string | undefined;
-}
-
-export class GetGroupMembersResponse extends BaseResponse implements IGetGroupMembersResponse {
-    members?: UserDto[];
-
-    constructor(data?: IGetGroupMembersResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            if (Array.isArray(_data["members"])) {
-                this.members = [] as any;
-                for (let item of _data["members"])
-                    this.members!.push(UserDto.fromJS(item));
-            }
-        }
-    }
-
-    static override fromJS(data: any): GetGroupMembersResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new GetGroupMembersResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        if (Array.isArray(this.members)) {
-            data["members"] = [];
-            for (let item of this.members)
-                data["members"].push(item.toJSON());
-        }
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface IGetGroupMembersResponse extends IBaseResponse {
-    members?: UserDto[];
-}
-
-export class UserDto implements IUserDto {
-    id?: string;
-    displayName?: string;
-    email?: string;
-
-    constructor(data?: IUserDto) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.id = _data["id"];
-            this.displayName = _data["displayName"];
-            this.email = _data["email"];
-        }
-    }
-
-    static fromJS(data: any): UserDto {
-        data = typeof data === 'object' ? data : {};
-        let result = new UserDto();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["id"] = this.id;
-        data["displayName"] = this.displayName;
-        data["email"] = this.email;
-        return data;
-    }
-}
-
-export interface IUserDto {
-    id?: string;
-    displayName?: string;
-    email?: string;
 }
 
 export class ResolveManualActionResponse extends BaseResponse implements IResolveManualActionResponse {
@@ -37066,6 +37003,91 @@ export class OpenOrResumeBoxByCodeRequest implements IOpenOrResumeBoxByCodeReque
 
 export interface IOpenOrResumeBoxByCodeRequest {
     boxCode?: string;
+}
+
+export class GetGroupMembersResponse extends BaseResponse implements IGetGroupMembersResponse {
+    members?: UserDto[];
+
+    constructor(data?: IGetGroupMembersResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            if (Array.isArray(_data["members"])) {
+                this.members = [] as any;
+                for (let item of _data["members"])
+                    this.members!.push(UserDto.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): GetGroupMembersResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new GetGroupMembersResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        if (Array.isArray(this.members)) {
+            data["members"] = [];
+            for (let item of this.members)
+                data["members"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IGetGroupMembersResponse extends IBaseResponse {
+    members?: UserDto[];
+}
+
+export class UserDto implements IUserDto {
+    id?: string;
+    displayName?: string;
+    email?: string;
+
+    constructor(data?: IUserDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.id = _data["id"];
+            this.displayName = _data["displayName"];
+            this.email = _data["email"];
+        }
+    }
+
+    static fromJS(data: any): UserDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new UserDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["id"] = this.id;
+        data["displayName"] = this.displayName;
+        data["email"] = this.email;
+        return data;
+    }
+}
+
+export interface IUserDto {
+    id?: string;
+    displayName?: string;
+    email?: string;
 }
 
 export class GetWeatherForecastResponse extends BaseResponse implements IGetWeatherForecastResponse {
