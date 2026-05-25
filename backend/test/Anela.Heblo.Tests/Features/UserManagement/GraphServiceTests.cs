@@ -8,6 +8,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
 using Moq;
 
@@ -154,5 +155,157 @@ public class GraphServiceTests
         using var scope = provider.CreateScope();
         var resolved = scope.ServiceProvider.GetRequiredService<IGraphService>();
         resolved.Should().BeOfType<MockGraphService>();
+    }
+
+    [Fact]
+    public async Task GetGroupMembersAsync_CacheHit_DoesNotInvokeFactory()
+    {
+        // Arrange
+        var handler = new FakeHttpMessageHandler(HttpStatusCode.InternalServerError, "should not be called");
+        var service = BuildService(handler, out var factoryMock, out _, out var cache);
+
+        var cached = new List<UserDto>
+        {
+            new() { Id = "cached-1", DisplayName = "Cached User", Email = "cached@example.com" }
+        };
+        cache.Set("group_members_group-1", cached, TimeSpan.FromMinutes(20));
+
+        // Act
+        var result = await service.GetGroupMembersAsync("group-1");
+
+        // Assert
+        result.Should().BeEquivalentTo(cached);
+        factoryMock.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
+        handler.LastRequestUri.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetGroupMembersAsync_TokenAcquisitionMsalException_ReturnsEmptyList_AndDoesNotInvokeFactory()
+    {
+        // Arrange
+        var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, SampleGraphResponse);
+        var service = BuildService(handler, out var factoryMock, out var tokenMock, out _);
+
+        tokenMock
+            .Setup(t => t.GetAccessTokenForAppAsync(
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<TokenAcquisitionOptions?>()))
+            .ThrowsAsync(new MsalUiRequiredException("err", "msg"));
+
+        // Act
+        var result = await service.GetGroupMembersAsync("group-1");
+
+        // Assert
+        result.Should().BeEmpty();
+        factoryMock.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetGroupMembersAsync_GraphReturnsNonSuccess_ReturnsEmptyList()
+    {
+        // Arrange
+        var handler = new FakeHttpMessageHandler(HttpStatusCode.Forbidden, "{\"error\":{\"code\":\"Forbidden\"}}");
+        var service = BuildService(handler, out _, out _, out _);
+
+        // Act
+        var result = await service.GetGroupMembersAsync("group-1");
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetGroupMembersAsync_TransportThrows_ReturnsEmptyList()
+    {
+        // Arrange
+        var throwingHandler = new ThrowingHttpMessageHandler(new HttpRequestException("boom"));
+        var service = BuildService(throwingHandler, out _, out _, out _);
+
+        // Act
+        var result = await service.GetGroupMembersAsync("group-1");
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetGroupMembersAsync_EmptyGroupId_ReturnsEmptyList_WithoutTouchingFactory()
+    {
+        // Arrange
+        var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, SampleGraphResponse);
+        var service = BuildService(handler, out var factoryMock, out _, out _);
+
+        // Act
+        var result = await service.GetGroupMembersAsync("   ");
+
+        // Assert
+        result.Should().BeEmpty();
+        factoryMock.Verify(f => f.CreateClient(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetGroupMembersAsync_DoesNotDispose_FactoryProvidedClient()
+    {
+        // Arrange
+        var tracker = new DisposalTrackingHandler(HttpStatusCode.OK, SampleGraphResponse);
+
+        var factoryMock = new Mock<IHttpClientFactory>();
+        factoryMock
+            .Setup(f => f.CreateClient("MicrosoftGraph"))
+            .Returns(() => new HttpClient(tracker, disposeHandler: true));
+
+        var tokenMock = new Mock<ITokenAcquisition>();
+        tokenMock
+            .Setup(t => t.GetAccessTokenForAppAsync(
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<TokenAcquisitionOptions?>()))
+            .ReturnsAsync("test-token");
+
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var logger = Mock.Of<ILogger<GraphService>>();
+        var service = new GraphService(tokenMock.Object, cache, logger, factoryMock.Object);
+
+        // Act
+        await service.GetGroupMembersAsync("group-1");
+
+        // Assert
+        tracker.DisposeCount.Should().Be(0,
+            "GraphService must not dispose the HttpClient returned by IHttpClientFactory — disposal is the factory's responsibility.");
+    }
+
+    private sealed class ThrowingHttpMessageHandler : HttpMessageHandler
+    {
+        private readonly Exception _exception;
+        public ThrowingHttpMessageHandler(Exception exception) => _exception = exception;
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => throw _exception;
+    }
+
+    private sealed class DisposalTrackingHandler : HttpMessageHandler
+    {
+        private readonly HttpStatusCode _status;
+        private readonly string _body;
+        public int DisposeCount { get; private set; }
+
+        public DisposalTrackingHandler(HttpStatusCode status, string body)
+        {
+            _status = status;
+            _body = body;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(new HttpResponseMessage(_status)
+            {
+                Content = new StringContent(_body, System.Text.Encoding.UTF8, "application/json")
+            });
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) DisposeCount++;
+            base.Dispose(disposing);
+        }
     }
 }
