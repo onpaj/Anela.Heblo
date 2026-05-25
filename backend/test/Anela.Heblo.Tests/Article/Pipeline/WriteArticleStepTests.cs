@@ -353,4 +353,48 @@ public class WriteArticleStepTests
         userMessage.Should().Be("Téma: Sun Care");
         userMessage.Should().NotContain("deep-dive");
     }
+
+    [Fact]
+    public async Task ExecuteAsync_RawLanguageNoteToken_IsReplacedForCustomTemplateBackCompat()
+    {
+        _options.WriteArticleSystemPromptTemplate = "Note: {language_note}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.LanguageNote = "krátké věty";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("Note: krátké věty");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_RawLanguageNoteToken_NullSubstitutesEmptyString()
+    {
+        _options.WriteArticleSystemPromptTemplate = "Note: {language_note}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.LanguageNote = null;
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("Note: ");
+    }
 }
