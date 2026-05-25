@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Article.Admin;
 using Anela.Heblo.Application.Features.Article.UseCases.GenerateArticle;
 using Anela.Heblo.Application.Features.Article.UseCases.GetArticle;
 using Anela.Heblo.Application.Features.Article.UseCases.GetArticleTrace;
@@ -99,6 +100,16 @@ public sealed class ArticlesController : BaseApiController
             Page = page,
             PageSize = pageSize,
         }, ct);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("admin/backfill-requested-by")]
+    [Authorize(Roles = AuthorizationConstants.Roles.SuperUser)]
+    public async Task<ActionResult<BackfillArticleRequestedByResponse>> BackfillRequestedBy(
+        [FromBody] BackfillArticleRequestedByCommand request,
+        CancellationToken ct = default)
+    {
+        var result = await _mediator.Send(request, ct);
         return HandleResponse(result);
     }
 }

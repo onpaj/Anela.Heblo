@@ -156,6 +156,7 @@ public static class PersistenceModule
 
         // Article repositories
         services.AddScoped<IArticleRepository, ArticleRepository>();
+        services.AddScoped<IArticleAdminRepository, ArticleAdminRepository>();
 
         // Grid Layouts repositories
         services.AddScoped<IGridLayoutRepository, GridLayoutRepository>();
