@@ -24,6 +24,7 @@ using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.PackingMaterials;
+using Anela.Heblo.Domain.Features.Packaging;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Xcc.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -52,6 +53,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<PurchaseOrder> PurchaseOrders { get; set; } = null!;
     public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
     public DbSet<PurchaseOrderHistory> PurchaseOrderHistory { get; set; } = null!;
+    public DbSet<Package> Packages { get; set; } = null!;
 
     // Catalog module
     public DbSet<ManufactureDifficultySetting> ManufactureDifficultySettings { get; set; } = null!;
