@@ -36,6 +36,15 @@ public class MarketingInvoiceImportService
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(transaction.Currency))
+                {
+                    _logger.LogWarning(
+                        "Marketing transaction {TransactionId} for {Platform} has empty Currency — skipping",
+                        transaction.TransactionId, source.Platform);
+                    result.Failed++;
+                    continue;
+                }
+
                 if (stagedIds.Contains(transaction.TransactionId))
                 {
                     _logger.LogDebug(
