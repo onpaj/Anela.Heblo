@@ -33,9 +33,9 @@ public class PackageRepository : IPackageRepository
         if (!string.IsNullOrWhiteSpace(shippingProviderCode))
             q = q.Where(p => p.ShippingProviderCode == shippingProviderCode);
         if (fromDate.HasValue)
-            q = q.Where(p => p.PackedAt >= fromDate.Value);
+            q = q.Where(p => p.PackedAt >= new DateTimeOffset(DateTime.SpecifyKind(fromDate.Value, DateTimeKind.Utc)));
         if (toDate.HasValue)
-            q = q.Where(p => p.PackedAt <= toDate.Value);
+            q = q.Where(p => p.PackedAt <= new DateTimeOffset(DateTime.SpecifyKind(toDate.Value, DateTimeKind.Utc)));
 
         var total = await q.CountAsync(cancellationToken);
 
