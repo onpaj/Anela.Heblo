@@ -70,7 +70,7 @@ export interface ArticleFeedbackListParams {
   hasFeedback?: boolean;
   requestedBy?: string;
   sortBy?: string;
-  descending?: boolean;
+  sortDescending?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -264,8 +264,8 @@ export const useArticleFeedbackListQuery = (params: ArticleFeedbackListParams = 
         searchParams.append('hasFeedback', params.hasFeedback.toString());
       if (params.requestedBy) searchParams.append('requestedBy', params.requestedBy);
       if (params.sortBy) searchParams.append('sortBy', params.sortBy);
-      if (params.descending !== undefined)
-        searchParams.append('descending', params.descending.toString());
+      if (params.sortDescending !== undefined)
+        searchParams.append('sortDescending', params.sortDescending.toString());
       if (params.page !== undefined)
         searchParams.append('page', params.page.toString());
       if (params.pageSize !== undefined)

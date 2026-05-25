@@ -6,7 +6,9 @@ import { getAuthenticatedApiClient } from "../../client";
 
 jest.mock("../../client");
 const mockGetAuthenticatedApiClient =
-  getAuthenticatedApiClient as jest.MockedFunction<typeof getAuthenticatedApiClient>;
+  getAuthenticatedApiClient as jest.MockedFunction<
+    typeof getAuthenticatedApiClient
+  >;
 
 function createWrapper() {
   const queryClient = new QueryClient({

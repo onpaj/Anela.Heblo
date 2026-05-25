@@ -100,7 +100,7 @@ test('translates GenericFeedbackParams to article-specific params', () => {
       page: 1,
       pageSize: 20,
       sortBy: 'CreatedAt',
-      descending: true,
+      sortDescending: true,
       requestedBy: 'user@anela.cz',
     }),
   );
