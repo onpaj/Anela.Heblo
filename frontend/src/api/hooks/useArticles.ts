@@ -180,12 +180,9 @@ export const useGetArticleQuery = (id: string | null) => {
             validationNote: (raw.validationNote as string | null) ?? null,
           };
         }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        precisionScore: ((response as any).precisionScore as number | null) ?? null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        styleScore: ((response as any).styleScore as number | null) ?? null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        feedbackComment: ((response as any).feedbackComment as string | null) ?? null,
+        precisionScore: response.precisionScore ?? null,
+        styleScore: response.styleScore ?? null,
+        feedbackComment: response.feedbackComment ?? null,
       };
     },
     enabled: !!id,
