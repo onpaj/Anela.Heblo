@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Client;
+using System.Net.Http;
 
 namespace Anela.Heblo.Application.Features.UserManagement.Services;
 
@@ -16,16 +17,19 @@ public class GraphService : IGraphService
     private readonly ITokenAcquisition _tokenAcquisition;
     private readonly IMemoryCache _cache;
     private readonly ILogger<GraphService> _logger;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly TimeSpan _cacheExpiration = TimeSpan.FromMinutes(20);
 
     public GraphService(
         ITokenAcquisition tokenAcquisition,
         IMemoryCache cache,
-        ILogger<GraphService> logger)
+        ILogger<GraphService> logger,
+        IHttpClientFactory httpClientFactory)
     {
         _tokenAcquisition = tokenAcquisition;
         _cache = cache;
         _logger = logger;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<List<UserDto>> GetGroupMembersAsync(string groupId, CancellationToken cancellationToken = default)
