@@ -25,11 +25,11 @@ public class PackageRepository : IPackageRepository
         IQueryable<Package> q = _db.Packages.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(orderCode))
-            q = q.Where(p => EF.Functions.ILike(p.OrderCode, $"%{orderCode}%"));
+            q = q.Where(p => EF.Functions.ILike(p.OrderCode, $"%{EscapeLike(orderCode)}%", "\\"));
         if (!string.IsNullOrWhiteSpace(customerName))
-            q = q.Where(p => EF.Functions.ILike(p.CustomerName, $"%{customerName}%"));
+            q = q.Where(p => EF.Functions.ILike(p.CustomerName, $"%{EscapeLike(customerName)}%", "\\"));
         if (!string.IsNullOrWhiteSpace(packageNumber))
-            q = q.Where(p => EF.Functions.ILike(p.PackageNumber, $"%{packageNumber}%"));
+            q = q.Where(p => EF.Functions.ILike(p.PackageNumber, $"%{EscapeLike(packageNumber)}%", "\\"));
         if (!string.IsNullOrWhiteSpace(shippingProviderCode))
             q = q.Where(p => p.ShippingProviderCode == shippingProviderCode);
         if (fromDate.HasValue)
@@ -71,4 +71,7 @@ public class PackageRepository : IPackageRepository
         _db.Packages.Remove(package);
         await _db.SaveChangesAsync(cancellationToken);
     }
+
+    private static string EscapeLike(string value) =>
+        value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 }
