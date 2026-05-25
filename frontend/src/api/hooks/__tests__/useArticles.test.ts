@@ -21,8 +21,8 @@ function createWrapper() {
     React.createElement(QueryClientProvider, { client: queryClient }, children);
 }
 
-const emptyFeedbackListResponse = {
-  articles: [],
+const emptyClientResponse = {
+  items: [],
   totalCount: 0,
   page: 1,
   pageSize: 20,
@@ -36,13 +36,12 @@ const emptyFeedbackListResponse = {
 };
 
 describe("useArticleFeedbackListQuery", () => {
-  let mockFetch: jest.Mock;
+  let mockFeedbackList: jest.Mock;
 
   beforeEach(() => {
-    mockFetch = jest.fn();
+    mockFeedbackList = jest.fn().mockResolvedValue(emptyClientResponse);
     mockGetAuthenticatedApiClient.mockReturnValue({
-      baseUrl: "http://localhost:5001",
-      http: { fetch: mockFetch },
+      articles_FeedbackList: mockFeedbackList,
     } as any);
   });
 
@@ -50,12 +49,7 @@ describe("useArticleFeedbackListQuery", () => {
     jest.clearAllMocks();
   });
 
-  it("appends sortDescending=true to the query string (not descending=...)", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: jest.fn().mockResolvedValue(emptyFeedbackListResponse),
-    });
-
+  it("passes sortDescending=true to the API client (not descending)", async () => {
     const { result } = renderHook(
       () => useArticleFeedbackListQuery({ sortDescending: true }),
       { wrapper: createWrapper() },
@@ -63,18 +57,17 @@ describe("useArticleFeedbackListQuery", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    const calledUrl: string = mockFetch.mock.calls[0][0];
-    expect(calledUrl).toContain("sortDescending=true");
-    expect(calledUrl).not.toContain("descending=true");
-    expect(calledUrl).not.toMatch(/[?&]descending=/);
+    expect(mockFeedbackList).toHaveBeenCalledWith(
+      null,      // hasFeedback
+      null,      // requestedBy
+      undefined, // sortBy
+      true,      // sortDescending
+      undefined, // page
+      undefined, // pageSize
+    );
   });
 
-  it("appends sortDescending=false when toggled off", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: jest.fn().mockResolvedValue(emptyFeedbackListResponse),
-    });
-
+  it("passes sortDescending=false when toggled off", async () => {
     const { result } = renderHook(
       () => useArticleFeedbackListQuery({ sortDescending: false }),
       { wrapper: createWrapper() },
@@ -82,17 +75,17 @@ describe("useArticleFeedbackListQuery", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    const calledUrl: string = mockFetch.mock.calls[0][0];
-    expect(calledUrl).toContain("sortDescending=false");
-    expect(calledUrl).not.toMatch(/[?&]descending=/);
+    expect(mockFeedbackList).toHaveBeenCalledWith(
+      null,
+      null,
+      undefined,
+      false,
+      undefined,
+      undefined,
+    );
   });
 
-  it("omits sortDescending from the URL when undefined (backend default applies)", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: jest.fn().mockResolvedValue(emptyFeedbackListResponse),
-    });
-
+  it("passes sortDescending=undefined when not specified (backend default applies)", async () => {
     const { result } = renderHook(
       () => useArticleFeedbackListQuery({ sortBy: "CreatedAt" }),
       { wrapper: createWrapper() },
@@ -100,17 +93,17 @@ describe("useArticleFeedbackListQuery", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    const calledUrl: string = mockFetch.mock.calls[0][0];
-    expect(calledUrl).not.toMatch(/[?&]sortDescending=/);
-    expect(calledUrl).not.toMatch(/[?&]descending=/);
+    expect(mockFeedbackList).toHaveBeenCalledWith(
+      null,
+      null,
+      "CreatedAt",
+      undefined,
+      undefined,
+      undefined,
+    );
   });
 
-  it("builds URL with all filter params including sortDescending", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: jest.fn().mockResolvedValue(emptyFeedbackListResponse),
-    });
-
+  it("passes all filter params including sortDescending to the API client", async () => {
     const { result } = renderHook(
       () =>
         useArticleFeedbackListQuery({
@@ -126,13 +119,13 @@ describe("useArticleFeedbackListQuery", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    const calledUrl: string = mockFetch.mock.calls[0][0];
-    expect(calledUrl).toContain("hasFeedback=true");
-    expect(calledUrl).toContain("requestedBy=user%40anela.cz");
-    expect(calledUrl).toContain("sortBy=CreatedAt");
-    expect(calledUrl).toContain("sortDescending=false");
-    expect(calledUrl).toContain("page=2");
-    expect(calledUrl).toContain("pageSize=10");
-    expect(calledUrl).not.toMatch(/[?&]descending=/);
+    expect(mockFeedbackList).toHaveBeenCalledWith(
+      true,
+      "user@anela.cz",
+      "CreatedAt",
+      false,
+      2,
+      10,
+    );
   });
 });
