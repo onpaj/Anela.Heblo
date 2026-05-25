@@ -53,6 +53,14 @@ public sealed class ArticleOptions
         Fakta:
         """;
 
+    public string WriteArticleSystemPrompt { get; set; } =
+        """
+        Jsi zkušený redaktor kosmetického obsahu. Píšeš výhradně v češtině.
+        Odpověz POUZE validním JSON bez markdown nebo code fences.
+        V poli article_html použij výhradně HTML tagy – nikdy nepište doslovný text "\n" jako obsah.
+        {"article_title":"...","article_html":"<article>...</article>","sources_used":[{"title":"...","url":"..."}]}
+        """;
+
     public string WriteArticleUserPromptTemplate { get; set; } =
         """
         Napiš článek na téma {topic} pro publikum {audience}.
