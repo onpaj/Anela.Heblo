@@ -80,6 +80,7 @@ import BaleniLayout from "./components/baleni/BaleniLayout";
 import BaleniHome from "./components/baleni/BaleniHome";
 import BaleniPlaceholder from "./components/baleni/BaleniPlaceholder";
 import BaleniPacking from "./components/baleni/BaleniPacking";
+import { ZasilkyPage } from "./components/baleni/zasilky/ZasilkyPage";
 import "./i18n";
 import { initAppInsights, getAppInsights } from './telemetry/appInsights';
 import { AppInsightsProvider } from './telemetry/AppInsightsProvider';
@@ -401,7 +402,7 @@ function App() {
                       <Route path="/baleni" element={<BaleniLayout />}>
                         <Route index element={<BaleniHome />} />
                         <Route path="baleni" element={<BaleniPacking />} />
-                        <Route path="zasilky" element={<BaleniPlaceholder title="Zásilky" />} />
+                        <Route path="zasilky" element={<ZasilkyPage />} />
                         <Route path="statistiky" element={<BaleniPlaceholder title="Statistiky" />} />
                       </Route>
 

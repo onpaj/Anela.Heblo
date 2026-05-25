@@ -4,6 +4,7 @@ using Anela.Heblo.Domain.Features.FeatureFlags;
 using Anela.Heblo.Persistence.FeatureFlags;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Bank;
+using Anela.Heblo.Domain.Features.Packaging;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Persistence.GridLayouts;
@@ -25,6 +26,7 @@ using Anela.Heblo.Persistence.Features.Article;
 using Anela.Heblo.Persistence.Features.Leaflet;
 using Anela.Heblo.Persistence.KnowledgeBase;
 using Anela.Heblo.Persistence.Purchase.PurchaseOrders;
+using Anela.Heblo.Persistence.Repositories.Packaging;
 using Anela.Heblo.Persistence.MeetingTasks;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Anela.Heblo.Xcc.Telemetry;
@@ -166,6 +168,9 @@ public static class PersistenceModule
 
         // Purchase repositories
         services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+
+        // Packaging repositories
+        services.AddScoped<IPackageRepository, PackageRepository>();
 
         return services;
     }
