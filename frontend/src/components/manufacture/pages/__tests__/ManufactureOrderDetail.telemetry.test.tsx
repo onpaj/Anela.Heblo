@@ -148,7 +148,7 @@ describe("ManufactureOrderDetail - Telemetry", () => {
     await waitFor(() => {
       expect(mockDuplicateMutateAsync).toHaveBeenCalledWith(42);
       expect(mockTrackEvent).toHaveBeenCalledWith("ManufactureOrderCreated", {
-        productCode: "PROD-001",
+        productCode: "SP-001",
       });
     });
   });
@@ -185,7 +185,7 @@ describe("ManufactureOrderDetail - Telemetry", () => {
   });
 
   it("uses empty string as productCode fallback when order has no productCode", async () => {
-    const orderWithoutProductCode = { ...mockOrder, productCode: undefined };
+    const orderWithoutProductCode = { ...mockOrder, semiProduct: { ...mockOrder.semiProduct, productCode: undefined } };
     const mockDuplicateMutateAsync = jest.fn().mockResolvedValue({ id: 100 });
     mockUseDuplicateManufactureOrder.mockReturnValue({
       mutateAsync: mockDuplicateMutateAsync,

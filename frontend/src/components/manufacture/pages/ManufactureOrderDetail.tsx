@@ -427,7 +427,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       const result = await duplicateOrderMutation.mutateAsync(orderId);
 
       if (result.id) {
-        trackEvent('ManufactureOrderCreated', { productCode: order?.productCode ?? '' });
+        trackEvent('ManufactureOrderCreated', { productCode: order?.semiProduct?.productCode ?? '' });
 
         const newOrderUrl = `/manufacturing/orders/${result.id}`;
 
