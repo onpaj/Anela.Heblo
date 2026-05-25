@@ -35,7 +35,7 @@ public class ImportMarketingInvoicesHandlerTests
         meta.Setup(s => s.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<MarketingTransaction>
             {
-                new() { TransactionId = "TX-1", Platform = "MetaAds", Amount = 10m, TransactionDate = from },
+                new() { TransactionId = "TX-1", Platform = "MetaAds", Amount = 10m, TransactionDate = from, Currency = "CZK" },
             });
 
         var google = SourceFor("GoogleAds");
