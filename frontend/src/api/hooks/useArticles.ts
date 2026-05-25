@@ -216,6 +216,7 @@ export const useSubmitArticleFeedbackMutation = (articleId: string) => {
   return useMutation({
     mutationFn: async (payload: SubmitArticleFeedbackPayload): Promise<SubmitArticleFeedbackResult> => {
       const apiClient = getAuthenticatedApiClient();
+      // TODO(arch-review 2026-05-25): Uses private apiClient internals (baseUrl/http) via `as any` — same fragility as the hooks refactored in this PR. Keep raw fetch only for 409 branch; revisit when generated client exposes typed-mutation 409 handling.
       const fullUrl = `${(apiClient as any).baseUrl}/api/articles/${articleId}/feedback`;
 
       const response = await (apiClient as any).http.fetch(fullUrl, {
