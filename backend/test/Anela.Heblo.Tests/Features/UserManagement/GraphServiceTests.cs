@@ -10,7 +10,7 @@ namespace Anela.Heblo.Tests.Features.UserManagement;
 public class GraphServiceTests
 {
     [Fact]
-    public void Constructor_RequiresIHttpClientFactory()
+    public void Constructor_AcceptsIHttpClientFactory_AsFourthParameter()
     {
         // Arrange
         var tokenAcquisition = Mock.Of<ITokenAcquisition>();
