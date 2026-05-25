@@ -56,9 +56,9 @@ public class GenerateArticleHandlerTests
 
         var response = await CreateHandler().Handle(request, default);
 
-        response.ArticleId.Should().NotBe(Guid.Empty);
+        response.ArticleId.Should().NotBeNull().And.NotBe(Guid.Empty);
         captured.Should().NotBeNull();
-        captured!.Id.Should().Be(response.ArticleId);
+        captured!.Id.Should().Be(response.ArticleId!.Value);
         captured.Topic.Should().Be(request.Topic);
         captured.Scope.Should().Be(request.Scope);
         captured.Audience.Should().Be(request.Audience);
@@ -122,5 +122,21 @@ public class GenerateArticleHandlerTests
         await CreateHandler().Handle(new GenerateArticleRequest { Topic = "Topic" }, default);
 
         captured!.RequestedBy.Should().Be("some.one@example.com");
+    }
+
+    [Fact]
+    public async Task Handle_HappyPath_ReturnsHangfireJobIdAndQueuedStatus()
+    {
+        SetupAuthenticatedUser();
+        _backgroundJobClient
+            .Setup(c => c.Create(It.IsAny<Job>(), It.IsAny<EnqueuedState>()))
+            .Returns("job-123");
+
+        var response = await CreateHandler().Handle(new GenerateArticleRequest { Topic = "Topic" }, default);
+
+        response.Success.Should().BeTrue();
+        response.HangfireJobId.Should().Be("job-123");
+        response.Status.Should().Be(ArticleStatus.Queued);
+        response.ArticleId.Should().NotBeNull().And.NotBe(Guid.Empty);
     }
 }

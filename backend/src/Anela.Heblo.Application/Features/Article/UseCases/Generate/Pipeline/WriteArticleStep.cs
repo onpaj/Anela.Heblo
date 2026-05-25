@@ -12,7 +12,7 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
 
-public class WriteArticleStep : IArticlePipelineStep
+public class WriteArticleStep
 {
     private readonly IChatClient _chat;
     private readonly ArticleOptions _options;

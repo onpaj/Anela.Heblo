@@ -2346,6 +2346,17 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("Amount");
 
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("Currency");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("Description");
+
                     b.Property<string>("ErrorMessage")
                         .HasColumnType("text")
                         .HasColumnName("ErrorMessage");
@@ -2365,6 +2376,10 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("Platform");
+
+                    b.Property<string>("RawData")
+                        .HasColumnType("text")
+                        .HasColumnName("RawData");
 
                     b.Property<DateTime>("TransactionDate")
                         .HasColumnType("timestamp without time zone")

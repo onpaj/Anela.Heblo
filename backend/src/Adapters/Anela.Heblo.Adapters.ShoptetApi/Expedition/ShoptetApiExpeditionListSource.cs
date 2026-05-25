@@ -8,6 +8,7 @@ using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 using Anela.Heblo.Domain.Shared;
 using Anela.Heblo.Xcc;
+using Microsoft.Extensions.Logging;
 
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Anela.Heblo.Adapters.Shoptet.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Anela.Heblo.Tests")]
@@ -23,7 +24,11 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
     private readonly ICatalogRepository _catalog;
     private readonly ICarrierCoolingRepository _carrierCooling;
     private readonly IGiftSettingRepository _giftSettings;
+    private readonly ILogger<ShoptetApiExpeditionListSource> _logger;
     private readonly Func<ExpeditionProtocolData, byte[]> _generateDocument;
+
+    private const string CoolingMarkerValue = "CHLAZENE";
+    private const int CoolingAdditionalFieldIndex = 1;
 
     public ShoptetApiExpeditionListSource(
         IEshopOrderClient client,
@@ -31,6 +36,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         ICatalogRepository catalog,
         ICarrierCoolingRepository carrierCooling,
         IGiftSettingRepository giftSettings,
+        ILogger<ShoptetApiExpeditionListSource> logger,
         Func<ExpeditionProtocolData, byte[]>? generateDocument = null)
     {
         _client = (ShoptetOrderClient)client;
@@ -38,6 +44,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
         _catalog = catalog;
         _carrierCooling = carrierCooling;
         _giftSettings = giftSettings;
+        _logger = logger;
         _generateDocument = generateDocument ?? ExpeditionProtocolDocument.Generate;
     }
 
@@ -155,6 +162,30 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
                 var filePath = Path.Combine(Path.GetTempPath(), fileName);
                 await File.WriteAllBytesAsync(filePath, pdfBytes, cancellationToken);
                 exportedFiles.Add(filePath);
+
+                foreach (var order in batch)
+                {
+                    if (!order.IsCooled)
+                        continue;
+
+                    try
+                    {
+                        await _client.SetAdditionalFieldAsync(
+                            order.Code,
+                            CoolingAdditionalFieldIndex,
+                            CoolingMarkerValue,
+                            cancellationToken);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        _logger.LogWarning(
+                            ex,
+                            "Failed to set Shoptet additionalField[{Index}]={Value} for order {OrderCode}; PDF print continues.",
+                            CoolingAdditionalFieldIndex,
+                            CoolingMarkerValue,
+                            order.Code);
+                    }
+                }
 
                 if (onBatchFilesReady != null)
                     await onBatchFilesReady(new List<string> { filePath });

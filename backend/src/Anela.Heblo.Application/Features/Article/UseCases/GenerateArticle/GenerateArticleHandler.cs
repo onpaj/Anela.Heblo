@@ -50,8 +50,14 @@ public sealed class GenerateArticleHandler : IRequestHandler<GenerateArticleRequ
         await _repository.AddAsync(article, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
-        _backgroundJobClient.Enqueue<GenerateArticleJob>(j => j.RunAsync(article.Id, CancellationToken.None));
+        var jobId = _backgroundJobClient.Enqueue<GenerateArticleJob>(
+            j => j.RunAsync(article.Id, CancellationToken.None));
 
-        return new GenerateArticleResponse { ArticleId = article.Id };
+        return new GenerateArticleResponse
+        {
+            ArticleId = article.Id,
+            HangfireJobId = jobId,
+            Status = ArticleStatus.Queued,
+        };
     }
 }

@@ -16,6 +16,11 @@ public class ShoptetOrderClient : IEshopOrderClient
         PropertyNameCaseInsensitive = true,
     };
 
+    private const int AdditionalFieldMinIndex = 1;
+    private const int AdditionalFieldMaxIndex = 6;
+    private const int AdditionalFieldShortTextMaxIndex = 3;
+    private const int AdditionalFieldShortTextMaxLength = 255;
+
     public ShoptetOrderClient(HttpClient http)
     {
         _http = http;
@@ -235,6 +240,36 @@ public class ShoptetOrderClient : IEshopOrderClient
 
         var data = await response.Content.ReadFromJsonAsync<ExpeditionOrderDetailResponse>(JsonOptions, ct);
         return data!.Data.Order;
+    }
+
+    public async Task SetAdditionalFieldAsync(
+        string orderCode,
+        int index,
+        string? text,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(orderCode))
+            throw new ArgumentException("Order code must not be null or empty.", nameof(orderCode));
+        if (index is < AdditionalFieldMinIndex or > AdditionalFieldMaxIndex)
+            throw new ArgumentOutOfRangeException(nameof(index), index, "Index must be between 1 and 6 inclusive.");
+        if (text != null && index <= AdditionalFieldShortTextMaxIndex && text.Length > AdditionalFieldShortTextMaxLength)
+            throw new ArgumentException($"Text for additionalField index {index} must not exceed 255 characters.", nameof(text));
+
+        var body = new UpdateAdditionalFieldRequest
+        {
+            Data = new UpdateAdditionalFieldData
+            {
+                AdditionalFields = [new AdditionalFieldEntry { Index = index, Text = text }],
+            },
+        };
+
+        var response = await _http.PatchAsJsonAsync($"/api/orders/{orderCode}/notes", body, JsonOptions, ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException(
+                $"PATCH /api/orders/{orderCode}/notes returned {(int)response.StatusCode}: {errorBody}");
+        }
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

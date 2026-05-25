@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.Article;
+using Anela.Heblo.Application.Features.Article.Contracts;
 using Anela.Heblo.Application.Features.Article.UseCases.Generate.Pipeline;
-using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.SearchDocuments;
 using Anela.Heblo.Application.Shared.WebSearch;
 using Anela.Heblo.Domain.Features.Article;
@@ -17,7 +17,7 @@ public class GatherContextStepTests
 {
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IWebSearchClient> _webSearch = new();
-    private readonly Mock<IOneDriveService> _oneDrive = new();
+    private readonly Mock<IArticleStyleGuideSource> _styleGuideSource = new();
     private readonly ArticleOptions _options = new();
 
     private static PipelineStepRecorder CreateNoOpRecorder()
@@ -30,7 +30,7 @@ public class GatherContextStepTests
     }
 
     private GatherContextStep CreateStep() =>
-        new(_mediator.Object, _webSearch.Object, _oneDrive.Object,
+        new(_mediator.Object, _webSearch.Object, _styleGuideSource.Object,
             Options.Create(_options), NullLogger<GatherContextStep>.Instance, CreateNoOpRecorder());
 
     private static ArticlePipelineContext CreateContext(
@@ -178,5 +178,38 @@ public class GatherContextStepTests
 
         context.ContextSnippets.Should().ContainSingle();
         context.ContextSnippets[0].Title.Should().Be("First");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_StyleGuideConfigured_LoadsTextViaContract()
+    {
+        const string driveId = "drive-1";
+        const string itemPath = "/style.md";
+        const string guide = "Tone: friendly";
+
+        _styleGuideSource
+            .Setup(s => s.DownloadStyleGuideTextAsync(driveId, itemPath, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(guide);
+
+        var article = new DomainArticle
+        {
+            Topic = "Topic",
+            UsedKnowledgeBase = false,
+            UsedWebSearch = false,
+            StyleGuideDriveId = driveId,
+            StyleGuideItemPath = itemPath
+        };
+        var context = new ArticlePipelineContext
+        {
+            Article = article,
+            SearchQueries = new List<string>()
+        };
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        context.StyleGuideText.Should().Be(guide);
+        _styleGuideSource.Verify(
+            s => s.DownloadStyleGuideTextAsync(driveId, itemPath, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }
