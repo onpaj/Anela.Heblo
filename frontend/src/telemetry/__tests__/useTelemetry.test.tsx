@@ -1,4 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
+import type { ApplicationInsights } from '@microsoft/applicationinsights-web';
 import { useTelemetry } from '../useTelemetry';
 import * as appInsightsModule from '../appInsights';
 
@@ -19,7 +20,7 @@ describe('useTelemetry', () => {
 
   describe('when AI instance is available', () => {
     beforeEach(() => {
-      jest.spyOn(appInsightsModule, 'getAppInsights').mockReturnValue(mockAI as any);
+      jest.spyOn(appInsightsModule, 'getAppInsights').mockReturnValue(mockAI as unknown as ApplicationInsights);
     });
 
     it('trackEvent calls ai.trackEvent with name and merged properties+metrics', () => {

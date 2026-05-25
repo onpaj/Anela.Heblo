@@ -63,7 +63,7 @@ const DashboardTile: React.FC<DashboardTileProps> = ({
         ${className}
       `}
       data-testid={`dashboard-tile-${tile.tileId}`}
-      onClick={() => trackEvent('DashboardTileClicked', { tileId: tile.tileId })}
+      onClick={() => { if (!isDragging) trackEvent('DashboardTileClicked', { tileId: tile.tileId }); }}
     >
       <TileHeader
         title={tile.title}
