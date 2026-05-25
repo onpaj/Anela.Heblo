@@ -1,9 +1,12 @@
 using System.Net;
+using Anela.Heblo.Application.Features.UserManagement;
 using Anela.Heblo.Application.Features.UserManagement.Contracts;
 using Anela.Heblo.Application.Features.UserManagement.Services;
 using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Web;
 using Moq;
@@ -103,5 +106,53 @@ public class GraphServiceTests
         handler.LastRequestUri!.ToString()
             .Should().Be("https://graph.microsoft.com/v1.0/groups/group-1/members?$select=id,displayName,mail,userPrincipalName");
         handler.LastMethod.Should().Be(HttpMethod.Get);
+    }
+
+    [Fact]
+    public void AddUserManagement_ProductionBranch_RegistersMicrosoftGraphNamedClient_AndResolvesGraphService()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddMemoryCache();
+        services.AddSingleton(Mock.Of<ITokenAcquisition>());
+        var configuration = new ConfigurationBuilder().Build(); // no mock-auth keys => production branch
+
+        // Act
+        services.AddUserManagement(configuration);
+
+        // Assert
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var resolved = scope.ServiceProvider.GetRequiredService<IGraphService>();
+        resolved.Should().BeOfType<GraphService>();
+
+        var factory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
+        var client = factory.CreateClient("MicrosoftGraph");
+        client.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void AddUserManagement_MockBranch_RegistersMockGraphService()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddMemoryCache();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["UseMockAuth"] = "true"
+            })
+            .Build();
+
+        // Act
+        services.AddUserManagement(configuration);
+
+        // Assert
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var resolved = scope.ServiceProvider.GetRequiredService<IGraphService>();
+        resolved.Should().BeOfType<MockGraphService>();
     }
 }
