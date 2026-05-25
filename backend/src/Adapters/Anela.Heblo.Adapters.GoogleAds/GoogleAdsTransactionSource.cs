@@ -9,7 +9,9 @@ public class GoogleAdsTransactionSource : IMarketingTransactionSource
     private readonly IAccountBudgetFetcher _fetcher;
     private readonly ILogger<GoogleAdsTransactionSource> _logger;
 
-    public string Platform => "GoogleAds";
+    public const string PlatformName = "GoogleAds";
+
+    public string Platform => PlatformName;
 
     internal GoogleAdsTransactionSource(
         IAccountBudgetFetcher fetcher,

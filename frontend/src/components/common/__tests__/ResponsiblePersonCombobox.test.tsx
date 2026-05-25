@@ -31,6 +31,7 @@ const mockUsers = [
 
 describe('ResponsiblePersonCombobox', () => {
     const defaultProps = {
+        groupId: 'test-group-id',
         value: '',
         onChange: jest.fn(),
         placeholder: 'Select responsible person',
