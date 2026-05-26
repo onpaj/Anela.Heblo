@@ -598,4 +598,7 @@ public class SmartsuppApiClient : ISmartsuppApiClient
             };
         }, cancellationToken);
     }
+
+    public Task CloseConversationAsync(string conversationId, CancellationToken cancellationToken)
+        => throw new NotImplementedException();
 }
