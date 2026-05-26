@@ -3,7 +3,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Anela.Heblo.Domain.Features.Configuration;
 using Microsoft.Graph;
-using Microsoft.AspNetCore.Http;
 
 namespace Anela.Heblo.Application.Features.UserManagement;
 
