@@ -4,6 +4,7 @@ using Anela.Heblo.Persistence.Analytics.Entities;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Rem.FlexiBeeSDK.Client.Clients.Contacts;
 using Rem.FlexiBeeSDK.Model.Contacts;
@@ -22,7 +23,7 @@ public class ContactSyncServiceTests
         AnalyticsDbContext ctx)
     {
         var repo = new SyncWatermarkRepository(ctx);
-        var options = new FlexiAnalyticsSyncOptions { BatchSize = 500 };
+        var options = Options.Create(new FlexiAnalyticsSyncOptions { BatchSize = 500 });
         return new ContactSyncService(
             client,
             repo,

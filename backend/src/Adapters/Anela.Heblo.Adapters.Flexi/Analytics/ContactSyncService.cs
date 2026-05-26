@@ -2,6 +2,7 @@ using Anela.Heblo.Persistence.Analytics;
 using Anela.Heblo.Persistence.Analytics.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Rem.FlexiBeeSDK.Client.Clients.Contacts;
 using Rem.FlexiBeeSDK.Model.Contacts;
@@ -22,13 +23,13 @@ public sealed class ContactSyncService
         IContactListClient contactListClient,
         ISyncWatermarkRepository watermarkRepo,
         AnalyticsDbContext dbContext,
-        FlexiAnalyticsSyncOptions options,
+        IOptions<FlexiAnalyticsSyncOptions> options,
         ILogger<ContactSyncService> logger)
     {
         _contactListClient = contactListClient;
         _watermarkRepo = watermarkRepo;
         _dbContext = dbContext;
-        _options = options;
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -135,12 +136,12 @@ public sealed class ContactSyncService
 
     private static Contact Map(ContactFlexiDto dto) => new()
     {
-        FlexiId = dto.Id ?? 0L,
+        FlexiId = dto.Id ?? throw new InvalidOperationException($"ContactFlexiDto has a null Id (Code={dto.Code})."),
         Code = dto.Code,
         Name = dto.Name,
         Cin = dto.CIN,
         Vatin = dto.VATIN,
-        LastModified = dto.LastUpdate == default ? null : (DateTimeOffset?)dto.LastUpdate?.ToUniversalTime(),
+        LastModified = dto.LastUpdate?.ToUniversalTime(),
         RawPayload = JsonConvert.SerializeObject(dto, RawPayloadSettings),
         SyncedAt = DateTimeOffset.UtcNow,
     };
