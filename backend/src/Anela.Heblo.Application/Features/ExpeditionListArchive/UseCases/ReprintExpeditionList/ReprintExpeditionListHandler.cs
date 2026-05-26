@@ -1,4 +1,3 @@
-using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
@@ -12,7 +11,7 @@ public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionLis
     private readonly IPrintQueueSink _cupsSink;
     private readonly string _containerName;
 
-    public ReprintExpeditionListHandler(IBlobStorageService blobStorageService, IPrintQueueSink cupsSink, IOptions<PrintPickingListOptions> options)
+    public ReprintExpeditionListHandler(IBlobStorageService blobStorageService, IPrintQueueSink cupsSink, IOptions<ExpeditionListArchiveOptions> options)
     {
         _blobStorageService = blobStorageService;
         _cupsSink = cupsSink;

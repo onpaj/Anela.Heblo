@@ -1,8 +1,8 @@
-using Anela.Heblo.Application.Features.ExpeditionList;
-using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
+using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -10,8 +10,10 @@ namespace Anela.Heblo.Application.Features.ExpeditionListArchive;
 
 public static class ExpeditionListArchiveModule
 {
-    public static IServiceCollection AddExpeditionListArchiveModule(this IServiceCollection services)
+    public static IServiceCollection AddExpeditionListArchiveModule(this IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<ExpeditionListArchiveOptions>(configuration.GetSection(ExpeditionListArchiveOptions.ConfigurationKey));
+
         // ReprintExpeditionListHandler needs the keyed "cups" IPrintQueueSink when available
         // (production/staging). In environments where only the non-keyed sink is registered
         // (e.g. FileSystem in development/test), we fall back to the non-keyed registration.
@@ -21,7 +23,7 @@ public static class ExpeditionListArchiveModule
             var blobStorage = provider.GetRequiredService<IBlobStorageService>();
             var cupsSink = provider.GetKeyedService<IPrintQueueSink>("cups")
                 ?? provider.GetRequiredService<IPrintQueueSink>();
-            var options = provider.GetRequiredService<IOptions<PrintPickingListOptions>>();
+            var options = provider.GetRequiredService<IOptions<ExpeditionListArchiveOptions>>();
             return new ReprintExpeditionListHandler(blobStorage, cupsSink, options);
         });
 

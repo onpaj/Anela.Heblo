@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.ExpeditionList;
+using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
 using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Domain.Features.FileStorage;
@@ -19,7 +19,7 @@ public class ReprintExpeditionListHandlerTests
     {
         _blobStorageServiceMock = new Mock<IBlobStorageService>();
         _cupsSinkMock = new Mock<IPrintQueueSink>();
-        _handler = new ReprintExpeditionListHandler(_blobStorageServiceMock.Object, _cupsSinkMock.Object, Options.Create(new PrintPickingListOptions()));
+        _handler = new ReprintExpeditionListHandler(_blobStorageServiceMock.Object, _cupsSinkMock.Object, Options.Create(new ExpeditionListArchiveOptions()));
     }
 
     [Fact]
