@@ -40,9 +40,9 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| JournalList | `/journal` | `components/pages/Journal/JournalList.tsx` | — | `[ ] base` |
-| JournalEntryNew | `/journal/new` | `components/pages/JournalEntryNew.tsx` | — | `[ ] base` |
-| JournalEntryEdit | `/journal/:id/edit` | `components/pages/JournalEntryEdit.tsx` | — | `[ ] base` |
+| JournalList | `/journal` | `components/pages/Journal/JournalList.tsx` | — | `[x] base` |
+| JournalEntryNew | `/journal/new` | `components/pages/JournalEntryNew.tsx` | — | `[x] base` |
+| JournalEntryEdit | `/journal/:id/edit` | `components/pages/JournalEntryEdit.tsx` | — | `[x] base` |
 
 ## Purchase
 
