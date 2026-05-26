@@ -121,5 +121,6 @@ public class DepartmentSyncServiceTests
         var state = await ctx.SyncStates.FindAsync("department");
         state!.LastRunStatus.Should().Be("FAILED");
         state.LastErrorMessage.Should().Contain("Flexi unreachable");
+        state.Watermark.Should().BeNull();
     }
 }
