@@ -51,7 +51,7 @@ public sealed class AccountingTemplateSyncService
             totalFetched = templates.Count;
             totalUpserted = await UpsertAllAsync(templates, ct);
 
-            state.Watermark = DateTimeOffset.UtcNow;
+            // Full-refresh entity: watermark is intentionally not written — every run fetches all rows.
             state.LastRunStatus = "OK";
             state.LastRunFinishedAt = DateTimeOffset.UtcNow;
             state.LastRunRowsFetched = totalFetched;

@@ -98,6 +98,7 @@ public class AccountingTemplateSyncServiceTests
         state!.LastRunStatus.Should().Be("OK");
         state.LastRunRowsFetched.Should().Be(2);
         state.LastRunRowsUpserted.Should().Be(2);
+        state.Watermark.Should().BeNull();
     }
 
     [Fact]
