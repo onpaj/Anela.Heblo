@@ -127,10 +127,10 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| TerminalHome | `/terminal` | `components/terminal/TerminalHome.tsx` | — | `[ ] base` |
-| TerminalBoxCheck | `/terminal/box-check` | `components/terminal/TransportBoxCheck.tsx` | — | `[ ] base` |
-| TerminalBoxFill | `/terminal/box-fill` | `components/terminal/box-fill/BoxFillWorkflow.tsx` | steps: Scan, AddItems | `[ ] base` `[ ] ScanStep` `[ ] AddItemsStep` |
-| TerminalReceive | `/terminal/receive` | `components/terminal/TransportBoxReceive.tsx` | — | `[ ] base` |
+| TerminalHome | `/terminal` | `components/terminal/TerminalHome.tsx` | — | `[x] base` |
+| TerminalBoxCheck | `/terminal/box-check` | `components/terminal/TransportBoxCheck.tsx` | — | `[x] base` |
+| TerminalBoxFill | `/terminal/box-fill` | `components/terminal/box-fill/BoxFillWorkflow.tsx` | steps: Scan, AddItems | `[x] base` `[x] ScanStep` `[x] AddItemsStep` |
+| TerminalReceive | `/terminal/receive` | `components/terminal/TransportBoxReceive.tsx` | — | `[x] base` |
 | TerminalStocktake | `/terminal/stocktake` | (placeholder) | — | `[ ] base` (deferred — placeholder) |
 | TerminalLotIdentification | `/terminal/lot-identification` | (placeholder) | — | `[ ] base` (deferred — placeholder) |
 
