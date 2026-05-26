@@ -2,7 +2,7 @@ namespace Anela.Heblo.Domain.Features.InvoiceClassification;
 
 public interface IReceivedInvoicesClient
 {
-    Task<List<ReceivedInvoiceDto>> GetUnclassifiedInvoicesAsync();
+    Task<List<ReceivedInvoice>> GetUnclassifiedInvoicesAsync();
 
-    Task<ReceivedInvoiceDto?> GetInvoiceByIdAsync(string invoiceId);
+    Task<ReceivedInvoice?> GetInvoiceByIdAsync(string invoiceId);
 }

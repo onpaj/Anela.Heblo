@@ -36,7 +36,6 @@ public class GoogleAdsTransactionSource : IMarketingTransactionSource
         var transactions = rows.Select(r => new MarketingTransaction
         {
             TransactionId = r.Id,
-            Platform = Platform,
             Amount = r.AmountServedMicros / 1_000_000m,
             TransactionDate = r.StartDate,
             Currency = r.CurrencyCode,

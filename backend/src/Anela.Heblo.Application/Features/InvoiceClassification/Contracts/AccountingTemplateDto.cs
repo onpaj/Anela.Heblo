@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Domain.Features.InvoiceClassification;
+namespace Anela.Heblo.Application.Features.InvoiceClassification.Contracts;
 
 public class AccountingTemplateDto
 {

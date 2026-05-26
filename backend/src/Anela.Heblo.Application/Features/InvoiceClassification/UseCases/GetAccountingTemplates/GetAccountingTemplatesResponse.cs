@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.InvoiceClassification;
+using Anela.Heblo.Application.Features.InvoiceClassification.Contracts;
 using Anela.Heblo.Application.Shared;
 
 namespace Anela.Heblo.Application.Features.InvoiceClassification.UseCases.GetAccountingTemplates;

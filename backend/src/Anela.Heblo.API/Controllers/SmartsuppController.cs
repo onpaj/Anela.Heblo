@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.CloseConversation;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetContactShoptetInfo;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.SendMessage;
@@ -105,6 +106,20 @@ public class SmartsuppController : BaseApiController
     {
         var request = new SendMessageRequest { ConversationId = conversationId, Content = body.Content };
         var result = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("conversations/{id}/close")]
+    [ProducesResponseType(typeof(CloseConversationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<CloseConversationResponse>> CloseConversation(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new CloseConversationRequest { ConversationId = id },
+            cancellationToken);
         return HandleResponse(result);
     }
 

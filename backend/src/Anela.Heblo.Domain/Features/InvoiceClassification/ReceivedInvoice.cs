@@ -1,6 +1,6 @@
 namespace Anela.Heblo.Domain.Features.InvoiceClassification;
 
-public class ReceivedInvoiceDto
+public class ReceivedInvoice
 {
     public string InvoiceNumber { get; set; } = string.Empty;
 
@@ -14,9 +14,13 @@ public class ReceivedInvoiceDto
 
     public string Description { get; set; } = string.Empty;
 
-    public List<ReceivedInvoiceItemDto> Items { get; set; } = new();
+    public List<ReceivedInvoiceItem> Items { get; set; } = new();
+
     public DateTime? DueDate { get; set; }
+
     public string? AccountingTemplateCode { get; set; }
+
     public string? DepartmentCode { get; set; }
-    public string[] Labels { get; set; }
+
+    public string[] Labels { get; set; } = Array.Empty<string>();
 }

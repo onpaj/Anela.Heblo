@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Anela.Heblo.Domain.Features.Users;
 using Microsoft.AspNetCore.Http;
 
-namespace Anela.Heblo.Application.Features.Users;
+namespace Anela.Heblo.API.Features.Users;
 
 public class CurrentUserService : ICurrentUserService
 {
