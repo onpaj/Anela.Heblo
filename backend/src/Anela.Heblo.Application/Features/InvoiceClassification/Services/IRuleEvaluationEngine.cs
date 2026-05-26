@@ -4,5 +4,5 @@ namespace Anela.Heblo.Application.Features.InvoiceClassification.Services;
 
 public interface IRuleEvaluationEngine
 {
-    ClassificationRule? FindMatchingRule(ReceivedInvoiceDto invoice, List<ClassificationRule> rules);
+    ClassificationRule? FindMatchingRule(ReceivedInvoice invoice, List<ClassificationRule> rules);
 }
