@@ -24,9 +24,9 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| FinancialOverview | `/finance/overview` | `components/pages/FinancialOverview.tsx` | — | `[ ] base` |
-| BankStatementImport | `/finance/bank-statements` | `components/pages/BankStatementImportChart.tsx` | — | `[ ] base` |
-| ProductMarginSummary | `/analytics/product-margin-summary` | `components/pages/ProductMarginSummary.tsx` | — | `[ ] base` |
+| FinancialOverview | `/finance/overview` | `components/pages/FinancialOverview.tsx` | — | `[x] base` |
+| BankStatementImport | `/finance/bank-statements` | `components/pages/BankStatementImportChart.tsx` | — | `[x] base` |
+| ProductMarginSummary | `/analytics/product-margin-summary` | `components/pages/ProductMarginSummary.tsx` | — | `[x] base` |
 
 ## Catalog
 
