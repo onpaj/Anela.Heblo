@@ -50,7 +50,7 @@ jobs:
           JEST_JUNIT_OUTPUT_NAME: junit.xml
 
       - name: 📊 Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -161,7 +161,7 @@ jobs:
           echo "Found coverage files: $COVERAGE_FILES"
 
       - name: 📊 Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
