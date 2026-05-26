@@ -105,7 +105,7 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
           {conversation.assignedAgentIds.map((id) => (
             <AgentBadge key={id} agentId={id} name={agentNames[id] ?? id} />
           ))}
-          {conversation.status === 'open' && (
+          {conversation.status.toLowerCase() === 'open' && (
             <button
               type="button"
               data-testid="close-conversation-btn"
