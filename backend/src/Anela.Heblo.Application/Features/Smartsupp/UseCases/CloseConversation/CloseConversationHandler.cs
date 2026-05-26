@@ -33,6 +33,8 @@ public class CloseConversationHandler : IRequestHandler<CloseConversationRequest
         {
             await _apiClient.CloseConversationAsync(request.ConversationId, cancellationToken);
         }
+        // Only absorb cancellations that originated inside the API client (e.g. HttpClient timeouts),
+        // not cancellations requested by the caller.
         catch (Exception ex) when (ex is HttpRequestException or TimeoutException
                                        or ObjectDisposedException
                                        || (ex is TaskCanceledException tce && tce.CancellationToken != cancellationToken))
