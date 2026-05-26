@@ -159,3 +159,103 @@ describe('useArticleFeedbackListQuery mapping', () => {
     expect(withoutComment.createdAt).toBeNull();
   });
 });
+
+describe('useArticleFeedbackListQuery parameter passing', () => {
+  let mockFeedbackList: jest.Mock;
+
+  const emptyClientResponse = {
+    items: [],
+    totalCount: 0,
+    page: 1,
+    pageSize: 20,
+    totalPages: 0,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockFeedbackList = jest.fn().mockResolvedValue(emptyClientResponse);
+    mockGetAuthenticatedApiClient.mockReturnValue({
+      articles_FeedbackList: mockFeedbackList,
+    } as any);
+  });
+
+  it('passes sortDescending=true to the API client (not descending)', async () => {
+    const { result } = renderHook(
+      () => useArticleFeedbackListQuery({ sortDescending: true }),
+      { wrapper: createWrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockFeedbackList).toHaveBeenCalledWith(
+      null,      // hasFeedback
+      null,      // requestedBy
+      undefined, // sortBy
+      true,      // sortDescending
+      undefined, // page
+      undefined, // pageSize
+    );
+  });
+
+  it('passes sortDescending=false when toggled off', async () => {
+    const { result } = renderHook(
+      () => useArticleFeedbackListQuery({ sortDescending: false }),
+      { wrapper: createWrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockFeedbackList).toHaveBeenCalledWith(
+      null,
+      null,
+      undefined,
+      false,
+      undefined,
+      undefined,
+    );
+  });
+
+  it('passes sortDescending=undefined when not specified (backend default applies)', async () => {
+    const { result } = renderHook(
+      () => useArticleFeedbackListQuery({ sortBy: 'CreatedAt' }),
+      { wrapper: createWrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockFeedbackList).toHaveBeenCalledWith(
+      null,
+      null,
+      'CreatedAt',
+      undefined,
+      undefined,
+      undefined,
+    );
+  });
+
+  it('passes all filter params including sortDescending to the API client', async () => {
+    const { result } = renderHook(
+      () =>
+        useArticleFeedbackListQuery({
+          hasFeedback: true,
+          requestedBy: 'user@anela.cz',
+          sortBy: 'CreatedAt',
+          sortDescending: false,
+          page: 2,
+          pageSize: 10,
+        }),
+      { wrapper: createWrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockFeedbackList).toHaveBeenCalledWith(
+      true,
+      'user@anela.cz',
+      'CreatedAt',
+      false,
+      2,
+      10,
+    );
+  });
+});

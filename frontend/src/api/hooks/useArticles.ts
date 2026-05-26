@@ -70,7 +70,7 @@ export interface ArticleFeedbackListParams {
   hasFeedback?: boolean;
   requestedBy?: string;
   sortBy?: string;
-  descending?: boolean;
+  sortDescending?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -259,7 +259,7 @@ export const useArticleFeedbackListQuery = (params: ArticleFeedbackListParams = 
         params.hasFeedback ?? null,
         params.requestedBy ?? null,
         params.sortBy,
-        params.descending,
+        params.sortDescending,
         params.page,
         params.pageSize,
       );

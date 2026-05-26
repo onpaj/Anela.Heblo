@@ -7,7 +7,7 @@ export function useArticleFeedbackAdapter(params: GenericFeedbackParams) {
     page: params.pageNumber,
     pageSize: params.pageSize,
     sortBy: params.sortBy,
-    descending: params.sortDescending,
+    sortDescending: params.sortDescending,
     hasFeedback: params.hasFeedback,
     requestedBy: params.userId,
   });
