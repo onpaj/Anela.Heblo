@@ -18,7 +18,7 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| Dashboard | `/` | `components/pages/Dashboard.tsx` | — | `[ ] base` |
+| Dashboard | `/` | `components/pages/Dashboard.tsx` | — | `[x] base` |
 
 ## Finance
 
