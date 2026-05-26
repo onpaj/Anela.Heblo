@@ -12,6 +12,7 @@ import GenericFeedbackTable from '../components/feedback/GenericFeedbackTable';
 import GenericFeedbackDetailModal from '../components/feedback/GenericFeedbackDetailModal';
 import type { FeedbackDetail } from '../components/feedback/types';
 import { SORT_COLUMNS } from '../components/feedback/types';
+import { useScreenView } from '../telemetry/useScreenView';
 
 const defaultParams: GetFeedbackListParams = {
   pageNumber: 1,
@@ -53,6 +54,8 @@ function mapLogToDetail(log: FeedbackLogSummary): FeedbackDetail {
 const KnowledgeBaseFeedbackPage: React.FC = () => {
   const [params, setParams] = useState<GetFeedbackListParams>(defaultParams);
   const [selectedRow, setSelectedRow] = useState<FeedbackDetail | null>(null);
+
+  useScreenView('Knowledge', 'KnowledgeBaseFeedback');
 
   const { data, isLoading, isError } = useKnowledgeBaseFeedbackListQuery(params);
 

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '../../contexts/ToastContext';
 import { useTransportBoxReceive } from '../../api/hooks/useTransportBoxReceive';
 import { TransportBoxDto } from '../../api/generated/api-client';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const TransportBoxReceive: React.FC = () => {
   const [boxCode, setBoxCode] = useState('');
@@ -11,6 +12,8 @@ const TransportBoxReceive: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isReceiving, setIsReceiving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useScreenView('Logistics', 'TransportBoxReceive');
 
   const { t } = useTranslation();
   const { showSuccess, showError } = useToast();

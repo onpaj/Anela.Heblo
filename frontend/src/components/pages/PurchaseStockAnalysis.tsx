@@ -35,6 +35,7 @@ import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { TimePeriod, resolveTimePeriod } from "../../utils/timePeriod";
 import { usePurchasePlanningList } from "../../contexts/PurchasePlanningListContext";
 import PurchasePlanningListPanel from "../common/PurchasePlanningListPanel";
+import { useScreenView } from "../../telemetry/useScreenView";
 
 const PurchaseStockAnalysis: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -75,6 +76,8 @@ const PurchaseStockAnalysis: React.FC = () => {
   // State for collapsible sections
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  useScreenView('Purchase', 'PurchaseStockAnalysis');
 
   const { showError } = useToast();
 

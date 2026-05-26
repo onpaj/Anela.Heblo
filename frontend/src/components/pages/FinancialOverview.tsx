@@ -24,6 +24,7 @@ import { FinancialFilters } from "./financial-overview/FinancialFilters";
 import { FinancialChart } from "./financial-overview/FinancialChart";
 import { FinancialDataTable } from "./financial-overview/FinancialDataTable";
 import { FinancialDataCards } from "./financial-overview/FinancialDataCards";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const FinancialOverview: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] =
@@ -34,6 +35,8 @@ const FinancialOverview: React.FC = () => {
   const [isDataExpanded, setIsDataExpanded] = useState(false);
   const isMobile = useIsMobile();
   const initialDefaultsSet = React.useRef(false);
+
+  useScreenView('Finance', 'FinancialOverview');
 
   const { data: departments } = useDepartments();
 

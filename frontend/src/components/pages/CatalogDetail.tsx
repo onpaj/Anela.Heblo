@@ -18,6 +18,7 @@ import {
 import CatalogDetailTabs from "../catalog/detail/CatalogDetailTabs";
 import CatalogDetailChartSection from "../catalog/detail/CatalogDetailChartSection";
 import CatalogDetailModals from "../catalog/detail/CatalogDetailModals";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 ChartJS.register(
   CategoryScale,
@@ -57,6 +58,24 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({
   >(undefined);
   const [showManufactureDifficultyModal, setShowManufactureDifficultyModal] =
     useState(false);
+
+  const tabToSubScreen: Record<typeof activeTab, string> = {
+    basic: 'BasicTab',
+    history: 'HistoryTab',
+    margins: 'MarginsTab',
+    composition: 'CompositionTab',
+    journal: 'JournalTab',
+    usage: 'UsageTab',
+    documents: 'DocumentsTab',
+    pif: 'PifTab',
+  };
+  useScreenView('Catalog', 'CatalogDetail', isOpen ? tabToSubScreen[activeTab] : undefined);
+  useScreenView(
+    'Catalog',
+    'CatalogDetail',
+    isOpen && activeTab === 'history' ? (activeChartTab === 'input' ? 'ChartInput' : 'ChartOutput') : undefined,
+  );
+
   const navigate = useNavigate();
 
   // Determine which productCode to use - from prop or from item

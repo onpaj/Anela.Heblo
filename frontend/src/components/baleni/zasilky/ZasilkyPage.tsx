@@ -10,10 +10,12 @@ import { ZasilkyFilters, type FilterValues } from "./ZasilkyFilters";
 import { ZasilkyTable, type ZasilkySortBy } from "./ZasilkyTable";
 import { ZasilkyPagination } from "./ZasilkyPagination";
 import { DeletePackageDialog } from "./DeletePackageDialog";
+import { useScreenView } from "../../../telemetry/useScreenView";
 
 const PAGE_SIZE = 20;
 
 export function ZasilkyPage() {
+  useScreenView('Baleni', 'BaleniShipments');
   const { showSuccess, showError } = useToast();
   const [filters, setFilters] = useState<FilterValues>({
     orderCode: "",

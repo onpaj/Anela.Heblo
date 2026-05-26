@@ -3,12 +3,14 @@ import { Settings, Thermometer, Gift } from 'lucide-react';
 import { PAGE_CONTAINER_HEIGHT } from '../../constants/layout';
 import CoolingTab from '../../components/customer/expeditionSettings/CoolingTab';
 import GiftsTab from '../../components/customer/expeditionSettings/GiftsTab';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 type Tab = 'cooling' | 'gifts';
 
 function ExpeditionSettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab: Tab = (searchParams.get('tab') as Tab) ?? 'cooling';
+  useScreenView('Customer', 'ExpeditionSettings', activeTab === 'cooling' ? 'CoolingTab' : 'GiftsTab');
 
   const handleTabChange = (tab: Tab) => {
     setSearchParams({ tab });

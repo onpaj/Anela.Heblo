@@ -3,4 +3,5 @@ export type TelemetryEventName =
   | 'PhotobankBulkTagApplied'
   | 'ManufactureOrderCreated'
   | 'PurchaseOrderSubmitted'
-  | 'FeatureFlagToggled';
+  | 'FeatureFlagToggled'
+  | 'ScreenViewed';

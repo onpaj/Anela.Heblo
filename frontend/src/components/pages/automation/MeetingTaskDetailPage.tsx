@@ -28,6 +28,7 @@ import { ExplainModal } from './explain/ExplainModal';
 import { ManageAccessModal } from './access/ManageAccessModal';
 import { downloadTextFile, sanitizeFilename } from "../../../utils/downloadTextFile";
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
+import { useScreenView } from "../../../telemetry/useScreenView";
 
 const EMPTY_FORM: TaskFormData = { title: "", description: "", assignee: "", assigneeEmail: null, dueDate: null };
 
@@ -84,6 +85,7 @@ function AssigneePicker({ users, value, onChange }: AssigneePickerProps) {
 }
 
 const MeetingTaskDetailPage: React.FC = () => {
+  useScreenView('Automation', 'MeetingTaskDetail');
   const { id = "" } = useParams<{ id: string }>();
   const detail = useMeetingTaskDetail(id);
   const updateTask = useUpdateProposedTask();

@@ -23,6 +23,7 @@ import { PAGE_CONTAINER_HEIGHT } from '../../../constants/layout';
 import { useAuth } from '../../../auth/useAuth';
 import { useIsMobile } from '../../../hooks/useMediaQuery';
 import { MobileAgendaView } from '../calendar/MobileAgendaView';
+import { useScreenView } from '../../../telemetry/useScreenView';
 
 const MARKETING_IMPORT_ROLE = 'super_user';
 
@@ -62,6 +63,11 @@ const MarketingCalendarPage: React.FC = () => {
   const [editingAction, setEditingAction] = useState<MarketingActionDto | null>(null);
   const [prefillDates, setPrefillDates] = useState<{ dateFrom: string; dateTo: string } | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const viewModeSubScreen =
+    viewMode === 'fiveWeeks' ? 'FiveWeeksView' :
+    viewMode === 'twoWeeks' ? 'TwoWeeksView' :
+    'ListView';
+  useScreenView('Marketing', 'MarketingCalendar', viewModeSubScreen);
   const isMobile = useIsMobile();
 
   const calendarRef = useRef<FullCalendar>(null);

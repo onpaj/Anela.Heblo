@@ -36,6 +36,7 @@ import { usePlanningList } from "../../contexts/PlanningListContext";
 import PlanningListPanel from "../common/PlanningListPanel";
 import { GridColumn, GridHeader, ColumnChooser, useGridLayout } from '../../features/grid-layout';
 import { ManufacturingStockItemDto } from '../../api/hooks/useManufacturingStockAnalysis';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const SALES_MULTIPLIER_COOKIE = "manufacturing-stock-sales-multiplier";
 
@@ -59,6 +60,7 @@ const readSalesMultiplierCookie = (): number => {
 };
 
 const ManufacturingStockAnalysis: React.FC = () => {
+  useScreenView('Manufacturing', 'ManufacturingStockAnalysis');
   // State for filters
   const [filters, setFilters] = useState<GetManufacturingStockAnalysisRequest>({
     timePeriod: TimePeriodFilter.Q9M,
