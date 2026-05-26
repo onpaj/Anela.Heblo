@@ -138,7 +138,7 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| BaleniHome | `/baleni` | `components/baleni/BaleniHome.tsx` | — | `[ ] base` |
-| BaleniPacking | `/baleni/baleni` | `components/baleni/BaleniPacking.tsx` | — | `[ ] base` |
-| BaleniShipments | `/baleni/zasilky` | `components/baleni/zasilky/ZasilkyPage.tsx` | — | `[ ] base` |
+| BaleniHome | `/baleni` | `components/baleni/BaleniHome.tsx` | — | `[x] base` |
+| BaleniPacking | `/baleni/baleni` | `components/baleni/BaleniPacking.tsx` | — | `[x] base` |
+| BaleniShipments | `/baleni/zasilky` | `components/baleni/zasilky/ZasilkyPage.tsx` | — | `[x] base` |
 | BaleniStatistics | `/baleni/statistiky` | (placeholder) | — | `[ ] base` (deferred — placeholder) |
