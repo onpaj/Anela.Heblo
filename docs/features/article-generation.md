@@ -238,6 +238,24 @@ Paged list, default pageSize=20, max 100.
   ```
 - **Fallback:** parse failure → wrap raw text in `<p>...</p>`, derive title from topic, empty sources
 
+#### 8.5.1 Custom prompt templates
+
+`ArticleOptions.WriteArticleSystemPromptTemplate` is rendered via `string.Replace`. Available placeholders:
+
+| Placeholder | Value | Notes |
+|---|---|---|
+| `{topic}` | `Article.Topic` | Always present. |
+| `{audience}` | `Article.Audience` or `"obecné publikum"` if null. | |
+| `{length}` | `Article.Length` | E.g. `"medium (1000w)"`. |
+| `{angle}` | `Article.Angle` or `"(nevyspecifikováno)"` if null. | |
+| `{scope}` | `Article.Scope` raw value | One of `overview`, `deep-dive`, `how-to`, `comparison`. |
+| `{language_note}` | `Article.LanguageNote` raw value, or `""` if null. | Use this for full-line custom templates. |
+| `{tone_note_line}` | Composed line: `Tonalita: <note>` when present, `""` when absent. | Use this to add a single self-contained line that disappears when no note is supplied. |
+| `{facts}` | Numbered list of aggregated facts. | |
+| `{style_guide}` | Style guide body, or `""` if none. | |
+
+**Back-compat:** appsettings overrides that omit `{scope}` or `{tone_note_line}` continue to work — those values are simply not surfaced to the LLM. To surface them, add the placeholders to the override.
+
 ### 8.6 Persistence
 - Update `Article` row with `Title`, `HtmlContent`, `Status=Generated`, `GeneratedAt = now`.
 - Insert `ArticleSource` rows (one per `sources_used` entry; type=Web for URLs, type=KnowledgeBase for KB-tagged ones, type=StyleGuide if used).

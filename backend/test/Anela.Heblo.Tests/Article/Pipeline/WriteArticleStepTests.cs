@@ -222,6 +222,304 @@ public class WriteArticleStepTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_LanguageNotePresent_PromptContainsTonalitaLine()
+    {
+        _options.WriteArticleUserPromptTemplate = "{tone_note_line}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.LanguageNote = "krátké věty, bez žargonu";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("Tonalita: krátké věty, bez žargonu");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_LanguageNoteNull_ToneLineIsEmpty()
+    {
+        _options.WriteArticleUserPromptTemplate = "{tone_note_line}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.LanguageNote = null;
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_LanguageNoteEmpty_ToneLineIsEmpty()
+    {
+        _options.WriteArticleUserPromptTemplate = "{tone_note_line}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.LanguageNote = "";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_LanguageNoteWhitespace_ToneLineIsEmpty()
+    {
+        _options.WriteArticleUserPromptTemplate = "{tone_note_line}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.LanguageNote = "   ";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ScopePlaceholder_IsReplacedWithRawScopeValue()
+    {
+        _options.WriteArticleUserPromptTemplate = "Scope: {scope}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.Scope = "deep-dive";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("Scope: deep-dive");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_TemplateWithoutScopeToken_NoOp()
+    {
+        _options.WriteArticleUserPromptTemplate = "Téma: {topic}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext("Sun Care");
+        context.Article.Scope = "deep-dive";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("Téma: Sun Care");
+        userMessage.Should().NotContain("deep-dive");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_RawLanguageNoteToken_IsReplacedForCustomTemplateBackCompat()
+    {
+        _options.WriteArticleUserPromptTemplate = "Note: {language_note}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.LanguageNote = "krátké věty";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("Note: krátké věty");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_RawLanguageNoteToken_NullSubstitutesEmptyString()
+    {
+        _options.WriteArticleUserPromptTemplate = "Note: {language_note}";
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.LanguageNote = null;
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Be("Note: ");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_DefaultTemplate_WithScopeAndLanguageNote_RendersBoth()
+    {
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.Scope = "deep-dive";
+        context.Article.LanguageNote = "krátké věty";
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Contain("Rozsah: deep-dive");
+        userMessage.Should().Contain("Tonalita: krátké věty");
+        userMessage.Should().NotContain("{scope}");
+        userMessage.Should().NotContain("{tone_note_line}");
+        userMessage.Should().NotContain("{language_note}");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_DefaultTemplate_WithoutLanguageNote_OmitsTonalitaLine()
+    {
+        IEnumerable<ChatMessage>? captured = null;
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((m, _, _) => captured = m)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var context = CreateContext();
+        context.Article.Scope = "overview";
+        context.Article.LanguageNote = null;
+
+        await CreateStep().ExecuteAsync(context, default);
+
+        var userMessage = captured!.Single(m => m.Role == ChatRole.User).Text;
+        userMessage.Should().Contain("Rozsah: overview");
+        userMessage.Should().NotContain("Tonalita");
+        userMessage.Should().NotContain("[Tone note");
+        userMessage.Should().NotContain("{tone_note_line}");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_RecorderPayload_IncludesScopeAndHasLanguageNoteFlag()
+    {
+        ArticleGenerationStep? recordedStep = null;
+        var repo = new Mock<IArticleRepository>();
+        repo.Setup(r => r.AddStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>()))
+            .Callback<ArticleGenerationStep, CancellationToken>((s, _) => recordedStep = s)
+            .Returns(Task.CompletedTask);
+        repo.Setup(r => r.UpdateStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var step = new WriteArticleStep(
+            _chat.Object,
+            Options.Create(_options),
+            NullLogger<WriteArticleStep>.Instance,
+            new PipelineStepRecorder(repo.Object));
+
+        var context = CreateContext();
+        context.Article.Scope = "deep-dive";
+        context.Article.LanguageNote = "krátké věty";
+
+        await step.ExecuteAsync(context, default);
+
+        recordedStep.Should().NotBeNull();
+        var payload = recordedStep!.InputJson ?? "";
+        payload.Should().Contain("\"scope\":\"deep-dive\"");
+        payload.Should().Contain("\"hasLanguageNote\":true");
+        payload.Should().NotContain("krátké věty"); // raw note text MUST NOT appear in payload
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_RecorderPayload_HasLanguageNoteFalseWhenAbsent()
+    {
+        ArticleGenerationStep? recordedStep = null;
+        var repo = new Mock<IArticleRepository>();
+        repo.Setup(r => r.AddStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>()))
+            .Callback<ArticleGenerationStep, CancellationToken>((s, _) => recordedStep = s)
+            .Returns(Task.CompletedTask);
+        repo.Setup(r => r.UpdateStepAsync(It.IsAny<ArticleGenerationStep>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        repo.Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+
+        _chat
+            .Setup(c => c.GetResponseAsync(
+                It.IsAny<IEnumerable<ChatMessage>>(),
+                It.IsAny<ChatOptions?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "{\"article_title\":\"T\",\"article_html\":\"<p>x</p>\",\"sources_used\":[]}")]));
+
+        var step = new WriteArticleStep(
+            _chat.Object,
+            Options.Create(_options),
+            NullLogger<WriteArticleStep>.Instance,
+            new PipelineStepRecorder(repo.Object));
+
+        var context = CreateContext();
+        context.Article.Scope = "overview";
+        context.Article.LanguageNote = "   ";
+
+        await step.ExecuteAsync(context, default);
+
+        recordedStep!.InputJson.Should().Contain("\"hasLanguageNote\":false");
+    }
+
+    [Fact]
     public async Task ExecuteAsync_OverriddenSystemPrompt_PassesOverriddenStringAsSystemMessage()
     {
         // Arrange

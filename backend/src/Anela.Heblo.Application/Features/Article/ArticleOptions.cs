@@ -63,9 +63,22 @@ public sealed class ArticleOptions
 
     public string WriteArticleUserPromptTemplate { get; set; } =
         """
-        Napiš článek na téma {topic} pro publikum {audience}.
-        Délka: {length}. Úhel pohledu: {angle}.
-        Využij tato fakta: {facts}
+        Napiš {length} článek v češtině.
+        Téma: {topic}
+        Publikum: {audience}
+        Úhel: {angle}
+        Rozsah: {scope}
+        {tone_note_line}
+
+        Fakta k využití:
+        {facts}
+
         {style_guide}
+
+        Požadavky:
+        - Piš výhradně v češtině
+        - Cituj zdroje přirozeně v textu
+        - Vrať validní HTML pro e-mail (bez <html>/<body>)
+        - Uváděj jen ty zdroje, které podporují konkrétní tvrzení
         """;
 }
