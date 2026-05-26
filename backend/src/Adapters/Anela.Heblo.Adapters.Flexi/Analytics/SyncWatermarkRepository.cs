@@ -3,7 +3,7 @@ using Anela.Heblo.Persistence.Analytics.Entities;
 
 namespace Anela.Heblo.Adapters.Flexi.Analytics;
 
-public class SyncWatermarkRepository : ISyncWatermarkRepository
+public sealed class SyncWatermarkRepository : ISyncWatermarkRepository
 {
     private readonly AnalyticsDbContext _dbContext;
 
