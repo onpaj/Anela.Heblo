@@ -197,12 +197,42 @@ public sealed class AzureBlobStorageService : IBlobStorageService
     }
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<string>> ListVirtualDirectoriesAsync(
+    public async Task<IReadOnlyList<string>> ListVirtualDirectoriesAsync(
         string containerName,
         CancellationToken cancellationToken = default)
     {
-        // Stub — real implementation lands in a later task to keep the diff scoped.
-        throw new NotImplementedException();
+        try
+        {
+            var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+            var prefixes = new List<string>();
+
+            // Named arguments avoid the SDK's positional ordering trap:
+            //   GetBlobsByHierarchyAsync(BlobTraits, BlobStates, string delimiter, string prefix, CancellationToken).
+            // We want the FIRST level only (delimiter "/") and the WHOLE container (prefix null).
+            // No GetOrCreateContainerAsync — matches ListBlobsAsync behaviour.
+            await foreach (var item in containerClient.GetBlobsByHierarchyAsync(
+                prefix: null,
+                delimiter: "/",
+                cancellationToken: cancellationToken))
+            {
+                if (item.IsPrefix)
+                {
+                    var name = item.Prefix;
+                    if (name.EndsWith('/'))
+                    {
+                        name = name[..^1];
+                    }
+                    prefixes.Add(name);
+                }
+            }
+
+            return prefixes.AsReadOnly();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing virtual directories in container {ContainerName}", containerName);
+            throw;
+        }
     }
 
     /// <summary>
