@@ -196,6 +196,15 @@ public sealed class AzureBlobStorageService : IBlobStorageService
         }
     }
 
+    /// <inheritdoc />
+    public Task<IReadOnlyList<string>> ListVirtualDirectoriesAsync(
+        string containerName,
+        CancellationToken cancellationToken = default)
+    {
+        // Stub — real implementation lands in a later task to keep the diff scoped.
+        throw new NotImplementedException();
+    }
+
     /// <summary>
     /// Wraps a blob streaming download to ensure the underlying Azure SDK response is disposed
     /// together with the content stream, preventing connection leaks.

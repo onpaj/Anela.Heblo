@@ -169,6 +169,12 @@ public class MockBlobStorageService : IBlobStorageService
         return new MemoryStream(content);
     }
 
+    public Task<IReadOnlyList<string>> ListVirtualDirectoriesAsync(string containerName, CancellationToken cancellationToken = default)
+    {
+        // Stub — real implementation lands in a later task.
+        throw new NotImplementedException();
+    }
+
     private static string GetContentTypeFromUrl(string url)
     {
         var extension = Path.GetExtension(new Uri(url).LocalPath).ToLowerInvariant();
