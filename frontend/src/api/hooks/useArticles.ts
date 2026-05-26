@@ -135,7 +135,7 @@ export const useListArticlesQuery = (params: ListArticlesParams = {}) => {
         id: item.id?.toString() ?? '',
         topic: item.topic ?? '',
         title: item.title ?? null,
-        status: (item.status as ArticleStatus) ?? ArticleStatus.Queued,
+        status: item.status ?? ArticleStatus.Queued,
         createdAt: item.createdAt?.toISOString() ?? '',
         generatedAt: item.generatedAt?.toISOString() ?? null,
       }));
@@ -160,7 +160,7 @@ export const useGetArticleQuery = (id: string | null) => {
         length: response.length ?? '',
         title: response.title ?? null,
         htmlContent: response.htmlContent ?? null,
-        status: (response.status as ArticleStatus) ?? ArticleStatus.Queued,
+        status: response.status ?? ArticleStatus.Queued,
         errorMessage: response.errorMessage ?? null,
         createdAt: response.createdAt?.toISOString() ?? '',
         generatedAt: response.generatedAt?.toISOString() ?? null,
