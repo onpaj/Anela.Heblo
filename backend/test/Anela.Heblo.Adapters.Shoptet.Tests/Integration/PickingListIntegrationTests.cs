@@ -2,6 +2,7 @@ using Anela.Heblo.Adapters.Shoptet.Tests.Integration.Infrastructure;
 using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.Application.Features.ShoptetOrders;
+using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 using FluentAssertions;

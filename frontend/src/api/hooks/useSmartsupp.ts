@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getClientAndBaseUrl, apiGet, apiPost } from "../smartsuppClient";
+import { QUERY_KEYS } from "../client";
 
 export interface ConversationSummaryDto {
   id: string;
@@ -247,7 +248,7 @@ export function useCloseConversation() {
         queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
       });
       queryClient.invalidateQueries({
-        queryKey: ["smartsupp", "conversations"],
+        queryKey: [...QUERY_KEYS.smartsupp, "conversations"],
       });
     },
   });
