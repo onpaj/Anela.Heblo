@@ -15,7 +15,8 @@ public static class AnalyticsPersistenceModule
         dataSourceBuilder.ConnectionStringBuilder.ConnectionLifetime = 600;
         var dataSource = dataSourceBuilder.Build();
 
-        services.AddSingleton(dataSource);
+        // Do not register dataSource as a bare NpgsqlDataSource singleton — it would shadow the main application pool
+        // and break EanCodeGenerator and health checks. Pass it only to AddDbContext via closure.
         services.AddDbContext<AnalyticsDbContext>(options => options.UseNpgsql(dataSource));
         return services;
     }
