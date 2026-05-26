@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -20,8 +21,27 @@ public class CloseConversationHandler : IRequestHandler<CloseConversationRequest
         _logger = logger;
     }
 
-    public Task<CloseConversationResponse> Handle(
+    public async Task<CloseConversationResponse> Handle(
         CloseConversationRequest request,
         CancellationToken cancellationToken)
-        => throw new NotImplementedException();
+    {
+        var conversation = await _repository.GetConversationAsync(request.ConversationId, cancellationToken);
+        if (conversation is null)
+            return new CloseConversationResponse(ErrorCodes.SmartsuppConversationNotFound);
+
+        try
+        {
+            await _apiClient.CloseConversationAsync(request.ConversationId, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TimeoutException
+                                       or ObjectDisposedException
+                                       || (ex is TaskCanceledException tce && tce.CancellationToken != cancellationToken))
+        {
+            _logger.LogWarning(ex, "Smartsupp API unavailable while closing conversation {ConversationId}",
+                request.ConversationId);
+            return new CloseConversationResponse(ErrorCodes.SmartsuppCloseConversationUnavailable);
+        }
+
+        return new CloseConversationResponse();
+    }
 }
