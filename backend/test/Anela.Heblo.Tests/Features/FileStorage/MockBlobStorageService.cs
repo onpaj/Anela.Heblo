@@ -171,6 +171,11 @@ public class MockBlobStorageService : IBlobStorageService
 
     public Task<IReadOnlyList<string>> ListVirtualDirectoriesAsync(string containerName, CancellationToken cancellationToken = default)
     {
+        if (_simulateErrors)
+        {
+            throw new InvalidOperationException("Simulated list virtual directories error");
+        }
+
         if (!_containers.ContainsKey(containerName))
         {
             IReadOnlyList<string> empty = new List<string>().AsReadOnly();

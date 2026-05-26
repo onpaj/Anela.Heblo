@@ -206,9 +206,9 @@ public sealed class AzureBlobStorageService : IBlobStorageService
             var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
             var prefixes = new List<string>();
 
-            // Named arguments avoid the SDK's positional ordering trap:
-            //   GetBlobsByHierarchyAsync(BlobTraits, BlobStates, string delimiter, string prefix, CancellationToken).
-            // We want the FIRST level only (delimiter "/") and the WHOLE container (prefix null).
+            // Use named arguments: the positional order is (BlobTraits, BlobStates, string delimiter, string prefix, CancellationToken),
+            // so a naive caller writing (null, "/") positionally would pass null as delimiter and "/" as prefix — the opposite of intent.
+            // Named arguments make the intent unambiguous.
             // No GetOrCreateContainerAsync — matches ListBlobsAsync behaviour.
             await foreach (var item in containerClient.GetBlobsByHierarchyAsync(
                 prefix: null,
