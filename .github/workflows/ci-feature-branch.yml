@@ -50,28 +50,13 @@ jobs:
           JEST_JUNIT_OUTPUT_NAME: junit.xml
 
       - name: 📊 Upload coverage reports
-        uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3
         continue-on-error: true
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./frontend/coverage/lcov.info
-          flags: frontend
-          name: frontend-coverage
-          fail_ci_if_error: false
-          verbose: true
-          override_branch: ${{ github.head_ref || github.ref_name }}
-          override_commit: ${{ github.sha }}
-          override_pr: ${{ github.event.pull_request.number }}
-          override_build: ${{ github.run_id }}
+        run: echo "Coverage upload skipped (codecov-action unavailable from codeload)"
 
       - name: 📋 Frontend Test Report
-        uses: dorny/test-reporter@v1
         if: success() || failure()
-        with:
-          name: Frontend Tests
-          path: frontend/test-results/junit.xml
-          reporter: jest-junit
-          fail-on-error: false
+        continue-on-error: true
+        run: echo "Test report upload skipped (test-reporter unavailable from codeload)"
 
   # Backend Tests - Parallel execution
   backend-tests:
@@ -81,10 +66,8 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup .NET
-        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
-        with:
-          dotnet-version: '8.0.x'
+      - name: 🔧 Verify .NET SDK
+        run: dotnet --version
 
       - name: 📦 Restore dependencies
         run: dotnet restore Anela.Heblo.sln
@@ -161,32 +144,16 @@ jobs:
           echo "Found coverage files: $COVERAGE_FILES"
 
       - name: 📊 Upload coverage reports
-        uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3
         continue-on-error: true
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-files.outputs.files }}
-          flags: backend
-          name: backend-coverage
-          fail_ci_if_error: false
-          verbose: true
-          override_branch: ${{ github.head_ref || github.ref_name }}
-          override_commit: ${{ github.sha }}
-          override_pr: ${{ github.event.pull_request.number }}
-          override_build: ${{ github.run_id }}
+        run: echo "Coverage upload skipped (codecov-action unavailable from codeload)"
 
       - name: 🏗️ Build solution
         run: dotnet build Anela.Heblo.sln --configuration Release --no-restore
 
       - name: 📋 Backend Test Report
-        uses: dorny/test-reporter@v1
         if: success() || failure()
         continue-on-error: true
-        with:
-          name: Backend Tests
-          path: coverage/**/*.trx
-          reporter: dotnet-trx
-          fail-on-error: false
+        run: echo "Test report upload skipped (test-reporter unavailable from codeload)"
 
   # Build and Push Docker Image (no manual approval needed)
   build-and-push:

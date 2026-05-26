@@ -18,8 +18,4 @@ public class ImportedMarketingTransactionRepository
             ct);
     }
 
-    public new async Task AddAsync(ImportedMarketingTransaction entity, CancellationToken ct)
-    {
-        await base.AddAsync(entity, ct);
-    }
 }
