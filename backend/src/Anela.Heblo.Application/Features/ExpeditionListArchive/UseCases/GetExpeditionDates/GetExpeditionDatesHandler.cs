@@ -18,13 +18,11 @@ public class GetExpeditionDatesHandler : IRequestHandler<GetExpeditionDatesReque
 
     public async Task<GetExpeditionDatesResponse> Handle(GetExpeditionDatesRequest request, CancellationToken cancellationToken)
     {
-        var blobs = await _blobStorageService.ListBlobsAsync(_containerName, null, cancellationToken);
+        var prefixes = await _blobStorageService.ListVirtualDirectoriesAsync(_containerName, cancellationToken);
 
-        var dates = blobs
-            .Select(b => b.Name.Split('/')[0])
+        var dates = prefixes
             .Where(IsValidDatePrefix)
-            .Distinct()
-            .OrderByDescending(d => d)
+            .OrderByDescending(d => d, StringComparer.Ordinal)
             .ToList();
 
         var totalCount = dates.Count;
