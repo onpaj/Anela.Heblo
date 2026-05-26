@@ -43,6 +43,7 @@ Every PR that adds a `trackEvent` call **must** add a row to this table in the s
 | `ManufactureOrderCreated` | `components/manufacture/pages/ManufactureOrderDetail.tsx` | `productCode: string` | — | Core workflow completion rate (triggered on order duplication). |
 | `PurchaseOrderSubmitted` | `components/pages/PurchaseOrderList.tsx` | `orderId: string` | — | Purchase pipeline volume. |
 | `FeatureFlagToggled` | `pages/FeatureFlagsAdminPage.tsx` | `flagKey: string`, `enabled: string` | — | Audit trail for admin flag changes. |
+| `ScreenViewed` | `frontend/src/telemetry/useScreenView.ts` (called from every screen component) | `module: string`, `screen: string`, `subScreen?: string` | — | Which screens and sub-screens (tabs, view-modes, wizard steps) do users actually visit, and how often? See [usage-analytics-coverage.md](./usage-analytics-coverage.md) for the canonical list. |
 
 ## Naming conventions
 
@@ -84,6 +85,21 @@ dashboard_users
 | where user_AuthenticatedId !in (photobank_users)
 | summarize count()
 ```
+
+### Screen + sub-screen usage in last 30 days
+
+```kusto
+customEvents
+| where timestamp > ago(30d) and name == "ScreenViewed"
+| summarize hits=count(),
+            users=dcount(user_AuthenticatedId)
+            by module=tostring(customDimensions.module),
+               screen=tostring(customDimensions.screen),
+               subScreen=tostring(customDimensions.subScreen)
+| order by hits desc
+```
+
+Cross-reference distinct `(module, screen, subScreen)` tuples against `usage-analytics-coverage.md` to find wiring gaps (rows checked but never seen in telemetry) and doc drift (events seen but missing from the doc).
 
 ## How to add a new event
 
