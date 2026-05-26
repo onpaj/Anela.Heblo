@@ -32,9 +32,9 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| CatalogList | `/catalog` | `components/pages/CatalogList.tsx` | — | `[ ] base` |
-| CatalogDetail | (modal from list) | `components/pages/CatalogDetail.tsx` | tabs: Basic, History, Margins, Composition, Journal, Usage, Documents, Pif; chartTabs: Input, Output | `[ ] base` `[ ] BasicTab` `[ ] HistoryTab` `[ ] MarginsTab` `[ ] CompositionTab` `[ ] JournalTab` `[ ] UsageTab` `[ ] DocumentsTab` `[ ] PifTab` `[ ] ChartInput` `[ ] ChartOutput` |
-| ProductMargins | `/products/margins` | `components/pages/ProductMarginsList.tsx` | — | `[ ] base` |
+| CatalogList | `/catalog` | `components/pages/CatalogList.tsx` | — | `[x] base` |
+| CatalogDetail | (modal from list) | `components/pages/CatalogDetail.tsx` | tabs: Basic, History, Margins, Composition, Journal, Usage, Documents, Pif; chartTabs: Input, Output | `[x] base` `[x] BasicTab` `[x] HistoryTab` `[x] MarginsTab` `[x] CompositionTab` `[x] JournalTab` `[x] UsageTab` `[x] DocumentsTab` `[x] PifTab` `[x] ChartInput` `[x] ChartOutput` |
+| ProductMargins | `/products/margins` | `components/pages/ProductMarginsList.tsx` | — | `[x] base` |
 
 ## Journal
 

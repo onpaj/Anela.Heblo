@@ -12,6 +12,7 @@ import {
 import { useProductMarginsQuery } from "../../api/hooks/useProductMargins";
 import CatalogDetail from "./CatalogDetail";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const ProductMarginsList: React.FC = () => {
   // Filter states - separate input values from applied filters
@@ -35,6 +36,8 @@ const ProductMarginsList: React.FC = () => {
     null,
   );
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  useScreenView('Catalog', 'ProductMargins');
 
   // Use the API call
   const {
