@@ -46,7 +46,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(false);
 
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
 
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
@@ -111,7 +111,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(false);
 
         _mockRepository.Setup(x => x.AddAsync(It.Is<ImportedMarketingTransaction>(t => t.TransactionId == "TX-001"), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
@@ -147,7 +147,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(false);
 
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
 
         // The single post-loop flush fails — none of the staged records are persisted
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -206,7 +206,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(false);
 
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
 
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
@@ -255,7 +255,7 @@ public class MarketingInvoiceImportServiceTests
         _mockRepository
             .Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
             .Callback<ImportedMarketingTransaction, CancellationToken>((entity, _) => captured = entity)
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
 
         _mockRepository
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
