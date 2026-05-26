@@ -113,8 +113,8 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| KnowledgeBase | `/knowledge-base` | `pages/KnowledgeBasePage.tsx` | tabs: Search, Documents, Upload | `[ ] base` `[ ] SearchTab` `[ ] DocumentsTab` `[ ] UploadTab` |
-| KnowledgeBaseFeedback | `/knowledge-base/feedback` | `pages/KnowledgeBaseFeedbackPage.tsx` | — | `[ ] base` |
+| KnowledgeBase | `/knowledge-base` | `pages/KnowledgeBasePage.tsx` | tabs: Search, Documents, Upload | `[x] base` `[x] SearchTab` `[x] DocumentsTab` `[x] UploadTab` |
+| KnowledgeBaseFeedback | `/knowledge-base/feedback` | `pages/KnowledgeBaseFeedbackPage.tsx` | — | `[x] base` |
 
 ## Admin
 
