@@ -235,6 +235,7 @@ const resources = {
         SmartsuppVisitorNotFound: "Návštěvník nebyl nalezen.",
         SmartsuppSendMessageUnavailable: "Odeslání zprávy selhalo. Zkuste to prosím znovu.",
         SmartsuppAgentMappingNotFound: "Váš uživatelský účet nemá přiřazený Smartsupp agent. Doplňte mapování v Smartsupp:AgentMap.",
+        SmartsuppCloseConversationUnavailable: "Uzavření konverzace se nezdařilo. Zkuste to prosím znovu.",
 
         // Inventory module errors
         LotNotFound: "Šarže nebyla nalezena.",
