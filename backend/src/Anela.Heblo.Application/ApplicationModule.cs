@@ -40,7 +40,6 @@ using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Application.Features.Packaging;
 using Anela.Heblo.Application.Features.UserManagement;
-using Anela.Heblo.Application.Features.Users;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -85,7 +84,6 @@ public static class ApplicationModule
         services.AddTransportModule();
         services.AddGiftPackageManufactureModule();
         services.AddUserManagement(configuration);
-        services.AddUsersModule();
         services.AddOrgChartServices(configuration);
         services.AddInvoiceClassificationModule();
         services.AddPackingMaterialsModule();
