@@ -21,6 +21,7 @@ import PurchaseOrderDetail from "./PurchaseOrderDetail";
 import PurchaseOrderForm from "./PurchaseOrderForm";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useTelemetry } from "../../telemetry/useTelemetry";
+import { useScreenView } from "../../telemetry/useScreenView";
 
 // Status labels mapping
 const statusLabels: Record<string, string> = {
@@ -67,6 +68,8 @@ const PurchaseOrderList: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editOrderId, setEditOrderId] = useState<number | null>(null);
+
+  useScreenView('Purchase', 'PurchaseOrderList');
 
   // Build request object
   const request: GetPurchaseOrdersRequest = {

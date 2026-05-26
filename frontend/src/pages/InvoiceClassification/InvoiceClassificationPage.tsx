@@ -16,12 +16,14 @@ import ClassificationHistoryPage from './ClassificationHistoryPage';
 import RulesList from './components/RulesList';
 import RuleForm from './components/RuleForm';
 import ClassificationStats from './components/ClassificationStats';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 type TabType = 'invoices' | 'rules';
 
 const InvoiceClassificationPage: React.FC = () => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('invoices');
+  useScreenView('Purchase', 'InvoiceClassification', activeTab === 'invoices' ? 'InvoicesTab' : 'RulesTab');
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingRule, setEditingRule] = useState<ClassificationRule | null>(null);

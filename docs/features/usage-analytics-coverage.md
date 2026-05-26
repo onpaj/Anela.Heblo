@@ -48,9 +48,9 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| PurchaseOrderList | `/purchase/orders` | `components/pages/PurchaseOrderList.tsx` | — | `[ ] base` |
-| PurchaseStockAnalysis | `/purchase/stock-analysis` | `components/pages/PurchaseStockAnalysis.tsx` | — | `[ ] base` |
-| InvoiceClassification | `/purchase/invoice-classification` | `pages/InvoiceClassification/InvoiceClassificationPage.tsx` | tabs: Invoices, Rules | `[ ] base` `[ ] InvoicesTab` `[ ] RulesTab` |
+| PurchaseOrderList | `/purchase/orders` | `components/pages/PurchaseOrderList.tsx` | — | `[x] base` |
+| PurchaseStockAnalysis | `/purchase/stock-analysis` | `components/pages/PurchaseStockAnalysis.tsx` | — | `[x] base` |
+| InvoiceClassification | `/purchase/invoice-classification` | `pages/InvoiceClassification/InvoiceClassificationPage.tsx` | tabs: Invoices, Rules | `[x] base` `[x] InvoicesTab` `[x] RulesTab` |
 
 ## Manufacturing
 
