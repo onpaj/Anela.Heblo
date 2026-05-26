@@ -304,7 +304,8 @@ Add to `appsettings.json`:
   "QueryPlannerSystemPrompt": "...",
   "AggregateFactsSystemPrompt": "...",
   "ValidateFactsSystemPrompt": "...",
-  "WriteArticleSystemPromptTemplate": "..."
+  "WriteArticleSystemPrompt": "...",
+  "WriteArticleUserPromptTemplate": "..."
 },
 "WebSearch": {
   "Provider": "SerpApi",
@@ -431,3 +432,29 @@ MediatR handlers are auto-discovered. Hangfire job is a regular class with `[Aut
 2. **API:** `curl POST /api/Articles/generate` with a JWT, poll `GET /api/Articles/{id}`, inspect `htmlContent` and `sources`.
 3. **Failure paths:** disable web-search key → article still generated from KB only; broken style-guide path → graceful fallback note.
 4. **Tests:** `dotnet test` passes all new test projects with ≥80% line coverage on the `Articles` slice.
+
+---
+
+## 23. Follow-ups
+
+### Resolve RequestedBy identifier → display name (UX)
+
+After 2026-05-25, `Article.RequestedBy` stores a stable Entra identifier
+(OID or email) instead of a display name. The feedback list and detail
+views currently render the raw value, which now appears as an opaque OID.
+
+**Affected frontend components:**
+- `frontend/src/components/feedback/GenericFeedbackDetailModal.tsx` — renders
+  `detail.userId` (maps from `Article.RequestedBy` via adapter) at line 51
+- `frontend/src/api/hooks/useArticles.ts` — passes through `requestedBy` OID
+  from backend to adapter
+
+**Fix scope:**
+- `backend/src/Anela.Heblo.Application/Features/Articles/UseCases/GetFeedback/GetArticleFeedbackListHandler.cs` —
+  resolve OID → display name via `IGraphService.GetGroupMembersAsync` (or similar identity resolution, cached) when projecting
+  `ArticleFeedbackSummary.RequestedBy`.
+- Frontend renderers consume the resolved name; no UI logic change required
+  if the backend swap is transparent.
+
+**Tracked separately** from the ownership/security fix that introduced the
+regression.

@@ -3,11 +3,10 @@ using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Security.Claims;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Manufacture;
@@ -17,7 +16,7 @@ public class UpdateManufactureOrderStatusHandlerTests
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
     private readonly Mock<IManufacturedProductInventoryRepository> _inventoryRepositoryMock;
     private readonly Mock<ILogger<UpdateManufactureOrderStatusHandler>> _loggerMock;
-    private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<IConditionsReadingProvider> _conditionsProviderMock;
     private readonly UpdateManufactureOrderStatusHandler _handler;
 
@@ -31,23 +30,16 @@ public class UpdateManufactureOrderStatusHandlerTests
         _repositoryMock = new Mock<IManufactureOrderRepository>();
         _inventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
         _loggerMock = new Mock<ILogger<UpdateManufactureOrderStatusHandler>>();
-        _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
         _conditionsProviderMock = new Mock<IConditionsReadingProvider>();
 
-        // Setup HTTP context with user
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.Name, TestUserName)
-        };
-        var identity = new ClaimsIdentity(claims, "test");
-        var principal = new ClaimsPrincipal(identity);
-
-        var httpContext = new Mock<HttpContext>();
-        httpContext.Setup(x => x.User).Returns(principal);
-
-        _httpContextAccessorMock
-            .Setup(x => x.HttpContext)
-            .Returns(httpContext.Object);
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(
+                Id: "test-id",
+                Name: TestUserName,
+                Email: "test@example.com",
+                IsAuthenticated: true));
 
         _conditionsProviderMock
             .Setup(x => x.GetCurrentSnapshotAsync(It.IsAny<CancellationToken>()))
@@ -61,7 +53,7 @@ public class UpdateManufactureOrderStatusHandlerTests
             _repositoryMock.Object,
             TimeProvider.System,
             _loggerMock.Object,
-            _httpContextAccessorMock.Object,
+            _currentUserServiceMock.Object,
             _conditionsProviderMock.Object,
             _inventoryRepositoryMock.Object);
     }
@@ -192,11 +184,15 @@ public class UpdateManufactureOrderStatusHandlerTests
 
 
     [Fact]
-    public async Task Handle_WithoutHttpContext_ShouldUseSystemAsUser()
+    public async Task Handle_UnauthenticatedUser_ShouldUseSystemAsUser()
     {
-        _httpContextAccessorMock
-            .Setup(x => x.HttpContext)
-            .Returns((HttpContext?)null);
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(
+                Id: null,
+                Name: null,
+                Email: null,
+                IsAuthenticated: false));
 
         var request = new UpdateManufactureOrderStatusRequest
         {
@@ -227,6 +223,53 @@ public class UpdateManufactureOrderStatusHandlerTests
 
         updatedOrder.Should().NotBeNull();
         updatedOrder!.StateChangedByUser.Should().Be("System");
+    }
+
+    [Fact]
+    public async Task Handle_AuthenticatedUserWithoutNameClaim_ShouldRecordUnknownUserNotSystem()
+    {
+        // Entra ID access tokens frequently omit the Name/upn claim used by Identity.Name.
+        // Before the refactor this case fell through to "System" (the bug). Per spec FR-4
+        // (Amendment 1a), the handler should now stamp "Unknown User" for an authenticated
+        // principal whose Name is null.
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(
+                Id: "abc123",
+                Name: null,
+                Email: "user@example.com",
+                IsAuthenticated: true));
+
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.Planned
+        };
+
+        var existingOrder = CreateOrderInState(ManufactureOrderState.Draft);
+        ManufactureOrder? updatedOrder = null;
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingOrder);
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
+            {
+                updatedOrder = order;
+                return order;
+            });
+
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result.Success.Should().BeTrue();
+        result.StateChangedByUser.Should().Be("Unknown User");
+        result.StateChangedByUser.Should().NotBe("System");
+
+        updatedOrder.Should().NotBeNull();
+        updatedOrder!.StateChangedByUser.Should().Be("Unknown User");
     }
 
     [Fact]

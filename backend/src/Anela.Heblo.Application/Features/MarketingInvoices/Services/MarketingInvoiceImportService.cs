@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.MarketingInvoices.Services;
 
-public class MarketingInvoiceImportService
+public class MarketingInvoiceImportService : IMarketingInvoiceImportService
 {
     private readonly IImportedMarketingTransactionRepository _repository;
     private readonly ILogger<MarketingInvoiceImportService> _logger;

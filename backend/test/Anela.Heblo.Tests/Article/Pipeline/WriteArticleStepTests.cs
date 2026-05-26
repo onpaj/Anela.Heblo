@@ -220,4 +220,46 @@ public class WriteArticleStepTests
         context.GeneratedHtml.Should().NotContain("<script>");
         context.GeneratedHtml.Should().Contain("&lt;script&gt;");
     }
+
+    [Fact]
+    public async Task ExecuteAsync_OverriddenSystemPrompt_PassesOverriddenStringAsSystemMessage()
+    {
+        // Arrange
+        const string customPrompt = "CUSTOM SYSTEM PROMPT FOR TEST";
+        _options.WriteArticleSystemPrompt = customPrompt;
+        SetupChatResponse("""{"article_title":"T","article_html":"<p>x</p>","sources_used":[]}""");
+
+        // Act
+        await CreateStep().ExecuteAsync(CreateContext(), default);
+
+        // Assert
+        _chat.Verify(c => c.GetResponseAsync(
+            It.Is<IEnumerable<ChatMessage>>(msgs =>
+                msgs.Any(m => m.Role == ChatRole.System && m.Text == customPrompt)),
+            It.IsAny<ChatOptions?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithStyleGuide_SystemMessageWrapsStyleGuideAroundSystemPrompt()
+    {
+        // Arrange
+        _options.WriteArticleSystemPrompt = "BASE PROMPT";
+        SetupChatResponse("""{"article_title":"T","article_html":"<p>x</p>","sources_used":[]}""");
+        var context = CreateContext();
+        context.StyleGuideText = "Use a friendly tone.";
+        const string expected = "STYLE GUIDE — follow this exactly:\nUse a friendly tone.\n\nBASE PROMPT";
+
+        // Act
+        await CreateStep().ExecuteAsync(context, default);
+
+        // Assert
+        _chat.Verify(c => c.GetResponseAsync(
+            It.Is<IEnumerable<ChatMessage>>(msgs =>
+                msgs.Any(m => m.Role == ChatRole.System && m.Text == expected)),
+            It.IsAny<ChatOptions?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }

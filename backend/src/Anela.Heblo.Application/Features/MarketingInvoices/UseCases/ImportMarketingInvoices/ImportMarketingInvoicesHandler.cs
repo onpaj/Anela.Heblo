@@ -9,12 +9,12 @@ public class ImportMarketingInvoicesHandler
     : IRequestHandler<ImportMarketingInvoicesRequest, ImportMarketingInvoicesResponse>
 {
     private readonly IEnumerable<IMarketingTransactionSource> _sources;
-    private readonly MarketingInvoiceImportService _importService;
+    private readonly IMarketingInvoiceImportService _importService;
     private readonly ILogger<ImportMarketingInvoicesHandler> _logger;
 
     public ImportMarketingInvoicesHandler(
         IEnumerable<IMarketingTransactionSource> sources,
-        MarketingInvoiceImportService importService,
+        IMarketingInvoiceImportService importService,
         ILogger<ImportMarketingInvoicesHandler> logger)
     {
         _sources = sources ?? throw new ArgumentNullException(nameof(sources));

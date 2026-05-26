@@ -16,12 +16,12 @@ export function useArticleFeedbackAdapter(params: GenericFeedbackParams) {
     id: article.id,
     primaryText: article.title ?? article.topic,
     secondaryText: article.topic,
-    createdAt: article.generatedAt ?? '',
+    createdAt: article.createdAt ?? '',
     userId: article.requestedBy,
     precisionScore: article.precisionScore,
     styleScore: article.styleScore,
-    hasFeedback: article.hasFeedback,
-    feedbackComment: article.feedbackComment,
+    hasFeedback: article.hasComment,
+    feedbackComment: null,
   }));
 
   const stats: GenericFeedbackStats | undefined = query.data?.stats
