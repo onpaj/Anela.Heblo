@@ -7,8 +7,12 @@ public class AnalyticsDbContextFactory : IDesignTimeDbContextFactory<AnalyticsDb
 {
     public AnalyticsDbContext CreateDbContext(string[] args)
     {
+        var connectionString =
+            Environment.GetEnvironmentVariable("AnalyticsDatabase__ConnectionString")
+            ?? "Host=localhost;Database=anela_analytics;Username=postgres";
+
         var options = new DbContextOptionsBuilder<AnalyticsDbContext>()
-            .UseNpgsql("Host=localhost;Database=anela_analytics;Username=postgres")
+            .UseNpgsql(connectionString)
             .Options;
         return new AnalyticsDbContext(options);
     }
