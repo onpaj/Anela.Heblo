@@ -86,6 +86,7 @@ async function apiFetch(apiClient: Parameters<typeof apiGet>[0], url: string): P
 
 export const SMARTSUPP_QUERY_KEYS = {
   conversations: (status: string) => ["smartsupp", "conversations", status] as const,
+  conversationsAll: () => ["smartsupp", "conversations"] as const,
   conversation: (id: string) => ["smartsupp", "conversation", id] as const,
   shoptetInfo: (id: string) => ["smartsupp", "shoptet-info", id] as const,
   visitorInfo: (id: string) => ["smartsupp", "visitor-info", id] as const,
@@ -247,7 +248,7 @@ export function useCloseConversation() {
         queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
       });
       queryClient.invalidateQueries({
-        queryKey: ["smartsupp", "conversations"],
+        queryKey: SMARTSUPP_QUERY_KEYS.conversationsAll(),
       });
     },
   });
