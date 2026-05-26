@@ -30,6 +30,8 @@ public interface ISmartsuppApiClient
         CancellationToken cancellationToken);
 
     Task<IReadOnlyList<SmartsuppAgentData>> GetAgentsAsync(CancellationToken cancellationToken);
+
+    Task CloseConversationAsync(string conversationId, CancellationToken cancellationToken);
 }
 
 public class SmartsuppSearchResult

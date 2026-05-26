@@ -436,4 +436,65 @@ public class SmartsuppApiClientTests
 
         await act.Should().ThrowAsync<HttpRequestException>();
     }
+
+    [Fact]
+    public async Task CloseConversationAsync_SendsPatchWithClosedStatus()
+    {
+        // Arrange
+        string? capturedUrl = null;
+        string? capturedMethod = null;
+        string? capturedBody = null;
+        string? capturedAuth = null;
+
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            {
+                capturedUrl = req.RequestUri?.ToString();
+                capturedMethod = req.Method.Method;
+                capturedBody = await req.Content!.ReadAsStringAsync();
+                capturedAuth = req.Headers.Authorization?.ToString();
+            })
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handler.Object);
+
+        // Act
+        await client.CloseConversationAsync("conv-abc", CancellationToken.None);
+
+        // Assert
+        capturedUrl.Should().Contain("conversations/conv-abc");
+        capturedMethod.Should().Be("PATCH");
+        capturedBody.Should().Contain("closed");
+        capturedAuth.Should().StartWith("Bearer test-token");
+    }
+
+    [Fact]
+    public async Task CloseConversationAsync_ThrowsHttpRequestException_OnNon2xx()
+    {
+        // Arrange
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+            {
+                Content = new StringContent("{\"error\":\"unavailable\"}", Encoding.UTF8, "application/json")
+            });
+
+        var client = CreateClient(handler.Object, ResiliencePipeline.Empty);
+
+        // Act
+        Func<Task> act = () => client.CloseConversationAsync("conv-abc", CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
 }
