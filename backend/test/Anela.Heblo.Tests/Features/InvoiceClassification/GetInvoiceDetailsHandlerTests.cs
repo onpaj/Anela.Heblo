@@ -25,7 +25,7 @@ public class GetInvoiceDetailsHandlerTests
         // Arrange
         var clientMock = new Mock<IReceivedInvoicesClient>();
         clientMock.Setup(c => c.GetInvoiceByIdAsync("missing"))
-                  .ReturnsAsync((ReceivedInvoiceDto?)null);
+                  .ReturnsAsync((ReceivedInvoice?)null);
 
         var handler = new GetInvoiceDetailsHandler(
             clientMock.Object,
@@ -46,7 +46,7 @@ public class GetInvoiceDetailsHandlerTests
     public async Task Handle_WhenInvoiceFound_MapsToApplicationContract()
     {
         // Arrange
-        var domainInvoice = new ReceivedInvoiceDto
+        var domainInvoice = new ReceivedInvoice
         {
             InvoiceNumber = "FV-001",
             CompanyName = "Acme",

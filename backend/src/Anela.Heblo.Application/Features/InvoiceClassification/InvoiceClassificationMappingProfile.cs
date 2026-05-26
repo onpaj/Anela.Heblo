@@ -18,14 +18,8 @@ public class InvoiceClassificationMappingProfile : Profile
         CreateMap<ClassificationStatistics, ClassificationStatisticsDto>();
         CreateMap<RuleUsageStatistic, RuleUsageStatisticDto>();
 
-        // Domain → Application contracts (Step A of the InvoiceClassification DTO separation).
-        // Source types use their current Domain names; they will be renamed in Task 8
-        // and the source side of these maps will be updated then.
-        CreateMap<Domain.Features.InvoiceClassification.AccountingTemplateDto,
-                  Contracts.AccountingTemplateDto>();
-        CreateMap<Domain.Features.InvoiceClassification.ReceivedInvoiceItemDto,
-                  Contracts.ReceivedInvoiceItemDto>();
-        CreateMap<Domain.Features.InvoiceClassification.ReceivedInvoiceDto,
-                  Contracts.ReceivedInvoiceDto>();
+        CreateMap<AccountingTemplate, AccountingTemplateDto>();
+        CreateMap<ReceivedInvoiceItem, ReceivedInvoiceItemDto>();
+        CreateMap<ReceivedInvoice, ReceivedInvoiceDto>();
     }
 }

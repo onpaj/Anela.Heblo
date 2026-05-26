@@ -8,7 +8,7 @@ public class DescriptionClassificationRule : IClassificationRule
     public string DisplayName => "Popis faktury";
     public string Description => "Regex nebo text v popisu faktury";
 
-    public bool Evaluate(ReceivedInvoiceDto invoice, string pattern)
+    public bool Evaluate(ReceivedInvoice invoice, string pattern)
     {
         if (string.IsNullOrWhiteSpace(invoice.Description) || string.IsNullOrWhiteSpace(pattern))
             return false;

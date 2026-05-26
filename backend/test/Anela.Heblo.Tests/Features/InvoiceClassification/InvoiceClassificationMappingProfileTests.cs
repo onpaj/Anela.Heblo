@@ -24,7 +24,7 @@ public class InvoiceClassificationMappingProfileTests
     [Fact]
     public void Map_AccountingTemplate_To_Dto_PreservesAllFields()
     {
-        var source = new DomainTypes.AccountingTemplateDto
+        var source = new DomainTypes.AccountingTemplate
         {
             Code = "ACC-001",
             Name = "Office supplies",
@@ -43,7 +43,7 @@ public class InvoiceClassificationMappingProfileTests
     [Fact]
     public void Map_ReceivedInvoice_To_Dto_PreservesAllFields()
     {
-        var source = new DomainTypes.ReceivedInvoiceDto
+        var source = new DomainTypes.ReceivedInvoice
         {
             InvoiceNumber = "FV-2026-001",
             CompanyName = "Acme s.r.o.",
@@ -55,7 +55,7 @@ public class InvoiceClassificationMappingProfileTests
             AccountingTemplateCode = "ACC-001",
             DepartmentCode = "OPS",
             Labels = new[] { "auto", "review" },
-            Items = new List<DomainTypes.ReceivedInvoiceItemDto>
+            Items = new List<DomainTypes.ReceivedInvoiceItem>
             {
                 new() { Code = "ITEM-1", Name = "Paper A4", Amount = 100m },
                 new() { Code = "ITEM-2", Name = "Pens",     Amount = 50m  },
@@ -86,7 +86,7 @@ public class InvoiceClassificationMappingProfileTests
     [Fact]
     public void Map_ReceivedInvoiceItem_To_Dto_PreservesAllFields()
     {
-        var source = new DomainTypes.ReceivedInvoiceItemDto
+        var source = new DomainTypes.ReceivedInvoiceItem
         {
             Code = "ITEM-X",
             Name = "Widget",

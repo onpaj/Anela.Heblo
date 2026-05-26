@@ -1,6 +1,6 @@
 namespace Anela.Heblo.Domain.Features.InvoiceClassification;
 
-public class AccountingTemplateDto
+public class AccountingTemplate
 {
     public string Code { get; set; } = string.Empty;
 
