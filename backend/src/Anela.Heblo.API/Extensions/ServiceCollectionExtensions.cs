@@ -24,6 +24,7 @@ using Anela.Heblo.Adapters.Cups.Features.ExpeditionList;
 using Anela.Heblo.API.Features.ExpeditionList;
 using Anela.Heblo.API.PDFPrints;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
 
 namespace Anela.Heblo.API.Extensions;

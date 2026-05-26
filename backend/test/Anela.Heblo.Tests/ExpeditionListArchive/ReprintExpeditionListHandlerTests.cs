@@ -1,6 +1,6 @@
 using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.ReprintExpeditionList;
-using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Options;
 using Moq;
