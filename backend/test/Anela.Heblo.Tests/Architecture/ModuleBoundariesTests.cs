@@ -265,6 +265,45 @@ public class ModuleBoundariesTests
             "Found:\n  " + string.Join("\n  ", violations));
     }
 
+    [Fact]
+    public void Application_types_should_not_reference_AspNetCore_namespaces()
+    {
+        // NFR-3 from spec 2026-05-26: the Application layer must remain free of any
+        // Microsoft.AspNetCore.* type references. CurrentUserService was relocated to
+        // the API project to enforce this. This test prevents regression.
+        const string ApplicationNamespacePrefix = "Anela.Heblo.Application";
+        const string ForbiddenPrefix = "Microsoft.AspNetCore";
+
+        var assembly = Assembly.Load("Anela.Heblo.Application");
+        var applicationTypes = assembly.GetTypes()
+            .Where(t => t.Namespace is not null
+                && t.Namespace.StartsWith(ApplicationNamespacePrefix, StringComparison.Ordinal))
+            .ToList();
+
+        var violations = new List<string>();
+
+        foreach (var applicationType in applicationTypes)
+        {
+            foreach (var (referencedType, memberDescription) in EnumerateReferencedTypes(applicationType))
+            {
+                if (referencedType.Namespace is null)
+                    continue;
+
+                if (!referencedType.Namespace.Equals(ForbiddenPrefix, StringComparison.Ordinal)
+                    && !referencedType.Namespace.StartsWith(ForbiddenPrefix + ".", StringComparison.Ordinal))
+                    continue;
+
+                violations.Add($"{applicationType.FullName} -> {referencedType.FullName} (via {memberDescription})");
+            }
+        }
+
+        violations.Should().BeEmpty(
+            "Application layer must not reference Microsoft.AspNetCore.* types. " +
+            "Move ASP.NET Core-dependent code to the API or Infrastructure layer and " +
+            "expose it through a framework-neutral abstraction in Domain or Application. " +
+            "Found:\n  " + string.Join("\n  ", violations));
+    }
+
     private static bool IsForbidden(Type type, IReadOnlyList<string> forbiddenPrefixes)
     {
         if (type.Namespace is null)
