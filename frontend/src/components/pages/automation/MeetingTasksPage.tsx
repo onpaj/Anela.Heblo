@@ -7,6 +7,7 @@ import {
   useMeetingTasksList,
 } from "../../../api/hooks/useMeetingTasks";
 import { PAGE_CONTAINER_HEIGHT } from "../../../constants/layout";
+import { useScreenView } from "../../../telemetry/useScreenView";
 
 const PAGE_SIZE = 20;
 
@@ -61,6 +62,7 @@ function StatusBadge({ status }: StatusBadgeProps) {
 }
 
 const MeetingTasksPage: React.FC = () => {
+  useScreenView('Automation', 'MeetingTasks');
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);

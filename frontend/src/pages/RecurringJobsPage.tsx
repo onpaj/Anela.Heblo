@@ -3,8 +3,10 @@ import { Clock, RefreshCw, AlertCircle, ToggleLeft, ToggleRight, Play, Pencil, C
 import { useRecurringJobsQuery, useUpdateRecurringJobStatusMutation, useTriggerRecurringJobMutation, useUpdateRecurringJobCronMutation, RecurringJobDto } from '../api/hooks/useRecurringJobs';
 import { LoadingIndicator } from '../components/ui/LoadingIndicator';
 import ConfirmTriggerJobDialog from '../components/dialogs/ConfirmTriggerJobDialog';
+import { useScreenView } from '../telemetry/useScreenView';
 
 const RecurringJobsPage: React.FC = () => {
+  useScreenView('Automation', 'RecurringJobs');
   const { data: jobs, isLoading, error, refetch } = useRecurringJobsQuery();
   const updateJobStatus = useUpdateRecurringJobStatusMutation();
   const triggerJob = useTriggerRecurringJobMutation();

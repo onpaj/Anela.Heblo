@@ -101,13 +101,13 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| BackgroundTasks | `/automation/background-tasks` | `components/pages/automation/BackgroundTasks.tsx` | — | `[ ] base` |
-| InvoiceImportStatistics | `/automation/invoice-import-statistics` | `components/pages/automation/InvoiceImportStatistics.tsx` | — | `[ ] base` |
-| MeetingTasks | `/automation/meeting-tasks` | `components/pages/automation/MeetingTasksPage.tsx` | — | `[ ] base` |
-| MeetingTaskDetail | `/automation/meeting-tasks/:id` | `components/pages/automation/MeetingTaskDetailPage.tsx` | — | `[ ] base` |
-| StockOperations | `/stock-up-operations` | `pages/StockOperationsPage.tsx` | — | `[ ] base` |
-| RecurringJobs | `/recurring-jobs` | `pages/RecurringJobsPage.tsx` | — | `[ ] base` |
-| DataQuality | `/automation/data-quality` | `pages/customer/DataQualityPage.tsx` | — | `[ ] base` |
+| BackgroundTasks | `/automation/background-tasks` | `components/pages/automation/BackgroundTasks.tsx` | — | `[x] base` |
+| InvoiceImportStatistics | `/automation/invoice-import-statistics` | `components/pages/automation/InvoiceImportStatistics.tsx` | — | `[x] base` |
+| MeetingTasks | `/automation/meeting-tasks` | `components/pages/automation/MeetingTasksPage.tsx` | — | `[x] base` |
+| MeetingTaskDetail | `/automation/meeting-tasks/:id` | `components/pages/automation/MeetingTaskDetailPage.tsx` | — | `[x] base` |
+| StockOperations | `/stock-up-operations` | `pages/StockOperationsPage.tsx` | — | `[x] base` |
+| RecurringJobs | `/recurring-jobs` | `pages/RecurringJobsPage.tsx` | — | `[x] base` |
+| DataQuality | `/automation/data-quality` | `pages/customer/DataQualityPage.tsx` | — | `[x] base` |
 
 ## Knowledge
 
