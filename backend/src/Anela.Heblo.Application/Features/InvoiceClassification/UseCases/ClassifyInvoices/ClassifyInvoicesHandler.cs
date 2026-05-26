@@ -31,7 +31,7 @@ public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, 
 
         try
         {
-            List<ReceivedInvoiceDto> invoicesToClassify;
+            List<ReceivedInvoice> invoicesToClassify;
 
             if (request.InvoiceIds != null && request.InvoiceIds.Count > 0)
             {
@@ -39,7 +39,7 @@ public class ClassifyInvoicesHandler : IRequestHandler<ClassifyInvoicesRequest, 
                 var fetchTasks = request.InvoiceIds.Select(id => _invoicesClient.GetInvoiceByIdAsync(id)).ToList();
                 var fetchedInvoices = await Task.WhenAll(fetchTasks);
 
-                invoicesToClassify = new List<ReceivedInvoiceDto>();
+                invoicesToClassify = new List<ReceivedInvoice>();
                 for (var i = 0; i < request.InvoiceIds.Count; i++)
                 {
                     var invoice = fetchedInvoices[i];
