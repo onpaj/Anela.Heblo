@@ -15,7 +15,10 @@ export function useScreenView(
       properties.subScreen = subScreen;
     }
     trackEvent('ScreenViewed', properties);
-    // trackEvent is stable per useTelemetry contract; intentionally excluded
+    // trackEvent identity is not stable across renders (useTelemetry returns a
+    // fresh object literal each call); including it would re-fire the effect on
+    // every render. The effect should only re-fire when module/screen/subScreen
+    // changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [module, screen, subScreen]);
 }
