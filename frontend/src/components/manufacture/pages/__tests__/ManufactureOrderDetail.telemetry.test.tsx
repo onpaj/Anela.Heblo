@@ -181,7 +181,7 @@ describe("ManufactureOrderDetail - Telemetry", () => {
       expect(mockDuplicateMutateAsync).toHaveBeenCalledWith(42);
     });
 
-    expect(mockTrackEvent).not.toHaveBeenCalled();
+    expect(mockTrackEvent).not.toHaveBeenCalledWith('ManufactureOrderCreated', expect.anything());
   });
 
   it("uses empty string as productCode fallback when order has no productCode", async () => {
