@@ -634,6 +634,6 @@ public class SmartsuppApiClient : ISmartsuppApiClient
 
     private sealed class CloseConversationApiRequest
     {
-        public string Status { get; init; } = null!;
+        public required string Status { get; init; }
     }
 }
