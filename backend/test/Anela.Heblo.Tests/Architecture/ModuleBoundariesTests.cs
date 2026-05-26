@@ -147,6 +147,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Catalog",
             },
             Allowlist: PurchaseAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "ExpeditionListArchive -> ExpeditionList",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.ExpeditionListArchive",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.ExpeditionList",
+                "Anela.Heblo.Application.Features.ExpeditionList",
+                "Anela.Heblo.Persistence.ExpeditionList",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
     };
 
     [Theory]
