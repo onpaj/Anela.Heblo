@@ -148,8 +148,9 @@ public sealed class LedgerSyncService
         Currency = dto.CurrencyRef,
         CostCenter = dto.DepartmentRef,
         Description = dto.Description,
-        // SDK 0.1.136: LastUpdate is DateTimeOffset?
-        LastModified = dto.LastUpdate,
+        LastModified = dto.LastUpdate?.ToUniversalTime(),
+        // Period, DocumentType, Contact, AccountingTemplate: SDK 0.1.136 does not expose these fields yet;
+        // wire them when the SDK adds PeriodRef / DocumentTypeRef / ContactRef / AccountingTemplateRef.
         RawPayload = SerializeRaw(dto),
         SyncedAt = DateTimeOffset.UtcNow,
     };
