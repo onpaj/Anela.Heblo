@@ -62,7 +62,7 @@ jobs:
           echo "SHA: ${{ github.event.pull_request.head.sha }}"
 
       - name: 🤖 Run Claude Code Review
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@de8e0b9c42c6cb58e904c857f164aa072244c1ac # beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           pr_number: ${{ github.event.pull_request.number }}

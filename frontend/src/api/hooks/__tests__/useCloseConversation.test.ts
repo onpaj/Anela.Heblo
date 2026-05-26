@@ -10,6 +10,9 @@ jest.mock("../../client", () => ({
     baseUrl: "http://localhost:5001",
     http: { fetch: mockFetch },
   }),
+  QUERY_KEYS: {
+    smartsupp: ["smartsupp"],
+  },
 }));
 
 function wrapper({ children }: { children: React.ReactNode }) {

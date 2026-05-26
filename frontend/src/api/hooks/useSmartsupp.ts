@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getClientAndBaseUrl, apiGet, apiPost } from "../smartsuppClient";
+import { QUERY_KEYS } from "../client";
 
 export interface ConversationSummaryDto {
   id: string;
@@ -86,7 +87,6 @@ async function apiFetch(apiClient: Parameters<typeof apiGet>[0], url: string): P
 
 export const SMARTSUPP_QUERY_KEYS = {
   conversations: (status: string) => ["smartsupp", "conversations", status] as const,
-  conversationsAll: () => ["smartsupp", "conversations"] as const,
   conversation: (id: string) => ["smartsupp", "conversation", id] as const,
   shoptetInfo: (id: string) => ["smartsupp", "shoptet-info", id] as const,
   visitorInfo: (id: string) => ["smartsupp", "visitor-info", id] as const,
@@ -248,7 +248,7 @@ export function useCloseConversation() {
         queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
       });
       queryClient.invalidateQueries({
-        queryKey: SMARTSUPP_QUERY_KEYS.conversationsAll(),
+        queryKey: [...QUERY_KEYS.smartsupp, "conversations"],
       });
     },
   });
