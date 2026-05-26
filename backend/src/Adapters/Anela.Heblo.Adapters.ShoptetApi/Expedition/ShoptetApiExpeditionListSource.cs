@@ -28,7 +28,7 @@ public class ShoptetApiExpeditionListSource : IPickingListSource
     private readonly Func<ExpeditionProtocolData, byte[]> _generateDocument;
 
     private const string CoolingMarkerValue = "CHLAZENE";
-    private const int CoolingAdditionalFieldIndex = 1;
+    private const int CoolingAdditionalFieldIndex = 6;
 
     public ShoptetApiExpeditionListSource(
         IEshopOrderClient client,
