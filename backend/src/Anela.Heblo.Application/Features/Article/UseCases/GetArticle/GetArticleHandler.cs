@@ -39,7 +39,7 @@ public sealed class GetArticleHandler : IRequestHandler<GetArticleRequest, GetAr
             Length = article.Length,
             Title = article.Title,
             HtmlContent = article.HtmlContent,
-            Status = article.Status.ToString(),
+            Status = article.Status,
             ErrorMessage = article.ErrorMessage,
             CreatedAt = article.CreatedAt,
             GeneratedAt = article.GeneratedAt,

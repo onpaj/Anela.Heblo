@@ -80,11 +80,10 @@ export interface ArticleFeedbackSummary {
   topic: string;
   title: string | null;
   requestedBy: string;
-  generatedAt: string | null;
+  createdAt: string | null;
   precisionScore: number | null;
   styleScore: number | null;
-  feedbackComment: string | null;
-  hasFeedback: boolean;
+  hasComment: boolean;
 }
 
 export interface ArticleFeedbackStats {
@@ -136,7 +135,7 @@ export const useListArticlesQuery = (params: ListArticlesParams = {}) => {
         id: item.id?.toString() ?? '',
         topic: item.topic ?? '',
         title: item.title ?? null,
-        status: (item.status as ArticleStatus) ?? ArticleStatus.Queued,
+        status: item.status ?? ArticleStatus.Queued,
         createdAt: item.createdAt?.toISOString() ?? '',
         generatedAt: item.generatedAt?.toISOString() ?? null,
       }));
@@ -161,7 +160,7 @@ export const useGetArticleQuery = (id: string | null) => {
         length: response.length ?? '',
         title: response.title ?? null,
         htmlContent: response.htmlContent ?? null,
-        status: (response.status as ArticleStatus) ?? ArticleStatus.Queued,
+        status: response.status ?? ArticleStatus.Queued,
         errorMessage: response.errorMessage ?? null,
         createdAt: response.createdAt?.toISOString() ?? '',
         generatedAt: response.generatedAt?.toISOString() ?? null,
@@ -270,14 +269,10 @@ export const useArticleFeedbackListQuery = (params: ArticleFeedbackListParams = 
           topic: item.topic ?? '',
           title: item.title ?? null,
           requestedBy: item.requestedBy ?? '',
-          generatedAt: item.createdAt?.toISOString() ?? null,
+          createdAt: item.createdAt?.toISOString() ?? null,
           precisionScore: item.precisionScore ?? null,
           styleScore: item.styleScore ?? null,
-          // Backend list endpoint never emits a per-item feedback comment
-          // (only the boolean hasComment), so projecting null here is exact
-          // behavior preservation, not data loss.
-          feedbackComment: null,
-          hasFeedback: item.hasComment ?? false,
+          hasComment: item.hasComment ?? false,
         })),
         totalCount: data.totalCount ?? 0,
         page: data.page ?? params.page ?? 1,

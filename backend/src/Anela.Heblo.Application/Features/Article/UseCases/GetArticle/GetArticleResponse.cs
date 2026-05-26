@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Article;
 
 namespace Anela.Heblo.Application.Features.Article.UseCases.GetArticle;
 
@@ -12,7 +13,7 @@ public sealed class GetArticleResponse : BaseResponse
     public string Length { get; set; } = string.Empty;
     public string? Title { get; set; }
     public string? HtmlContent { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public ArticleStatus Status { get; set; }
     public string? ErrorMessage { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? GeneratedAt { get; set; }

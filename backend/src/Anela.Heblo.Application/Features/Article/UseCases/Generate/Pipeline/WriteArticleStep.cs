@@ -90,20 +90,12 @@ public class WriteArticleStep
             ct);
     }
 
-    private const string SystemInstruction =
-        """
-        Jsi zkušený redaktor kosmetického obsahu. Píšeš výhradně v češtině.
-        Odpověz POUZE validním JSON bez markdown nebo code fences.
-        V poli article_html použij výhradně HTML tagy – nikdy nepište doslovný text "\n" jako obsah.
-        {"article_title":"...","article_html":"<article>...</article>","sources_used":[{"title":"...","url":"..."}]}
-        """;
-
-    private static string BuildSystemPrompt(string? styleGuideText)
+    private string BuildSystemPrompt(string? styleGuideText)
     {
         if (styleGuideText == null)
-            return SystemInstruction;
+            return _options.WriteArticleSystemPrompt;
 
-        return $"STYLE GUIDE — follow this exactly:\n{styleGuideText}\n\n{SystemInstruction}";
+        return $"STYLE GUIDE — follow this exactly:\n{styleGuideText}\n\n{_options.WriteArticleSystemPrompt}";
     }
 
     private string BuildUserMessage(ArticlePipelineContext context)
@@ -112,7 +104,7 @@ public class WriteArticleStep
         var factsText = BuildFactsList(context.Facts);
         var toneNoteLine = BuildToneNoteLine(article.LanguageNote);
 
-        return _options.WriteArticleSystemPromptTemplate
+        return _options.WriteArticleUserPromptTemplate
             .Replace("{topic}", article.Topic)
             .Replace("{scope}", article.Scope)
             .Replace("{audience}", article.Audience ?? "obecné publikum")

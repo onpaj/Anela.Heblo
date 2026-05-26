@@ -652,6 +652,44 @@ export class ApiClient {
         return Promise.resolve<GetArticleFeedbackListResponse>(null as any);
     }
 
+    articles_BackfillRequestedBy(request: BackfillArticleRequestedByCommand): Promise<BackfillArticleRequestedByResponse> {
+        let url_ = this.baseUrl + "/api/Articles/admin/backfill-requested-by";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processArticles_BackfillRequestedBy(_response);
+        });
+    }
+
+    protected processArticles_BackfillRequestedBy(response: Response): Promise<BackfillArticleRequestedByResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = BackfillArticleRequestedByResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<BackfillArticleRequestedByResponse>(null as any);
+    }
+
     backgroundRefresh_GetRegisteredTasks(): Promise<RefreshTaskDto[]> {
         let url_ = this.baseUrl + "/api/BackgroundRefresh/tasks";
         url_ = url_.replace(/[?&]$/, "");
@@ -12869,7 +12907,7 @@ export class GetArticleResponse extends BaseResponse implements IGetArticleRespo
     length?: string;
     title?: string | undefined;
     htmlContent?: string | undefined;
-    status?: string;
+    status?: ArticleStatus;
     errorMessage?: string | undefined;
     createdAt?: Date;
     generatedAt?: Date | undefined;
@@ -12957,7 +12995,7 @@ export interface IGetArticleResponse extends IBaseResponse {
     length?: string;
     title?: string | undefined;
     htmlContent?: string | undefined;
-    status?: string;
+    status?: ArticleStatus;
     errorMessage?: string | undefined;
     createdAt?: Date;
     generatedAt?: Date | undefined;
@@ -13207,7 +13245,7 @@ export class ArticleListItemDto implements IArticleListItemDto {
     id?: string;
     topic?: string;
     title?: string | undefined;
-    status?: string;
+    status?: ArticleStatus;
     createdAt?: Date;
     generatedAt?: Date | undefined;
 
@@ -13254,7 +13292,7 @@ export interface IArticleListItemDto {
     id?: string;
     topic?: string;
     title?: string | undefined;
-    status?: string;
+    status?: ArticleStatus;
     createdAt?: Date;
     generatedAt?: Date | undefined;
 }
@@ -13519,6 +13557,155 @@ export interface IArticleFeedbackStatsDto {
     totalWithFeedback?: number;
     avgPrecisionScore?: number | undefined;
     avgStyleScore?: number | undefined;
+}
+
+export class BackfillArticleRequestedByResponse extends BaseResponse implements IBackfillArticleRequestedByResponse {
+    total?: number;
+    alreadyMigrated?: number;
+    resolved?: number;
+    ambiguous?: number;
+    unresolved?: number;
+    wasDryRun?: boolean;
+    unresolvedRows?: UnresolvedArticleRow[];
+
+    constructor(data?: IBackfillArticleRequestedByResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.total = _data["total"];
+            this.alreadyMigrated = _data["alreadyMigrated"];
+            this.resolved = _data["resolved"];
+            this.ambiguous = _data["ambiguous"];
+            this.unresolved = _data["unresolved"];
+            this.wasDryRun = _data["wasDryRun"];
+            if (Array.isArray(_data["unresolvedRows"])) {
+                this.unresolvedRows = [] as any;
+                for (let item of _data["unresolvedRows"])
+                    this.unresolvedRows!.push(UnresolvedArticleRow.fromJS(item));
+            }
+        }
+    }
+
+    static override fromJS(data: any): BackfillArticleRequestedByResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new BackfillArticleRequestedByResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["total"] = this.total;
+        data["alreadyMigrated"] = this.alreadyMigrated;
+        data["resolved"] = this.resolved;
+        data["ambiguous"] = this.ambiguous;
+        data["unresolved"] = this.unresolved;
+        data["wasDryRun"] = this.wasDryRun;
+        if (Array.isArray(this.unresolvedRows)) {
+            data["unresolvedRows"] = [];
+            for (let item of this.unresolvedRows)
+                data["unresolvedRows"].push(item.toJSON());
+        }
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IBackfillArticleRequestedByResponse extends IBaseResponse {
+    total?: number;
+    alreadyMigrated?: number;
+    resolved?: number;
+    ambiguous?: number;
+    unresolved?: number;
+    wasDryRun?: boolean;
+    unresolvedRows?: UnresolvedArticleRow[];
+}
+
+export class UnresolvedArticleRow implements IUnresolvedArticleRow {
+    articleId?: string;
+    originalValue?: string;
+    reason?: string;
+
+    constructor(data?: IUnresolvedArticleRow) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.articleId = _data["articleId"];
+            this.originalValue = _data["originalValue"];
+            this.reason = _data["reason"];
+        }
+    }
+
+    static fromJS(data: any): UnresolvedArticleRow {
+        data = typeof data === 'object' ? data : {};
+        let result = new UnresolvedArticleRow();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["articleId"] = this.articleId;
+        data["originalValue"] = this.originalValue;
+        data["reason"] = this.reason;
+        return data;
+    }
+}
+
+export interface IUnresolvedArticleRow {
+    articleId?: string;
+    originalValue?: string;
+    reason?: string;
+}
+
+export class BackfillArticleRequestedByCommand implements IBackfillArticleRequestedByCommand {
+    groupId?: string;
+    dryRun?: boolean;
+
+    constructor(data?: IBackfillArticleRequestedByCommand) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.groupId = _data["groupId"];
+            this.dryRun = _data["dryRun"];
+        }
+    }
+
+    static fromJS(data: any): BackfillArticleRequestedByCommand {
+        data = typeof data === 'object' ? data : {};
+        let result = new BackfillArticleRequestedByCommand();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["groupId"] = this.groupId;
+        data["dryRun"] = this.dryRun;
+        return data;
+    }
+}
+
+export interface IBackfillArticleRequestedByCommand {
+    groupId?: string;
+    dryRun?: boolean;
 }
 
 export class RefreshTaskDto implements IRefreshTaskDto {

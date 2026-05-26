@@ -224,7 +224,7 @@ public class WriteArticleStepTests
     [Fact]
     public async Task ExecuteAsync_LanguageNotePresent_PromptContainsTonalitaLine()
     {
-        _options.WriteArticleSystemPromptTemplate = "{tone_note_line}";
+        _options.WriteArticleUserPromptTemplate = "{tone_note_line}";
         IEnumerable<ChatMessage>? captured = null;
         _chat
             .Setup(c => c.GetResponseAsync(
@@ -246,7 +246,7 @@ public class WriteArticleStepTests
     [Fact]
     public async Task ExecuteAsync_LanguageNoteNull_ToneLineIsEmpty()
     {
-        _options.WriteArticleSystemPromptTemplate = "{tone_note_line}";
+        _options.WriteArticleUserPromptTemplate = "{tone_note_line}";
         IEnumerable<ChatMessage>? captured = null;
         _chat
             .Setup(c => c.GetResponseAsync(
@@ -268,7 +268,7 @@ public class WriteArticleStepTests
     [Fact]
     public async Task ExecuteAsync_LanguageNoteEmpty_ToneLineIsEmpty()
     {
-        _options.WriteArticleSystemPromptTemplate = "{tone_note_line}";
+        _options.WriteArticleUserPromptTemplate = "{tone_note_line}";
         IEnumerable<ChatMessage>? captured = null;
         _chat
             .Setup(c => c.GetResponseAsync(
@@ -290,7 +290,7 @@ public class WriteArticleStepTests
     [Fact]
     public async Task ExecuteAsync_LanguageNoteWhitespace_ToneLineIsEmpty()
     {
-        _options.WriteArticleSystemPromptTemplate = "{tone_note_line}";
+        _options.WriteArticleUserPromptTemplate = "{tone_note_line}";
         IEnumerable<ChatMessage>? captured = null;
         _chat
             .Setup(c => c.GetResponseAsync(
@@ -312,7 +312,7 @@ public class WriteArticleStepTests
     [Fact]
     public async Task ExecuteAsync_ScopePlaceholder_IsReplacedWithRawScopeValue()
     {
-        _options.WriteArticleSystemPromptTemplate = "Scope: {scope}";
+        _options.WriteArticleUserPromptTemplate = "Scope: {scope}";
         IEnumerable<ChatMessage>? captured = null;
         _chat
             .Setup(c => c.GetResponseAsync(
@@ -334,7 +334,7 @@ public class WriteArticleStepTests
     [Fact]
     public async Task ExecuteAsync_TemplateWithoutScopeToken_NoOp()
     {
-        _options.WriteArticleSystemPromptTemplate = "Téma: {topic}";
+        _options.WriteArticleUserPromptTemplate = "Téma: {topic}";
         IEnumerable<ChatMessage>? captured = null;
         _chat
             .Setup(c => c.GetResponseAsync(
@@ -357,7 +357,7 @@ public class WriteArticleStepTests
     [Fact]
     public async Task ExecuteAsync_RawLanguageNoteToken_IsReplacedForCustomTemplateBackCompat()
     {
-        _options.WriteArticleSystemPromptTemplate = "Note: {language_note}";
+        _options.WriteArticleUserPromptTemplate = "Note: {language_note}";
         IEnumerable<ChatMessage>? captured = null;
         _chat
             .Setup(c => c.GetResponseAsync(
@@ -379,7 +379,7 @@ public class WriteArticleStepTests
     [Fact]
     public async Task ExecuteAsync_RawLanguageNoteToken_NullSubstitutesEmptyString()
     {
-        _options.WriteArticleSystemPromptTemplate = "Note: {language_note}";
+        _options.WriteArticleUserPromptTemplate = "Note: {language_note}";
         IEnumerable<ChatMessage>? captured = null;
         _chat
             .Setup(c => c.GetResponseAsync(
@@ -401,7 +401,6 @@ public class WriteArticleStepTests
     [Fact]
     public async Task ExecuteAsync_DefaultTemplate_WithScopeAndLanguageNote_RendersBoth()
     {
-        // Use the default template (do not override _options.WriteArticleSystemPromptTemplate)
         IEnumerable<ChatMessage>? captured = null;
         _chat
             .Setup(c => c.GetResponseAsync(
@@ -518,5 +517,47 @@ public class WriteArticleStepTests
         await step.ExecuteAsync(context, default);
 
         recordedStep!.InputJson.Should().Contain("\"hasLanguageNote\":false");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_OverriddenSystemPrompt_PassesOverriddenStringAsSystemMessage()
+    {
+        // Arrange
+        const string customPrompt = "CUSTOM SYSTEM PROMPT FOR TEST";
+        _options.WriteArticleSystemPrompt = customPrompt;
+        SetupChatResponse("""{"article_title":"T","article_html":"<p>x</p>","sources_used":[]}""");
+
+        // Act
+        await CreateStep().ExecuteAsync(CreateContext(), default);
+
+        // Assert
+        _chat.Verify(c => c.GetResponseAsync(
+            It.Is<IEnumerable<ChatMessage>>(msgs =>
+                msgs.Any(m => m.Role == ChatRole.System && m.Text == customPrompt)),
+            It.IsAny<ChatOptions?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithStyleGuide_SystemMessageWrapsStyleGuideAroundSystemPrompt()
+    {
+        // Arrange
+        _options.WriteArticleSystemPrompt = "BASE PROMPT";
+        SetupChatResponse("""{"article_title":"T","article_html":"<p>x</p>","sources_used":[]}""");
+        var context = CreateContext();
+        context.StyleGuideText = "Use a friendly tone.";
+        const string expected = "STYLE GUIDE — follow this exactly:\nUse a friendly tone.\n\nBASE PROMPT";
+
+        // Act
+        await CreateStep().ExecuteAsync(context, default);
+
+        // Assert
+        _chat.Verify(c => c.GetResponseAsync(
+            It.Is<IEnumerable<ChatMessage>>(msgs =>
+                msgs.Any(m => m.Role == ChatRole.System && m.Text == expected)),
+            It.IsAny<ChatOptions?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }
