@@ -130,4 +130,39 @@ public class ReprintExpeditionListHandlerTests
             leakedFiles.Count == 0,
             $"Handler must not leave temp files behind. Found: {string.Join(", ", leakedFiles)}");
     }
+
+    [Fact]
+    public async Task Handle_BlobDownloadFails_LeavesNoTempFileBehind()
+    {
+        // Arrange
+        var blobPath = "2026-03-25/picking-list-003.pdf";
+
+        _blobStorageServiceMock
+            .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
+            .ThrowsAsync(new IOException("blob unavailable"));
+
+        var tempDir = Path.GetTempPath();
+        var preCallFiles = new HashSet<string>(Directory.EnumerateFiles(tempDir));
+
+        var request = new ReprintExpeditionListRequest { BlobPath = blobPath };
+
+        // Act
+        await Assert.ThrowsAsync<IOException>(() => _handler.Handle(request, default));
+
+        // Assert: same leak detection as the success-path test.
+        var postCallFiles = Directory.EnumerateFiles(tempDir).ToList();
+        var handlerArtifactPattern = new Regex(@"^(tmp[^/\\]*\.tmp(\.pdf)?|[0-9a-fA-F]{32}\.pdf)$");
+        var leakedFiles = postCallFiles
+            .Where(p => !preCallFiles.Contains(p))
+            .Where(p => handlerArtifactPattern.IsMatch(Path.GetFileName(p)))
+            .ToList();
+
+        Assert.True(
+            leakedFiles.Count == 0,
+            $"Handler must not leave temp files behind on failure. Found: {string.Join(", ", leakedFiles)}");
+
+        _cupsSinkMock.Verify(
+            s => s.SendAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
 }
