@@ -304,7 +304,8 @@ Add to `appsettings.json`:
   "QueryPlannerSystemPrompt": "...",
   "AggregateFactsSystemPrompt": "...",
   "ValidateFactsSystemPrompt": "...",
-  "WriteArticleSystemPromptTemplate": "..."
+  "WriteArticleSystemPrompt": "...",
+  "WriteArticleUserPromptTemplate": "..."
 },
 "WebSearch": {
   "Provider": "SerpApi",
