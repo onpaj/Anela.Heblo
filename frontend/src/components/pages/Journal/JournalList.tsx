@@ -22,6 +22,7 @@ import type {
   SearchJournalEntryDto,
 } from "../../../api/generated/api-client";
 import JournalEntryModal from "../../JournalEntryModal";
+import { useScreenView } from '../../../telemetry/useScreenView';
 
 interface JournalRowProps {
   id: number;
@@ -115,6 +116,8 @@ const JournalRow: React.FC<JournalRowProps> = ({
 );
 
 const JournalList: React.FC = () => {
+  useScreenView('Journal', 'JournalList');
+
   // Filter states - separate input values from applied filters
   const [searchTextInput, setSearchTextInput] = useState("");
   const [searchTextFilter, setSearchTextFilter] = useState("");

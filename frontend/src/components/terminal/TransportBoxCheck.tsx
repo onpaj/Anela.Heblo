@@ -5,8 +5,10 @@ import { useTransportBoxByCodeQuery } from '../../api/hooks/useTransportBoxes';
 import TerminalError from './TerminalError';
 import { getTerminalErrorMessage } from './terminalErrors';
 import BoxDetail from './TransportBoxDetail';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const TransportBoxCheck: React.FC = () => {
+  useScreenView('Terminal', 'TerminalBoxCheck');
   const [scannedCode, setScannedCode] = useState<string | null>(null);
   const { data: box, isFetching, isError, error, refetch } = useTransportBoxByCodeQuery(scannedCode);
 

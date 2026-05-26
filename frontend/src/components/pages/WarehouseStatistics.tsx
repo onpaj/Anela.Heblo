@@ -2,8 +2,10 @@ import React from "react";
 import { useWarehouseStatistics } from "../../api/hooks/useWarehouseStatistics";
 import { Package, Weight, Gauge, Hash, Clock, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { useScreenView } from "../../telemetry/useScreenView";
 
 const WarehouseStatistics: React.FC = () => {
+  useScreenView('Logistics', 'WarehouseStatistics');
   const { data: statistics, isLoading, error } = useWarehouseStatistics();
 
   if (isLoading) {

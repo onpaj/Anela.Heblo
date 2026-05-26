@@ -4,12 +4,15 @@ import LeafletGenerateTab from './LeafletGenerateTab';
 import LeafletDocumentsTab from './LeafletDocumentsTab';
 import LeafletUploadTab from './LeafletUploadTab';
 import { useMarketingWriterPermission } from '../../api/hooks/useMarketingWriterPermission';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 type Tab = 'generate' | 'documents' | 'upload';
 
 export default function LeafletGeneratorPage() {
   const canUpload = useMarketingWriterPermission();
   const [activeTab, setActiveTab] = useState<Tab>('generate');
+
+  useScreenView('Marketing', 'LeafletGenerator');
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'generate', label: 'Generovat' },

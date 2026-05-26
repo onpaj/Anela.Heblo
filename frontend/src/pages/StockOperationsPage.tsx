@@ -30,8 +30,10 @@ import {
   PRODUCT_TYPE_FILTERS,
 } from "../components/common/CatalogAutocompleteAdapters";
 import { PAGE_CONTAINER_HEIGHT } from "../constants/layout";
+import { useScreenView } from "../telemetry/useScreenView";
 
 const StockOperationsPage: React.FC = () => {
+  useScreenView('Automation', 'StockOperations');
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Filter input states (what user is typing/selecting)

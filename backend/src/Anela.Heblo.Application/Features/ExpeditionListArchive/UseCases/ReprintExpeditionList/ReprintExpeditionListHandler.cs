@@ -26,7 +26,7 @@ public class ReprintExpeditionListHandler : IRequestHandler<ReprintExpeditionLis
             return ReprintExpeditionListResponse.Fail("Invalid blob path.");
         }
 
-        var tempFile = Path.GetTempFileName() + ".pdf";
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.pdf");
         try
         {
             await using var blobStream = await _blobStorageService.DownloadAsync(_containerName, request.BlobPath, cancellationToken);

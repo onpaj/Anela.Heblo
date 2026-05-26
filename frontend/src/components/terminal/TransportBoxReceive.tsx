@@ -7,10 +7,12 @@ import {
   useChangeTransportBoxState,
 } from '../../api/hooks/useTransportBoxes';
 import { TransportBoxState, SwaggerException } from '../../api/generated/api-client';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const SUCCESS_DISPLAY_MS = 2500;
 
 const TransportBoxReceive: React.FC = () => {
+  useScreenView('Terminal', 'TerminalReceive');
   const [scannedCode, setScannedCode] = useState<string | null>(null);
   const [receivedCode, setReceivedCode] = useState<string | null>(null);
 
