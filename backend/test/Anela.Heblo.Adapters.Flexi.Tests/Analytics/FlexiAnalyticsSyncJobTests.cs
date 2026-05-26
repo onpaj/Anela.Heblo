@@ -59,7 +59,7 @@ public sealed class FlexiAnalyticsSyncJobTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WhenSyncServiceThrows_LogsErrorAndDoesNotRethrow()
+    public async Task ExecuteAsync_WhenSyncServiceThrows_LogsErrorAndRethrows()
     {
         // Arrange
         var syncServiceMock = CreateSyncServiceMock();
@@ -73,8 +73,9 @@ public sealed class FlexiAnalyticsSyncJobTests
         // Act
         var act = () => job.ExecuteAsync();
 
-        // Assert — exception must not propagate
-        await act.Should().NotThrowAsync();
+        // Assert — exception propagates so Hangfire marks the execution as failed
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Flexi connection failed");
 
         loggerMock.Verify(
             l => l.Log(

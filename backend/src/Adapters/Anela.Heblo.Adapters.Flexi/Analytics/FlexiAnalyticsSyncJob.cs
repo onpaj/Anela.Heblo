@@ -73,6 +73,7 @@ public sealed class FlexiAnalyticsSyncJob : IRecurringJob
             _logger.LogError(ex,
                 "Job {JobName} failed with an unhandled exception.",
                 Metadata.JobName);
+            throw;
         }
     }
 }
