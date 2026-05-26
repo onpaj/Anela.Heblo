@@ -6,7 +6,7 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Anela.Heblo.Xcc;
 using Anela.Heblo.Xcc.Telemetry;
 using Anela.Heblo.API.Infrastructure.Telemetry;
-using Anela.Heblo.Application.Features.Users;
+using Anela.Heblo.API.Features.Users;
 using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
