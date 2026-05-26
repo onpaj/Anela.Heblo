@@ -120,8 +120,8 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| OrgChart | `/orgchart` | `pages/OrgChartPage.tsx` | — | `[ ] base` |
-| FeatureFlagsAdmin | `/admin/feature-flags` | `pages/FeatureFlagsAdminPage.tsx` | — | `[ ] base` |
+| OrgChart | `/orgchart` | `pages/OrgChartPage.tsx` | — | `[x] base` |
+| FeatureFlagsAdmin | `/admin/feature-flags` | `pages/FeatureFlagsAdminPage.tsx` | — | `[x] base` |
 
 ## Terminal
 

@@ -5,6 +5,7 @@ import {
   useClearFlagOverride,
 } from "../api/hooks/useFeatureFlagsAdmin";
 import { useTelemetry } from "../telemetry/useTelemetry";
+import { useScreenView } from "../telemetry/useScreenView";
 
 const FeatureFlagsAdminPage: React.FC = () => {
   const { data: flags, isLoading, error } = useFeatureFlagsAdmin();
@@ -12,6 +13,8 @@ const FeatureFlagsAdminPage: React.FC = () => {
   const clear = useClearFlagOverride();
   const isBusy = upsert.isPending || clear.isPending;
   const { trackEvent } = useTelemetry();
+
+  useScreenView('Admin', 'FeatureFlagsAdmin');
 
   if (isLoading) return <div className="p-8 text-gray-500">Loading flags...</div>;
   if (error) return <div className="p-8 text-red-600">Failed to load feature flags.</div>;
