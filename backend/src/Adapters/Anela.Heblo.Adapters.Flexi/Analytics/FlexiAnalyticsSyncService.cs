@@ -8,7 +8,7 @@ public record FlexiAnalyticsSyncReport(
     int FailedServices,
     bool IsFullSuccess);
 
-public sealed class FlexiAnalyticsSyncService
+public sealed class FlexiAnalyticsSyncService : IFlexiAnalyticsSyncService
 {
     private readonly IEnumerable<IEntitySyncService> _services;
     private readonly ILogger<FlexiAnalyticsSyncService> _logger;
