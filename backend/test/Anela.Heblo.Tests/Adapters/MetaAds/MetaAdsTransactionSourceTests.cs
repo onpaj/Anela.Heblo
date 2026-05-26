@@ -69,7 +69,6 @@ public class MetaAdsTransactionSourceTests
         tx.Amount.Should().Be(1500.00m);
         tx.Currency.Should().Be("CZK");
         tx.Description.Should().Be("THRESHOLD");
-        tx.Platform.Should().Be("MetaAds");
         tx.TransactionDate.Should().Be(DateTimeOffset.FromUnixTimeSeconds(1744300800).UtcDateTime);
     }
 

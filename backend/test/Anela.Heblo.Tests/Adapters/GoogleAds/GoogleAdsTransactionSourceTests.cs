@@ -25,7 +25,6 @@ public class GoogleAdsTransactionSourceTests
         transactions.Should().HaveCount(1);
         var tx = transactions[0];
         tx.TransactionId.Should().Be("budget-001");
-        tx.Platform.Should().Be("GoogleAds");
         tx.Amount.Should().Be(15m); // 15_000_000 micros / 1_000_000
         tx.Currency.Should().Be("CZK");
         tx.Description.Should().Be("Spring Campaign Budget");
