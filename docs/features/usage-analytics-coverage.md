@@ -56,14 +56,14 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| ManufacturingStockAnalysis | `/manufacturing/stock-analysis` | `components/pages/ManufacturingStockAnalysis.tsx` | — | `[ ] base` |
-| ManufactureOutput | `/manufacturing/output` | `components/pages/ManufactureOutput.tsx` | — | `[ ] base` |
-| ManufactureBatchCalculator | `/manufacturing/batch-calculator` | `components/pages/ManufactureBatchCalculator.tsx` | — | `[ ] base` |
-| ManufactureBatchPlanning | `/manufacturing/batch-planning` | `components/pages/ManufactureBatchPlanning.tsx` | — | `[ ] base` |
-| ManufactureOrderList | `/manufacturing/orders` | `components/manufacture/pages/ManufactureOrderList.tsx` | viewModes: Grid, Calendar, Weekly | `[ ] base` `[ ] GridView` `[ ] CalendarView` `[ ] WeeklyView` |
-| ManufactureOrderDetail | `/manufacturing/orders/:id` | `components/manufacture/pages/ManufactureOrderDetail.tsx` | tabs: Info, Notes, Log, Conditions | `[ ] base` `[ ] InfoTab` `[ ] NotesTab` `[ ] LogTab` `[ ] ConditionsTab` |
-| ManufactureInventory | `/manufacturing/inventory` | `components/pages/ManufactureInventoryList.tsx` | — | `[ ] base` |
-| ManufacturedProductInventory | `/manufacturing/product-inventory` | `components/pages/ManufacturedInventoryPage.tsx` | — | `[ ] base` |
+| ManufacturingStockAnalysis | `/manufacturing/stock-analysis` | `components/pages/ManufacturingStockAnalysis.tsx` | — | `[x] base` |
+| ManufactureOutput | `/manufacturing/output` | `components/pages/ManufactureOutput.tsx` | — | `[x] base` |
+| ManufactureBatchCalculator | `/manufacturing/batch-calculator` | `components/pages/ManufactureBatchCalculator.tsx` | — | `[x] base` |
+| ManufactureBatchPlanning | `/manufacturing/batch-planning` | `components/pages/ManufactureBatchPlanning.tsx` | — | `[x] base` |
+| ManufactureOrderList | `/manufacturing/orders` | `components/manufacture/pages/ManufactureOrderList.tsx` | viewModes: Grid, Calendar, Weekly | `[x] base` `[x] GridView` `[x] CalendarView` `[x] WeeklyView` |
+| ManufactureOrderDetail | `/manufacturing/orders/:id` | `components/manufacture/pages/ManufactureOrderDetail.tsx` | tabs: Info, Notes, Log, Conditions | `[x] base` `[x] InfoTab` `[x] NotesTab` `[x] LogTab` `[x] ConditionsTab` |
+| ManufactureInventory | `/manufacturing/inventory` | `components/pages/ManufactureInventoryList.tsx` | — | `[x] base` |
+| ManufacturedProductInventory | `/manufacturing/product-inventory` | `components/pages/ManufacturedInventoryPage.tsx` | — | `[x] base` |
 
 ## Logistics
 

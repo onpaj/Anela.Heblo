@@ -7,6 +7,7 @@ import InventoryStatusCell from "../inventory/InventoryStatusCell";
 import { CatalogItemDto, ProductType, CalculatedBatchSizeResponse, CalculateBatchByIngredientResponse } from "../../api/generated/api-client";
 import { useManufactureBatch } from "../../api/hooks/useManufactureBatch";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 type CalculationMode = "batch-size" | "ingredient";
 
@@ -19,6 +20,7 @@ export const computePercentage = (
 };
 
 const ManufactureBatchCalculator: React.FC = () => {
+  useScreenView('Manufacturing', 'ManufactureBatchCalculator');
   const [selectedProduct, setSelectedProduct] = useState<CatalogItemDto | null>(
     null,
   );
