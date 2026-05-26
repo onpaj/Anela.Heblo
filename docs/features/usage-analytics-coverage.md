@@ -92,10 +92,10 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| IssuedInvoices | `/customer/issued-invoices` | `pages/customer/IssuedInvoicesPage.tsx` | — | `[ ] base` |
-| BankStatementsOverview | `/customer/bank-statements-overview` | `pages/customer/BankStatementsOverviewPage.tsx` | — | `[ ] base` |
-| SmartsuppChats | `/customer/smartsupp` | `components/customer-support/smartsupp/pages/SmartsuppChatsPage.tsx` | — | `[ ] base` |
-| ExpeditionSettings | `/customer/expedition-settings` | `pages/customer/ExpeditionSettingsPage.tsx` | tabs: Cooling, Gifts | `[ ] base` `[ ] CoolingTab` `[ ] GiftsTab` |
+| IssuedInvoices | `/customer/issued-invoices` | `pages/customer/IssuedInvoicesPage.tsx` | — | `[x] base` |
+| BankStatementsOverview | `/customer/bank-statements-overview` | `pages/customer/BankStatementsOverviewPage.tsx` | — | `[x] base` |
+| SmartsuppChats | `/customer/smartsupp` | `components/customer-support/smartsupp/pages/SmartsuppChatsPage.tsx` | — | `[x] base` |
+| ExpeditionSettings | `/customer/expedition-settings` | `pages/customer/ExpeditionSettingsPage.tsx` | tabs: Cooling, Gifts | `[x] base` `[x] CoolingTab` `[x] GiftsTab` |
 
 ## Automation
 

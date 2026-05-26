@@ -23,10 +23,12 @@ import InvoiceImportStatistics from "../../components/pages/automation/InvoiceIm
 import InvoiceImportJobTracker from "../../components/invoices/InvoiceImportJobTracker";
 import InvoiceImportRunningIndicator from "../../components/invoices/InvoiceImportRunningIndicator";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const IssuedInvoicesPage: React.FC = () => {
   // Tab state
   const [activeTab, setActiveTab] = useState<'statistics' | 'grid'>('statistics');
+  useScreenView('Customer', 'IssuedInvoices');
   
   // Filter states - separate input values from applied filters
   const [invoiceIdInput, setInvoiceIdInput] = useState("");
