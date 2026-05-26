@@ -69,13 +69,13 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| InventoryFinishedGoods | `/logistics/inventory` | `components/pages/InventoryList.tsx` | — | `[ ] base` |
-| TransportBoxes | `/logistics/transport-boxes` | `components/pages/TransportBoxList.tsx` | — | `[ ] base` |
-| TransportBoxReceive | `/logistics/receive-boxes` | `components/pages/TransportBoxReceive.tsx` | — | `[ ] base` |
-| GiftPackageManufacturing | `/logistics/gift-package-manufacturing` | `components/pages/GiftPackageManufacturing.tsx` | — | `[ ] base` |
-| PackingMaterials | `/logistics/packing-materials` | `pages/PackingMaterialsPage.tsx` | — | `[ ] base` |
-| WarehouseStatistics | `/logistics/warehouse-statistics` | `components/pages/WarehouseStatistics.tsx` | — | `[ ] base` |
-| ExpeditionArchive | `/logistics/expedition-archive` | `pages/ExpeditionListArchivePage.tsx` | — | `[ ] base` |
+| InventoryFinishedGoods | `/logistics/inventory` | `components/pages/InventoryList.tsx` | — | `[x] base` |
+| TransportBoxes | `/logistics/transport-boxes` | `components/pages/TransportBoxList.tsx` | — | `[x] base` |
+| TransportBoxReceive | `/logistics/receive-boxes` | `components/pages/TransportBoxReceive.tsx` | — | `[x] base` |
+| GiftPackageManufacturing | `/logistics/gift-package-manufacturing` | `components/pages/GiftPackageManufacturing.tsx` | — | `[x] base` |
+| PackingMaterials | `/logistics/packing-materials` | `pages/PackingMaterialsPage.tsx` | — | `[x] base` |
+| WarehouseStatistics | `/logistics/warehouse-statistics` | `components/pages/WarehouseStatistics.tsx` | — | `[x] base` |
+| ExpeditionArchive | `/logistics/expedition-archive` | `pages/ExpeditionListArchivePage.tsx` | — | `[x] base` |
 
 ## Marketing
 
