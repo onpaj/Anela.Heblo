@@ -72,7 +72,7 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 | InventoryFinishedGoods | `/logistics/inventory` | `components/pages/InventoryList.tsx` | — | `[x] base` |
 | TransportBoxes | `/logistics/transport-boxes` | `components/pages/TransportBoxList.tsx` | — | `[x] base` |
 | TransportBoxReceive | `/logistics/receive-boxes` | `components/pages/TransportBoxReceive.tsx` | — | `[x] base` |
-| GiftPackageManufacturing | `/logistics/gift-package-manufacturing` | `components/pages/GiftPackageManufacturing.tsx` | — | `[x] base` |
+| GiftPackageManufacturing | `/logistics/gift-package-manufacturing` | `components/pages/GiftPackageManufacturing/index.tsx` | — | `[x] base` |
 | PackingMaterials | `/logistics/packing-materials` | `pages/PackingMaterialsPage.tsx` | — | `[x] base` |
 | WarehouseStatistics | `/logistics/warehouse-statistics` | `components/pages/WarehouseStatistics.tsx` | — | `[x] base` |
 | ExpeditionArchive | `/logistics/expedition-archive` | `pages/ExpeditionListArchivePage.tsx` | — | `[x] base` |
