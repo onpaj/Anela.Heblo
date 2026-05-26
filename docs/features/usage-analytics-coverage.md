@@ -81,12 +81,12 @@ Canonical checklist of every user-facing screen and in-page branch in the app, a
 
 | Screen | Route | Component | Branches | Coverage |
 |---|---|---|---|---|
-| MarketingCalendar | `/marketing/calendar` | `components/marketing/pages/MarketingCalendarPage.tsx` | viewModes: FiveWeeks, TwoWeeks, List | `[ ] base` `[ ] FiveWeeksView` `[ ] TwoWeeksView` `[ ] ListView` |
-| Photobank | `/marketing/photobank` | `components/marketing/photobank/pages/PhotobankPage.tsx` | viewModes: Tiles, List | `[ ] base` `[ ] TilesView` `[ ] ListView` |
-| PhotobankSettings | `/marketing/photobank/settings` | `components/marketing/photobank/pages/PhotobankSettingsPage.tsx` | — | `[ ] base` |
-| LeafletGenerator | `/leaflet-generator` | `features/leaflet-generator/LeafletGeneratorPage.tsx` | — | `[ ] base` |
-| Articles | `/articles` | `pages/ArticlesPage.tsx` | tabs: New, List | `[ ] base` `[ ] NewTab` `[ ] ListTab` |
-| MarketingFeedback | `/marketing/feedback` | `pages/MarketingFeedbackPage.tsx` | — | `[ ] base` |
+| MarketingCalendar | `/marketing/calendar` | `components/marketing/pages/MarketingCalendarPage.tsx` | viewModes: FiveWeeks, TwoWeeks, List | `[x] base` `[x] FiveWeeksView` `[x] TwoWeeksView` `[x] ListView` |
+| Photobank | `/marketing/photobank` | `components/marketing/photobank/pages/PhotobankPage.tsx` | viewModes: Tiles, List | `[x] base` `[x] TilesView` `[x] ListView` |
+| PhotobankSettings | `/marketing/photobank/settings` | `components/marketing/photobank/pages/PhotobankSettingsPage.tsx` | — | `[x] base` |
+| LeafletGenerator | `/leaflet-generator` | `features/leaflet-generator/LeafletGeneratorPage.tsx` | — | `[x] base` |
+| Articles | `/articles` | `pages/ArticlesPage.tsx` | tabs: New, List | `[x] base` `[x] NewTab` `[x] ListTab` |
+| MarketingFeedback | `/marketing/feedback` | `pages/MarketingFeedbackPage.tsx` | — | `[x] base` |
 
 ## Customer
 
