@@ -9,7 +9,7 @@ using Rem.FlexiBeeSDK.Model.Accounting.Ledger;
 
 namespace Anela.Heblo.Adapters.Flexi.Analytics;
 
-public sealed class LedgerSyncService
+public sealed class LedgerSyncService : IEntitySyncService
 {
     private const string EntityName = "ledger_entry";
 

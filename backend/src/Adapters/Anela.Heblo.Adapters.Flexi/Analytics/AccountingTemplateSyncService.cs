@@ -8,7 +8,7 @@ using Rem.FlexiBeeSDK.Model.Accounting.AccountingTemplates;
 
 namespace Anela.Heblo.Adapters.Flexi.Analytics;
 
-public sealed class AccountingTemplateSyncService
+public sealed class AccountingTemplateSyncService : IEntitySyncService
 {
     private const string EntityName = "accounting_template";
 

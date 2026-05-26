@@ -8,7 +8,7 @@ using Rem.FlexiBeeSDK.Model.Accounting.Departments;
 
 namespace Anela.Heblo.Adapters.Flexi.Analytics;
 
-public sealed class DepartmentSyncService
+public sealed class DepartmentSyncService : IEntitySyncService
 {
     private const string EntityName = "department";
 

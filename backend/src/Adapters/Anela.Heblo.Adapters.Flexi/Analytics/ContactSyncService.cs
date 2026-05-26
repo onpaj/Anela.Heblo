@@ -9,7 +9,7 @@ using Rem.FlexiBeeSDK.Model.Contacts;
 
 namespace Anela.Heblo.Adapters.Flexi.Analytics;
 
-public sealed class ContactSyncService
+public sealed class ContactSyncService : IEntitySyncService
 {
     private const string EntityName = "contact";
 
