@@ -18,8 +18,4 @@ public class ImportedMarketingTransactionRepository
             ct);
     }
 
-    public async Task<List<ImportedMarketingTransaction>> GetUnsyncedAsync(CancellationToken ct)
-    {
-        return (await FindAsync(x => !x.IsSynced, ct)).ToList();
-    }
 }
