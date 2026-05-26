@@ -23,8 +23,10 @@ import ManufactureOrderDetail from "../manufacture/pages/ManufactureOrderDetail"
 import { usePlanningList } from "../../contexts/PlanningListContext";
 import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
 import { TimePeriod, resolveTimePeriod } from '../../utils/timePeriod';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const BatchPlanningCalculator: React.FC = () => {
+  useScreenView('Manufacturing', 'ManufactureBatchPlanning');
   // Selected semiproduct state
   const [selectedSemiproduct, setSelectedSemiproduct] = useState<CatalogItemDto | null>(null);
   

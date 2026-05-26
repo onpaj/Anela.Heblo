@@ -24,6 +24,7 @@ import {
   CreateManufacturedInventoryItemInput,
 } from "../../api/hooks/useManufacturedProductInventory";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const PAGE_SIZE = 20;
 
@@ -271,6 +272,7 @@ const LogPanel: React.FC<LogPanelProps> = ({ item }) => {
 };
 
 const ManufacturedInventoryPage: React.FC = () => {
+  useScreenView('Manufacturing', 'ManufacturedProductInventory');
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [onlyWithStock, setOnlyWithStock] = useState(true);

@@ -3,6 +3,7 @@ import { AlertCircle } from "lucide-react";
 import ScanBoxStep from "./ScanBoxStep";
 import AddItemsStep from "./AddItemsStep";
 import { useSendBoxToTransit, type TerminalBox } from "../../../api/hooks/useBoxFill";
+import { useScreenView } from '../../../telemetry/useScreenView';
 
 type Step = "scan" | "add-items";
 
@@ -13,6 +14,7 @@ const BoxFillWorkflow: React.FC = () => {
   const [amountMemory, setAmountMemory] = useState<Record<string, number>>({});
   const [transitError, setTransitError] = useState<string | null>(null);
   const [lastSentBoxCode, setLastSentBoxCode] = useState<string | null>(null);
+  useScreenView('Terminal', 'TerminalBoxFill', step === 'scan' ? 'ScanStep' : 'AddItemsStep');
 
   const sendToTransit = useSendBoxToTransit();
 

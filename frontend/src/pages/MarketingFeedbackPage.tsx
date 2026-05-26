@@ -15,6 +15,7 @@ import {
   type FeedbackDetail,
   type GenericFeedbackParams,
 } from '../components/feedback/types';
+import { useScreenView } from '../telemetry/useScreenView';
 
 type FeatureTab = 'kb' | 'leaflet' | 'article';
 
@@ -51,6 +52,8 @@ const MarketingFeedbackPage: React.FC = () => {
   const [kbParams, setKbParams] = useState<GenericFeedbackParams>(DEFAULT_FEEDBACK_PARAMS);
   const [leafletParams, setLeafletParams] = useState<GenericFeedbackParams>(DEFAULT_FEEDBACK_PARAMS);
   const [articleParams, setArticleParams] = useState<GenericFeedbackParams>(DEFAULT_FEEDBACK_PARAMS);
+
+  useScreenView('Marketing', 'MarketingFeedback');
 
   const kb = useKbFeedbackAdapter(kbParams);
   const leaflet = useLeafletFeedbackAdapter(leafletParams);
