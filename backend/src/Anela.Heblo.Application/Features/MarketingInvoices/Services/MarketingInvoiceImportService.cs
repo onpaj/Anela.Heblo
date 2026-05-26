@@ -72,7 +72,6 @@ public class MarketingInvoiceImportService : IMarketingInvoiceImportService
                     Currency = transaction.Currency,
                     TransactionDate = transaction.TransactionDate,
                     ImportedAt = DateTime.UtcNow,
-                    IsSynced = false,
                     Description = transaction.Description,
                     RawData = transaction.RawData,
                 };
