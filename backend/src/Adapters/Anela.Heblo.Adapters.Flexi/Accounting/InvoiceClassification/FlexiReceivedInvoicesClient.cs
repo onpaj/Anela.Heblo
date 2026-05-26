@@ -43,6 +43,6 @@ public class FlexiReceivedInvoicesClient : IReceivedInvoicesClient
     public async Task<ReceivedInvoice?> GetInvoiceByIdAsync(string invoiceId)
     {
         var found = await _client.GetAsync(invoiceId);
-        return _mapper.Map<ReceivedInvoice>(found);
+        return found is null ? null : _mapper.Map<ReceivedInvoice>(found);
     }
 }

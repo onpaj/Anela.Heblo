@@ -16,6 +16,7 @@ public class GetInvoiceDetailsHandlerTests
         var config = new MapperConfiguration(
             cfg => cfg.AddProfile<Anela.Heblo.Application.Features.InvoiceClassification.InvoiceClassificationMappingProfile>(),
             NullLoggerFactory.Instance);
+        config.AssertConfigurationIsValid();
         return config.CreateMapper();
     }
 
