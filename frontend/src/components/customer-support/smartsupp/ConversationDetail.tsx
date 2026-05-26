@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import { ArrowLeft, Info } from "lucide-react";
-import { ConversationDto, MessageDto, useSmartsuppConversation } from "../../../api/hooks/useSmartsupp";
+import { ArrowLeft, Info, Loader2 } from "lucide-react";
+import { ConversationDto, MessageDto, useSmartsuppConversation, useCloseConversation } from "../../../api/hooks/useSmartsupp";
+import { toast } from "react-hot-toast";
 import MessageBubble from "./MessageBubble";
 import StatusPill from "./StatusPill";
 import AgentBadge from "./AgentBadge";
@@ -57,6 +58,15 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
   onDraftChange,
 }) => {
   const { data, isLoading } = useSmartsuppConversation(conversationId);
+  const { mutate: closeConversation, isPending: isClosing } = useCloseConversation();
+
+  const handleClose = () => {
+    closeConversation(conversationId, {
+      onSuccess: () => toast.success("Konverzace byla uzavřena"),
+      onError: (err) => toast.error(err.message),
+    });
+  };
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const messages = data?.messages ?? [];
   const agentNames = data?.agentNames ?? {};
@@ -95,6 +105,19 @@ const ConversationDetail: React.FC<ConversationDetailProps> = ({
           {conversation.assignedAgentIds.map((id) => (
             <AgentBadge key={id} agentId={id} name={agentNames[id] ?? id} />
           ))}
+          {conversation.status === 'open' && (
+            <button
+              type="button"
+              data-testid="close-conversation-btn"
+              onClick={handleClose}
+              disabled={isClosing}
+              aria-label="Uzavřít konverzaci"
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-2.5 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isClosing && <Loader2 className="h-4 w-4 animate-spin" />}
+              Uzavřít konverzaci
+            </button>
+          )}
           {onOpenContactDetails && (
             <button
               type="button"
