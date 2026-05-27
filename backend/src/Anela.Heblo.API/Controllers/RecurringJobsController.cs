@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.BackgroundJobs.Contracts;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.GetRecurringJobsList;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.UpdateRecurringJobStatus;
@@ -120,27 +119,4 @@ public class RecurringJobsController : BaseApiController
 
         return Accepted(response);
     }
-}
-
-/// <summary>
-/// Request body for updating recurring job status
-/// </summary>
-public class UpdateJobStatusRequestBody
-{
-    /// <summary>
-    /// Whether the job should be enabled
-    /// </summary>
-    public bool IsEnabled { get; set; }
-}
-
-/// <summary>
-/// Request body for updating recurring job CRON expression
-/// </summary>
-public class UpdateJobCronRequestBody
-{
-    /// <summary>
-    /// The new CRON expression (e.g. "0 3 * * *")
-    /// </summary>
-    [Required]
-    public string CronExpression { get; set; } = string.Empty;
 }
