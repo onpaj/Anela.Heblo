@@ -8,6 +8,7 @@ import {
 export interface IngredientOrderItem {
   ingredientProductCode: string;
   sortOrder: number;
+  phaseLabel?: string | null;
 }
 
 export interface UpdateProductCompositionOrderPayload {
