@@ -44,6 +44,7 @@ public static class CatalogModule
         services.AddTransient<IManufactureDifficultyRepository, ManufactureDifficultyRepository>();
         // Register adapter to expose catalog services to Purchase module
         services.AddScoped<IMaterialCatalogService, PurchaseMaterialCatalogAdapter>();
+        services.AddScoped<IPurchasePriceRecalculationService, CatalogPurchasePriceRecalculationAdapter>();
         services.AddTransient<IAnalyticsProductSource, CatalogAnalyticsSourceAdapter>();
 
         // Register cost repositories

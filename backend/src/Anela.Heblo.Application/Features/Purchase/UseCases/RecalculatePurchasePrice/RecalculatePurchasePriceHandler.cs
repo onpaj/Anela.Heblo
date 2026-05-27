@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog.Price;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -9,16 +8,16 @@ namespace Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchase
 public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurchasePriceRequest, RecalculatePurchasePriceResponse>
 {
     private readonly IMaterialCatalogService _materialCatalog;
-    private readonly IProductPriceErpClient _productPriceClient;
+    private readonly IPurchasePriceRecalculationService _priceRecalculationService;
     private readonly ILogger<RecalculatePurchasePriceHandler> _logger;
 
     public RecalculatePurchasePriceHandler(
         IMaterialCatalogService materialCatalog,
-        IProductPriceErpClient productPriceClient,
+        IPurchasePriceRecalculationService priceRecalculationService,
         ILogger<RecalculatePurchasePriceHandler> logger)
     {
         _materialCatalog = materialCatalog;
-        _productPriceClient = productPriceClient;
+        _priceRecalculationService = priceRecalculationService;
         _logger = logger;
     }
 
@@ -80,7 +79,7 @@ public class RecalculatePurchasePriceHandler : IRequestHandler<RecalculatePurcha
                 _logger.LogDebug("Recalculating price for product {ProductCode} with BoMId {BoMId}",
                     bom.ProductCode, bom.BoMId);
 
-                await _productPriceClient.RecalculatePurchasePrice(bom.BoMId, cancellationToken);
+                await _priceRecalculationService.RecalculatePurchasePriceAsync(bom.BoMId, cancellationToken);
 
                 response.ProcessedProducts.Add(new ProductRecalculationResult
                 {
