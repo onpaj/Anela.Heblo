@@ -1,14 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Domain.Features.Analytics;
-using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
-using Anela.Heblo.Domain.Features.Catalog.PurchaseHistory;
-using Anela.Heblo.Domain.Features.Catalog.Sales;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -21,38 +19,36 @@ namespace Anela.Heblo.Tests.Features.Analytics;
 public class AnalyticsRepositoryTests
 {
     [Fact]
-    public async Task StreamProductsWithSalesAsync_YieldsAllProductsInOrder()
+    public async Task StreamProductsWithSalesAsync_DelegatesToProductSource()
     {
         // Arrange
         const int productCount = 250;
 
         var products = Enumerable.Range(0, productCount)
-            .Select(i => new CatalogAggregate
+            .Select(i => new AnalyticsProduct
             {
                 ProductCode = $"P{i:D4}",
                 ProductName = $"Product {i}",
-                Type = ProductType.Product,
-                SalesHistory = new List<CatalogSaleRecord>(),
-                ConsumedHistory = new List<ConsumedMaterialRecord>(),
-                PurchaseHistory = new List<CatalogPurchaseRecord>(),
-                Stock = new(),
+                Type = AnalyticsProductType.Product,
+                MarginAmount = 0m,
+                SalesHistory = new List<SalesDataPoint>(),
             })
             .ToList();
 
-        var catalogRepositoryMock = new Mock<ICatalogRepository>();
-        catalogRepositoryMock
-            .Setup(x => x.GetProductsWithSalesInPeriod(
+        var productSourceMock = new Mock<IAnalyticsProductSource>();
+        productSourceMock
+            .Setup(x => x.StreamProductsWithSalesAsync(
                 It.IsAny<DateTime>(),
                 It.IsAny<DateTime>(),
-                It.IsAny<ProductType[]>(),
+                It.IsAny<AnalyticsProductType[]>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(products);
+            .Returns(ToAsyncEnumerable(products));
 
-        var repository = new AnalyticsRepository(catalogRepositoryMock.Object, null!);
+        var repository = new AnalyticsRepository(productSourceMock.Object, null!);
 
         var fromDate = new DateTime(2024, 1, 1);
         var toDate = new DateTime(2024, 12, 31);
-        var productTypes = new[] { ProductType.Product };
+        var productTypes = new[] { AnalyticsProductType.Product };
 
         // Act
         var yielded = new List<AnalyticsProduct>();
@@ -75,10 +71,20 @@ public class AnalyticsRepositoryTests
         yielded.First().ProductCode.Should().Be("P0000");
         yielded.Last().ProductCode.Should().Be("P0249");
 
-        // Batch boundary spot-checks (batch size is 100)
-        yielded[99].ProductCode.Should().Be("P0099");
-        yielded[100].ProductCode.Should().Be("P0100");
-        yielded[199].ProductCode.Should().Be("P0199");
-        yielded[200].ProductCode.Should().Be("P0200");
+        productSourceMock.Verify(
+            x => x.StreamProductsWithSalesAsync(fromDate, toDate, productTypes, CancellationToken.None),
+            Times.Once);
+    }
+
+    private static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(
+        IEnumerable<T> source,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        foreach (var item in source)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return item;
+            await Task.Yield();
+        }
     }
 }
