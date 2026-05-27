@@ -49,6 +49,11 @@ public class UpdateProductCompositionOrderHandler
             tuples.Add((bomItemId, item.SortOrder));
         }
 
+        if (tuples.Count == 0)
+        {
+            return new UpdateProductCompositionOrderResponse { UpdatedCount = 0 };
+        }
+
         await _manufactureClient.SetBomItemsOrderAsync(request.ProductCode, tuples, cancellationToken);
 
         return new UpdateProductCompositionOrderResponse { UpdatedCount = tuples.Count };

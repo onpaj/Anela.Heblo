@@ -143,19 +143,13 @@ public class UpdateProductCompositionOrderHandlerTests
     }
 
     [Fact]
-    public async Task Handle_EmptyOrder_CallsSetBomItemsOrderWithEmptySequence()
+    public async Task Handle_EmptyOrder_SkipsSetBomItemsOrderAndReturnsZero()
     {
         // Arrange
         var template = BuildTemplate((100, "MAT-A"), (200, "MAT-B"));
         _manufactureClientMock
             .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
-        _manufactureClientMock
-            .Setup(x => x.SetBomItemsOrderAsync(
-                It.IsAny<string>(),
-                It.IsAny<IEnumerable<(int, int)>>(),
-                It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
 
         var request = new UpdateProductCompositionOrderRequest
         {
@@ -169,10 +163,7 @@ public class UpdateProductCompositionOrderHandlerTests
         // Assert
         response.UpdatedCount.Should().Be(0);
         _manufactureClientMock.Verify(
-            x => x.SetBomItemsOrderAsync(
-                "PRD1",
-                It.Is<IEnumerable<(int, int)>>(seq => !seq.Any()),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
+            x => x.SetBomItemsOrderAsync(It.IsAny<string>(), It.IsAny<IEnumerable<(int, int)>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }
