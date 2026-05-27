@@ -43,14 +43,9 @@ public partial class Program
 
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add User Secrets for Development, Test, Staging, and Production environments
-        if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Test") || builder.Environment.IsEnvironment("Staging") || builder.Environment.IsProduction())
-        {
-            builder.Configuration.AddUserSecrets<Program>();
-        }
-
         // Azure Key Vault: activated when KeyVault:Uri is set (in Azure App Settings).
-        // Local dev leaves it unset and continues using user-secrets / appsettings.json.
+        // Added BEFORE user-secrets and command-line so those can always override KV values.
+        // Local dev leaves KeyVault:Uri unset and continues using user-secrets / appsettings.json.
         var keyVaultUri = builder.Configuration["KeyVault:Uri"];
         if (!string.IsNullOrWhiteSpace(keyVaultUri))
         {
@@ -62,6 +57,14 @@ public partial class Program
                     ReloadInterval = TimeSpan.FromMinutes(30)
                 });
         }
+
+        // User secrets and command-line args are layered on top of KV so they always win.
+        // Re-adding command-line here ensures it outranks KV (CreateBuilder adds it earlier).
+        if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Test") || builder.Environment.IsEnvironment("Staging") || builder.Environment.IsProduction())
+        {
+            builder.Configuration.AddUserSecrets<Program>();
+        }
+        builder.Configuration.AddCommandLine(args);
 
         // Conductor parallel-instance overrides (see appsettings.Conductor.json).
         // Layered on top of the active environment so ephemeral local instances never
