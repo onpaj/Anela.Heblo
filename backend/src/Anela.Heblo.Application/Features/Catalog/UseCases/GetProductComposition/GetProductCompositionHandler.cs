@@ -1,4 +1,3 @@
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
 
@@ -8,14 +7,10 @@ public class GetProductCompositionHandler
     : IRequestHandler<GetProductCompositionRequest, GetProductCompositionResponse>
 {
     private readonly IManufactureClient _manufactureClient;
-    private readonly IProductIngredientOrderRepository _orderRepository;
 
-    public GetProductCompositionHandler(
-        IManufactureClient manufactureClient,
-        IProductIngredientOrderRepository orderRepository)
+    public GetProductCompositionHandler(IManufactureClient manufactureClient)
     {
-        _manufactureClient = manufactureClient;
-        _orderRepository = orderRepository;
+        _manufactureClient = manufactureClient ?? throw new ArgumentNullException(nameof(manufactureClient));
     }
 
     public async Task<GetProductCompositionResponse> Handle(
@@ -26,43 +21,25 @@ public class GetProductCompositionHandler
             request.ProductCode,
             cancellationToken);
 
-        if (template == null)
+        if (template is null)
         {
-            return new GetProductCompositionResponse
-            {
-                Ingredients = new List<IngredientDto>()
-            };
+            return new GetProductCompositionResponse { Ingredients = new List<IngredientDto>() };
         }
 
-        var savedOrders = await _orderRepository.ListByParentAsync(
-            request.ProductCode,
-            cancellationToken);
-
-        var orderByCode = savedOrders.ToDictionary(
-            x => x.IngredientProductCode,
-            x => x.SortOrder);
-
+        // Sort by Flexi BoM order (poradi). Zero means unordered — push those last, then alphabetical.
         var sorted = template.Ingredients
-            .Select(i => new
+            .OrderBy(i => i.Order == 0 ? int.MaxValue : i.Order)
+            .ThenBy(i => i.ProductName)
+            .Select((i, index) => new IngredientDto
             {
-                Ingredient = i,
-                Rank = orderByCode.TryGetValue(i.ProductCode, out var s) ? s : int.MaxValue
-            })
-            .OrderBy(x => x.Rank)
-            .ThenBy(x => x.Ingredient.ProductName)
-            .Select((x, index) => new IngredientDto
-            {
-                ProductCode = x.Ingredient.ProductCode,
-                ProductName = x.Ingredient.ProductName,
-                Amount = x.Ingredient.Amount,
+                ProductCode = i.ProductCode,
+                ProductName = i.ProductName,
+                Amount = i.Amount,
                 Unit = "g",
                 Order = index + 1
             })
             .ToList();
 
-        return new GetProductCompositionResponse
-        {
-            Ingredients = sorted
-        };
+        return new GetProductCompositionResponse { Ingredients = sorted };
     }
 }

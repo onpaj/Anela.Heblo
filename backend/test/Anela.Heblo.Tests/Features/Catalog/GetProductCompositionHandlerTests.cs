@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductComposition;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Moq;
@@ -10,35 +9,39 @@ namespace Anela.Heblo.Tests.Features.Catalog;
 public class GetProductCompositionHandlerTests
 {
     private readonly Mock<IManufactureClient> _manufactureClientMock = new();
-    private readonly Mock<IProductIngredientOrderRepository> _orderRepoMock = new();
     private readonly GetProductCompositionHandler _handler;
 
     public GetProductCompositionHandlerTests()
     {
-        _handler = new GetProductCompositionHandler(
-            _manufactureClientMock.Object,
-            _orderRepoMock.Object);
+        _handler = new GetProductCompositionHandler(_manufactureClientMock.Object);
+    }
+
+    private static ManufactureTemplate BuildTemplate(params (string Code, string Name, int Order)[] ingredients)
+    {
+        return new ManufactureTemplate
+        {
+            ProductCode = "PRD1",
+            Ingredients = ingredients.Select(i => new Ingredient
+            {
+                ProductCode = i.Code,
+                ProductName = i.Name,
+                Amount = 10,
+                Order = i.Order
+            }).ToList()
+        };
     }
 
     [Fact]
-    public async Task Handle_NoSavedOrder_AssignsContiguousOrder()
+    public async Task Handle_SortsByIngredientOrder_Ascending()
     {
         // Arrange
-        var template = new ManufactureTemplate
-        {
-            ProductCode = "PRD1",
-            Ingredients = new List<Ingredient>
-            {
-                new() { ProductCode = "A", ProductName = "Alpha", Amount = 10 },
-                new() { ProductCode = "B", ProductName = "Beta",  Amount = 20 },
-            }
-        };
+        var template = BuildTemplate(
+            ("A", "Alpha", 2),
+            ("B", "Beta",  1),
+            ("C", "Gamma", 3));
         _manufactureClientMock
             .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
-        _orderRepoMock
-            .Setup(x => x.ListByParentAsync("PRD1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ProductIngredientOrder>());
 
         // Act
         var response = await _handler.Handle(
@@ -46,92 +49,67 @@ public class GetProductCompositionHandlerTests
             CancellationToken.None);
 
         // Assert
-        response.Ingredients.Should().HaveCount(2);
-        response.Ingredients.Select(i => i.Order).Should().Equal(1, 2);
-    }
-
-    [Fact]
-    public async Task Handle_SavedOrderApplied_SortsByCustomOrder()
-    {
-        // Arrange
-        var template = new ManufactureTemplate
-        {
-            ProductCode = "PRD1",
-            Ingredients = new List<Ingredient>
-            {
-                new() { ProductCode = "A", ProductName = "Alpha", Amount = 10 },
-                new() { ProductCode = "B", ProductName = "Beta",  Amount = 20 },
-                new() { ProductCode = "C", ProductName = "Gamma", Amount = 30 },
-            }
-        };
-        _manufactureClientMock
-            .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(template);
-        _orderRepoMock
-            .Setup(x => x.ListByParentAsync("PRD1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ProductIngredientOrder>
-            {
-                new() { ParentProductCode = "PRD1", IngredientProductCode = "C", SortOrder = 1 },
-                new() { ParentProductCode = "PRD1", IngredientProductCode = "A", SortOrder = 2 },
-                new() { ParentProductCode = "PRD1", IngredientProductCode = "B", SortOrder = 3 },
-            });
-
-        // Act
-        var response = await _handler.Handle(
-            new GetProductCompositionRequest { ProductCode = "PRD1" },
-            CancellationToken.None);
-
-        // Assert
-        response.Ingredients.Select(i => i.ProductCode).Should().Equal("C", "A", "B");
+        response.Ingredients.Select(i => i.ProductCode).Should().Equal("B", "A", "C");
         response.Ingredients.Select(i => i.Order).Should().Equal(1, 2, 3);
     }
 
     [Fact]
-    public async Task Handle_NewIngredientNotInSavedOrder_AppearsLast()
+    public async Task Handle_ZeroOrderItems_AppearLastSortedByName()
     {
-        // Arrange
-        var template = new ManufactureTemplate
-        {
-            ProductCode = "PRD1",
-            Ingredients = new List<Ingredient>
-            {
-                new() { ProductCode = "A", ProductName = "Alpha", Amount = 10 },
-                new() { ProductCode = "B", ProductName = "Beta",  Amount = 20 },
-                new() { ProductCode = "NEW", ProductName = "Newcomer", Amount = 5 },
-            }
-        };
+        // Arrange — Flexi returns 0 for unordered items
+        var template = BuildTemplate(
+            ("A", "Alpha",   2),
+            ("B", "Unnamed", 0),
+            ("C", "Zebra",   0),
+            ("D", "Delta",   1));
         _manufactureClientMock
             .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
-        _orderRepoMock
-            .Setup(x => x.ListByParentAsync("PRD1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ProductIngredientOrder>
-            {
-                new() { ParentProductCode = "PRD1", IngredientProductCode = "B", SortOrder = 1 },
-                new() { ParentProductCode = "PRD1", IngredientProductCode = "A", SortOrder = 2 },
-            });
 
         // Act
         var response = await _handler.Handle(
             new GetProductCompositionRequest { ProductCode = "PRD1" },
             CancellationToken.None);
 
-        // Assert
-        response.Ingredients.Last().ProductCode.Should().Be("NEW");
-        response.Ingredients.Last().Order.Should().Be(3);
+        // Assert: ordered items first (1, 2), then unordered by name (Unnamed before Zebra alphabetically)
+        response.Ingredients.Select(i => i.ProductCode).Should().Equal("D", "A", "B", "C");
+        response.Ingredients.Select(i => i.Order).Should().Equal(1, 2, 3, 4);
     }
 
     [Fact]
     public async Task Handle_TemplateNull_ReturnsEmptyList()
     {
+        // Arrange
         _manufactureClientMock
             .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
             .ReturnsAsync((ManufactureTemplate?)null);
 
+        // Act
         var response = await _handler.Handle(
             new GetProductCompositionRequest { ProductCode = "PRD1" },
             CancellationToken.None);
 
+        // Assert
         response.Ingredients.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_AssignsContiguous1BasedDisplayOrder()
+    {
+        // Arrange
+        var template = BuildTemplate(
+            ("A", "Alpha", 1),
+            ("B", "Beta",  2));
+        _manufactureClientMock
+            .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+
+        // Act
+        var response = await _handler.Handle(
+            new GetProductCompositionRequest { ProductCode = "PRD1" },
+            CancellationToken.None);
+
+        // Assert
+        response.Ingredients.Select(i => i.Order).Should().Equal(1, 2);
     }
 }
