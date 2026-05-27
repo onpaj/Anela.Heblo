@@ -57,6 +57,7 @@ public class ApplicationDbContext : DbContext
 
     // Catalog module
     public DbSet<ManufactureDifficultySetting> ManufactureDifficultySettings { get; set; } = null!;
+    public DbSet<ProductIngredientOrder> ProductIngredientOrders { get; set; } = null!;
 
     // Journal module
     public DbSet<JournalEntry> JournalEntries { get; set; } = null!;

@@ -22,6 +22,7 @@ using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Persistence.Catalog.ManufactureDifficulty;
+using Anela.Heblo.Persistence.Catalog.ProductIngredientOrder;
 using Anela.Heblo.Persistence.Repositories;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentValidation;
@@ -40,6 +41,7 @@ public static class CatalogModule
         // Register default implementations - tests can override these
         services.AddTransient<ICatalogRepository, CatalogRepository>();
         services.AddTransient<IManufactureDifficultyRepository, ManufactureDifficultyRepository>();
+        services.AddTransient<IProductIngredientOrderRepository, ProductIngredientOrderRepository>();
 
         // Register adapter to expose catalog services to Purchase module
         services.AddScoped<IMaterialCatalogService, PurchaseMaterialCatalogAdapter>();
