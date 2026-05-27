@@ -10,7 +10,6 @@ using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginAnalysis;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
-using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -52,7 +51,7 @@ public class GetProductMarginAnalysisHandlerTests
         {
             ProductCode = "PROD001",
             ProductName = "Test Product",
-            Type = ProductType.Product,
+            Type = AnalyticsProductType.Product,
             MarginAmount = 100m,
             SellingPrice = 150m,
             SalesHistory = new List<SalesDataPoint>
@@ -193,7 +192,7 @@ public class GetProductMarginAnalysisHandlerTests
         {
             ProductCode = "PROD001",
             ProductName = "Test Product",
-            Type = ProductType.Product,
+            Type = AnalyticsProductType.Product,
             MarginAmount = 100m,
             SellingPrice = 150m,
             SalesHistory = new List<SalesDataPoint>
@@ -233,7 +232,7 @@ public class GetProductMarginAnalysisHandlerTests
         {
             ProductCode = "PROD001",
             ProductName = "Test Product",
-            Type = ProductType.Product,
+            Type = AnalyticsProductType.Product,
             MarginAmount = 100m,
             SellingPrice = 150m,
             SalesHistory = new List<SalesDataPoint>
@@ -276,7 +275,7 @@ public class GetProductMarginAnalysisHandlerTests
         {
             ProductCode = "PROD001",
             ProductName = "Test Product",
-            Type = ProductType.Product,
+            Type = AnalyticsProductType.Product,
             MarginAmount = 100m,
             SellingPrice = 150m,
             SalesHistory = new List<SalesDataPoint>

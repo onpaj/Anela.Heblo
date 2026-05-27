@@ -30,7 +30,7 @@ public class MeetingTranscriptRepositoryTests : IDisposable
         await SeedTranscriptAsync(MeetingAccessLevel.Restricted, grantedEmail: "other@test.com");
 
         var (items, total) = await _repository.GetListAsync(
-            statusFilter: null, isManager: true, userEmail: "manager@test.com",
+            statusFilter: null, searchText: null, searchInTranscript: false, isManager: true, userEmail: "manager@test.com",
             page: 1, pageSize: 20, ct: default);
 
         total.Should().Be(3);
@@ -44,7 +44,7 @@ public class MeetingTranscriptRepositoryTests : IDisposable
         await SeedTranscriptAsync(MeetingAccessLevel.Public);
 
         var (items, total) = await _repository.GetListAsync(
-            statusFilter: null, isManager: false, userEmail: "user@test.com",
+            statusFilter: null, searchText: null, searchInTranscript: false, isManager: false, userEmail: "user@test.com",
             page: 1, pageSize: 20, ct: default);
 
         total.Should().Be(1);
@@ -59,7 +59,7 @@ public class MeetingTranscriptRepositoryTests : IDisposable
         await SeedTranscriptAsync(MeetingAccessLevel.Restricted, grantedEmail: "other@test.com");
 
         var (items, total) = await _repository.GetListAsync(
-            statusFilter: null, isManager: false, userEmail: "user@test.com",
+            statusFilter: null, searchText: null, searchInTranscript: false, isManager: false, userEmail: "user@test.com",
             page: 1, pageSize: 20, ct: default);
 
         total.Should().Be(1);
@@ -72,7 +72,7 @@ public class MeetingTranscriptRepositoryTests : IDisposable
         await SeedTranscriptAsync(MeetingAccessLevel.Private);
 
         var (items, total) = await _repository.GetListAsync(
-            statusFilter: null, isManager: false, userEmail: "user@test.com",
+            statusFilter: null, searchText: null, searchInTranscript: false, isManager: false, userEmail: "user@test.com",
             page: 1, pageSize: 20, ct: default);
 
         total.Should().Be(0);
@@ -86,7 +86,7 @@ public class MeetingTranscriptRepositoryTests : IDisposable
         await SeedTranscriptAsync(MeetingAccessLevel.Private);
 
         var (items, total) = await _repository.GetListAsync(
-            statusFilter: null, isManager: false, userEmail: "user@test.com",
+            statusFilter: null, searchText: null, searchInTranscript: false, isManager: false, userEmail: "user@test.com",
             page: 1, pageSize: 2, ct: default);
 
         total.Should().Be(3);

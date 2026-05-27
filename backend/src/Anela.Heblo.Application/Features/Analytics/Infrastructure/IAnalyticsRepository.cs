@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetBankStatementImportStatistics;
 using Anela.Heblo.Domain.Features.Analytics;
-using Anela.Heblo.Domain.Features.Catalog;
 
 namespace Anela.Heblo.Application.Features.Analytics.Infrastructure;
 
@@ -18,7 +17,7 @@ public interface IAnalyticsRepository
     IAsyncEnumerable<AnalyticsProduct> StreamProductsWithSalesAsync(
         DateTime fromDate,
         DateTime toDate,
-        ProductType[] productTypes,
+        AnalyticsProductType[] productTypes,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -27,7 +26,7 @@ public interface IAnalyticsRepository
     Task<Dictionary<string, decimal>> GetGroupMarginTotalsAsync(
         DateTime fromDate,
         DateTime toDate,
-        ProductType[] productTypes,
+        AnalyticsProductType[] productTypes,
         ProductGroupingMode groupingMode,
         CancellationToken cancellationToken = default);
 

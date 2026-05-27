@@ -68,6 +68,8 @@ public class MeetingTranscriptRepositoryTests : IDisposable
         // Act
         var (items, totalCount) = await _repository.GetListAsync(
             statusFilter: MeetingTranscriptStatus.PendingReview,
+            searchText: null,
+            searchInTranscript: false,
             isManager: true,
             userEmail: null,
             page: 1,
@@ -89,7 +91,7 @@ public class MeetingTranscriptRepositoryTests : IDisposable
         await _context.SaveChangesAsync();
 
         var (items, totalCount) = await _repository.GetListAsync(
-            statusFilter: null, isManager: true, userEmail: null, page: 1, pageSize: 10);
+            statusFilter: null, searchText: null, searchInTranscript: false, isManager: true, userEmail: null, page: 1, pageSize: 10);
 
         totalCount.Should().Be(2);
         items.Should().HaveCount(2);

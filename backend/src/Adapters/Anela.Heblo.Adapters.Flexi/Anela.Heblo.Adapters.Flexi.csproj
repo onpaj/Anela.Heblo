@@ -18,8 +18,8 @@
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="15.1.3" />
-    <!-- SDK 0.1.135 required: ensure Rem.FlexiBeeSDK.Client@0.1.135 is published to NuGet before merging -->
-    <PackageReference Include="Rem.FlexiBeeSDK.Client" Version="0.1.135" />
+    <!-- SDK 0.1.138: adds IBoMClient.SetItemsOrderAsync and BoMItemFlexiDto.Order -->
+    <PackageReference Include="Rem.FlexiBeeSDK.Client" Version="0.1.138" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Polly" Version="8.4.1" />
     <ProjectReference Include="..\..\Anela.Heblo.Application\Anela.Heblo.Application.csproj" />

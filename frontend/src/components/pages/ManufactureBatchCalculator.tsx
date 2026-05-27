@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Calculator, RotateCcw, Package, Beaker, ArrowRight } from "lucide-react";
+import { Calculator, RotateCcw, Package, Beaker, ArrowRight, Printer } from "lucide-react";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import CatalogDetail from "./CatalogDetail";
 import ManufactureInventoryModal from "../inventory/ManufactureInventoryDetail";
 import InventoryStatusCell from "../inventory/InventoryStatusCell";
 import { CatalogItemDto, ProductType, CalculatedBatchSizeResponse, CalculateBatchByIngredientResponse } from "../../api/generated/api-client";
 import { useManufactureBatch } from "../../api/hooks/useManufactureBatch";
+import { useSemiproductRecipePdf } from "../../api/hooks/useSemiproductRecipePdf";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useScreenView } from '../../telemetry/useScreenView';
 
@@ -56,6 +57,8 @@ const ManufactureBatchCalculator: React.FC = () => {
     isLoading,
   } = useManufactureBatch();
 
+  const { openRecipePdf, isLoading: isPdfLoading } = useSemiproductRecipePdf();
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -81,9 +84,11 @@ const ManufactureBatchCalculator: React.FC = () => {
             batchSizeToUse = parseFloat(urlBatchSize);
             setDesiredBatchSize(urlBatchSize);
           } else {
-            // Use original batch size from template
-            batchSizeToUse = templateData.originalBatchSize || 0;
-            setDesiredBatchSize(templateData.originalBatchSize?.toString() || "");
+            // Default to MMQ (Abra Flexi attribute) — backend returns it as newBatchSize
+            // when no DesiredBatchSize is sent. Fall back to BOM amount if MMQ is missing.
+            const defaultBatchSize = templateData.newBatchSize || templateData.originalBatchSize || 0;
+            batchSizeToUse = defaultBatchSize;
+            setDesiredBatchSize(defaultBatchSize ? defaultBatchSize.toString() : "");
           }
           
           // Automatically calculate with the determined batch size
@@ -170,8 +175,9 @@ const ManufactureBatchCalculator: React.FC = () => {
     setCalculationResult(null);
     setDesiredIngredientAmount("");
     setSelectedIngredientCode("");
-    // Reset desired batch size to original batch size from template
-    setDesiredBatchSize(template?.originalBatchSize?.toString() || "");
+    // Reset desired batch size to MMQ (newBatchSize) or fall back to BOM amount
+    const defaultBatchSize = template?.newBatchSize || template?.originalBatchSize || 0;
+    setDesiredBatchSize(defaultBatchSize ? defaultBatchSize.toString() : "");
   };
 
   const handleIngredientClick = (productCode: string, productName: string) => {
@@ -340,7 +346,7 @@ const ManufactureBatchCalculator: React.FC = () => {
                       className="bg-gray-500 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-600 flex items-center gap-2"
                     >
                       <RotateCcw className="h-4 w-4" />
-                      Reset
+                      MMQ{template?.newBatchSize ? ` - ${template.newBatchSize}` : ""}
                     </button>
                   </div>
                 </div>
@@ -474,15 +480,28 @@ const ManufactureBatchCalculator: React.FC = () => {
                 Přepočítaný recept
               </h3>
               
-              {/* Go to Batch Planning Button */}
+              {/* Action Buttons */}
               {isCalculatedBatchSizeResponse(calculationResult) && (
-                <button
-                  onClick={handleGoToBatchPlanning}
-                  className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 flex items-center gap-2"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                  Přejít na plánování výroby
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openRecipePdf(
+                      selectedProduct?.productCode ?? calculationResult.productCode ?? '',
+                      calculationResult.newBatchSize ?? undefined
+                    )}
+                    disabled={isPdfLoading}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Tisk receptury
+                  </button>
+                  <button
+                    onClick={handleGoToBatchPlanning}
+                    className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 flex items-center gap-2"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Přejít na plánování výroby
+                  </button>
+                </div>
               )}
             </div>
             
@@ -490,7 +509,7 @@ const ManufactureBatchCalculator: React.FC = () => {
               {/* Prominent display of key metrics */}
               <div className="flex gap-4 text-right flex-1">
                 <div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wide">Původní dávka</div>
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Dávka - Kusovník</div>
                   <div className="text-xl font-bold text-gray-700">
                     {calculationResult.originalBatchSize}g
                   </div>
@@ -499,7 +518,7 @@ const ManufactureBatchCalculator: React.FC = () => {
                   →
                 </div>
                 <div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wide">Nová dávka</div>
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Výrobní dávka</div>
                   <div className="text-xl font-bold text-indigo-600">
                     {calculationResult.newBatchSize}g
                   </div>
