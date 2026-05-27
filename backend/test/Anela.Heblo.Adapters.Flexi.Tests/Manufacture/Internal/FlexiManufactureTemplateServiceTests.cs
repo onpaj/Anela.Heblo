@@ -291,6 +291,8 @@ public class FlexiManufactureTemplateServiceTests
             Calls++;
             return await fetch(cancellationToken);
         }
+
+        public void Invalidate(string productCode) { }
     }
 
     private sealed class HitOnlyCache : IManufactureTemplateCache
@@ -306,5 +308,7 @@ public class FlexiManufactureTemplateServiceTests
             // Simulate a hit: do not invoke fetch.
             return Task.FromResult<ManufactureTemplate?>(ManufactureTemplateCloner.Clone(_cached));
         }
+
+        public void Invalidate(string productCode) { }
     }
 }

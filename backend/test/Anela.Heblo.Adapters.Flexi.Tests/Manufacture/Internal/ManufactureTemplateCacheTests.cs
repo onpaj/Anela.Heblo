@@ -157,4 +157,31 @@ public class ManufactureTemplateCacheTests
         observed.Should().NotBeNull();
         observed!.Value.Should().Be(cts.Token);
     }
+
+    [Fact]
+    public async Task Invalidate_AfterCacheHit_NextGetOrFetchInvokesFetcherAgain()
+    {
+        // Arrange
+        var sut = CreateSut();
+        var fetcherCalls = 0;
+
+        Func<CancellationToken, Task<ManufactureTemplate?>> fetch = _ =>
+        {
+            fetcherCalls++;
+            return Task.FromResult<ManufactureTemplate?>(BuildTemplate());
+        };
+
+        // First call: populates cache
+        await sut.GetOrFetchAsync("MAS001001M", fetch, CancellationToken.None);
+        fetcherCalls.Should().Be(1);
+
+        // Act
+        sut.Invalidate("MAS001001M");
+
+        // Second call: cache was invalidated, must invoke fetcher again
+        await sut.GetOrFetchAsync("MAS001001M", fetch, CancellationToken.None);
+
+        // Assert
+        fetcherCalls.Should().Be(2, "cache was invalidated between calls");
+    }
 }
