@@ -118,7 +118,8 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
                     Amount = s.Amount,
                     ProductType = ResolveProductType(s),
                     HasLots = hasLotsByProductCode.TryGetValue(code, out var hasLots) && hasLots,
-                    HasExpiration = false
+                    HasExpiration = false,
+                    Order = s.Order,
                 };
             }).ToList(),
         };

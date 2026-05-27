@@ -216,6 +216,35 @@ public class FlexiManufactureTemplateServiceTests
     }
 
     [Fact]
+    public async Task GetManufactureTemplateAsync_MapsIngredientOrder_FromBoMItemFlexiDto()
+    {
+        // Arrange
+        var header = ManufactureTestData.CreateBoMItem(1, 1, 10, ManufactureTestData.SemiProducts.SilkBar);
+
+        var ing1 = ManufactureTestData.CreateBoMItem(10, 2, 5, ManufactureTestData.Materials.Bisabolol);
+        ing1.Order = 2;
+        var ing2 = ManufactureTestData.CreateBoMItem(20, 2, 3, ManufactureTestData.Materials.Glycerol);
+        ing2.Order = 1;
+
+        _mockBomClient
+            .Setup(x => x.GetAsync(ManufactureTestData.SemiProducts.SilkBar.Code, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<BoMItemFlexiDto> { header, ing1, ing2 });
+
+        SetupEmptyStock();
+
+        // Act
+        var template = await _service.GetManufactureTemplateAsync(
+            ManufactureTestData.SemiProducts.SilkBar.Code, CancellationToken.None);
+
+        // Assert
+        template.Should().NotBeNull();
+        var bisabolol = template!.Ingredients.Single(i => i.ProductCode == ManufactureTestData.Materials.Bisabolol.Code);
+        var glycerol = template.Ingredients.Single(i => i.ProductCode == ManufactureTestData.Materials.Glycerol.Code);
+        bisabolol.Order.Should().Be(2);
+        glycerol.Order.Should().Be(1);
+    }
+
+    [Fact]
     public async Task GetManufactureTemplateAsync_WhenHeaderNotFound_EmitsTelemetryAsCacheMiss()
     {
         // BoM returns no Level-1 header → FetchAsync returns null
@@ -237,6 +266,13 @@ public class FlexiManufactureTemplateServiceTests
                     m["stock_duration_ms"] == 0 &&
                     m.ContainsKey("total_duration_ms"))),
             Times.Once);
+    }
+
+    private void SetupEmptyStock()
+    {
+        _mockStockClient
+            .Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<ErpStock>)new List<ErpStock>());
     }
 
     /// <summary>
