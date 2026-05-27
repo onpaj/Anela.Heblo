@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, XCircle } from 'lucide-react';
+import { getConfig } from '../../../config/runtimeConfig';
 
 interface FailedJobsTileProps {
   data: {
@@ -11,9 +12,12 @@ interface FailedJobsTileProps {
   };
 }
 
+const HANGFIRE_PATH = '/hangfire/jobs/failed';
+
 export const FailedJobsTile: React.FC<FailedJobsTileProps> = ({ data }) => {
   const handleClick = () => {
-    window.location.href = '/hangfire/jobs/failed';
+    const { apiUrl } = getConfig();
+    window.open(`${apiUrl}${HANGFIRE_PATH}`, '_blank');
   };
 
   if (data.status === 'error') {

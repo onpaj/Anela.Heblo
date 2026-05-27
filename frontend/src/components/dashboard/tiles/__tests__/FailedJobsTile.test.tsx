@@ -2,22 +2,18 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { FailedJobsTile } from '../FailedJobsTile';
 
-// window.location.href is read-only in jsdom; replace with a writable stub
-const originalLocation = window.location;
+// Mock runtimeConfig so the component gets a predictable backend URL
+jest.mock('../../../../config/runtimeConfig', () => ({
+  getConfig: () => ({ apiUrl: 'http://localhost:5001' }),
+}));
+
+// Mock window.open
+const mockWindowOpen = jest.fn();
 beforeAll(() => {
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    value: { href: '' },
-  });
-});
-afterAll(() => {
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    value: originalLocation,
-  });
+  window.open = mockWindowOpen;
 });
 beforeEach(() => {
-  (window.location as { href: string }).href = '';
+  mockWindowOpen.mockReset();
 });
 
 describe('FailedJobsTile', () => {
@@ -43,11 +39,14 @@ describe('FailedJobsTile', () => {
     expect(screen.getByText('failed jobs')).toBeInTheDocument();
   });
 
-  it('navigates to /hangfire/jobs/failed on click', () => {
+  it('opens Hangfire failed jobs page in a new tab on click', () => {
     render(<FailedJobsTile data={{ status: 'success', data: { count: 3 } }} />);
 
     fireEvent.click(screen.getByTestId('failed-jobs-tile'));
 
-    expect(window.location.href).toBe('/hangfire/jobs/failed');
+    expect(mockWindowOpen).toHaveBeenCalledWith(
+      'http://localhost:5001/hangfire/jobs/failed',
+      '_blank'
+    );
   });
 });
