@@ -3,6 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ManageAccessModal } from '../ManageAccessModal';
 import type { MeetingTranscriptDto, MeetingUserDto } from '../../../../../api/hooks/useMeetingTasks';
 
+import { useUpdateMeetingAccess } from '../../../../../api/hooks/useMeetingTasks';
+
 jest.mock('react-select', () => ({
   __esModule: true,
   default: jest.fn(() => null),
@@ -13,8 +15,6 @@ jest.mock('../../../../../api/hooks/useMeetingTasks', () => ({
   ...jest.requireActual('../../../../../api/hooks/useMeetingTasks'),
   useUpdateMeetingAccess: jest.fn(),
 }));
-
-import { useUpdateMeetingAccess } from '../../../../../api/hooks/useMeetingTasks';
 
 const mockTranscript: Partial<MeetingTranscriptDto> = {
   id: 'test-id',

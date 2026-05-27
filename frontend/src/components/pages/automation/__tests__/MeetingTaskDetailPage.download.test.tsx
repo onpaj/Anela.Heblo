@@ -4,6 +4,20 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as downloadUtils from '../../../../utils/downloadTextFile';
 
+import {
+  useMeetingTaskDetail,
+  useUpdateProposedTask,
+  useUpdateProposedTaskStatus,
+  useAddProposedTask,
+  useSubmitToTodo,
+  useMeetingUsers,
+  useReimportMeeting,
+  useExplainMeetingSummary,
+} from '../../../../api/hooks/useMeetingTasks';
+import { useMeetingManagerPermission } from '../../../../api/hooks/useMeetingManagerPermission';
+import { useExplainSelection } from '../explain/useExplainSelection';
+import MeetingTaskDetailPage from '../MeetingTaskDetailPage';
+
 // ---- Module mocks ----
 
 jest.mock('react-markdown', () => ({ __esModule: true, default: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
@@ -19,20 +33,6 @@ jest.mock('../../../../utils/downloadTextFile', () => ({
   ...jest.requireActual('../../../../utils/downloadTextFile'),
   downloadTextFile: jest.fn(),
 }));
-
-import {
-  useMeetingTaskDetail,
-  useUpdateProposedTask,
-  useUpdateProposedTaskStatus,
-  useAddProposedTask,
-  useSubmitToTodo,
-  useMeetingUsers,
-  useReimportMeeting,
-  useExplainMeetingSummary,
-} from '../../../../api/hooks/useMeetingTasks';
-import { useMeetingManagerPermission } from '../../../../api/hooks/useMeetingManagerPermission';
-import { useExplainSelection } from '../explain/useExplainSelection';
-import MeetingTaskDetailPage from '../MeetingTaskDetailPage';
 
 // ---- Helpers ----
 
