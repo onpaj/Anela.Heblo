@@ -206,6 +206,22 @@ internal class FlexiManufactureClient : IManufactureClient
         _templateService.InvalidateTemplate(productCode);
     }
 
+    public async Task SetBomItemsOrderAndPhaseAsync(
+        string productCode,
+        IEnumerable<(int BoMItemId, int Order, string? PhaseLabel)> items,
+        CancellationToken cancellationToken = default)
+    {
+        foreach (var item in items)
+        {
+            await _bomClient.UpdateBoMItemAsync(
+                item.BoMItemId,
+                order: item.Order,
+                nameC: item.PhaseLabel ?? string.Empty,
+                cancellationToken: cancellationToken);
+        }
+        _templateService.InvalidateTemplate(productCode);
+    }
+
     public async Task<List<ManufactureTemplate>> FindByIngredientAsync(string ingredientCode, CancellationToken cancellationToken)
     {
         IEnumerable<BoMItemFlexiDto> templates;
