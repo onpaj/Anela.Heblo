@@ -14,6 +14,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetManufactureDifficulty
 using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateProductWeight;
 using Anela.Heblo.Application.Features.Catalog.UseCases.SubmitStockTaking;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
+using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder;
 using Anela.Heblo.Application.Features.Catalog.Validators;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Cache;
@@ -94,6 +95,7 @@ public static class CatalogModule
         services.AddScoped<IValidator<GetManufactureDifficultySettingsRequest>, GetManufactureDifficultyHistoryRequestValidator>();
         services.AddScoped<IValidator<SubmitStockTakingRequest>, SubmitStockTakingRequestValidator>();
         services.AddScoped<IValidator<RecalculateProductWeightRequest>, RecalculateProductWeightRequestValidator>();
+        services.AddScoped<IValidator<UpdateProductCompositionOrderRequest>, UpdateProductCompositionOrderRequestValidator>();
 
         // Register MediatR validation behavior only for catalog requests
         services.AddScoped<IPipelineBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>, ValidationBehavior<GetCatalogDetailRequest, GetCatalogDetailResponse>>();
@@ -102,6 +104,7 @@ public static class CatalogModule
         services.AddScoped<IPipelineBehavior<GetManufactureDifficultySettingsRequest, GetManufactureDifficultySettingsResponse>, ValidationBehavior<GetManufactureDifficultySettingsRequest, GetManufactureDifficultySettingsResponse>>();
         services.AddScoped<IPipelineBehavior<SubmitStockTakingRequest, SubmitStockTakingResponse>, ValidationBehavior<SubmitStockTakingRequest, SubmitStockTakingResponse>>();
         services.AddScoped<IPipelineBehavior<RecalculateProductWeightRequest, RecalculateProductWeightResponse>, ValidationBehavior<RecalculateProductWeightRequest, RecalculateProductWeightResponse>>();
+        services.AddScoped<IPipelineBehavior<UpdateProductCompositionOrderRequest, UpdateProductCompositionOrderResponse>, ValidationBehavior<UpdateProductCompositionOrderRequest, UpdateProductCompositionOrderResponse>>();
 
         RegisterBackgroundRefreshTasks(services);
 
