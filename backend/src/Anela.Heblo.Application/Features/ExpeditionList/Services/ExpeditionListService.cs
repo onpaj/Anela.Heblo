@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 using Anela.Heblo.Xcc.Services.Email;
+using Anela.Heblo.Application.Shared.Printing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 

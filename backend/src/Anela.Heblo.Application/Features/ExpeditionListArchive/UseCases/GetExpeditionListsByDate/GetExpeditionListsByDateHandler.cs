@@ -1,4 +1,3 @@
-using Anela.Heblo.Application.Features.ExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.Contracts;
 using Anela.Heblo.Domain.Features.FileStorage;
 using MediatR;
@@ -11,7 +10,7 @@ public class GetExpeditionListsByDateHandler : IRequestHandler<GetExpeditionList
     private readonly IBlobStorageService _blobStorageService;
     private readonly string _containerName;
 
-    public GetExpeditionListsByDateHandler(IBlobStorageService blobStorageService, IOptions<PrintPickingListOptions> options)
+    public GetExpeditionListsByDateHandler(IBlobStorageService blobStorageService, IOptions<ExpeditionListArchiveOptions> options)
     {
         _blobStorageService = blobStorageService;
         _containerName = options.Value.BlobContainerName;

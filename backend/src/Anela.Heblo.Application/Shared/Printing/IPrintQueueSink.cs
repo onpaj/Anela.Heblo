@@ -1,4 +1,4 @@
-namespace Anela.Heblo.Application.Features.ExpeditionList.Services;
+namespace Anela.Heblo.Application.Shared.Printing;
 
 public interface IPrintQueueSink
 {
