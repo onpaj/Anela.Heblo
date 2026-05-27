@@ -62,6 +62,7 @@ public class FailedJobsTileTests
         doc.RootElement.GetProperty("error").GetString().Should().Be("storage unavailable");
         doc.RootElement.GetProperty("drillDown").GetProperty("url").GetString()
             .Should().Be("/hangfire/jobs/failed");
+        doc.RootElement.GetProperty("drillDown").GetProperty("enabled").GetBoolean().Should().BeTrue();
     }
 
     [Fact]
