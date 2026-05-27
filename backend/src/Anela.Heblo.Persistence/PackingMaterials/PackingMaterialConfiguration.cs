@@ -40,5 +40,14 @@ public class PackingMaterialConfiguration : IEntityTypeConfiguration<PackingMate
         // Index for efficient name searches
         builder.HasIndex(e => e.Name)
             .HasDatabaseName("IX_PackingMaterials_Name");
+
+        builder.HasMany(e => e.Logs)
+            .WithOne()
+            .HasForeignKey(nameof(PackingMaterialLog.PackingMaterialId))
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Metadata
+            .FindNavigation(nameof(PackingMaterial.Logs))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
     }
 }

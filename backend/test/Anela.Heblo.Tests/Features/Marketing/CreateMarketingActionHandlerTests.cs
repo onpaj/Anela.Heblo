@@ -8,9 +8,9 @@ using Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAction;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Marketing;
 using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -32,15 +32,14 @@ public class CreateMarketingActionHandlerTests
         _outlookSyncMock = new Mock<IOutlookCalendarSync>();
 
         var options = new MarketingCalendarOptions { PushEnabled = false, GroupId = "test@example.com" };
-        var mockOptions = new Mock<IOptions<MarketingCalendarOptions>>();
-        mockOptions.Setup(o => o.Value).Returns(options);
+        var monitor = new TestOptionsMonitor<MarketingCalendarOptions>(options);
 
         _handler = new CreateMarketingActionHandler(
             _repositoryMock.Object,
             _currentUserServiceMock.Object,
             _loggerMock.Object,
             _outlookSyncMock.Object,
-            mockOptions.Object);
+            monitor);
     }
 
     [Fact]
@@ -101,7 +100,8 @@ public class CreateMarketingActionHandlerTests
         _currentUserServiceMock.Setup(x => x.GetCurrentUser()).Returns(currentUser);
         _repositoryMock
             .Setup(x => x.AddAsync(It.IsAny<MarketingAction>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(createdAction);
+            .Callback<MarketingAction, CancellationToken>((a, _) => a.Id = 42)
+            .ReturnsAsync((MarketingAction a, CancellationToken _) => a);
         _repositoryMock
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);

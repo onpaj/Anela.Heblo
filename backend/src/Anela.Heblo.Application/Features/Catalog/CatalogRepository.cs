@@ -15,6 +15,7 @@ using Anela.Heblo.Domain.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Purchase;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -41,6 +42,7 @@ public class CatalogRepository : ICatalogRepository
     private readonly IManufactureOrderRepository _manufactureOrderRepository;
     private readonly IManufactureHistoryClient _manufactureHistoryClient;
     private readonly IManufactureDifficultyRepository _manufactureDifficultyRepository;
+    private readonly IManufacturedProductInventoryRepository _manufacturedInventoryRepository;
     private readonly ICatalogResilienceService _resilienceService;
     private readonly ICatalogMergeScheduler _mergeScheduler;
 
@@ -77,6 +79,7 @@ public class CatalogRepository : ICatalogRepository
         IManufactureOrderRepository manufactureOrderRepository,
         IManufactureHistoryClient manufactureHistoryClient,
         IManufactureDifficultyRepository manufactureDifficultyRepository,
+        IManufacturedProductInventoryRepository manufacturedInventoryRepository,
         ICatalogResilienceService resilienceService,
         ICatalogMergeScheduler mergeScheduler,
         IMemoryCache cache,
@@ -102,6 +105,7 @@ public class CatalogRepository : ICatalogRepository
         _manufactureOrderRepository = manufactureOrderRepository;
         _manufactureHistoryClient = manufactureHistoryClient;
         _manufactureDifficultyRepository = manufactureDifficultyRepository;
+        _manufacturedInventoryRepository = manufacturedInventoryRepository;
         _resilienceService = resilienceService;
         _mergeScheduler = mergeScheduler;
         _cache = cache;
@@ -118,6 +122,12 @@ public class CatalogRepository : ICatalogRepository
     {
         var transportData = await GetProductsInTransport(ct);
         CachedInTransportData = transportData;
+    }
+
+    public async Task RefreshManufacturedData(CancellationToken ct)
+    {
+        var manufacturedData = await _manufacturedInventoryRepository.GetTotalAmountByProductCodeAsync(ct);
+        CachedManufacturedData = manufacturedData;
     }
 
     public async Task RefreshReserveData(CancellationToken ct)
@@ -393,9 +403,11 @@ public class CatalogRepository : ICatalogRepository
                 product.Properties.SeasonMonths = attributes.SeasonMonthsArray;
                 product.MinimalManufactureQuantity = attributes.MinimalManufactureQuantity;
                 product.Properties.AllowedResiduePercentage = attributes.AllowedResiduePercentage;
+                product.Properties.Cooling = attributes.Cooling;
             }
 
             product.Stock.Transport = CachedInTransportData.ContainsKey(product.ProductCode) ? CachedInTransportData[product.ProductCode] : 0;
+            product.Stock.Manufactured = CachedManufacturedData.ContainsKey(product.ProductCode) ? CachedManufacturedData[product.ProductCode] : 0;
             product.Stock.Reserve = CachedInReserveData.ContainsKey(product.ProductCode) ? CachedInReserveData[product.ProductCode] : 0;
             product.Stock.Quarantine = CachedInQuarantineData.ContainsKey(product.ProductCode) ? CachedInQuarantineData[product.ProductCode] : 0;
             product.Stock.Ordered = CachedOrderedData.ContainsKey(product.ProductCode) ? CachedOrderedData[product.ProductCode] : 0;
@@ -592,6 +604,17 @@ public class CatalogRepository : ICatalogRepository
         }
     }
 
+    private IDictionary<string, decimal> CachedManufacturedData
+    {
+        get => _cache.Get<Dictionary<string, decimal>>(nameof(CachedManufacturedData)) ?? new Dictionary<string, decimal>();
+        set
+        {
+            _cache.Set(nameof(CachedManufacturedData), value);
+            InvalidateSourceData(nameof(CachedManufacturedData));
+            SetLoadDateInCache(nameof(CachedManufacturedData));
+        }
+    }
+
     private IDictionary<string, int> CachedInReserveData
     {
         get => _cache.Get<Dictionary<string, int>>(nameof(CachedInReserveData)) ?? new Dictionary<string, int>();
@@ -742,15 +765,17 @@ public class CatalogRepository : ICatalogRepository
         }
     }
 
+    private const string CachedManufactureCostDataKey = "CachedManufactureCostData";
+
     [Obsolete($"{nameof(IMarginCalculationService)} should be used instead")]
     private IDictionary<string, List<ManufactureCost>> CachedManufactureCostData
     {
-        get => _cache.Get<Dictionary<string, List<ManufactureCost>>>(nameof(CachedManufactureCostData)) ?? new Dictionary<string, List<ManufactureCost>>();
+        get => _cache.Get<Dictionary<string, List<ManufactureCost>>>(CachedManufactureCostDataKey) ?? new Dictionary<string, List<ManufactureCost>>();
         set
         {
-            _cache.Set(nameof(CachedManufactureCostData), value);
-            InvalidateSourceData(nameof(CachedManufactureCostData));
-            SetLoadDateInCache(nameof(CachedManufactureCostData));
+            _cache.Set(CachedManufactureCostDataKey, value);
+            InvalidateSourceData(CachedManufactureCostDataKey);
+            SetLoadDateInCache(CachedManufactureCostDataKey);
         }
     }
 
@@ -767,6 +792,7 @@ public class CatalogRepository : ICatalogRepository
 
     // Data load timestamps - stored in cache with same expiration as data
     public DateTime? TransportLoadDate => GetLoadDateFromCache(nameof(CachedInTransportData));
+    public DateTime? ManufacturedLoadDate => GetLoadDateFromCache(nameof(CachedManufacturedData));
     public DateTime? ReserveLoadDate => GetLoadDateFromCache(nameof(CachedInReserveData));
     public DateTime? QuarantineLoadDate => GetLoadDateFromCache(nameof(CachedInQuarantineData));
     public DateTime? OrderedLoadDate => GetLoadDateFromCache(nameof(CachedOrderedData));
@@ -784,7 +810,7 @@ public class CatalogRepository : ICatalogRepository
     public DateTime? ErpPricesLoadDate => GetLoadDateFromCache(nameof(CachedErpPriceData));
     public DateTime? EshopUrlLoadDate => GetLoadDateFromCache(nameof(CachedEshopUrlData));
     public DateTime? ManufactureDifficultySettingsLoadDate => GetLoadDateFromCache(nameof(CachedManufactureDifficultySettingsData));
-    public DateTime? ManufactureCostLoadDate => GetLoadDateFromCache(nameof(CachedManufactureCostData));
+    public DateTime? ManufactureCostLoadDate => GetLoadDateFromCache(CachedManufactureCostDataKey);
 
     // Merge operation tracking
     public DateTime? LastMergeDateTime => _cache.Get<DateTime?>("LastMergeDateTime");
@@ -803,6 +829,7 @@ public class CatalogRepository : ICatalogRepository
             var loadDates = new DateTime?[]
             {
                 TransportLoadDate,
+                ManufacturedLoadDate,
                 ReserveLoadDate,
                 QuarantineLoadDate,
                 OrderedLoadDate,

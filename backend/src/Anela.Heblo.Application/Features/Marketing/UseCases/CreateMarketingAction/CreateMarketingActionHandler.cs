@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Net;
 using Anela.Heblo.Application.Features.Marketing.Configuration;
 using Anela.Heblo.Application.Features.Marketing.Contracts;
 using Anela.Heblo.Application.Features.Marketing.Services;
@@ -21,14 +17,14 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAct
         private readonly ICurrentUserService _currentUserService;
         private readonly ILogger<CreateMarketingActionHandler> _logger;
         private readonly IOutlookCalendarSync _outlookSync;
-        private readonly IOptions<MarketingCalendarOptions> _options;
+        private readonly IOptionsMonitor<MarketingCalendarOptions> _options;
 
         public CreateMarketingActionHandler(
             IMarketingActionRepository repository,
             ICurrentUserService currentUserService,
             ILogger<CreateMarketingActionHandler> logger,
             IOutlookCalendarSync outlookSync,
-            IOptions<MarketingCalendarOptions> options)
+            IOptionsMonitor<MarketingCalendarOptions> options)
         {
             _repository = repository;
             _currentUserService = currentUserService;
@@ -44,10 +40,8 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAct
             var currentUser = _currentUserService.GetCurrentUser();
             if (!currentUser.IsAuthenticated || string.IsNullOrEmpty(currentUser.Id))
             {
-                return new CreateMarketingActionResponse(ErrorCodes.UnauthorizedMarketingAccess, new Dictionary<string, string>
-                {
-                    { "resource", "marketing_action" },
-                });
+                return new CreateMarketingActionResponse(ErrorCodes.UnauthorizedMarketingAccess,
+                    new Dictionary<string, string> { { "resource", "marketing_action" } });
             }
 
             var now = DateTime.UtcNow;
@@ -66,60 +60,65 @@ namespace Anela.Heblo.Application.Features.Marketing.UseCases.CreateMarketingAct
             };
 
             if (request.AssociatedProducts?.Any() == true)
-            {
                 foreach (var product in request.AssociatedProducts.Distinct())
-                {
                     action.AssociateWithProduct(product);
-                }
-            }
 
             if (request.FolderLinks?.Any() == true)
-            {
                 foreach (var link in request.FolderLinks)
-                {
                     action.LinkToFolder(link.FolderKey.Trim(), link.FolderType);
-                }
-            }
 
-            var created = await _repository.AddAsync(action, cancellationToken);
-            await _repository.SaveChangesAsync(cancellationToken);
+            string? outlookEventId = null;
 
-            if (_options.Value.PushEnabled)
+            if (_options.CurrentValue.PushEnabled)
             {
                 try
                 {
-                    var eventId = await _outlookSync.CreateEventAsync(created, cancellationToken);
-                    created.MarkOutlookSynced(eventId, now);
+                    outlookEventId = await _outlookSync.CreateEventAsync(action, cancellationToken);
+                    action.MarkOutlookSynced(outlookEventId, now);
                 }
-                catch (Exception ex)
+                catch (OutlookCalendarSyncException ex)
                 {
-                    _logger.LogError(ex, "Failed to sync MarketingAction {ActionId} to Outlook; will retry", created.Id);
-                    created.MarkOutlookFailed(ex.Message, now);
-                }
-
-                // Best-effort: persist Outlook sync status. A failure here is non-blocking.
-                try
-                {
-                    await _repository.SaveChangesAsync(cancellationToken);
-                }
-                catch (Exception dbEx)
-                {
-                    _logger.LogWarning(dbEx,
-                        "Outlook sync status for MarketingAction {ActionId} could not be persisted to the database",
-                        created.Id);
+                    _logger.LogError(ex, "Outlook CreateEvent failed for new MarketingAction; user {UserId}", currentUser.Id);
+                    return OutlookError(ex);
                 }
             }
 
-            _logger.LogInformation(
-                "MarketingAction {ActionId} created by user {UserId}",
-                created.Id,
-                currentUser.Id);
-
-            return new CreateMarketingActionResponse
+            await _repository.AddAsync(action, cancellationToken);
+            try
             {
-                Id = created.Id,
-                CreatedAt = created.CreatedAt,
-            };
+                await _repository.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception dbEx)
+            {
+                _logger.LogError(dbEx,
+                    "DB save failed after Outlook create; compensating Outlook event {EventId}", outlookEventId);
+
+                if (outlookEventId != null)
+                {
+                    try
+                    {
+                        await _outlookSync.DeleteEventAsync(outlookEventId, cancellationToken);
+                        _logger.LogWarning("Compensating delete of Outlook event {EventId} succeeded", outlookEventId);
+                    }
+                    catch (Exception compEx)
+                    {
+                        _logger.LogError(compEx,
+                            "Compensating delete of Outlook event {EventId} also failed — event orphaned",
+                            outlookEventId);
+                    }
+                }
+
+                return new CreateMarketingActionResponse(ErrorCodes.DatabaseError);
+            }
+
+            _logger.LogInformation("MarketingAction {ActionId} created by user {UserId}", action.Id, currentUser.Id);
+
+            return new CreateMarketingActionResponse { Id = action.Id, CreatedAt = action.CreatedAt };
         }
+
+        private static CreateMarketingActionResponse OutlookError(OutlookCalendarSyncException ex) =>
+            ex.StatusCode == HttpStatusCode.Forbidden
+                ? new CreateMarketingActionResponse(ErrorCodes.MarketingCalendarAccessDenied)
+                : new CreateMarketingActionResponse(ErrorCodes.MarketingCalendarSyncFailed);
     }
 }

@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Invoices;
+using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Domain.Features.PackingMaterials;
 using Anela.Heblo.Domain.Features.PackingMaterials.Enums;
 using Microsoft.Extensions.Logging;
@@ -8,16 +8,16 @@ namespace Anela.Heblo.Application.Features.PackingMaterials.Services;
 public class ConsumptionCalculationService : IConsumptionCalculationService
 {
     private readonly IPackingMaterialRepository _repository;
-    private readonly IIssuedInvoiceRepository _invoiceRepository;
+    private readonly IInvoiceConsumptionSource _invoiceSource;
     private readonly ILogger<ConsumptionCalculationService> _logger;
 
     public ConsumptionCalculationService(
         IPackingMaterialRepository repository,
-        IIssuedInvoiceRepository invoiceRepository,
+        IInvoiceConsumptionSource invoiceSource,
         ILogger<ConsumptionCalculationService> logger)
     {
         _repository = repository;
-        _invoiceRepository = invoiceRepository;
+        _invoiceSource = invoiceSource;
         _logger = logger;
     }
 
@@ -34,7 +34,7 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
         _logger.LogInformation("Starting daily consumption processing for {Date}", processingDate);
 
         var materials = (await _repository.GetAllWithAllocationsAsync(cancellationToken)).ToList();
-        var invoices = (await _invoiceRepository.GetHeadersByDateAsync(processingDate, cancellationToken)).ToList();
+        var invoices = await _invoiceSource.GetHeadersByDateAsync(processingDate, cancellationToken);
 
         var allFactRows = new List<PackingMaterialConsumption>();
         var decrementByMaterial = new Dictionary<PackingMaterial, decimal>();
@@ -66,19 +66,24 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
             }
         }
 
-        // Relies on EF change tracking — GetAllWithAllocationsAsync must NOT use AsNoTracking
-        if (processedCount == 0 && materials.Count > 0)
-        {
-            var marker = materials[0];
-            marker.UpdateQuantity(marker.CurrentQuantity, processingDate, LogEntryType.AutomaticConsumption);
-        }
-
         if (allFactRows.Count > 0)
             await _repository.AddConsumptionRowsAsync(allFactRows, cancellationToken);
 
-        await _repository.SaveChangesAsync(cancellationToken);
+        var dailyRun = new PackingMaterialDailyRun(processingDate, processedCount);
+        await _repository.AddDailyRunAsync(dailyRun, cancellationToken);
 
-        _logger.LogInformation("Completed daily consumption processing for {Date}. Processed {ProcessedCount} materials",
+        try
+        {
+            await _repository.SaveChangesAsync(cancellationToken);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (IsDuplicateDailyRunViolation(ex))
+        {
+            _logger.LogWarning("PackingMaterialsDailyRunDuplicateDetected: duplicate daily run for {ProcessingDate} detected, rolling back",
+                processingDate);
+            return new ProcessDailyConsumptionResult(false, 0);
+        }
+
+        _logger.LogInformation("PackingMaterialsDailyRunRecorded: daily run recorded for {ProcessingDate}. MaterialsProcessed={MaterialsProcessed}",
             processingDate, processedCount);
 
         return new ProcessDailyConsumptionResult(true, processedCount);
@@ -93,7 +98,7 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
 
     private static List<PackingMaterialConsumption> BuildFactRows(
         PackingMaterial material,
-        List<IssuedInvoice> invoices,
+        IReadOnlyList<InvoiceConsumptionHeader> invoices,
         DateOnly date)
     {
         return material.ConsumptionType switch
@@ -114,4 +119,9 @@ public class ConsumptionCalculationService : IConsumptionCalculationService
             _ => throw new ArgumentOutOfRangeException(nameof(material.ConsumptionType))
         };
     }
+
+    private static bool IsDuplicateDailyRunViolation(Microsoft.EntityFrameworkCore.DbUpdateException ex) =>
+        ex.InnerException is Npgsql.PostgresException pg
+        && pg.SqlState == Npgsql.PostgresErrorCodes.UniqueViolation
+        && string.Equals(pg.ConstraintName, "IX_PackingMaterialDailyRuns_Date", StringComparison.Ordinal);
 }

@@ -117,6 +117,8 @@ const resources = {
         CannotUpdateCancelledOrder: "Nelze upravit rozpis zrušených zakázek", 
         CannotScheduleInPast: "Nelze naplánovat výrobu do minulosti",
         InvalidScheduleDateOrder: "Datum výroby polotovaru nemůže být po datu dokončení produktu",
+        ManufacturedInventoryItemNotFound: "Položka skladu výroby nenalezena (ID: {id})",
+        ManufacturedInventoryInsufficientStock: "Nedostatečné zásoby ve skladu výroby. Dostupné: {available}",
 
         // Catalog module errors
         CatalogItemNotFound: "Položka katalogu nenalezena (ID: {id})",
@@ -207,6 +209,8 @@ const resources = {
         // Marketing Calendar module errors
         MarketingActionNotFound: "Marketingová akce nebyla nalezena",
         UnauthorizedMarketingAccess: "Nemáte oprávnění k této marketingové akci",
+        MarketingCalendarAccessDenied: "Nemáte oprávnění zapisovat do marketingového kalendáře. Musíte být členem marketingové skupiny.",
+        MarketingCalendarSyncFailed: "Nepodařilo se kontaktovat Outlook kalendář. Zkuste to prosím znovu.",
 
         // Photobank module errors
         PhotoNotFound: "Fotka nebyla nalezena",
@@ -218,9 +222,28 @@ const resources = {
         BulkTagInvalidRequest: "Neplatný požadavek pro hromadné tagování.",
         PhotobankTagNotFound: "Tag fotobanka nebyl nalezen.",
         PhotobankInvalidRegexPattern: "Neplatný regulární výraz.",
+        PhotobankThumbnailNotFound: "Náhled fotky nebyl nalezen.",
+        PhotobankThumbnailThrottled: "Služba náhledů je přetížena. Zkuste to prosím znovu.",
+        PhotobankThumbnailAuthUnavailable: "Autentizační služba náhledů je nedostupná.",
+        PhotobankThumbnailUpstream: "Chyba vzdálené služby náhledů.",
 
         // Smartsupp module errors
         SmartsuppConversationNotFound: "Konverzace Smartsupp nebyla nalezena",
+        SmartsuppDraftReplyAiUnavailable: "AI služba je momentálně nedostupná. Zkuste to prosím znovu.",
+        SmartsuppConversationEmpty: "Konverzace neobsahuje zprávu zákazníka.",
+        SmartsuppShoptetCustomerNotFound: "Zákazník v Shoptetu nenalezen.",
+        SmartsuppVisitorNotFound: "Návštěvník nebyl nalezen.",
+        SmartsuppSendMessageUnavailable: "Odeslání zprávy selhalo. Zkuste to prosím znovu.",
+        SmartsuppAgentMappingNotFound: "Váš uživatelský účet nemá přiřazený Smartsupp agent. Doplňte mapování v Smartsupp:AgentMap.",
+        SmartsuppCloseConversationUnavailable: "Uzavření konverzace selhalo — služba je nedostupná. Zkuste to prosím znovu.",
+
+        // Inventory module errors
+        LotNotFound: "Šarže nebyla nalezena.",
+        EanNotFound: "EAN kód nebyl nalezen.",
+        LotAlreadyExists: "Šarže s tímto kódem již existuje.",
+        InventoryMaterialNotFound: "Materiál skladu nebyl nalezen.",
+        InventoryMaterialInvalidType: "Neplatný typ materiálu skladu.",
+        LotHasEans: "Šarži nelze smazat, protože obsahuje EAN kódy.",
 
         // Article Generation errors
         ArticleNotFound: "Článek nebyl nalezen (ID: {{id}})",
@@ -231,12 +254,61 @@ const resources = {
         ArticleNotGenerated: "Článek ještě nebyl vygenerován.",
         ArticleFeedbackAlreadySubmitted: "Zpětná vazba k tomuto článku již byla odeslána.",
 
+        // Shoptet data drift errors
+        DqtProductPairingFailed: "Chyba při párování produktů: {{details}}",
+        DqtStockWriteBackFailed: "Chyba zpětného zápisu skladu: {{details}}",
+
+        // Weather forecast errors
+        WeatherForecastUnavailable: "Předpověď počasí je momentálně nedostupná.",
+
+        // ShipmentLabels module errors
+        ShipmentLabelsNoShipmentFound: "Zásilka k objednávce nebyla nalezena.",
+        ShipmentLabelsNotGenerated: "Štítky zásilek nebyly dosud vygenerovány.",
+        ShipmentAlreadyExists: "Zásilka pro tuto objednávku již existuje.",
+        ShipmentCarrierNotResolved: "Nepodařilo se určit dopravce pro objednávku.",
+        ShipmentCreationFailed: "Vytvoření zásilky se nezdařilo.",
+        ShipmentLabelNotReady: "Štítek zásilky ještě není připraven.",
+        ShipmentOrderWeightUnavailable: "Hmotnost objednávky není dostupná.",
+
+        // Packaging module errors
+        OrderNotInPackingState: "Objednávka není ve stavu Balí se — zásilku nelze vytvořit.",
+        ShipmentCancelFailed: "Zrušení zásilky u dopravce se nezdařilo.",
+        NoShipmentToReset: "K této objednávce neexistuje žádná zásilka, kterou by bylo možné resetovat.",
+        PackageLabelNotFound: "Štítek pro tento balík nebyl nalezen.",
+        PackageLabelDownloadFailed: "Stažení PDF štítku od dopravce se nezdařilo.",
+        PackageNotFound: "Zásilka nebyla nalezena.",
+
+        // CatalogDocuments module errors
+        CatalogDocumentInvalidTypeCode: "Neplatný kód typu dokumentu katalogu.",
+        CatalogDocumentLotRequired: "Pro tento typ dokumentu je vyžadována šarže.",
+        CatalogDocumentFolderNotFound: "Složka dokumentů katalogu nebyla nalezena.",
+        CatalogDocumentFolderMultipleMatches: "Nalezeno více odpovídajících složek dokumentů katalogu.",
+        CatalogDocumentFileMissing: "Soubor dokumentu katalogu chybí.",
+        CatalogDocumentGraphError: "Chyba přístupu k úložišti dokumentů katalogu.",
+
         // External Service errors
         ExternalServiceError: "Chyba externí služby",
         FlexiApiError: "Chyba ABRA Flexi API",
         ShoptetApiError: "Chyba Shoptet API",
         PaymentGatewayError: "Chyba platební brány",
         ErpGatewayError: "Chyba ERP brány (časový limit nebo nedostupnost)",
+      },
+      dataQuality: {
+        testTypes: {
+          IssuedInvoiceComparison: "Porovnání faktur",
+          ProductPairing: "Párování produktů",
+          StockWriteBackReconciliation: "Zpětný zápis skladu",
+        },
+        productPairingMismatches: {
+          MissingInErp: "Chybí v ERP",
+          MissingInShoptet: "Chybí v Shoptet",
+          PairCodeUnresolved: "Nespárovaný párový kód",
+        },
+        stockWriteBackMismatches: {
+          OperationFailed: "Operace selhala",
+          OperationStuck: "Operace zaseknutá",
+          StockTakingErrored: "Chyba inventury",
+        },
       },
     },
   },
@@ -334,6 +406,10 @@ const resources = {
         DqtInvalidDateRange: "Invalid date range: DateFrom must be before or equal to DateTo",
         DqtExternalServiceError: "External service error during data quality test: {{service}}",
 
+        // Shoptet data drift errors
+        DqtProductPairingFailed: "Product pairing failed: {{details}}",
+        DqtStockWriteBackFailed: "Stock write-back reconciliation failed: {{details}}",
+
         // Article Generation errors
         ArticleNotFound: "Article not found (ID: {{id}})",
         ArticleGenerationFailed: "Article generation failed. Please try again.",
@@ -342,6 +418,23 @@ const resources = {
         ArticleAlreadyGenerated: "Article has already been generated.",
         ArticleNotGenerated: "Article has not been generated yet.",
         ArticleFeedbackAlreadySubmitted: "Feedback for this article has already been submitted.",
+      },
+      dataQuality: {
+        testTypes: {
+          IssuedInvoiceComparison: "Invoice Comparison",
+          ProductPairing: "Product Pairing",
+          StockWriteBackReconciliation: "Stock Write-Back Reconciliation",
+        },
+        productPairingMismatches: {
+          MissingInErp: "Missing in ERP",
+          MissingInShoptet: "Missing in Shoptet",
+          PairCodeUnresolved: "Unresolved pair code",
+        },
+        stockWriteBackMismatches: {
+          OperationFailed: "Operation failed",
+          OperationStuck: "Operation stuck",
+          StockTakingErrored: "Stock-taking errored",
+        },
       },
     },
   },

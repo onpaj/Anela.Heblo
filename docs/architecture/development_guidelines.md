@@ -191,6 +191,21 @@ When module A needs data from module B:
 3. Inject interface in module A
 4. Never access module B's domain or infrastructure directly
 
+### Cross-Module Communication Example: ILeafletKnowledgeSource
+
+When module A needs **read-only access** to data in module B, the dependency must **invert**: the consumer owns the contract, the provider implements an adapter.
+
+**Pattern:**
+1. **Consumer (A) defines the contract.** Module A declares an interface in its own `Contracts/` folder, exposing only the operations it actually consumes (no speculative methods).
+2. **Provider (B) implements the contract via an adapter.** Module B writes an adapter class that delegates to its existing internal services. The adapter lives in module B's `Infrastructure/`.
+3. **Provider (B) registers the DI binding.** Module B's `{Module}.cs` registers `services.AddScoped<IConsumerContract, ProviderAdapter>();`. The consumer module never touches this registration.
+
+**Concrete example in this codebase:**
+- **Consumer contract**: `Anela.Heblo.Application.Features.Leaflet.Contracts.ILeafletKnowledgeSource` (Leaflet-owned)
+- **Provider adapter**: `Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure.KnowledgeBaseLeafletSourceAdapter` (KnowledgeBase-owned)
+- **DI registration**: `KnowledgeBaseModule.AddKnowledgeBaseModule` registers the binding
+- **Validation**: A reflection-based test in `backend/test/Anela.Heblo.Tests/Architecture/ModuleBoundariesTests.cs` enforces that Leaflet types contain no references to KnowledgeBase-owned namespaces. Future regressions fail CI.
+
 ---
 
 ## 🏗️ Architecture Decision Records (ADRs)
@@ -233,3 +248,7 @@ When module A needs data from module B:
 - [FastEndpoints Documentation](https://fast-endpoints.com/)
 - [Domain-Driven Design](https://martinfowler.com/tags/domain%20driven%20design.html)
 - [Feature Folders](https://scottsauber.com/2016/04/25/feature-folder-structure-in-asp-net-core/)
+
+## Feature Flags
+
+Use `IFeatureFlagChecker` for all flag evaluation in business code — never call OpenFeature SDK directly. Always use `FeatureFlagKeys` constants (never raw strings). See [docs/development/feature-flags.md](../development/feature-flags.md) for the full guide.

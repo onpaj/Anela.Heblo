@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases;
 using Anela.Heblo.Application.Features.Logistics.UseCases.ChangeTransportBoxState;
 using Anela.Heblo.Application.Shared;
@@ -25,6 +26,7 @@ public class TransportBoxUniquenessTests : IDisposable
     private readonly Mock<ICurrentUserService> _mockUserService;
     private readonly Mock<IMediator> _mockMediator;
     private readonly Mock<IStockUpProcessingService> _mockStockUpProcessingService;
+    private readonly Mock<IInventoryReservationService> _mockInventoryReservationService;
 
     private const string TestUser = "TestUser";
 
@@ -41,6 +43,7 @@ public class TransportBoxUniquenessTests : IDisposable
         _mockUserService = new Mock<ICurrentUserService>();
         _mockMediator = new Mock<IMediator>();
         _mockStockUpProcessingService = new Mock<IStockUpProcessingService>();
+        _mockInventoryReservationService = new Mock<IInventoryReservationService>();
 
         _mockUserService.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser(Guid.NewGuid().ToString(), TestUser, "test@test.com", true));
@@ -57,6 +60,7 @@ public class TransportBoxUniquenessTests : IDisposable
 
         _handler = new ChangeTransportBoxStateHandler(
             _repository,
+            _mockInventoryReservationService.Object,
             _mockMediator.Object,
             NullLogger<ChangeTransportBoxStateHandler>.Instance,
             _mockUserService.Object,

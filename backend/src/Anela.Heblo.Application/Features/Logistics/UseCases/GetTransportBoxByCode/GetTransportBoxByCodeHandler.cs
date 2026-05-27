@@ -2,6 +2,7 @@ using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -12,15 +13,18 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
     private readonly ILogger<GetTransportBoxByCodeHandler> _logger;
     private readonly ITransportBoxRepository _repository;
     private readonly ICatalogRepository _catalogRepository;
+    private readonly IMapper _mapper;
 
     public GetTransportBoxByCodeHandler(
         ILogger<GetTransportBoxByCodeHandler> logger,
         ITransportBoxRepository repository,
-        ICatalogRepository catalogRepository)
+        ICatalogRepository catalogRepository,
+        IMapper mapper)
     {
         _logger = logger;
         _repository = repository;
         _catalogRepository = catalogRepository;
+        _mapper = mapper;
     }
 
     public async Task<GetTransportBoxByCodeResponse> Handle(GetTransportBoxByCodeRequest request, CancellationToken cancellationToken)
@@ -44,8 +48,10 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
                 new Dictionary<string, string> { { "BoxCode", request.BoxCode } });
         }
 
-        // Check if box is in a receivable state (Reserve or InTransit)
-        var isReceivable = transportBox.State == TransportBoxState.Reserve || transportBox.State == TransportBoxState.InTransit;
+        // Check if box is in a receivable state (InTransit, Reserve, or Quarantine)
+        var isReceivable = transportBox.State == TransportBoxState.Reserve
+            || transportBox.State == TransportBoxState.InTransit
+            || transportBox.State == TransportBoxState.Quarantine;
         if (!isReceivable)
         {
             _logger.LogInformation("Transport box {BoxCode} is in state {State}, not receivable but will load details",
@@ -61,86 +67,27 @@ public class GetTransportBoxByCodeHandler : IRequestHandler<GetTransportBoxByCod
                 new Dictionary<string, string> { { "BoxCode", request.BoxCode } });
         }
 
-        // Fetch product images from catalog for all items
-        var itemDtos = new List<TransportBoxItemDto>();
-        foreach (var item in detailedBox.Items)
+        var dto = _mapper.Map<TransportBoxDto>(detailedBox);
+        dto.IsReceivable = isReceivable;
+
+        // Enrich each item with catalog image and current stock
+        foreach (var itemDto in dto.Items)
         {
-            string? imageUrl = null;
-            decimal onStock = 0;
             try
             {
-                var catalogItem = (await _catalogRepository.GetByIdAsync(item.ProductCode, cancellationToken))!;
-                imageUrl = catalogItem.Image;
-                onStock = catalogItem.Stock.Eshop;
+                var catalogItem = (await _catalogRepository.GetByIdAsync(itemDto.ProductCode, cancellationToken))!;
+                itemDto.ImageUrl = catalogItem.Image;
+                itemDto.OnStock = catalogItem.Stock.Eshop;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to load catalog image for product {ProductCode}", item.ProductCode);
+                _logger.LogWarning(ex, "Failed to load catalog image for product {ProductCode}", itemDto.ProductCode);
             }
-
-            itemDtos.Add(new TransportBoxItemDto
-            {
-                Id = item.Id,
-                ProductCode = item.ProductCode,
-                ProductName = item.ProductName,
-                Amount = item.Amount,
-                ImageUrl = imageUrl,
-                OnStock = onStock,
-                DateAdded = item.DateAdded,
-                UserAdded = item.UserAdded
-            });
         }
-
-        var dto = new TransportBoxDto
-        {
-            Id = detailedBox.Id,
-            Code = detailedBox.Code,
-            State = detailedBox.State.ToString(),
-            DefaultReceiveState = detailedBox.DefaultReceiveState.ToString(),
-            Description = detailedBox.Description,
-            LastStateChanged = detailedBox.LastStateChanged,
-            Location = detailedBox.Location,
-            IsInTransit = detailedBox.IsInTransit,
-            IsInReserve = detailedBox.IsInReserve,
-            IsReceivable = isReceivable,
-            ItemCount = detailedBox.Items.Count,
-            Items = itemDtos,
-            StateLog = detailedBox.StateLog.Select(log => new TransportBoxStateLogDto
-            {
-                Id = log.Id,
-                State = log.State.ToString(),
-                StateDate = log.StateDate,
-                User = log.User,
-                Description = log.Description
-            }).OrderByDescending(log => log.StateDate).ToList(),
-            AllowedTransitions = detailedBox.TransitionNode.GetAllTransitions().Select(transition => new TransportBoxTransitionDto
-            {
-                NewState = transition.NewState.ToString(),
-                TransitionType = transition.TransitionType.ToString(),
-                SystemOnly = transition.SystemOnly,
-                Label = GetStateLabel(transition.NewState)
-            }).ToList()
-        };
 
         _logger.LogInformation("Retrieved transport box {BoxCode} with {ItemCount} items in {State} state",
             detailedBox.Code, detailedBox.Items.Count, detailedBox.State);
 
         return new GetTransportBoxByCodeResponse { TransportBox = dto };
-    }
-
-    private static string GetStateLabel(TransportBoxState state)
-    {
-        return state switch
-        {
-            TransportBoxState.New => "Nový",
-            TransportBoxState.Opened => "Otevřený",
-            TransportBoxState.InTransit => "V přepravě",
-            TransportBoxState.Received => "Přijatý",
-            TransportBoxState.Stocked => "Naskladněný",
-            TransportBoxState.Reserve => "V rezervě",
-            TransportBoxState.Closed => "Uzavřený",
-            TransportBoxState.Error => "Chyba",
-            _ => state.ToString()
-        };
     }
 }

@@ -13,6 +13,7 @@ using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.Purchase;
 using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
@@ -42,6 +43,7 @@ public class CatalogRepositoryTests
     private readonly Mock<IManufactureOrderRepository> _manufactureOrderRepositoryMock;
     private readonly Mock<IManufactureHistoryClient> _manufactureHistoryClientMock;
     private readonly Mock<IManufactureDifficultyRepository> _manufactureDifficultyRepositoryMock;
+    private readonly Mock<IManufacturedProductInventoryRepository> _manufacturedInventoryRepositoryMock;
     private readonly Mock<ICatalogResilienceService> _resilienceServiceMock;
     private readonly Mock<ICatalogMergeScheduler> _mergeSchedulerMock;
     private readonly IMemoryCache _cache;
@@ -73,6 +75,9 @@ public class CatalogRepositoryTests
         _manufactureOrderRepositoryMock = new Mock<IManufactureOrderRepository>();
         _manufactureHistoryClientMock = new Mock<IManufactureHistoryClient>();
         _manufactureDifficultyRepositoryMock = new Mock<IManufactureDifficultyRepository>();
+        _manufacturedInventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
+        _manufacturedInventoryRepositoryMock.Setup(x => x.GetTotalAmountByProductCodeAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, decimal>());
         _resilienceServiceMock = new Mock<ICatalogResilienceService>();
         _mergeSchedulerMock = new Mock<ICatalogMergeScheduler>();
         _cache = new MemoryCache(new MemoryCacheOptions());
@@ -129,6 +134,7 @@ public class CatalogRepositoryTests
             _manufactureOrderRepositoryMock.Object,
             _manufactureHistoryClientMock.Object,
             _manufactureDifficultyRepositoryMock.Object,
+            _manufacturedInventoryRepositoryMock.Object,
             _resilienceServiceMock.Object,
             _mergeSchedulerMock.Object,
             _cache,
@@ -454,7 +460,7 @@ public class CatalogRepositoryTests
         var itemsField = typeof(TransportBox).GetField("_items",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
         var item = (TransportBoxItem)Activator.CreateInstance(
-            typeof(TransportBoxItem), "TEST001", "Test Product", 15.0, DateTime.UtcNow, "user")!;
+            typeof(TransportBoxItem), "TEST001", "Test Product", 15.0, DateTime.UtcNow, "user", null, null, null)!;
         ((List<TransportBoxItem>)itemsField.GetValue(quarantineBox)!).Add(item);
 
         // Use SetupSequence: 1st call (reserve) returns empty, 2nd call (quarantine) returns the box

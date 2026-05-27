@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Anela.Heblo.Application.Shared.Printing;
 
 namespace Anela.Heblo.Application.Features.ExpeditionList.Services;
 

@@ -44,6 +44,11 @@ public static class AuthorizationConstants
         /// Role for tagging photos in the photobank
         /// </summary>
         public const string MarketingWriter = "marketing_writer";
+
+        /// <summary>
+        /// Role required for managing meeting access levels and grants
+        /// </summary>
+        public const string MeetingManager = "meeting_manager";
     }
 
     /// <summary>
@@ -60,5 +65,6 @@ public static class AuthorizationConstants
         /// Policy required for generating leaflets and articles
         /// </summary>
         public const string MarketingReader = "MarketingReader";
+
     }
 }

@@ -1,23 +1,30 @@
 using Anela.Heblo.Domain.Features.Article;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.FeatureFlags;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using Anela.Heblo.Domain.Features.Photobank;
 using Anela.Heblo.Domain.Features.DataQuality;
 using Anela.Heblo.Domain.Features.Marketing;
+using Anela.Heblo.Domain.Features.MeetingTasks;
 using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Anela.Heblo.Domain.Features.Bank;
 using Anela.Heblo.Domain.Features.GridLayouts;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Inventory;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.InvoiceClassification;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Domain.Features.Journal;
+using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
+using Anela.Heblo.Domain.Features.Logistics.GiftSettings;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
 using Anela.Heblo.Domain.Features.Manufacture;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Anela.Heblo.Domain.Features.PackingMaterials;
+using Anela.Heblo.Domain.Features.Packaging;
 using Anela.Heblo.Domain.Features.Purchase;
 using Anela.Heblo.Xcc.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -46,6 +53,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<PurchaseOrder> PurchaseOrders { get; set; } = null!;
     public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; } = null!;
     public DbSet<PurchaseOrderHistory> PurchaseOrderHistory { get; set; } = null!;
+    public DbSet<Package> Packages { get; set; } = null!;
 
     // Catalog module
     public DbSet<ManufactureDifficultySetting> ManufactureDifficultySettings { get; set; } = null!;
@@ -66,6 +74,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<ManufactureOrderProduct> ManufactureOrderProducts { get; set; } = null!;
     public DbSet<ManufactureOrderNote> ManufactureOrderNotes { get; set; } = null!;
 
+    // Manufactured Product Inventory module
+    public DbSet<ManufacturedProductInventoryItem> ManufacturedProductInventoryItems { get; set; } = null!;
+    public DbSet<ManufacturedProductInventoryLog> ManufacturedProductInventoryLogs { get; set; } = null!;
+
     // Dashboard module
     public DbSet<UserDashboardSettings> UserDashboardSettings { get; set; } = null!;
     public DbSet<UserDashboardTile> UserDashboardTiles { get; set; } = null!;
@@ -77,6 +89,13 @@ public class ApplicationDbContext : DbContext
     // Packing Materials module
     public DbSet<PackingMaterial> PackingMaterials { get; set; } = null!;
     public DbSet<PackingMaterialLog> PackingMaterialLogs { get; set; } = null!;
+    public DbSet<PackingMaterialDailyRun> PackingMaterialDailyRuns { get; set; } = null!;
+
+    // Carrier Cooling module
+    public DbSet<CarrierCoolingSetting> CarrierCoolingSettings { get; set; } = null!;
+
+    // Gift Settings module
+    public DbSet<GiftSetting> GiftSettings { get; set; } = null!;
 
     // Background Jobs module
     public DbSet<RecurringJobConfiguration> RecurringJobConfigurations { get; set; } = null!;
@@ -102,9 +121,15 @@ public class ApplicationDbContext : DbContext
     // Marketing Invoices module
     public DbSet<ImportedMarketingTransaction> ImportedMarketingTransactions { get; set; } = null!;
 
+    // Meeting Tasks module
+    public DbSet<MeetingTranscript> MeetingTranscripts { get; set; } = null!;
+    public DbSet<ProposedTask> ProposedTasks { get; set; } = null!;
+    public DbSet<MeetingAccessGrant> MeetingAccessGrants { get; set; } = null!;
+
     // Data Quality module
     public DbSet<DqtRun> DqtRuns { get; set; } = null!;
     public DbSet<InvoiceDqtResult> InvoiceDqtResults { get; set; } = null!;
+    public DbSet<DqtDriftResult> DqtDriftResults { get; set; } = null!;
 
     // Photobank
     public DbSet<PhotobankIndexRoot> PhotobankIndexRoots { get; set; } = null!;
@@ -121,14 +146,25 @@ public class ApplicationDbContext : DbContext
     // Smartsupp module
     public DbSet<SmartsuppConversation> SmartsuppConversations { get; set; } = null!;
     public DbSet<SmartsuppMessage> SmartsuppMessages { get; set; } = null!;
-    public DbSet<SmartsuppSyncState> SmartsuppSyncState { get; set; } = null!;
     public DbSet<SmartsuppContact> SmartsuppContacts { get; set; } = null!;
+    public DbSet<SmartsuppWebhookAuditEntry> SmartsuppWebhookAuditEntries { get; set; } = null!;
+
+    // Inventory module
+    public DbSet<Lot> Lots { get; set; } = null!;
+    public DbSet<Ean> Eans { get; set; } = null!;
+
+    // Feature Flags module
+    public DbSet<FeatureFlagOverride> FeatureFlagOverrides { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.HasPostgresExtension("vector");
+        // Only set up PostgreSQL extensions if using PostgreSQL provider
+        if (Database.IsNpgsql())
+        {
+            modelBuilder.HasPostgresExtension("vector");
+        }
 
         // Apply configurations from current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Loader2, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
-import { useDqtRunDetail, InvoiceDqtResultDto } from '../../api/hooks/useDataQuality';
+import { useDqtRunDetail, InvoiceDqtResultDto, DqtDriftResultDto } from '../../api/hooks/useDataQuality';
 
 interface DqtRunDetailProps {
   runId: string | null;
@@ -21,6 +21,24 @@ const FLAG_COLORS: Record<string, string> = {
   TotalWithoutVatDiffers: 'bg-yellow-100 text-yellow-700',
   ItemsDiffer: 'bg-purple-100 text-purple-700',
 };
+
+const PRODUCT_PAIRING_FLAGS: Record<number, string> = {
+  1: 'Chybí v ERP',
+  2: 'Chybí v Shoptet',
+  4: 'Nespárovaný párový kód',
+};
+
+const STOCK_WRITE_BACK_FLAGS: Record<number, string> = {
+  1: 'Operace selhala',
+  2: 'Operace zaseknutá',
+  4: 'Chyba inventury',
+};
+
+function decodeMismatchFlags(code: number, labels: Record<number, string>): string[] {
+  return Object.entries(labels)
+    .filter(([flag]) => (code & Number(flag)) !== 0)
+    .map(([, label]) => label);
+}
 
 const prettyPrint = (raw: string | null): string => {
   if (raw == null) return '';
@@ -126,12 +144,63 @@ const DqtRunDetail: React.FC<DqtRunDetailProps> = ({ runId }) => {
     );
   }
 
+  const run = data?.run ?? null;
   const results = data?.results ?? [];
+  const driftResults = data?.driftResults ?? [];
 
-  if (results.length === 0) {
+  const isDriftTestType =
+    run?.testType === 'ProductPairing' || run?.testType === 'StockWriteBackReconciliation';
+
+  const hasNoResults = isDriftTestType ? driftResults.length === 0 : results.length === 0;
+
+  if (hasNoResults) {
     return (
       <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
         Žádné neshody nalezeny pro tento test.
+      </div>
+    );
+  }
+
+  if (isDriftTestType) {
+    const flagMap =
+      run?.testType === 'ProductPairing' ? PRODUCT_PAIRING_FLAGS : STOCK_WRITE_BACK_FLAGS;
+
+    return (
+      <div className="overflow-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b text-left">
+              <th className="py-2 pr-4 font-medium">Entita</th>
+              <th className="py-2 pr-4 font-medium">Neshoda</th>
+              <th className="py-2 pr-4 font-medium">Heblo</th>
+              <th className="py-2 pr-4 font-medium">Shoptet</th>
+              <th className="py-2 font-medium">Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {driftResults.map((row: DqtDriftResultDto, i: number) => {
+              const flagLabels = decodeMismatchFlags(row.mismatchCode, flagMap);
+              return (
+                <tr key={i} className="border-b last:border-0">
+                  <td className="py-1.5 pr-4 font-mono text-xs">{row.entityKey}</td>
+                  <td className="py-1.5 pr-4">
+                    {flagLabels.map((label) => (
+                      <span
+                        key={label}
+                        className="inline-block mr-1 px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-800"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </td>
+                  <td className="py-1.5 pr-4 text-gray-600 text-xs">{row.hebloValue ?? '—'}</td>
+                  <td className="py-1.5 pr-4 text-gray-600 text-xs">{row.shoptetValue ?? '—'}</td>
+                  <td className="py-1.5 text-gray-500 text-xs">{row.details ?? ''}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     );
   }

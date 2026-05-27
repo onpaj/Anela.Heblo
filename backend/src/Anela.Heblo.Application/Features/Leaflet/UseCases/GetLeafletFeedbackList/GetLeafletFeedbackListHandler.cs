@@ -9,9 +9,9 @@ public class GetLeafletFeedbackListHandler
     private static readonly int[] AllowedPageSizes = [10, 20, 50];
     private static readonly string[] AllowedSortColumns = ["CreatedAt", "PrecisionScore", "StyleScore"];
 
-    private readonly ILeafletRepository _repository;
+    private readonly ILeafletGenerationRepository _repository;
 
-    public GetLeafletFeedbackListHandler(ILeafletRepository repository)
+    public GetLeafletFeedbackListHandler(ILeafletGenerationRepository repository)
     {
         _repository = repository;
     }

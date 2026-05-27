@@ -2,11 +2,11 @@ using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrd
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
+using Anela.Heblo.Domain.Features.Manufacture.Inventory;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Security.Claims;
 using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Manufacture;
@@ -14,8 +14,9 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class UpdateManufactureOrderStatusHandlerTests
 {
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
+    private readonly Mock<IManufacturedProductInventoryRepository> _inventoryRepositoryMock;
     private readonly Mock<ILogger<UpdateManufactureOrderStatusHandler>> _loggerMock;
-    private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
+    private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<IConditionsReadingProvider> _conditionsProviderMock;
     private readonly UpdateManufactureOrderStatusHandler _handler;
 
@@ -27,35 +28,34 @@ public class UpdateManufactureOrderStatusHandlerTests
     public UpdateManufactureOrderStatusHandlerTests()
     {
         _repositoryMock = new Mock<IManufactureOrderRepository>();
+        _inventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
         _loggerMock = new Mock<ILogger<UpdateManufactureOrderStatusHandler>>();
-        _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+        _currentUserServiceMock = new Mock<ICurrentUserService>();
         _conditionsProviderMock = new Mock<IConditionsReadingProvider>();
 
-        // Setup HTTP context with user
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.Name, TestUserName)
-        };
-        var identity = new ClaimsIdentity(claims, "test");
-        var principal = new ClaimsPrincipal(identity);
-
-        var httpContext = new Mock<HttpContext>();
-        httpContext.Setup(x => x.User).Returns(principal);
-
-        _httpContextAccessorMock
-            .Setup(x => x.HttpContext)
-            .Returns(httpContext.Object);
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(
+                Id: "test-id",
+                Name: TestUserName,
+                Email: "test@example.com",
+                IsAuthenticated: true));
 
         _conditionsProviderMock
             .Setup(x => x.GetCurrentSnapshotAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ConditionsSnapshot(null, null, null, null, DateTime.UtcNow, ConditionsReadingSource.Unavailable));
 
+        _inventoryRepositoryMock
+            .Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<ManufacturedProductInventoryItem>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<ManufacturedProductInventoryItem> items, CancellationToken _) => items);
+
         _handler = new UpdateManufactureOrderStatusHandler(
             _repositoryMock.Object,
             TimeProvider.System,
             _loggerMock.Object,
-            _httpContextAccessorMock.Object,
-            _conditionsProviderMock.Object);
+            _currentUserServiceMock.Object,
+            _conditionsProviderMock.Object,
+            _inventoryRepositoryMock.Object);
     }
 
     [Fact]
@@ -184,11 +184,15 @@ public class UpdateManufactureOrderStatusHandlerTests
 
 
     [Fact]
-    public async Task Handle_WithoutHttpContext_ShouldUseSystemAsUser()
+    public async Task Handle_UnauthenticatedUser_ShouldUseSystemAsUser()
     {
-        _httpContextAccessorMock
-            .Setup(x => x.HttpContext)
-            .Returns((HttpContext?)null);
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(
+                Id: null,
+                Name: null,
+                Email: null,
+                IsAuthenticated: false));
 
         var request = new UpdateManufactureOrderStatusRequest
         {
@@ -219,6 +223,53 @@ public class UpdateManufactureOrderStatusHandlerTests
 
         updatedOrder.Should().NotBeNull();
         updatedOrder!.StateChangedByUser.Should().Be("System");
+    }
+
+    [Fact]
+    public async Task Handle_AuthenticatedUserWithoutNameClaim_ShouldRecordUnknownUserNotSystem()
+    {
+        // Entra ID access tokens frequently omit the Name/upn claim used by Identity.Name.
+        // Before the refactor this case fell through to "System" (the bug). Per spec FR-4
+        // (Amendment 1a), the handler should now stamp "Unknown User" for an authenticated
+        // principal whose Name is null.
+        _currentUserServiceMock
+            .Setup(x => x.GetCurrentUser())
+            .Returns(new CurrentUser(
+                Id: "abc123",
+                Name: null,
+                Email: "user@example.com",
+                IsAuthenticated: true));
+
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.Planned
+        };
+
+        var existingOrder = CreateOrderInState(ManufactureOrderState.Draft);
+        ManufactureOrder? updatedOrder = null;
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingOrder);
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken ct) =>
+            {
+                updatedOrder = order;
+                return order;
+            });
+
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result.Success.Should().BeTrue();
+        result.StateChangedByUser.Should().Be("Unknown User");
+        result.StateChangedByUser.Should().NotBe("System");
+
+        updatedOrder.Should().NotBeNull();
+        updatedOrder!.StateChangedByUser.Should().Be("Unknown User");
     }
 
     [Fact]
@@ -460,6 +511,170 @@ public class UpdateManufactureOrderStatusHandlerTests
         _repositoryMock.Verify(x => x.UpdateOrderAsync(
             It.Is<ManufactureOrder>(o => o.DocMaterialIssueForSemiProduct == "V-MAT-EXISTING"),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_TransitionToCompleted_CreatesInventoryItemsForFinishedProducts()
+    {
+        // Arrange
+        var order = CreateOrderInState(ManufactureOrderState.SemiProductManufactured);
+        order.Products = new List<ManufactureOrderProduct>
+        {
+            new ManufactureOrderProduct
+            {
+                ProductCode = "PROD-001",
+                ProductName = "Product One",
+                ActualQuantity = 10m,
+                LotNumber = "LOT-A",
+                ExpirationDate = new DateOnly(2027, 6, 1),
+                ManufactureOrderId = ValidOrderId
+            },
+            new ManufactureOrderProduct
+            {
+                ProductCode = "PROD-002",
+                ProductName = "Product Two",
+                ActualQuantity = 5m,
+                LotNumber = null,
+                ExpirationDate = null,
+                ManufactureOrderId = ValidOrderId
+            }
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder o, CancellationToken _) => o);
+
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.Completed
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+
+        _inventoryRepositoryMock.Verify(
+            r => r.AddRangeAsync(
+                It.Is<IEnumerable<ManufacturedProductInventoryItem>>(items =>
+                    items.Any(i =>
+                        i.ProductCode == "PROD-001" &&
+                        i.Amount == 10m &&
+                        i.ManufactureOrderId == ValidOrderId &&
+                        i.CreatedBy == TestUserName) &&
+                    items.Any(i =>
+                        i.ProductCode == "PROD-002" &&
+                        i.Amount == 5m &&
+                        i.ManufactureOrderId == ValidOrderId &&
+                        i.CreatedBy == TestUserName) &&
+                    items.Count() == 2),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_TransitionToCompleted_SkipsProductsWithZeroActualQuantity()
+    {
+        // Arrange
+        var order = CreateOrderInState(ManufactureOrderState.SemiProductManufactured);
+        order.Products = new List<ManufactureOrderProduct>
+        {
+            new ManufactureOrderProduct
+            {
+                ProductCode = "PROD-ZERO",
+                ProductName = "Zero Quantity",
+                ActualQuantity = 0m,
+                ManufactureOrderId = ValidOrderId
+            },
+            new ManufactureOrderProduct
+            {
+                ProductCode = "PROD-NULL",
+                ProductName = "Null Quantity",
+                ActualQuantity = null,
+                ManufactureOrderId = ValidOrderId
+            },
+            new ManufactureOrderProduct
+            {
+                ProductCode = "PROD-OK",
+                ProductName = "Has Quantity",
+                ActualQuantity = 3m,
+                ManufactureOrderId = ValidOrderId
+            }
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder o, CancellationToken _) => o);
+
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.Completed
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+
+        _inventoryRepositoryMock.Verify(
+            r => r.AddRangeAsync(
+                It.Is<IEnumerable<ManufacturedProductInventoryItem>>(items =>
+                    items.Single().ProductCode == "PROD-OK"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_TransitionFromCompleted_DoesNotTouchInventory()
+    {
+        // Arrange
+        var order = CreateOrderInState(ManufactureOrderState.Completed);
+        order.Products = new List<ManufactureOrderProduct>
+        {
+            new ManufactureOrderProduct
+            {
+                ProductCode = "PROD-001",
+                ProductName = "Product One",
+                ActualQuantity = 10m,
+                ManufactureOrderId = ValidOrderId
+            }
+        };
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder o, CancellationToken _) => o);
+
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.SemiProductManufactured
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+
+        _inventoryRepositoryMock.Verify(
+            r => r.AddRangeAsync(It.IsAny<IEnumerable<ManufacturedProductInventoryItem>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     private static ManufactureOrder CreateOrderInState(ManufactureOrderState state)

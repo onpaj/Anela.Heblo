@@ -11,7 +11,7 @@ public class LeafletIndexingService : ILeafletIndexingService
     private readonly IWordWindowChunker _chunker;
     private readonly IEmbeddingGenerator<string, Embedding<float>> _embeddings;
     private readonly ILeafletChunkSummarizer _summarizer;
-    private readonly ILeafletRepository _repo;
+    private readonly ILeafletDocumentRepository _repo;
     private readonly ILogger<LeafletIndexingService> _logger;
     private readonly LeafletOptions _options;
 
@@ -19,7 +19,7 @@ public class LeafletIndexingService : ILeafletIndexingService
         IWordWindowChunker chunker,
         IEmbeddingGenerator<string, Embedding<float>> embeddings,
         ILeafletChunkSummarizer summarizer,
-        ILeafletRepository repo,
+        ILeafletDocumentRepository repo,
         ILogger<LeafletIndexingService> logger,
         IOptions<LeafletOptions> options)
     {
@@ -72,7 +72,6 @@ public class LeafletIndexingService : ILeafletIndexingService
             chunks[i].Embedding = vectors[i].Vector.ToArray();
         }
 
-        document.WordCount = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
         await _repo.AddChunksAsync(chunks, ct);
         return chunks.Count;
     }

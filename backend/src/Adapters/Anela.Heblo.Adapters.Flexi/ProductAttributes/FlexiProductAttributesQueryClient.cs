@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
+using Anela.Heblo.Domain.Shared;
 using Microsoft.Extensions.Logging;
 using Rem.FlexiBeeSDK.Client;
 using Rem.FlexiBeeSDK.Client.Clients.ReceivedInvoices;
@@ -18,6 +19,7 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
     private const int MmqAttributeId = 85;
     private const int ExpiraceMonthsId = 86;
     private const int AllowedResiduePercentageID = 87;
+    private const int CoolingAttributeId = 89;
 
     public FlexiProductAttributesQueryClient(
         FlexiBeeSettings connection,
@@ -53,6 +55,7 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
             MinimalManufactureQuantity = StrToIntDef(values.FirstOrDefault(w => w.AttributeId == MmqAttributeId)?.Value, 0),
             SeasonMonthsArray = _seasonalDataParser.GetSeasonalMonths(values.FirstOrDefault(w => w.AttributeId == SeasonalAttributeId)?.Value),
             AllowedResiduePercentage = StrToDoubleDef(values.FirstOrDefault(w => w.AttributeId == AllowedResiduePercentageID)?.Value, 0),
+            Cooling = ParseCooling(values.FirstOrDefault(w => w.AttributeId == CoolingAttributeId)?.Value),
         }).ToList();
     }
 
@@ -70,6 +73,17 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
         if (double.TryParse(s, out number))
             return number;
         return @default;
+    }
+
+    internal static Cooling ParseCooling(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Cooling.None;
+
+        if (Enum.TryParse<Cooling>(value.Trim(), ignoreCase: true, out var result) && Enum.IsDefined(result))
+            return result;
+
+        return Cooling.None;
     }
 
 

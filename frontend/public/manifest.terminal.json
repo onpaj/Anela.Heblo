@@ -19,8 +19,9 @@
       "sizes": "512x512"
     }
   ],
+  "id": "/terminal",
   "start_url": "/terminal",
-  "scope": "/terminal/",
+  "scope": "/terminal",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#2563EB",

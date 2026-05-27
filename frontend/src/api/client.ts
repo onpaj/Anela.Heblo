@@ -155,6 +155,10 @@ const getAuthHeader = async (): Promise<string | null> => {
   }
 };
 
+const TERMINAL_ROUTE_PREFIX = "/terminal";
+const isTerminalRoute = (): boolean =>
+  window.location.pathname.startsWith(TERMINAL_ROUTE_PREFIX);
+
 // Create API client instance with runtime configuration
 let apiClient: ApiClient;
 
@@ -279,7 +283,7 @@ export const getAuthenticatedApiClient = (
           console.warn("⚠️ No auth redirect handler available - user needs to refresh page");
         }
         
-        // Continue with normal error handling to show toast
+        // Continue with normal error handling (toast suppressed on /terminal routes)
       }
 
       // Global error handling with toast notifications
@@ -305,7 +309,7 @@ export const getAuthenticatedApiClient = (
               `🚨 Structured API Error [${response.status}] ${url}:`,
               errorInfo.message,
             );
-            globalToastHandler("Upozornění", errorInfo.message);
+            if (!isTerminalRoute()) globalToastHandler("Upozornění", errorInfo.message);
           } else if (shouldHandleHttpErrors && globalToastHandler) {
             // Only show unstructured errors for HTTP errors, not for business logic warnings
             const title = `Chyba API (${response.status})`;
@@ -313,13 +317,13 @@ export const getAuthenticatedApiClient = (
               `🚨 Unstructured API Error [${response.status}] ${url}:`,
               errorInfo.message,
             );
-            globalToastHandler(title, errorInfo.message);
+            if (!isTerminalRoute()) globalToastHandler(title, errorInfo.message);
           }
         } catch (toastError) {
           console.error("🍞 Failed to show error toast:", toastError);
           // Fallback toast only for HTTP errors
           if (shouldHandleHttpErrors && globalToastHandler) {
-            globalToastHandler(
+            if (!isTerminalRoute()) globalToastHandler(
               `Chyba API (${response.status})`,
               "Neočekávaná chyba na serveru",
             );
@@ -399,6 +403,7 @@ export const getApiConfig = () => {
 // Query keys for TanStack Query
 export const QUERY_KEYS = {
   weather: ["weather"] as const,
+  weatherForecast: ["weatherForecast"] as const,
   catalog: ["catalog"] as const,
   productMargins: ["productMargins"] as const,
   productMarginSummary: ["productMarginSummary"] as const,
@@ -433,6 +438,13 @@ export const QUERY_KEYS = {
   dataQuality: ["data-quality"] as const,
   articles: ["articles"] as const,
   articleTrace: ["article-trace"] as const,
+  smartsupp: ["smartsupp"] as const,
+  manufacturedProductInventory: ["manufactured-product-inventory"] as const,
+  meetingTasks: ["meetingTasks"] as const,
+  packingOrder: ["packingOrder"] as const,
+  shipmentLabels: ["shipmentLabels"] as const,
+  featureFlags: ["feature-flags"] as const,
+  catalogDocuments: ["catalog-documents"] as const,
   // Add more query keys as needed
   // users: ['users'] as const,
   // products: ['products'] as const,

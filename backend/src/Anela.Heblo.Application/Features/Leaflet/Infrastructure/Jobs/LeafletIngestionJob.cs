@@ -1,8 +1,8 @@
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.IndexLeaflet;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
-using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
+using Anela.Heblo.Domain.Shared.Rag;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -14,7 +14,7 @@ public class LeafletIngestionJob : IRecurringJob
     private readonly IOneDriveService _oneDrive;
     private readonly IMediator _mediator;
     private readonly IRecurringJobStatusChecker _statusChecker;
-    private readonly ILeafletRepository _leafletRepository;
+    private readonly ILeafletDocumentRepository _leafletRepository;
     private readonly LeafletOptions _options;
     private readonly ILogger<LeafletIngestionJob> _logger;
 
@@ -24,7 +24,7 @@ public class LeafletIngestionJob : IRecurringJob
         IOneDriveService oneDrive,
         IMediator mediator,
         IRecurringJobStatusChecker statusChecker,
-        ILeafletRepository leafletRepository,
+        ILeafletDocumentRepository leafletRepository,
         IOptions<LeafletOptions> options,
         ILogger<LeafletIngestionJob> logger)
     {

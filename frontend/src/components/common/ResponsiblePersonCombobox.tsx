@@ -11,13 +11,14 @@ import { User, AlertCircle, ChevronDown } from "lucide-react";
 import { useResponsiblePersonsQuery } from "../../api/hooks/useUserManagement";
 
 interface ResponsiblePersonComboboxProps {
+  groupId: string;                   // Microsoft Entra group ID to fetch members from; combobox stays disabled when empty
   value?: string | null;
   onChange: (value: string | null) => void;
   placeholder?: string;
   disabled?: boolean;
   error?: string;
   className?: string;
-  allowManualEntry?: boolean; // Allow typing custom values as fallback
+  allowManualEntry?: boolean;        // Allow typing custom values as fallback
 }
 
 interface ResponsiblePersonSelectOption {
@@ -29,6 +30,7 @@ interface ResponsiblePersonSelectOption {
 }
 
 const ResponsiblePersonCombobox: React.FC<ResponsiblePersonComboboxProps> = ({
+  groupId,
   value,
   onChange,
   placeholder = "Select responsible person...",
@@ -38,15 +40,15 @@ const ResponsiblePersonCombobox: React.FC<ResponsiblePersonComboboxProps> = ({
   allowManualEntry = true,
 }) => {
   const [inputValue, setInputValue] = useState("");
-  const { data: response, isLoading, isError } = useResponsiblePersonsQuery();
+  const { data: response, isLoading, isError } = useResponsiblePersonsQuery(groupId);
 
   const options = useMemo((): ResponsiblePersonSelectOption[] => {
     const members = response?.members || [];
     const memberOptions: ResponsiblePersonSelectOption[] = members.map((member) => ({
-      value: member.displayName,
-      label: `${member.displayName} (${member.email})`,
-      displayName: member.displayName,
-      email: member.email,
+      value: member.displayName ?? '',
+      label: `${member.displayName ?? ''} (${member.email ?? ''})`,
+      displayName: member.displayName ?? '',
+      email: member.email ?? '',
     }));
 
     // If manual entry is allowed and there's an input value that doesn't match any member
@@ -191,7 +193,7 @@ const ResponsiblePersonCombobox: React.FC<ResponsiblePersonComboboxProps> = ({
         }}
         styles={customStyles}
         placeholder={placeholder}
-        isDisabled={disabled}
+        isDisabled={disabled || !groupId}
         isLoading={isLoading}
         isClearable
         isSearchable

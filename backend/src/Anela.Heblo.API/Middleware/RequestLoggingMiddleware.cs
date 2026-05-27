@@ -227,7 +227,8 @@ public class RequestLoggingMiddleware
             "Authorization",
             "Cookie",
             "X-API-Key",
-            "X-Auth-Token"
+            "X-Auth-Token",
+            "X-Smartsupp-Hmac"
         };
 
         return sensitiveHeaders.Any(h =>

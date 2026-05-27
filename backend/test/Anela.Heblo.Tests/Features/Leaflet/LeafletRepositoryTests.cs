@@ -6,19 +6,19 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Leaflet;
 
-public class LeafletRepositoryTests : IDisposable
+public class LeafletDocumentRepositoryTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
-    private readonly LeafletRepository _repository;
+    private readonly LeafletDocumentRepository _repository;
 
-    public LeafletRepositoryTests()
+    public LeafletDocumentRepositoryTests()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(databaseName: $"LeafletRepositoryTests_{Guid.NewGuid()}")
+            .UseInMemoryDatabase(databaseName: $"LeafletDocumentRepositoryTests_{Guid.NewGuid()}")
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _repository = new LeafletRepository(_context);
+        _repository = new LeafletDocumentRepository(_context);
     }
 
     [Fact]

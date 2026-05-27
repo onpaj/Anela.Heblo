@@ -36,6 +36,7 @@ import { usePlanningList } from "../../contexts/PlanningListContext";
 import PlanningListPanel from "../common/PlanningListPanel";
 import { GridColumn, GridHeader, ColumnChooser, useGridLayout } from '../../features/grid-layout';
 import { ManufacturingStockItemDto } from '../../api/hooks/useManufacturingStockAnalysis';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const SALES_MULTIPLIER_COOKIE = "manufacturing-stock-sales-multiplier";
 
@@ -59,6 +60,7 @@ const readSalesMultiplierCookie = (): number => {
 };
 
 const ManufacturingStockAnalysis: React.FC = () => {
+  useScreenView('Manufacturing', 'ManufacturingStockAnalysis');
   // State for filters
   const [filters, setFilters] = useState<GetManufacturingStockAnalysisRequest>({
     timePeriod: TimePeriodFilter.Q9M,
@@ -340,6 +342,20 @@ const ManufacturingStockAnalysis: React.FC = () => {
           {formatWarehouseStock(item)}
         </div>
       ),
+    },
+    {
+      id: 'vyrobeno',
+      header: 'Vyrobeno',
+      align: 'right',
+      minWidth: 60,
+      defaultWidth: 120,
+      cellClassName: 'text-xs text-gray-900',
+      renderCell: (item) =>
+        (item.manufacturedStock || 0) > 0 ? (
+          <div className="font-bold">{formatNumber(item.manufacturedStock, 0)}</div>
+        ) : (
+          <span className="text-gray-400">—</span>
+        ),
     },
     {
       id: 'reserve',

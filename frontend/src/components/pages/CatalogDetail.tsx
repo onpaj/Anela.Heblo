@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { X, Package, Loader2, AlertCircle } from "lucide-react";
 import { CatalogItemDto, useCatalogDetail } from "../../api/hooks/useCatalog";
-import { JournalEntryDto } from "../../api/generated/api-client";
+import { SearchJournalEntryDto } from "../../api/generated/api-client";
 import { useJournalEntriesByProduct } from "../../api/hooks/useJournal";
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,6 +18,7 @@ import {
 import CatalogDetailTabs from "../catalog/detail/CatalogDetailTabs";
 import CatalogDetailChartSection from "../catalog/detail/CatalogDetailChartSection";
 import CatalogDetailModals from "../catalog/detail/CatalogDetailModals";
+import { useScreenView } from '../../telemetry/useScreenView';
 
 ChartJS.register(
   CategoryScale,
@@ -46,17 +47,35 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({
   defaultTab = "basic",
 }) => {
   const [activeTab, setActiveTab] = useState<
-    "basic" | "history" | "margins" | "composition" | "journal" | "usage"
+    "basic" | "history" | "margins" | "composition" | "journal" | "usage" | "documents" | "pif"
   >(defaultTab as any);
   const [activeChartTab, setActiveChartTab] = useState<"input" | "output">(
     "output",
   );
   const [showJournalModal, setShowJournalModal] = useState(false);
   const [selectedJournalEntry, setSelectedJournalEntry] = useState<
-    JournalEntryDto | undefined
+    SearchJournalEntryDto | undefined
   >(undefined);
   const [showManufactureDifficultyModal, setShowManufactureDifficultyModal] =
     useState(false);
+
+  const tabToSubScreen: Record<typeof activeTab, string> = {
+    basic: 'BasicTab',
+    history: 'HistoryTab',
+    margins: 'MarginsTab',
+    composition: 'CompositionTab',
+    journal: 'JournalTab',
+    usage: 'UsageTab',
+    documents: 'DocumentsTab',
+    pif: 'PifTab',
+  };
+  useScreenView('Catalog', 'CatalogDetail', isOpen ? tabToSubScreen[activeTab] : undefined);
+  useScreenView(
+    'Catalog',
+    'CatalogDetail',
+    isOpen && activeTab === 'history' ? (activeChartTab === 'input' ? 'ChartInput' : 'ChartOutput') : undefined,
+  );
+
   const navigate = useNavigate();
 
   // Determine which productCode to use - from prop or from item

@@ -35,6 +35,7 @@ public class ManufactureAnalysisMapper : IManufactureAnalysisMapper
             ErpStock = (double)catalogItem.Stock.Erp,
             EshopStock = (double)catalogItem.Stock.Eshop,
             TransportStock = (double)catalogItem.Stock.Transport,
+            ManufacturedStock = (double)catalogItem.Stock.Manufactured,
             PrimaryStockSource = catalogItem.Stock.PrimaryStockSource.ToString(),
             Reserve = (double)catalogItem.Stock.Reserve,
             Quarantine = (double)catalogItem.Stock.Quarantine,

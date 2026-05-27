@@ -7,6 +7,7 @@ import EditMaterialModal from '../components/packing-materials/modals/EditMateri
 import UpdateQuantityModal from '../components/packing-materials/modals/UpdateQuantityModal';
 import ProcessDailyConsumptionModal from '../components/packing-materials/modals/ProcessDailyConsumptionModal';
 import PackingMaterialDetailModal from '../components/packing-materials/modals/PackingMaterialDetailModal';
+import { useScreenView } from '../telemetry/useScreenView';
 
 interface PackingMaterialsPageProps {}
 
@@ -19,6 +20,8 @@ const PackingMaterialsPage: React.FC<PackingMaterialsPageProps> = () => {
   const [isQuantityModalOpen, setIsQuantityModalOpen] = useState(false);
   const [isProcessConsumptionModalOpen, setIsProcessConsumptionModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  useScreenView('Logistics', 'PackingMaterials');
 
   const formatForecastDays = (days?: number) => {
     if (days === undefined || days === null) return 'N/A';

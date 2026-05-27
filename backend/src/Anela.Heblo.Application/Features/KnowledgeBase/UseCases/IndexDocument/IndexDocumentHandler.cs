@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
+using Anela.Heblo.Domain.Shared.Rag;
 using MediatR;
 using Microsoft.Extensions.Logging;
 

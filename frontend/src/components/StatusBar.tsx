@@ -93,6 +93,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
     return null;
   }
 
+  // Injected by the Conductor run script — names the git branch this instance runs.
+  const branchName = process.env.REACT_APP_BRANCH_NAME;
+
   const getEnvironmentColor = (env: string) => {
     switch (env.toLowerCase()) {
       case "production":
@@ -136,7 +139,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
   return (
     <div
-      className={`fixed bottom-0 bg-gray-100 border-t border-gray-200 text-xs text-gray-600 px-4 py-1 z-10 transition-all duration-300 h-6 ${
+      className={`fixed bottom-0 bg-gray-100 border-t border-gray-200 text-xs text-gray-600 px-4 z-10 transition-all duration-300 ${
+        isMobile ? "py-1.5 h-8" : "py-1 h-6"
+      } ${
         isMobile
           ? "left-0 right-0"
           : sidebarCollapsed
@@ -145,7 +150,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       } ${className}`}
     >
       <div
-        className={`flex items-center space-x-1 ${isMobile ? "justify-between" : "justify-end"}`}
+        className={`flex items-center ${isMobile ? "gap-1.5 justify-between overflow-hidden" : "space-x-1 justify-end"}`}
       >
         {isMobile ? (
           <>
@@ -162,6 +167,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
                 ? "Dev"
                 : appInfo.environment}
             </span>
+            {branchName && (
+              <span className="px-2 py-0.5 rounded text-xs bg-indigo-600 text-white">
+                {branchName}
+              </span>
+            )}
             {appInfo.mockAuth && (
               <span className={getAuthTypeColor(appInfo.mockAuth)}>Mock</span>
             )}
@@ -179,6 +189,14 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             >
               {appInfo.environment}
             </span>
+            {branchName && (
+              <>
+                <span>|</span>
+                <span className="px-2 py-0.5 rounded text-xs bg-indigo-600 text-white">
+                  {branchName}
+                </span>
+              </>
+            )}
             {appInfo.mockAuth && (
               <>
                 <span>|</span>

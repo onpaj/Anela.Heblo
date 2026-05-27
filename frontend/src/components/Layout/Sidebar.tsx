@@ -70,6 +70,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     window.open("https://orgchart.anela.cz", "_blank", "noopener,noreferrer");
   };
 
+  const openBaleni = () => {
+    window.open(`${window.location.origin}/baleni`, "_blank", "noopener,noreferrer");
+  };
+
+  const openTerminal = () => {
+    window.open(`${window.location.origin}/terminal`, "_blank", "noopener,noreferrer");
+  };
+
   // Navigation sections - only implemented pages
   const navigationSections = [
     {
@@ -78,6 +86,26 @@ const Sidebar: React.FC<SidebarProps> = ({
       href: "/",
       icon: LayoutDashboard,
       type: "single" as const,
+    },
+    {
+      id: "anela",
+      name: "Anela",
+      icon: Users,
+      type: "section" as const,
+      items: [
+        {
+          id: "meeting-tasks",
+          name: "Porady",
+          href: "/automation/meeting-tasks",
+        },
+        {
+          id: "struktura",
+          name: "Struktura",
+          href: "#",
+          onClick: openOrgChart,
+          isExternal: true,
+        },
+      ],
     },
     // Finance section - only visible for finance_reader role
     ...(hasRole("finance_reader")
@@ -117,11 +145,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "prehled-bankovnich-vypisu",
           name: "Bankovní výpisy",
           href: "/customer/bank-statements-overview",
-        },
-        {
-          id: "archiv-expedic-zakaznicke",
-          name: "Expedice",
-          href: "/logistics/expedition-archive",
         },
         { id: "knowledge-base", name: "Poradenství (KB)", href: "/knowledge-base" },
         { id: "smartsupp", name: "Smartsupp", href: "/customer/smartsupp" },
@@ -213,6 +236,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           name: "Výrobní zakázky",
           href: "/manufacturing/orders",
         },
+        {
+          id: "sklad-vyroby",
+          name: "Sklad výroby",
+          href: "/manufacturing/product-inventory",
+        },
       ],
     },
     {
@@ -242,41 +270,40 @@ const Sidebar: React.FC<SidebarProps> = ({
           href: "/logistics/gift-package-manufacturing",
         },
         {
-          id: "statistiky-skladu",
-          name: "Statistiky skladu",
-          href: "/logistics/warehouse-statistics",
-        },
-        {
           id: "sledovani-materialu",
           name: "Sledování materiálů",
           href: "/logistics/packing-materials",
         },
         {
+          id: "tisk-expedice",
+          name: "Tisk expedice",
+          href: "/logistics/expedition-archive",
+        },
+        {
+          id: "nastaveni-expedice",
+          name: "Nastavení expedice",
+          href: "/customer/expedition-settings",
+        },
+        {
           id: "terminal",
           name: "Terminál",
-          href: "/terminal",
+          href: "#",
+          onClick: openTerminal,
+          isExternal: true,
+        },
+        {
+          id: "baleni",
+          name: "Balení",
+          href: "#",
+          onClick: openBaleni,
+          isExternal: true,
         },
       ],
     },
 
     {
-      id: "personalni",
-      name: "Personální",
-      icon: Users,
-      type: "section" as const,
-      items: [
-        {
-          id: "struktura",
-          name: "Struktura",
-          href: "#",
-          onClick: openOrgChart,
-          isExternal: true,
-        },
-      ],
-    },
-    {
       id: "automatizace",
-      name: "Automatizace",
+      name: "Administrace",
       icon: Bot,
       type: "section" as const,
       items: [
@@ -288,7 +315,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         {
           id: "stock-operations",
           name: "Naskladnění",
-          href: "/stock-operations",
+          href: "/stock-up-operations",
         },
         {
           id: "recurring-jobs",
@@ -305,6 +332,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           id: "data-quality",
           name: "Kvalita dat",
           href: "/automation/data-quality",
+        },
+        {
+          id: "feature-flags",
+          name: "Feature Flags",
+          href: "/admin/feature-flags",
         },
       ],
     },

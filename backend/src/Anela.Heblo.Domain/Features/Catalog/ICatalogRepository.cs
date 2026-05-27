@@ -5,6 +5,7 @@ namespace Anela.Heblo.Domain.Features.Catalog;
 public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, string>
 {
     Task RefreshTransportData(CancellationToken ct);
+    Task RefreshManufacturedData(CancellationToken ct);
     Task RefreshReserveData(CancellationToken ct);
     Task RefreshOrderedData(CancellationToken ct);
     Task RefreshPlannedData(CancellationToken ct);
@@ -24,6 +25,7 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
 
     // Data load timestamps - stored in cache with same expiration as data
     DateTime? TransportLoadDate { get; }
+    DateTime? ManufacturedLoadDate { get; }
     DateTime? ReserveLoadDate { get; }
     DateTime? QuarantineLoadDate { get; }
     DateTime? OrderedLoadDate { get; }

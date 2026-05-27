@@ -9,7 +9,6 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using FluentAssertions;
 
 namespace Anela.Heblo.Tests.Controllers;
 

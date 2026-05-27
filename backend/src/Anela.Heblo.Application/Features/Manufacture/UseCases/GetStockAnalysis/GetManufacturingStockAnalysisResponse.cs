@@ -31,6 +31,8 @@ public class ManufacturingStockItemDto
 
     public double TransportStock { get; set; }
 
+    public double ManufacturedStock { get; set; }
+
     public string PrimaryStockSource { get; set; } = string.Empty;
 
     public double Reserve { get; set; }

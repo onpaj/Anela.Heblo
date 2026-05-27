@@ -22,6 +22,7 @@ Read the relevant doc **before** implementation work touches that area. No archi
 **Development**
 - `docs/development/setup.md` — commands, auth setup, Docker, code formatting
 - `docs/development/api-client-generation.md` — OpenAPI client generation (C# + TypeScript)
+- `docs/development/feature-flags.md` — read before adding or checking a feature flag
 
 **Design**
 - `docs/design/ui_design_document.md` — design system, colors, typography, components

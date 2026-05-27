@@ -38,21 +38,27 @@ const ConversationList: React.FC<ConversationListProps> = ({
       </div>
     </div>
 
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto min-h-0">
       {isLoading && (
         <div className="p-4 text-sm text-gray-400 text-center">Načítání...</div>
       )}
       {!isLoading && conversations.length === 0 && (
         <div className="p-4 text-sm text-gray-400 text-center">Žádné konverzace</div>
       )}
-      {conversations.map((c) => (
-        <ConversationListItem
-          key={c.id}
-          conversation={c}
-          isSelected={c.id === selectedId}
-          onClick={() => onSelect(c.id)}
-        />
-      ))}
+      {[...conversations]
+        .sort((a, b) => {
+          const aTime = a.lastMessageAt ?? a.updatedAt;
+          const bTime = b.lastMessageAt ?? b.updatedAt;
+          return bTime < aTime ? -1 : bTime > aTime ? 1 : 0;
+        })
+        .map((c) => (
+          <ConversationListItem
+            key={c.id}
+            conversation={c}
+            isSelected={c.id === selectedId}
+            onClick={() => onSelect(c.id)}
+          />
+        ))}
     </div>
   </div>
 );

@@ -12,20 +12,26 @@ namespace Anela.Heblo.Application.Features.Logistics.UseCases.RemoveItemFromBox;
 public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest, RemoveItemFromBoxResponse>
 {
     private readonly ITransportBoxRepository _repository;
+    private readonly IInventoryReservationService _inventoryReservationService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<RemoveItemFromBoxHandler> _logger;
     private readonly IMapper _mapper;
+    private readonly TimeProvider _timeProvider;
 
     public RemoveItemFromBoxHandler(
         ITransportBoxRepository repository,
+        IInventoryReservationService inventoryReservationService,
         ICurrentUserService currentUserService,
         ILogger<RemoveItemFromBoxHandler> logger,
-        IMapper mapper)
+        IMapper mapper,
+        TimeProvider timeProvider)
     {
         _repository = repository;
+        _inventoryReservationService = inventoryReservationService;
         _currentUserService = currentUserService;
         _logger = logger;
         _mapper = mapper;
+        _timeProvider = timeProvider;
     }
 
     public async Task<RemoveItemFromBoxResponse> Handle(RemoveItemFromBoxRequest request, CancellationToken cancellationToken)
@@ -34,6 +40,7 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
         {
             var currentUser = _currentUserService.GetCurrentUser();
             var userName = currentUser.Name;
+            var timestamp = _timeProvider.GetUtcNow().UtcDateTime;
 
             var transportBox = await _repository.GetByIdWithDetailsAsync(request.BoxId);
             if (transportBox == null)
@@ -55,6 +62,18 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
                     ErrorCode = ErrorCodes.ResourceNotFound,
                     Params = new Dictionary<string, string> { { "itemId", request.ItemId.ToString() } }
                 };
+            }
+
+            if (removedItem.SourceInventoryId != null)
+            {
+                await _inventoryReservationService.RestoreAsync(
+                    inventoryId: removedItem.SourceInventoryId.Value,
+                    amount: (decimal)removedItem.Amount,
+                    userName: userName,
+                    timestamp: timestamp,
+                    boxId: transportBox.Id,
+                    boxCode: transportBox.Code,
+                    cancellationToken: cancellationToken);
             }
 
             await _repository.SaveChangesAsync(cancellationToken);
@@ -90,7 +109,7 @@ public class RemoveItemFromBoxHandler : IRequestHandler<RemoveItemFromBoxRequest
             return new RemoveItemFromBoxResponse
             {
                 Success = false,
-                ErrorCode = ErrorCodes.ValidationError,
+                ErrorCode = ErrorCodes.Exception,
                 Params = new Dictionary<string, string> { { "details", ex.Message } }
             };
         }

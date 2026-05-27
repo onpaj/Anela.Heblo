@@ -1,15 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { X, Package, Clock, AlertCircle, FileText } from "lucide-react";
 import {
   useTransportBoxByIdQuery,
   useChangeTransportBoxState,
+  useAddItemToBox,
 } from "../../api/hooks/useTransportBoxes";
+import type { AddManufacturedItemInput } from "../transport/box-detail/TransportBoxTypes";
 import { useLastAddedItem } from "../../api/hooks/useLastAddedItem";
+import { useLastManufacturedItems } from "../../api/hooks/useLastManufacturedItems";
 import {
   CatalogItemDto,
   TransportBoxState,
 } from "../../api/generated/api-client";
+import { QUERY_KEYS } from "../../api/client";
 import { useToast } from "../../contexts/ToastContext";
 
 // Import new components
@@ -30,6 +35,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
   onClose,
 }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const {
     data: boxData,
     isLoading,
@@ -38,10 +44,12 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
   } = useTransportBoxByIdQuery(boxId || 0, boxId !== null);
   const [activeTab, setActiveTab] = useState<"info" | "history">("info");
   const changeStateMutation = useChangeTransportBoxState();
+  const addItemToBoxMutation = useAddItemToBox();
   const { showError } = useToast();
 
   // Last added item tracking
   const { lastAddedItem, saveLastAddedItem } = useLastAddedItem();
+  const { lastManufacturedItems, saveLastManufacturedItem } = useLastManufacturedItems();
 
   // Modal states
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
@@ -221,6 +229,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
         const result = await response.json();
         if (result.success) {
           refetch();
+          queryClient.invalidateQueries({ queryKey: QUERY_KEYS.manufacturedProductInventory });
           // Success item removal - no toast needed
         } else {
           const errorMessage = result.errorMessage || "Neočekávaná chyba";
@@ -287,6 +296,42 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
       // If response.success is false, the global error handler will show a toast
     } catch (error) {
       console.error("Error adding item:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Neočekávaná chyba při přidávání položky";
+      showError("Chyba při přidávání položky", errorMessage);
+    }
+  };
+
+  // Handle add item from manufactured inventory
+  const handleAddManufacturedItem = async ({ item, amount, allowNegativeStock }: AddManufacturedItemInput): Promise<void> => {
+    if (!boxId) return;
+
+    try {
+      const result = await addItemToBoxMutation.mutateAsync({
+        boxId,
+        productCode: item.productCode,
+        productName: item.productName,
+        amount,
+        sourceInventoryId: item.id,
+        lotNumber: item.lotNumber,
+        expirationDate: item.expirationDate,
+        allowNegativeStock,
+      });
+
+      if (result.success) {
+        saveLastManufacturedItem({
+          productCode: item.productCode,
+          productName: item.productName,
+          lotNumber: item.lotNumber,
+          expirationDate: item.expirationDate,
+          addedAmount: amount,
+        });
+        refetch();
+      }
+      // If result.success is false, the global error handler will show a toast
+    } catch (error) {
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -576,8 +621,10 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
                           selectedProduct={selectedProduct}
                           setSelectedProduct={setSelectedProduct}
                           handleAddItem={handleAddItem}
+                          handleAddManufacturedItem={handleAddManufacturedItem}
                           lastAddedItem={lastAddedItem}
                           handleQuickAdd={() => setIsQuickAddModalOpen(true)}
+                          lastManufacturedItems={lastManufacturedItems}
                         />
                       </div>
                     )}

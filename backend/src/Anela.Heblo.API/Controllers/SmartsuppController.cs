@@ -1,4 +1,9 @@
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.CloseConversation;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetContactShoptetInfo;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.SendMessage;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetVisitorInfo;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.ListConversations;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -43,4 +48,89 @@ public class SmartsuppController : BaseApiController
         var result = await _mediator.Send(new GetConversationRequest { Id = id }, cancellationToken);
         return HandleResponse(result);
     }
+
+    [HttpPost("conversations/{id}/draft-reply")]
+    [ProducesResponseType(typeof(GenerateDraftReplyResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<GenerateDraftReplyResponse>> GenerateDraftReply(
+        string id,
+        [FromBody] GenerateDraftReplyBody? body,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new GenerateDraftReplyRequest { ConversationId = id, Topic = body?.Topic };
+        var result = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(result);
+    }
+
+    /// <remarks>
+    /// Returns 404 only when the Smartsupp conversation itself is not found.
+    /// A missing Shoptet customer returns 200 with a null contactInfo payload.
+    /// </remarks>
+    [HttpGet("conversations/{id}/shoptet-info")]
+    [ProducesResponseType(typeof(GetSmartsuppContactShoptetInfoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GetSmartsuppContactShoptetInfoResponse>> GetShoptetInfo(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetSmartsuppContactShoptetInfoRequest { ConversationId = id },
+            cancellationToken);
+        return HandleResponse(result);
+    }
+
+    [HttpGet("conversations/{id}/visitor-info")]
+    [ProducesResponseType(typeof(GetVisitorInfoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<GetVisitorInfoResponse>> GetVisitorInfo(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetVisitorInfoRequest { ConversationId = id },
+            cancellationToken);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("conversations/{conversationId}/messages")]
+    [ProducesResponseType(typeof(SendMessageResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<SendMessageResponse>> SendMessage(
+        string conversationId,
+        [FromBody] SendMessageBody body,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new SendMessageRequest { ConversationId = conversationId, Content = body.Content };
+        var result = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("conversations/{id}/close")]
+    [ProducesResponseType(typeof(CloseConversationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<CloseConversationResponse>> CloseConversation(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new CloseConversationRequest { ConversationId = id },
+            cancellationToken);
+        return HandleResponse(result);
+    }
+
+}
+
+public sealed class GenerateDraftReplyBody
+{
+    public string? Topic { get; set; }
+}
+
+public sealed class SendMessageBody
+{
+    public string Content { get; set; } = string.Empty;
 }

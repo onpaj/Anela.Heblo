@@ -93,7 +93,7 @@ public class GetArticleHandlerTests
         response.Length.Should().Be("medium (1000w)");
         response.Title.Should().Be("The Title");
         response.HtmlContent.Should().Be("<p>Body</p>");
-        response.Status.Should().Be(nameof(ArticleStatus.Generated));
+        response.Status.Should().Be(ArticleStatus.Generated);
         response.ErrorMessage.Should().BeNull();
         response.CreatedAt.Should().Be(createdAt);
         response.GeneratedAt.Should().Be(generatedAt);

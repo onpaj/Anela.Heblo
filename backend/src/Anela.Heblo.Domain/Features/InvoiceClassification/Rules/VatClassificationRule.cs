@@ -6,7 +6,7 @@ public class VatClassificationRule : IClassificationRule
     public string DisplayName => "IČO";
     public string Description => "Porovnání IČO firmy";
 
-    public bool Evaluate(ReceivedInvoiceDto invoice, string pattern)
+    public bool Evaluate(ReceivedInvoice invoice, string pattern)
     {
         return string.Equals(invoice.CompanyVat?.Trim(), pattern?.Trim(), StringComparison.OrdinalIgnoreCase);
     }

@@ -24,6 +24,21 @@ public class ExpeditionProtocolDocument : IDocument
     private const float CenaCol = 2f;
     private const float StavCol = 2f;
 
+    // Frost badge layout constants
+    private const float FrostIconSize = 12f;
+    private const float FrostBadgePadding = 3f;
+    private const float FrostBadgeBorderThickness = 1.5f;
+
+    private static readonly byte[] FrostIconBytes = GenerateFrostIcon();
+
+    // Gift badge layout constants (same values as frost badge)
+    private const float GiftIconSize = 12f;
+    private const float GiftBadgePadding = 3f;
+    private const float GiftBadgeBorderThickness = 1.5f;
+    private const float GiftBadgePaddingLeft = 4f;
+
+    private static readonly byte[] GiftIconBytes = GenerateGiftIcon();
+
     private readonly ExpeditionProtocolData _data;
     public ExpeditionProtocolDocument(ExpeditionProtocolData data)
     {
@@ -47,6 +62,12 @@ public class ExpeditionProtocolDocument : IDocument
             page.Size(PageSizes.A4);
             page.Margin(1f, Unit.Centimetre);
             page.DefaultTextStyle(x => x.FontSize(8));
+
+            if (!string.IsNullOrWhiteSpace(_data.ListId))
+            {
+                page.Header().AlignRight().Text($"ID: {_data.ListId}")
+                    .FontSize(7).FontColor(Colors.Grey.Darken1);
+            }
 
             page.Content().Column(col =>
             {
@@ -76,11 +97,45 @@ public class ExpeditionProtocolDocument : IDocument
             .Padding(BorderPadding)
             .Column(orderCol =>
         {
-            // Order heading: "Objednávka " + bold code — 30% larger than body (9 * 1.3 ≈ 12)
-            orderCol.Item().Text(t =>
+            // Order heading row: order number on the left, frost badge on the right (if cooled)
+            orderCol.Item().Row(headingRow =>
             {
-                t.Span("Objednávka ").FontSize(10);
-                t.Span(order.Code).Bold().FontSize(10);
+                headingRow.RelativeItem().AlignMiddle().Text(t =>
+                {
+                    t.Span("Objednávka ").FontSize(10);
+                    t.Span(order.Code).Bold().FontSize(10);
+                });
+
+                if (order.IsCooled)
+                {
+                    headingRow.AutoItem()
+                        .Border(FrostBadgeBorderThickness)
+                        .BorderColor(Colors.Black)
+                        .Padding(FrostBadgePadding)
+                        .Row(row =>
+                        {
+                            row.AutoItem().Width(FrostIconSize).Height(FrostIconSize).Image(FrostIconBytes).FitArea();
+                            row.AutoItem().PaddingLeft(3).AlignMiddle()
+                                .Text("CHLAZENÁ ZÁSILKA")
+                                .Bold().FontSize(10).FontColor(Colors.Black);
+                        });
+                }
+
+                if (!string.IsNullOrEmpty(order.GiftBadgeText))
+                {
+                    headingRow.AutoItem()
+                        .PaddingLeft(GiftBadgePaddingLeft)
+                        .Border(GiftBadgeBorderThickness)
+                        .BorderColor(Colors.Black)
+                        .Padding(GiftBadgePadding)
+                        .Row(row =>
+                        {
+                            row.AutoItem().Width(GiftIconSize).Height(GiftIconSize).Image(GiftIconBytes).FitArea();
+                            row.AutoItem().PaddingLeft(3).AlignMiddle()
+                                .Text(order.GiftBadgeText)
+                                .Bold().FontSize(10).FontColor(Colors.Black);
+                        });
+                }
             });
 
             // Barcode — 60% of full width
@@ -291,6 +346,90 @@ public class ExpeditionProtocolDocument : IDocument
         };
 
         using var bitmap = writer.Write(text);
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
+    }
+
+    private static byte[] GenerateFrostIcon()
+    {
+        const int size = 64;
+        using var bitmap = new SKBitmap(size, size);
+        using var canvas = new SKCanvas(bitmap);
+        canvas.Clear(SKColors.Transparent);
+
+        using var paint = new SKPaint
+        {
+            Color = SKColors.Black,
+            StrokeWidth = 4f,
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeCap = SKStrokeCap.Round,
+        };
+
+        var cx = size / 2f;
+        var cy = size / 2f;
+        var spokeLen = size * 0.42f;
+        var branchLen = size * 0.18f;
+        var branchOffset = size * 0.20f;
+
+        for (var i = 0; i < 6; i++)
+        {
+            var angle = i * 60.0 * Math.PI / 180.0;
+            var ex = cx + (float)(Math.Cos(angle) * spokeLen);
+            var ey = cy + (float)(Math.Sin(angle) * spokeLen);
+            canvas.DrawLine(cx, cy, ex, ey, paint);
+
+            // Two branch pairs along the spoke
+            foreach (var offsetFraction in new[] { branchOffset, spokeLen - branchLen })
+            {
+                var bx = cx + (float)(Math.Cos(angle) * offsetFraction);
+                var by = cy + (float)(Math.Sin(angle) * offsetFraction);
+                var leftAngle = angle + 60.0 * Math.PI / 180.0;
+                var rightAngle = angle - 60.0 * Math.PI / 180.0;
+                canvas.DrawLine(bx, by, bx + (float)(Math.Cos(leftAngle) * branchLen), by + (float)(Math.Sin(leftAngle) * branchLen), paint);
+                canvas.DrawLine(bx, by, bx + (float)(Math.Cos(rightAngle) * branchLen), by + (float)(Math.Sin(rightAngle) * branchLen), paint);
+            }
+        }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
+    }
+
+    private static byte[] GenerateGiftIcon()
+    {
+        const int size = 64;
+        using var bitmap = new SKBitmap(size, size);
+        using var canvas = new SKCanvas(bitmap);
+        canvas.Clear(SKColors.Transparent);
+
+        using var paint = new SKPaint
+        {
+            Color = SKColors.Black,
+            StrokeWidth = 4f,
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeCap = SKStrokeCap.Round,
+        };
+
+        float cx = size / 2f;
+
+        // Box body
+        canvas.DrawRect(6, 30, 52, 28, paint);
+        // Lid
+        canvas.DrawRect(4, 20, 56, 12, paint);
+        // Ribbon — vertical through center
+        canvas.DrawLine(cx, 20, cx, 58, paint);
+        // Ribbon — horizontal on lid
+        canvas.DrawLine(4, 26, 60, 26, paint);
+        // Bow — left loop
+        canvas.DrawLine(cx, 20, cx - 14, 6, paint);
+        canvas.DrawLine(cx - 14, 6, cx - 2, 16, paint);
+        // Bow — right loop
+        canvas.DrawLine(cx, 20, cx + 14, 6, paint);
+        canvas.DrawLine(cx + 14, 6, cx + 2, 16, paint);
+
         using var image = SKImage.FromBitmap(bitmap);
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         return data.ToArray();

@@ -1,5 +1,8 @@
+using Anela.Heblo.Application.Features.Article.Contracts;
 using Anela.Heblo.Application.Features.KnowledgeBase.Pipeline;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services;
+using Anela.Heblo.Application.Features.Leaflet.Contracts;
+using Anela.Heblo.Application.Features.KnowledgeBase.Infrastructure;
 using Microsoft.Identity.Web;
 using Anela.Heblo.Application.Features.KnowledgeBase.Services.DocumentExtractors;
 using Anela.Heblo.Application.Features.KnowledgeBase.UseCases.AskQuestion;
@@ -29,6 +32,15 @@ public static class KnowledgeBaseModule
         services.AddScoped<IIndexingStrategy, KnowledgeBaseDocIndexingStrategy>();
         services.AddScoped<IIndexingStrategy, ConversationIndexingStrategy>();
         services.AddScoped<IDocumentIndexingService, DocumentIndexingService>();
+
+        // Cross-module contract: KnowledgeBase implements Leaflet's ILeafletKnowledgeSource via adapter.
+        // DI registration owned by provider (KnowledgeBase), not consumer (Leaflet) — keeps the
+        // dependency direction inverted properly.
+        services.AddScoped<ILeafletKnowledgeSource, KnowledgeBaseLeafletSourceAdapter>();
+
+        // Cross-module contract: KnowledgeBase implements Article's IArticleStyleGuideSource via adapter.
+        // Same provider-owned-DI pattern as the Leaflet binding above.
+        services.AddScoped<IArticleStyleGuideSource, KnowledgeBaseArticleStyleGuideSource>();
 
         // IKnowledgeBaseRepository is registered in PersistenceModule (real EF Core implementation)
 

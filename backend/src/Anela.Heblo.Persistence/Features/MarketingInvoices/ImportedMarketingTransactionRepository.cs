@@ -18,13 +18,4 @@ public class ImportedMarketingTransactionRepository
             ct);
     }
 
-    public new async Task AddAsync(ImportedMarketingTransaction entity, CancellationToken ct)
-    {
-        await base.AddAsync(entity, ct);
-    }
-
-    public async Task<List<ImportedMarketingTransaction>> GetUnsyncedAsync(CancellationToken ct)
-    {
-        return (await FindAsync(x => !x.IsSynced, ct)).ToList();
-    }
 }

@@ -47,7 +47,6 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
             ["cacheKey"] = CacheKey
         };
 
-        bool dataLoaded = false;
         IList<ProductPriceFlexiDto>? data = null;
 
         // Safe cache access with disposed object protection
@@ -93,8 +92,6 @@ public class FlexiProductPriceErpClient : UserQueryClient<ProductPriceFlexiDto>,
             {
                 // Cache is disposed, skip caching but continue with the data
             }
-
-            dataLoaded = true;
         }
 
         var prices = data!.Select(s => new ProductPriceErp()

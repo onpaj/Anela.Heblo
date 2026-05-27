@@ -34,17 +34,21 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.SearchJournalEntries
 
             var result = await _journalRepository.SearchEntriesAsync(criteria, cancellationToken);
 
-            var entryDtos = result.Items.Select(JournalEntryMapper.ToDto).ToList();
+            var searchText = request.SearchText ?? string.Empty;
+            var hasSearchText = !string.IsNullOrEmpty(searchText);
 
-            // Add content previews for search results
-            if (!string.IsNullOrEmpty(request.SearchText))
-            {
-                foreach (var dto in entryDtos)
+            var entryDtos = result.Items
+                .Select(entry =>
                 {
-                    dto.ContentPreview = CreateContentPreview(dto.Content, request.SearchText);
-                    dto.HighlightedTerms = ExtractHighlightTerms(request.SearchText);
-                }
-            }
+                    var dto = JournalEntryMapper.ToSearchDto(entry);
+                    dto.ContentPreview = CreateContentPreview(entry.Content, searchText);
+                    if (hasSearchText)
+                    {
+                        dto.HighlightedTerms = ExtractHighlightTerms(searchText);
+                    }
+                    return dto;
+                })
+                .ToList();
 
             return new SearchJournalEntriesResponse
             {
@@ -60,6 +64,8 @@ namespace Anela.Heblo.Application.Features.Journal.UseCases.SearchJournalEntries
 
         private static string CreateContentPreview(string content, string searchText, int maxLength = 200)
         {
+            if (string.IsNullOrEmpty(content)) return string.Empty;
+
             if (string.IsNullOrEmpty(searchText))
                 return content.Length <= maxLength ? content : content[..maxLength] + "...";
 

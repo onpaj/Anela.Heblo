@@ -6,5 +6,4 @@ public class DisassembleGiftPackageRequest : IRequest<DisassembleGiftPackageResp
 {
     public string GiftPackageCode { get; set; } = null!;
     public int Quantity { get; set; }
-    public Guid UserId { get; set; }
 }

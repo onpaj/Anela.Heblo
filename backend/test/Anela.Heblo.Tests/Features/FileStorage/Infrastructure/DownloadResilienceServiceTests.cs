@@ -171,7 +171,9 @@ public sealed class DownloadResilienceServiceTests
             async ct =>
             {
                 callCount++;
-                await Task.Delay(TimeSpan.FromMilliseconds(200), ct);
+                // Use Timeout.InfiniteTimeSpan so the task is guaranteed to wait until
+                // the Polly token fires — avoids flakiness from wall-clock races on CI.
+                await Task.Delay(Timeout.InfiniteTimeSpan, ct);
                 return "should not reach";
             },
             "timeout-op");

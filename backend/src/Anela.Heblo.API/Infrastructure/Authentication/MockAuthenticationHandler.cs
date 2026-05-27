@@ -13,8 +13,8 @@ public class MockAuthenticationSchemeOptions : AuthenticationSchemeOptions
 public class MockAuthenticationHandler : AuthenticationHandler<MockAuthenticationSchemeOptions>
 {
     public MockAuthenticationHandler(IOptionsMonitor<MockAuthenticationSchemeOptions> options,
-        ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
-        : base(options, logger, encoder, clock)
+        ILoggerFactory logger, UrlEncoder encoder)
+        : base(options, logger, encoder)
     {
     }
 
@@ -35,7 +35,8 @@ public class MockAuthenticationHandler : AuthenticationHandler<MockAuthenticatio
             new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.FinanceReader), // Finance reader role for testing
             new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.HebloUser), // Base role for application access
             new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.SuperUser),
-new Claim("scp", "access_as_user"), // Scopes
+            new Claim(ClaimTypes.Role, AuthorizationConstants.Roles.MeetingManager),
+            new Claim("scp", "access_as_user"), // Scopes
             // Add permission claims for testing
             new Claim("permission", "FinancialOverview.View")
         };

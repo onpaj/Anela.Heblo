@@ -135,9 +135,12 @@ jest.mock("@azure/msal-react", () => ({
     children,
 }));
 
-// Mock window.location
+// Mock window.location as an accessor descriptor so per-test setPathname calls
+// (accessor → accessor) work on all Node versions (Node 18 silently rejects
+// data → accessor conversions via Object.defineProperty).
 Object.defineProperty(window, "location", {
-  value: {
+  configurable: true,
+  get: () => ({
     href: "http://localhost:3000",
     origin: "http://localhost:3000",
     protocol: "http:",
@@ -150,7 +153,7 @@ Object.defineProperty(window, "location", {
     assign: jest.fn(),
     reload: jest.fn(),
     replace: jest.fn(),
-  },
+  }),
 });
 
 // Mock window.matchMedia

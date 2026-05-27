@@ -20,6 +20,7 @@ import ManufactureOrderDetail from "./ManufactureOrderDetail";
 import ManufactureOrderCalendar from "./ManufactureOrderCalendar";
 import ManufactureOrderWeeklyCalendar from "./ManufactureOrderWeeklyCalendar";
 import Pagination from "../../common/Pagination";
+import { useScreenView } from '../../../telemetry/useScreenView';
 
 const ManufactureOrderList: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -61,6 +62,12 @@ const ManufactureOrderList: React.FC = () => {
     const view = searchParams.get('view');
     return (view === 'weekly' || view === 'calendar' || view === 'grid') ? view : 'weekly';
   });
+
+  const viewModeSubScreen =
+    viewMode === 'grid' ? 'GridView' :
+    viewMode === 'calendar' ? 'CalendarView' :
+    'WeeklyView';
+  useScreenView('Manufacturing', 'ManufactureOrderList', viewModeSubScreen);
 
   // Pagination state
   const [pageNumber, setPageNumber] = useState(1);

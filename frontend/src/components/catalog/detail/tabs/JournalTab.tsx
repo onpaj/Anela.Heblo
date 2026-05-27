@@ -8,14 +8,14 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
-import { JournalEntryDto } from "../../../../api/generated/api-client";
+import type { SearchJournalEntryDto } from "../../../../api/generated/api-client";
 import { useJournalEntriesByProduct } from "../../../../api/hooks/useJournal";
 import { format } from "date-fns";
 
 interface JournalTabProps {
   productCode: string;
   onAddEntry: () => void;
-  onEditEntry: (entry: JournalEntryDto) => void;
+  onEditEntry: (entry: SearchJournalEntryDto) => void;
   onViewAllEntries: () => void;
 }
 
@@ -104,7 +104,7 @@ const JournalTab: React.FC<JournalTabProps> = ({
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 line-clamp-2">
-                    {entry.content}
+                    {entry.contentPreview}
                   </p>
                   {entry.tags && entry.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">

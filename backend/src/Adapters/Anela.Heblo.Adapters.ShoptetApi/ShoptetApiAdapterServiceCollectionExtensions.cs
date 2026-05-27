@@ -1,13 +1,18 @@
 using System.Text;
+using Anela.Heblo.Adapters.ShoptetApi.Customers;
 using Anela.Heblo.Adapters.ShoptetApi.EshopUrl;
 using Anela.Heblo.Adapters.ShoptetApi.Expedition;
 using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
 using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices.Mapping;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
+using Anela.Heblo.Adapters.ShoptetApi.Shipments;
 using Anela.Heblo.Adapters.ShoptetApi.Stock;
+using Anela.Heblo.Application.Features.ShipmentLabels;
+using Anela.Heblo.Application.Features.ShoptetCustomers;
 using Anela.Heblo.Application.Features.ShoptetOrders;
 using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
+using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Logistics.Picking;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,12 +34,13 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
         services.AddOptions<ShoptetApiSettings>()
             .Bind(configuration.GetSection(ShoptetApiSettings.ConfigurationKey));
 
-        services.AddHttpClient<IEshopOrderClient, ShoptetOrderClient>((sp, client) =>
+        services.AddHttpClient<ShoptetOrderClient>((sp, client) =>
         {
             var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
             client.BaseAddress = new Uri(settings.BaseUrl);
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
         });
+        services.AddTransient<IEshopOrderClient>(sp => sp.GetRequiredService<ShoptetOrderClient>());
 
         services.AddHttpClient<IEshopStockClient, ShoptetStockClient>((sp, client) =>
         {
@@ -50,10 +56,25 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
         });
 
+        services.AddHttpClient<IShipmentClient, ShoptetShipmentClient>((sp, client) =>
+        {
+            var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
+            client.BaseAddress = new Uri(settings.BaseUrl);
+            client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
+        });
+
+        services.AddHttpClient<IShoptetCustomerClient, ShoptetCustomerClient>((sp, client) =>
+        {
+            var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
+            client.BaseAddress = new Uri(settings.BaseUrl);
+            client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
+        });
+
         services.Configure<ShoptetStockClientOptions>(
             configuration.GetSection(ShoptetStockClientOptions.SettingsKey));
 
         services.AddTransient<IPickingListSource, ShoptetApiExpeditionListSource>();
+        services.AddTransient<IPackingOrderClient, ShoptetApiPackingOrderClient>();
 
         services.AddHttpClient<IProductEshopUrlClient, HeurekaProductFeedClient>();
         services.Configure<HeurekaFeedOptions>(configuration.GetSection(HeurekaFeedOptions.ConfigKey));
@@ -62,6 +83,7 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
         services.AddSingleton<ShippingMethodMapper>();
         services.AddSingleton<ShoptetInvoiceMapper>();
         services.AddSingleton<ShoptetApiInvoiceSource>();
+        services.AddSingleton<IShippingMethodCatalog, ShippingMethodCatalog>();
 
         return services;
     }

@@ -51,40 +51,6 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         }
 
         [Fact]
-        public void MarkOutlookFailed_SetsFailedStatusAndTruncatesError_WhenErrorIsLong()
-        {
-            // Arrange
-            var action = CreateAction();
-            var longError = new string('x', 1500);
-            var utcNow = new DateTime(2026, 4, 27, 10, 0, 0, DateTimeKind.Utc);
-
-            // Act
-            action.MarkOutlookFailed(longError, utcNow);
-
-            // Assert
-            action.OutlookSyncStatus.Should().Be(MarketingSyncStatus.Failed);
-            action.OutlookSyncError.Should().HaveLength(1000);
-            action.OutlookSyncError.Should().Be(new string('x', 1000));
-        }
-
-        [Fact]
-        public void MarkOutlookFailed_KeepsEventId_WhenFailed()
-        {
-            // Arrange
-            var action = CreateAction();
-            var existingEventId = "existing-event-id";
-            action.OutlookEventId = existingEventId;
-            var utcNow = new DateTime(2026, 4, 27, 10, 0, 0, DateTimeKind.Utc);
-
-            // Act
-            action.MarkOutlookFailed("transient error", utcNow);
-
-            // Assert
-            // Event ID must be preserved so retry logic can attempt an update rather than a create
-            action.OutlookEventId.Should().Be(existingEventId);
-        }
-
-        [Fact]
         public void ClearOutlookLink_ResetsAllSyncFields()
         {
             // Arrange

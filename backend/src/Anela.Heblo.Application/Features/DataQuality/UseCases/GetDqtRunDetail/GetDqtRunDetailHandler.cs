@@ -35,11 +35,25 @@ public class GetDqtRunDetailHandler : IRequestHandler<GetDqtRunDetailRequest, Ge
                 };
             }
 
+            if (run.TestType == DqtTestType.IssuedInvoiceComparison)
+            {
+                return new GetDqtRunDetailResponse
+                {
+                    Success = true,
+                    Run = _mapper.Map<DqtRunDto>(run),
+                    Results = _mapper.Map<List<InvoiceDqtResultDto>>(run.Results)
+                };
+            }
+
+            var (driftItems, driftTotal) = await _repository.GetDriftResultsAsync(
+                run.Id, request.ResultPage, request.ResultPageSize, cancellationToken);
+
             return new GetDqtRunDetailResponse
             {
+                Success = true,
                 Run = _mapper.Map<DqtRunDto>(run),
-                Results = _mapper.Map<List<InvoiceDqtResultDto>>(run.Results),
-                Success = true
+                DriftResults = _mapper.Map<List<DqtDriftResultDto>>(driftItems),
+                TotalDriftResults = driftTotal
             };
         }
         catch (Exception ex)

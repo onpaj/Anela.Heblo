@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.UseCases.GetAvailableGiftPackages;
-using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using MediatR;
 
@@ -51,7 +51,7 @@ public class CriticalGiftPackagesTile : ITile
             }
 
             var criticalCount = response.GiftPackages
-                .Count(package => package.Severity == StockSeverity.Critical);
+                .Count(package => package.Severity == GiftPackageSeverity.Critical);
 
             return new
             {

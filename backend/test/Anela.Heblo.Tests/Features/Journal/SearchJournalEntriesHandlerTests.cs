@@ -151,4 +151,134 @@ public class SearchJournalEntriesHandlerTests
         entry.AssociateWithProduct(prefix);
         return entry;
     }
+
+    [Fact]
+    public async Task Handle_PopulatesContentPreviewFromDomainContent_WhenSearchTextEmpty()
+    {
+        // Arrange: 250-char content, no search text. The 200-char window + ellipsis suffix must apply.
+        var content = new string('a', 250);
+        var entry = new JournalEntry
+        {
+            Id = 1,
+            Title = "Empty search entry",
+            Content = content,
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "user-1"
+        };
+
+        _repositoryMock
+            .Setup(x => x.SearchEntriesAsync(It.IsAny<JournalSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResult<JournalEntry>
+            {
+                Items = new List<JournalEntry> { entry },
+                TotalCount = 1,
+                PageNumber = 1,
+                PageSize = 10
+            });
+
+        var request = new SearchJournalEntriesRequest
+        {
+            SearchText = null,
+            PageNumber = 1,
+            PageSize = 10
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        var hit = result.Entries.Single();
+        hit.ContentPreview.Should().NotBeNull();
+        hit.ContentPreview.Should().EndWith("...");
+        hit.ContentPreview.Length.Should().BeLessThanOrEqualTo(203); // 200 chars + "..."
+        hit.HighlightedTerms.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_BuildsPreviewWindowAroundMatch_WhenSearchTextPresent()
+    {
+        // Arrange: place "needle" near the middle of a long content string
+        var prefix = new string('p', 300);
+        var suffix = new string('s', 300);
+        var content = prefix + "needle" + suffix;
+        var entry = new JournalEntry
+        {
+            Id = 7,
+            Title = "match",
+            Content = content,
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "user-1"
+        };
+
+        _repositoryMock
+            .Setup(x => x.SearchEntriesAsync(It.IsAny<JournalSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResult<JournalEntry>
+            {
+                Items = new List<JournalEntry> { entry },
+                TotalCount = 1,
+                PageNumber = 1,
+                PageSize = 10
+            });
+
+        var request = new SearchJournalEntriesRequest
+        {
+            SearchText = "needle",
+            PageNumber = 1,
+            PageSize = 10
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        var hit = result.Entries.Single();
+        hit.ContentPreview.Should().Contain("needle");
+        hit.ContentPreview.Should().StartWith("...");
+        hit.ContentPreview.Should().EndWith("...");
+        hit.ContentPreview.Length.Should().BeLessThanOrEqualTo(206); // 200 chars + leading "..." + trailing "..."
+    }
+
+    [Fact]
+    public async Task Handle_FiltersHighlightTermsToLengthGreaterThanTwo()
+    {
+        // Arrange: search text mixes short ("a", "is") and long ("needle", "haystack") terms.
+        var entry = new JournalEntry
+        {
+            Id = 9,
+            Title = "filter",
+            Content = "irrelevant body",
+            EntryDate = DateTime.Today,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = DateTime.UtcNow,
+            CreatedByUserId = "user-1"
+        };
+
+        _repositoryMock
+            .Setup(x => x.SearchEntriesAsync(It.IsAny<JournalSearchCriteria>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResult<JournalEntry>
+            {
+                Items = new List<JournalEntry> { entry },
+                TotalCount = 1,
+                PageNumber = 1,
+                PageSize = 10
+            });
+
+        var request = new SearchJournalEntriesRequest
+        {
+            SearchText = "a is needle haystack",
+            PageNumber = 1,
+            PageSize = 10
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        var hit = result.Entries.Single();
+        hit.HighlightedTerms.Should().BeEquivalentTo(new[] { "needle", "haystack" });
+    }
 }

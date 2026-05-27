@@ -17,5 +17,9 @@ public class TransportBoxItemConfiguration : IEntityTypeConfiguration<TransportB
             .HasColumnName("DateAdded")
             .HasColumnType("timestamp without time zone")
             .IsRequired();
+
+        builder.Property(x => x.LotNumber).HasMaxLength(100);
+        builder.Property(x => x.ExpirationDate);  // DateOnly? — Npgsql maps to 'date' natively
+        builder.Property(x => x.SourceInventoryId);
     }
 }

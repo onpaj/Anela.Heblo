@@ -23,7 +23,7 @@ export const createMockUser = (): MockUser => {
     name: "Mock User",
     email: "mock@anela-heblo.com",
     initials: "MU",
-    roles: ["finance_reader", "super_user", "marketing_reader"],
+    roles: ["finance_reader", "super_user", "marketing_reader", "meeting_manager"],
   };
 };
 

@@ -1,45 +1,79 @@
 import React from "react";
 import { X } from "lucide-react";
+import { MarketingActionType } from "../../../api/generated/api-client";
+import {
+  ACTION_TYPE_LABELS,
+  ALL_ACTION_TYPE_OPTIONS,
+} from "./marketingActionTypeLabels";
 
-interface Filters {
+export interface MarketingFilters {
   searchText: string;
   dateFrom: string;
   dateTo: string;
+  actionType: MarketingActionType | "";
 }
 
 interface MarketingActionFiltersProps {
-  filters: Filters;
-  onChange: (filters: Filters) => void;
+  filters: MarketingFilters;
+  onChange: (filters: MarketingFilters) => void;
   onClear: () => void;
 }
 
-const EMPTY_FILTERS: Filters = { searchText: "", dateFrom: "", dateTo: "" };
+const EMPTY_FILTERS: MarketingFilters = {
+  searchText: "",
+  dateFrom: "",
+  dateTo: "",
+  actionType: "",
+};
 
-const hasActiveFilters = (f: Filters) =>
-  f.searchText !== "" || f.dateFrom !== "" || f.dateTo !== "";
+const hasActiveFilters = (f: MarketingFilters) =>
+  f.searchText !== "" ||
+  f.dateFrom !== "" ||
+  f.dateTo !== "" ||
+  f.actionType !== "";
 
 const MarketingActionFilters: React.FC<MarketingActionFiltersProps> = ({
   filters,
   onChange,
   onClear,
 }) => {
-  const set =
-    (key: keyof Filters) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const setText =
+    (key: "searchText" | "dateFrom" | "dateTo") =>
+    (e: React.ChangeEvent<HTMLInputElement>) =>
       onChange({ ...filters, [key]: e.target.value });
+
+  const setActionType = (e: React.ChangeEvent<HTMLSelectElement>) =>
+    onChange({
+      ...filters,
+      actionType: (e.target.value as MarketingActionType | ""),
+    });
 
   return (
     <div className="flex flex-wrap gap-3 items-center p-4 bg-white border border-gray-200 rounded-lg">
+      <select
+        aria-label="Typ akce"
+        value={filters.actionType}
+        onChange={setActionType}
+        className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      >
+        <option value="">Všechny typy</option>
+        {ALL_ACTION_TYPE_OPTIONS.map((t) => (
+          <option key={t} value={t}>
+            {ACTION_TYPE_LABELS[t]}
+          </option>
+        ))}
+      </select>
       <input
         type="text"
         placeholder="Hledat název..."
         value={filters.searchText}
-        onChange={set("searchText")}
+        onChange={setText("searchText")}
         className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]"
       />
       <input
         type="date"
         value={filters.dateFrom}
-        onChange={set("dateFrom")}
+        onChange={setText("dateFrom")}
         className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         title="Od"
       />
@@ -47,7 +81,7 @@ const MarketingActionFilters: React.FC<MarketingActionFiltersProps> = ({
       <input
         type="date"
         value={filters.dateTo}
-        onChange={set("dateTo")}
+        onChange={setText("dateTo")}
         className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         title="Do"
       />
@@ -66,4 +100,3 @@ const MarketingActionFilters: React.FC<MarketingActionFiltersProps> = ({
 
 export default MarketingActionFilters;
 export { EMPTY_FILTERS };
-export type { Filters as MarketingFilters };

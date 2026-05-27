@@ -1,11 +1,7 @@
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
-using FluentAssertions;
 using Microsoft.Extensions.Configuration;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using FluentAssertions;
 using Microsoft.Extensions.Options;
-using FluentAssertions;
 using Xunit;
 using FluentAssertions;
 

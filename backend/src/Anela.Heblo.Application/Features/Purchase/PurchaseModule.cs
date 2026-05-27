@@ -4,8 +4,6 @@ using Anela.Heblo.Application.Features.Purchase.UseCases.CreatePurchaseOrder;
 using Anela.Heblo.Application.Features.Purchase.UseCases.UpdatePurchaseOrder;
 using Anela.Heblo.Application.Features.Purchase.DashboardTiles;
 using Anela.Heblo.Domain.Features.Purchase;
-using Anela.Heblo.Persistence;
-using Anela.Heblo.Persistence.Purchase.PurchaseOrders;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentValidation;
 
@@ -15,13 +13,6 @@ public static class PurchaseModule
 {
     public static IServiceCollection AddPurchaseModule(this IServiceCollection services)
     {
-        // Register default implementations - tests can override these
-        services.AddScoped<IPurchaseOrderRepository>(provider =>
-        {
-            var context = provider.GetRequiredService<ApplicationDbContext>();
-            return new PurchaseOrderRepository(context);
-        });
-
         services.AddScoped<IPurchaseOrderNumberGenerator, PurchaseOrderNumberGenerator>();
 
         // Register stock severity calculator

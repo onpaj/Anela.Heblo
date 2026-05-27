@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Leaflet.Services;
 using Anela.Heblo.Application.Shared.Rag;
 using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
+using Anela.Heblo.Domain.Shared.Rag;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,7 +29,8 @@ public class LeafletModuleIntegrationTests
         services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         services.AddSingleton(Mock.Of<IEmbeddingGenerator<string, Embedding<float>>>());
         services.AddSingleton(Mock.Of<IChatClient>());
-        services.AddSingleton(Mock.Of<ILeafletRepository>());
+        services.AddSingleton(Mock.Of<ILeafletDocumentRepository>());
+        services.AddSingleton(Mock.Of<ILeafletGenerationRepository>());
         services.AddScoped<IWordWindowChunker, WordWindowChunker>();
         services.AddLeafletModule(configuration);
         return services;

@@ -11,6 +11,14 @@
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <script>
+      var p = location.pathname;
+      if (p === '/terminal' || p.startsWith('/terminal/')) {
+        document.querySelector('link[rel="manifest"]').setAttribute('href', '/manifest.terminal.json');
+      } else if (p === '/baleni' || p.startsWith('/baleni/')) {
+        document.querySelector('link[rel="manifest"]').setAttribute('href', '/manifest.baleni.json');
+      }
+    </script>
     <title>Anela Heblo</title>
   </head>
   <body>

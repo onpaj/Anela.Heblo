@@ -20,6 +20,8 @@ import {
 import PurchaseOrderDetail from "./PurchaseOrderDetail";
 import PurchaseOrderForm from "./PurchaseOrderForm";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
+import { useTelemetry } from "../../telemetry/useTelemetry";
+import { useScreenView } from "../../telemetry/useScreenView";
 
 // Status labels mapping
 const statusLabels: Record<string, string> = {
@@ -67,6 +69,8 @@ const PurchaseOrderList: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editOrderId, setEditOrderId] = useState<number | null>(null);
 
+  useScreenView('Purchase', 'PurchaseOrderList');
+
   // Build request object
   const request: GetPurchaseOrdersRequest = {
     searchTerm: searchTermFilter || undefined,
@@ -88,6 +92,8 @@ const PurchaseOrderList: React.FC = () => {
     error,
     refetch,
   } = usePurchaseOrdersQuery(request);
+
+  const { trackEvent } = useTelemetry();
 
   const orders = data?.orders || [];
   const totalCount = data?.totalCount || 0;
@@ -199,10 +205,8 @@ const PurchaseOrderList: React.FC = () => {
   };
 
   const handleCreateSuccess = (orderId: number) => {
-    // Refresh the list
+    trackEvent('PurchaseOrderSubmitted', { orderId: String(orderId) });
     refetch();
-    // Optionally open the detail of the newly created order
-    console.log("Order created successfully:", orderId);
   };
 
   // Sortable header component

@@ -274,8 +274,7 @@ public static class ApplicationBuilderExtensions
     }
 
     /// <summary>
-    /// Applies any pending EF Core migrations to the database.
-    /// Should only be called in Production; other environments use <c>dotnet ef database update</c>.
+    /// Applies any pending EF Core migrations to the database on every startup.
     /// Fails fast (rethrows) on error so the app does not start with an out-of-date schema.
     /// </summary>
     public static async Task MigrateDatabaseAsync(this WebApplication app)
@@ -287,6 +286,12 @@ public static class ApplicationBuilderExtensions
         {
             using var scope = app.Services.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            if (!db.Database.IsRelational())
+            {
+                logger.LogInformation("Non-relational database provider — skipping migrations.");
+                return;
+            }
 
             var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
 

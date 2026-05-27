@@ -17,6 +17,12 @@ interface DqtRunsTableProps {
 
 const PAGE_SIZE = 20;
 
+const TEST_TYPE_LABELS: Record<string, string> = {
+  IssuedInvoiceComparison: 'Porovnání faktur',
+  ProductPairing: 'Párování produktů',
+  StockWriteBackReconciliation: 'Zpětný zápis skladu',
+};
+
 const formatDateTime = (iso: string): string => {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -87,6 +93,9 @@ const DqtRunsTable: React.FC<DqtRunsTableProps> = ({ onRunSelect, selectedRunId 
             <tr>
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8" />
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Typ testu
+              </th>
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Období
               </th>
               <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -118,6 +127,9 @@ const DqtRunsTable: React.FC<DqtRunsTableProps> = ({ onRunSelect, selectedRunId 
                 >
                   <td className="px-3 py-3">
                     <StatusIcon run={run} />
+                  </td>
+                  <td className="px-3 py-3 text-sm text-gray-700 whitespace-nowrap">
+                    {TEST_TYPE_LABELS[run.testType] ?? run.testType}
                   </td>
                   <td className="px-3 py-3 text-sm text-gray-900 whitespace-nowrap">
                     {run.dateFrom} — {run.dateTo}

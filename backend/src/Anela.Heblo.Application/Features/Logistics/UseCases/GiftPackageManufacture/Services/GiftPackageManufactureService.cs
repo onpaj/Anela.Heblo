@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Contracts;
-using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
@@ -335,21 +334,21 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService
         };
     }
 
-    private static StockSeverity CalculateSeverity(int availableStock, int suggestedQuantity, int overstockMinimal)
+    private static GiftPackageSeverity CalculateSeverity(int availableStock, int suggestedQuantity, int overstockMinimal)
     {
         // If less than minimal (in any case), then severity is Critical (red on UI)
         if (availableStock < overstockMinimal)
         {
-            return StockSeverity.Critical;
+            return GiftPackageSeverity.Critical;
         }
 
         // If suggestedQuantity < availableStock but greater than overstockMinimal, then severity is Severe (orange on UI)
         if (availableStock < suggestedQuantity)
         {
-            return StockSeverity.Severe;
+            return GiftPackageSeverity.Severe;
         }
 
-        return StockSeverity.Optimal;
+        return GiftPackageSeverity.Optimal;
     }
 
     private static decimal CalculateStockCoveragePercent(int availableStock, decimal dailySales, int overstockOptimal)

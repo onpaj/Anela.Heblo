@@ -1,11 +1,13 @@
 using Anela.Heblo.Application.Common;
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.Catalog.Cache;
+using Anela.Heblo.Application.Features.Catalog.Contracts;
 using Anela.Heblo.Application.Features.Catalog.CostProviders;
 using Anela.Heblo.Application.Features.Catalog.DashboardTiles;
 using Anela.Heblo.Xcc.Services.BackgroundRefresh;
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Application.Features.Catalog.Services;
+using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Catalog.UseCases.CreateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetCatalogDetail;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetManufactureDifficultySettings;
@@ -39,6 +41,9 @@ public static class CatalogModule
         services.AddTransient<ICatalogRepository, CatalogRepository>();
         services.AddTransient<IManufactureDifficultyRepository, ManufactureDifficultyRepository>();
 
+        // Register adapter to expose catalog services to Purchase module
+        services.AddScoped<IMaterialCatalogService, PurchaseMaterialCatalogAdapter>();
+
         // Register cost repositories
         services.AddTransient<IMaterialCostProvider, ManufactureBasedMaterialCostProvider>(); // Product type-based: manufacture history for Set/Product/SemiProduct, purchase price for others
         services.AddTransient<IFlatManufactureCostProvider, FlatManufactureCostProvider>(); // M1_A: Flat manufacturing cost with ManufactureDifficulty weighting
@@ -60,15 +65,7 @@ public static class CatalogModule
         services.AddTransient<IProductWeightRecalculationService, ProductWeightRecalculationService>();
         services.AddTransient<IStockUpProcessingService, StockUpProcessingService>();
         services.AddScoped<IEshopStockDomainService, EshopStockDomainService>();
-
-        // Configure feature flags from configuration
-        services.Configure<CatalogFeatureFlags>(options =>
-        {
-            // Default values - can be overridden by configuration
-            options.IsTransportBoxTrackingEnabled = false;
-            options.IsStockTakingEnabled = false;
-            options.IsBackgroundRefreshEnabled = true;
-        });
+        services.AddTransient<IProductCatalogQueryService, ProductCatalogQueryService>();
 
         // Background refresh services are now handled by centralized BackgroundRefreshSchedulerService
         // Old CatalogRefreshBackgroundService is replaced by individual refresh tasks
@@ -123,6 +120,11 @@ public static class CatalogModule
         services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshTransportData),
             (r, ct) => r.RefreshTransportData(ct)
+        );
+
+        services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshManufacturedData),
+            (r, ct) => r.RefreshManufacturedData(ct)
         );
 
         services.RegisterRefreshTask<ICatalogRepository>(

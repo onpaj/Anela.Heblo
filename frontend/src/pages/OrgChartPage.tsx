@@ -1,16 +1,15 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useOrgChart } from '../api/hooks/useOrgChart';
-import { PositionDto } from '../api/generated/api-client';
-
-// Type aliases for better readability
-type Position = PositionDto;
-
-interface OrganizationData {
-  organization: {
-    name: string;
-    positions: Position[];
-  };
-}
+import { PositionCard } from '../components/OrgChart/PositionCard';
+import { useScreenView } from '../telemetry/useScreenView';
+import {
+  calculateLevels,
+  getAllParentPositionIds,
+  buildTree,
+  getChildren as orgChartGetChildren,
+  Position,
+  OrganizationData,
+} from './orgChartUtils';
 
 interface PositionRect {
   id: string;
@@ -21,6 +20,8 @@ interface PositionRect {
 }
 
 const OrgChartPage: React.FC = () => {
+  useScreenView('Admin', 'OrgChart');
+
   // Fetch organization data from backend
   const { data: orgChartResponse, isLoading, error: queryError } = useOrgChart();
 
@@ -31,38 +32,6 @@ const OrgChartPage: React.FC = () => {
   const [positionRects, setPositionRects] = useState<PositionRect[]>([]);
   const [zoom, setZoom] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Calculate correct level based on parent hierarchy
-  const calculateLevels = (data: OrganizationData): OrganizationData => {
-    const positionMap = new Map(data.organization.positions.map((p) => [p.id!, p]));
-
-    const getLevel = (positionId: string, visited = new Set<string>()): number => {
-      if (visited.has(positionId)) {
-        console.error(`Circular dependency detected for position ${positionId}`);
-        return 1;
-      }
-
-      const position = positionMap.get(positionId);
-      if (!position) return 1;
-      if (!position.parentPositionId) return 1;
-
-      visited.add(positionId);
-      return getLevel(position.parentPositionId, visited) + 1;
-    };
-
-    const updatedPositions = data.organization.positions.map((position) => ({
-      ...position,
-      level: getLevel(position.id!),
-    })) as Position[];
-
-    return {
-      ...data,
-      organization: {
-        ...data.organization,
-        positions: updatedPositions,
-      },
-    };
-  };
 
   // Transform backend response to local format and calculate levels
   const orgData = useMemo(() => {
@@ -157,23 +126,6 @@ const OrgChartPage: React.FC = () => {
 
   const departments = Array.from(new Set(orgData.organization.positions.map((p) => p.department)));
 
-  // Helper function to recursively find all parent positions
-  const getAllParentPositionIds = (positionId: string, allPositions: Position[]): Set<string> => {
-    const parentIds = new Set<string>();
-    const positionMap = new Map(allPositions.map((p) => [p.id!, p]));
-
-    const findParents = (id: string) => {
-      const position = positionMap.get(id);
-      if (position && position.parentPositionId) {
-        parentIds.add(position.parentPositionId);
-        findParents(position.parentPositionId);
-      }
-    };
-
-    findParents(positionId);
-    return parentIds;
-  };
-
   // Filter positions based on department and level
   const filteredPositions = (() => {
     const allPositions = orgData.organization.positions;
@@ -225,137 +177,8 @@ const OrgChartPage: React.FC = () => {
     }
   };
 
-  const getInitials = (name: string | undefined) => {
-    if (!name) return '?';
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase();
-  };
-
-  // Build hierarchical tree structure
-  const buildTree = (positions: Position[]): Position[] => {
-    const positionMap = new Map(positions.map((p) => [p.id, p]));
-    const roots: Position[] = [];
-
-    positions.forEach((position) => {
-      if (!position.parentPositionId || !positionMap.has(position.parentPositionId)) {
-        roots.push(position);
-      }
-    });
-
-    return roots;
-  };
-
-  const getChildren = (parentId: string): Position[] => {
-    return filteredPositions.filter((p) => p.parentPositionId === parentId);
-  };
-
-  // Render position card
-  const renderPositionCard = (position: Position): JSX.Element => {
-    const children = getChildren(position.id!);
-
-    return (
-      <div key={position.id} className="flex flex-col items-center">
-        {/* Position card */}
-        <div
-          data-position-id={position.id}
-          className={`bg-white rounded-xl shadow-lg p-6 w-80 transition-all hover:shadow-2xl hover:-translate-y-1 ${getLevelColor(
-            position.level ?? 1
-          )} relative mb-20`}
-        >
-          {(position.employees?.length || 0) > 1 && (
-            <div className="absolute top-3 right-3 bg-indigo-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold">
-              {position.employees?.length}
-            </div>
-          )}
-
-          <div className="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold mb-3">
-            {position.department}
-          </div>
-
-          {position.url ? (
-            <a
-              href={position.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-lg font-bold text-gray-900 mb-2 hover:text-indigo-600 transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              {position.title}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-            </a>
-          ) : (
-            <h3 className="text-lg font-bold text-gray-900 mb-2">{position.title}</h3>
-          )}
-          <p className="text-sm text-gray-600 mb-4 leading-relaxed">{position.description}</p>
-
-          <div className="border-t border-gray-200 pt-4 space-y-2">
-            {(position.employees || []).map((emp) => (
-              <div key={emp.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
-                    emp.isPrimary
-                      ? 'bg-gradient-to-br from-pink-400 to-red-500 shadow-md'
-                      : 'bg-gradient-to-br from-indigo-500 to-purple-600'
-                  }`}
-                >
-                  {getInitials(emp.name)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  {emp.url ? (
-                    <a
-                      href={emp.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-semibold text-gray-900 truncate hover:text-indigo-600 transition-colors flex items-center gap-1 cursor-pointer"
-                    >
-                      {emp.name}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-3 w-3 flex-shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                    </a>
-                  ) : (
-                    <div className="text-sm font-semibold text-gray-900 truncate">{emp.name}</div>
-                  )}
-                  <div className="text-xs text-gray-500 truncate">{emp.email}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Children */}
-        {children.length > 0 && (
-          <div className="flex justify-center gap-12">{children.map((child) => renderPositionCard(child))}</div>
-        )}
-      </div>
-    );
-  };
+  const getChildren = (parentId: string): Position[] =>
+    orgChartGetChildren(parentId, filteredPositions);
 
   // Draw connection lines
   const renderConnections = () => {
@@ -499,7 +322,14 @@ const OrgChartPage: React.FC = () => {
           {/* Position cards - Hierarchical Tree Layout */}
           <div className="relative" style={{ zIndex: 1 }}>
             <div className="flex justify-center gap-12">
-              {buildTree(filteredPositions).map((root) => renderPositionCard(root))}
+              {buildTree(filteredPositions).map((root) => (
+                <PositionCard
+                  key={root.id}
+                  position={root}
+                  getChildren={getChildren}
+                  getLevelColor={getLevelColor}
+                />
+              ))}
             </div>
           </div>
         </div>

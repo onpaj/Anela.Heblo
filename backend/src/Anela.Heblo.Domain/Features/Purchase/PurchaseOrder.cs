@@ -68,9 +68,6 @@ public class PurchaseOrder : IEntity<int>
         var line = new PurchaseOrderLine(Id, materialId, materialName, quantity, unitPrice, notes);
         _lines.Add(line);
 
-        // Debug logging
-        Console.WriteLine($"Added line {line.Id} to purchase order {Id}. Total lines: {_lines.Count}");
-
         UpdatedBy = CreatedBy;
         UpdatedAt = DateTime.UtcNow;
     }

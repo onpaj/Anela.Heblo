@@ -6,17 +6,73 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Adapters.GoogleAds;
 
-internal sealed class SdkAccountBudgetFetcher : IAccountBudgetFetcher
+internal sealed class SdkAccountBudgetFetcher : IAccountBudgetFetcher, IDisposable
 {
     private readonly IOptionsMonitor<GoogleAdsSettings> _settings;
     private readonly ILogger<SdkAccountBudgetFetcher> _logger;
+    private readonly Func<GoogleAdsConfig, GoogleAdsClient> _clientFactory;
+    private readonly object _lock = new();
+    private GoogleAdsClient? _cachedClient;
+    private string? _cachedFingerprint;
+    private IDisposable? _changeListener;
 
     public SdkAccountBudgetFetcher(
         IOptionsMonitor<GoogleAdsSettings> settings,
         ILogger<SdkAccountBudgetFetcher> logger)
+        : this(settings, logger, cfg => new GoogleAdsClient(cfg))
+    {
+    }
+
+    internal SdkAccountBudgetFetcher(
+        IOptionsMonitor<GoogleAdsSettings> settings,
+        ILogger<SdkAccountBudgetFetcher> logger,
+        Func<GoogleAdsConfig, GoogleAdsClient> clientFactory)
     {
         _settings = settings;
         _logger = logger;
+        _clientFactory = clientFactory;
+        _changeListener = _settings.OnChange(_ => InvalidateCache());
+    }
+
+    private void InvalidateCache()
+    {
+        lock (_lock)
+        {
+            _cachedClient = null;
+            _cachedFingerprint = null;
+        }
+
+        _logger.LogDebug("GoogleAds: settings changed, client cache invalidated");
+    }
+
+    internal GoogleAdsClient GetOrCreateClient()
+    {
+        var s = _settings.CurrentValue;
+        var fingerprint = $"{s.DeveloperToken}|{s.OAuth2ClientId}|{s.OAuth2ClientSecret}|{s.OAuth2RefreshToken}|{s.CustomerId}";
+
+        lock (_lock)
+        {
+            if (_cachedClient is not null && _cachedFingerprint == fingerprint)
+            {
+                return _cachedClient;
+            }
+
+            var config = new GoogleAdsConfig
+            {
+                DeveloperToken = s.DeveloperToken,
+                OAuth2ClientId = s.OAuth2ClientId,
+                OAuth2ClientSecret = s.OAuth2ClientSecret,
+                OAuth2RefreshToken = s.OAuth2RefreshToken,
+                LoginCustomerId = s.CustomerId.Replace("-", ""),
+            };
+
+            _cachedClient = _clientFactory(config);
+            _cachedFingerprint = fingerprint;
+
+            _logger.LogInformation("GoogleAds: created new GoogleAdsClient");
+
+            return _cachedClient;
+        }
     }
 
     public async Task<IReadOnlyList<RawAccountBudget>> FetchAsync(DateTime from, DateTime to, CancellationToken ct)
@@ -24,16 +80,7 @@ internal sealed class SdkAccountBudgetFetcher : IAccountBudgetFetcher
         var s = _settings.CurrentValue;
         var customerId = s.CustomerId.Replace("-", "");
 
-        var config = new GoogleAdsConfig
-        {
-            DeveloperToken = s.DeveloperToken,
-            OAuth2ClientId = s.OAuth2ClientId,
-            OAuth2ClientSecret = s.OAuth2ClientSecret,
-            OAuth2RefreshToken = s.OAuth2RefreshToken,
-            LoginCustomerId = customerId,
-        };
-
-        var client = new GoogleAdsClient(config);
+        var client = GetOrCreateClient();
         var service = client.GetService(Services.V18.GoogleAdsService);
 
         var fromStr = from.ToString("yyyy-MM-dd");
@@ -88,5 +135,10 @@ internal sealed class SdkAccountBudgetFetcher : IAccountBudgetFetcher
         }
 
         return results;
+    }
+
+    public void Dispose()
+    {
+        _changeListener?.Dispose();
     }
 }

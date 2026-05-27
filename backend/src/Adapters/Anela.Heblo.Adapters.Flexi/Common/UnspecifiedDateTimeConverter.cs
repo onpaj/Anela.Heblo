@@ -16,7 +16,7 @@ public class UnspecifiedDateTimeConverter : IsoDateTimeConverter
         // We handle timezone conversion in ReadJson method instead
     }
 
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
     {
         if (reader.TokenType == JsonToken.Null)
         {
@@ -30,12 +30,12 @@ public class UnspecifiedDateTimeConverter : IsoDateTimeConverter
 
         if (reader.TokenType == JsonToken.Date)
         {
-            parsedDateTime = (DateTime)reader.Value;
+            parsedDateTime = (DateTime)(reader.Value ?? throw new JsonSerializationException("Date token value is null."));
         }
         else if (reader.TokenType == JsonToken.String)
         {
-            var dateString = reader.Value.ToString();
-            if (!DateTime.TryParse(dateString, out parsedDateTime))
+            var dateString = reader.Value?.ToString();
+            if (string.IsNullOrEmpty(dateString) || !DateTime.TryParse(dateString, out parsedDateTime))
             {
                 throw new JsonSerializationException($"Cannot parse DateTime from string: {dateString}");
             }

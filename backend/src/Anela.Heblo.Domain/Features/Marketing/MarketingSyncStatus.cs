@@ -4,6 +4,5 @@ namespace Anela.Heblo.Domain.Features.Marketing
     {
         NotSynced = 0,
         Synced = 1,
-        Failed = 2,
     }
 }

@@ -57,7 +57,10 @@ public static class AuthenticationExtensions
             .AddInMemoryTokenCaches();
 
         // Also add API authentication for Bearer tokens (for API clients)
-        services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
+        // Chain OBO so ITokenAcquisition.GetAccessTokenForUserAsync works for delegated writes.
+        services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd")
+            .EnableTokenAcquisitionToCallDownstreamApi()
+            .AddInMemoryTokenCaches();
 
         // Configure HTTPS forwarding headers for deployment behind load balancer/proxy
         services.Configure<ForwardedHeadersOptions>(options =>

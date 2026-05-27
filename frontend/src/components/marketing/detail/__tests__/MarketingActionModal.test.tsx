@@ -119,11 +119,7 @@ describe("MarketingActionModal — create", () => {
     fillRequiredFields();
     submitForm();
 
-    await waitFor(() =>
-      expect(
-        screen.getByText("Nepodařilo se uložit akci. Zkuste to znovu."),
-      ).toBeInTheDocument(),
-    );
+    await screen.findByText("Nepodařilo se uložit akci. Zkuste to znovu.");
   });
 });
 
@@ -279,9 +275,7 @@ describe("MarketingActionModal — delete", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /smazat/i }));
 
-    await waitFor(() =>
-      expect(screen.getByText("Nepodařilo se smazat akci.")).toBeInTheDocument(),
-    );
+    await screen.findByText("Nepodařilo se smazat akci.");
   });
 });
 

@@ -5,8 +5,10 @@ import DqtSummaryCards from '../../components/data-quality/DqtSummaryCards';
 import RunDqtButton from '../../components/data-quality/RunDqtButton';
 import DqtRunsTable from '../../components/data-quality/DqtRunsTable';
 import DqtRunDetail from '../../components/data-quality/DqtRunDetail';
+import { useScreenView } from '../../telemetry/useScreenView';
 
 const DataQualityPage: React.FC = () => {
+  useScreenView('Automation', 'DataQuality');
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   // Fetch the latest run for the summary cards

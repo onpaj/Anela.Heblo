@@ -1,10 +1,13 @@
+using Anela.Heblo.Application.Features.Logistics;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GetTransportBoxByCode;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.Transport;
+using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Xunit;
 
@@ -22,7 +25,14 @@ public class GetTransportBoxByCodeHandlerTests
         _repositoryMock = new Mock<ITransportBoxRepository>();
         _catalogRepositoryMock = new Mock<ICatalogRepository>();
         _loggerMock = new Mock<ILogger<GetTransportBoxByCodeHandler>>();
-        _handler = new GetTransportBoxByCodeHandler(_loggerMock.Object, _repositoryMock.Object, _catalogRepositoryMock.Object);
+
+        var config = new MapperConfiguration(cfg =>
+        {
+            cfg.AddProfile<TransportBoxMappingProfile>();
+        }, NullLoggerFactory.Instance);
+        var mapper = config.CreateMapper();
+
+        _handler = new GetTransportBoxByCodeHandler(_loggerMock.Object, _repositoryMock.Object, _catalogRepositoryMock.Object, mapper);
     }
 
     [Fact]
@@ -96,6 +106,7 @@ public class GetTransportBoxByCodeHandlerTests
     [Theory]
     [InlineData(TransportBoxState.Reserve)]
     [InlineData(TransportBoxState.InTransit)]
+    [InlineData(TransportBoxState.Quarantine)]
     public async Task Handle_BoxInValidState_ReturnsSuccessResponse(TransportBoxState state)
     {
         // Arrange
@@ -209,7 +220,10 @@ public class GetTransportBoxByCodeHandlerTests
                 "Test Product",
                 1.0,
                 DateTime.Now,
-                "TestUser");
+                "TestUser",
+                null,
+                null,
+                null);
 
             if (item != null)
             {

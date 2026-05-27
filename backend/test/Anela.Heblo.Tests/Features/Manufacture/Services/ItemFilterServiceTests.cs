@@ -1,8 +1,6 @@
-using FluentAssertions;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
 using Anela.Heblo.Xcc;
-using FluentAssertions;
 using Xunit;
 using FluentAssertions;
 

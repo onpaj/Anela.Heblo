@@ -1,4 +1,5 @@
 using Anela.Heblo.Domain.Features.BackgroundJobs;
+using Anela.Heblo.Domain.Features.MarketingInvoices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -11,11 +12,13 @@ public static class GoogleAdsAdapterServiceCollectionExtensions
         IConfiguration configuration)
     {
         services.Configure<GoogleAdsSettings>(configuration.GetSection(GoogleAdsSettings.ConfigurationKey));
-        services.AddScoped<IAccountBudgetFetcher, SdkAccountBudgetFetcher>();
+        services.AddSingleton<IAccountBudgetFetcher, SdkAccountBudgetFetcher>();
         services.AddScoped<GoogleAdsTransactionSource>(sp =>
             new GoogleAdsTransactionSource(
                 sp.GetRequiredService<IAccountBudgetFetcher>(),
                 sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<GoogleAdsTransactionSource>>()));
+        services.AddScoped<IMarketingTransactionSource>(sp =>
+            sp.GetRequiredService<GoogleAdsTransactionSource>());
         services.AddScoped<IRecurringJob, GoogleAdsInvoiceImportJob>();
         return services;
     }

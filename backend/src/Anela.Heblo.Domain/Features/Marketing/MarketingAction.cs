@@ -73,13 +73,15 @@ namespace Anela.Heblo.Domain.Features.Marketing
             if (string.IsNullOrWhiteSpace(productCode))
                 throw new ArgumentException("Product code cannot be empty", nameof(productCode));
 
-            if (ProductAssociations.Any(pa => pa.ProductCodePrefix == productCode))
+            var normalized = productCode.Trim().ToUpperInvariant();
+
+            if (ProductAssociations.Any(pa => pa.ProductCodePrefix == normalized))
                 return;
 
             ProductAssociations.Add(new MarketingActionProduct
             {
                 MarketingActionId = Id,
-                ProductCodePrefix = productCode.Trim().ToUpperInvariant(),
+                ProductCodePrefix = normalized,
                 CreatedAt = DateTime.UtcNow,
             });
         }
@@ -121,17 +123,6 @@ namespace Anela.Heblo.Domain.Features.Marketing
             OutlookLastAttemptAt = utcNow;
             OutlookSyncStatus = MarketingSyncStatus.Synced;
             OutlookSyncError = null;
-        }
-
-        public void MarkOutlookFailed(string? error, DateTime utcNow)
-        {
-            const int maxErrorLength = 1000;
-
-            OutlookSyncStatus = MarketingSyncStatus.Failed;
-            OutlookLastAttemptAt = utcNow;
-            OutlookSyncError = error?.Length > maxErrorLength
-                ? error[..maxErrorLength]
-                : error;
         }
 
         public void ClearOutlookLink()

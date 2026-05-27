@@ -16,6 +16,9 @@ public class DataQualityMappingProfile : Profile
         CreateMap<InvoiceDqtResult, InvoiceDqtResultDto>()
             .ForMember(dest => dest.MismatchType, opt => opt.MapFrom(src => (int)src.MismatchType))
             .ForMember(dest => dest.MismatchFlags, opt => opt.MapFrom(src => GetMismatchFlags(src.MismatchType)));
+
+        CreateMap<DqtDriftResult, DqtDriftResultDto>()
+            .ForMember(dest => dest.TestType, opt => opt.MapFrom(src => src.TestType.ToString()));
     }
 
     private static List<string> GetMismatchFlags(InvoiceMismatchType mismatchType)

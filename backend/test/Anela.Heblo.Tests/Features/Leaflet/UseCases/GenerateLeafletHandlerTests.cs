@@ -1,7 +1,7 @@
 using Anela.Heblo.Application.Features.Leaflet;
+using Anela.Heblo.Application.Features.Leaflet.Contracts;
 using Anela.Heblo.Application.Features.Leaflet.UseCases.GenerateLeaflet;
 using Anela.Heblo.Application.Shared.Rag;
-using Anela.Heblo.Domain.Features.KnowledgeBase;
 using Anela.Heblo.Domain.Features.Leaflet;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
@@ -14,8 +14,8 @@ namespace Anela.Heblo.Tests.Features.Leaflet.UseCases;
 
 public class GenerateLeafletHandlerTests
 {
-    private readonly Mock<IKnowledgeBaseRepository> _kb = new();
-    private readonly Mock<ILeafletRepository> _leaflets = new();
+    private readonly Mock<ILeafletKnowledgeSource> _kb = new();
+    private readonly Mock<ILeafletDocumentRepository> _leaflets = new();
     private readonly Mock<IEmbeddingGenerator<string, Embedding<float>>> _embeddings = new();
     private readonly Mock<IRagQueryExpander> _expander = new();
     private readonly Mock<IChatClient> _chat = new();
@@ -72,14 +72,11 @@ public class GenerateLeafletHandlerTests
             });
     }
 
-    private static KnowledgeBaseChunk MakeKbChunk(string content = "kb chunk content") =>
-        new() { Id = Guid.NewGuid(), DocumentId = Guid.NewGuid(), Content = content };
-
     private static LeafletChunk MakeLeafletChunk(string content = "leaflet chunk content") =>
         new() { Id = Guid.NewGuid(), DocumentId = Guid.NewGuid(), Content = content };
 
-    private static (KnowledgeBaseChunk Chunk, double Score) KbHit(double score, string content = "kb content") =>
-        (MakeKbChunk(content), score);
+    private static KnowledgeSearchResult KbHit(double score, string content = "kb content") =>
+        new() { Content = content, Score = score };
 
     private static (LeafletChunk Chunk, double Score) LeafletHit(double score, string content = "leaflet content") =>
         (MakeLeafletChunk(content), score);
@@ -91,7 +88,7 @@ public class GenerateLeafletHandlerTests
         SetupEmbeddings();
 
         _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+            .ReturnsAsync(new List<KnowledgeSearchResult>());
         _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
@@ -112,7 +109,7 @@ public class GenerateLeafletHandlerTests
         SetupEmbeddings();
         SetupChatReturns("outline", "final leaflet");
 
-        var kbChunks = new List<(KnowledgeBaseChunk Chunk, double Score)>
+        var kbChunks = new List<KnowledgeSearchResult>
         {
             KbHit(0.9, "kb chunk 1"),
             KbHit(0.8, "kb chunk 2"),
@@ -161,7 +158,7 @@ public class GenerateLeafletHandlerTests
         };
 
         _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+            .ReturnsAsync(new List<KnowledgeSearchResult>());
         _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(leafletChunks);
 
@@ -202,7 +199,7 @@ public class GenerateLeafletHandlerTests
         var threshold = 0.55;
         var options = new LeafletOptions { MinSimilarityScore = threshold };
 
-        var kbChunks = new List<(KnowledgeBaseChunk Chunk, double Score)>
+        var kbChunks = new List<KnowledgeSearchResult>
         {
             KbHit(0.9, "above 1"),
             KbHit(0.8, "above 2"),
@@ -251,7 +248,7 @@ public class GenerateLeafletHandlerTests
         var options = new LeafletOptions { MinSimilarityScore = threshold };
 
         _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([KbHit(0.9, "kb above threshold")]);
+            .ReturnsAsync(new List<KnowledgeSearchResult> { KbHit(0.9, "kb above threshold") });
 
         var leafletChunks = new List<(LeafletChunk Chunk, double Score)>
         {
@@ -309,7 +306,7 @@ public class GenerateLeafletHandlerTests
 
         _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Callback<float[], int, CancellationToken>((v, _, _) => capturedKbVector = v)
-            .ReturnsAsync([KbHit(0.9)]);
+            .ReturnsAsync(new List<KnowledgeSearchResult> { KbHit(0.9) });
         _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Callback<float[], int, CancellationToken>((v, _, _) => capturedLeafletVector = v)
             .ReturnsAsync([LeafletHit(0.9)]);
@@ -343,7 +340,7 @@ public class GenerateLeafletHandlerTests
         SetupEmbeddings();
 
         _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([KbHit(0.9)]);
+            .ReturnsAsync(new List<KnowledgeSearchResult> { KbHit(0.9) });
         _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([LeafletHit(0.9)]);
 
@@ -375,7 +372,7 @@ public class GenerateLeafletHandlerTests
         SetupEmbeddings();
 
         _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([KbHit(0.9, "kb chunk above threshold")]);
+            .ReturnsAsync(new List<KnowledgeSearchResult> { KbHit(0.9, "kb chunk above threshold") });
         _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
@@ -423,7 +420,7 @@ public class GenerateLeafletHandlerTests
         SetupEmbeddings();
 
         _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([KbHit(0.9)]);
+            .ReturnsAsync(new List<KnowledgeSearchResult> { KbHit(0.9) });
         _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([LeafletHit(0.9)]);
 
@@ -474,7 +471,7 @@ public class GenerateLeafletHandlerTests
                 [new Embedding<float>(new ReadOnlyMemory<float>(DefaultVector))]));
 
         _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([KbHit(0.9)]);
+            .ReturnsAsync(new List<KnowledgeSearchResult> { KbHit(0.9) });
         _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([LeafletHit(0.9)]);
 
@@ -518,7 +515,7 @@ public class GenerateLeafletHandlerTests
         SetupChatReturns("outline", "final leaflet");
 
         _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([KbHit(0.9)]);
+            .ReturnsAsync(new List<KnowledgeSearchResult> { KbHit(0.9) });
         _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([LeafletHit(0.9)]);
 
@@ -540,7 +537,7 @@ public class GenerateLeafletHandlerTests
         SetupChatReturns();
 
         _kb.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([KbHit(0.9)]);
+            .ReturnsAsync(new List<KnowledgeSearchResult> { KbHit(0.9) });
         _leaflets.Setup(r => r.SearchSimilarAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([LeafletHit(0.9)]);
 

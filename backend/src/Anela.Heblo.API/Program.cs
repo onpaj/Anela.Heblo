@@ -2,6 +2,8 @@ using Anela.Heblo.Adapters.Anthropic;
 using Anela.Heblo.Adapters.Smartsupp;
 using Anela.Heblo.Adapters.Azure;
 using Anela.Heblo.Adapters.HomeAssistant;
+using Anela.Heblo.Adapters.OpenMeteo;
+using Anela.Heblo.Adapters.Plaud;
 using Anela.Heblo.Adapters.SendGrid;
 using Anela.Heblo.Adapters.Comgate;
 using Anela.Heblo.Adapters.GoogleAds;
@@ -13,9 +15,13 @@ using Anela.Heblo.Adapters.Shoptet;
 using Anela.Heblo.Adapters.ShoptetApi;
 using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
 using Anela.Heblo.API.Extensions;
+using Anela.Heblo.API.Features.Users;
 using Anela.Heblo.API.MCP;
+using Anela.Heblo.API.Webhooks.Smartsupp;
 using Anela.Heblo.Application;
+using Anela.Heblo.Application.Features.FeatureFlags;
 using Anela.Heblo.Application.Features.Photobank;
+using Anela.Heblo.Application.Features.Smartsupp.UseCases.ProcessWebhookEvent;
 using Anela.Heblo.Domain.Features.Invoices;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Xcc;
@@ -41,6 +47,14 @@ public partial class Program
             builder.Configuration.AddUserSecrets<Program>();
         }
 
+        // Conductor parallel-instance overrides (see appsettings.Conductor.json).
+        // Layered on top of the active environment so ephemeral local instances never
+        // hydrate from live external systems. Enabled by scripts/conductor-run.sh.
+        if (builder.Configuration.GetValue<bool>("UseConductorOverrides"))
+        {
+            builder.Configuration.AddJsonFile("appsettings.Conductor.json", optional: false, reloadOnChange: true);
+        }
+
         // Configure application timezone based on configuration
         builder.Configuration.ConfigureApplicationTimeZone();
 
@@ -60,7 +74,9 @@ public partial class Program
         // Add new architecture services
         builder.Services.AddPersistenceServices(builder.Configuration, builder.Environment);
         builder.Services.AddApplicationServices(builder.Configuration, builder.Environment); // Vertical slice modules from Application layer
+        builder.Services.AddScoped<ISmartsuppWebhookMetrics, SmartsuppWebhookMetrics>();
         builder.Services.AddXccServices(builder.Configuration); // Cross-cutting concerns (audit, telemetry, etc.)
+        builder.Services.AddUsersModule(); // Users feature composition root (API-layer adapter for ICurrentUserService)
         builder.Services.AddCrossCuttingServices(); // Cross-cutting services from API layer
         builder.Services.AddSpaServices();
 
@@ -78,6 +94,8 @@ public partial class Program
         builder.Services.AddWebSearchAdapter(builder.Configuration);
         builder.Services.AddSendGridAdapter(builder.Configuration);
         builder.Services.AddHomeAssistantAdapter(builder.Configuration);
+        builder.Services.AddOpenMeteoAdapter(builder.Configuration);
+        builder.Services.AddPlaudAdapter(builder.Configuration);
 
         builder.Services.AddSingleton<IIssuedInvoiceSource>(sp => sp.GetRequiredService<ShoptetApiInvoiceSource>());
 
@@ -109,15 +127,12 @@ public partial class Program
 
         var app = builder.Build();
 
+        await app.InitializeFeatureFlagsAsync();
+
         // Initialize tile registry with all registered tiles
         app.InitializeTileRegistry();
 
-        // Apply pending EF Core migrations in Production only.
-        // Other environments (Dev/Test/Staging/Automation) keep the manual `dotnet ef database update` workflow.
-        if (app.Environment.IsProduction() || app.Environment.IsStaging())
-        {
-            await app.MigrateDatabaseAsync();
-        }
+        await app.MigrateDatabaseAsync();
 
         // Seed default recurring job configurations from discovered IRecurringJob implementations.
         // Runs before pipeline configuration and Hangfire startup to guarantee job configurations exist before recurring jobs start.

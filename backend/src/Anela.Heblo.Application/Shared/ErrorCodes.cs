@@ -93,6 +93,10 @@ public enum ErrorCodes
     CannotScheduleInPast = 1213,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     InvalidScheduleDateOrder = 1214,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ManufacturedInventoryItemNotFound = 1215,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ManufacturedInventoryInsufficientStock = 1216,
 
     // Catalog module errors (13XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
@@ -231,6 +235,10 @@ public enum ErrorCodes
     MarketingActionNotFound = 2301,
     [HttpStatusCode(HttpStatusCode.Forbidden)]
     UnauthorizedMarketingAccess = 2302,
+    [HttpStatusCode(HttpStatusCode.Forbidden)]
+    MarketingCalendarAccessDenied = 2303,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    MarketingCalendarSyncFailed = 2304,
 
     // Article Generation errors (24XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
@@ -275,10 +283,94 @@ public enum ErrorCodes
     PhotobankTagNotFound = 2608,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     PhotobankInvalidRegexPattern = 2609,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PhotobankThumbnailNotFound = 2610,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    PhotobankThumbnailThrottled = 2611,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    PhotobankThumbnailAuthUnavailable = 2612,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    PhotobankThumbnailUpstream = 2613,
 
     // Smartsupp module errors (27XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
     SmartsuppConversationNotFound = 2701,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    SmartsuppDraftReplyAiUnavailable = 2702,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    SmartsuppConversationEmpty = 2703,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    SmartsuppShoptetCustomerNotFound = 2704,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    SmartsuppVisitorNotFound = 2705,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    SmartsuppSendMessageUnavailable = 2706,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    SmartsuppAgentMappingNotFound = 2707,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    SmartsuppCloseConversationUnavailable = 2708,
+
+    // Inventory module errors (28XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    LotNotFound = 2801,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    EanNotFound = 2802,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    LotAlreadyExists = 2803,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    InventoryMaterialNotFound = 2804,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    InventoryMaterialInvalidType = 2805,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    LotHasEans = 2806,
+
+    // WeatherForecast module errors (29XX)
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    WeatherForecastUnavailable = 2901,
+
+    // ShipmentLabels module errors (2902–29XX)
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    ShipmentLabelsNoShipmentFound = 2902,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShipmentLabelsNotGenerated = 2903,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    ShipmentAlreadyExists = 2905,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShipmentCarrierNotResolved = 2906,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    ShipmentCreationFailed = 2907,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShipmentLabelNotReady = 2908,
+    [HttpStatusCode(HttpStatusCode.UnprocessableEntity)]
+    ShipmentOrderWeightUnavailable = 2909,
+
+    // Packaging module errors (30XX)
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    OrderNotInPackingState = 3001,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    ShipmentCancelFailed = 3002,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    NoShipmentToReset = 3003,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PackageLabelNotFound = 3004,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    PackageLabelDownloadFailed = 3005,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    PackageNotFound = 3006,
+
+    // CatalogDocuments module errors (31XX)
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    CatalogDocumentInvalidTypeCode = 3101,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    CatalogDocumentLotRequired = 3102,
+    [HttpStatusCode(HttpStatusCode.NotFound)]
+    CatalogDocumentFolderNotFound = 3103,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    CatalogDocumentFolderMultipleMatches = 3104,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    CatalogDocumentFileMissing = 3105,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    CatalogDocumentGraphError = 3106,
 
     // External Service errors (90XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

@@ -12,6 +12,9 @@ public static class DataQualityModule
         services.AddScoped<IDqtRunRepository, DqtRunRepository>();
         services.AddScoped<IInvoiceDqtComparer, InvoiceDqtComparer>();
         services.AddScoped<IInvoiceDqtJobRunner, InvoiceDqtJobRunner>();
+        services.AddScoped<IDriftDqtJobRunner, DriftDqtJobRunner>();
+        services.AddScoped<IDriftDqtComparer, ProductPairingDqtComparer>();
+        services.AddScoped<IDriftDqtComparer, StockWriteBackDqtComparer>();
 
         return services;
     }

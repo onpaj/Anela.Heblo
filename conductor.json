@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "setup": "dotnet restore && npm --prefix frontend install --legacy-peer-deps",
+    "run": "./scripts/conductor-run.sh"
+  }
+}

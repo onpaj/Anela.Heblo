@@ -1,5 +1,9 @@
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ACTION_TYPE_BADGE,
+  ACTION_TYPE_LABELS,
+} from "./marketingActionTypeLabels";
 
 export interface MarketingActionDto {
   id?: number;
@@ -16,24 +20,6 @@ export interface MarketingActionDto {
   }>;
   outlookSyncStatus?: string;
 }
-
-const ACTION_TYPE_BADGE: Record<string, string> = {
-  General: "bg-blue-100 text-blue-800",
-  Promotion: "bg-purple-100 text-purple-800",
-  Launch: "bg-green-100 text-green-800",
-  Campaign: "bg-yellow-100 text-yellow-800",
-  Event: "bg-pink-100 text-pink-800",
-  Other: "bg-gray-100 text-gray-800",
-};
-
-const ACTION_TYPE_LABELS: Record<string, string> = {
-  General: "Sociální sítě",
-  Promotion: "Událost",
-  Launch: "Email",
-  Campaign: "PR",
-  Event: "Fotografie",
-  Other: "Ostatní",
-};
 
 const formatDate = (d: string | Date | null | undefined) => {
   if (!d) return "—";
@@ -111,11 +97,11 @@ const MarketingActionGrid: React.FC<MarketingActionGridProps> = ({
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      ACTION_TYPE_BADGE[action.actionType ?? ""] ??
-                      ACTION_TYPE_BADGE.Other
+                      ACTION_TYPE_BADGE[action.actionType as keyof typeof ACTION_TYPE_BADGE] ??
+                      "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    {ACTION_TYPE_LABELS[action.actionType ?? ""] ??
+                    {ACTION_TYPE_LABELS[action.actionType as keyof typeof ACTION_TYPE_LABELS] ??
                       action.actionType}
                   </span>
                 </td>
