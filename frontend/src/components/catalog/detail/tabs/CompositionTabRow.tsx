@@ -66,11 +66,13 @@ export const CompositionTabRow: React.FC<CompositionTabRowProps> = ({
           maximumFractionDigits: 4,
         })}
       </td>
-      <td className={fazeCellClasses}>
-        {isFirstInPhase && phaseLabel ? (
-          <span className="text-indigo-600 font-bold text-sm">{phaseLabel}</span>
-        ) : null}
-      </td>
+      {isEditMode && (
+        <td className={fazeCellClasses}>
+          {isFirstInPhase && phaseLabel ? (
+            <span className="text-indigo-600 font-bold text-sm">{phaseLabel}</span>
+          ) : null}
+        </td>
+      )}
     </tr>
   );
 };

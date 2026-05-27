@@ -243,7 +243,7 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
     ? draftPhases.filter((p) => !sortedIngredients.some((i) => i.phaseLabel === p))
     : [];
 
-  const columnCount = isEditMode ? 6 : 5;
+  const columnCount = isEditMode ? 6 : 4;
 
   return (
     <div className="flex flex-col h-full">
@@ -335,7 +335,7 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
                   >
                     Množství{getSortIcon('amount')}
                   </th>
-                  <th className="text-center py-3 px-3 font-medium text-gray-700 w-16">Fáze</th>
+                  {isEditMode && <th className="text-center py-3 px-3 font-medium text-gray-700 w-16">Fáze</th>}
                 </tr>
               </thead>
               <SortableContext
