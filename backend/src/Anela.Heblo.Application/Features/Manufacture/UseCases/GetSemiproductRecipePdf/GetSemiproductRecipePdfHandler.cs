@@ -58,6 +58,7 @@ public class GetSemiproductRecipePdfHandler : IRequestHandler<GetSemiproductReci
                 ProductName = template.ProductName,
                 BatchSize = batchSize,
                 PrintedAt = DateTime.Now,
+                Mmq = catalog?.MinimalManufactureQuantity > 0 ? catalog.MinimalManufactureQuantity : null,
                 ExpirationMonths = catalog?.Properties?.ExpirationMonths,
                 Ingredients = ingredientLines,
             };

@@ -55,6 +55,14 @@ public class SemiproductRecipeDocument : IDocument
                         t.Span("Výrobní dávka: ").Bold();
                         t.Span(_data.BatchSize.ToString("N1", AmountFormat) + " g");
                     });
+                    if (_data.Mmq.HasValue)
+                    {
+                        row.AutoItem().PaddingLeft(24).Text(t =>
+                        {
+                            t.Span("MMQ: ").Bold();
+                            t.Span(FormatAmount(_data.Mmq.Value) + " g");
+                        });
+                    }
                     if (_data.ExpirationMonths.HasValue)
                     {
                         row.AutoItem().PaddingLeft(24).Text(t =>

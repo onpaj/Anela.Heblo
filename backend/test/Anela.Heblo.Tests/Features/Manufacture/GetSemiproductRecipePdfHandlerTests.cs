@@ -175,6 +175,7 @@ public class GetSemiproductRecipePdfHandlerTests
         };
         var catalogAggregate = new CatalogAggregate
         {
+            MinimalManufactureQuantity = 500.0,
             Properties = new CatalogProperties { ExpirationMonths = 24 }
         };
 
@@ -192,6 +193,7 @@ public class GetSemiproductRecipePdfHandlerTests
         Assert.True(result.Success);
 
         _rendererMock.Verify(r => r.Render(It.Is<SemiproductRecipeData>(d =>
+            d.Mmq == 500.0 &&
             d.ExpirationMonths == 24
         )), Times.Once);
     }
