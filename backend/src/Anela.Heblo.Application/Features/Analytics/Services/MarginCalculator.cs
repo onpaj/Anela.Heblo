@@ -1,4 +1,6 @@
-namespace Anela.Heblo.Domain.Features.Analytics;
+using Anela.Heblo.Domain.Features.Analytics;
+
+namespace Anela.Heblo.Application.Features.Analytics.Services;
 
 /// <summary>
 /// 🔒 PERFORMANCE FIX: Extracted margin calculation logic from handler
