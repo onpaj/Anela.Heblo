@@ -15,6 +15,8 @@ namespace Anela.Heblo.Tests.Features.BackgroundJobs;
 /// </summary>
 public class TriggerRecurringJobHandlerTests
 {
+    private const string DefaultCronExpression = "0 0 * * *";
+
     private static TriggerRecurringJobHandler CreateHandler(
         IEnumerable<IRecurringJob>? jobs = null,
         Mock<IRecurringJobStatusChecker>? statusChecker = null,
@@ -35,7 +37,7 @@ public class TriggerRecurringJobHandlerTests
             JobName = jobName,
             DisplayName = jobName,
             Description = "test",
-            CronExpression = "0 0 * * *"
+            CronExpression = DefaultCronExpression
         });
         return job.Object;
     }
