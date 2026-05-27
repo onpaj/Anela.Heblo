@@ -43,6 +43,19 @@ const PhaseDropZoneRow: React.FC<{ phase: string; columnCount: number }> = ({ ph
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
+/**
+ * Stable-sorts items so that phases appear in `phases` order (A→Z), then unphased last.
+ * Relative order within each group is preserved (JS sort is stable in ES2019+).
+ */
+function groupByPhase(items: IngredientDto[], phases: string[]): IngredientDto[] {
+  const phaseOrder = new Map<string, number>(phases.map((p, i) => [p, i]));
+  return [...items].sort((a, b) => {
+    const aOrder = a.phaseLabel != null ? (phaseOrder.get(a.phaseLabel) ?? phases.length) : phases.length;
+    const bOrder = b.phaseLabel != null ? (phaseOrder.get(b.phaseLabel) ?? phases.length) : phases.length;
+    return aOrder - bOrder;
+  });
+}
+
 const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
   const { data, isLoading, error } = useProductComposition(productCode);
   const updateOrder = useUpdateProductCompositionOrder();
@@ -83,6 +96,15 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
     });
   }, [ingredients, sortConfig, isEditMode, draftOrder]);
 
+  /** Display order number (1-based) for each ingredient in edit mode. */
+  const editDisplayOrder = React.useMemo(
+    () =>
+      isEditMode
+        ? new Map(sortedIngredients.map((ing, idx) => [ing.productCode, idx + 1]))
+        : null,
+    [isEditMode, sortedIngredients],
+  );
+
   const handleSort = (key: keyof IngredientDto) => {
     if (isEditMode) return;
     setSortConfig((current) => {
@@ -111,42 +133,30 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
       const list = current ?? ingredients;
 
       if (overId.startsWith('phase:')) {
-        // Dropped onto an empty phase drop zone — assign phase and move to end of that phase's block.
+        // Dropped onto an empty phase drop zone — assign phase, then re-sort.
         const targetPhase = overId.slice('phase:'.length);
         const oldIndex = list.findIndex((i) => i.productCode === active.id);
         if (oldIndex < 0) return current;
-
         const activeItem = { ...list[oldIndex], phaseLabel: targetPhase };
         const withoutActive = list.filter((_, idx) => idx !== oldIndex);
-
-        // Insert after the last ingredient already in the target phase (or append to end).
-        const lastPhaseIdx = withoutActive.reduce<number>(
-          (acc, ing, idx) => (ing.phaseLabel === targetPhase ? idx : acc),
-          -1,
-        );
-        const insertAt = lastPhaseIdx >= 0 ? lastPhaseIdx + 1 : withoutActive.length;
-        const result = [...withoutActive];
-        result.splice(insertAt, 0, activeItem);
-        return result;
+        return groupByPhase([...withoutActive, activeItem], draftPhases);
       }
 
-      // Dropped onto another ingredient — reorder and inherit that ingredient's phaseLabel.
+      // Dropped onto another ingredient — reorder, inherit that ingredient's phaseLabel, re-sort.
       const oldIndex = list.findIndex((i) => i.productCode === active.id);
       const newIndex = list.findIndex((i) => i.productCode === over.id);
       if (oldIndex < 0 || newIndex < 0) return current;
 
       const targetPhase = list[newIndex].phaseLabel ?? null;
       const moved = arrayMove(list, oldIndex, newIndex);
-      return moved.map((ing, idx) =>
+      const withPhase = moved.map((ing, idx) =>
         idx === newIndex ? { ...ing, phaseLabel: targetPhase } : ing,
       );
+      return groupByPhase(withPhase, draftPhases);
     });
   };
 
   const enterEditMode = () => {
-    const initialDraft = ingredients.map((ing) => ({ ...ing }));
-    setDraftOrder(initialDraft);
-    // Seed draftPhases from existing phase labels (sorted A→Z).
     const existingPhases = Array.from(
       new Set(
         ingredients
@@ -155,6 +165,7 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
       ),
     ).sort();
     setDraftPhases(existingPhases);
+    setDraftOrder(groupByPhase(ingredients.map((ing) => ({ ...ing })), existingPhases));
     setSortConfig(null);
     setSaveError(null);
     setIsEditMode(true);
@@ -174,13 +185,15 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
   };
 
   const removePhase = (phase: string) => {
+    const newPhases = draftPhases.filter((p) => p !== phase);
     setDraftOrder((current) => {
       const list = current ?? ingredients;
-      return list.map((ing) =>
+      const updated = list.map((ing) =>
         ing.phaseLabel === phase ? { ...ing, phaseLabel: null } : ing,
       );
+      return groupByPhase(updated, newPhases);
     });
-    setDraftPhases((prev) => prev.filter((p) => p !== phase));
+    setDraftPhases(newPhases);
   };
 
   const saveOrder = async () => {
@@ -237,11 +250,6 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
       </div>
     );
   }
-
-  // Compute empty phases (those in draftPhases not yet referenced by any ingredient).
-  const emptyPhases = isEditMode
-    ? draftPhases.filter((p) => !sortedIngredients.some((i) => i.phaseLabel === p))
-    : [];
 
   const columnCount = isEditMode ? 6 : 4;
 
@@ -343,75 +351,97 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
                 strategy={verticalListSortingStrategy}
               >
                 <tbody className="divide-y divide-gray-100">
-                  {sortedIngredients.map((ingredient, index) => {
-                    const currentPhase = ingredient.phaseLabel ?? null;
-                    const prevPhase =
-                      index > 0 ? (sortedIngredients[index - 1].phaseLabel ?? null) : null;
-                    const nextPhase =
-                      index < sortedIngredients.length - 1
-                        ? (sortedIngredients[index + 1].phaseLabel ?? null)
-                        : null;
-                    const isFirstInPhase = !!currentPhase && currentPhase !== prevPhase;
-                    const isLastInPhase = !!currentPhase && currentPhase !== nextPhase;
-
-                    return (
-                      <React.Fragment key={ingredient.productCode}>
-                        {/* Phase header strip — shown in both read and edit mode */}
-                        {isFirstInPhase && currentPhase && (
-                          <tr className="bg-indigo-50 border-t border-indigo-200">
-                            <td colSpan={columnCount} className="px-4 py-1">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm font-semibold text-indigo-700">
-                                  Fáze {currentPhase}
-                                </span>
-                                {isEditMode && (
+                  {isEditMode ? (
+                    <>
+                      {/* In edit mode iterate draftPhases so phases always appear A→Z. */}
+                      {draftPhases.map((phase) => {
+                        const phaseIngredients = sortedIngredients.filter(
+                          (i) => i.phaseLabel === phase,
+                        );
+                        return (
+                          <React.Fragment key={`phase-section-${phase}`}>
+                            <tr className="bg-indigo-50 border-t border-indigo-200">
+                              <td colSpan={columnCount} className="px-4 py-1">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-semibold text-indigo-700">
+                                    Fáze {phase}
+                                  </span>
                                   <button
                                     type="button"
-                                    onClick={() => removePhase(currentPhase!)}
+                                    onClick={() => removePhase(phase)}
                                     className="text-indigo-400 hover:text-red-500 text-lg leading-none px-1"
-                                    title={`Odebrat fázi ${currentPhase}`}
+                                    title={`Odebrat fázi ${phase}`}
                                   >
                                     ×
                                   </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                        <CompositionTabRow
-                          ingredient={ingredient}
-                          displayOrder={isEditMode ? index + 1 : ingredient.order}
-                          isEditMode={isEditMode}
-                          isFirstInPhase={isFirstInPhase}
-                          isLastInPhase={isLastInPhase}
-                        />
-                      </React.Fragment>
-                    );
-                  })}
+                                </div>
+                              </td>
+                            </tr>
+                            {phaseIngredients.length > 0 ? (
+                              phaseIngredients.map((ingredient, idxInPhase) => (
+                                <CompositionTabRow
+                                  key={ingredient.productCode}
+                                  ingredient={ingredient}
+                                  displayOrder={editDisplayOrder!.get(ingredient.productCode)!}
+                                  isEditMode
+                                  isFirstInPhase={idxInPhase === 0}
+                                  isLastInPhase={idxInPhase === phaseIngredients.length - 1}
+                                />
+                              ))
+                            ) : (
+                              <PhaseDropZoneRow phase={phase} columnCount={columnCount} />
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                      {/* Unphased ingredients rendered after all phase groups. */}
+                      {sortedIngredients
+                        .filter((i) => i.phaseLabel === null)
+                        .map((ingredient) => (
+                          <CompositionTabRow
+                            key={ingredient.productCode}
+                            ingredient={ingredient}
+                            displayOrder={editDisplayOrder!.get(ingredient.productCode)!}
+                            isEditMode
+                            isFirstInPhase={false}
+                            isLastInPhase={false}
+                          />
+                        ))}
+                    </>
+                  ) : (
+                    sortedIngredients.map((ingredient, index) => {
+                      const currentPhase = ingredient.phaseLabel ?? null;
+                      const prevPhase =
+                        index > 0 ? (sortedIngredients[index - 1].phaseLabel ?? null) : null;
+                      const nextPhase =
+                        index < sortedIngredients.length - 1
+                          ? (sortedIngredients[index + 1].phaseLabel ?? null)
+                          : null;
+                      const isFirstInPhase = !!currentPhase && currentPhase !== prevPhase;
+                      const isLastInPhase = !!currentPhase && currentPhase !== nextPhase;
 
-                  {/* Empty phase drop zones — for phases that have no ingredients yet */}
-                  {emptyPhases.map((phase) => (
-                    <React.Fragment key={`empty-phase-${phase}`}>
-                      <tr className="bg-indigo-50 border-t border-indigo-200">
-                        <td colSpan={columnCount} className="px-4 py-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold text-indigo-700">
-                              Fáze {phase}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => removePhase(phase)}
-                              className="text-indigo-400 hover:text-red-500 text-lg leading-none px-1"
-                              title={`Odebrat fázi ${phase}`}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      <PhaseDropZoneRow phase={phase} columnCount={columnCount} />
-                    </React.Fragment>
-                  ))}
+                      return (
+                        <React.Fragment key={ingredient.productCode}>
+                          {isFirstInPhase && currentPhase && (
+                            <tr className="bg-indigo-50 border-t border-indigo-200">
+                              <td colSpan={columnCount} className="px-4 py-1">
+                                <span className="text-sm font-semibold text-indigo-700">
+                                  Fáze {currentPhase}
+                                </span>
+                              </td>
+                            </tr>
+                          )}
+                          <CompositionTabRow
+                            ingredient={ingredient}
+                            displayOrder={ingredient.order}
+                            isEditMode={false}
+                            isFirstInPhase={isFirstInPhase}
+                            isLastInPhase={isLastInPhase}
+                          />
+                        </React.Fragment>
+                      );
+                    })
+                  )}
                 </tbody>
               </SortableContext>
             </table>

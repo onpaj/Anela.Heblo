@@ -9,4 +9,5 @@ public class CalculatedIngredientDto
     public decimal Price { get; set; }
     public decimal StockTotal { get; set; }
     public DateTime? LastStockTaking { get; set; }
+    public string? PhaseLabel { get; set; }
 }
