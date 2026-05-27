@@ -1,7 +1,22 @@
-import React, { useState } from 'react';
-import { Loader2, AlertCircle, Beaker } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Loader2, AlertCircle, Beaker, Pencil, Save, X } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { useProductComposition } from '../../../../api/hooks/useCatalog';
+import { useUpdateProductCompositionOrder } from '../../../../api/hooks/useUpdateProductCompositionOrder';
 import type { IngredientDto } from '../../../../api/hooks/useCatalog';
+import { CompositionTabRow } from './CompositionTabRow';
 
 interface CompositionTabProps {
   productCode: string;
@@ -9,15 +24,30 @@ interface CompositionTabProps {
 
 const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
   const { data, isLoading, error } = useProductComposition(productCode);
+  const updateOrder = useUpdateProductCompositionOrder();
+
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [draftOrder, setDraftOrder] = useState<IngredientDto[] | null>(null);
   const [sortConfig, setSortConfig] = useState<{
     key: keyof IngredientDto;
     direction: 'asc' | 'desc';
   } | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const ingredients = React.useMemo(() => data?.ingredients ?? [], [data?.ingredients]);
 
+  // When data refreshes while not editing, clear any stale draft
+  useEffect(() => {
+    if (!isEditMode) {
+      setDraftOrder(null);
+    }
+  }, [ingredients, isEditMode]);
+
   const sortedIngredients = React.useMemo(() => {
-    if (!sortConfig) return ingredients;
+    if (isEditMode) {
+      return draftOrder ?? ingredients;
+    }
+    if (!sortConfig) return ingredients; // server already sorted by custom order
 
     const sorted = [...ingredients].sort((a, b) => {
       const aValue = a[sortConfig.key];
@@ -26,26 +56,21 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
       if (typeof aValue === 'number' && typeof bValue === 'number') {
         return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
       }
-
       const aString = String(aValue);
       const bString = String(bValue);
-
       return sortConfig.direction === 'asc'
         ? aString.localeCompare(bString, 'cs')
         : bString.localeCompare(aString, 'cs');
     });
 
     return sorted;
-  }, [ingredients, sortConfig]);
+  }, [ingredients, sortConfig, isEditMode, draftOrder]);
 
   const handleSort = (key: keyof IngredientDto) => {
+    if (isEditMode) return;
     setSortConfig((current) => {
-      if (!current || current.key !== key) {
-        return { key, direction: 'asc' };
-      }
-      if (current.direction === 'asc') {
-        return { key, direction: 'desc' };
-      }
+      if (!current || current.key !== key) return { key, direction: 'asc' };
+      if (current.direction === 'asc') return { key, direction: 'desc' };
       return null;
     });
   };
@@ -53,6 +78,57 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
   const getSortIcon = (key: keyof IngredientDto) => {
     if (!sortConfig || sortConfig.key !== key) return null;
     return sortConfig.direction === 'asc' ? ' ↑' : ' ↓';
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setDraftOrder((current) => {
+      const list = current ?? ingredients;
+      const oldIndex = list.findIndex((i) => i.productCode === active.id);
+      const newIndex = list.findIndex((i) => i.productCode === over.id);
+      if (oldIndex < 0 || newIndex < 0) return current;
+      return arrayMove(list, oldIndex, newIndex);
+    });
+  };
+
+  const enterEditMode = () => {
+    setDraftOrder([...ingredients]);
+    setSortConfig(null);
+    setSaveError(null);
+    setIsEditMode(true);
+  };
+
+  const cancelEdit = () => {
+    setDraftOrder(null);
+    setSaveError(null);
+    setIsEditMode(false);
+  };
+
+  const saveOrder = async () => {
+    if (!draftOrder) {
+      setIsEditMode(false);
+      return;
+    }
+    setSaveError(null);
+    try {
+      await updateOrder.mutateAsync({
+        productCode,
+        order: draftOrder.map((ing, idx) => ({
+          ingredientProductCode: ing.productCode,
+          sortOrder: idx + 1,
+        })),
+      });
+      setIsEditMode(false);
+      setDraftOrder(null);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Uložení se nezdařilo');
+    }
   };
 
   if (isLoading) {
@@ -82,65 +158,109 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
       <div className="text-center py-12 bg-gray-50 rounded-lg">
         <Beaker className="h-12 w-12 mx-auto mb-3 text-gray-300" />
         <p className="text-gray-500 mb-2">Tento produkt nemá definované složení</p>
-        <p className="text-sm text-gray-400">
-          Výrobní šablona pro tento produkt neexistuje
-        </p>
+        <p className="text-sm text-gray-400">Výrobní šablona pro tento produkt neexistuje</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">
           <Beaker className="h-5 w-5 mr-2 text-gray-500" />
           Složení ({sortedIngredients.length} ingrediencí)
         </h3>
+        <div className="flex items-center space-x-2">
+          {!isEditMode && (
+            <button
+              type="button"
+              onClick={enterEditMode}
+              className="inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <Pencil className="h-4 w-4 mr-1.5" />
+              Upravit pořadí
+            </button>
+          )}
+          {isEditMode && (
+            <>
+              <button
+                type="button"
+                onClick={saveOrder}
+                disabled={updateOrder.isPending}
+                className="inline-flex items-center px-3 py-1.5 text-sm rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60"
+              >
+                <Save className="h-4 w-4 mr-1.5" />
+                Uložit
+              </button>
+              <button
+                type="button"
+                onClick={cancelEdit}
+                disabled={updateOrder.isPending}
+                className="inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <X className="h-4 w-4 mr-1.5" />
+                Zrušit
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Ingredient table */}
+      {saveError && (
+        <div className="flex items-center space-x-2 px-3 py-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded">
+          <AlertCircle className="h-4 w-4" />
+          <span>{saveError}</span>
+        </div>
+      )}
+
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="h-96 overflow-y-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
               <tr>
+                {isEditMode && <th className="w-8 py-3 px-2" />}
+                <th className="text-right py-3 px-4 font-medium text-gray-700 w-16">#</th>
                 <th
-                  className="text-left py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                  className={`text-left py-3 px-4 font-medium text-gray-700 ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100'}`}
                   onClick={() => handleSort('productName')}
                 >
                   Název{getSortIcon('productName')}
                 </th>
                 <th
-                  className="text-left py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                  className={`text-left py-3 px-4 font-medium text-gray-700 ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100'}`}
                   onClick={() => handleSort('productCode')}
                 >
                   Kód{getSortIcon('productCode')}
                 </th>
                 <th
-                  className="text-right py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                  className={`text-right py-3 px-4 font-medium text-gray-700 ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100'}`}
                   onClick={() => handleSort('amount')}
                 >
                   Množství{getSortIcon('amount')}
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {sortedIngredients.map((ingredient, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="py-3 px-4 text-gray-900">{ingredient.productName}</td>
-                  <td className="py-3 px-4 text-gray-900 font-medium">
-                    {ingredient.productCode}
-                  </td>
-                  <td className="py-3 px-4 text-right text-gray-900 font-medium">
-                    {ingredient.amount.toLocaleString('cs-CZ', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 4,
-                    })}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={sortedIngredients.map((i) => i.productCode)}
+                strategy={verticalListSortingStrategy}
+              >
+                <tbody className="divide-y divide-gray-100">
+                  {sortedIngredients.map((ingredient, index) => (
+                    <CompositionTabRow
+                      key={ingredient.productCode}
+                      ingredient={ingredient}
+                      displayOrder={isEditMode ? index + 1 : ingredient.order}
+                      isEditMode={isEditMode}
+                    />
+                  ))}
+                </tbody>
+              </SortableContext>
+            </DndContext>
           </table>
         </div>
       </div>
