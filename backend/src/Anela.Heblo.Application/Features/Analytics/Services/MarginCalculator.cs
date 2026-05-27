@@ -1,10 +1,31 @@
-namespace Anela.Heblo.Domain.Features.Analytics;
+using Anela.Heblo.Domain.Features.Analytics;
+
+namespace Anela.Heblo.Application.Features.Analytics.Services;
+
+public interface IMarginCalculator
+{
+    Task<MarginCalculationResult> CalculateAsync(
+        IAsyncEnumerable<AnalyticsProduct> products,
+        DateRange dateRange,
+        ProductGroupingMode groupingMode,
+        string marginLevel = "M2",
+        CancellationToken cancellationToken = default);
+
+    string GetGroupKey(AnalyticsProduct product, ProductGroupingMode groupingMode);
+
+    string GetGroupDisplayName(
+        string groupKey,
+        ProductGroupingMode groupingMode,
+        List<AnalyticsProduct> products);
+
+    decimal GetMarginAmountForLevel(AnalyticsProduct product, string marginLevel);
+}
 
 /// <summary>
 /// 🔒 PERFORMANCE FIX: Extracted margin calculation logic from handler
 /// Implements single responsibility principle and improves testability
 /// </summary>
-public class MarginCalculator
+public class MarginCalculator : IMarginCalculator
 {
     /// <summary>
     /// Calculates margin data using streaming approach to minimize memory usage

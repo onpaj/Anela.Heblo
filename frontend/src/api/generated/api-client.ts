@@ -15572,6 +15572,7 @@ export class IngredientDto implements IIngredientDto {
     amount?: number;
     unit?: string;
     order?: number;
+    phaseLabel?: string | undefined;
 
     constructor(data?: IIngredientDto) {
         if (data) {
@@ -15589,6 +15590,7 @@ export class IngredientDto implements IIngredientDto {
             this.amount = _data["amount"];
             this.unit = _data["unit"];
             this.order = _data["order"];
+            this.phaseLabel = _data["phaseLabel"];
         }
     }
 
@@ -15606,6 +15608,7 @@ export class IngredientDto implements IIngredientDto {
         data["amount"] = this.amount;
         data["unit"] = this.unit;
         data["order"] = this.order;
+        data["phaseLabel"] = this.phaseLabel;
         return data;
     }
 }
@@ -15616,6 +15619,7 @@ export interface IIngredientDto {
     amount?: number;
     unit?: string;
     order?: number;
+    phaseLabel?: string | undefined;
 }
 
 export class UpdateProductCompositionOrderResponse extends BaseResponse implements IUpdateProductCompositionOrderResponse {
@@ -15702,6 +15706,7 @@ export interface IUpdateProductCompositionOrderRequest {
 export class IngredientOrderItem implements IIngredientOrderItem {
     ingredientProductCode!: string;
     sortOrder?: number;
+    phaseLabel?: string | undefined;
 
     constructor(data?: IIngredientOrderItem) {
         if (data) {
@@ -15716,6 +15721,7 @@ export class IngredientOrderItem implements IIngredientOrderItem {
         if (_data) {
             this.ingredientProductCode = _data["ingredientProductCode"];
             this.sortOrder = _data["sortOrder"];
+            this.phaseLabel = _data["phaseLabel"];
         }
     }
 
@@ -15730,6 +15736,7 @@ export class IngredientOrderItem implements IIngredientOrderItem {
         data = typeof data === 'object' ? data : {};
         data["ingredientProductCode"] = this.ingredientProductCode;
         data["sortOrder"] = this.sortOrder;
+        data["phaseLabel"] = this.phaseLabel;
         return data;
     }
 }
@@ -15737,6 +15744,7 @@ export class IngredientOrderItem implements IIngredientOrderItem {
 export interface IIngredientOrderItem {
     ingredientProductCode: string;
     sortOrder?: number;
+    phaseLabel?: string | undefined;
 }
 
 export class GetMaterialsForPurchaseResponse extends BaseResponse implements IGetMaterialsForPurchaseResponse {
@@ -16272,6 +16280,7 @@ export class Ingredient implements IIngredient {
     hasLots?: boolean;
     hasExpiration?: boolean;
     order?: number;
+    phaseLabel?: string | undefined;
 
     constructor(data?: IIngredient) {
         if (data) {
@@ -16294,6 +16303,7 @@ export class Ingredient implements IIngredient {
             this.hasLots = _data["hasLots"];
             this.hasExpiration = _data["hasExpiration"];
             this.order = _data["order"];
+            this.phaseLabel = _data["phaseLabel"];
         }
     }
 
@@ -16316,6 +16326,7 @@ export class Ingredient implements IIngredient {
         data["hasLots"] = this.hasLots;
         data["hasExpiration"] = this.hasExpiration;
         data["order"] = this.order;
+        data["phaseLabel"] = this.phaseLabel;
         return data;
     }
 }
@@ -16331,6 +16342,7 @@ export interface IIngredient {
     hasLots?: boolean;
     hasExpiration?: boolean;
     order?: number;
+    phaseLabel?: string | undefined;
 }
 
 export enum ManufactureType {
@@ -23845,6 +23857,7 @@ export class CalculatedIngredientDto implements ICalculatedIngredientDto {
     price?: number;
     stockTotal?: number;
     lastStockTaking?: Date | undefined;
+    phaseLabel?: string | undefined;
 
     constructor(data?: ICalculatedIngredientDto) {
         if (data) {
@@ -23864,6 +23877,7 @@ export class CalculatedIngredientDto implements ICalculatedIngredientDto {
             this.price = _data["price"];
             this.stockTotal = _data["stockTotal"];
             this.lastStockTaking = _data["lastStockTaking"] ? new Date(_data["lastStockTaking"].toString()) : <any>undefined;
+            this.phaseLabel = _data["phaseLabel"];
         }
     }
 
@@ -23883,6 +23897,7 @@ export class CalculatedIngredientDto implements ICalculatedIngredientDto {
         data["price"] = this.price;
         data["stockTotal"] = this.stockTotal;
         data["lastStockTaking"] = this.lastStockTaking ? this.lastStockTaking.toISOString() : <any>undefined;
+        data["phaseLabel"] = this.phaseLabel;
         return data;
     }
 }
@@ -23895,6 +23910,7 @@ export interface ICalculatedIngredientDto {
     price?: number;
     stockTotal?: number;
     lastStockTaking?: Date | undefined;
+    phaseLabel?: string | undefined;
 }
 
 export class CalculatedBatchSizeRequest implements ICalculatedBatchSizeRequest {
@@ -32842,6 +32858,7 @@ export interface IGetPurchaseOrdersResponse extends IBaseResponse {
 export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
     id?: number;
     orderNumber?: string;
+    supplierId?: number;
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
@@ -32867,6 +32884,7 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
         if (_data) {
             this.id = _data["id"];
             this.orderNumber = _data["orderNumber"];
+            this.supplierId = _data["supplierId"];
             this.supplierName = _data["supplierName"];
             this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
             this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
@@ -32892,6 +32910,7 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["orderNumber"] = this.orderNumber;
+        data["supplierId"] = this.supplierId;
         data["supplierName"] = this.supplierName;
         data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
         data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
@@ -32910,6 +32929,7 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
 export interface IPurchaseOrderSummaryDto {
     id?: number;
     orderNumber?: string;
+    supplierId?: number;
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;

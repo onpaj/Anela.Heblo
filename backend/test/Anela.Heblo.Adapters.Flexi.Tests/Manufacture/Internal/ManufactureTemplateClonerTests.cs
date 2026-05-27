@@ -72,6 +72,19 @@ public class ManufactureTemplateClonerTests
     }
 
     [Fact]
+    public void Clone_PreservesPhaseLabel()
+    {
+        var original = BuildTemplate();
+        original.Ingredients[0].PhaseLabel = "A";
+        original.Ingredients[1].PhaseLabel = null;
+
+        var clone = ManufactureTemplateCloner.Clone(original);
+
+        clone.Ingredients[0].PhaseLabel.Should().Be("A");
+        clone.Ingredients[1].PhaseLabel.Should().BeNull();
+    }
+
+    [Fact]
     public void Clone_MutationOnCloneDoesNotAffectOriginal()
     {
         var original = BuildTemplate();

@@ -1,7 +1,6 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Features.Purchase.UseCases.RecalculatePurchasePrice;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog.Price;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -11,19 +10,19 @@ namespace Anela.Heblo.Tests.Application.Purchase;
 public class RecalculatePurchasePriceHandlerTests
 {
     private readonly Mock<IMaterialCatalogService> _materialCatalogMock;
-    private readonly Mock<IProductPriceErpClient> _productPriceClientMock;
+    private readonly Mock<IPurchasePriceRecalculationService> _priceRecalculationServiceMock;
     private readonly Mock<ILogger<RecalculatePurchasePriceHandler>> _loggerMock;
     private readonly RecalculatePurchasePriceHandler _handler;
 
     public RecalculatePurchasePriceHandlerTests()
     {
         _materialCatalogMock = new Mock<IMaterialCatalogService>();
-        _productPriceClientMock = new Mock<IProductPriceErpClient>();
+        _priceRecalculationServiceMock = new Mock<IPurchasePriceRecalculationService>();
         _loggerMock = new Mock<ILogger<RecalculatePurchasePriceHandler>>();
 
         _handler = new RecalculatePurchasePriceHandler(
             _materialCatalogMock.Object,
-            _productPriceClientMock.Object,
+            _priceRecalculationServiceMock.Object,
             _loggerMock.Object);
     }
 
@@ -37,7 +36,7 @@ public class RecalculatePurchasePriceHandlerTests
         _materialCatalogMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
 
-        _productPriceClientMock.Setup(x => x.RecalculatePurchasePrice(123, It.IsAny<CancellationToken>()))
+        _priceRecalculationServiceMock.Setup(x => x.RecalculatePurchasePriceAsync(123, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var request = new RecalculatePurchasePriceRequest
@@ -62,7 +61,7 @@ public class RecalculatePurchasePriceHandlerTests
         processedProduct.Success.Should().BeTrue();
         processedProduct.ErrorCode.Should().BeNull();
 
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(123, It.IsAny<CancellationToken>()), Times.Once);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(123, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -78,7 +77,7 @@ public class RecalculatePurchasePriceHandlerTests
         _materialCatalogMock.Setup(x => x.GetMaterialsWithBomAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(bomReferences);
 
-        _productPriceClientMock.Setup(x => x.RecalculatePurchasePrice(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+        _priceRecalculationServiceMock.Setup(x => x.RecalculatePurchasePriceAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var request = new RecalculatePurchasePriceRequest
@@ -100,8 +99,8 @@ public class RecalculatePurchasePriceHandlerTests
         result.ProcessedProducts.Should().OnlyContain(p => p.Success);
         result.ProcessedProducts.Select(p => p.ProductCode).Should().BeEquivalentTo(new[] { "PROD001", "PROD002" });
 
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(123, It.IsAny<CancellationToken>()), Times.Once);
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(456, It.IsAny<CancellationToken>()), Times.Once);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(123, It.IsAny<CancellationToken>()), Times.Once);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(456, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -127,7 +126,7 @@ public class RecalculatePurchasePriceHandlerTests
         result.Params.Should().ContainKey("ProductCode");
         result.Params["ProductCode"].Should().Be("NONEXISTENT");
 
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -156,7 +155,7 @@ public class RecalculatePurchasePriceHandlerTests
         result.Params.Should().ContainKey("Message");
         result.Params["Message"].Should().Contain("does not have BoM");
 
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -170,7 +169,7 @@ public class RecalculatePurchasePriceHandlerTests
             .ReturnsAsync(product);
 
         var expectedError = "ERP system unavailable";
-        _productPriceClientMock.Setup(x => x.RecalculatePurchasePrice(123, It.IsAny<CancellationToken>()))
+        _priceRecalculationServiceMock.Setup(x => x.RecalculatePurchasePriceAsync(123, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException(expectedError));
 
         var request = new RecalculatePurchasePriceRequest
@@ -211,10 +210,10 @@ public class RecalculatePurchasePriceHandlerTests
         _materialCatalogMock.Setup(x => x.GetMaterialsWithBomAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(bomReferences);
 
-        _productPriceClientMock.Setup(x => x.RecalculatePurchasePrice(123, It.IsAny<CancellationToken>()))
+        _priceRecalculationServiceMock.Setup(x => x.RecalculatePurchasePriceAsync(123, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        _productPriceClientMock.Setup(x => x.RecalculatePurchasePrice(456, It.IsAny<CancellationToken>()))
+        _priceRecalculationServiceMock.Setup(x => x.RecalculatePurchasePriceAsync(456, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Network timeout"));
 
         var request = new RecalculatePurchasePriceRequest
@@ -270,7 +269,7 @@ public class RecalculatePurchasePriceHandlerTests
         result.ProcessedProducts.Should().BeEmpty();
         result.Message.Should().Be("No products found to recalculate");
 
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -305,7 +304,7 @@ public class RecalculatePurchasePriceHandlerTests
         _materialCatalogMock.Setup(x => x.GetByIdAsync(productCode, cancellationToken))
             .ReturnsAsync(product);
 
-        _productPriceClientMock.Setup(x => x.RecalculatePurchasePrice(123, cancellationToken))
+        _priceRecalculationServiceMock.Setup(x => x.RecalculatePurchasePriceAsync(123, cancellationToken))
             .Returns(Task.CompletedTask);
 
         var request = new RecalculatePurchasePriceRequest
@@ -318,7 +317,7 @@ public class RecalculatePurchasePriceHandlerTests
 
         // Assert
         _materialCatalogMock.Verify(x => x.GetByIdAsync(productCode, cancellationToken), Times.Once);
-        _productPriceClientMock.Verify(x => x.RecalculatePurchasePrice(123, cancellationToken), Times.Once);
+        _priceRecalculationServiceMock.Verify(x => x.RecalculatePurchasePriceAsync(123, cancellationToken), Times.Once);
     }
 
     private static MaterialInfo CreateMaterialWithBoM(string productCode, int bomId)

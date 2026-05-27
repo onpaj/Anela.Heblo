@@ -578,10 +578,25 @@ const ManufactureBatchCalculator: React.FC = () => {
                   const difference = calculatedAmount - originalAmount;
                   const isIncrease = difference > 0;
                   const hasEnoughStock = stockTotal >= calculatedAmount;
+                  const currentPhase = ingredient.phaseLabel ?? null;
+                  const prevPhase =
+                    index > 0
+                      ? (calculationResult.ingredients![index - 1].phaseLabel ?? null)
+                      : null;
+                  const isFirstInPhase = !!currentPhase && currentPhase !== prevPhase;
 
                   return (
+                    <React.Fragment key={ingredient.productCode}>
+                      {isFirstInPhase && currentPhase && (
+                        <tr className="bg-indigo-50 border-t border-indigo-200">
+                          <td colSpan={8} className="px-6 py-1">
+                            <span className="text-sm font-semibold text-indigo-700">
+                              Fáze {currentPhase}
+                            </span>
+                          </td>
+                        </tr>
+                      )}
                     <tr
-                      key={ingredient.productCode}
                       className={`${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-indigo-50 cursor-pointer transition-colors duration-150`}
                       onClick={() => handleIngredientClick(ingredient.productCode || "", ingredient.productName || "")}
                       title="Klikněte pro zobrazení detailu ingredience"
@@ -639,6 +654,7 @@ const ManufactureBatchCalculator: React.FC = () => {
                         </span>
                       </td>
                     </tr>
+                    </React.Fragment>
                   );
                 }) ?? []}
               </tbody>
