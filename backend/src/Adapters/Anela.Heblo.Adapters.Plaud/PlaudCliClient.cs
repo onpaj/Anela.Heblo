@@ -114,6 +114,7 @@ public sealed class PlaudCliClient : IPlaudClient
             if (process.ExitCode != 0)
             {
                 _logger.LogError("Plaud CLI exited with code {ExitCode}: {Error}", process.ExitCode, error);
+                // TODO(Task 2): throw PlaudAuthExpiredException when stderr contains AUTH_FAILED
                 throw new InvalidOperationException($"Plaud CLI exited with code {process.ExitCode}");
             }
 
