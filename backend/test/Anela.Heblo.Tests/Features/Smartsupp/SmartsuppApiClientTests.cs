@@ -438,12 +438,12 @@ public class SmartsuppApiClientTests
     }
 
     [Fact]
-    public async Task CloseConversationAsync_SendsPatchWithClosedStatus()
+    public async Task CloseConversationAsync_SendsPatchToCloseSubresource()
     {
         // Arrange
         string? capturedUrl = null;
         string? capturedMethod = null;
-        string? capturedBody = null;
+        HttpContent? capturedContent = null;
         string? capturedAuth = null;
 
         var handler = new Mock<HttpMessageHandler>();
@@ -451,11 +451,11 @@ public class SmartsuppApiClientTests
             .Setup<Task<HttpResponseMessage>>("SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
-            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) =>
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) =>
             {
                 capturedUrl = req.RequestUri?.ToString();
                 capturedMethod = req.Method.Method;
-                capturedBody = await req.Content!.ReadAsStringAsync();
+                capturedContent = req.Content;
                 capturedAuth = req.Headers.Authorization?.ToString();
             })
             .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
@@ -469,9 +469,9 @@ public class SmartsuppApiClientTests
         await client.CloseConversationAsync("conv-abc", CancellationToken.None);
 
         // Assert
-        capturedUrl.Should().Contain("conversations/conv-abc");
+        capturedUrl.Should().EndWith("conversations/conv-abc/close");
         capturedMethod.Should().Be("PATCH");
-        capturedBody.Should().Contain("closed");
+        capturedContent.Should().BeNull();
         capturedAuth.Should().StartWith("Bearer test-token");
     }
 

@@ -33,11 +33,10 @@ public class CloseConversationHandler : IRequestHandler<CloseConversationRequest
         {
             await _apiClient.CloseConversationAsync(request.ConversationId, cancellationToken);
         }
-        // Only absorb cancellations that originated inside the API client (e.g. HttpClient timeouts),
-        // not cancellations requested by the caller.
-        catch (Exception ex) when (ex is HttpRequestException or TimeoutException
-                                       or ObjectDisposedException
-                                       || (ex is TaskCanceledException tce && tce.CancellationToken != cancellationToken))
+        // Map only true availability problems (5xx, network, timeout, client-side cancellation)
+        // to "unavailable". A 4xx from Smartsupp indicates a contract bug on our side and must
+        // surface as a real failure so it does not hide behind a benign "service unavailable" toast.
+        catch (Exception ex) when (IsUnavailable(ex, cancellationToken))
         {
             _logger.LogWarning(ex, "Smartsupp API unavailable while closing conversation {ConversationId}",
                 request.ConversationId);
@@ -46,4 +45,14 @@ public class CloseConversationHandler : IRequestHandler<CloseConversationRequest
 
         return new CloseConversationResponse();
     }
+
+    private static bool IsUnavailable(Exception ex, CancellationToken cancellationToken) =>
+        ex switch
+        {
+            HttpRequestException http => http.StatusCode is null || (int)http.StatusCode >= 500,
+            TimeoutException => true,
+            ObjectDisposedException => true,
+            TaskCanceledException tce => tce.CancellationToken != cancellationToken,
+            _ => false,
+        };
 }
