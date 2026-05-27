@@ -34,6 +34,13 @@ public class ProductIngredientOrderRepository
         Domain.Features.Catalog.ProductIngredientOrder entity,
         CancellationToken cancellationToken = default)
     {
+        var tracked = Context.ChangeTracker.Entries<Domain.Features.Catalog.ProductIngredientOrder>()
+            .FirstOrDefault(e => e.Entity.Id == entity.Id && !ReferenceEquals(e.Entity, entity));
+        if (tracked != null)
+        {
+            tracked.State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+        }
+
         await base.UpdateAsync(entity, cancellationToken);
         return entity;
     }

@@ -53,10 +53,16 @@ public class UpdateProductCompositionOrderHandler
         {
             if (existingByCode.TryGetValue(item.IngredientProductCode, out var current))
             {
-                current.SortOrder = item.SortOrder;
-                current.UpdatedAt = now;
-                current.UpdatedBy = updatedBy;
-                await _repository.UpdateAsync(current, cancellationToken);
+                var updated = new ProductIngredientOrder
+                {
+                    Id = current.Id,
+                    ParentProductCode = current.ParentProductCode,
+                    IngredientProductCode = current.IngredientProductCode,
+                    SortOrder = item.SortOrder,
+                    UpdatedAt = now,
+                    UpdatedBy = updatedBy
+                };
+                await _repository.UpdateAsync(updated, cancellationToken);
             }
             else
             {
