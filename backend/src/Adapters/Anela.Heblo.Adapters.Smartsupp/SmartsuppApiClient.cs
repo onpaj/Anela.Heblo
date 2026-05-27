@@ -604,17 +604,13 @@ public class SmartsuppApiClient : ISmartsuppApiClient
         if (string.IsNullOrEmpty(_options.ApiToken))
             throw new InvalidOperationException("Smartsupp:ApiToken is not configured.");
 
-        var body = new CloseConversationApiRequest { Status = "closed" };
-        var json = JsonSerializer.Serialize(body, JsonOptions);
-
         await _pipeline.ExecuteAsync(async ct =>
         {
             var client = _httpClientFactory.CreateClient("Smartsupp");
             using var request = new HttpRequestMessage(
                 HttpMethod.Patch,
-                $"{_options.BaseUrl}conversations/{conversationId}");
+                $"{_options.BaseUrl}conversations/{conversationId}/close");
             request.Headers.Add("Authorization", $"Bearer {_options.ApiToken}");
-            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
             var response = await client.SendAsync(request, ct);
 
@@ -630,10 +626,5 @@ public class SmartsuppApiClient : ISmartsuppApiClient
                 throw ex;
             }
         }, cancellationToken);
-    }
-
-    private sealed class CloseConversationApiRequest
-    {
-        public required string Status { get; init; }
     }
 }

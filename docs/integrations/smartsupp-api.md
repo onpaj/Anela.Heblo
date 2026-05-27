@@ -103,43 +103,37 @@ Not polled on startup — first request to `GetConversation` triggers the fetch.
 
 ---
 
-### PATCH /conversations/{id}
+### PATCH /conversations/{id}/close
 
 **Close (resolve) a conversation.**
 
-**Status:** Inferred from API overview + payload mapper evidence (2026-05-26). Not directly verified against the live API — the Smartsupp docs site is a JavaScript SPA that cannot be scraped. Verify on first use and update this entry.
+**Status:** Verified against the live OpenAPI spec at `https://api.smartsupp.com/v2/specs/open-api.json` (2026-05-27).
 
-**Rationale:**
-- The Smartsupp overview docs state that `PATCH` is used for partial updates.
-- `SmartsuppPayloadMapper.cs` (line 17) proves the API uses `"closed"` (not `"resolved"`) as the conversation status string for resolved conversations: `"closed" => SmartsuppConversationStatus.Resolved`.
-- `PATCH /conversations/{id}` with `{ "status": "closed" }` is the standard REST pattern for this operation.
+**Background:** The first implementation used `PATCH /conversations/{id}` with body `{ "status": "closed" }`. That endpoint exists for partial updates (group_id, variables, virtual_agent) and does not accept a `status` field, so it returned `422 { "code": "invalid_parameters", "message": "Not provided any valid data" }`. The dedicated action endpoint below is the correct one.
 
 **Request:**
 ```http
-PATCH https://app.smartsupp.com/api/v2/conversations/{id}
+PATCH https://api.smartsupp.com/v2/conversations/{id}/close
 Authorization: Bearer {token}
-Content-Type: application/json
-
-{
-  "status": "closed"
-}
 ```
 
-**Known status values (from search filter + payload mapper):**
-- `"open"` — open conversation
-- `"served"` — conversation being served by an agent
-- `"pending"` — pending (waiting for agent)
-- `"closed"` — closed/resolved (maps to `SmartsuppConversationStatus.Resolved` in our domain)
+No body. No `Content-Type` header (no content).
 
-**Success response (expected):** The updated conversation object, same shape as `GET /conversations/{id}`. HTTP 200.
+**Success response:** HTTP 200. The conversation transitions to `"closed"` status (mapped to `SmartsuppConversationStatus.Resolved` in our domain via `SmartsuppPayloadMapper.cs:17`).
 
 **Error codes:**
 - `401` — missing or invalid Bearer token
 - `404` — conversation not found
-- `422` — unprocessable entity (invalid status value or transition not allowed)
+- `422` — unprocessable entity (rare for this action endpoint; would indicate an invalid state transition)
 - `429` — rate limited (Polly `RetryAfter` header handled by `SmartsuppApiClient`)
 
-**Implementation note:** Use `PATCH` via `HttpMethod.Patch`. The `SmartsuppApiClient` pattern: serialize `{ "status": "closed" }` as snake_case JSON, send with Bearer auth, treat `404` as `null` / not-found result, throw `HttpRequestException` on other non-2xx.
+**Implementation note:** Use `PATCH` via `HttpMethod.Patch` against `conversations/{id}/close` with no request content. Treat any non-2xx as `HttpRequestException`. `CloseConversationHandler` maps only 5xx / network / timeout failures to `SmartsuppCloseConversationUnavailable`; 4xx propagates so contract regressions surface immediately.
+
+**Known conversation status values** (returned in `GET /conversations/{id}` and used in search filters):
+- `"open"` — open conversation
+- `"served"` — conversation being served by an agent
+- `"pending"` — pending (waiting for agent)
+- `"closed"` — closed/resolved
 
 ---
 

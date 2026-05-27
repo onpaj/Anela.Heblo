@@ -78,6 +78,24 @@ public class CloseConversationHandlerTests
     }
 
     [Fact]
+    public async Task Handle_DoesNotReturnUnavailable_When4xxFromApi()
+    {
+        // A 4xx from Smartsupp indicates a contract bug, not a transient unavailability.
+        // It must propagate instead of being masked as SmartsuppCloseConversationUnavailable.
+        SetupConversation();
+        _apiClient.Setup(a => a.CloseConversationAsync("conv-1", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Smartsupp API 422", null,
+                System.Net.HttpStatusCode.UnprocessableEntity));
+
+        var act = () => CreateHandler().Handle(
+            new CloseConversationRequest { ConversationId = "conv-1" },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<HttpRequestException>()
+            .Where(ex => ex.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsUnavailable_WhenApiThrowsTimeout()
     {
         // Arrange
