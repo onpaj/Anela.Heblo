@@ -48,10 +48,21 @@ public class SemiproductRecipeDocument : IDocument
                         .FontSize(11)
                         .FontColor(Colors.Grey.Darken1);
                 });
-                header.Item().Text(t =>
+                header.Item().Row(row =>
                 {
-                    t.Span("Výrobní dávka: ").Bold();
-                    t.Span(_data.BatchSize.ToString("N1", AmountFormat) + " g");
+                    row.AutoItem().Text(t =>
+                    {
+                        t.Span("Výrobní dávka: ").Bold();
+                        t.Span(_data.BatchSize.ToString("N1", AmountFormat) + " g");
+                    });
+                    if (_data.ExpirationMonths.HasValue)
+                    {
+                        row.AutoItem().PaddingLeft(24).Text(t =>
+                        {
+                            t.Span("Expirace: ").Bold();
+                            t.Span($"{_data.ExpirationMonths}M");
+                        });
+                    }
                 });
                 header.Item().PaddingTop(6).LineHorizontal(1f).LineColor(Colors.Grey.Lighten1);
             });

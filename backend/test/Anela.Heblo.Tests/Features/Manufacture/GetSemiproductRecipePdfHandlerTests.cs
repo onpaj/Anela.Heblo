@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Moq;
 using Xunit;
@@ -9,16 +10,23 @@ namespace Anela.Heblo.Tests.Features.Manufacture;
 public class GetSemiproductRecipePdfHandlerTests
 {
     private readonly Mock<IManufactureClient> _manufactureClientMock;
+    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly Mock<ISemiproductRecipeRenderer> _rendererMock;
     private readonly GetSemiproductRecipePdfHandler _handler;
 
     public GetSemiproductRecipePdfHandlerTests()
     {
         _manufactureClientMock = new Mock<IManufactureClient>();
+        _catalogRepositoryMock = new Mock<ICatalogRepository>();
+        _catalogRepositoryMock.Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CatalogAggregate?)null);
         _rendererMock = new Mock<ISemiproductRecipeRenderer>();
         _rendererMock.Setup(r => r.Render(It.IsAny<SemiproductRecipeData>()))
             .Returns(new byte[] { 1, 2, 3 });
-        _handler = new GetSemiproductRecipePdfHandler(_manufactureClientMock.Object, _rendererMock.Object);
+        _handler = new GetSemiproductRecipePdfHandler(
+            _manufactureClientMock.Object,
+            _catalogRepositoryMock.Object,
+            _rendererMock.Object);
     }
 
     [Fact]
@@ -147,6 +155,44 @@ public class GetSemiproductRecipePdfHandlerTests
 
         _rendererMock.Verify(r => r.Render(It.Is<SemiproductRecipeData>(d =>
             d.Ingredients.All(i => i.Percentage == 0.0)
+        )), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_CatalogWithExpirationMonths_PopulatesExpirationOnData()
+    {
+        // Arrange
+        const string productCode = "EXP001";
+        var template = new ManufactureTemplate
+        {
+            ProductCode = productCode,
+            ProductName = "Expiring Semiproduct",
+            OriginalAmount = 1000.0,
+            Ingredients = new List<Ingredient>
+            {
+                new Ingredient { ProductCode = "ING001", ProductName = "Ingredient A", Amount = 1000.0 },
+            }
+        };
+        var catalogAggregate = new CatalogAggregate
+        {
+            Properties = new CatalogProperties { ExpirationMonths = 24 }
+        };
+
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+        _catalogRepositoryMock.Setup(r => r.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogAggregate);
+
+        var request = new GetSemiproductRecipePdfRequest { ProductCode = productCode };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
+
+        _rendererMock.Verify(r => r.Render(It.Is<SemiproductRecipeData>(d =>
+            d.ExpirationMonths == 24
         )), Times.Once);
     }
 }

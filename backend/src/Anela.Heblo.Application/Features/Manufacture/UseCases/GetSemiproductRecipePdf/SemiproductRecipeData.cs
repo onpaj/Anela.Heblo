@@ -6,6 +6,7 @@ public class SemiproductRecipeData
     public string ProductName { get; set; } = null!;
     public double BatchSize { get; set; } = 0.0;
     public DateTime PrintedAt { get; set; } = DateTime.Now;
+    public int? ExpirationMonths { get; set; }
     public List<SemiproductRecipeIngredientLine> Ingredients { get; set; } = new();
 }
 
