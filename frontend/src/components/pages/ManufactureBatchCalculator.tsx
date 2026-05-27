@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Calculator, RotateCcw, Package, Beaker, ArrowRight } from "lucide-react";
+import { Calculator, RotateCcw, Package, Beaker, ArrowRight, Printer } from "lucide-react";
 import CatalogAutocomplete from "../common/CatalogAutocomplete";
 import CatalogDetail from "./CatalogDetail";
 import ManufactureInventoryModal from "../inventory/ManufactureInventoryDetail";
 import InventoryStatusCell from "../inventory/InventoryStatusCell";
 import { CatalogItemDto, ProductType, CalculatedBatchSizeResponse, CalculateBatchByIngredientResponse } from "../../api/generated/api-client";
 import { useManufactureBatch } from "../../api/hooks/useManufactureBatch";
+import { useSemiproductRecipePdf } from "../../api/hooks/useSemiproductRecipePdf";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useScreenView } from '../../telemetry/useScreenView';
 
@@ -55,6 +56,8 @@ const ManufactureBatchCalculator: React.FC = () => {
     calculateByIngredient,
     isLoading,
   } = useManufactureBatch();
+
+  const { openRecipePdf, isLoading: isPdfLoading } = useSemiproductRecipePdf();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -474,15 +477,25 @@ const ManufactureBatchCalculator: React.FC = () => {
                 Přepočítaný recept
               </h3>
               
-              {/* Go to Batch Planning Button */}
+              {/* Action Buttons */}
               {isCalculatedBatchSizeResponse(calculationResult) && (
-                <button
-                  onClick={handleGoToBatchPlanning}
-                  className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 flex items-center gap-2"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                  Přejít na plánování výroby
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openRecipePdf(selectedProduct?.productCode ?? calculationResult.productCode ?? '')}
+                    disabled={isPdfLoading}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Tisk receptury
+                  </button>
+                  <button
+                    onClick={handleGoToBatchPlanning}
+                    className="bg-emerald-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 flex items-center gap-2"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Přejít na plánování výroby
+                  </button>
+                </div>
               )}
             </div>
             
