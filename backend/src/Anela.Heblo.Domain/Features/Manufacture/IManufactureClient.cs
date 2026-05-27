@@ -21,4 +21,14 @@ public interface IManufactureClient
         string productCode,
         IEnumerable<(int BoMItemId, int Order)> items,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Writes display order AND phase label for BoM line items to Abra Flexi, then invalidates the template cache.
+    /// </summary>
+    /// <param name="productCode">Product code whose BoM is being saved (used for cache invalidation).</param>
+    /// <param name="items">Triples of (BoMItemId, Order, PhaseLabel). BoMItemId is <see cref="Ingredient.TemplateId"/>. PhaseLabel null clears the field.</param>
+    Task SetBomItemsOrderAndPhaseAsync(
+        string productCode,
+        IEnumerable<(int BoMItemId, int Order, string? PhaseLabel)> items,
+        CancellationToken cancellationToken = default);
 }
