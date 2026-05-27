@@ -197,6 +197,15 @@ internal class FlexiManufactureClient : IManufactureClient
         return await _templateService.GetManufactureTemplateAsync(id, cancellationToken);
     }
 
+    public async Task SetBomItemsOrderAsync(
+        string productCode,
+        IEnumerable<(int BoMItemId, int Order)> items,
+        CancellationToken cancellationToken = default)
+    {
+        await _bomClient.SetItemsOrderAsync(items, cancellationToken);
+        _templateService.InvalidateTemplate(productCode);
+    }
+
     public async Task<List<ManufactureTemplate>> FindByIngredientAsync(string ingredientCode, CancellationToken cancellationToken)
     {
         IEnumerable<BoMItemFlexiDto> templates;
