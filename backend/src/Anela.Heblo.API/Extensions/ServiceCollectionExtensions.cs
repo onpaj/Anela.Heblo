@@ -24,6 +24,7 @@ using Anela.Heblo.API.PDFPrints;
 using Anela.Heblo.Application.Features.ExpeditionList.Services;
 using Anela.Heblo.Application.Shared.Printing;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetManufactureProtocol;
+using Anela.Heblo.Application.Features.Manufacture.UseCases.GetSemiproductRecipePdf;
 
 namespace Anela.Heblo.API.Extensions;
 
@@ -140,6 +141,7 @@ public static class ServiceCollectionExtensions
 
         // PDF renderer — lives in API layer because QuestPDF is not a dependency of Application layer
         services.AddScoped<IManufactureProtocolRenderer, QuestPdfManufactureProtocolRenderer>();
+        services.AddScoped<ISemiproductRecipeRenderer, QuestPdfSemiproductRecipeRenderer>();
 
         // Note: Application services are now registered in vertical slice modules
         // This method is kept for backward compatibility and other cross-cutting concerns
