@@ -37,19 +37,23 @@ public class MeetingTranscriptRepository : IMeetingTranscriptRepository
 
         if (!string.IsNullOrWhiteSpace(searchText))
         {
-            var pattern = $"%{searchText.Trim()}%";
+            var escaped = searchText.Trim()
+                .Replace(@"\", @"\\")
+                .Replace("%", @"\%")
+                .Replace("_", @"\_");
+            var pattern = $"%{escaped}%";
             if (searchInTranscript)
             {
                 query = query.Where(x =>
-                    EF.Functions.ILike(x.Subject, pattern) ||
-                    EF.Functions.ILike(x.Summary, pattern) ||
-                    EF.Functions.ILike(x.RawTranscript, pattern));
+                    EF.Functions.ILike(x.Subject, pattern, @"\") ||
+                    EF.Functions.ILike(x.Summary, pattern, @"\") ||
+                    EF.Functions.ILike(x.RawTranscript, pattern, @"\"));
             }
             else
             {
                 query = query.Where(x =>
-                    EF.Functions.ILike(x.Subject, pattern) ||
-                    EF.Functions.ILike(x.Summary, pattern));
+                    EF.Functions.ILike(x.Subject, pattern, @"\") ||
+                    EF.Functions.ILike(x.Summary, pattern, @"\"));
             }
         }
 
