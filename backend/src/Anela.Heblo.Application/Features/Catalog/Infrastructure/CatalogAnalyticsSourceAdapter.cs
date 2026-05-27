@@ -99,7 +99,7 @@ internal sealed class CatalogAnalyticsSourceAdapter : IAnalyticsProductSource
         {
             ProductCode = product.ProductCode,
             ProductName = product.ProductName,
-            Type = product.Type,
+            Type = MapProductType(product.Type),
             ProductFamily = product.ProductFamily,
             ProductCategory = product.ProductCategory,
             MarginAmount = marginAmount,

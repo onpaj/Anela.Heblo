@@ -3,7 +3,7 @@ using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Models;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Analytics;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
@@ -54,7 +54,7 @@ public class GetMarginReportHandler : IRequestHandler<GetMarginReportRequest, Ge
         try
         {
             // Get products stream from repository
-            var productTypes = new[] { ProductType.Product, ProductType.Goods };
+            var productTypes = new[] { AnalyticsProductType.Product, AnalyticsProductType.Goods };
             var productsStream = _analyticsRepository.StreamProductsWithSalesAsync(
                 request.StartDate,
                 request.EndDate,

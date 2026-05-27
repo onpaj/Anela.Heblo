@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Features.Analytics.Contracts;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetInvoiceImportStatistics;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetBankStatementImportStatistics;
 using Anela.Heblo.Domain.Features.Analytics;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,124 +9,39 @@ namespace Anela.Heblo.Application.Features.Analytics.Infrastructure;
 
 /// <summary>
 /// 🔒 PERFORMANCE FIX: Analytics repository with streaming capabilities
-/// Prevents memory overload by streaming data instead of loading everything at once
+/// Prevents memory overload by delegating to IAnalyticsProductSource
 /// </summary>
 public class AnalyticsRepository : IAnalyticsRepository
 {
-    private readonly ICatalogRepository _catalogRepository;
+    private readonly IAnalyticsProductSource _productSource;
     private readonly ApplicationDbContext _dbContext;
 
-    public AnalyticsRepository(ICatalogRepository catalogRepository, ApplicationDbContext dbContext)
+    public AnalyticsRepository(IAnalyticsProductSource productSource, ApplicationDbContext dbContext)
     {
-        _catalogRepository = catalogRepository;
+        _productSource = productSource;
         _dbContext = dbContext;
     }
 
     /// <summary>
     /// Streams products with sales to avoid memory overload
-    /// Converts heavy CatalogAggregate to lightweight AnalyticsProduct
+    /// Delegates to the product source implementation
     /// </summary>
-    public async IAsyncEnumerable<AnalyticsProduct> StreamProductsWithSalesAsync(
+    public IAsyncEnumerable<AnalyticsProduct> StreamProductsWithSalesAsync(
         DateTime fromDate,
         DateTime toDate,
-        ProductType[] productTypes,
-        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        AnalyticsProductType[] productTypes,
+        CancellationToken cancellationToken = default)
     {
-        const int batchSize = 100;
-
-        // Get total count for batching
-        var allProducts = await _catalogRepository.GetProductsWithSalesInPeriod(fromDate, toDate, productTypes, cancellationToken);
-
-        // Process in batches to reduce memory usage
-        for (int i = 0; i < allProducts.Count; i += batchSize)
-        {
-            var batch = allProducts.Skip(i).Take(batchSize);
-
-            foreach (var product in batch)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                // Convert to lightweight analytics model
-                // Use pre-calculated margin data from CatalogAggregate.Margins
-                var marginData = product.Margins;
-
-                // Filter monthly data by date range
-                var relevantMargins = marginData.MonthlyData
-                    .Where(m => m.Key >= fromDate && m.Key <= toDate)
-                    .ToList();
-
-                // Use latest margin data or fallback to averages
-                var latestMarginEntry = relevantMargins.LastOrDefault();
-                if (latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)))
-                {
-                    latestMarginEntry = marginData.MonthlyData.LastOrDefault();
-                }
-
-                var marginAmount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))
-                    ? marginData.Averages.M0.Amount
-                    : latestMarginEntry.Value.M0.Amount;
-                var materialCost = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))
-                    ? 0
-                    : latestMarginEntry.Value.M0.CostLevel;
-                var handlingCost = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))
-                    ? 0
-                    : latestMarginEntry.Value.M1_A.CostLevel;
-
-                // Get latest purchase price from purchase history
-                var latestPurchase = product.PurchaseHistory?.OrderByDescending(p => p.Date).FirstOrDefault();
-                var purchasePrice = latestPurchase?.PricePerPiece ?? 0;
-
-                yield return new AnalyticsProduct
-                {
-                    ProductCode = product.ProductCode,
-                    ProductName = product.ProductName,
-                    Type = product.Type,
-                    ProductFamily = product.ProductFamily,
-                    ProductCategory = product.ProductCategory,
-                    MarginAmount = marginAmount,
-
-                    // M0-M2 margin amounts
-                    M0Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M0.Amount,
-                    M1Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M1.Amount,
-                    M2Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M2.Amount,
-
-                    // M0-M2 margin percentages
-                    M0Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M0.Percentage,
-                    M1Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M1.Percentage,
-                    M2Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M2.Percentage,
-
-                    // Pricing
-                    SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0,
-                    EshopPriceWithoutVat = product.EshopPrice?.PriceWithoutVat,
-                    PurchasePrice = purchasePrice,
-
-                    // Cost components
-                    MaterialCost = materialCost,
-                    HandlingCost = handlingCost,
-                    SalesHistory = product.SalesHistory
-                        .Where(s => s.Date >= fromDate && s.Date <= toDate)
-                        .Select(s => new SalesDataPoint
-                        {
-                            Date = s.Date,
-                            AmountB2B = s.AmountB2B,
-                            AmountB2C = s.AmountB2C
-                        })
-                        .ToList()
-                };
-            }
-
-            // Allow garbage collection between batches
-            GC.Collect();
-        }
+        return _productSource.StreamProductsWithSalesAsync(fromDate, toDate, productTypes, cancellationToken);
     }
 
     /// <summary>
-    /// Gets aggregated margin data with optimized query (future implementation)
+    /// Gets aggregated margin data with optimized query
     /// </summary>
     public async Task<Dictionary<string, decimal>> GetGroupMarginTotalsAsync(
         DateTime fromDate,
         DateTime toDate,
-        ProductType[] productTypes,
+        AnalyticsProductType[] productTypes,
         ProductGroupingMode groupingMode,
         CancellationToken cancellationToken = default)
     {
@@ -153,82 +67,13 @@ public class AnalyticsRepository : IAnalyticsRepository
         return groupTotals;
     }
 
-    public async Task<AnalyticsProduct?> GetProductAnalysisDataAsync(
+    public Task<AnalyticsProduct?> GetProductAnalysisDataAsync(
         string productId,
         DateTime fromDate,
         DateTime toDate,
         CancellationToken cancellationToken = default)
     {
-        var product = await _catalogRepository.GetByIdAsync(productId, cancellationToken);
-        if (product == null)
-            return null;
-
-        // Convert to analytics product with filtered sales data
-        // Use pre-calculated margin data from CatalogAggregate.Margins
-        var marginData = product.Margins;
-
-        // Filter monthly data by date range
-        var relevantMargins = marginData.MonthlyData
-            .Where(m => m.Key >= fromDate && m.Key <= toDate)
-            .ToList();
-
-        // Use latest margin data or fallback to averages
-        var latestMarginEntry = relevantMargins.LastOrDefault();
-        if (latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)))
-        {
-            latestMarginEntry = marginData.MonthlyData.LastOrDefault();
-        }
-
-        var marginAmount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))
-            ? marginData.Averages.M0.Amount
-            : latestMarginEntry.Value.M0.Amount;
-        var materialCost = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))
-            ? 0
-            : latestMarginEntry.Value.M0.CostLevel;
-        var handlingCost = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>))
-            ? 0
-            : latestMarginEntry.Value.M1_A.CostLevel;
-
-        // Get latest purchase price from purchase history
-        var latestPurchase = product.PurchaseHistory?.OrderByDescending(p => p.Date).FirstOrDefault();
-        var purchasePrice = latestPurchase?.PricePerPiece ?? 0;
-
-        return new AnalyticsProduct
-        {
-            ProductCode = product.ProductCode,
-            ProductName = product.ProductName,
-            Type = product.Type,
-            ProductFamily = product.ProductFamily,
-            ProductCategory = product.ProductCategory,
-            MarginAmount = marginAmount,
-
-            // M0-M2 margin amounts
-            M0Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M0.Amount,
-            M1Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M1.Amount,
-            M2Amount = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M2.Amount,
-
-            // M0-M2 margin percentages
-            M0Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M0.Percentage,
-            M1Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M1.Percentage,
-            M2Percentage = latestMarginEntry.Equals(default(KeyValuePair<DateTime, MarginData>)) ? 0 : latestMarginEntry.Value.M2.Percentage,
-
-            // Pricing
-            SellingPrice = product.EshopPrice?.PriceWithoutVat ?? 0,
-            EshopPriceWithoutVat = product.EshopPrice?.PriceWithoutVat,
-            PurchasePrice = purchasePrice,
-
-            // Cost components
-            MaterialCost = materialCost,
-            HandlingCost = handlingCost,
-            SalesHistory = product.SalesHistory
-                .Select(s => new SalesDataPoint
-                {
-                    Date = s.Date,
-                    AmountB2B = s.AmountB2B,
-                    AmountB2C = s.AmountB2C
-                })
-                .ToList()
-        };
+        return _productSource.GetProductAnalysisDataAsync(productId, fromDate, toDate, cancellationToken);
     }
 
     private string GetGroupKey(AnalyticsProduct product, ProductGroupingMode groupingMode)

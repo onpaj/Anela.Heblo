@@ -320,7 +320,7 @@ public sealed class CatalogAnalyticsSourceAdapterTests
         result.Should().NotBeNull();
         result!.ProductCode.Should().Be("PROD001");
         result.ProductName.Should().Be("Test Product");
-        result.Type.Should().Be(ProductType.Goods);
+        result.Type.Should().Be(AnalyticsProductType.Goods);
         result.SellingPrice.Should().Be(100m);
         result.EshopPriceWithoutVat.Should().Be(100m);
         result.PurchasePrice.Should().Be(50m);
