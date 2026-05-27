@@ -164,8 +164,8 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">
           <Beaker className="h-5 w-5 mr-2 text-gray-500" />
           Složení ({sortedIngredients.length} ingrediencí)
@@ -207,7 +207,7 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
       </div>
 
       {saveError && (
-        <div className="flex items-center space-x-2 px-3 py-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded">
+        <div className="flex items-center space-x-2 px-3 py-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded mb-4">
           <AlertCircle className="h-4 w-4" />
           <span>{saveError}</span>
         </div>
@@ -218,8 +218,8 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="h-96 overflow-y-auto">
+        <div className="flex-1 min-h-0 bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="h-full overflow-y-auto">
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
                 <tr>
