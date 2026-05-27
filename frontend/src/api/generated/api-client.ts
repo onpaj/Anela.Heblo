@@ -6155,6 +6155,49 @@ export class ApiClient {
         return Promise.resolve<CalculateBatchPlanResponse>(null as any);
     }
 
+    manufactureBatch_GetRecipePdf(productCode: string, batchSize: number | null | undefined): Promise<FileResponse> {
+        let url_ = this.baseUrl + "/api/manufacture-batch/recipe-pdf/{productCode}?";
+        if (productCode === undefined || productCode === null)
+            throw new Error("The parameter 'productCode' must be defined.");
+        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+        if (batchSize !== undefined && batchSize !== null)
+            url_ += "batchSize=" + encodeURIComponent("" + batchSize) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/octet-stream"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processManufactureBatch_GetRecipePdf(_response);
+        });
+    }
+
+    protected processManufactureBatch_GetRecipePdf(response: Response): Promise<FileResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200 || status === 206) {
+            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
+            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
+            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
+            if (fileName) {
+                fileName = decodeURIComponent(fileName);
+            } else {
+                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
+                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
+            }
+            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<FileResponse>(null as any);
+    }
+
     manufacturedProductInventory_GetInventory(search: string | null | undefined, onlyWithStock: boolean | undefined, manufactureOrderId: number | null | undefined, page: number | undefined, pageSize: number | undefined): Promise<GetManufacturedInventoryResponse> {
         let url_ = this.baseUrl + "/api/manufactured-inventory?";
         if (search !== undefined && search !== null)
@@ -7394,10 +7437,16 @@ export class ApiClient {
         return Promise.resolve<ImportFromOutlookResponse>(null as any);
     }
 
-    meetingTasks_List(statusFilter: string | null | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetTranscriptListResponse> {
+    meetingTasks_List(statusFilter: string | null | undefined, searchText: string | null | undefined, searchInTranscript: boolean | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetTranscriptListResponse> {
         let url_ = this.baseUrl + "/api/meeting-tasks?";
         if (statusFilter !== undefined && statusFilter !== null)
             url_ += "StatusFilter=" + encodeURIComponent("" + statusFilter) + "&";
+        if (searchText !== undefined && searchText !== null)
+            url_ += "SearchText=" + encodeURIComponent("" + searchText) + "&";
+        if (searchInTranscript === null)
+            throw new Error("The parameter 'searchInTranscript' cannot be null.");
+        else if (searchInTranscript !== undefined)
+            url_ += "SearchInTranscript=" + encodeURIComponent("" + searchInTranscript) + "&";
         if (pageNumber === null)
             throw new Error("The parameter 'pageNumber' cannot be null.");
         else if (pageNumber !== undefined)
@@ -15523,6 +15572,7 @@ export class IngredientDto implements IIngredientDto {
     amount?: number;
     unit?: string;
     order?: number;
+    phaseLabel?: string | undefined;
 
     constructor(data?: IIngredientDto) {
         if (data) {
@@ -15540,6 +15590,7 @@ export class IngredientDto implements IIngredientDto {
             this.amount = _data["amount"];
             this.unit = _data["unit"];
             this.order = _data["order"];
+            this.phaseLabel = _data["phaseLabel"];
         }
     }
 
@@ -15557,6 +15608,7 @@ export class IngredientDto implements IIngredientDto {
         data["amount"] = this.amount;
         data["unit"] = this.unit;
         data["order"] = this.order;
+        data["phaseLabel"] = this.phaseLabel;
         return data;
     }
 }
@@ -15567,6 +15619,7 @@ export interface IIngredientDto {
     amount?: number;
     unit?: string;
     order?: number;
+    phaseLabel?: string | undefined;
 }
 
 export class UpdateProductCompositionOrderResponse extends BaseResponse implements IUpdateProductCompositionOrderResponse {
@@ -15653,6 +15706,7 @@ export interface IUpdateProductCompositionOrderRequest {
 export class IngredientOrderItem implements IIngredientOrderItem {
     ingredientProductCode!: string;
     sortOrder?: number;
+    phaseLabel?: string | undefined;
 
     constructor(data?: IIngredientOrderItem) {
         if (data) {
@@ -15667,6 +15721,7 @@ export class IngredientOrderItem implements IIngredientOrderItem {
         if (_data) {
             this.ingredientProductCode = _data["ingredientProductCode"];
             this.sortOrder = _data["sortOrder"];
+            this.phaseLabel = _data["phaseLabel"];
         }
     }
 
@@ -15681,6 +15736,7 @@ export class IngredientOrderItem implements IIngredientOrderItem {
         data = typeof data === 'object' ? data : {};
         data["ingredientProductCode"] = this.ingredientProductCode;
         data["sortOrder"] = this.sortOrder;
+        data["phaseLabel"] = this.phaseLabel;
         return data;
     }
 }
@@ -15688,6 +15744,7 @@ export class IngredientOrderItem implements IIngredientOrderItem {
 export interface IIngredientOrderItem {
     ingredientProductCode: string;
     sortOrder?: number;
+    phaseLabel?: string | undefined;
 }
 
 export class GetMaterialsForPurchaseResponse extends BaseResponse implements IGetMaterialsForPurchaseResponse {
@@ -16222,6 +16279,8 @@ export class Ingredient implements IIngredient {
     productType?: ProductType;
     hasLots?: boolean;
     hasExpiration?: boolean;
+    order?: number;
+    phaseLabel?: string | undefined;
 
     constructor(data?: IIngredient) {
         if (data) {
@@ -16243,6 +16302,8 @@ export class Ingredient implements IIngredient {
             this.productType = _data["productType"];
             this.hasLots = _data["hasLots"];
             this.hasExpiration = _data["hasExpiration"];
+            this.order = _data["order"];
+            this.phaseLabel = _data["phaseLabel"];
         }
     }
 
@@ -16264,6 +16325,8 @@ export class Ingredient implements IIngredient {
         data["productType"] = this.productType;
         data["hasLots"] = this.hasLots;
         data["hasExpiration"] = this.hasExpiration;
+        data["order"] = this.order;
+        data["phaseLabel"] = this.phaseLabel;
         return data;
     }
 }
@@ -16278,6 +16341,8 @@ export interface IIngredient {
     productType?: ProductType;
     hasLots?: boolean;
     hasExpiration?: boolean;
+    order?: number;
+    phaseLabel?: string | undefined;
 }
 
 export enum ManufactureType {
@@ -23792,6 +23857,7 @@ export class CalculatedIngredientDto implements ICalculatedIngredientDto {
     price?: number;
     stockTotal?: number;
     lastStockTaking?: Date | undefined;
+    phaseLabel?: string | undefined;
 
     constructor(data?: ICalculatedIngredientDto) {
         if (data) {
@@ -23811,6 +23877,7 @@ export class CalculatedIngredientDto implements ICalculatedIngredientDto {
             this.price = _data["price"];
             this.stockTotal = _data["stockTotal"];
             this.lastStockTaking = _data["lastStockTaking"] ? new Date(_data["lastStockTaking"].toString()) : <any>undefined;
+            this.phaseLabel = _data["phaseLabel"];
         }
     }
 
@@ -23830,6 +23897,7 @@ export class CalculatedIngredientDto implements ICalculatedIngredientDto {
         data["price"] = this.price;
         data["stockTotal"] = this.stockTotal;
         data["lastStockTaking"] = this.lastStockTaking ? this.lastStockTaking.toISOString() : <any>undefined;
+        data["phaseLabel"] = this.phaseLabel;
         return data;
     }
 }
@@ -23842,6 +23910,7 @@ export interface ICalculatedIngredientDto {
     price?: number;
     stockTotal?: number;
     lastStockTaking?: Date | undefined;
+    phaseLabel?: string | undefined;
 }
 
 export class CalculatedBatchSizeRequest implements ICalculatedBatchSizeRequest {

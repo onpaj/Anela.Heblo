@@ -18,4 +18,5 @@ public class SemiproductRecipeIngredientLine
     public double AmountFullBatch { get; set; } = 0.0;
     public double AmountHalfBatch { get; set; } = 0.0;
     public double Percentage { get; set; } = 0.0;
+    public string? PhaseLabel { get; set; }
 }

@@ -31,6 +31,22 @@ public class GetProductCompositionHandlerTests
         };
     }
 
+    private static ManufactureTemplate BuildTemplateWithPhase(params (string Code, string Name, int Order, string? PhaseLabel)[] ingredients)
+    {
+        return new ManufactureTemplate
+        {
+            ProductCode = "PRD1",
+            Ingredients = ingredients.Select(i => new Ingredient
+            {
+                ProductCode = i.Code,
+                ProductName = i.Name,
+                Amount = 10,
+                Order = i.Order,
+                PhaseLabel = i.PhaseLabel
+            }).ToList()
+        };
+    }
+
     [Fact]
     public async Task Handle_SortsByIngredientOrder_Ascending()
     {
@@ -111,5 +127,26 @@ public class GetProductCompositionHandlerTests
 
         // Assert
         response.Ingredients.Select(i => i.Order).Should().Equal(1, 2);
+    }
+
+    [Fact]
+    public async Task Handle_PhaseLabelForwardedFromIngredientToDto()
+    {
+        // Arrange
+        var template = BuildTemplateWithPhase(
+            ("A", "Alpha", 1, "B"),
+            ("B", "Beta", 2, null));
+        _manufactureClientMock
+            .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+
+        // Act
+        var response = await _handler.Handle(
+            new GetProductCompositionRequest { ProductCode = "PRD1" },
+            CancellationToken.None);
+
+        // Assert
+        response.Ingredients[0].PhaseLabel.Should().Be("B");
+        response.Ingredients[1].PhaseLabel.Should().BeNull();
     }
 }

@@ -36,7 +36,7 @@ public class UpdateProductCompositionOrderHandler
             i => i.TemplateId,
             StringComparer.Ordinal);
 
-        var tuples = new List<(int BoMItemId, int Order)>();
+        var tuples = new List<(int BoMItemId, int Order, string? PhaseLabel)>();
         foreach (var item in request.Order)
         {
             if (!codeToBomItemId.TryGetValue(item.IngredientProductCode, out var bomItemId))
@@ -46,7 +46,7 @@ public class UpdateProductCompositionOrderHandler
                     item.IngredientProductCode, request.ProductCode);
                 continue;
             }
-            tuples.Add((bomItemId, item.SortOrder));
+            tuples.Add((bomItemId, item.SortOrder, NormalizePhaseLabel(item.PhaseLabel)));
         }
 
         if (tuples.Count == 0)
@@ -54,8 +54,21 @@ public class UpdateProductCompositionOrderHandler
             return new UpdateProductCompositionOrderResponse { UpdatedCount = 0 };
         }
 
-        await _manufactureClient.SetBomItemsOrderAsync(request.ProductCode, tuples, cancellationToken);
+        await _manufactureClient.SetBomItemsOrderAndPhaseAsync(request.ProductCode, tuples, cancellationToken);
 
         return new UpdateProductCompositionOrderResponse { UpdatedCount = tuples.Count };
+    }
+
+    /// <summary>
+    /// Returns a single uppercase letter A–Z if the input is valid, or null otherwise.
+    /// Defends against non-letter or multi-character labels from the client.
+    /// </summary>
+    private static string? NormalizePhaseLabel(string? label)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+            return null;
+
+        var trimmed = label.Trim().ToUpperInvariant();
+        return trimmed.Length == 1 && trimmed[0] is >= 'A' and <= 'Z' ? trimmed : null;
     }
 }
