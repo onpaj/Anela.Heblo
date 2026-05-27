@@ -115,6 +115,46 @@ const JournalRow: React.FC<JournalRowProps> = ({
   </tr>
 );
 
+interface SortableHeaderProps {
+  column: string;
+  sortBy: string;
+  sortDescending: boolean;
+  onSort: (column: string) => void;
+  children: React.ReactNode;
+}
+
+const SortableHeader: React.FC<SortableHeaderProps> = ({
+  column,
+  sortBy,
+  sortDescending,
+  onSort,
+  children,
+}) => {
+  const isActive = sortBy === column;
+  const isAscending = isActive && !sortDescending;
+  const isDescending = isActive && sortDescending;
+
+  return (
+    <th
+      scope="col"
+      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
+      onClick={() => onSort(column)}
+    >
+      <div className="flex items-center space-x-1">
+        <span>{children}</span>
+        <div className="flex flex-col">
+          <ChevronUp
+            className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
+          />
+          <ChevronDown
+            className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
+          />
+        </div>
+      </div>
+    </th>
+  );
+};
+
 const JournalList: React.FC = () => {
   useScreenView('Journal', 'JournalList');
 
@@ -243,36 +283,6 @@ const JournalList: React.FC = () => {
     }
   };
 
-  // Sortable header component
-  const SortableHeader: React.FC<{
-    column: string;
-    children: React.ReactNode;
-  }> = ({ column, children }) => {
-    const isActive = sortBy === column;
-    const isAscending = isActive && !sortDescending;
-    const isDescending = isActive && sortDescending;
-
-    return (
-      <th
-        scope="col"
-        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 select-none"
-        onClick={() => handleSort(column)}
-      >
-        <div className="flex items-center space-x-1">
-          <span>{children}</span>
-          <div className="flex flex-col">
-            <ChevronUp
-              className={`h-3 w-3 ${isAscending ? "text-indigo-600" : "text-gray-300"}`}
-            />
-            <ChevronDown
-              className={`h-3 w-3 -mt-1 ${isDescending ? "text-indigo-600" : "text-gray-300"}`}
-            />
-          </div>
-        </div>
-      </th>
-    );
-  };
-
   // Loading state
   if (loading) {
     return (
@@ -381,9 +391,28 @@ const JournalList: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
-                  <SortableHeader column="title">Název</SortableHeader>
-                  <SortableHeader column="entryDate">Datum</SortableHeader>
-                  <SortableHeader column="createdByUsername">
+                  <SortableHeader
+                    column="title"
+                    sortBy={sortBy}
+                    sortDescending={sortDescending}
+                    onSort={handleSort}
+                  >
+                    Název
+                  </SortableHeader>
+                  <SortableHeader
+                    column="entryDate"
+                    sortBy={sortBy}
+                    sortDescending={sortDescending}
+                    onSort={handleSort}
+                  >
+                    Datum
+                  </SortableHeader>
+                  <SortableHeader
+                    column="createdByUsername"
+                    sortBy={sortBy}
+                    sortDescending={sortDescending}
+                    onSort={handleSort}
+                  >
                     Autor
                   </SortableHeader>
                   <th
