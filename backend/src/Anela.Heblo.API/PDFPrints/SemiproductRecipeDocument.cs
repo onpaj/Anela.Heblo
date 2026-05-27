@@ -51,7 +51,7 @@ public class SemiproductRecipeDocument : IDocument
                 header.Item().Text(t =>
                 {
                     t.Span("Výrobní dávka: ").Bold();
-                    t.Span(_data.BatchSize.ToString("N1", AmountFormat));
+                    t.Span(_data.BatchSize.ToString("N1", AmountFormat) + " g");
                 });
                 header.Item().PaddingTop(6).LineHorizontal(1f).LineColor(Colors.Grey.Lighten1);
             });
