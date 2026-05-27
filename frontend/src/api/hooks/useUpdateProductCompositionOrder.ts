@@ -1,5 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
+import {
+  UpdateProductCompositionOrderRequest,
+  IngredientOrderItem as GeneratedIngredientOrderItem,
+} from '../generated/api-client';
 
 export interface IngredientOrderItem {
   ingredientProductCode: string;
@@ -15,20 +19,17 @@ export const useUpdateProductCompositionOrder = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: UpdateProductCompositionOrderPayload) => {
+    mutationFn: (payload: UpdateProductCompositionOrderPayload) => {
       const apiClient = getAuthenticatedApiClient();
-      const relativeUrl = `/api/catalog/${encodeURIComponent(payload.productCode)}/composition/order`;
-      const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-      const response = await (apiClient as any).http.fetch(fullUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order: payload.order }),
-      });
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Update composition order failed: ${response.status} ${text}`);
-      }
-      return response.json();
+      return apiClient.catalog_UpdateCompositionOrder(
+        payload.productCode,
+        new UpdateProductCompositionOrderRequest({
+          productCode: payload.productCode,
+          order: payload.order.map(
+            (item) => new GeneratedIngredientOrderItem(item),
+          ),
+        }),
+      );
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({

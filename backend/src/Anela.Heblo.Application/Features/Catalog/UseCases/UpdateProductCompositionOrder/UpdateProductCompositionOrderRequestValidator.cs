@@ -15,7 +15,9 @@ public class UpdateProductCompositionOrderRequestValidator
 
         RuleFor(x => x.Order)
             .NotNull()
-            .WithMessage("Order list is required");
+            .WithMessage("Order list is required")
+            .Must(order => order == null || order.Select(i => i.IngredientProductCode).Distinct().Count() == order.Count)
+            .WithMessage("Ingredient product codes must be unique within the order list");
 
         RuleForEach(x => x.Order)
             .ChildRules(order =>
