@@ -1,5 +1,0 @@
-Recordings in the last 7 days: 3
-
-  3465d31a29dce3a3819a7d164f86b12c  2026-05-10  24h00m
-  f3aca6bf803532f53e6ae53c3b0b7495  2026-05-09  57m58s
-  b6c774e4c9b2c55fa8159db2430726cc  05-13 Weekly Team Standup  2026-05-08  1h07m

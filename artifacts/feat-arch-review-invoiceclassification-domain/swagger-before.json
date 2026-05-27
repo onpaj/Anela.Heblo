@@ -1,6 +1,0 @@
-{
-  "_note": "Server could not be started in dev environment. Manual swagger comparison required after deployment.",
-  "_details": "The dotnet application started successfully and loaded all configuration, but did not bind to expected HTTP port. The server is configured for production environment without explicit port overrides. Manual swagger snapshots should be captured from the actual deployed API or by running dotnet run with proper launch settings.",
-  "paths": {},
-  "schemas": {}
-}

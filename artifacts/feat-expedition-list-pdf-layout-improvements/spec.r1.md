@@ -1,1 +1,0 @@
-Wrote `artifacts/feat-expedition-list-pdf-layout-improvements/spec.md` with full FR/NFR breakdown, file-level structural changes, and explicit open questions on page-break behavior, column widths, variant color, and test strategy.

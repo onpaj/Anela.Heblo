@@ -1,7 +1,0 @@
-`design.r1.md` written and committed. Here's what it covers:
-
-**UX/UI Design** — Two-panel layout (form + result), new "Marketing" sidebar section with `"Generátor letáků"` entry, full ASCII wireframe, Czech labels throughout (`Koncový zákazník` / `B2B`, length labels with word targets), copy-to-clipboard interaction with 2-second label swap, inline 422 warning banner (no toast/modal), loading skeleton while in flight.
-
-**Component Design** — Three frontend components (`LeafletGeneratorPage` owning state, presentational `LeafletForm`, `LeafletResult` with copy timer). Backend components: `LeafletController`, `GenerateLeafletHandler` (two-stage orchestration, single embedding reused across both retrieval calls, 422 on dual-empty retrieval), `LeafletIndexingService` (flat chunk→embed→persist, no summarization), `LeafletChunker` (800/80 words, independent of `DocumentChunker`), `LeafletIngestionJob`, `IndexLeafletHandler` (hash dedup + source-path collision handling), `LeafletRepository` (raw Npgsql for vector ops), `LeafletTools` (MCP, exceptions wrapped as `McpException`).
-
-**Data Schemas** — `LeafletDocuments` and `LeafletChunks` table definitions, HNSW index params (m=16, ef_construction=64), full REST request/response shapes for all status codes (200, 400, 422, 502), `LeafletOptions` JSON shape with required fields, and the full prompt placeholder tables for both stages.
