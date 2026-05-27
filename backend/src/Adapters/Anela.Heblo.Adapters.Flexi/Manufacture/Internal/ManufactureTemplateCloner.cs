@@ -28,7 +28,8 @@ internal static class ManufactureTemplateCloner
                     ProductType = i.ProductType,
                     HasLots = i.HasLots,
                     HasExpiration = i.HasExpiration,
-                    Order = i.Order
+                    Order = i.Order,
+                    PhaseLabel = i.PhaseLabel,
                 })
                 .ToList()
         };
