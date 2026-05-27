@@ -1,3 +1,5 @@
+using Azure.Extensions.AspNetCore.Configuration.Secrets;
+using Azure.Identity;
 using Anela.Heblo.Adapters.Anthropic;
 using Anela.Heblo.Adapters.Smartsupp;
 using Anela.Heblo.Adapters.Azure;
@@ -41,11 +43,28 @@ public partial class Program
 
         var builder = WebApplication.CreateBuilder(args);
 
-        // Add User Secrets for Development, Test, Staging, and Production environments
+        // Azure Key Vault: activated when KeyVault:Uri is set (in Azure App Settings).
+        // Added BEFORE user-secrets and command-line so those can always override KV values.
+        // Local dev leaves KeyVault:Uri unset and continues using user-secrets / appsettings.json.
+        var keyVaultUri = builder.Configuration["KeyVault:Uri"];
+        if (!string.IsNullOrWhiteSpace(keyVaultUri))
+        {
+            builder.Configuration.AddAzureKeyVault(
+                new Uri(keyVaultUri),
+                new DefaultAzureCredential(),
+                new AzureKeyVaultConfigurationOptions
+                {
+                    ReloadInterval = TimeSpan.FromMinutes(30)
+                });
+        }
+
+        // User secrets and command-line args are layered on top of KV so they always win.
+        // Re-adding command-line here ensures it outranks KV (CreateBuilder adds it earlier).
         if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Test") || builder.Environment.IsEnvironment("Staging") || builder.Environment.IsProduction())
         {
             builder.Configuration.AddUserSecrets<Program>();
         }
+        builder.Configuration.AddCommandLine(args);
 
         // Conductor parallel-instance overrides (see appsettings.Conductor.json).
         // Layered on top of the active environment so ephemeral local instances never
