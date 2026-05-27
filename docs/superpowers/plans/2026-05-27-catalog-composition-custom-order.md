@@ -1708,3 +1708,21 @@ git push -u origin HEAD
 - ✅ Method names consistent: `useUpdateProductCompositionOrder`, `UpdateProductCompositionOrderHandler`, `IProductIngredientOrderRepository.ListByParentAsync`.
 - ✅ All file paths absolute from repo root; conform to `docs/architecture/filesystem.md` patterns (mirroring `ManufactureDifficultySetting`).
 - ✅ Per-project rules respected: DTOs are classes, absolute URLs in API hooks, migrations not auto-applied, no `@claude` co-author trailer.
+
+---
+
+## Update — 2026-05-27: Persistence moved to Abra Flexi
+
+**Supersedes:** the "Persistence" section of this plan (local DB approach).
+
+The `ProductIngredientOrders` Postgres table has been removed. Order is now persisted directly
+to Abra Flexi via `IBoMClient.SetItemsOrderAsync` (added in `Rem.FlexiBeeSDK.Client` 0.1.138),
+which sets the `poradi` field on each BoM line item.
+
+`GET /composition` now reads order from `BoMItemFlexiDto.Order` — no overlay join needed.
+
+**Relevant files:**
+- `backend/src/Anela.Heblo.Domain/Features/Manufacture/IManufactureClient.cs` — `SetBomItemsOrderAsync` domain entry point
+- `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Manufacture/FlexiManufactureClient.cs` — adapter implementation
+- `backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/UpdateProductCompositionOrder/UpdateProductCompositionOrderHandler.cs` — rewrites order to Flexi
+- `backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/GetProductComposition/GetProductCompositionHandler.cs` — sorts by `Ingredient.Order` directly
