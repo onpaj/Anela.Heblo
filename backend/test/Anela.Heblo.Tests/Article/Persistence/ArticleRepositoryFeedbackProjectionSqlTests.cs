@@ -109,7 +109,7 @@ public class ArticleRepositoryFeedbackProjectionSqlTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetFeedbackPagedAsync_SelectsExactlyTheProjectedColumns()
+    public async Task GetFeedbackPagedAsync_SelectsAllProjectedColumns()
     {
         _interceptor.Reset();
 
