@@ -147,13 +147,13 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
     const initialDraft = ingredients.map((ing) => ({ ...ing }));
     setDraftOrder(initialDraft);
     // Seed draftPhases from existing phase labels (sorted A→Z).
-    const existingPhases = [
-      ...new Set(
+    const existingPhases = Array.from(
+      new Set(
         ingredients
           .map((i) => i.phaseLabel)
           .filter((l): l is string => typeof l === 'string' && l.length === 1),
       ),
-    ].sort();
+    ).sort();
     setDraftPhases(existingPhases);
     setSortConfig(null);
     setSaveError(null);
