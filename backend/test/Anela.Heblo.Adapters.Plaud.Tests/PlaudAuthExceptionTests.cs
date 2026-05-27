@@ -14,4 +14,15 @@ public sealed class PlaudAuthExceptionTests
         ex.Message.Should().Contain(stderr);
         ex.Message.Should().Contain("Plaud__TokensJson");
     }
+
+    [Fact]
+    public void PlaudAuthExpiredException_WithInnerException_SetsInnerException()
+    {
+        var inner = new InvalidOperationException("root cause");
+
+        var ex = new PlaudAuthExpiredException("[AUTH_FAILED] Token invalid or expired", inner);
+
+        ex.InnerException.Should().BeSameAs(inner);
+        ex.Message.Should().Contain("AUTH_FAILED");
+    }
 }
