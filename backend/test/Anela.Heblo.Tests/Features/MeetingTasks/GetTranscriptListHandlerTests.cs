@@ -101,4 +101,79 @@ public class GetTranscriptListHandlerTests
             r => r.GetListAsync(null, null, false, true, null, 1, 20, It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    private void SetupRepositoryReturnsEmpty()
+    {
+        _repositoryMock
+            .Setup(r => r.GetListAsync(
+                It.IsAny<MeetingTranscriptStatus?>(),
+                It.IsAny<string?>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<MeetingTranscript>(), 0));
+    }
+
+    [Fact]
+    public async Task Handle_ForwardsSearchText_ToRepository()
+    {
+        // Arrange
+        SetupRepositoryReturnsEmpty();
+        var request = new GetTranscriptListRequest
+        {
+            SearchText = "sprint",
+            PageNumber = 1,
+            PageSize = 20
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        _repositoryMock.Verify(
+            r => r.GetListAsync(null, "sprint", false, true, null, 1, 20, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_ForwardsSearchInTranscriptTrue_ToRepository()
+    {
+        // Arrange
+        SetupRepositoryReturnsEmpty();
+        var request = new GetTranscriptListRequest
+        {
+            SearchText = "akce",
+            SearchInTranscript = true,
+            PageNumber = 1,
+            PageSize = 20
+        };
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        _repositoryMock.Verify(
+            r => r.GetListAsync(null, "akce", true, true, null, 1, 20, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_PassesNullSearchText_WhenSearchTextNotSet()
+    {
+        // Arrange
+        SetupRepositoryReturnsEmpty();
+        var request = new GetTranscriptListRequest { PageNumber = 1, PageSize = 20 };
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        _repositoryMock.Verify(
+            r => r.GetListAsync(null, null, false, true, null, 1, 20, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }
