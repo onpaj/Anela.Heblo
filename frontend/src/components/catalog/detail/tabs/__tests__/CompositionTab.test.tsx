@@ -147,6 +147,24 @@ describe('CompositionTab', () => {
     });
   });
 
+  it('shows phase header strip in read mode when ingredients have a phaseLabel', () => {
+    mockUseProductComposition.mockReturnValue({
+      data: {
+        ingredients: [
+          { productCode: 'ING001', productName: 'Bisabolol', amount: 50.5, unit: 'g', order: 1, phaseLabel: 'A' },
+          { productCode: 'ING002', productName: 'Vitamin E', amount: 100.25, unit: 'g', order: 2, phaseLabel: 'A' },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    } as any);
+    render(<CompositionTab productCode="TEST001" />, { wrapper: createWrapper() });
+
+    // Read mode — phase header visible, remove button NOT visible
+    expect(screen.getByText('Fáze A')).toBeInTheDocument();
+    expect(screen.queryByTitle(/Odebrat fázi/i)).not.toBeInTheDocument();
+  });
+
   it('Uložit forwards phaseLabel when ingredient has a phase', async () => {
     const mutateAsync = jest.fn().mockResolvedValue({ success: true });
     mockUseUpdateOrder.mockReturnValue({ mutateAsync, isPending: false } as any);

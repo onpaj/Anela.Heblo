@@ -27,7 +27,13 @@ export const useUpdateProductCompositionOrder = () => {
         new UpdateProductCompositionOrderRequest({
           productCode: payload.productCode,
           order: payload.order.map(
-            (item) => new GeneratedIngredientOrderItem(item),
+            (item) =>
+              new GeneratedIngredientOrderItem({
+                ingredientProductCode: item.ingredientProductCode,
+                sortOrder: item.sortOrder,
+                // Generated interface uses `string | undefined`; local type allows null — normalise here.
+                phaseLabel: item.phaseLabel ?? undefined,
+              }),
           ),
         }),
       );

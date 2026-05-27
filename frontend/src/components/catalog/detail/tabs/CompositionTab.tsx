@@ -356,22 +356,24 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
 
                     return (
                       <React.Fragment key={ingredient.productCode}>
-                        {/* Phase header strip — inserted before the first ingredient of each phase in edit mode */}
-                        {isEditMode && isFirstInPhase && (
+                        {/* Phase header strip — shown in both read and edit mode */}
+                        {isFirstInPhase && currentPhase && (
                           <tr className="bg-indigo-50 border-t border-indigo-200">
                             <td colSpan={columnCount} className="px-4 py-1">
                               <div className="flex items-center justify-between">
                                 <span className="text-sm font-semibold text-indigo-700">
                                   Fáze {currentPhase}
                                 </span>
-                                <button
-                                  type="button"
-                                  onClick={() => removePhase(currentPhase!)}
-                                  className="text-indigo-400 hover:text-red-500 text-lg leading-none px-1"
-                                  title={`Odebrat fázi ${currentPhase}`}
-                                >
-                                  ×
-                                </button>
+                                {isEditMode && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removePhase(currentPhase!)}
+                                    className="text-indigo-400 hover:text-red-500 text-lg leading-none px-1"
+                                    title={`Odebrat fázi ${currentPhase}`}
+                                  >
+                                    ×
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
