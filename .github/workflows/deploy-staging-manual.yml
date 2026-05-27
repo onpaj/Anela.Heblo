@@ -141,7 +141,9 @@ jobs:
               DOCKER_REGISTRY_SERVER_URL=https://index.docker.io \
               SCM_DO_BUILD_DURING_DEPLOYMENT=false \
               APP_VERSION="${{ steps.resolve.outputs.version }}" \
-              DEPLOYMENT_SOURCE="${{ steps.resolve.outputs.deployment_source }}"
+              DEPLOYMENT_SOURCE="${{ steps.resolve.outputs.deployment_source }}" \
+              APPLICATIONINSIGHTS_CONNECTION_STRING="${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING_STAGING }}" \
+              ApplicationInsights__ConnectionString="${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING_STAGING }}"
 
       - name: ⏳ Wait for deployment to be ready
         run: |
