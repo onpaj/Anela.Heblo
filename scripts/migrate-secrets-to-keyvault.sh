@@ -16,8 +16,7 @@
 #
 # Phases:
 #   migrate (default): create KV if missing, enable managed identity on Web App,
-#                      grant RBAC, copy values from App Settings to KV, prompt for
-#                      secrets that live in appsettings.json, set KeyVault__Uri.
+#                      grant RBAC, copy values from App Settings to KV, set KeyVault__Uri.
 #                      Leaves old App Settings in place so old build still works.
 #   cleanup:           delete the migrated App Settings entries. Run only after the
 #                      new build (with AddAzureKeyVault wired up) is deployed and
@@ -83,22 +82,16 @@ APP_SETTING_KEYS=(
     "WebSearch__ApiKey"
     "Cups__Username"
     "Cups__Password"
-)
-
-# --- Secrets that live in appsettings.json today (or are otherwise not in App Settings).
-# Script prompts for each, only when the secret is missing from KV.
-# Format: "<friendly config key>|<KV secret name>"
-INTERACTIVE_SECRETS=(
-    "Comgate:MerchantId|Comgate--MerchantId"
-    "Comgate:Secret|Comgate--Secret"
-    "Shoptet:Token|Shoptet--Token"
-    "ShoptetPay:ApiToken|ShoptetPay--ApiToken"
-    "FlexiBeeSettings:Login|FlexiBeeSettings--Login"
-    "FlexiBeeSettings:Password|FlexiBeeSettings--Password"
-    "FlexiBeeSettings:Company|FlexiBeeSettings--Company"
-    "StockClient:Url|StockClient--Url"
-    "ProductPriceOptions:ProductExportUrl|ProductPriceOptions--ProductExportUrl"
-    "ExpeditionList:BlobConnectionString|ExpeditionList--BlobConnectionString"
+    "Comgate__MerchantId"
+    "Comgate__Secret"
+    "Shoptet__Token"
+    "ShoptetPay__ApiToken"
+    "FlexiBeeSettings__Login"
+    "FlexiBeeSettings__Password"
+    "FlexiBeeSettings__Company"
+    "StockClient__Url"
+    "ProductPriceOptions__ProductExportUrl"
+    "ExpeditionList__BlobConnectionString"
 )
 
 log() { echo "[$(date +%H:%M:%S)] $*"; }
@@ -168,11 +161,7 @@ phase_migrate() {
     fi
 
     log "Reading current App Settings from $WEBAPP"
-    if $DRY_RUN; then
-        SETTINGS_JSON="[]"
-    else
-        SETTINGS_JSON=$(az webapp config appsettings list -g "$RG" -n "$WEBAPP" -o json)
-    fi
+    SETTINGS_JSON=$(az webapp config appsettings list -g "$RG" -n "$WEBAPP" -o json)
 
     log "Migrating App Setting keys -> Key Vault"
     for app_key in "${APP_SETTING_KEYS[@]}"; do
@@ -184,28 +173,6 @@ phase_migrate() {
         kv_name="${app_key//__/--}"
         log "  -> $kv_name"
         run az keyvault secret set --vault-name "$KV" --name "$kv_name" --value "$value" -o none
-    done
-
-    log "Prompting for secrets currently in appsettings.json"
-    for entry in "${INTERACTIVE_SECRETS[@]}"; do
-        cfg_key="${entry%%|*}"
-        kv_name="${entry##*|}"
-        if az keyvault secret show --vault-name "$KV" --name "$kv_name" -o none 2>/dev/null; then
-            log "  EXISTS $kv_name (skip)"
-            continue
-        fi
-        if $DRY_RUN; then
-            echo "DRY: would prompt for $cfg_key -> $kv_name"
-            continue
-        fi
-        echo
-        read -r -s -p "  Value for $cfg_key ($ENV_ARG, leave empty to skip): " value; echo
-        if [[ -z "$value" ]]; then
-            log "  EMPTY (skipped)"
-            continue
-        fi
-        run az keyvault secret set --vault-name "$KV" --name "$kv_name" --value "$value" -o none
-        log "  -> $kv_name"
     done
 
     log "Setting KeyVault__Uri on $WEBAPP"
@@ -233,19 +200,23 @@ phase_cleanup() {
     log "Env=$ENV_ARG  WebApp=$WEBAPP  KeyVault=$KV  Cleanup migrated App Settings  DryRun=$DRY_RUN"
 
     # Safety gate 1: KV must exist.
-    if ! az keyvault show -n "$KV" -g "$RG" -o none 2>/dev/null; then
-        echo "ERROR: Key Vault $KV does not exist. Run --phase=migrate first." >&2
-        exit 1
+    if ! $DRY_RUN; then
+        if ! az keyvault show -n "$KV" -g "$RG" -o none 2>/dev/null; then
+            echo "ERROR: Key Vault $KV does not exist. Run --phase=migrate first." >&2
+            exit 1
+        fi
     fi
 
     # Safety gate 2: Web App must already be pointing at the KV.
-    KV_URI_SET=$(az webapp config appsettings list -g "$RG" -n "$WEBAPP" -o json \
-        | jq -r '.[] | select(.name=="KeyVault__Uri") | .value')
-    if [[ -z "$KV_URI_SET" || "$KV_URI_SET" == "null" ]]; then
-        echo "ERROR: KeyVault__Uri is not set on $WEBAPP. Run --phase=migrate first and deploy the new build before cleanup." >&2
-        exit 1
+    if ! $DRY_RUN; then
+        KV_URI_SET=$(az webapp config appsettings list -g "$RG" -n "$WEBAPP" -o json \
+            | jq -r '.[] | select(.name=="KeyVault__Uri") | .value')
+        if [[ -z "$KV_URI_SET" || "$KV_URI_SET" == "null" ]]; then
+            echo "ERROR: KeyVault__Uri is not set on $WEBAPP. Run --phase=migrate first and deploy the new build before cleanup." >&2
+            exit 1
+        fi
+        log "  KeyVault__Uri on $WEBAPP = $KV_URI_SET"
     fi
-    log "  KeyVault__Uri on $WEBAPP = $KV_URI_SET"
 
     # Safety gate 3: explicit confirmation (extra layer beyond the prod gate at the top).
     if ! $DRY_RUN; then
