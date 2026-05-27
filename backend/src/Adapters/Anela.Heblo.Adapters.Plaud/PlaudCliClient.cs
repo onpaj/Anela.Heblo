@@ -119,8 +119,9 @@ public sealed class PlaudCliClient : IPlaudClient
                 {
                     throw new PlaudAuthExpiredException(trimmed);
                 }
+                var suffix = trimmed.Length > 0 ? $": {trimmed}" : string.Empty;
                 throw new InvalidOperationException(
-                    $"Plaud CLI exited with code {process.ExitCode}: {trimmed}");
+                    $"Plaud CLI exited with code {process.ExitCode}{suffix}");
             }
 
             if (!string.IsNullOrEmpty(error))
