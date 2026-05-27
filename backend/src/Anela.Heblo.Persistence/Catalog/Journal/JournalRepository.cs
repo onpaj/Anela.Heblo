@@ -9,6 +9,7 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
     public class JournalRepository : BaseRepository<JournalEntry, int>, IJournalRepository
     {
         private readonly ILogger<JournalRepository> _logger;
+        private const int RecentEntriesDays = 30;
 
         public JournalRepository(ApplicationDbContext context, ILogger<JournalRepository> logger)
             : base(context)
@@ -162,20 +163,14 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<Dictionary<string, JournalIndicator>> GetJournalIndicatorsAsync(
+        public async Task<Dictionary<string, JournalIndicatorSnapshot>> GetJournalIndicatorsAsync(
             IEnumerable<string> productCodes,
             CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(productCodes);
             var productCodeList = productCodes.ToList();
-            var result = new Dictionary<string, JournalIndicator>();
 
-            // Initialize all product codes
-            foreach (var productCode in productCodeList)
-            {
-                result[productCode] = new JournalIndicator { ProductCode = productCode };
-            }
-
-            // Get direct associations
+            // Aggregate direct associations into a per-product accumulator.
             var directAssociations = await Context.Set<JournalEntryProduct>()
                 .Where(jep => productCodeList.Contains(jep.ProductCodePrefix))
                 .Join(Context.Set<JournalEntry>().Where(je => !je.IsDeleted),
@@ -191,18 +186,28 @@ namespace Anela.Heblo.Persistence.Catalog.Journal
                 })
                 .ToListAsync(cancellationToken);
 
-            foreach (var da in directAssociations)
-            {
-                result[da.ProductCode].DirectEntries = da.Count;
-                result[da.ProductCode].LastEntryDate = da.LastEntryDate;
-            }
+            var aggregatesByProduct = directAssociations.ToDictionary(x => x.ProductCode);
 
-            // Calculate recent entries (within last 30 days)
-            var thirtyDaysAgo = DateTime.Today.AddDays(-30);
-            foreach (var indicator in result.Values)
+            var thirtyDaysAgo = DateTime.Today.AddDays(-RecentEntriesDays);
+            var result = new Dictionary<string, JournalIndicatorSnapshot>(productCodeList.Count);
+
+            foreach (var productCode in productCodeList)
             {
-                indicator.HasRecentEntries = indicator.LastEntryDate.HasValue &&
-                                           indicator.LastEntryDate.Value >= thirtyDaysAgo;
+                if (aggregatesByProduct.TryGetValue(productCode, out var aggregate))
+                {
+                    var hasRecentEntries = aggregate.LastEntryDate >= thirtyDaysAgo;
+                    result[productCode] = new JournalIndicatorSnapshot(
+                        DirectEntries: aggregate.Count,
+                        LastEntryDate: aggregate.LastEntryDate,
+                        HasRecentEntries: hasRecentEntries);
+                }
+                else
+                {
+                    result[productCode] = new JournalIndicatorSnapshot(
+                        DirectEntries: 0,
+                        LastEntryDate: null,
+                        HasRecentEntries: false);
+                }
             }
 
             return result;
