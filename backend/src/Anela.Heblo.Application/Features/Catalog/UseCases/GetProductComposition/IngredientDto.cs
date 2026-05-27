@@ -15,4 +15,7 @@ public class IngredientDto
 
     [JsonPropertyName("unit")]
     public string Unit { get; set; }
+
+    [JsonPropertyName("order")]
+    public int Order { get; set; }
 }
