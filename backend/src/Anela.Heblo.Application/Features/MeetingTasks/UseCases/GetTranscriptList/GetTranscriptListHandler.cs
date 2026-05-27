@@ -29,8 +29,8 @@ public class GetTranscriptListHandler : IRequestHandler<GetTranscriptListRequest
     public async Task<GetTranscriptListResponse> Handle(GetTranscriptListRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation(
-            "Getting meeting transcript list — StatusFilter: {StatusFilter}, PageNumber: {PageNumber}, PageSize: {PageSize}",
-            request.StatusFilter, request.PageNumber, request.PageSize);
+            "Getting meeting transcript list — StatusFilter: {StatusFilter}, SearchText: {SearchText}, SearchInTranscript: {SearchInTranscript}, PageNumber: {PageNumber}, PageSize: {PageSize}",
+            request.StatusFilter, request.SearchText, request.SearchInTranscript, request.PageNumber, request.PageSize);
 
         MeetingTranscriptStatus? statusFilter = null;
         if (!string.IsNullOrWhiteSpace(request.StatusFilter)
@@ -44,6 +44,8 @@ public class GetTranscriptListHandler : IRequestHandler<GetTranscriptListRequest
 
         var (items, totalCount) = await _repository.GetListAsync(
             statusFilter,
+            request.SearchText,
+            request.SearchInTranscript,
             isManager,
             userEmail,
             request.PageNumber,

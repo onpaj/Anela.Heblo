@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock, CheckCircle, CheckCircle2, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import {
@@ -66,7 +66,26 @@ const MeetingTasksPage: React.FC = () => {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(1);
-  const { data, isLoading, refetch, isFetching } = useMeetingTasksList(statusFilter, page, PAGE_SIZE);
+  const [searchInput, setSearchInput] = useState("");
+  const [searchInTranscript, setSearchInTranscript] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, searchInTranscript]);
+
+  const { data, isLoading, refetch, isFetching } = useMeetingTasksList(
+    statusFilter,
+    debouncedSearch || undefined,
+    searchInTranscript,
+    page,
+    PAGE_SIZE,
+  );
 
   const items = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
@@ -113,10 +132,27 @@ const MeetingTasksPage: React.FC = () => {
         <p className="mt-2 text-gray-600">Validace AI-extrahovanych ukolu ze schuzek pred odeslanim do Microsoft TODO</p>
       </div>
 
-      <div className="flex-shrink-0 mb-3 px-4 sm:px-6 lg:px-8 flex gap-2">
+      <div className="flex-shrink-0 mb-3 px-4 sm:px-6 lg:px-8 flex flex-wrap items-center gap-2">
         {filterButton("Vse", undefined)}
         {filterButton("Ke kontrole", "PendingReview" as TranscriptStatus)}
         {filterButton("Schvaleno", "Approved" as TranscriptStatus)}
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Hledat..."
+          aria-label="Hledat v poradach"
+          className="px-3 py-1.5 rounded-md text-sm border border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+        />
+        <label className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={searchInTranscript}
+            onChange={(e) => setSearchInTranscript(e.target.checked)}
+            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          Hledat i v prepisu
+        </label>
       </div>
 
       <div className="flex-1 px-4 sm:px-6 lg:px-8 overflow-auto">

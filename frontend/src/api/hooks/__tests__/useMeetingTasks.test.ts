@@ -53,7 +53,7 @@ describe('useMeetingTasks', () => {
 
       const { wrapper } = createQueryClientWrapper();
       const { result } = renderHook(
-        () => useMeetingTasksList('PendingReview', 2, 20),
+        () => useMeetingTasksList('PendingReview', undefined, false, 2, 20),
         { wrapper },
       );
 
@@ -71,7 +71,7 @@ describe('useMeetingTasks', () => {
         json: () => Promise.resolve({ success: true, items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0 }),
       });
       const { wrapper } = createQueryClientWrapper();
-      renderHook(() => useMeetingTasksList(undefined, 1, 20), { wrapper });
+      renderHook(() => useMeetingTasksList(undefined, undefined, false, 1, 20), { wrapper });
       await waitFor(() => expect(mockFetch).toHaveBeenCalled());
       expect(mockFetch).toHaveBeenCalledWith(
         `${mockClient.baseUrl}/api/meeting-tasks?pageNumber=1&pageSize=20`,
@@ -82,7 +82,7 @@ describe('useMeetingTasks', () => {
     it('throws "API error: {status}" on non-2xx', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 500, json: () => Promise.resolve({}) });
       const { wrapper } = createQueryClientWrapper();
-      const { result } = renderHook(() => useMeetingTasksList(undefined, 1, 20), { wrapper });
+      const { result } = renderHook(() => useMeetingTasksList(undefined, undefined, false, 1, 20), { wrapper });
       await waitFor(() => expect(result.current.isError).toBe(true));
       expect((result.current.error as Error).message).toBe('API error: 500');
     });
@@ -103,12 +103,12 @@ describe('useMeetingTasks', () => {
       const freshWrapper = ({ children }: { children: React.ReactNode }) =>
         React.createElement(QCP, { client: freshClient }, children);
 
-      const { result, unmount } = renderHook(() => useMeetingTasksList(undefined, 1, 20), { wrapper: freshWrapper });
+      const { result, unmount } = renderHook(() => useMeetingTasksList(undefined, undefined, false, 1, 20), { wrapper: freshWrapper });
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(mockFetch).toHaveBeenCalledTimes(1);
 
       unmount();
-      const { result: result2 } = renderHook(() => useMeetingTasksList(undefined, 1, 20), { wrapper: freshWrapper });
+      const { result: result2 } = renderHook(() => useMeetingTasksList(undefined, undefined, false, 1, 20), { wrapper: freshWrapper });
       await waitFor(() => expect(result2.current.isSuccess).toBe(true));
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });

@@ -6,6 +6,8 @@ public interface IMeetingTranscriptRepository
 
     Task<(List<MeetingTranscript> Items, int TotalCount)> GetListAsync(
         MeetingTranscriptStatus? statusFilter,
+        string? searchText,
+        bool searchInTranscript,
         bool isManager,
         string? userEmail,
         int page,
