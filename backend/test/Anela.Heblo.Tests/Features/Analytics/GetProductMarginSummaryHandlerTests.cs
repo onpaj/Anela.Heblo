@@ -9,7 +9,6 @@ using Anela.Heblo.Application.Features.Analytics.Infrastructure;
 using Anela.Heblo.Application.Features.Analytics.Services;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSummary;
 using Anela.Heblo.Domain.Features.Analytics;
-using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -58,7 +57,7 @@ public class GetProductMarginSummaryHandlerTests
             {
                 ProductCode = "PROD001",
                 ProductName = "Product 1",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 MarginAmount = 100m,
                 M0Amount = 100m,
                 M1Amount = 100m,
@@ -72,7 +71,7 @@ public class GetProductMarginSummaryHandlerTests
             {
                 ProductCode = "PROD002",
                 ProductName = "Product 2",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 MarginAmount = 50m,
                 M0Amount = 50m,
                 M1Amount = 50m,
@@ -87,7 +86,7 @@ public class GetProductMarginSummaryHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(fromDate, toDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(analyticsProducts.ToAsyncEnumerable());
 
         // Act
@@ -122,7 +121,7 @@ public class GetProductMarginSummaryHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(),
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(new List<AnalyticsProduct>().ToAsyncEnumerable());
 
         // Act
@@ -151,7 +150,7 @@ public class GetProductMarginSummaryHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(fromDate, toDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(new List<AnalyticsProduct>().ToAsyncEnumerable());
 
         // Act

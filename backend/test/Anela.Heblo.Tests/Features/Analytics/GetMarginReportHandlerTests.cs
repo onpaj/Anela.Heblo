@@ -11,7 +11,6 @@ using Anela.Heblo.Application.Features.Analytics.Models;
 using Anela.Heblo.Application.Features.Analytics.UseCases.GetMarginReport;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Analytics;
-using Anela.Heblo.Domain.Features.Catalog;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -125,7 +124,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD001",
                 ProductName = "Product 1",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Electronics",
                 MarginAmount = 100m,
                 SellingPrice = 150m,
@@ -138,7 +137,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD002",
                 ProductName = "Product 2",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Books",
                 MarginAmount = 50m,
                 SellingPrice = 80m,
@@ -152,7 +151,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(analyticsProducts.ToAsyncEnumerable());
 
         // Act
@@ -245,7 +244,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(new List<AnalyticsProduct>().ToAsyncEnumerable());
 
         // Act
@@ -277,7 +276,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD001",
                 ProductName = "Product 1",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Electronics",
                 MarginAmount = 100m,
                 SellingPrice = 150m,
@@ -290,7 +289,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD002",
                 ProductName = "Different Product",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Books",
                 MarginAmount = 50m,
                 SellingPrice = 80m,
@@ -303,7 +302,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(analyticsProducts.ToAsyncEnumerable());
 
         // Act
@@ -334,7 +333,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD001",
                 ProductName = "Product 1",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Electronics",
                 MarginAmount = 100m,
                 SellingPrice = 150m,
@@ -347,7 +346,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD002",
                 ProductName = "Product 2",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Books",
                 MarginAmount = 50m,
                 SellingPrice = 80m,
@@ -360,7 +359,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(analyticsProducts.ToAsyncEnumerable());
 
         // Act
@@ -392,7 +391,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD001",
                 ProductName = "Product 1",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Electronics",
                 MarginAmount = 100m,
                 SellingPrice = 150m,
@@ -405,7 +404,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD002",
                 ProductName = "Product 2",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Books",
                 MarginAmount = 50m,
                 SellingPrice = 80m,
@@ -418,7 +417,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(analyticsProducts.ToAsyncEnumerable());
 
         // Act
@@ -447,7 +446,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD001",
                 ProductName = "Product with Sales",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Electronics",
                 MarginAmount = 100m,
                 SellingPrice = 150m,
@@ -460,7 +459,7 @@ public class GetMarginReportHandlerTests
             {
                 ProductCode = "PROD002",
                 ProductName = "Product with Zero Sales",
-                Type = ProductType.Product,
+                Type = AnalyticsProductType.Product,
                 ProductCategory = "Books",
                 MarginAmount = 50m,
                 SellingPrice = 80m,
@@ -473,7 +472,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(analyticsProducts.ToAsyncEnumerable());
 
         // Act
@@ -500,7 +499,7 @@ public class GetMarginReportHandlerTests
 
         _analyticsRepositoryMock
             .Setup(x => x.StreamProductsWithSalesAsync(request.StartDate, request.EndDate,
-                It.IsAny<ProductType[]>(), It.IsAny<CancellationToken>()))
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
             .Returns(ThrowAsync<AnalyticsProduct>(new Exception("Database connection failed")));
 
         // Act

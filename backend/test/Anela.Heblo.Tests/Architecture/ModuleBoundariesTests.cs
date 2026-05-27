@@ -16,7 +16,8 @@ public class ModuleBoundariesTests
         string Name,
         string InspectedNamespacePrefix,
         IReadOnlyList<string> ForbiddenNamespacePrefixes,
-        IReadOnlySet<string> Allowlist);
+        IReadOnlySet<string> Allowlist,
+        string InspectedAssembly = "Anela.Heblo.Application");
 
     // Pre-existing allowlist for Leaflet → KnowledgeBase. Each entry needs a comment with the
     // justification. Entries should be removed as the underlying violations are fixed.
@@ -158,13 +159,36 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.ExpeditionList",
             },
             Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "Analytics (Application) -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
+            Name: "Analytics (Domain) -> Catalog",
+            InspectedNamespacePrefix: "Anela.Heblo.Domain.Features.Analytics",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.Catalog",
+                "Anela.Heblo.Application.Features.Catalog",
+                "Anela.Heblo.Persistence.Catalog",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal),
+            InspectedAssembly: "Anela.Heblo.Domain"),
     };
 
     [Theory]
     [MemberData(nameof(Rules))]
     public void Consumer_types_should_not_reference_provider_owned_namespaces(ModuleBoundaryRule rule)
     {
-        var assembly = Assembly.Load("Anela.Heblo.Application");
+        var assembly = Assembly.Load(rule.InspectedAssembly);
         var consumerTypes = assembly.GetTypes()
             .Where(t => t.Namespace is not null
                 && t.Namespace.StartsWith(rule.InspectedNamespacePrefix, StringComparison.Ordinal))
