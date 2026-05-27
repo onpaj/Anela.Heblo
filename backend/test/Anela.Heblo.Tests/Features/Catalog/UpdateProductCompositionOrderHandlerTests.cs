@@ -240,6 +240,38 @@ public class UpdateProductCompositionOrderHandlerTests
     }
 
     [Fact]
+    public async Task Handle_InvalidPhaseLabel_NonLetterChar_NormalizesToNull()
+    {
+        // Arrange
+        var template = BuildTemplate((100, "MAT-A"));
+        _manufactureClientMock
+            .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+        SetupSetBomItemsOrderAndPhaseAsync();
+
+        var request = new UpdateProductCompositionOrderRequest
+        {
+            ProductCode = "PRD1",
+            Order = new List<IngredientOrderItem>
+            {
+                new() { IngredientProductCode = "MAT-A", SortOrder = 1, PhaseLabel = "1" }, // digit — invalid
+            }
+        };
+
+        // Act
+        await _handler.Handle(request, CancellationToken.None);
+
+        // Assert: "1" normalized to null
+        _manufactureClientMock.Verify(
+            x => x.SetBomItemsOrderAndPhaseAsync(
+                "PRD1",
+                It.Is<IEnumerable<(int, int, string?)>>(seq =>
+                    seq.Single().Item3 == null),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_NullPhaseLabel_ForwardedAsNull()
     {
         // Arrange

@@ -24,8 +24,8 @@ const createWrapper = () => {
 };
 
 const sampleIngredients = [
-  { productCode: 'ING001', productName: 'Bisabolol', amount: 50.5, unit: 'g', order: 1 },
-  { productCode: 'ING002', productName: 'Vitamin E', amount: 100.25, unit: 'g', order: 2 },
+  { productCode: 'ING001', productName: 'Bisabolol', amount: 50.5, unit: 'g', order: 1, phaseLabel: null },
+  { productCode: 'ING002', productName: 'Vitamin E', amount: 100.25, unit: 'g', order: 2, phaseLabel: null },
 ];
 
 beforeEach(() => {
@@ -141,8 +141,36 @@ describe('CompositionTab', () => {
     expect(mutateAsync).toHaveBeenCalledWith({
       productCode: 'TEST001',
       order: [
-        { ingredientProductCode: 'ING001', sortOrder: 1 },
-        { ingredientProductCode: 'ING002', sortOrder: 2 },
+        { ingredientProductCode: 'ING001', sortOrder: 1, phaseLabel: null },
+        { ingredientProductCode: 'ING002', sortOrder: 2, phaseLabel: null },
+      ],
+    });
+  });
+
+  it('Uložit forwards phaseLabel when ingredient has a phase', async () => {
+    const mutateAsync = jest.fn().mockResolvedValue({ success: true });
+    mockUseUpdateOrder.mockReturnValue({ mutateAsync, isPending: false } as any);
+    mockUseProductComposition.mockReturnValue({
+      data: {
+        ingredients: [
+          { productCode: 'ING001', productName: 'Bisabolol', amount: 50.5, unit: 'g', order: 1, phaseLabel: 'A' },
+          { productCode: 'ING002', productName: 'Vitamin E', amount: 100.25, unit: 'g', order: 2, phaseLabel: null },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    } as any);
+    render(<CompositionTab productCode="TEST001" />, { wrapper: createWrapper() });
+
+    fireEvent.click(screen.getByRole('button', { name: /Upravit pořadí/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Uložit/i }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    expect(mutateAsync).toHaveBeenCalledWith({
+      productCode: 'TEST001',
+      order: [
+        { ingredientProductCode: 'ING001', sortOrder: 1, phaseLabel: 'A' },
+        { ingredientProductCode: 'ING002', sortOrder: 2, phaseLabel: null },
       ],
     });
   });

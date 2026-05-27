@@ -197,6 +197,7 @@ internal class FlexiManufactureClient : IManufactureClient
         return await _templateService.GetManufactureTemplateAsync(id, cancellationToken);
     }
 
+    [Obsolete("Use SetBomItemsOrderAndPhaseAsync. Kept for compatibility.")]
     public async Task SetBomItemsOrderAsync(
         string productCode,
         IEnumerable<(int BoMItemId, int Order)> items,

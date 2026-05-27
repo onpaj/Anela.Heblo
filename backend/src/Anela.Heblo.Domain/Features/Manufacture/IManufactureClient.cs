@@ -17,6 +17,7 @@ public interface IManufactureClient
     /// </summary>
     /// <param name="productCode">Product code whose BoM is being reordered (used for cache invalidation).</param>
     /// <param name="items">Pairs of (BoMItemId, Order) to set. BoMItemId is <see cref="Ingredient.TemplateId"/>.</param>
+    [Obsolete("Use SetBomItemsOrderAndPhaseAsync which also persists the phase label. This method is kept for compatibility.")]
     Task SetBomItemsOrderAsync(
         string productCode,
         IEnumerable<(int BoMItemId, int Order)> items,

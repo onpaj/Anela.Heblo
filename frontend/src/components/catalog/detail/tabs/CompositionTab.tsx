@@ -24,12 +24,12 @@ interface CompositionTabProps {
 }
 
 /** Drop-zone row rendered for an empty phase in edit mode. */
-const PhaseDropZoneRow: React.FC<{ phase: string }> = ({ phase }) => {
+const PhaseDropZoneRow: React.FC<{ phase: string; columnCount: number }> = ({ phase, columnCount }) => {
   const { setNodeRef, isOver } = useDroppable({ id: `phase:${phase}` });
   return (
     <tr>
       <td
-        colSpan={6}
+        colSpan={columnCount}
         ref={setNodeRef}
         className={`py-4 text-center text-sm border-2 border-dashed rounded transition-colors ${
           isOver ? 'border-indigo-400 bg-indigo-50 text-indigo-600' : 'border-gray-200 text-gray-400'
@@ -407,7 +407,7 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
                           </div>
                         </td>
                       </tr>
-                      <PhaseDropZoneRow phase={phase} />
+                      <PhaseDropZoneRow phase={phase} columnCount={columnCount} />
                     </React.Fragment>
                   ))}
                 </tbody>
