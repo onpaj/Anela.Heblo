@@ -205,7 +205,7 @@ describe("BatchPlanningCalculator", () => {
       expect(screen.getByTestId("semiproduct-input")).toBeInTheDocument();
     });
 
-    it("should expose all quick date range presets including 9M", () => {
+    it("should render period dropdown with Q9M selected by default", () => {
       const Wrapper = createWrapper();
       render(
         <Wrapper>
@@ -213,12 +213,20 @@ describe("BatchPlanningCalculator", () => {
         </Wrapper>
       );
 
-      // All four sales-bin presets must be present so users can pick Q9M
-      // alongside the single-range presets.
-      expect(screen.getByRole("button", { name: "LastQ" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Y2Y" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "NextQ" })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "9M" })).toBeInTheDocument();
+      // Period dropdown replaces the four quick-range buttons
+      const periodSelect = screen.getByLabelText(/Časové období/i);
+      expect(periodSelect).toBeInTheDocument();
+
+      // All six options are present
+      expect(screen.getByRole("option", { name: "Minulý kvartal" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Budoucí kvartal" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Y2Y (12 měsíců)" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Předchozí sezona" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "9M (6 měsíců + prognóza 3 měsíce)" })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Vlastní období" })).toBeInTheDocument();
+
+      // Q9M is selected by default
+      expect(periodSelect).toHaveValue("Q9M");
     });
   });
 

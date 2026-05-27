@@ -22,7 +22,8 @@ import { QUERY_KEYS } from "../../api/client";
 import ManufactureOrderDetail from "../manufacture/pages/ManufactureOrderDetail";
 import { usePlanningList } from "../../contexts/PlanningListContext";
 import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
-import { TimePeriod, resolveTimePeriod } from '../../utils/timePeriod';
+import { TimePeriod, resolveTimePeriod, getTimePeriodDisplayText } from '../../utils/timePeriod';
+import { calculateTimePeriodRange } from '../../api/hooks/useManufacturingStockAnalysis';
 import { useScreenView } from '../../telemetry/useScreenView';
 
 const BatchPlanningCalculator: React.FC = () => {
@@ -50,10 +51,15 @@ const BatchPlanningCalculator: React.FC = () => {
   
   // Sales settings state
   const [salesMultiplier, setSalesMultiplier] = useState<number>(1.3);
-  const [fromDate, setFromDate] = useState<Date>(resolveTimePeriod(TimePeriod.Y2Y).primary?.from ?? new Date());
-  const [toDate, setToDate] = useState<Date>(new Date());
-  // Tracks the active multi-range preset (e.g. Q9M). When null, payload uses single [fromDate, toDate] range.
-  const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod | null>(null);
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>(TimePeriod.Q9M);
+  // Only used when selectedTimePeriod === TimePeriod.CustomPeriod.
+  // Seeded from Q9M's primary range so the Custom pickers open with a sensible default.
+  const [fromDate, setFromDate] = useState<Date>(
+    resolveTimePeriod(TimePeriod.Q9M).primary?.from ?? new Date()
+  );
+  const [toDate, setToDate] = useState<Date>(
+    resolveTimePeriod(TimePeriod.Q9M).primary?.to ?? new Date()
+  );
   
   // Product constraints state (for fixed quantities)
   const [productConstraints, setProductConstraints] = useState<Map<string, { isFixed: boolean; quantity: number }>>(new Map());
@@ -237,43 +243,46 @@ const BatchPlanningCalculator: React.FC = () => {
     : productGridData;
 
 
-  // Quick date range selectors
-  type QuickRangeType = "lastq" | "y2y" | "nextq" | "9m";
-  const quickRangePeriodMap: Record<QuickRangeType, TimePeriod> = {
-    lastq: TimePeriod.PreviousQuarter,
-    y2y: TimePeriod.Y2Y,
-    nextq: TimePeriod.FutureQuarter,
-    "9m": TimePeriod.Q9M,
-  };
-
-  const handleQuickDateRange = (type: QuickRangeType) => {
-    const period = quickRangePeriodMap[type];
-    const resolved = resolveTimePeriod(period);
-    if (!resolved.primary) return;
-    setFromDate(resolved.primary.from);
-    setToDate(resolved.primary.to);
-    // Multi-range presets (currently only Q9M) must be carried as TimePeriod so backend
-    // aggregates sales across all ranges. Single-range presets clear the override.
-    setSelectedTimePeriod(resolved.ranges.length > 1 ? period : null);
+  const handleTimePeriodChange = (period: TimePeriod) => {
+    if (period === TimePeriod.CustomPeriod) {
+      // Seed Custom pickers from Q9M primary range so user has a sensible starting point.
+      const range = calculateTimePeriodRange(TimePeriod.Q9M);
+      if (range) {
+        setFromDate(range.fromDate);
+        setToDate(range.toDate);
+      }
+    }
+    setSelectedTimePeriod(period);
     setNeedsRecalculation(true);
   };
 
-  // Get tooltip text for date range buttons. For multi-range presets, lists all ranges.
-  const getDateRangeTooltip = (type: QuickRangeType) => {
-    const resolved = resolveTimePeriod(quickRangePeriodMap[type]);
-    if (resolved.ranges.length === 0) return "";
-    return resolved.ranges
-      .map((r) => `${r.from.toLocaleDateString("cs-CZ")} - ${r.to.toLocaleDateString("cs-CZ")}`)
-      .join(" | ");
+  const getTimePeriodTooltip = (period: TimePeriod): string => {
+    if (period === TimePeriod.CustomPeriod) {
+      return `${fromDate.toLocaleDateString("cs-CZ")} - ${toDate.toLocaleDateString("cs-CZ")}`;
+    }
+    const range = calculateTimePeriodRange(period);
+    if (!range) return getTimePeriodDisplayText(period);
+    if (range.ranges && range.ranges.length > 1) {
+      return range.ranges
+        .map((r, i) => `Období ${String.fromCharCode('A'.charCodeAt(0) + i)}: ${r.from.toLocaleDateString("cs-CZ")} – ${r.to.toLocaleDateString("cs-CZ")}`)
+        .join("\n");
+    }
+    return `${range.fromDate.toLocaleDateString("cs-CZ")} - ${range.toDate.toLocaleDateString("cs-CZ")}`;
   };
 
-  const calculateBatchPlan = (semiproductCode: string, fromDateParam?: Date, toDateParam?: Date) => {
+  // Builds the period portion of any CalculateBatchPlanRequest.
+  // Named periods send only timePeriod (backend resolves ranges).
+  // CustomPeriod sends fromDate/toDate and no timePeriod.
+  const buildPeriodPayload = () =>
+    selectedTimePeriod === TimePeriod.CustomPeriod
+      ? { fromDate, toDate, timePeriod: undefined }
+      : { fromDate: undefined, toDate: undefined, timePeriod: selectedTimePeriod };
+
+  const calculateBatchPlan = (semiproductCode: string) => {
     const requestData: any = {
       productCode: semiproductCode,
       controlMode: controlMode,
-      fromDate: fromDateParam || fromDate,
-      toDate: toDateParam || toDate,
-      timePeriod: selectedTimePeriod ?? undefined,
+      ...buildPeriodPayload(),
       salesMultiplier: salesMultiplier,
       directSemiproductAmount: directSemiproductAmount > 0 ? directSemiproductAmount : undefined,
     };
@@ -296,9 +305,9 @@ const BatchPlanningCalculator: React.FC = () => {
     setNeedsRecalculation(false); // Clear the flag after calculation
   };
 
-  const calculateBatchPlanWithConstraints = (semiproductCode: string, fromDateParam?: Date, toDateParam?: Date) => {
+  const calculateBatchPlanWithConstraints = (semiproductCode: string) => {
     // Convert constraints Map to ProductSizeConstraint array
-    const constraints = Array.from(productConstraints.entries()).map(([productCode, constraint]) => 
+    const constraints = Array.from(productConstraints.entries()).map(([productCode, constraint]) =>
       new ProductSizeConstraint({
         productCode,
         isFixed: constraint.isFixed,
@@ -309,9 +318,7 @@ const BatchPlanningCalculator: React.FC = () => {
     const requestData: any = {
       productCode: semiproductCode,
       controlMode: controlMode,
-      fromDate: fromDateParam || fromDate,
-      toDate: toDateParam || toDate,
-      timePeriod: selectedTimePeriod ?? undefined,
+      ...buildPeriodPayload(),
       salesMultiplier: salesMultiplier,
       productConstraints: constraints,
       directSemiproductAmount: directSemiproductAmount > 0 ? directSemiproductAmount : undefined,
@@ -353,9 +360,7 @@ const BatchPlanningCalculator: React.FC = () => {
       const requestData: any = {
         productCode: product.productCode,
         controlMode: BatchPlanControlMode.MmqMultiplier,
-        fromDate: fromDate,
-        toDate: toDate,
-        timePeriod: selectedTimePeriod ?? undefined,
+        ...buildPeriodPayload(),
         salesMultiplier: salesMultiplier,
         mmqMultiplier: 1.0, // Use reset value
       };
@@ -395,9 +400,9 @@ const BatchPlanningCalculator: React.FC = () => {
   const handleManualCalculate = () => {
     if (selectedSemiproduct?.productCode) {
       if (productConstraints.size > 0) {
-        calculateBatchPlanWithConstraints(selectedSemiproduct.productCode, fromDate, toDate);
+        calculateBatchPlanWithConstraints(selectedSemiproduct.productCode);
       } else {
-        calculateBatchPlan(selectedSemiproduct.productCode, fromDate, toDate);
+        calculateBatchPlan(selectedSemiproduct.productCode);
       }
     }
   };
@@ -544,95 +549,82 @@ const BatchPlanningCalculator: React.FC = () => {
                       <Settings className="w-3 h-3 text-gray-500 mr-1" />
                       Nastavení prodejů
                     </h4>
-                    
-                    {/* First row: Sales Multiplier + Quick Date Range Buttons */}
-                    <div className="flex items-center gap-3">
-                      {/* Sales Multiplier */}
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs text-gray-600 whitespace-nowrap">Multiplikátor:</label>
+
+                    {/* Multiplier row */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-600 whitespace-nowrap">Multiplikátor:</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        max="9.9"
+                        value={salesMultiplier.toFixed(1)}
+                        onChange={(e) => {
+                          setSalesMultiplier(Number(e.target.value));
+                          setNeedsRecalculation(true);
+                        }}
+                        className="w-20 px-2 py-1 text-sm border border-gray-300 rounded text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        title="Sales Multiplier (1.0-9.9)"
+                      />
+                    </div>
+
+                    {/* Period dropdown row */}
+                    <div className="flex items-center gap-2">
+                      <label
+                        htmlFor="sales-period-select"
+                        className="text-xs text-gray-600 whitespace-nowrap"
+                      >
+                        Časové období:
+                      </label>
+                      <select
+                        id="sales-period-select"
+                        value={selectedTimePeriod}
+                        onChange={(e) => handleTimePeriodChange(e.target.value as TimePeriod)}
+                        className="px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+                        title={getTimePeriodTooltip(selectedTimePeriod)}
+                      >
+                        {[
+                          TimePeriod.PreviousQuarter,
+                          TimePeriod.FutureQuarter,
+                          TimePeriod.Y2Y,
+                          TimePeriod.PreviousSeason,
+                          TimePeriod.Q9M,
+                          TimePeriod.CustomPeriod,
+                        ].map((period) => (
+                          <option key={period} value={period}>
+                            {getTimePeriodDisplayText(period)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Custom date pickers — only visible when CustomPeriod is selected */}
+                    {selectedTimePeriod === TimePeriod.CustomPeriod && (
+                      <div className="flex gap-3 items-center">
+                        <label htmlFor="sales-from-date" className="text-xs text-gray-600 whitespace-nowrap">Datum od:</label>
                         <input
-                          type="number"
-                          step="0.1"
-                          min="0.1"
-                          max="9.9"
-                          value={salesMultiplier.toFixed(1)}
+                          id="sales-from-date"
+                          type="date"
+                          value={fromDate.toLocaleDateString('sv')}
                           onChange={(e) => {
-                            setSalesMultiplier(Number(e.target.value));
+                            setFromDate(new Date(e.target.value));
                             setNeedsRecalculation(true);
                           }}
-                          className="w-20 px-2 py-1 text-sm border border-gray-300 rounded text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                          title="Sales Multiplier (1.0-9.9)"
+                          className="w-44 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        />
+                        <label htmlFor="sales-to-date" className="text-xs text-gray-600 whitespace-nowrap">do:</label>
+                        <input
+                          id="sales-to-date"
+                          type="date"
+                          value={toDate.toLocaleDateString('sv')}
+                          onChange={(e) => {
+                            setToDate(new Date(e.target.value));
+                            setNeedsRecalculation(true);
+                          }}
+                          className="w-44 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
                         />
                       </div>
-
-                      {/* Spacer to push buttons to align with date pickers */}
-                      <div className="flex-1"></div>
-
-                      {/* Quick date range buttons - aligned with date pickers */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleQuickDateRange("lastq")}
-                          className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors"
-                          title={getDateRangeTooltip("lastq")}
-                        >
-                          LastQ
-                        </button>
-                        <button
-                          onClick={() => handleQuickDateRange("y2y")}
-                          className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors"
-                          title={getDateRangeTooltip("y2y")}
-                        >
-                          Y2Y
-                        </button>
-                        <button
-                          onClick={() => handleQuickDateRange("nextq")}
-                          className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded border border-gray-300 transition-colors"
-                          title={getDateRangeTooltip("nextq")}
-                        >
-                          NextQ
-                        </button>
-                        <button
-                          onClick={() => handleQuickDateRange("9m")}
-                          className={`px-3 py-1 text-xs rounded border transition-colors ${
-                            selectedTimePeriod === TimePeriod.Q9M
-                              ? "bg-indigo-100 hover:bg-indigo-200 text-indigo-700 border-indigo-300"
-                              : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300"
-                          }`}
-                          title={getDateRangeTooltip("9m")}
-                        >
-                          9M
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Second row: Date Pickers */}
-                    <div className="flex gap-3 items-center">
-                      <label className="text-xs text-gray-600 whitespace-nowrap">Datum od:</label>
-                      <input
-                        type="date"
-                        value={fromDate.toISOString().split('T')[0]}
-                        onChange={(e) => {
-                          const newFromDate = new Date(e.target.value);
-                          setFromDate(newFromDate);
-                          setSelectedTimePeriod(null);
-                          setNeedsRecalculation(true);
-                        }}
-                        className="w-44 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      />
-
-                      <label className="text-xs text-gray-600 whitespace-nowrap">do:</label>
-                      <input
-                        type="date"
-                        value={toDate.toISOString().split('T')[0]}
-                        onChange={(e) => {
-                          const newToDate = new Date(e.target.value);
-                          setToDate(newToDate);
-                          setSelectedTimePeriod(null);
-                          setNeedsRecalculation(true);
-                        }}
-                        className="w-44 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      />
-                    </div>
+                    )}
                   </div>
                 </div>
 
