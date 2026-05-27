@@ -4,8 +4,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.BackgroundJobs.DashboardTiles;
 
-public class FailedJobsTile : ITile
+public sealed class FailedJobsTile : ITile
 {
+    private const string FailedJobsUrl = "/hangfire/jobs/failed";
+
     private readonly JobStorage _jobStorage;
     private readonly ILogger<FailedJobsTile> _logger;
 
@@ -39,7 +41,7 @@ public class FailedJobsTile : ITile
                 metadata = new { lastUpdated = DateTime.UtcNow, source = "Hangfire" },
                 drillDown = new
                 {
-                    url = "/hangfire/jobs/failed",
+                    url = FailedJobsUrl,
                     enabled = true,
                     tooltip = "Open Hangfire failed jobs"
                 }
@@ -53,10 +55,10 @@ public class FailedJobsTile : ITile
             {
                 status = "error",
                 data = (object?)null,
-                error = ex.Message,
+                error = "Failed to retrieve job count. See server logs.",
                 drillDown = new
                 {
-                    url = "/hangfire/jobs/failed",
+                    url = FailedJobsUrl,
                     enabled = true,
                     tooltip = "Open Hangfire failed jobs"
                 }

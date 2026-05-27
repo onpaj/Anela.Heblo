@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.BackgroundJobs.DashboardTiles;
 
-public class FailedJobsTileTests
+public sealed class FailedJobsTileTests
 {
     private readonly Mock<JobStorage> _storageMock = new();
     private readonly Mock<IMonitoringApi> _monitoringApiMock = new();
@@ -59,7 +59,7 @@ public class FailedJobsTileTests
         var doc = ToJsonDoc(result);
         doc.RootElement.GetProperty("status").GetString().Should().Be("error");
         doc.RootElement.GetProperty("data").ValueKind.Should().Be(JsonValueKind.Null);
-        doc.RootElement.GetProperty("error").GetString().Should().Be("storage unavailable");
+        doc.RootElement.GetProperty("error").GetString().Should().Be("Failed to retrieve job count. See server logs.");
         doc.RootElement.GetProperty("drillDown").GetProperty("url").GetString()
             .Should().Be("/hangfire/jobs/failed");
         doc.RootElement.GetProperty("drillDown").GetProperty("enabled").GetBoolean().Should().BeTrue();
