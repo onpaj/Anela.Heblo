@@ -213,38 +213,38 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
         </div>
       )}
 
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="h-96 overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
-              <tr>
-                {isEditMode && <th className="w-8 py-3 px-2" />}
-                <th className="text-right py-3 px-4 font-medium text-gray-700 w-16">#</th>
-                <th
-                  className={`text-left py-3 px-4 font-medium text-gray-700 ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100'}`}
-                  onClick={() => handleSort('productName')}
-                >
-                  Název{getSortIcon('productName')}
-                </th>
-                <th
-                  className={`text-left py-3 px-4 font-medium text-gray-700 ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100'}`}
-                  onClick={() => handleSort('productCode')}
-                >
-                  Kód{getSortIcon('productCode')}
-                </th>
-                <th
-                  className={`text-right py-3 px-4 font-medium text-gray-700 ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100'}`}
-                  onClick={() => handleSort('amount')}
-                >
-                  Množství{getSortIcon('amount')}
-                </th>
-              </tr>
-            </thead>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="h-96 overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {isEditMode && <th className="w-8 py-3 px-2" />}
+                  <th className="text-right py-3 px-4 font-medium text-gray-700 w-16">#</th>
+                  <th
+                    className={`text-left py-3 px-4 font-medium text-gray-700 ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100'}`}
+                    onClick={() => handleSort('productName')}
+                  >
+                    Název{getSortIcon('productName')}
+                  </th>
+                  <th
+                    className={`text-left py-3 px-4 font-medium text-gray-700 ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100'}`}
+                    onClick={() => handleSort('productCode')}
+                  >
+                    Kód{getSortIcon('productCode')}
+                  </th>
+                  <th
+                    className={`text-right py-3 px-4 font-medium text-gray-700 ${isEditMode ? '' : 'cursor-pointer hover:bg-gray-100'}`}
+                    onClick={() => handleSort('amount')}
+                  >
+                    Množství{getSortIcon('amount')}
+                  </th>
+                </tr>
+              </thead>
               <SortableContext
                 items={sortedIngredients.map((i) => i.productCode)}
                 strategy={verticalListSortingStrategy}
@@ -260,10 +260,10 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
                   ))}
                 </tbody>
               </SortableContext>
-            </DndContext>
-          </table>
+            </table>
+          </div>
         </div>
-      </div>
+      </DndContext>
     </div>
   );
 };
