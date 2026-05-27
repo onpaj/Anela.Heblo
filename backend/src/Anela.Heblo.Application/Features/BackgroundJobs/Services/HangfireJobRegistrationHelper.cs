@@ -58,7 +58,7 @@ public static class HangfireJobRegistrationHelper
 
         try
         {
-            closed.Invoke(null, new object[] { jobName, cronExpression, timeZoneId });
+            _ = closed.Invoke(null, new object[] { jobName, cronExpression, timeZoneId });
         }
         catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {
