@@ -50,10 +50,7 @@ public class CalculatedBatchSizeHandler : IRequestHandler<CalculatedBatchSizeReq
 
             // Batch-load all ingredient catalog entries in a single call (avoids N+1 queries)
             var ingredientCodes = template.Ingredients.Select(i => i.ProductCode).ToHashSet();
-            var ingredientCatalogEntries = await _catalogRepository.FindAsync(
-                x => ingredientCodes.Contains(x.ProductCode),
-                cancellationToken);
-            var ingredientCatalogByCode = ingredientCatalogEntries.ToDictionary(x => x.ProductCode);
+            var ingredientCatalogByCode = await _catalogRepository.GetByIdsAsync(ingredientCodes, cancellationToken);
 
             // Create ingredients list with stock information
             var ingredientsWithStock = new List<CalculatedIngredientDto>();

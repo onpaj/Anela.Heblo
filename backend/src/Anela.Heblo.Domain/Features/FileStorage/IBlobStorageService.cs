@@ -50,4 +50,23 @@ public interface IBlobStorageService
     /// Downloads a blob as a stream
     /// </summary>
     Task<Stream> DownloadAsync(string containerName, string blobName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists distinct top-level virtual directory prefixes ("folders") within a container,
+    /// using the "/" hierarchy delimiter.
+    /// </summary>
+    /// <remarks>
+    /// Contract:
+    /// <list type="bullet">
+    ///   <item>Returned strings have the trailing "/" stripped (e.g. "2026-03-24", not "2026-03-24/").</item>
+    ///   <item>Loose top-level blobs (names with no "/") are NOT returned — only true virtual directories.</item>
+    ///   <item>The list is de-duplicated by the provider; callers do not need to call <c>.Distinct()</c>.</item>
+    ///   <item>Ordering is not guaranteed; callers sort client-side.</item>
+    ///   <item>Only the first-level segment is returned; deeper paths (e.g. "2026-03-24/sub/x.pdf") still surface only "2026-03-24".</item>
+    ///   <item>This method does NOT auto-create the container — same behaviour as <see cref="ListBlobsAsync"/>.</item>
+    /// </list>
+    /// </remarks>
+    Task<IReadOnlyList<string>> ListVirtualDirectoriesAsync(
+        string containerName,
+        CancellationToken cancellationToken = default);
 }
