@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
@@ -15,6 +16,7 @@ public class UpdateManufactureOrderStatusHandlerTests
 {
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
     private readonly Mock<IManufacturedProductInventoryRepository> _inventoryRepositoryMock;
+    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly Mock<ILogger<UpdateManufactureOrderStatusHandler>> _loggerMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<IConditionsReadingProvider> _conditionsProviderMock;
@@ -29,9 +31,14 @@ public class UpdateManufactureOrderStatusHandlerTests
     {
         _repositoryMock = new Mock<IManufactureOrderRepository>();
         _inventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
+        _catalogRepositoryMock = new Mock<ICatalogRepository>();
         _loggerMock = new Mock<ILogger<UpdateManufactureOrderStatusHandler>>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
         _conditionsProviderMock = new Mock<IConditionsReadingProvider>();
+
+        _catalogRepositoryMock
+            .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
 
         _currentUserServiceMock
             .Setup(x => x.GetCurrentUser())
@@ -55,7 +62,8 @@ public class UpdateManufactureOrderStatusHandlerTests
             _loggerMock.Object,
             _currentUserServiceMock.Object,
             _conditionsProviderMock.Object,
-            _inventoryRepositoryMock.Object);
+            _inventoryRepositoryMock.Object,
+            _catalogRepositoryMock.Object);
     }
 
     [Fact]
