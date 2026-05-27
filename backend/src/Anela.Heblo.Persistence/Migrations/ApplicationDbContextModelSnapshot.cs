@@ -469,46 +469,6 @@ namespace Anela.Heblo.Persistence.Migrations
                         });
                 });
 
-            modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.ProductIngredientOrder", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("IngredientProductCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("ParentProductCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ParentProductCode")
-                        .HasDatabaseName("IX_ProductIngredientOrders_ParentProductCode");
-
-                    b.HasIndex("ParentProductCode", "IngredientProductCode")
-                        .IsUnique()
-                        .HasDatabaseName("UX_ProductIngredientOrders_Parent_Ingredient");
-
-                    b.ToTable("ProductIngredientOrders", "public");
-                });
-
             modelBuilder.Entity("Anela.Heblo.Domain.Features.Catalog.Stock.StockTakingRecord", b =>
                 {
                     b.Property<int>("Id")
