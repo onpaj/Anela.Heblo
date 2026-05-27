@@ -1,5 +1,4 @@
-using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -8,79 +7,50 @@ namespace Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductComposi
 public class UpdateProductCompositionOrderHandler
     : IRequestHandler<UpdateProductCompositionOrderRequest, UpdateProductCompositionOrderResponse>
 {
-    private readonly IProductIngredientOrderRepository _repository;
-    private readonly ICurrentUserService _currentUserService;
+    private readonly IManufactureClient _manufactureClient;
     private readonly ILogger<UpdateProductCompositionOrderHandler> _logger;
 
     public UpdateProductCompositionOrderHandler(
-        IProductIngredientOrderRepository repository,
-        ICurrentUserService currentUserService,
+        IManufactureClient manufactureClient,
         ILogger<UpdateProductCompositionOrderHandler> logger)
     {
-        _repository = repository;
-        _currentUserService = currentUserService;
-        _logger = logger;
+        _manufactureClient = manufactureClient ?? throw new ArgumentNullException(nameof(manufactureClient));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task<UpdateProductCompositionOrderResponse> Handle(
         UpdateProductCompositionOrderRequest request,
         CancellationToken cancellationToken)
     {
-        var existing = await _repository.ListByParentAsync(request.ProductCode, cancellationToken);
-        var existingByCode = existing.ToDictionary(x => x.IngredientProductCode);
-        var requestedCodes = request.Order
-            .Select(x => x.IngredientProductCode)
-            .ToHashSet();
-
-        var user = _currentUserService.GetCurrentUser();
-        var updatedBy = user.IsAuthenticated && !string.IsNullOrEmpty(user.Name)
-            ? user.Name
-            : "System";
-        var now = DateTime.UtcNow;
-
-        // Delete obsolete rows
-        foreach (var row in existing.Where(x => !requestedCodes.Contains(x.IngredientProductCode)))
+        var template = await _manufactureClient.GetManufactureTemplateAsync(request.ProductCode, cancellationToken);
+        if (template is null)
         {
-            _logger.LogInformation(
-                "Deleting obsolete ingredient order row {Id} for {Parent}/{Ingredient}",
-                row.Id, request.ProductCode, row.IngredientProductCode);
-            await _repository.DeleteAsync(row.Id, cancellationToken);
+            _logger.LogWarning(
+                "Cannot set BoM order for {ProductCode}: manufacture template not found in Flexi",
+                request.ProductCode);
+            return new UpdateProductCompositionOrderResponse { UpdatedCount = 0 };
         }
 
-        // Upsert requested rows
-        var changes = 0;
+        var codeToBomItemId = template.Ingredients.ToDictionary(
+            i => i.ProductCode,
+            i => i.TemplateId,
+            StringComparer.Ordinal);
+
+        var tuples = new List<(int BoMItemId, int Order)>();
         foreach (var item in request.Order)
         {
-            if (existingByCode.TryGetValue(item.IngredientProductCode, out var current))
+            if (!codeToBomItemId.TryGetValue(item.IngredientProductCode, out var bomItemId))
             {
-                var updated = new ProductIngredientOrder
-                {
-                    Id = current.Id,
-                    ParentProductCode = current.ParentProductCode,
-                    IngredientProductCode = current.IngredientProductCode,
-                    SortOrder = item.SortOrder,
-                    UpdatedAt = now,
-                    UpdatedBy = updatedBy
-                };
-                await _repository.UpdateAsync(updated, cancellationToken);
+                _logger.LogWarning(
+                    "Ingredient {IngredientCode} not found in Flexi BoM for {ProductCode} — skipping",
+                    item.IngredientProductCode, request.ProductCode);
+                continue;
             }
-            else
-            {
-                await _repository.CreateAsync(new ProductIngredientOrder
-                {
-                    ParentProductCode = request.ProductCode,
-                    IngredientProductCode = item.IngredientProductCode,
-                    SortOrder = item.SortOrder,
-                    UpdatedAt = now,
-                    UpdatedBy = updatedBy
-                }, cancellationToken);
-            }
-            changes++;
+            tuples.Add((bomItemId, item.SortOrder));
         }
 
-        return new UpdateProductCompositionOrderResponse
-        {
-            UpdatedCount = changes
-        };
+        await _manufactureClient.SetBomItemsOrderAsync(request.ProductCode, tuples, cancellationToken);
+
+        return new UpdateProductCompositionOrderResponse { UpdatedCount = tuples.Count };
     }
 }

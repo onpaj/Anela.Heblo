@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder;
-using Anela.Heblo.Domain.Features.Catalog;
-using Anela.Heblo.Domain.Features.Users;
+using Anela.Heblo.Domain.Features.Manufacture;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -10,104 +9,170 @@ namespace Anela.Heblo.Tests.Features.Catalog;
 
 public class UpdateProductCompositionOrderHandlerTests
 {
-    private readonly Mock<IProductIngredientOrderRepository> _repoMock = new();
-    private readonly Mock<ICurrentUserService> _userMock = new();
+    private readonly Mock<IManufactureClient> _manufactureClientMock = new();
     private readonly Mock<ILogger<UpdateProductCompositionOrderHandler>> _loggerMock = new();
     private readonly UpdateProductCompositionOrderHandler _handler;
 
     public UpdateProductCompositionOrderHandlerTests()
     {
-        _userMock
-            .Setup(x => x.GetCurrentUser())
-            .Returns(new CurrentUser("u1", "Tester", "t@e.cz", true));
-
         _handler = new UpdateProductCompositionOrderHandler(
-            _repoMock.Object,
-            _userMock.Object,
+            _manufactureClientMock.Object,
             _loggerMock.Object);
     }
 
-    [Fact]
-    public async Task Handle_NoExistingRows_CreatesAllRequestedRows()
+    private static ManufactureTemplate BuildTemplate(params (int TemplateId, string Code)[] ingredients)
     {
-        _repoMock
-            .Setup(x => x.ListByParentAsync("PRD1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ProductIngredientOrder>());
-
-        var request = new UpdateProductCompositionOrderRequest
+        return new ManufactureTemplate
         {
             ProductCode = "PRD1",
-            Order = new List<IngredientOrderItem>
+            Ingredients = ingredients.Select(i => new Ingredient
             {
-                new() { IngredientProductCode = "A", SortOrder = 1 },
-                new() { IngredientProductCode = "B", SortOrder = 2 },
-            }
+                TemplateId = i.TemplateId,
+                ProductCode = i.Code,
+                ProductName = i.Code
+            }).ToList()
         };
-
-        var response = await _handler.Handle(request, CancellationToken.None);
-
-        response.Success.Should().BeTrue();
-        response.UpdatedCount.Should().Be(2);
-        _repoMock.Verify(
-            x => x.CreateAsync(It.IsAny<ProductIngredientOrder>(), It.IsAny<CancellationToken>()),
-            Times.Exactly(2));
     }
 
     [Fact]
-    public async Task Handle_ExistingRowsUpdated_NoDeletes()
+    public async Task Handle_ValidOrder_CallsSetBomItemsOrderAsync_WithCorrectPairs()
     {
-        _repoMock
-            .Setup(x => x.ListByParentAsync("PRD1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ProductIngredientOrder>
-            {
-                new() { Id = 1, ParentProductCode = "PRD1", IngredientProductCode = "A", SortOrder = 5 },
-                new() { Id = 2, ParentProductCode = "PRD1", IngredientProductCode = "B", SortOrder = 6 },
-            });
+        // Arrange
+        var template = BuildTemplate((100, "MAT-A"), (200, "MAT-B"));
+        _manufactureClientMock
+            .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+        _manufactureClientMock
+            .Setup(x => x.SetBomItemsOrderAsync(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<(int, int)>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var request = new UpdateProductCompositionOrderRequest
         {
             ProductCode = "PRD1",
             Order = new List<IngredientOrderItem>
             {
-                new() { IngredientProductCode = "A", SortOrder = 1 },
-                new() { IngredientProductCode = "B", SortOrder = 2 },
+                new() { IngredientProductCode = "MAT-A", SortOrder = 1 },
+                new() { IngredientProductCode = "MAT-B", SortOrder = 2 },
             }
         };
 
+        // Act
         var response = await _handler.Handle(request, CancellationToken.None);
 
+        // Assert
         response.Success.Should().BeTrue();
-        _repoMock.Verify(
-            x => x.UpdateAsync(It.IsAny<ProductIngredientOrder>(), It.IsAny<CancellationToken>()),
-            Times.Exactly(2));
-        _repoMock.Verify(
-            x => x.DeleteAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()),
+        response.UpdatedCount.Should().Be(2);
+        _manufactureClientMock.Verify(
+            x => x.SetBomItemsOrderAsync(
+                "PRD1",
+                It.Is<IEnumerable<(int, int)>>(seq =>
+                    seq.Any(t => t.Item1 == 100 && t.Item2 == 1) &&
+                    seq.Any(t => t.Item1 == 200 && t.Item2 == 2)),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_TemplateNull_ReturnsZeroAndDoesNotCallSetOrder()
+    {
+        // Arrange
+        _manufactureClientMock
+            .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureTemplate?)null);
+
+        var request = new UpdateProductCompositionOrderRequest
+        {
+            ProductCode = "PRD1",
+            Order = new List<IngredientOrderItem>
+            {
+                new() { IngredientProductCode = "MAT-A", SortOrder = 1 },
+            }
+        };
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.Success.Should().BeTrue();
+        response.UpdatedCount.Should().Be(0);
+        _manufactureClientMock.Verify(
+            x => x.SetBomItemsOrderAsync(It.IsAny<string>(), It.IsAny<IEnumerable<(int, int)>>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
     [Fact]
-    public async Task Handle_ObsoleteRows_AreDeleted()
+    public async Task Handle_RequestItemCodeNotInTemplate_IsSkippedWithWarning()
     {
-        _repoMock
-            .Setup(x => x.ListByParentAsync("PRD1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ProductIngredientOrder>
-            {
-                new() { Id = 1, ParentProductCode = "PRD1", IngredientProductCode = "A", SortOrder = 1 },
-                new() { Id = 2, ParentProductCode = "PRD1", IngredientProductCode = "OBSOLETE", SortOrder = 2 },
-            });
+        // Arrange
+        var template = BuildTemplate((100, "MAT-A")); // Only MAT-A in BoM
+        _manufactureClientMock
+            .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+        _manufactureClientMock
+            .Setup(x => x.SetBomItemsOrderAsync(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<(int, int)>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var request = new UpdateProductCompositionOrderRequest
         {
             ProductCode = "PRD1",
             Order = new List<IngredientOrderItem>
             {
-                new() { IngredientProductCode = "A", SortOrder = 1 },
+                new() { IngredientProductCode = "MAT-A", SortOrder = 1 },
+                new() { IngredientProductCode = "MAT-GHOST", SortOrder = 2 }, // not in BoM
             }
         };
 
+        // Act
         var response = await _handler.Handle(request, CancellationToken.None);
 
-        response.Success.Should().BeTrue();
-        _repoMock.Verify(x => x.DeleteAsync(2, It.IsAny<CancellationToken>()), Times.Once);
+        // Assert
+        response.UpdatedCount.Should().Be(1); // only MAT-A was mapped
+        _manufactureClientMock.Verify(
+            x => x.SetBomItemsOrderAsync(
+                "PRD1",
+                It.Is<IEnumerable<(int, int)>>(seq =>
+                    seq.Count() == 1 && seq.Single().Item1 == 100),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_EmptyOrder_CallsSetBomItemsOrderWithEmptySequence()
+    {
+        // Arrange
+        var template = BuildTemplate((100, "MAT-A"), (200, "MAT-B"));
+        _manufactureClientMock
+            .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+        _manufactureClientMock
+            .Setup(x => x.SetBomItemsOrderAsync(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<(int, int)>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var request = new UpdateProductCompositionOrderRequest
+        {
+            ProductCode = "PRD1",
+            Order = new List<IngredientOrderItem>()
+        };
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        response.UpdatedCount.Should().Be(0);
+        _manufactureClientMock.Verify(
+            x => x.SetBomItemsOrderAsync(
+                "PRD1",
+                It.Is<IEnumerable<(int, int)>>(seq => !seq.Any()),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }
