@@ -65,26 +65,26 @@ public class SemiproductRecipeDocument : IDocument
                         cols.RelativeColumn(1.5f);  // Kód
                         cols.RelativeColumn(6);     // Název
                         cols.RelativeColumn(1.5f);  // %
-                        cols.RelativeColumn(2);     // Plná šarže
                         cols.RelativeColumn(2);     // Půl šarže
+                        cols.RelativeColumn(2);     // Plná šarže
                     });
 
                     table.Header(header =>
                     {
                         header.Cell().Element(HeaderCell).Text("Kód").Bold();
                         header.Cell().Element(HeaderCell).Text("Název").Bold();
-                        header.Cell().Element(HeaderCell).Text("%").Bold();
-                        header.Cell().Element(HeaderCell).Text("Plná šarže").Bold();
-                        header.Cell().Element(HeaderCell).Text("Půl šarže").Bold();
+                        header.Cell().Element(HeaderCell).AlignRight().Text("%").Bold();
+                        header.Cell().Element(HeaderCell).AlignRight().Text("Půl šarže").Bold();
+                        header.Cell().Element(HeaderCell).AlignRight().Text("Plná šarže").Bold();
                     });
 
                     foreach (var ingredient in _data.Ingredients)
                     {
                         table.Cell().Element(DataCell).Text(ingredient.ProductCode);
                         table.Cell().Element(DataCell).Text(ingredient.ProductName);
-                        table.Cell().Element(DataCell).Text(ingredient.Percentage.ToString("0.0", CultureInfo.InvariantCulture) + "%");
-                        table.Cell().Element(DataCell).Text(FormatAmount(ingredient.AmountFullBatch));
-                        table.Cell().Element(DataCell).Text(FormatAmount(ingredient.AmountHalfBatch));
+                        table.Cell().Element(DataCell).AlignRight().Text(ingredient.Percentage.ToString("0.0", CultureInfo.InvariantCulture) + "%");
+                        table.Cell().Element(DataCell).AlignRight().Text(FormatAmount(ingredient.AmountHalfBatch));
+                        table.Cell().Element(DataCell).AlignRight().Text(FormatAmount(ingredient.AmountFullBatch));
                     }
                 });
             });
