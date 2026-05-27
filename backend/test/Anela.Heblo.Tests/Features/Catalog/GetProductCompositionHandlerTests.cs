@@ -37,7 +37,7 @@ public class GetProductCompositionHandlerTests
         // Arrange
         var template = BuildTemplate(
             ("A", "Alpha", 2),
-            ("B", "Beta",  1),
+            ("B", "Beta", 1),
             ("C", "Gamma", 3));
         _manufactureClientMock
             .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
@@ -58,10 +58,10 @@ public class GetProductCompositionHandlerTests
     {
         // Arrange — Flexi returns 0 for unordered items
         var template = BuildTemplate(
-            ("A", "Alpha",   2),
+            ("A", "Alpha", 2),
             ("B", "Unnamed", 0),
-            ("C", "Zebra",   0),
-            ("D", "Delta",   1));
+            ("C", "Zebra", 0),
+            ("D", "Delta", 1));
         _manufactureClientMock
             .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
@@ -99,7 +99,7 @@ public class GetProductCompositionHandlerTests
         // Arrange
         var template = BuildTemplate(
             ("A", "Alpha", 1),
-            ("B", "Beta",  2));
+            ("B", "Beta", 2));
         _manufactureClientMock
             .Setup(x => x.GetManufactureTemplateAsync("PRD1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(template);
