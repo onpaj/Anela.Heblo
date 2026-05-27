@@ -1319,6 +1319,47 @@ export class ApiClient {
         return Promise.resolve<GetProductCompositionResponse>(null as any);
     }
 
+    catalog_UpdateCompositionOrder(productCode: string, request: UpdateProductCompositionOrderRequest): Promise<UpdateProductCompositionOrderResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/{productCode}/composition/order";
+        if (productCode === undefined || productCode === null)
+            throw new Error("The parameter 'productCode' must be defined.");
+        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_UpdateCompositionOrder(_response);
+        });
+    }
+
+    protected processCatalog_UpdateCompositionOrder(response: Response): Promise<UpdateProductCompositionOrderResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = UpdateProductCompositionOrderResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<UpdateProductCompositionOrderResponse>(null as any);
+    }
+
     catalog_GetMaterialsForPurchase(searchTerm: string | null | undefined, limit: number | undefined): Promise<GetMaterialsForPurchaseResponse> {
         let url_ = this.baseUrl + "/api/Catalog/materials-for-purchase?";
         if (searchTerm !== undefined && searchTerm !== null)
@@ -10637,6 +10678,54 @@ export class ApiClient {
         return Promise.resolve<SendMessageResponse>(null as any);
     }
 
+    smartsupp_CloseConversation(id: string): Promise<CloseConversationResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations/{id}/close";
+        if (id === undefined || id === null)
+            throw new Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_CloseConversation(_response);
+        });
+    }
+
+    protected processSmartsupp_CloseConversation(response: Response): Promise<CloseConversationResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = CloseConversationResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 503) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<CloseConversationResponse>(null as any);
+    }
+
     smartsuppWebhookAudit_List(from: Date | null | undefined, to: Date | null | undefined, eventName: string | null | undefined, signatureStatus: SmartsuppWebhookSignatureStatus | null | undefined, processingStatus: SmartsuppWebhookProcessingStatus | null | undefined, skip: number | undefined, take: number | undefined): Promise<ListWebhookAuditResponse> {
         let url_ = this.baseUrl + "/api/admin/smartsupp/webhooks?";
         if (from !== undefined && from !== null)
@@ -12130,6 +12219,7 @@ export enum ErrorCodes {
     SmartsuppVisitorNotFound = "SmartsuppVisitorNotFound",
     SmartsuppSendMessageUnavailable = "SmartsuppSendMessageUnavailable",
     SmartsuppAgentMappingNotFound = "SmartsuppAgentMappingNotFound",
+    SmartsuppCloseConversationUnavailable = "SmartsuppCloseConversationUnavailable",
     LotNotFound = "LotNotFound",
     EanNotFound = "EanNotFound",
     LotAlreadyExists = "LotAlreadyExists",
@@ -15432,6 +15522,7 @@ export class IngredientDto implements IIngredientDto {
     productName?: string;
     amount?: number;
     unit?: string;
+    order?: number;
 
     constructor(data?: IIngredientDto) {
         if (data) {
@@ -15448,6 +15539,7 @@ export class IngredientDto implements IIngredientDto {
             this.productName = _data["productName"];
             this.amount = _data["amount"];
             this.unit = _data["unit"];
+            this.order = _data["order"];
         }
     }
 
@@ -15464,6 +15556,7 @@ export class IngredientDto implements IIngredientDto {
         data["productName"] = this.productName;
         data["amount"] = this.amount;
         data["unit"] = this.unit;
+        data["order"] = this.order;
         return data;
     }
 }
@@ -15473,6 +15566,128 @@ export interface IIngredientDto {
     productName?: string;
     amount?: number;
     unit?: string;
+    order?: number;
+}
+
+export class UpdateProductCompositionOrderResponse extends BaseResponse implements IUpdateProductCompositionOrderResponse {
+    updatedCount?: number;
+
+    constructor(data?: IUpdateProductCompositionOrderResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.updatedCount = _data["updatedCount"];
+        }
+    }
+
+    static override fromJS(data: any): UpdateProductCompositionOrderResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateProductCompositionOrderResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["updatedCount"] = this.updatedCount;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IUpdateProductCompositionOrderResponse extends IBaseResponse {
+    updatedCount?: number;
+}
+
+export class UpdateProductCompositionOrderRequest implements IUpdateProductCompositionOrderRequest {
+    productCode!: string;
+    order?: IngredientOrderItem[];
+
+    constructor(data?: IUpdateProductCompositionOrderRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            if (Array.isArray(_data["order"])) {
+                this.order = [] as any;
+                for (let item of _data["order"])
+                    this.order!.push(IngredientOrderItem.fromJS(item));
+            }
+        }
+    }
+
+    static fromJS(data: any): UpdateProductCompositionOrderRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new UpdateProductCompositionOrderRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        if (Array.isArray(this.order)) {
+            data["order"] = [];
+            for (let item of this.order)
+                data["order"].push(item.toJSON());
+        }
+        return data;
+    }
+}
+
+export interface IUpdateProductCompositionOrderRequest {
+    productCode: string;
+    order?: IngredientOrderItem[];
+}
+
+export class IngredientOrderItem implements IIngredientOrderItem {
+    ingredientProductCode!: string;
+    sortOrder?: number;
+
+    constructor(data?: IIngredientOrderItem) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.ingredientProductCode = _data["ingredientProductCode"];
+            this.sortOrder = _data["sortOrder"];
+        }
+    }
+
+    static fromJS(data: any): IngredientOrderItem {
+        data = typeof data === 'object' ? data : {};
+        let result = new IngredientOrderItem();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["ingredientProductCode"] = this.ingredientProductCode;
+        data["sortOrder"] = this.sortOrder;
+        return data;
+    }
+}
+
+export interface IIngredientOrderItem {
+    ingredientProductCode: string;
+    sortOrder?: number;
 }
 
 export class GetMaterialsForPurchaseResponse extends BaseResponse implements IGetMaterialsForPurchaseResponse {
@@ -35733,6 +35948,33 @@ export class SendMessageBody implements ISendMessageBody {
 
 export interface ISendMessageBody {
     content?: string;
+}
+
+export class CloseConversationResponse extends BaseResponse implements ICloseConversationResponse {
+
+    constructor(data?: ICloseConversationResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): CloseConversationResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new CloseConversationResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ICloseConversationResponse extends IBaseResponse {
 }
 
 export class ListWebhookAuditResponse extends BaseResponse implements IListWebhookAuditResponse {

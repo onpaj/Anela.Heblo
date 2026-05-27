@@ -13,4 +13,6 @@ public class Ingredient
     public ProductType ProductType { get; set; }
     public bool HasLots { get; set; }
     public bool HasExpiration { get; set; }
+    /// <summary>Display order from Abra Flexi BoM (poradi). 0 means unordered.</summary>
+    public int Order { get; set; }
 }

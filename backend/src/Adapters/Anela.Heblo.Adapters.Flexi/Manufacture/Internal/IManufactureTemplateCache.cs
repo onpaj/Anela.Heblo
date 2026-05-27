@@ -8,4 +8,6 @@ internal interface IManufactureTemplateCache
         string productCode,
         Func<CancellationToken, Task<ManufactureTemplate?>> fetch,
         CancellationToken cancellationToken);
+
+    void Invalidate(string productCode);
 }

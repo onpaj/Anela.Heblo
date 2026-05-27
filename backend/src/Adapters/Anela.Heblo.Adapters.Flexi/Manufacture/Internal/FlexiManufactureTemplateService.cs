@@ -51,6 +51,12 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
         return template;
     }
 
+    public void InvalidateTemplate(string productCode)
+    {
+        _cache.Invalidate(productCode);
+        _logger.LogDebug("Manufacture template invalidated via service for {ProductCode}", productCode);
+    }
+
     private async Task<ManufactureTemplate?> FetchAsync(string productCode, CancellationToken cancellationToken, FetchTimings timings)
     {
         timings.FetchInvoked = true;
@@ -118,7 +124,8 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
                     Amount = s.Amount,
                     ProductType = ResolveProductType(s),
                     HasLots = hasLotsByProductCode.TryGetValue(code, out var hasLots) && hasLots,
-                    HasExpiration = false
+                    HasExpiration = false,
+                    Order = s.Order,
                 };
             }).ToList(),
         };
