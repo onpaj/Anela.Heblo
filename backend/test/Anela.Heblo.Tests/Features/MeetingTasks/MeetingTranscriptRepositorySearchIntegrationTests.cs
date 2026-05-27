@@ -208,14 +208,15 @@ public class MeetingTranscriptRepositorySearchIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task GetListAsync_WithSearchText_SearchesTranscript_WhenSearchInTranscriptTrue()
     {
-        // Arrange — same scenario as the previous test but with searchInTranscript=true
-        var transcript = BuildTranscript("p7", "Routine Meeting 2", "Normal agenda", "CONFIDENTIAL: budget discussion");
+        // Arrange — subject and summary do NOT contain the term; only raw transcript does.
+        // Uses a unique search term to avoid collision with p6 which also has transcript-only content.
+        var transcript = BuildTranscript("p7", "Routine Meeting 2", "Normal agenda", "TRANSCRIPT_ONLY_KEYWORD_P7: budget discussion");
         _context.MeetingTranscripts.Add(transcript);
         await _context.SaveChangesAsync();
 
         // Act
         var (items, totalCount) = await _repository.GetListAsync(
-            statusFilter: null, searchText: "confidential", searchInTranscript: true,
+            statusFilter: null, searchText: "TRANSCRIPT_ONLY_KEYWORD_P7", searchInTranscript: true,
             isManager: true, userEmail: null, page: 1, pageSize: 10);
 
         // Assert
