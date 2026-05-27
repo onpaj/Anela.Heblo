@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.UserManagement.Services;
+using Anela.Heblo.Application.Features.Article.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Article;
 using MediatR;
@@ -10,16 +10,16 @@ public sealed class BackfillArticleRequestedByHandler
     : IRequestHandler<BackfillArticleRequestedByCommand, BackfillArticleRequestedByResponse>
 {
     private readonly IArticleAdminRepository _repository;
-    private readonly IGraphService _graph;
+    private readonly IArticleUserResolver _userResolver;
     private readonly ILogger<BackfillArticleRequestedByHandler> _logger;
 
     public BackfillArticleRequestedByHandler(
         IArticleAdminRepository repository,
-        IGraphService graph,
+        IArticleUserResolver userResolver,
         ILogger<BackfillArticleRequestedByHandler> logger)
     {
         _repository = repository;
-        _graph = graph;
+        _userResolver = userResolver;
         _logger = logger;
     }
 
@@ -34,7 +34,7 @@ public sealed class BackfillArticleRequestedByHandler
                 new Dictionary<string, string> { { "field", "GroupId" } });
         }
 
-        var members = await _graph.GetGroupMembersAsync(request.GroupId, ct);
+        var members = await _userResolver.ResolveByGroupAsync(request.GroupId, ct);
         var byDisplayName = members
             .GroupBy(m => m.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);

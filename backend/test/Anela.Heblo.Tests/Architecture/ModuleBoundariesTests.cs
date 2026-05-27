@@ -107,6 +107,17 @@ public class ModuleBoundariesTests
             Allowlist: ArticleAllowlist),
 
         new ModuleBoundaryRule(
+            Name: "Article -> UserManagement",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Article",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.UserManagement",
+                "Anela.Heblo.Application.Features.UserManagement",
+                "Anela.Heblo.Persistence.UserManagement",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
+
+        new ModuleBoundaryRule(
             Name: "Logistics -> Manufacture",
             InspectedNamespacePrefix: "Anela.Heblo.Application.Features.Logistics",
             ForbiddenNamespacePrefixes: new[]
