@@ -126,6 +126,7 @@ internal sealed class FlexiManufactureTemplateService : IFlexiManufactureTemplat
                     HasLots = hasLotsByProductCode.TryGetValue(code, out var hasLots) && hasLots,
                     HasExpiration = false,
                     Order = s.Order,
+                    PhaseLabel = string.IsNullOrWhiteSpace(s.NameC) ? null : s.NameC.Trim(),
                 };
             }).ToList(),
         };
