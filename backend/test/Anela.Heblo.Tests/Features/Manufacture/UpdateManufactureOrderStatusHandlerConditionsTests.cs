@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrderStatus;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
@@ -13,6 +14,7 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
 {
     private readonly Mock<IManufactureOrderRepository> _repositoryMock;
     private readonly Mock<IManufacturedProductInventoryRepository> _inventoryRepositoryMock;
+    private readonly Mock<ICatalogRepository> _catalogRepositoryMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
     private readonly Mock<IConditionsReadingProvider> _conditionsProviderMock;
     private readonly Mock<ILogger<UpdateManufactureOrderStatusHandler>> _loggerMock;
@@ -21,6 +23,7 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
     {
         _repositoryMock = new Mock<IManufactureOrderRepository>();
         _inventoryRepositoryMock = new Mock<IManufacturedProductInventoryRepository>();
+        _catalogRepositoryMock = new Mock<ICatalogRepository>();
         _loggerMock = new Mock<ILogger<UpdateManufactureOrderStatusHandler>>();
         _conditionsProviderMock = new Mock<IConditionsReadingProvider>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
@@ -36,6 +39,10 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
         _inventoryRepositoryMock
             .Setup(r => r.AddAsync(It.IsAny<ManufacturedProductInventoryItem>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((ManufacturedProductInventoryItem item, CancellationToken _) => item);
+
+        _catalogRepositoryMock
+            .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
     }
 
     private UpdateManufactureOrderStatusHandler CreateHandler() =>
@@ -45,7 +52,8 @@ public class UpdateManufactureOrderStatusHandlerConditionsTests
             _loggerMock.Object,
             _currentUserServiceMock.Object,
             _conditionsProviderMock.Object,
-            _inventoryRepositoryMock.Object);
+            _inventoryRepositoryMock.Object,
+            _catalogRepositoryMock.Object);
 
     private ManufactureOrder CreateOrderInState(ManufactureOrderState state) =>
         new ManufactureOrder

@@ -1,4 +1,5 @@
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Conditions;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
@@ -12,6 +13,7 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
 {
     private readonly IManufactureOrderRepository _repository;
     private readonly IManufacturedProductInventoryRepository _inventoryRepository;
+    private readonly ICatalogRepository _catalogRepository;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<UpdateManufactureOrderStatusHandler> _logger;
     private readonly ICurrentUserService _currentUserService;
@@ -23,7 +25,8 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
         ILogger<UpdateManufactureOrderStatusHandler> logger,
         ICurrentUserService currentUserService,
         IConditionsReadingProvider conditionsProvider,
-        IManufacturedProductInventoryRepository inventoryRepository)
+        IManufacturedProductInventoryRepository inventoryRepository,
+        ICatalogRepository catalogRepository)
     {
         _repository = repository;
         _timeProvider = timeProvider;
@@ -31,6 +34,7 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
         _currentUserService = currentUserService;
         _conditionsProvider = conditionsProvider;
         _inventoryRepository = inventoryRepository;
+        _catalogRepository = catalogRepository;
     }
 
     public async Task<UpdateManufactureOrderStatusResponse> Handle(UpdateManufactureOrderStatusRequest request, CancellationToken cancellationToken)
@@ -172,8 +176,18 @@ public class UpdateManufactureOrderStatusHandler : IRequestHandler<UpdateManufac
     {
         var timestamp = _timeProvider.GetUtcNow().DateTime;
 
-        var items = order.Products
+        var productsWithQuantity = order.Products
             .Where(p => p.ActualQuantity is > 0)
+            .ToList();
+
+        if (productsWithQuantity.Count == 0)
+            return;
+
+        var productCodes = productsWithQuantity.Select(p => p.ProductCode).ToList();
+        var catalogEntries = await _catalogRepository.GetByIdsAsync(productCodes, cancellationToken);
+
+        var items = productsWithQuantity
+            .Where(p => !catalogEntries.TryGetValue(p.ProductCode, out var entry) || entry.Type != ProductType.SemiProduct)
             .Select(p => new ManufacturedProductInventoryItem(
                 productCode: p.ProductCode,
                 productName: p.ProductName,
