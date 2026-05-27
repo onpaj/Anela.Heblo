@@ -36,7 +36,8 @@ public class GetProductCompositionHandler
                 ProductName = i.ProductName,
                 Amount = i.Amount,
                 Unit = "g",
-                Order = index + 1
+                Order = index + 1,
+                PhaseLabel = i.PhaseLabel,
             })
             .ToList();
 
