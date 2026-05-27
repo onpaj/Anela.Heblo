@@ -9,6 +9,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateProductWeight;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
+using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -51,6 +52,16 @@ public class CatalogController : BaseApiController
         var request = new GetProductCompositionRequest { ProductCode = productCode };
         var response = await _mediator.Send(request);
         return Ok(response);
+    }
+
+    [HttpPut("{productCode}/composition/order")]
+    public async Task<ActionResult<UpdateProductCompositionOrderResponse>> UpdateCompositionOrder(
+        string productCode,
+        [FromBody] UpdateProductCompositionOrderRequest request)
+    {
+        request.ProductCode = productCode;
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
     }
 
     [HttpGet("materials-for-purchase")]
