@@ -184,8 +184,11 @@ jobs:
       - name: 🏷️ Generate version tag
         id: version
         run: |
-          # Use PR-specific versioning for feature branches
-          VERSION="staging-PR${{ github.event.pull_request.number }}-${{ steps.gitversion.outputs.shortSha }}"
+          # Tag with the PR's branch HEAD SHA (not the merge commit SHA from GitVersion)
+          # so deploy-staging-manual.yml — which resolves via `gh pr view --json headRefOid` —
+          # asks for the same tag this job pushes.
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          VERSION="staging-PR${{ github.event.pull_request.number }}-${HEAD_SHA:0:7}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "📌 Version: $VERSION"
           echo "🔢 GitVersion SemVer: ${{ steps.gitversion.outputs.fullSemVer }}"
