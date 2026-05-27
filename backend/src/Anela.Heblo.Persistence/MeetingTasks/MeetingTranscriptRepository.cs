@@ -22,6 +22,8 @@ public class MeetingTranscriptRepository : IMeetingTranscriptRepository
 
     public async Task<(List<MeetingTranscript> Items, int TotalCount)> GetListAsync(
         MeetingTranscriptStatus? statusFilter,
+        string? searchText,
+        bool searchInTranscript,
         bool isManager,
         string? userEmail,
         int page,
@@ -32,6 +34,24 @@ public class MeetingTranscriptRepository : IMeetingTranscriptRepository
 
         if (statusFilter.HasValue)
             query = query.Where(x => x.Status == statusFilter.Value);
+
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            var pattern = $"%{searchText.Trim()}%";
+            if (searchInTranscript)
+            {
+                query = query.Where(x =>
+                    EF.Functions.ILike(x.Subject, pattern) ||
+                    EF.Functions.ILike(x.Summary, pattern) ||
+                    EF.Functions.ILike(x.RawTranscript, pattern));
+            }
+            else
+            {
+                query = query.Where(x =>
+                    EF.Functions.ILike(x.Subject, pattern) ||
+                    EF.Functions.ILike(x.Summary, pattern));
+            }
+        }
 
         if (!isManager)
         {
