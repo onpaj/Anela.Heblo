@@ -1,10 +1,11 @@
 using System.Reflection;
+using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Hangfire;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.BackgroundJobs.Services;
+namespace Anela.Heblo.API.Infrastructure.Hangfire;
 
 /// <summary>
 /// Updates a Hangfire recurring job's CRON schedule live using the same

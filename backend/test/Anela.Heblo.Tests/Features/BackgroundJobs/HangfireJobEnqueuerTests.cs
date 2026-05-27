@@ -1,3 +1,4 @@
+using Anela.Heblo.API.Infrastructure.Hangfire;
 using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Tests.Features.BackgroundJobs.Infrastructure;
