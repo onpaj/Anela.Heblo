@@ -645,6 +645,112 @@ public class UpdateManufactureOrderStatusHandlerTests
     }
 
     [Fact]
+    public async Task Handle_TransitionToCompleted_ExcludesSemiProductsFromInventory()
+    {
+        // Arrange
+        var order = CreateOrderInState(ManufactureOrderState.SemiProductManufactured);
+        order.Products = new List<ManufactureOrderProduct>
+        {
+            new ManufactureOrderProduct
+            {
+                ProductCode = "SEMI-001",
+                ProductName = "Semi Product",
+                ActualQuantity = 8m,
+                ManufactureOrderId = ValidOrderId
+            }
+        };
+
+        _catalogRepositoryMock
+            .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>
+            {
+                ["SEMI-001"] = new CatalogAggregate { ProductCode = "SEMI-001", Type = ProductType.SemiProduct }
+            });
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder o, CancellationToken _) => o);
+
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.Completed
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+
+        _inventoryRepositoryMock.Verify(
+            r => r.AddRangeAsync(It.IsAny<IEnumerable<ManufacturedProductInventoryItem>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_TransitionToCompleted_IncludesOnlyNonSemiProductsWhenMixed()
+    {
+        // Arrange
+        var order = CreateOrderInState(ManufactureOrderState.SemiProductManufactured);
+        order.Products = new List<ManufactureOrderProduct>
+        {
+            new ManufactureOrderProduct
+            {
+                ProductCode = "SEMI-001",
+                ProductName = "Semi Product",
+                ActualQuantity = 8m,
+                ManufactureOrderId = ValidOrderId
+            },
+            new ManufactureOrderProduct
+            {
+                ProductCode = "PROD-001",
+                ProductName = "Regular Product",
+                ActualQuantity = 5m,
+                ManufactureOrderId = ValidOrderId
+            }
+        };
+
+        _catalogRepositoryMock
+            .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, CatalogAggregate>
+            {
+                ["SEMI-001"] = new CatalogAggregate { ProductCode = "SEMI-001", Type = ProductType.SemiProduct }
+            });
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder o, CancellationToken _) => o);
+
+        var request = new UpdateManufactureOrderStatusRequest
+        {
+            Id = ValidOrderId,
+            NewState = ManufactureOrderState.Completed
+        };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+
+        _inventoryRepositoryMock.Verify(
+            r => r.AddRangeAsync(
+                It.Is<IEnumerable<ManufacturedProductInventoryItem>>(items =>
+                    items.Single().ProductCode == "PROD-001"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_TransitionFromCompleted_DoesNotTouchInventory()
     {
         // Arrange
