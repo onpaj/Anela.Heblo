@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
 using Anela.Heblo.Domain.Features.Manufacture;
 
@@ -5,7 +6,10 @@ namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
 public interface IBatchPlanningService
 {
-    Task<CalculateBatchPlanResponse> CalculateBatchPlan(CalculateBatchPlanRequest request, CancellationToken cancellationToken = default);
+    Task<CalculateBatchPlanResponse> CalculateBatchPlan(
+        CalculateBatchPlanRequest request,
+        IReadOnlyList<DateRange> salesRanges,
+        CancellationToken cancellationToken = default);
 }
 
 public class SinglePhaseBatchResult

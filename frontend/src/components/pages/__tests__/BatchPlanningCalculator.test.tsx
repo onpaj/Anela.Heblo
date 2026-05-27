@@ -204,6 +204,22 @@ describe("BatchPlanningCalculator", () => {
       expect(screen.getByTestId("catalog-autocomplete")).toBeInTheDocument();
       expect(screen.getByTestId("semiproduct-input")).toBeInTheDocument();
     });
+
+    it("should expose all quick date range presets including 9M", () => {
+      const Wrapper = createWrapper();
+      render(
+        <Wrapper>
+          <BatchPlanningCalculator />
+        </Wrapper>
+      );
+
+      // All four sales-bin presets must be present so users can pick Q9M
+      // alongside the single-range presets.
+      expect(screen.getByRole("button", { name: "LastQ" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Y2Y" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "NextQ" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "9M" })).toBeInTheDocument();
+    });
   });
 
   describe("Successful Response Handling", () => {

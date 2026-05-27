@@ -52,6 +52,8 @@ const BatchPlanningCalculator: React.FC = () => {
   const [salesMultiplier, setSalesMultiplier] = useState<number>(1.3);
   const [fromDate, setFromDate] = useState<Date>(resolveTimePeriod(TimePeriod.Y2Y).primary?.from ?? new Date());
   const [toDate, setToDate] = useState<Date>(new Date());
+  // Tracks the active multi-range preset (e.g. Q9M). When null, payload uses single [fromDate, toDate] range.
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod | null>(null);
   
   // Product constraints state (for fixed quantities)
   const [productConstraints, setProductConstraints] = useState<Map<string, { isFixed: boolean; quantity: number }>>(new Map());
@@ -236,31 +238,33 @@ const BatchPlanningCalculator: React.FC = () => {
 
 
   // Quick date range selectors
-  const handleQuickDateRange = (
-    type: "lastq" | "y2y" | "nextq",
-  ) => {
-    const periodMap: Record<"lastq" | "y2y" | "nextq", TimePeriod> = {
-      lastq: TimePeriod.PreviousQuarter,
-      y2y: TimePeriod.Y2Y,
-      nextq: TimePeriod.FutureQuarter,
-    };
-    const resolved = resolveTimePeriod(periodMap[type]);
+  type QuickRangeType = "lastq" | "y2y" | "nextq" | "9m";
+  const quickRangePeriodMap: Record<QuickRangeType, TimePeriod> = {
+    lastq: TimePeriod.PreviousQuarter,
+    y2y: TimePeriod.Y2Y,
+    nextq: TimePeriod.FutureQuarter,
+    "9m": TimePeriod.Q9M,
+  };
+
+  const handleQuickDateRange = (type: QuickRangeType) => {
+    const period = quickRangePeriodMap[type];
+    const resolved = resolveTimePeriod(period);
     if (!resolved.primary) return;
     setFromDate(resolved.primary.from);
     setToDate(resolved.primary.to);
+    // Multi-range presets (currently only Q9M) must be carried as TimePeriod so backend
+    // aggregates sales across all ranges. Single-range presets clear the override.
+    setSelectedTimePeriod(resolved.ranges.length > 1 ? period : null);
     setNeedsRecalculation(true);
   };
 
-  // Get tooltip text for date range buttons
-  const getDateRangeTooltip = (type: "lastq" | "y2y" | "nextq") => {
-    const periodMap: Record<"lastq" | "y2y" | "nextq", TimePeriod> = {
-      lastq: TimePeriod.PreviousQuarter,
-      y2y: TimePeriod.Y2Y,
-      nextq: TimePeriod.FutureQuarter,
-    };
-    const resolved = resolveTimePeriod(periodMap[type]);
-    if (!resolved.primary) return "";
-    return `${resolved.primary.from.toLocaleDateString("cs-CZ")} - ${resolved.primary.to.toLocaleDateString("cs-CZ")}`;
+  // Get tooltip text for date range buttons. For multi-range presets, lists all ranges.
+  const getDateRangeTooltip = (type: QuickRangeType) => {
+    const resolved = resolveTimePeriod(quickRangePeriodMap[type]);
+    if (resolved.ranges.length === 0) return "";
+    return resolved.ranges
+      .map((r) => `${r.from.toLocaleDateString("cs-CZ")} - ${r.to.toLocaleDateString("cs-CZ")}`)
+      .join(" | ");
   };
 
   const calculateBatchPlan = (semiproductCode: string, fromDateParam?: Date, toDateParam?: Date) => {
@@ -269,6 +273,7 @@ const BatchPlanningCalculator: React.FC = () => {
       controlMode: controlMode,
       fromDate: fromDateParam || fromDate,
       toDate: toDateParam || toDate,
+      timePeriod: selectedTimePeriod ?? undefined,
       salesMultiplier: salesMultiplier,
       directSemiproductAmount: directSemiproductAmount > 0 ? directSemiproductAmount : undefined,
     };
@@ -306,6 +311,7 @@ const BatchPlanningCalculator: React.FC = () => {
       controlMode: controlMode,
       fromDate: fromDateParam || fromDate,
       toDate: toDateParam || toDate,
+      timePeriod: selectedTimePeriod ?? undefined,
       salesMultiplier: salesMultiplier,
       productConstraints: constraints,
       directSemiproductAmount: directSemiproductAmount > 0 ? directSemiproductAmount : undefined,
@@ -349,6 +355,7 @@ const BatchPlanningCalculator: React.FC = () => {
         controlMode: BatchPlanControlMode.MmqMultiplier,
         fromDate: fromDate,
         toDate: toDate,
+        timePeriod: selectedTimePeriod ?? undefined,
         salesMultiplier: salesMultiplier,
         mmqMultiplier: 1.0, // Use reset value
       };
@@ -584,6 +591,17 @@ const BatchPlanningCalculator: React.FC = () => {
                         >
                           NextQ
                         </button>
+                        <button
+                          onClick={() => handleQuickDateRange("9m")}
+                          className={`px-3 py-1 text-xs rounded border transition-colors ${
+                            selectedTimePeriod === TimePeriod.Q9M
+                              ? "bg-indigo-100 hover:bg-indigo-200 text-indigo-700 border-indigo-300"
+                              : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300"
+                          }`}
+                          title={getDateRangeTooltip("9m")}
+                        >
+                          9M
+                        </button>
                       </div>
                     </div>
 
@@ -596,11 +614,12 @@ const BatchPlanningCalculator: React.FC = () => {
                         onChange={(e) => {
                           const newFromDate = new Date(e.target.value);
                           setFromDate(newFromDate);
+                          setSelectedTimePeriod(null);
                           setNeedsRecalculation(true);
                         }}
                         className="w-44 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       />
-                      
+
                       <label className="text-xs text-gray-600 whitespace-nowrap">do:</label>
                       <input
                         type="date"
@@ -608,6 +627,7 @@ const BatchPlanningCalculator: React.FC = () => {
                         onChange={(e) => {
                           const newToDate = new Date(e.target.value);
                           setToDate(newToDate);
+                          setSelectedTimePeriod(null);
                           setNeedsRecalculation(true);
                         }}
                         className="w-44 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
