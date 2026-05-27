@@ -1,6 +1,10 @@
 import { renderHook } from '@testing-library/react';
 import { useMeetingManagerPermission } from '../useMeetingManagerPermission';
 
+import { shouldUseMockAuth } from '../../../config/runtimeConfig';
+import { mockAuthService } from '../../../auth/mockAuth';
+import { useMsal } from '@azure/msal-react';
+
 jest.mock('../../../config/runtimeConfig', () => ({
   shouldUseMockAuth: jest.fn(),
 }));
@@ -10,10 +14,6 @@ jest.mock('../../../auth/mockAuth', () => ({
 jest.mock('@azure/msal-react', () => ({
   useMsal: jest.fn(),
 }));
-
-import { shouldUseMockAuth } from '../../../config/runtimeConfig';
-import { mockAuthService } from '../../../auth/mockAuth';
-import { useMsal } from '@azure/msal-react';
 
 describe('useMeetingManagerPermission', () => {
   beforeEach(() => {
