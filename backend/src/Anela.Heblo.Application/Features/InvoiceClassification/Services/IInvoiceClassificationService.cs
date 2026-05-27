@@ -4,5 +4,5 @@ namespace Anela.Heblo.Application.Features.InvoiceClassification.Services;
 
 public interface IInvoiceClassificationService
 {
-    Task<InvoiceClassificationResult> ClassifyInvoiceAsync(ReceivedInvoiceDto invoice);
+    Task<InvoiceClassificationResult> ClassifyInvoiceAsync(ReceivedInvoice invoice);
 }

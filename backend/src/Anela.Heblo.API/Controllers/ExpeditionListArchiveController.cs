@@ -1,4 +1,3 @@
-using Anela.Heblo.Application.Features.ExpeditionList.UseCases.RunExpeditionListPrintFix;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.DownloadExpeditionList;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionDates;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionListsByDate;
@@ -51,14 +50,6 @@ public class ExpeditionListArchiveController : BaseApiController
         }
 
         return File(response.Stream, response.ContentType, response.FileName);
-    }
-
-    [HttpPost("run-fix")]
-    public async Task<ActionResult<RunExpeditionListPrintFixResponse>> RunFix(CancellationToken cancellationToken)
-    {
-        var request = new RunExpeditionListPrintFixRequest();
-        var response = await _mediator.Send(request, cancellationToken);
-        return Ok(response);
     }
 
     [HttpPost("reprint")]

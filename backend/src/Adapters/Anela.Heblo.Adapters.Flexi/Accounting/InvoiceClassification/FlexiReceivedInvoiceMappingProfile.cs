@@ -8,7 +8,7 @@ public class FlexiReceivedInvoiceMappingProfile : BaseFlexiProfile
 {
     public FlexiReceivedInvoiceMappingProfile()
     {
-        CreateMap<ReceivedInvoiceFlexiDto, ReceivedInvoiceDto>()
+        CreateMap<ReceivedInvoiceFlexiDto, ReceivedInvoice>()
             .ForMember(dest => dest.InvoiceNumber, opt => opt.MapFrom(src => src.Code))
             .ForMember(dest => dest.CompanyName, opt => opt.MapFrom(src => src.CompanyName))
             .ForMember(dest => dest.CompanyVat, opt => opt.MapFrom(src => src.CompanyId))
@@ -22,7 +22,7 @@ public class FlexiReceivedInvoiceMappingProfile : BaseFlexiProfile
             .ForMember(dest => dest.Items, opt => opt.MapFrom(src => src.Items));
 
 
-        CreateMap<ReceivedInvoiceItemFlexiDto, ReceivedInvoiceItemDto>()
+        CreateMap<ReceivedInvoiceItemFlexiDto, ReceivedInvoiceItem>()
             .ForMember(dest => dest.Code, opt => opt.MapFrom(src => src.Code))
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
             .ForMember(dest => dest.Amount, opt => opt.MapFrom(src => src.Amount));

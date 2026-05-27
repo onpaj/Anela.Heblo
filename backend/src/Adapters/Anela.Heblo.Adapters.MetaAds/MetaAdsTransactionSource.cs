@@ -65,7 +65,6 @@ public class MetaAdsTransactionSource : IMarketingTransactionSource
                     results.Add(new MarketingTransaction
                     {
                         TransactionId = item.Id,
-                        Platform = Platform,
                         Amount = item.Amount / 100m,
                         TransactionDate = txDate,
                         Currency = item.Currency,

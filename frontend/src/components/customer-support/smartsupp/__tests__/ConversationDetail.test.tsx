@@ -4,6 +4,15 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ConversationDetail from "../ConversationDetail";
 import { ConversationDto } from "../../../../api/hooks/useSmartsupp";
 
+const mockMutate = jest.fn();
+
+jest.mock("react-hot-toast", () => ({
+  toast: {
+    success: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
 jest.mock("../../../../api/hooks/useSmartsupp", () => {
   const actual = jest.requireActual("../../../../api/hooks/useSmartsupp");
   return {
@@ -24,6 +33,10 @@ jest.mock("../../../../api/hooks/useSmartsupp", () => {
         ],
       },
       isLoading: false,
+    }),
+    useCloseConversation: () => ({
+      mutate: mockMutate,
+      isPending: false,
     }),
   };
 });
@@ -143,5 +156,25 @@ describe("ConversationDetail", () => {
     );
     const textarea = screen.getByPlaceholderText("Napište odpověď...") as HTMLTextAreaElement;
     expect(textarea.value).toBe("Předvyplněný text");
+  });
+
+  it("renders a close button when conversation status is 'open'", () => {
+    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
+    expect(screen.getByTestId("close-conversation-btn")).toBeInTheDocument();
+  });
+
+  it("does not render a close button when conversation status is not 'open'", () => {
+    const resolvedConv = { ...conv, status: "resolved" };
+    render(wrap(<ConversationDetail conversationId="c1" conversation={resolvedConv} />));
+    expect(screen.queryByTestId("close-conversation-btn")).not.toBeInTheDocument();
+  });
+
+  it("calls mutate with conversationId when the close button is clicked", () => {
+    render(wrap(<ConversationDetail conversationId="c1" conversation={conv} />));
+    fireEvent.click(screen.getByTestId("close-conversation-btn"));
+    expect(mockMutate).toHaveBeenCalledWith(
+      "c1",
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    );
   });
 });

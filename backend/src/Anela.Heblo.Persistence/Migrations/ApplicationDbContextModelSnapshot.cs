@@ -2357,19 +2357,9 @@ namespace Anela.Heblo.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("Description");
 
-                    b.Property<string>("ErrorMessage")
-                        .HasColumnType("text")
-                        .HasColumnName("ErrorMessage");
-
                     b.Property<DateTime>("ImportedAt")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("ImportedAt");
-
-                    b.Property<bool>("IsSynced")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("IsSynced");
 
                     b.Property<string>("Platform")
                         .IsRequired()

@@ -35,8 +35,8 @@ public class MarketingInvoiceImportServiceTests
 
         var transactions = new List<MarketingTransaction>
         {
-            new() { TransactionId = "TX-001", Platform = "TestPlatform", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
-            new() { TransactionId = "TX-002", Platform = "TestPlatform", Amount = 200m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+            new() { TransactionId = "TX-001", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+            new() { TransactionId = "TX-002", Amount = 200m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
         };
 
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
@@ -46,7 +46,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(false);
 
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
 
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
@@ -71,7 +71,7 @@ public class MarketingInvoiceImportServiceTests
 
         var transactions = new List<MarketingTransaction>
         {
-            new() { TransactionId = "TX-001", Platform = "TestPlatform", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+            new() { TransactionId = "TX-001", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
         };
 
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
@@ -100,8 +100,8 @@ public class MarketingInvoiceImportServiceTests
 
         var transactions = new List<MarketingTransaction>
         {
-            new() { TransactionId = "TX-001", Platform = "TestPlatform", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
-            new() { TransactionId = "TX-002", Platform = "TestPlatform", Amount = 200m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+            new() { TransactionId = "TX-001", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+            new() { TransactionId = "TX-002", Amount = 200m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
         };
 
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
@@ -111,7 +111,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(false);
 
         _mockRepository.Setup(x => x.AddAsync(It.Is<ImportedMarketingTransaction>(t => t.TransactionId == "TX-001"), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
 
@@ -136,8 +136,8 @@ public class MarketingInvoiceImportServiceTests
 
         var transactions = new List<MarketingTransaction>
         {
-            new() { TransactionId = "TX-001", Platform = "TestPlatform", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
-            new() { TransactionId = "TX-002", Platform = "TestPlatform", Amount = 200m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+            new() { TransactionId = "TX-001", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+            new() { TransactionId = "TX-002", Amount = 200m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
         };
 
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
@@ -147,7 +147,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(false);
 
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
 
         // The single post-loop flush fails — none of the staged records are persisted
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -194,8 +194,8 @@ public class MarketingInvoiceImportServiceTests
         // Same TransactionId returned twice by the source in one run
         var transactions = new List<MarketingTransaction>
         {
-            new() { TransactionId = "TX-DUP", Platform = "TestPlatform", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
-            new() { TransactionId = "TX-DUP", Platform = "TestPlatform", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+            new() { TransactionId = "TX-DUP", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
+            new() { TransactionId = "TX-DUP", Amount = 100m, TransactionDate = from, Description = "Ad charge", Currency = "CZK" },
         };
 
         _mockSource.Setup(x => x.GetTransactionsAsync(from, to, It.IsAny<CancellationToken>()))
@@ -206,7 +206,7 @@ public class MarketingInvoiceImportServiceTests
             .ReturnsAsync(false);
 
         _mockRepository.Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
 
         _mockRepository.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(1);
@@ -234,7 +234,6 @@ public class MarketingInvoiceImportServiceTests
             new()
             {
                 TransactionId = "TX-EUR-001",
-                Platform = "TestPlatform",
                 Amount = 123.45m,
                 TransactionDate = from,
                 Description = "campaign X",
@@ -255,7 +254,7 @@ public class MarketingInvoiceImportServiceTests
         _mockRepository
             .Setup(x => x.AddAsync(It.IsAny<ImportedMarketingTransaction>(), It.IsAny<CancellationToken>()))
             .Callback<ImportedMarketingTransaction, CancellationToken>((entity, _) => captured = entity)
-            .Returns(Task.CompletedTask);
+            .ReturnsAsync((ImportedMarketingTransaction e, CancellationToken _) => e);
 
         _mockRepository
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -286,7 +285,6 @@ public class MarketingInvoiceImportServiceTests
             new()
             {
                 TransactionId = "TX-BAD-001",
-                Platform = "TestPlatform",
                 Amount = 100m,
                 TransactionDate = from,
                 Description = "missing currency",
@@ -339,7 +337,6 @@ public class MarketingInvoiceImportServiceTests
             new()
             {
                 TransactionId = "TX-WS-001",
-                Platform = "TestPlatform",
                 Amount = 50m,
                 TransactionDate = from,
                 Description = "whitespace currency",

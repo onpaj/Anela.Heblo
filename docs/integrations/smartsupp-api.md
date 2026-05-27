@@ -103,6 +103,46 @@ Not polled on startup — first request to `GetConversation` triggers the fetch.
 
 ---
 
+### PATCH /conversations/{id}
+
+**Close (resolve) a conversation.**
+
+**Status:** Inferred from API overview + payload mapper evidence (2026-05-26). Not directly verified against the live API — the Smartsupp docs site is a JavaScript SPA that cannot be scraped. Verify on first use and update this entry.
+
+**Rationale:**
+- The Smartsupp overview docs state that `PATCH` is used for partial updates.
+- `SmartsuppPayloadMapper.cs` (line 17) proves the API uses `"closed"` (not `"resolved"`) as the conversation status string for resolved conversations: `"closed" => SmartsuppConversationStatus.Resolved`.
+- `PATCH /conversations/{id}` with `{ "status": "closed" }` is the standard REST pattern for this operation.
+
+**Request:**
+```http
+PATCH https://app.smartsupp.com/api/v2/conversations/{id}
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "status": "closed"
+}
+```
+
+**Known status values (from search filter + payload mapper):**
+- `"open"` — open conversation
+- `"served"` — conversation being served by an agent
+- `"pending"` — pending (waiting for agent)
+- `"closed"` — closed/resolved (maps to `SmartsuppConversationStatus.Resolved` in our domain)
+
+**Success response (expected):** The updated conversation object, same shape as `GET /conversations/{id}`. HTTP 200.
+
+**Error codes:**
+- `401` — missing or invalid Bearer token
+- `404` — conversation not found
+- `422` — unprocessable entity (invalid status value or transition not allowed)
+- `429` — rate limited (Polly `RetryAfter` header handled by `SmartsuppApiClient`)
+
+**Implementation note:** Use `PATCH` via `HttpMethod.Patch`. The `SmartsuppApiClient` pattern: serialize `{ "status": "closed" }` as snake_case JSON, send with Bearer auth, treat `404` as `null` / not-found result, throw `HttpRequestException` on other non-2xx.
+
+---
+
 ## 4. Known quirks
 
 - `created_at` is returned as UTC ISO 8601 but `DateTime` deserialized without `DateTimeKind.Utc` — normalised to `DateTimeKind.Unspecified` via `DateTime.SpecifyKind` in `SmartsuppApiClient` to match the pattern used for all other date fields.

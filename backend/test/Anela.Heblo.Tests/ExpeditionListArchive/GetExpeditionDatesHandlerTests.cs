@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.ExpeditionList;
+using Anela.Heblo.Application.Features.ExpeditionListArchive;
 using Anela.Heblo.Application.Features.ExpeditionListArchive.UseCases.GetExpeditionDates;
 using Anela.Heblo.Domain.Features.FileStorage;
 using Microsoft.Extensions.Options;
@@ -16,7 +16,7 @@ public class GetExpeditionDatesHandlerTests
     public GetExpeditionDatesHandlerTests()
     {
         _blobStorageServiceMock = new Mock<IBlobStorageService>();
-        _handler = new GetExpeditionDatesHandler(_blobStorageServiceMock.Object, Options.Create(new PrintPickingListOptions()));
+        _handler = new GetExpeditionDatesHandler(_blobStorageServiceMock.Object, Options.Create(new ExpeditionListArchiveOptions()));
     }
 
     [Fact]

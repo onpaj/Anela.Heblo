@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { getClientAndBaseUrl, apiGet } from "../smartsuppClient";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getClientAndBaseUrl, apiGet, apiPost } from "../smartsuppClient";
+import { QUERY_KEYS } from "../client";
 
 export interface ConversationSummaryDto {
   id: string;
@@ -203,3 +204,52 @@ export function useSmartsuppVisitorInfo(conversationId: string | null) {
   });
 }
 
+export interface CloseConversationResponse {
+  success: boolean;
+  errorCode?: string;
+}
+
+const CLOSE_ERROR_MESSAGES: Record<string, string> = {
+  SmartsuppCloseConversationUnavailable:
+    "Nepodařilo se uzavřít konverzaci — služba je nedostupná. Zkuste to prosím znovu.",
+  SmartsuppConversationNotFound: "Konverzace nebyla nalezena.",
+};
+
+function messageForCloseError(code?: string): string {
+  if (code && CLOSE_ERROR_MESSAGES[code]) return CLOSE_ERROR_MESSAGES[code];
+  return "Nepodařilo se uzavřít konverzaci.";
+}
+
+export function useCloseConversation() {
+  const queryClient = useQueryClient();
+  return useMutation<CloseConversationResponse, Error, string>({
+    mutationFn: async (conversationId: string) => {
+      const { apiClient, baseUrl } = getClientAndBaseUrl();
+      const response = await apiPost(
+        apiClient,
+        `${baseUrl}/api/smartsupp/conversations/${conversationId}/close`,
+        {},
+      );
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({})) as Partial<CloseConversationResponse>;
+        throw new Error(messageForCloseError(errData?.errorCode));
+      }
+
+      const data = (await response.json()) as CloseConversationResponse;
+      if (!data.success) {
+        throw new Error(messageForCloseError(data?.errorCode));
+      }
+
+      return data;
+    },
+    onSuccess: (_data, conversationId) => {
+      queryClient.invalidateQueries({
+        queryKey: SMARTSUPP_QUERY_KEYS.conversation(conversationId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...QUERY_KEYS.smartsupp, "conversations"],
+      });
+    },
+  });
+}

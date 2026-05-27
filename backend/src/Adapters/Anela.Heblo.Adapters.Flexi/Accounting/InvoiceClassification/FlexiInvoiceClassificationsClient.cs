@@ -26,12 +26,12 @@ public class FlexiInvoiceClassificationsClient : IInvoiceClassificationsClient
         _logger = logger;
     }
 
-    public async Task<List<AccountingTemplateDto>> GetValidAccountingTemplatesAsync(CancellationToken? cancellationToken = default)
+    public async Task<List<AccountingTemplate>> GetValidAccountingTemplatesAsync(CancellationToken? cancellationToken = default)
     {
         var templates = await _accountingTemplateClient.GetAsync();
         return templates
             .Where(w => !w.Code.StartsWith("N-") && w.ModuleReceivedInvoicedAvailable)
-            .Select(s => new AccountingTemplateDto
+            .Select(s => new AccountingTemplate
             {
                 AccountCode = s.AccountCode,
                 Code = s.Code,

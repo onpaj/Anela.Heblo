@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.ExpeditionList.Services;
+using Anela.Heblo.Application.Shared.Printing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Anela.Heblo.API.Features.ExpeditionList;

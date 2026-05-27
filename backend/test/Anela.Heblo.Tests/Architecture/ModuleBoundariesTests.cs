@@ -147,6 +147,17 @@ public class ModuleBoundariesTests
                 "Anela.Heblo.Persistence.Catalog",
             },
             Allowlist: PurchaseAllowlist),
+
+        new ModuleBoundaryRule(
+            Name: "ExpeditionListArchive -> ExpeditionList",
+            InspectedNamespacePrefix: "Anela.Heblo.Application.Features.ExpeditionListArchive",
+            ForbiddenNamespacePrefixes: new[]
+            {
+                "Anela.Heblo.Domain.Features.ExpeditionList",
+                "Anela.Heblo.Application.Features.ExpeditionList",
+                "Anela.Heblo.Persistence.ExpeditionList",
+            },
+            Allowlist: new HashSet<string>(StringComparer.Ordinal)),
     };
 
     [Theory]
@@ -262,6 +273,45 @@ public class ModuleBoundariesTests
         violations.Should().BeEmpty(
             "Logistics types must not reference Purchase-owned namespaces. " +
             "Define a Logistics-owned contract and avoid importing Purchase types. " +
+            "Found:\n  " + string.Join("\n  ", violations));
+    }
+
+    [Fact]
+    public void Application_types_should_not_reference_AspNetCore_namespaces()
+    {
+        // NFR-3 from spec 2026-05-26: the Application layer must remain free of any
+        // Microsoft.AspNetCore.* type references. CurrentUserService was relocated to
+        // the API project to enforce this. This test prevents regression.
+        const string ApplicationNamespacePrefix = "Anela.Heblo.Application";
+        const string ForbiddenPrefix = "Microsoft.AspNetCore";
+
+        var assembly = Assembly.Load("Anela.Heblo.Application");
+        var applicationTypes = assembly.GetTypes()
+            .Where(t => t.Namespace is not null
+                && t.Namespace.StartsWith(ApplicationNamespacePrefix, StringComparison.Ordinal))
+            .ToList();
+
+        var violations = new List<string>();
+
+        foreach (var applicationType in applicationTypes)
+        {
+            foreach (var (referencedType, memberDescription) in EnumerateReferencedTypes(applicationType))
+            {
+                if (referencedType.Namespace is null)
+                    continue;
+
+                if (!referencedType.Namespace.Equals(ForbiddenPrefix, StringComparison.Ordinal)
+                    && !referencedType.Namespace.StartsWith(ForbiddenPrefix + ".", StringComparison.Ordinal))
+                    continue;
+
+                violations.Add($"{applicationType.FullName} -> {referencedType.FullName} (via {memberDescription})");
+            }
+        }
+
+        violations.Should().BeEmpty(
+            "Application layer must not reference Microsoft.AspNetCore.* types. " +
+            "Move ASP.NET Core-dependent code to the API or Infrastructure layer and " +
+            "expose it through a framework-neutral abstraction in Domain or Application. " +
             "Found:\n  " + string.Join("\n  ", violations));
     }
 

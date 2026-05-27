@@ -2946,40 +2946,6 @@ export class ApiClient {
         return Promise.resolve<FileResponse>(null as any);
     }
 
-    expeditionListArchive_RunFix(): Promise<RunExpeditionListPrintFixResponse> {
-        let url_ = this.baseUrl + "/api/expedition-list-archive/run-fix";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: RequestInit = {
-            method: "POST",
-            headers: {
-                "Accept": "application/json"
-            }
-        };
-
-        return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processExpeditionListArchive_RunFix(_response);
-        });
-    }
-
-    protected processExpeditionListArchive_RunFix(response: Response): Promise<RunExpeditionListPrintFixResponse> {
-        const status = response.status;
-        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200) {
-            return response.text().then((_responseText) => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = RunExpeditionListPrintFixResponse.fromJS(resultData200);
-            return result200;
-            });
-        } else if (status !== 200 && status !== 204) {
-            return response.text().then((_responseText) => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            });
-        }
-        return Promise.resolve<RunExpeditionListPrintFixResponse>(null as any);
-    }
-
     expeditionListArchive_Reprint(request: ReprintExpeditionListRequest): Promise<ReprintExpeditionListResponse> {
         let url_ = this.baseUrl + "/api/expedition-list-archive/reprint";
         url_ = url_.replace(/[?&]$/, "");
@@ -3016,6 +2982,40 @@ export class ApiClient {
             });
         }
         return Promise.resolve<ReprintExpeditionListResponse>(null as any);
+    }
+
+    expeditionList_RunFix(): Promise<RunExpeditionListPrintFixResponse> {
+        let url_ = this.baseUrl + "/api/expedition-list/run-fix";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processExpeditionList_RunFix(_response);
+        });
+    }
+
+    protected processExpeditionList_RunFix(response: Response): Promise<RunExpeditionListPrintFixResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = RunExpeditionListPrintFixResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<RunExpeditionListPrintFixResponse>(null as any);
     }
 
     featureFlags_Get(): Promise<EvaluateFlagsForClientResponse> {
@@ -17674,43 +17674,6 @@ export interface IExpeditionListItemDto {
     contentLength?: number | undefined;
 }
 
-export class RunExpeditionListPrintFixResponse extends BaseResponse implements IRunExpeditionListPrintFixResponse {
-    totalCount?: number;
-    errorMessage?: string | undefined;
-
-    constructor(data?: IRunExpeditionListPrintFixResponse) {
-        super(data);
-    }
-
-    override init(_data?: any) {
-        super.init(_data);
-        if (_data) {
-            this.totalCount = _data["totalCount"];
-            this.errorMessage = _data["errorMessage"];
-        }
-    }
-
-    static override fromJS(data: any): RunExpeditionListPrintFixResponse {
-        data = typeof data === 'object' ? data : {};
-        let result = new RunExpeditionListPrintFixResponse();
-        result.init(data);
-        return result;
-    }
-
-    override toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["totalCount"] = this.totalCount;
-        data["errorMessage"] = this.errorMessage;
-        super.toJSON(data);
-        return data;
-    }
-}
-
-export interface IRunExpeditionListPrintFixResponse extends IBaseResponse {
-    totalCount?: number;
-    errorMessage?: string | undefined;
-}
-
 export class ReprintExpeditionListResponse extends BaseResponse implements IReprintExpeditionListResponse {
     errorMessage?: string | undefined;
 
@@ -17778,6 +17741,43 @@ export class ReprintExpeditionListRequest implements IReprintExpeditionListReque
 
 export interface IReprintExpeditionListRequest {
     blobPath?: string;
+}
+
+export class RunExpeditionListPrintFixResponse extends BaseResponse implements IRunExpeditionListPrintFixResponse {
+    totalCount?: number;
+    errorMessage?: string | undefined;
+
+    constructor(data?: IRunExpeditionListPrintFixResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.totalCount = _data["totalCount"];
+            this.errorMessage = _data["errorMessage"];
+        }
+    }
+
+    static override fromJS(data: any): RunExpeditionListPrintFixResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new RunExpeditionListPrintFixResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["totalCount"] = this.totalCount;
+        data["errorMessage"] = this.errorMessage;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IRunExpeditionListPrintFixResponse extends IBaseResponse {
+    totalCount?: number;
+    errorMessage?: string | undefined;
 }
 
 export class EvaluateFlagsForClientResponse extends BaseResponse implements IEvaluateFlagsForClientResponse {
