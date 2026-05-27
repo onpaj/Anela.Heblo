@@ -141,6 +141,7 @@ const MeetingTasksPage: React.FC = () => {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Hledat..."
+          aria-label="Hledat v poradach"
           className="px-3 py-1.5 rounded-md text-sm border border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
         />
         <label className="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer select-none">
