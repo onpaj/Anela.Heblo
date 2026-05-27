@@ -115,9 +115,6 @@ public class AnalyticsRepository : IAnalyticsRepository
                         .ToList()
                 };
             }
-
-            // Allow garbage collection between batches
-            GC.Collect();
         }
     }
 
