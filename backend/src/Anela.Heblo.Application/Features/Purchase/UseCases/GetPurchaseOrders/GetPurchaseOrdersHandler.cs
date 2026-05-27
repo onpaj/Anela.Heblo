@@ -41,7 +41,6 @@ public class GetPurchaseOrdersHandler : IRequestHandler<GetPurchaseOrdersRequest
         {
             Id = order.Id,
             OrderNumber = order.OrderNumber,
-            SupplierId = 0, // No longer using SupplierId
             SupplierName = order.SupplierName,
             OrderDate = order.OrderDate,
             ExpectedDeliveryDate = order.ExpectedDeliveryDate,
