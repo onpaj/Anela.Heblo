@@ -170,7 +170,7 @@ const CompositionTab: React.FC<CompositionTabProps> = ({ productCode }) => {
   const addPhase = () => {
     const next = LETTERS.split('').find((l) => !draftPhases.includes(l));
     if (!next) return; // All 26 letters used.
-    setDraftPhases((prev) => [...prev, next]);
+    setDraftPhases((prev) => [...prev, next].sort());
   };
 
   const removePhase = (phase: string) => {
