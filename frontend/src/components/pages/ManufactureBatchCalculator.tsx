@@ -481,7 +481,10 @@ const ManufactureBatchCalculator: React.FC = () => {
               {isCalculatedBatchSizeResponse(calculationResult) && (
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => openRecipePdf(selectedProduct?.productCode ?? calculationResult.productCode ?? '')}
+                    onClick={() => openRecipePdf(
+                      selectedProduct?.productCode ?? calculationResult.productCode ?? '',
+                      calculationResult.newBatchSize ?? undefined
+                    )}
                     disabled={isPdfLoading}
                     className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 flex items-center gap-2 disabled:opacity-50"
                   >

@@ -62,9 +62,9 @@ public class ManufactureBatchController : BaseApiController
     }
 
     [HttpGet("recipe-pdf/{productCode}")]
-    public async Task<IActionResult> GetRecipePdf(string productCode, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetRecipePdf(string productCode, [FromQuery] double? batchSize, CancellationToken cancellationToken = default)
     {
-        var response = await _mediator.Send(new GetSemiproductRecipePdfRequest { ProductCode = productCode }, cancellationToken);
+        var response = await _mediator.Send(new GetSemiproductRecipePdfRequest { ProductCode = productCode, BatchSize = batchSize }, cancellationToken);
 
         if (!response.Success)
             return BadRequest(response);

@@ -33,8 +33,8 @@ public class GetSemiproductRecipePdfHandlerTests
             OriginalAmount = 1000.0,
             Ingredients = new List<Ingredient>
             {
-                new Ingredient { ProductCode = "ING001", ProductName = "Ingredient A", OriginalAmount = 300.0 },
-                new Ingredient { ProductCode = "ING002", ProductName = "Ingredient B", OriginalAmount = 700.0 },
+                new Ingredient { ProductCode = "ING001", ProductName = "Ingredient A", Amount = 300.0 },
+                new Ingredient { ProductCode = "ING002", ProductName = "Ingredient B", Amount = 700.0 },
             }
         };
 
@@ -63,6 +63,43 @@ public class GetSemiproductRecipePdfHandlerTests
     }
 
     [Fact]
+    public async Task Handle_WithBatchSize_ScalesIngredientAmounts()
+    {
+        // Arrange
+        const string productCode = "SP002";
+        var template = new ManufactureTemplate
+        {
+            ProductCode = productCode,
+            ProductName = "Scaled Semiproduct",
+            OriginalAmount = 1000.0,
+            Ingredients = new List<Ingredient>
+            {
+                new Ingredient { ProductCode = "ING001", ProductName = "Ingredient A", Amount = 300.0 },
+                new Ingredient { ProductCode = "ING002", ProductName = "Ingredient B", Amount = 700.0 },
+            }
+        };
+
+        _manufactureClientMock.Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(template);
+
+        var request = new GetSemiproductRecipePdfRequest { ProductCode = productCode, BatchSize = 2000.0 };
+
+        // Act
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
+
+        _rendererMock.Verify(r => r.Render(It.Is<SemiproductRecipeData>(d =>
+            d.BatchSize == 2000.0 &&
+            d.Ingredients[0].AmountFullBatch == 600.0 &&
+            d.Ingredients[0].AmountHalfBatch == 300.0 &&
+            d.Ingredients[1].AmountFullBatch == 1400.0 &&
+            d.Ingredients[1].AmountHalfBatch == 700.0
+        )), Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_NullTemplate_ReturnsManufactureTemplateNotFoundError()
     {
         // Arrange
@@ -81,7 +118,7 @@ public class GetSemiproductRecipePdfHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ZeroTotalOriginal_SetsPercentageToZero()
+    public async Task Handle_ZeroTotalAmount_SetsPercentageToZero()
     {
         // Arrange
         const string productCode = "ZERO001";
@@ -92,8 +129,8 @@ public class GetSemiproductRecipePdfHandlerTests
             OriginalAmount = 0.0,
             Ingredients = new List<Ingredient>
             {
-                new Ingredient { ProductCode = "ING001", ProductName = "Ingredient A", OriginalAmount = 0.0 },
-                new Ingredient { ProductCode = "ING002", ProductName = "Ingredient B", OriginalAmount = 0.0 },
+                new Ingredient { ProductCode = "ING001", ProductName = "Ingredient A", Amount = 0.0 },
+                new Ingredient { ProductCode = "ING002", ProductName = "Ingredient B", Amount = 0.0 },
             }
         };
 

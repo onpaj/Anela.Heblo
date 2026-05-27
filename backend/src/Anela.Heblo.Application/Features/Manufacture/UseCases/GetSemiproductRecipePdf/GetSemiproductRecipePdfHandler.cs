@@ -29,22 +29,27 @@ public class GetSemiproductRecipePdfHandler : IRequestHandler<GetSemiproductReci
                     new Dictionary<string, string> { { "ProductCode", request.ProductCode } });
             }
 
-            var totalOriginal = template.Ingredients.Sum(i => i.OriginalAmount);
+            var totalAmount = template.Ingredients.Sum(i => i.Amount);
+            double scaleFactor = (request.BatchSize.HasValue && template.OriginalAmount > 0)
+                ? request.BatchSize.Value / template.OriginalAmount
+                : 1.0;
+            double batchSize = request.BatchSize ?? template.OriginalAmount;
 
             var ingredientLines = template.Ingredients.Select(i => new SemiproductRecipeIngredientLine
             {
                 ProductCode = i.ProductCode,
                 ProductName = i.ProductName,
-                AmountFullBatch = i.OriginalAmount,
-                AmountHalfBatch = i.OriginalAmount / 2,
-                Percentage = totalOriginal > 0 ? i.OriginalAmount / totalOriginal * 100 : 0,
+                AmountFullBatch = Math.Round(i.Amount * scaleFactor, 3),
+                AmountHalfBatch = Math.Round(i.Amount * scaleFactor / 2, 3),
+                Percentage = totalAmount > 0 ? i.Amount / totalAmount * 100 : 0,
             }).ToList();
 
             var data = new SemiproductRecipeData
             {
                 ProductCode = template.ProductCode,
                 ProductName = template.ProductName,
-                BatchSize = template.OriginalAmount,
+                BatchSize = batchSize,
+                PrintedAt = DateTime.Now,
                 Ingredients = ingredientLines,
             };
 
