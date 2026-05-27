@@ -161,6 +161,124 @@ public class GetProductMarginSummaryHandlerTests
         result.TopProducts.Should().BeEmpty();
         result.MonthlyData.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task Handle_WithMockedDependencies_InvokesCalculatorAndBreakdownGenerator()
+    {
+        // Arrange
+        var marginCalculatorMock = new Mock<IMarginCalculator>();
+        var monthlyBreakdownGeneratorMock = new Mock<IMonthlyBreakdownGenerator>();
+
+        var request = new GetProductMarginSummaryRequest
+        {
+            TimeWindow = "current-year",
+            GroupingMode = ProductGroupingMode.Products,
+            MarginLevel = "M2"
+        };
+
+        var today = DateTime.Today;
+        var fromDate = new DateTime(today.Year, 1, 1);
+        var toDate = today;
+
+        var calculationResult = new MarginCalculationResult
+        {
+            GroupTotals = new Dictionary<string, decimal> { ["PROD001"] = 500m },
+            GroupProducts = new Dictionary<string, List<AnalyticsProduct>>
+            {
+                ["PROD001"] = new List<AnalyticsProduct>
+                {
+                    new AnalyticsProduct
+                    {
+                        ProductCode = "PROD001",
+                        ProductName = "Product 1",
+                        Type = AnalyticsProductType.Product,
+                        MarginAmount = 50m,
+                        M0Amount = 50m,
+                        M1Amount = 50m,
+                        M2Amount = 50m,
+                        SellingPrice = 100m,
+                        PurchasePrice = 50m,
+                        SalesHistory = new List<SalesDataPoint>
+                        {
+                            new() { Date = new DateTime(today.Year, 3, 1), AmountB2B = 5, AmountB2C = 5 }
+                        }
+                    }
+                }
+            },
+            TotalMargin = 500m
+        };
+
+        var monthlyData = new List<MonthlyProductMarginDto>
+        {
+            new MonthlyProductMarginDto
+            {
+                Year = today.Year,
+                Month = 3,
+                MonthDisplay = "Mar",
+                ProductSegments = new List<ProductMarginSegmentDto>(),
+                TotalMonthMargin = 500m
+            }
+        };
+
+        _analyticsRepositoryMock
+            .Setup(x => x.StreamProductsWithSalesAsync(fromDate, toDate,
+                It.IsAny<AnalyticsProductType[]>(), It.IsAny<CancellationToken>()))
+            .Returns(new List<AnalyticsProduct>().ToAsyncEnumerable());
+
+        marginCalculatorMock
+            .Setup(x => x.CalculateAsync(
+                It.IsAny<IAsyncEnumerable<AnalyticsProduct>>(),
+                It.IsAny<DateRange>(),
+                ProductGroupingMode.Products,
+                "M2",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(calculationResult);
+
+        marginCalculatorMock
+            .Setup(x => x.GetGroupDisplayName(
+                It.IsAny<string>(),
+                It.IsAny<ProductGroupingMode>(),
+                It.IsAny<List<AnalyticsProduct>>()))
+            .Returns<string, ProductGroupingMode, List<AnalyticsProduct>>((key, _, _) => key);
+
+        monthlyBreakdownGeneratorMock
+            .Setup(x => x.Generate(
+                calculationResult,
+                It.IsAny<DateRange>(),
+                ProductGroupingMode.Products,
+                "M2"))
+            .Returns(monthlyData);
+
+        var handler = new GetProductMarginSummaryHandler(
+            _analyticsRepositoryMock.Object,
+            marginCalculatorMock.Object,
+            monthlyBreakdownGeneratorMock.Object);
+
+        // Act
+        var result = await handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.TotalMargin.Should().Be(500m);
+        result.MonthlyData.Should().BeSameAs(monthlyData);
+
+        marginCalculatorMock.Verify(
+            x => x.CalculateAsync(
+                It.IsAny<IAsyncEnumerable<AnalyticsProduct>>(),
+                It.IsAny<DateRange>(),
+                ProductGroupingMode.Products,
+                "M2",
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        monthlyBreakdownGeneratorMock.Verify(
+            x => x.Generate(
+                calculationResult,
+                It.IsAny<DateRange>(),
+                ProductGroupingMode.Products,
+                "M2"),
+            Times.Once);
+    }
 }
 
 // Extension method to convert list to IAsyncEnumerable for testing
