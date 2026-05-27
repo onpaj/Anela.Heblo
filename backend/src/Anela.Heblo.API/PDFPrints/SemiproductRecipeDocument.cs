@@ -120,5 +120,5 @@ public class SemiproductRecipeDocument : IDocument
          .Padding(4);
 
     private static IContainer DataCell(IContainer c) =>
-        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(4);
+        c.Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(4).DefaultTextStyle(s => s.Bold());
 }
