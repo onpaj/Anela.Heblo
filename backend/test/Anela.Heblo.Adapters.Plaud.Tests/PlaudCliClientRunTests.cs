@@ -11,6 +11,7 @@ public sealed class PlaudCliClientRunTests
     {
         // Skip on platforms that can't run shell scripts
         Skip.If(OperatingSystem.IsWindows(), "Shim script requires bash");
+        if (OperatingSystem.IsWindows()) return; // satisfy CA1416 — unreachable at runtime
 
         // Arrange — write a tiny shim that mimics Plaud auth failure
         var shimPath = Path.Combine(Path.GetTempPath(), $"plaud_shim_{Guid.NewGuid():N}.sh");
@@ -45,7 +46,9 @@ public sealed class PlaudCliClientRunTests
     public async Task RunCli_WhenCliExitsNonZeroWithoutAuthFailed_ThrowsInvalidOperationException()
     {
         Skip.If(OperatingSystem.IsWindows(), "Shim script requires bash");
+        if (OperatingSystem.IsWindows()) return; // satisfy CA1416 — unreachable at runtime
 
+        // Arrange — write a tiny shim that mimics a generic non-zero exit
         var shimPath = Path.Combine(Path.GetTempPath(), $"plaud_shim_{Guid.NewGuid():N}.sh");
         await File.WriteAllTextAsync(shimPath,
             "#!/bin/sh\necho 'some other error' >&2\nexit 1\n");
@@ -60,8 +63,10 @@ public sealed class PlaudCliClientRunTests
             });
             var client = new PlaudCliClient(NullLogger<PlaudCliClient>.Instance, options);
 
+            // Act
             Func<Task> act = () => client.ListRecentAsync(7);
 
+            // Assert
             await act.Should()
                 .ThrowAsync<InvalidOperationException>()
                 .WithMessage("*some other error*");
