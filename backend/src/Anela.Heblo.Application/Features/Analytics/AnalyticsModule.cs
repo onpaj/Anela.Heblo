@@ -33,9 +33,8 @@ public static class AnalyticsModule
         services.AddScoped<IValidator<GetMarginReportRequest>, GetMarginReportRequestValidator>();
         services.AddScoped<IValidator<GetProductMarginAnalysisRequest>, GetProductMarginAnalysisRequestValidator>();
 
-        // Legacy services (keeping for backward compatibility)
-        services.AddScoped<MarginCalculator>();
-        services.AddScoped<MonthlyBreakdownGenerator>();
+        services.AddScoped<IMarginCalculator, MarginCalculator>();
+        services.AddScoped<IMonthlyBreakdownGenerator, MonthlyBreakdownGenerator>();
 
         // Register dashboard tiles
         services.RegisterTile<InvoiceImportStatisticsTile>();
