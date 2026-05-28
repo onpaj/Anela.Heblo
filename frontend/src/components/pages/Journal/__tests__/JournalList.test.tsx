@@ -463,4 +463,22 @@ describe("JournalList", () => {
     // Basic test that entry is displayed
     expect(screen.getByText("Skincare Research Entry")).toBeInTheDocument();
   });
+
+  it('clicking the "Datum" header invokes the journal-entries hook with updated sort params', async () => {
+    render(<JournalList />, { wrapper: createWrapper });
+
+    const dateHeader = screen.getByRole("columnheader", { name: /Datum/i });
+    fireEvent.click(dateHeader);
+
+    // After clicking "entryDate" column (not equal to initial "EntryDate"), sortBy switches and
+    // sortDescending resets to false → sortDirection becomes "ASC"
+    await waitFor(() => {
+      const calls = (mockUseJournalHooks.useJournalEntries as jest.Mock).mock.calls;
+      const lastCall = calls[calls.length - 1]?.[0];
+      expect(lastCall).toMatchObject({
+        sortBy: "entryDate",
+        sortDirection: "ASC",
+      });
+    });
+  });
 });
