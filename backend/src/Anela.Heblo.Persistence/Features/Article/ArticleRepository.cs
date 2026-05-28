@@ -56,7 +56,7 @@ public class ArticleRepository : IArticleRepository
             .FirstOrDefaultAsync(a => a.Id == id, ct);
     }
 
-    public async Task<(IReadOnlyList<DomainArticle> Items, int TotalCount)> GetFeedbackPagedAsync(
+    public async Task<(IReadOnlyList<ArticleFeedbackProjection> Items, int TotalCount)> GetFeedbackPagedAsync(
         bool? hasFeedback,
         string? requestedBy,
         string sortBy,
@@ -92,6 +92,15 @@ public class ArticleRepository : IArticleRepository
         var items = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(a => new ArticleFeedbackProjection(
+                a.Id,
+                a.Title,
+                a.Topic,
+                a.RequestedBy,
+                a.CreatedAt,
+                a.PrecisionScore,
+                a.StyleScore,
+                a.FeedbackComment))
             .ToListAsync(ct);
 
         return (items, total);
