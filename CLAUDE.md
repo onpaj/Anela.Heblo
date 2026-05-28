@@ -57,6 +57,7 @@ These encode **project-specific** gotchas not covered by the global rules in `~/
 - **E2E tests use fixtures from `frontend/test/e2e/fixtures/test-data.ts`.** Throw (don't skip) when expected data is missing. (See `docs/testing/test-data-fixtures.md`.)
 - **E2E tests live in their module folder** under `frontend/test/e2e/<module>/`. (See `docs/testing/e2e-module-guide.md`.)
 - **Shoptet API findings must be documented before use.** No sandbox — every call hits a live store. Write new endpoints, status values, and quirks to `docs/integrations/shoptet-api.md` before relying on them.
+- **All secrets go to Azure Key Vault, never to Web App environment variables.** Staging: `kv-heblo-stg`. KV secrets use `--` as separator (e.g. `ConnectionStrings--Staging`, `HomeAssistant--BaseUrl`). The app reads `KeyVault:Uri` from App Settings and loads all secrets from KV at startup. Do not add or update secrets in Azure Portal App Settings — use `az keyvault secret set --vault-name kv-heblo-stg --name "..." --value "..."` instead.
 
 ## Validation before completion
 

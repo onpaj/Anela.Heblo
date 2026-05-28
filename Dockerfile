@@ -5,8 +5,12 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /app/frontend
 
-# Accept build arguments for React environment variables
-ARG REACT_APP_API_URL=http://localhost:8080
+# Accept build arguments for React environment variables.
+# REACT_APP_API_URL is intentionally empty: runtimeConfig.ts falls back to
+# window.location.origin when empty, so the same image serves frontend + API from one
+# host in stg/prod. A truthy default (e.g. http://localhost:8080) gets baked into the
+# bundle and ships to users, causing ERR_CONNECTION_REFUSED in their browsers.
+ARG REACT_APP_API_URL=
 ARG REACT_APP_USE_MOCK_AUTH=true
 ARG REACT_APP_AZURE_CLIENT_ID=
 ARG REACT_APP_AZURE_AUTHORITY=
