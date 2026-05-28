@@ -63,6 +63,34 @@ public class CreateMaterialContainersHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ValidRequest_CreatesContainersWithAssignedStatus()
+    {
+        // Arrange
+        var lot = new Lot("MAT001", "L1", null, DateOnly.FromDateTime(DateTime.Today), null, "user");
+        _lotRepo.Setup(r => r.GetByIdAsync(1, default)).ReturnsAsync(lot);
+        _generator.Setup(g => g.GenerateAsync(1, default)).ReturnsAsync(new List<string> { "INT-00000001" }.AsReadOnly() as IReadOnlyList<string>);
+        List<MaterialContainer>? captured = null;
+        _containerRepo.Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default))
+            .Callback<IEnumerable<MaterialContainer>, CancellationToken>((items, _) => captured = items.ToList())
+            .ReturnsAsync((IEnumerable<MaterialContainer> items, CancellationToken _) => items);
+        _containerRepo.Setup(r => r.SaveChangesAsync(default)).ReturnsAsync(1);
+
+        var request = new CreateMaterialContainersRequest
+        {
+            LotId = 1,
+            Items = new List<CreateMaterialContainerItem> { new() { Amount = 25m, Unit = "kg" } }
+        };
+
+        // Act
+        await _handler.Handle(request, default);
+
+        // Assert
+        Assert.NotNull(captured);
+        Assert.Single(captured);
+        Assert.Equal(MaterialContainerStatus.Assigned, captured[0].Status);
+    }
+
+    [Fact]
     public async Task Handle_LotNotFound_ReturnsLotNotFound()
     {
         // Arrange

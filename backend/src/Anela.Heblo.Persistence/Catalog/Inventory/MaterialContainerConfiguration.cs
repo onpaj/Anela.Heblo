@@ -8,7 +8,7 @@ public class MaterialContainerConfiguration : IEntityTypeConfiguration<MaterialC
 {
     public void Configure(EntityTypeBuilder<MaterialContainer> builder)
     {
-        builder.ToTable("Eans", "public");
+        builder.ToTable("MaterialContainers", "public");
 
         builder.HasKey(x => x.Id);
 
@@ -41,18 +41,20 @@ public class MaterialContainerConfiguration : IEntityTypeConfiguration<MaterialC
         builder.Property(x => x.UpdatedBy)
             .HasMaxLength(100);
 
+        builder.Property(x => x.Status).IsRequired().HasConversion<int>();
+
         builder.HasIndex(x => x.Code)
             .IsUnique()
-            .HasDatabaseName("IX_Eans_Code");
+            .HasDatabaseName("IX_MaterialContainers_Code");
 
         builder.HasIndex(x => x.LotId)
-            .HasDatabaseName("IX_Eans_LotId");
+            .HasDatabaseName("IX_MaterialContainers_LotId");
 
-        // ON DELETE RESTRICT: deleting Lot while EANs exist raises an error
+        // ON DELETE RESTRICT: deleting Lot while MaterialContainers exist raises an error
         builder.HasOne<Lot>()
             .WithMany()
             .HasForeignKey(x => x.LotId)
             .OnDelete(DeleteBehavior.Restrict)
-            .HasConstraintName("FK_Eans_Lots_LotId");
+            .HasConstraintName("FK_MaterialContainers_Lots_LotId");
     }
 }

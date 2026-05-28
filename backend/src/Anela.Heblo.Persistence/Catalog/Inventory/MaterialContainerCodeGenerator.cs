@@ -5,7 +5,7 @@ namespace Anela.Heblo.Persistence.Catalog.Inventory;
 
 public class MaterialContainerCodeGenerator : IMaterialContainerCodeGenerator
 {
-    private const string SequenceName = "ean_internal_seq";
+    private const string SequenceName = "material_container_internal_seq";
     private readonly NpgsqlDataSource _dataSource;
 
     public MaterialContainerCodeGenerator(NpgsqlDataSource dataSource)

@@ -20,6 +20,7 @@ public class MaterialContainer : IEntity<int>
         Unit = unit;
         CreatedAt = DateTime.UtcNow;
         CreatedBy = createdBy;
+        Status = MaterialContainerStatus.Assigned;
     }
 
     public int Id { get; private set; }
@@ -31,4 +32,14 @@ public class MaterialContainer : IEntity<int>
     public string CreatedBy { get; private set; } = null!;
     public DateTime? UpdatedAt { get; private set; }
     public string? UpdatedBy { get; private set; }
+    public MaterialContainerStatus Status { get; private set; }
+
+    public void Discard(string updatedBy)
+    {
+        if (string.IsNullOrWhiteSpace(updatedBy)) throw new ArgumentException("UpdatedBy is required.", nameof(updatedBy));
+        if (Status == MaterialContainerStatus.Discarded) return;
+        Status = MaterialContainerStatus.Discarded;
+        UpdatedAt = DateTime.UtcNow;
+        UpdatedBy = updatedBy;
+    }
 }
