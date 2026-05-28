@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Anela.Heblo.Persistence.Catalog.Inventory;
 
-public class EanRepository : BaseRepository<Ean, int>, IEanRepository
+public class MaterialContainerRepository : BaseRepository<MaterialContainer, int>, IMaterialContainerRepository
 {
-    public EanRepository(ApplicationDbContext context) : base(context) { }
+    public MaterialContainerRepository(ApplicationDbContext context) : base(context) { }
 
-    public async Task<Ean?> GetByCodeAsync(string code, CancellationToken ct)
+    public async Task<MaterialContainer?> GetByCodeAsync(string code, CancellationToken ct)
     {
         return await DbSet.FirstOrDefaultAsync(x => x.Code == code, ct);
     }
@@ -19,7 +19,7 @@ public class EanRepository : BaseRepository<Ean, int>, IEanRepository
         return await DbSet.AnyAsync(x => x.LotId == lotId, ct);
     }
 
-    public async Task<PagedResult<Ean>> GetPaginatedAsync(
+    public async Task<PagedResult<MaterialContainer>> GetPaginatedAsync(
         int? lotId,
         string? materialCode,
         int page,
@@ -48,7 +48,7 @@ public class EanRepository : BaseRepository<Ean, int>, IEanRepository
             .Take(pageSize)
             .ToListAsync(ct);
 
-        return new PagedResult<Ean>
+        return new PagedResult<MaterialContainer>
         {
             Items = items,
             TotalCount = totalCount,

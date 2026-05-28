@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Anela.Heblo.Persistence.Catalog.Inventory;
 
-public class EanConfiguration : IEntityTypeConfiguration<Ean>
+public class MaterialContainerConfiguration : IEntityTypeConfiguration<MaterialContainer>
 {
-    public void Configure(EntityTypeBuilder<Ean> builder)
+    public void Configure(EntityTypeBuilder<MaterialContainer> builder)
     {
         builder.ToTable("Eans", "public");
 

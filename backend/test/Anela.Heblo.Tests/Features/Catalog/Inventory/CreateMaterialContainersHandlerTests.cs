@@ -1,4 +1,4 @@
-using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateEans;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateMaterialContainers;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog.Inventory;
 using Anela.Heblo.Domain.Features.Users;
@@ -8,42 +8,42 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Catalog.Inventory;
 
-public class CreateEansHandlerTests
+public class CreateMaterialContainersHandlerTests
 {
-    private readonly Mock<IEanRepository> _eanRepo = new();
+    private readonly Mock<IMaterialContainerRepository> _containerRepo = new();
     private readonly Mock<ILotRepository> _lotRepo = new();
-    private readonly Mock<IEanCodeGenerator> _generator = new();
+    private readonly Mock<IMaterialContainerCodeGenerator> _generator = new();
     private readonly Mock<ICurrentUserService> _currentUser = new();
-    private readonly CreateEansHandler _handler;
+    private readonly CreateMaterialContainersHandler _handler;
 
-    public CreateEansHandlerTests()
+    public CreateMaterialContainersHandlerTests()
     {
         _currentUser.Setup(x => x.GetCurrentUser())
             .Returns(new CurrentUser("u1", "Test User", null, true));
-        _handler = new CreateEansHandler(
-            NullLogger<CreateEansHandler>.Instance,
-            _eanRepo.Object,
+        _handler = new CreateMaterialContainersHandler(
+            NullLogger<CreateMaterialContainersHandler>.Instance,
+            _containerRepo.Object,
             _lotRepo.Object,
             _generator.Object,
             _currentUser.Object);
     }
 
     [Fact]
-    public async Task Handle_ValidRequest_GeneratesAndPersistsEans()
+    public async Task Handle_ValidRequest_GeneratesAndPersistsMaterialContainers()
     {
         // Arrange
         var lot = new Lot("MAT001", "L1", null, DateOnly.FromDateTime(DateTime.Today), null, "user");
         _lotRepo.Setup(r => r.GetByIdAsync(1, default)).ReturnsAsync(lot);
         _generator.Setup(g => g.GenerateAsync(2, default))
             .ReturnsAsync(new List<string> { "INT-00000001", "INT-00000002" });
-        _eanRepo.Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<Ean>>(), default))
-            .ReturnsAsync((IEnumerable<Ean> eans, CancellationToken _) => eans);
-        _eanRepo.Setup(r => r.SaveChangesAsync(default)).ReturnsAsync(2);
+        _containerRepo.Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default))
+            .ReturnsAsync((IEnumerable<MaterialContainer> containers, CancellationToken _) => containers);
+        _containerRepo.Setup(r => r.SaveChangesAsync(default)).ReturnsAsync(2);
 
-        var request = new CreateEansRequest
+        var request = new CreateMaterialContainersRequest
         {
             LotId = 1,
-            Items = new List<CreateEanItem>
+            Items = new List<CreateMaterialContainerItem>
             {
                 new() { Amount = 25m, Unit = "kg" },
                 new() { Amount = 25m, Unit = "kg" }
@@ -55,11 +55,11 @@ public class CreateEansHandlerTests
 
         // Assert
         Assert.True(result.Success);
-        Assert.Equal(2, result.Eans.Count);
-        Assert.Equal("INT-00000001", result.Eans[0].Code);
-        Assert.Equal("INT-00000002", result.Eans[1].Code);
+        Assert.Equal(2, result.Containers.Count);
+        Assert.Equal("INT-00000001", result.Containers[0].Code);
+        Assert.Equal("INT-00000002", result.Containers[1].Code);
         _generator.Verify(g => g.GenerateAsync(2, default), Times.Once);
-        _eanRepo.Verify(r => r.AddRangeAsync(It.IsAny<IEnumerable<Ean>>(), default), Times.Once);
+        _containerRepo.Verify(r => r.AddRangeAsync(It.IsAny<IEnumerable<MaterialContainer>>(), default), Times.Once);
     }
 
     [Fact]
@@ -68,10 +68,10 @@ public class CreateEansHandlerTests
         // Arrange
         _lotRepo.Setup(r => r.GetByIdAsync(99, default)).ReturnsAsync((Lot?)null);
 
-        var request = new CreateEansRequest
+        var request = new CreateMaterialContainersRequest
         {
             LotId = 99,
-            Items = new List<CreateEanItem> { new() { Amount = 1m, Unit = "kg" } }
+            Items = new List<CreateMaterialContainerItem> { new() { Amount = 1m, Unit = "kg" } }
         };
 
         // Act

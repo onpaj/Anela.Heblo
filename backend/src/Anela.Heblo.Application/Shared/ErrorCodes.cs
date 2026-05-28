@@ -318,7 +318,7 @@ public enum ErrorCodes
     [HttpStatusCode(HttpStatusCode.NotFound)]
     LotNotFound = 2801,
     [HttpStatusCode(HttpStatusCode.NotFound)]
-    EanNotFound = 2802,
+    MaterialContainerNotFound = 2802,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     LotAlreadyExists = 2803,
     [HttpStatusCode(HttpStatusCode.NotFound)]
@@ -327,6 +327,10 @@ public enum ErrorCodes
     InventoryMaterialInvalidType = 2805,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     LotHasEans = 2806,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    MaterialContainerCodeExists = 2807,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    MaterialContainerCodeInvalidFormat = 2808,
 
     // WeatherForecast module errors (29XX)
     [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]

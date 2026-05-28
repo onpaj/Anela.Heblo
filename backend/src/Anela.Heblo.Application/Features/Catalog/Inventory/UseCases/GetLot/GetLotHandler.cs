@@ -11,13 +11,13 @@ public class GetLotHandler : IRequestHandler<GetLotRequest, GetLotResponse>
 {
     private readonly ILogger<GetLotHandler> _logger;
     private readonly ILotRepository _lotRepository;
-    private readonly IEanRepository _eanRepository;
+    private readonly IMaterialContainerRepository _materialContainerRepository;
 
-    public GetLotHandler(ILogger<GetLotHandler> logger, ILotRepository lotRepository, IEanRepository eanRepository)
+    public GetLotHandler(ILogger<GetLotHandler> logger, ILotRepository lotRepository, IMaterialContainerRepository materialContainerRepository)
     {
         _logger = logger;
         _lotRepository = lotRepository;
-        _eanRepository = eanRepository;
+        _materialContainerRepository = materialContainerRepository;
     }
 
     public async Task<GetLotResponse> Handle(GetLotRequest request, CancellationToken cancellationToken)
@@ -29,8 +29,8 @@ public class GetLotHandler : IRequestHandler<GetLotRequest, GetLotResponse>
             return new GetLotResponse(ErrorCodes.LotNotFound, new Dictionary<string, string> { { "Id", request.Id.ToString() } });
         }
 
-        var eanPage = await _eanRepository.GetPaginatedAsync(request.Id, null, 1, 100, cancellationToken);
-        var eanDtos = eanPage.Items.Select(e => new EanDto
+        var containerPage = await _materialContainerRepository.GetPaginatedAsync(request.Id, null, 1, 100, cancellationToken);
+        var containerDtos = containerPage.Items.Select(e => new MaterialContainerDto
         {
             Id = e.Id,
             Code = e.Code,
@@ -41,6 +41,6 @@ public class GetLotHandler : IRequestHandler<GetLotRequest, GetLotResponse>
             CreatedBy = e.CreatedBy
         }).ToList();
 
-        return new GetLotResponse { Lot = CreateLotHandler.MapToDto(lot), Eans = eanDtos };
+        return new GetLotResponse { Lot = CreateLotHandler.MapToDto(lot), Containers = containerDtos };
     }
 }

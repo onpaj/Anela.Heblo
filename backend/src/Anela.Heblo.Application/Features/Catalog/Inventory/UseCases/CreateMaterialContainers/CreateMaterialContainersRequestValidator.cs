@@ -1,14 +1,14 @@
 using FluentValidation;
 
-namespace Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateEans;
+namespace Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.CreateMaterialContainers;
 
-public class CreateEansRequestValidator : AbstractValidator<CreateEansRequest>
+public class CreateMaterialContainersRequestValidator : AbstractValidator<CreateMaterialContainersRequest>
 {
-    public CreateEansRequestValidator()
+    public CreateMaterialContainersRequestValidator()
     {
         RuleFor(x => x.LotId).GreaterThan(0).WithMessage("LotId is required.");
         RuleFor(x => x.Items).NotEmpty().WithMessage("At least one item is required.");
-        RuleFor(x => x.Items.Count).LessThanOrEqualTo(500).WithMessage("Cannot create more than 500 EANs in one call.");
+        RuleFor(x => x.Items.Count).LessThanOrEqualTo(500).WithMessage("Cannot create more than 500 MaterialContainers in one call.");
         RuleForEach(x => x.Items).ChildRules(item =>
         {
             item.RuleFor(i => i.Amount).GreaterThan(0).WithMessage("Amount must be positive.");

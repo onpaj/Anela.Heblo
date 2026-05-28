@@ -2,11 +2,11 @@ using Anela.Heblo.Xcc.Domain;
 
 namespace Anela.Heblo.Domain.Features.Catalog.Inventory;
 
-public class Ean : IEntity<int>
+public class MaterialContainer : IEntity<int>
 {
-    protected Ean() { } // EF Core
+    protected MaterialContainer() { } // EF Core
 
-    public Ean(string code, int lotId, decimal amount, string unit, string createdBy)
+    public MaterialContainer(string code, int lotId, decimal amount, string unit, string createdBy)
     {
         if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Code is required.", nameof(code));
         if (lotId <= 0) throw new ArgumentException("LotId must be positive.", nameof(lotId));

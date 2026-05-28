@@ -1,8 +1,8 @@
 using MediatR;
 
-namespace Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.ListEans;
+namespace Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.ListMaterialContainers;
 
-public class ListEansRequest : IRequest<ListEansResponse>
+public class ListMaterialContainersRequest : IRequest<ListMaterialContainersResponse>
 {
     public int? LotId { get; set; }
     public string? MaterialCode { get; set; }

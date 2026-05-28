@@ -3,12 +3,12 @@ using Npgsql;
 
 namespace Anela.Heblo.Persistence.Catalog.Inventory;
 
-public class EanCodeGenerator : IEanCodeGenerator
+public class MaterialContainerCodeGenerator : IMaterialContainerCodeGenerator
 {
     private const string SequenceName = "ean_internal_seq";
     private readonly NpgsqlDataSource _dataSource;
 
-    public EanCodeGenerator(NpgsqlDataSource dataSource)
+    public MaterialContainerCodeGenerator(NpgsqlDataSource dataSource)
     {
         _dataSource = dataSource;
     }
