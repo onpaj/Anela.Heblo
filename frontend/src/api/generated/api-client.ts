@@ -32858,7 +32858,6 @@ export interface IGetPurchaseOrdersResponse extends IBaseResponse {
 export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
     id?: number;
     orderNumber?: string;
-    supplierId?: number;
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
@@ -32884,7 +32883,6 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
         if (_data) {
             this.id = _data["id"];
             this.orderNumber = _data["orderNumber"];
-            this.supplierId = _data["supplierId"];
             this.supplierName = _data["supplierName"];
             this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
             this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
@@ -32910,7 +32908,6 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
         data = typeof data === 'object' ? data : {};
         data["id"] = this.id;
         data["orderNumber"] = this.orderNumber;
-        data["supplierId"] = this.supplierId;
         data["supplierName"] = this.supplierName;
         data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
         data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
@@ -32929,7 +32926,6 @@ export class PurchaseOrderSummaryDto implements IPurchaseOrderSummaryDto {
 export interface IPurchaseOrderSummaryDto {
     id?: number;
     orderNumber?: string;
-    supplierId?: number;
     supplierName?: string;
     orderDate?: Date;
     expectedDeliveryDate?: Date | undefined;
@@ -34158,7 +34154,6 @@ export interface IStockAnalysisItemDto {
 
 export enum StockSeverity {
     Critical = "Critical",
-    Severe = "Severe",
     Low = "Low",
     Optimal = "Optimal",
     Overstocked = "Overstocked",
