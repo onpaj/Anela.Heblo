@@ -550,26 +550,25 @@ const BatchPlanningCalculator: React.FC = () => {
                       Nastavení prodejů
                     </h4>
 
-                    {/* Multiplier row */}
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs text-gray-600 whitespace-nowrap">Multiplikátor:</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0.1"
-                        max="9.9"
-                        value={salesMultiplier.toFixed(1)}
-                        onChange={(e) => {
-                          setSalesMultiplier(Number(e.target.value));
-                          setNeedsRecalculation(true);
-                        }}
-                        className="w-20 px-2 py-1 text-sm border border-gray-300 rounded text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        title="Sales Multiplier (1.0-9.9)"
-                      />
-                    </div>
-
-                    {/* Period dropdown row */}
-                    <div className="flex items-center gap-2">
+                    {/* Multiplier + Period in one row */}
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-gray-600 whitespace-nowrap">Multiplikátor:</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.1"
+                          max="9.9"
+                          value={salesMultiplier.toFixed(1)}
+                          onChange={(e) => {
+                            setSalesMultiplier(Number(e.target.value));
+                            setNeedsRecalculation(true);
+                          }}
+                          className="w-20 px-2 py-1 text-sm border border-gray-300 rounded text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          title="Sales Multiplier (1.0-9.9)"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
                       <label
                         htmlFor="sales-period-select"
                         className="text-xs text-gray-600 whitespace-nowrap"
@@ -596,6 +595,7 @@ const BatchPlanningCalculator: React.FC = () => {
                           </option>
                         ))}
                       </select>
+                      </div>
                     </div>
 
                     {/* Custom date pickers — only visible when CustomPeriod is selected */}
