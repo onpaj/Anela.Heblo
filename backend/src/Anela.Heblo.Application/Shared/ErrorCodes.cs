@@ -205,6 +205,10 @@ public enum ErrorCodes
     RecurringJobUpdateFailed = 1902,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     InvalidCronExpression = 1903,
+    [HttpStatusCode(HttpStatusCode.Conflict)]
+    RecurringJobDisabled = 1904,
+    [HttpStatusCode(HttpStatusCode.InternalServerError)]
+    RecurringJobEnqueueFailed = 1905,
 
     // KnowledgeBase module errors (20XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

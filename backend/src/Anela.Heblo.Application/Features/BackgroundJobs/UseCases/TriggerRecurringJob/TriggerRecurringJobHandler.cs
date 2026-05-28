@@ -35,7 +35,10 @@ public class TriggerRecurringJobHandler : IRequestHandler<TriggerRecurringJobReq
 
         if (job == null)
         {
-            _logger.LogWarning("Job {JobName} not found in registered jobs", request.JobName);
+            _logger.LogWarning(
+                "Job {JobName} not found in registered jobs. ErrorCode={ErrorCode}",
+                request.JobName,
+                (int)ErrorCodes.RecurringJobNotFound);
             return new TriggerRecurringJobResponse(
                 ErrorCodes.RecurringJobNotFound,
                 new Dictionary<string, string>
@@ -52,9 +55,12 @@ public class TriggerRecurringJobHandler : IRequestHandler<TriggerRecurringJobReq
             var isEnabled = await _statusChecker.IsJobEnabledAsync(request.JobName, cancellationToken);
             if (!isEnabled)
             {
-                _logger.LogWarning("Job {JobName} is disabled. Use forceDisabled=true to trigger anyway.", request.JobName);
+                _logger.LogWarning(
+                    "Job {JobName} is disabled. Use forceDisabled=true to trigger anyway. ErrorCode={ErrorCode}",
+                    request.JobName,
+                    (int)ErrorCodes.RecurringJobDisabled);
                 return new TriggerRecurringJobResponse(
-                    ErrorCodes.RecurringJobNotFound,
+                    ErrorCodes.RecurringJobDisabled,
                     new Dictionary<string, string>
                     {
                         { "jobName", request.JobName },
@@ -69,9 +75,12 @@ public class TriggerRecurringJobHandler : IRequestHandler<TriggerRecurringJobReq
 
         if (jobId == null)
         {
-            _logger.LogError("Failed to enqueue job {JobName}", request.JobName);
+            _logger.LogError(
+                "Failed to enqueue job {JobName}. ErrorCode={ErrorCode}",
+                request.JobName,
+                (int)ErrorCodes.RecurringJobEnqueueFailed);
             return new TriggerRecurringJobResponse(
-                ErrorCodes.RecurringJobNotFound,
+                ErrorCodes.RecurringJobEnqueueFailed,
                 new Dictionary<string, string>
                 {
                     { "jobName", request.JobName },

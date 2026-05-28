@@ -101,6 +101,8 @@ public class RecurringJobsController : BaseApiController
     [ProducesResponseType(typeof(TriggerRecurringJobResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<TriggerRecurringJobResponse>> TriggerJob(
         string jobName,
         CancellationToken cancellationToken = default)
@@ -114,7 +116,7 @@ public class RecurringJobsController : BaseApiController
 
         if (!response.Success)
         {
-            return NotFound(response);
+            return HandleResponse(response);
         }
 
         return Accepted(response);
