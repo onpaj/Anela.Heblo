@@ -1,10 +1,11 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 
-namespace Anela.Heblo.Application.Features.BackgroundJobs.Services;
+namespace Anela.Heblo.API.Infrastructure.Hangfire;
 
 /// <summary>
 /// Service responsible for enqueueing recurring jobs via Hangfire using reflection.
