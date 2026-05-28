@@ -244,7 +244,6 @@ public class JournalRepositoryIntegrationTests : IDisposable
         result.Should().ContainKey("TON002");
         var indicator = result["TON002"];
         indicator.DirectEntries.Should().Be(3);
-        indicator.TotalEntries.Should().Be(indicator.DirectEntries);
         indicator.LastEntryDate.Should().Be(latest);
         indicator.HasRecentEntries.Should().BeTrue();
     }
@@ -261,7 +260,6 @@ public class JournalRepositoryIntegrationTests : IDisposable
         result.Should().ContainKey("UNUSED999");
         var indicator = result["UNUSED999"];
         indicator.DirectEntries.Should().Be(0);
-        indicator.TotalEntries.Should().Be(0);
         indicator.LastEntryDate.Should().BeNull();
         indicator.HasRecentEntries.Should().BeFalse();
     }
@@ -291,7 +289,6 @@ public class JournalRepositoryIntegrationTests : IDisposable
         result.Should().ContainKey("CREAM001");
         var indicator = result["CREAM001"];
         indicator.DirectEntries.Should().Be(1);
-        indicator.TotalEntries.Should().Be(indicator.DirectEntries);
         indicator.HasRecentEntries.Should().BeTrue();
         indicator.LastEntryDate.Should().Be(recent);
     }
