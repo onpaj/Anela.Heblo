@@ -1,7 +1,35 @@
-# Plaud Token Auto-Refresh (Deferred)
+# Plaud Token Auto-Refresh (Implemented 2026-05-28)
 
-> **Status:** Deferred — depends on Azure Key Vault infra for Heblo.
-> Pick up when `rgHeblo` has a Key Vault provisioned and the App Service Managed Identity is configured.
+> **Status:** Implemented — weekly Hangfire job `plaud-token-refresh` rotates the token and
+> persists it to Key Vault `Plaud--TokensJson`. Job is disabled by default; enable via
+> Background Jobs admin UI after running the RBAC setup script.
+
+## How It Works
+
+1. `PlaudTokenRefreshJob` (`backend/src/Adapters/Anela.Heblo.Adapters.Plaud/PlaudTokenRefreshJob.cs`)
+   runs weekly (Sunday 04:00 Europe/Prague, `0 4 * * 0`).
+2. Reads the current refresh token from `~/.plaud/tokens.json` on disk.
+3. Calls `PlaudTokenRefreshClient` → Plaud OAuth refresh endpoint.
+4. Validates the response: non-empty tokens, `expires_at` in the future. Throws if invalid — KV is
+   never overwritten with garbage.
+5. Writes new token JSON to disk first (with 0600 permissions), then to Key Vault `Plaud--TokensJson`.
+6. `PlaudTokenBootstrapper` picks up the fresh token on the next container restart via
+   `IConfiguration` (Key Vault is wired in Program.cs with 30-minute reload).
+
+**RBAC setup (once per env):**
+```bash
+./scripts/grant-plaud-token-refresh-permission.sh stg
+./scripts/grant-plaud-token-refresh-permission.sh stg --phase=cleanup  # after verified
+```
+
+**Rollback** — promote the prior KV secret version:
+```bash
+az keyvault secret list-versions --vault-name kv-heblo-prod --name Plaud--TokensJson -o table
+az keyvault secret set --vault-name kv-heblo-prod --name Plaud--TokensJson \
+    --value "$(az keyvault secret show --vault-name kv-heblo-prod --name Plaud--TokensJson \
+        --version <prev-version-id> --query value -o tsv)"
+az webapp restart -g rgHeblo -n heblo
+```
 
 ## Root Cause of the Bootstrapper-Overwrite Problem
 
