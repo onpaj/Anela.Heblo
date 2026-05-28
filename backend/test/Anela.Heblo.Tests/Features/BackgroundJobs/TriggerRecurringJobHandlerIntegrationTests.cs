@@ -1,3 +1,4 @@
+using Anela.Heblo.API.Infrastructure.Hangfire;
 using Anela.Heblo.Application.Features.BackgroundJobs.Services;
 using Anela.Heblo.Application.Features.BackgroundJobs.UseCases.TriggerRecurringJob;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
